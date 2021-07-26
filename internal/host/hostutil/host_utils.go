@@ -190,6 +190,10 @@ func IsDay2Host(h *models.Host) bool {
 	return swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost
 }
 
+func IsUnboundHost(h *models.Host) bool {
+	return h.ClusterID == nil
+}
+
 func MarshalConnectivityReport(report *models.ConnectivityReport) (string, error) {
 	if data, err := json.Marshal(report); err != nil {
 		return "", err

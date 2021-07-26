@@ -157,7 +157,7 @@ var _ = Describe("installcmd", func() {
 		Expect(err).To(Not(HaveOccurred()))
 		host.Inventory = string(b)
 		message := fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sda.Name, sda.ID)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, message, gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityInfo, message, gomock.Any())
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(sdb.ID)
 		mockGetReleaseImage(1)
 		mockImages(1)
@@ -193,8 +193,8 @@ var _ = Describe("installcmd", func() {
 		Expect(err).To(Not(HaveOccurred()))
 		host.Inventory = string(b)
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(sdb.ID)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sda.Name, sda.ID), gomock.Any())
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sdc.Name, sdc.ID), gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sda.Name, sda.ID), gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sdc.Name, sdc.ID), gomock.Any())
 		mockGetReleaseImage(1)
 		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
@@ -218,8 +218,8 @@ var _ = Describe("installcmd", func() {
 		Expect(err).To(Not(HaveOccurred()))
 		host.Inventory = string(b)
 
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sda.Name, sda.ID), gomock.Any())
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sdc.Name, sdc.ID), gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sda.Name, sda.ID), gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sdc.Name, sdc.ID), gomock.Any())
 		mockGetReleaseImage(1)
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(sdb.ID)
 		mockImages(1)
@@ -923,7 +923,7 @@ func createHostInDb(db *gorm.DB, clusterId strfmt.UUID, role models.HostRole, bo
 	id := strfmt.UUID(uuid.New().String())
 	host := models.Host{
 		ID:                &id,
-		ClusterID:         clusterId,
+		ClusterID:         &clusterId,
 		InfraEnvID:        clusterId,
 		Status:            swag.String(models.HostStatusDiscovering),
 		Role:              role,

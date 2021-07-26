@@ -77,7 +77,7 @@ type validation struct {
 func (c *validationContext) loadCluster() error {
 	var err error
 	if c.cluster == nil {
-		c.cluster, err = common.GetClusterFromDBWithoutDisabledHosts(c.db, c.host.ClusterID)
+		c.cluster, err = common.GetClusterFromDBWithoutDisabledHosts(c.db, *c.host.ClusterID)
 	}
 	return err
 }
@@ -175,7 +175,7 @@ func newValidationContext(host *models.Host, c *common.Cluster, db *gorm.DB, hwV
 		cluster:  c,
 		infraEnv: nil,
 	}
-	if host.ClusterID != "" {
+	if host.ClusterID != nil {
 		err := ret.loadCluster()
 		if err != nil {
 			return nil, err
@@ -962,6 +962,9 @@ func domainNameToResolve(c *validationContext, name string) string {
 }
 
 func (v *validator) isAPIDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
 	if !isNonePlatformMultiNodeInstallation(c) {
 		return ValidationSuccess
 	}
@@ -975,6 +978,9 @@ func (v *validator) printIsAPIDomainNameResolvedCorrectly(c *validationContext, 
 }
 
 func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
 	if !isNonePlatformMultiNodeInstallation(c) {
 		return ValidationSuccess
 	}
@@ -988,6 +994,9 @@ func (v *validator) printIsAPIInternalDomainNameResolvedCorrectly(c *validationC
 }
 
 func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
 	if !isNonePlatformMultiNodeInstallation(c) {
 		return ValidationSuccess
 	}

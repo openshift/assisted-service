@@ -70,7 +70,7 @@ func addHost(role models.HostRole, state string, clusterId strfmt.UUID, db *gorm
 	host := models.Host{
 		ID:         &hostId,
 		InfraEnvID: clusterId,
-		ClusterID:  clusterId,
+		ClusterID:  &clusterId,
 		Status:     swag.String(state),
 		Role:       role,
 	}

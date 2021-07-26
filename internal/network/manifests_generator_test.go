@@ -29,7 +29,7 @@ var _ = Describe("chrony manifest", func() {
 		return &models.Host{
 			ID:         &hostID,
 			NtpSources: string(b),
-			ClusterID:  clusterId,
+			ClusterID:  &clusterId,
 			InfraEnvID: clusterId,
 		}
 	}

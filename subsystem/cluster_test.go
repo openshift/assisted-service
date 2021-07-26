@@ -728,7 +728,7 @@ var _ = Describe("cluster install - DHCP", func() {
 		b, err := json.Marshal(&r)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: h.ClusterID,
+			ClusterID: *h.ClusterID,
 			HostID:    *h.ID,
 			Reply: &models.StepReply{
 				ExitCode: 0,
@@ -3458,7 +3458,7 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 		b, err := json.Marshal(&r)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: h.ClusterID,
+			ClusterID: *h.ClusterID,
 			HostID:    *h.ID,
 			Reply: &models.StepReply{
 				ExitCode: 0,
@@ -3528,7 +3528,7 @@ func generateConnectivityPostStepReply(ctx context.Context, h *models.Host, conn
 	fa, err := json.Marshal(connectivityReport)
 	Expect(err).NotTo(HaveOccurred())
 	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: h.ClusterID,
+		ClusterID: *h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{
 			ExitCode: 0,

@@ -101,7 +101,7 @@ var _ = Describe("Controller events wrapper", func() {
 				Host: models.Host{
 					ID:         &hostID1,
 					InfraEnvID: *cluster1.ID,
-					ClusterID:  *cluster1.ID,
+					ClusterID:  cluster1.ID,
 					Status:     swag.String(models.HostStatusKnown),
 					Kind:       swag.String(models.HostKindHost),
 				},

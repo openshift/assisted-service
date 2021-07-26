@@ -105,7 +105,7 @@ var _ = Describe("monitor_disconnection", func() {
 		})
 
 		AfterEach(func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityWarning,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityWarning,
 				fmt.Sprintf("Host %s: updated status from \"%s\" to \"disconnected\" (Host has stopped communicating with the installation service)",
 					host.ID.String(), *host.Status),
 				gomock.Any())
@@ -124,7 +124,7 @@ var _ = Describe("monitor_disconnection", func() {
 		})
 
 		AfterEach(func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityInfo,
 				fmt.Sprintf("Host %s: updated status from \"disconnected\" to \"discovering\" (Waiting for host to send hardware details)", host.ID.String()),
 				gomock.Any())
 			state.HostMonitoring()

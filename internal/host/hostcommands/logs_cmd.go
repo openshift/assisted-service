@@ -75,7 +75,7 @@ func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs stri
 
 	data := map[string]string{
 		"BASE_URL":               strings.TrimSpace(baseURL),
-		"CLUSTER_ID":             string(host.ClusterID),
+		"CLUSTER_ID":             host.ClusterID.String(),
 		"HOST_ID":                string(*host.ID),
 		"AGENT_IMAGE":            strings.TrimSpace(agentImage),
 		"SKIP_CERT_VERIFICATION": strconv.FormatBool(skipCertVerification),
@@ -107,7 +107,7 @@ func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs stri
 }
 
 func (i *logsCmd) getNonBootstrapMastersIPsInHostCluster(ctx context.Context, host *models.Host) ([]string, error) {
-	cluster, err := common.GetClusterFromDB(i.db, host.ClusterID, common.UseEagerLoading)
+	cluster, err := common.GetClusterFromDB(i.db, *host.ClusterID, common.UseEagerLoading)
 	if err != nil {
 		i.log.WithError(err).Errorf("failed to get cluster for host %s", host.ID)
 		return nil, err

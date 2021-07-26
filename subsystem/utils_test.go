@@ -192,7 +192,7 @@ func generateHWPostStepReply(ctx context.Context, h *models.Host, hwInfo *models
 	hw, err := json.Marshal(&hwInfo)
 	Expect(err).NotTo(HaveOccurred())
 	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: h.ClusterID,
+		ClusterID: *h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{
 			ExitCode: 0,
@@ -215,7 +215,7 @@ func generateConnectivityCheckPostStepReply(ctx context.Context, h *models.Host,
 	bytes, err := json.Marshal(&response)
 	Expect(err).NotTo(HaveOccurred())
 	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: h.ClusterID,
+		ClusterID: *h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{
 			ExitCode: 0,
@@ -235,7 +235,7 @@ func generateNTPPostStepReply(ctx context.Context, h *models.Host, ntpSources []
 	bytes, err := json.Marshal(&response)
 	Expect(err).NotTo(HaveOccurred())
 	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: h.ClusterID,
+		ClusterID: *h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{
 			ExitCode: 0,
@@ -254,7 +254,7 @@ func generateApiVipPostStepReply(ctx context.Context, h *models.Host, success bo
 	bytes, jsonErr := json.Marshal(checkVipApiResponse)
 	Expect(jsonErr).NotTo(HaveOccurred())
 	_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: h.ClusterID,
+		ClusterID: *h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{
 			ExitCode: 0,
@@ -274,7 +274,7 @@ func generateContainerImageAvailabilityPostStepReply(ctx context.Context, h *mod
 	bytes, err := json.Marshal(&response)
 	Expect(err).NotTo(HaveOccurred())
 	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: h.ClusterID,
+		ClusterID: *h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{
 			ExitCode: 0,
@@ -322,7 +322,7 @@ func generateFAPostStepReply(ctx context.Context, h *models.Host, freeAddresses 
 	fa, err := json.Marshal(&freeAddresses)
 	Expect(err).NotTo(HaveOccurred())
 	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: h.ClusterID,
+		ClusterID: *h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{
 			ExitCode: 0,
@@ -342,7 +342,7 @@ func generateDiskSpeedChekResponse(ctx context.Context, h *models.Host, path str
 	b, err := json.Marshal(&result)
 	Expect(err).ToNot(HaveOccurred())
 	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: h.ClusterID,
+		ClusterID: *h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{
 			ExitCode: exitCode,

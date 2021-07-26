@@ -95,7 +95,7 @@ var _ = Describe("RegisterHost", func() {
 	})
 
 	It("register_new", func() {
-		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: clusterId, InfraEnvID: clusterId, DiscoveryAgentVersion: "v1.0.1"}, db)).ShouldNot(HaveOccurred())
+		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: &clusterId, InfraEnvID: clusterId, DiscoveryAgentVersion: "v1.0.1"}, db)).ShouldNot(HaveOccurred())
 		h := hostutil.GetHostFromDB(hostId, clusterId, db)
 		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
 		Expect(h.DiscoveryAgentVersion).To(Equal("v1.0.1"))
@@ -143,7 +143,7 @@ var _ = Describe("RegisterHost", func() {
 				Expect(db.Create(&models.Host{
 					ID:         &hostId,
 					InfraEnvID: clusterId,
-					ClusterID:  clusterId,
+					ClusterID:  &clusterId,
 					Role:       models.HostRoleMaster,
 					Inventory:  defaultHwInfo,
 					Status:     swag.String(t.srcState),
@@ -158,7 +158,7 @@ var _ = Describe("RegisterHost", func() {
 
 				err := hapi.RegisterHost(ctx, &models.Host{
 					ID:         &hostId,
-					ClusterID:  clusterId,
+					ClusterID:  &clusterId,
 					InfraEnvID: clusterId,
 					Status:     swag.String(t.srcState),
 				},
@@ -189,7 +189,7 @@ var _ = Describe("RegisterHost", func() {
 		Expect(db.Create(&models.Host{
 			ID:         &hostId,
 			InfraEnvID: clusterId,
-			ClusterID:  clusterId,
+			ClusterID:  &clusterId,
 			Role:       models.HostRoleMaster,
 			Inventory:  defaultHwInfo,
 			Status:     swag.String(models.HostStatusDisabled),
@@ -197,7 +197,7 @@ var _ = Describe("RegisterHost", func() {
 
 		Expect(hapi.RegisterHost(ctx, &models.Host{
 			ID:                    &hostId,
-			ClusterID:             clusterId,
+			ClusterID:             &clusterId,
 			Status:                swag.String(models.HostStatusDisabled),
 			DiscoveryAgentVersion: "v2.0.5",
 		},
@@ -208,7 +208,7 @@ var _ = Describe("RegisterHost", func() {
 		Expect(db.Create(&models.Host{
 			ID:         &hostId,
 			InfraEnvID: clusterId,
-			ClusterID:  clusterId,
+			ClusterID:  &clusterId,
 			Role:       models.HostRoleMaster,
 			Inventory:  defaultHwInfo,
 			Status:     swag.String(models.HostStatusError),
@@ -216,7 +216,7 @@ var _ = Describe("RegisterHost", func() {
 
 		Expect(hapi.RegisterHost(ctx, &models.Host{
 			ID:                    &hostId,
-			ClusterID:             clusterId,
+			ClusterID:             &clusterId,
 			Status:                swag.String(models.HostStatusError),
 			DiscoveryAgentVersion: "v2.0.5",
 		},
@@ -268,7 +268,7 @@ var _ = Describe("RegisterHost", func() {
 				Expect(db.Create(&models.Host{
 					ID:         &hostId,
 					InfraEnvID: clusterId,
-					ClusterID:  clusterId,
+					ClusterID:  &clusterId,
 					Role:       models.HostRoleMaster,
 					Inventory:  defaultHwInfo,
 					Status:     swag.String(t.srcState),
@@ -288,7 +288,8 @@ var _ = Describe("RegisterHost", func() {
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
 					ID:                    &hostId,
-					ClusterID:             clusterId,
+					InfraEnvID:            clusterId,
+					ClusterID:             &clusterId,
 					Status:                swag.String(t.srcState),
 					DiscoveryAgentVersion: discoveryAgentVersion,
 				},
@@ -316,7 +317,7 @@ var _ = Describe("RegisterHost", func() {
 				Expect(db.Create(&models.Host{
 					ID:         &hostId,
 					InfraEnvID: clusterId,
-					ClusterID:  clusterId,
+					ClusterID:  &clusterId,
 					Role:       models.HostRoleMaster,
 					Inventory:  defaultHwInfo,
 					Status:     swag.String(t.srcState),
@@ -324,7 +325,7 @@ var _ = Describe("RegisterHost", func() {
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
 					ID:        &hostId,
-					ClusterID: clusterId,
+					ClusterID: &clusterId,
 					Status:    swag.String(t.srcState),
 				},
 					db)).Should(HaveOccurred())
@@ -417,7 +418,7 @@ var _ = Describe("RegisterHost", func() {
 			It(fmt.Sprintf("register %s host in reboot", t.srcState), func() {
 				Expect(db.Create(&models.Host{
 					ID:                   &hostId,
-					ClusterID:            clusterId,
+					ClusterID:            &clusterId,
 					InfraEnvID:           clusterId,
 					Role:                 t.origRole,
 					Inventory:            common.GenerateTestDefaultInventory(),
@@ -438,9 +439,10 @@ var _ = Describe("RegisterHost", func() {
 				}
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
-					ID:        &hostId,
-					ClusterID: clusterId,
-					Status:    swag.String(t.srcState),
+					ID:         &hostId,
+					InfraEnvID: clusterId,
+					ClusterID:  &clusterId,
+					Status:     swag.String(t.srcState),
 				},
 					db)).ShouldNot(HaveOccurred())
 
@@ -451,6 +453,93 @@ var _ = Describe("RegisterHost", func() {
 				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(t.expectedStatusInfo))
 			})
 		}
+	})
+
+	Context("register unbound host", func() {
+		var (
+			infraEnvId strfmt.UUID
+			host       models.Host
+		)
+
+		BeforeEach(func() {
+			infraEnvId = strfmt.UUID(uuid.New().String())
+		})
+
+		tests := []struct {
+			name        string
+			srcState    string
+			dstState    string
+			newHost     bool
+			eventRaised bool
+		}{
+			{
+				name:        "register new host to pool",
+				srcState:    "",
+				dstState:    models.HostStatusDiscoveringUnbound,
+				newHost:     true,
+				eventRaised: false,
+			},
+			{
+				name:        "dicovering-unbound to discovering-unbound",
+				srcState:    models.HostStatusDiscoveringUnbound,
+				dstState:    models.HostStatusDiscoveringUnbound,
+				newHost:     false,
+				eventRaised: false,
+			},
+			{
+				name:        "disconnected-unbound to discovering-unbound",
+				srcState:    models.HostStatusDisconnectedUnbound,
+				dstState:    models.HostStatusDiscoveringUnbound,
+				newHost:     false,
+				eventRaised: true,
+			},
+			{
+				name:        "insufficient-unbound to discovering-unbound",
+				srcState:    models.HostStatusInsufficientUnbound,
+				dstState:    models.HostStatusDiscoveringUnbound,
+				newHost:     false,
+				eventRaised: true,
+			},
+			{
+				name:        "known-unbound to discovering-unbound",
+				srcState:    models.HostStatusKnownUnbound,
+				dstState:    models.HostStatusDiscoveringUnbound,
+				newHost:     false,
+				eventRaised: true,
+			},
+			{
+				name:        "disabled-unbound to disabled-unbound",
+				srcState:    models.HostStatusDisabledUnbound,
+				dstState:    models.HostStatusDisabledUnbound,
+				newHost:     false,
+				eventRaised: false,
+			},
+		}
+		for i := range tests {
+			t := tests[i]
+
+			It(t.name, func() {
+				if !t.newHost {
+					host = hostutil.GenerateTestHost(hostId, infraEnvId, t.srcState)
+					host.ClusterID = nil
+					Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				}
+				if t.eventRaised {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvId, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
+						gomock.Any(), gomock.Any())
+				}
+
+				Expect(hapi.RegisterHost(ctx, &models.Host{
+					ID:         &hostId,
+					InfraEnvID: infraEnvId,
+					ClusterID:  nil,
+				}, db)).ShouldNot(HaveOccurred())
+
+				h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+				Expect(swag.StringValue(h.Status)).Should(Equal(t.dstState))
+			})
+		}
+
 	})
 
 	AfterEach(func() {
@@ -488,7 +577,7 @@ var _ = Describe("HostInstallationFailed", func() {
 	})
 
 	It("handle_installation_error", func() {
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityError,
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, models.EventSeverityError,
 			fmt.Sprintf("Host %s: updated status from \"installing\" to \"error\" (installation command failed)", host.ID.String()),
 			gomock.Any())
 		mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
@@ -832,7 +921,7 @@ var _ = Describe("Install", func() {
 			It(t.name, func() {
 				host = hostutil.GenerateTestHost(hostId, clusterId, t.srcState)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
+				mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, models.EventSeverityInfo,
 					fmt.Sprintf("Host %s: updated status from \"%s\" to \"installing\" (Installation is in progress)", host.ID.String(), t.srcState),
 					gomock.Any())
 				t.validation(hapi.Install(ctx, &host, nil))
@@ -865,7 +954,7 @@ var _ = Describe("Install", func() {
 		It("success", func() {
 			tx := db.Begin()
 			Expect(tx.Error).To(BeNil())
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, models.EventSeverityInfo,
 				fmt.Sprintf("Host %s: updated status from \"preparing-successful\" to \"installing\" (Installation is in progress)", "master-hostname"),
 				gomock.Any())
 			Expect(hapi.RefreshStatus(ctx, &host, tx)).ShouldNot(HaveOccurred())
@@ -878,7 +967,7 @@ var _ = Describe("Install", func() {
 		It("rollback transition", func() {
 			tx := db.Begin()
 			Expect(tx.Error).To(BeNil())
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, models.EventSeverityInfo,
 				fmt.Sprintf("Host %s: updated status from \"preparing-successful\" to \"installing\" (Installation is in progress)", "master-hostname"),
 				gomock.Any())
 			Expect(hapi.RefreshStatus(ctx, &host, tx)).ShouldNot(HaveOccurred())
@@ -896,14 +985,14 @@ var _ = Describe("Install", func() {
 
 var _ = Describe("Disable", func() {
 	var (
-		ctx               = context.Background()
-		hapi              API
-		db                *gorm.DB
-		ctrl              *gomock.Controller
-		mockEvents        *events.MockHandler
-		hostId, clusterId strfmt.UUID
-		host              models.Host
-		dbName            string
+		ctx                           = context.Background()
+		hapi                          API
+		db                            *gorm.DB
+		ctrl                          *gomock.Controller
+		mockEvents                    *events.MockHandler
+		hostId, clusterId, infraEnvId strfmt.UUID
+		host                          models.Host
+		dbName                        string
 	)
 
 	BeforeEach(func() {
@@ -914,96 +1003,137 @@ var _ = Describe("Disable", func() {
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
-		clusterId = strfmt.UUID(uuid.New().String())
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		clusterId = infraEnvId
 	})
 
 	Context("disable host", func() {
 		var srcState string
-		success := func(reply error) {
+		success := func(reply error, dstState string) {
 			Expect(reply).To(BeNil())
-			h := hostutil.GetHostFromDB(hostId, clusterId, db)
-			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+			Expect(*h.Status).Should(Equal(dstState))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDisabled))
 		}
 
-		failure := func(reply error) {
+		failure := func(reply error, _ string) {
 			Expect(reply).To(HaveOccurred())
-			h := hostutil.GetHostFromDB(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
 			Expect(*h.Status).Should(Equal(srcState))
 		}
 
-		mockEventsUpdateStatus := func(srcState string) {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
-				fmt.Sprintf(`Host %s: updated status from "%s" to "disabled" (Host was manually disabled)`,
-					host.ID.String(), srcState),
+		mockEventsUpdateStatus := func(srcState, dstState string) {
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, models.EventSeverityInfo,
+				fmt.Sprintf(`Host %s: updated status from "%s" to "%s" (Host was manually disabled)`,
+					host.ID.String(), srcState, dstState),
 				gomock.Any()).Times(1)
 		}
 
 		tests := []struct {
 			name       string
 			srcState   string
-			validation func(error)
-			mocks      []func(string)
+			poolHost   bool
+			validation func(error, string)
+			mocks      []func(string, string)
 		}{
 			{
 				name:       "known",
 				srcState:   models.HostStatusKnown,
+				poolHost:   false,
 				validation: success,
-				mocks:      []func(string){mockEventsUpdateStatus},
+				mocks:      []func(string, string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "disabled nothing change",
 				srcState:   models.HostStatusDisabled,
+				poolHost:   false,
 				validation: failure,
 			},
 			{
 				name:       "disconnected",
 				srcState:   models.HostStatusDisconnected,
+				poolHost:   false,
 				validation: success,
-				mocks:      []func(string){mockEventsUpdateStatus},
+				mocks:      []func(string, string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "discovering",
+				poolHost:   false,
 				srcState:   models.HostStatusDiscovering,
 				validation: success,
-				mocks:      []func(string){mockEventsUpdateStatus},
+				mocks:      []func(string, string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "error",
 				srcState:   models.HostStatusError,
+				poolHost:   false,
 				validation: failure,
 			},
 			{
 				name:       "installed",
 				srcState:   models.HostStatusInstalled,
+				poolHost:   false,
 				validation: failure,
 			},
 			{
 				name:       "installing",
 				srcState:   models.HostStatusInstalling,
+				poolHost:   false,
 				validation: failure,
 			},
 			{
 				name:       "in-progress",
 				srcState:   models.HostStatusInstallingInProgress,
+				poolHost:   false,
 				validation: failure,
 			},
 			{
 				name:       "insufficient",
 				srcState:   models.HostStatusInsufficient,
+				poolHost:   false,
 				validation: success,
-				mocks:      []func(string){mockEventsUpdateStatus},
+				mocks:      []func(string, string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "resetting",
 				srcState:   models.HostStatusResetting,
+				poolHost:   false,
 				validation: failure,
 			},
 			{
 				name:       models.HostStatusPendingForInput,
 				srcState:   models.HostStatusPendingForInput,
+				poolHost:   false,
 				validation: success,
-				mocks:      []func(string){mockEventsUpdateStatus},
+				mocks:      []func(string, string){mockEventsUpdateStatus},
+			},
+			{
+				name:       "disconnected-unbound",
+				srcState:   models.HostStatusDisconnectedUnbound,
+				poolHost:   true,
+				validation: success,
+				mocks:      []func(string, string){mockEventsUpdateStatus},
+			},
+			{
+				name:       "discovering-unbound",
+				srcState:   models.HostStatusDiscoveringUnbound,
+				poolHost:   true,
+				validation: success,
+				mocks:      []func(string, string){mockEventsUpdateStatus},
+			},
+			{
+				name:       "insufficient-unbound",
+				srcState:   models.HostStatusInsufficientUnbound,
+				poolHost:   true,
+				validation: success,
+				mocks:      []func(string, string){mockEventsUpdateStatus},
+			},
+			{
+				name:       "known-unbound",
+				srcState:   models.HostStatusKnownUnbound,
+				poolHost:   true,
+				validation: success,
+				mocks:      []func(string, string){mockEventsUpdateStatus},
 			},
 		}
 
@@ -1012,11 +1142,16 @@ var _ = Describe("Disable", func() {
 			It(t.name, func() {
 				srcState = t.srcState
 				host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
+				dstState := models.HostStatusDisabled
+				if t.poolHost {
+					host.ClusterID = nil
+					dstState = models.HostStatusDisabledUnbound
+				}
 				for _, m := range t.mocks {
-					m(t.srcState)
+					m(t.srcState, dstState)
 				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				t.validation(hapi.DisableHost(ctx, &host, db))
+				t.validation(hapi.DisableHost(ctx, &host, db), dstState)
 			})
 		}
 	})
@@ -1052,17 +1187,17 @@ var _ = Describe("Enable", func() {
 
 	Context("enable host", func() {
 		var srcState string
-		success := func(reply error) {
+		success := func(reply error, dstState string) {
 			Expect(reply).To(BeNil())
 			h := hostutil.GetHostFromDB(hostId, clusterId, db)
-			Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
+			Expect(*h.Status).Should(Equal(dstState))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDiscovering))
 			Expect(h.Inventory).Should(BeEmpty())
 			Expect(h.Bootstrap).Should(BeFalse())
 			Expect(h.NtpSources).ShouldNot(BeEmpty())
 		}
 
-		failure := func(reply error) {
+		failure := func(reply error, _ string) {
 			Expect(reply).Should(HaveOccurred())
 			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(srcState))
@@ -1077,8 +1212,9 @@ var _ = Describe("Enable", func() {
 		tests := []struct {
 			name       string
 			srcState   string
-			validation func(error)
+			validation func(error, string)
 			sendEvent  bool
+			poolHost   bool
 		}{
 			{
 				name:       "known",
@@ -1140,6 +1276,13 @@ var _ = Describe("Enable", func() {
 				validation: failure,
 				sendEvent:  false,
 			},
+			{
+				name:       "disabled-unbound",
+				srcState:   models.HostStatusDisabledUnbound,
+				validation: success,
+				sendEvent:  true,
+				poolHost:   true,
+			},
 		}
 
 		for i := range tests {
@@ -1150,6 +1293,11 @@ var _ = Describe("Enable", func() {
 				host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
 				host.Inventory = defaultHwInfo
 				host.Bootstrap = true
+				dstState := models.HostStatusDiscovering
+				if t.poolHost {
+					host.ClusterID = nil
+					dstState = models.HostStatusDiscoveringUnbound
+				}
 
 				bytes, err := json.Marshal(defaultNTPSources)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -1158,11 +1306,11 @@ var _ = Describe("Enable", func() {
 
 				// Test definition
 				if t.sendEvent {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
-						fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (Waiting for host to send hardware details)", hostutil.GetHostnameForMsg(&host), srcState),
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, models.EventSeverityInfo,
+						fmt.Sprintf("Host %s: updated status from \"%s\" to \"%s\" (Waiting for host to send hardware details)", hostutil.GetHostnameForMsg(&host), srcState, dstState),
 						gomock.Any())
 				}
-				t.validation(hapi.EnableHost(ctx, &host, db))
+				t.validation(hapi.EnableHost(ctx, &host, db), dstState)
 			})
 		}
 	})
@@ -1174,6 +1322,7 @@ var _ = Describe("Enable", func() {
 
 type statusInfoChecker interface {
 	check(statusInfo *string)
+	String() string
 }
 
 type valueChecker struct {
@@ -1186,6 +1335,10 @@ func (v *valueChecker) check(value *string) {
 	} else {
 		Expect(*value).To(Equal(v.value))
 	}
+}
+
+func (v *valueChecker) String() string {
+	return v.value
 }
 
 func makeValueChecker(value string) statusInfoChecker {
@@ -1202,6 +1355,10 @@ func (v *regexChecker) check(value *string) {
 	} else {
 		Expect(*value).To(MatchRegexp(v.pattern))
 	}
+}
+
+func (v *regexChecker) String() string {
+	return v.pattern
 }
 
 func makeRegexChecker(pattern string) statusInfoChecker {
@@ -1342,7 +1499,7 @@ var _ = Describe("Refresh Host", func() {
 				if t.expectTimeout {
 					mockEvents.EXPECT().AddEvent(
 						gomock.Any(),
-						host.ClusterID,
+						*host.ClusterID,
 						&hostId,
 						hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
 						gomock.Any(),
@@ -1404,7 +1561,7 @@ var _ = Describe("Refresh Host", func() {
 				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
-				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
+				mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
 					gomock.Any(), gomock.Any())
 				err := hapi.RefreshStatus(ctx, &host, db)
 
@@ -1493,7 +1650,7 @@ var _ = Describe("Refresh Host", func() {
 			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusDisconnected),
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusDisconnected),
 				gomock.Any(), gomock.Any())
 			err := hapi.RefreshStatus(ctx, &host, db)
 
@@ -1536,7 +1693,7 @@ var _ = Describe("Refresh Host", func() {
 				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				if passedTimeKind == "over_timeout" {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
+					mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
 						gomock.Any(), gomock.Any())
 				}
 				err := hapi.RefreshStatus(ctx, &host, db)
@@ -1604,7 +1761,7 @@ var _ = Describe("Refresh Host", func() {
 					Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 					if passedTimeKind == "over_timeout" {
-						mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
+						mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
 							gomock.Any(), gomock.Any())
 					}
 					err := hapi.RefreshStatus(ctx, &host, db)
@@ -1654,7 +1811,7 @@ var _ = Describe("Refresh Host", func() {
 			host.Progress = &progress
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID,
 				gomock.Any(), hostutil.GetEventSeverityFromHostStatus(models.HostStatusError), gomock.Any(), gomock.Any()).
 				AnyTimes()
 
@@ -1893,7 +2050,7 @@ var _ = Describe("Refresh Host", func() {
 				} else {
 					mockDefaultClusterHostRequirements(mockHwValidator)
 				}
-				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
+				mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID,
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					AnyTimes()
 
@@ -2075,7 +2232,7 @@ var _ = Describe("Refresh Host", func() {
 
 				// Test definition
 				if t.dstState != models.HostStatusPreparingForInstallation {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
+					mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
 						gomock.Any(), gomock.Any())
 				}
 				Expect(getHost(clusterId, hostId).ValidationsInfo).To(BeEmpty())
@@ -2154,7 +2311,7 @@ var _ = Describe("Refresh Host", func() {
 
 				// Test definition
 				if t.dstState != models.HostStatusPreparingSuccessful {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
+					mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
 						gomock.Any(), gomock.Any())
 				}
 				Expect(getHost(clusterId, hostId).ValidationsInfo).To(BeEmpty())
@@ -3380,7 +3537,7 @@ var _ = Describe("Refresh Host", func() {
 
 				// Test definition
 				if srcState != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
+					mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
 						gomock.Any(), gomock.Any())
 				}
 				Expect(getHost(clusterId, hostId).ValidationsInfo).To(BeEmpty())
@@ -3436,7 +3593,7 @@ var _ = Describe("Refresh Host", func() {
 				cluster.Status = &t.clusterStatus
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				if *host.Status != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
+					mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
 						gomock.Any(), gomock.Any())
 				}
 				err := hapi.RefreshStatus(ctx, &host, db)
@@ -3872,7 +4029,7 @@ var _ = Describe("Refresh Host", func() {
 					expectedSeverity = models.EventSeverityWarning
 				}
 				if !t.errorExpected && srcState != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, expectedSeverity,
+					mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, &hostId, expectedSeverity,
 						gomock.Any(), gomock.Any())
 				}
 
@@ -3978,7 +4135,7 @@ var _ = Describe("Refresh Host", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			host.DomainNameResolutions = string(bytes)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID,
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				AnyTimes()
 		})
@@ -4282,7 +4439,7 @@ var _ = Describe("Refresh Host", func() {
 			cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID,
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				AnyTimes()
 
@@ -4425,6 +4582,226 @@ var _ = Describe("Refresh Host", func() {
 			})
 		}
 	})
+
+	Context("unbound host", func() {
+
+		var infraEnvId strfmt.UUID
+
+		BeforeEach(func() {
+			infraEnvId = strfmt.UUID(uuid.New().String())
+			infraEnv := &common.InfraEnv{
+				InfraEnv: models.InfraEnv{
+					ID: infraEnvId,
+				},
+			}
+			Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
+		})
+
+		tests := []struct {
+			name              string
+			srcState          string
+			dstState          string
+			validCheckInTime  bool
+			hostname          string
+			inventory         string
+			eventRaised       bool
+			statusInfoChecker statusInfoChecker
+		}{
+			{
+				name:              "discovering-unbound to disconnected-unbound",
+				srcState:          models.HostStatusDiscoveringUnbound,
+				dstState:          models.HostStatusDisconnectedUnbound,
+				validCheckInTime:  false,
+				eventRaised:       true,
+				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
+			},
+			{
+				name:              "insufficient-unbound to disconnected-unbound",
+				srcState:          models.HostStatusInsufficientUnbound,
+				dstState:          models.HostStatusDisconnectedUnbound,
+				validCheckInTime:  false,
+				eventRaised:       true,
+				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
+			},
+			{
+				name:              "known-unbound to disconnected-unbound",
+				srcState:          models.HostStatusKnownUnbound,
+				dstState:          models.HostStatusDisconnectedUnbound,
+				validCheckInTime:  false,
+				eventRaised:       true,
+				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
+			},
+			{
+				name:              "disconnected-unbound to disconnected-unbound",
+				srcState:          models.HostStatusDisconnectedUnbound,
+				dstState:          models.HostStatusDisconnectedUnbound,
+				validCheckInTime:  false,
+				eventRaised:       false,
+				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
+			},
+			{
+				name:              "discovering-unbound to discovering-unbound",
+				srcState:          models.HostStatusDiscoveringUnbound,
+				dstState:          models.HostStatusDiscoveringUnbound,
+				validCheckInTime:  true,
+				inventory:         "",
+				eventRaised:       false,
+				statusInfoChecker: makeValueChecker(statusInfoDiscovering),
+			},
+			{
+				name:              "disconnected-unbound to discovering-unbound",
+				srcState:          models.HostStatusDisconnectedUnbound,
+				dstState:          models.HostStatusDiscoveringUnbound,
+				validCheckInTime:  true,
+				inventory:         "",
+				eventRaised:       true,
+				statusInfoChecker: makeValueChecker(statusInfoDiscovering),
+			},
+			{
+				name:             "disconnected-unbound to insufficient-unbound",
+				srcState:         models.HostStatusDisconnectedUnbound,
+				dstState:         models.HostStatusInsufficientUnbound,
+				validCheckInTime: true,
+				inventory:        insufficientHWInventory(),
+				eventRaised:      true,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
+					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
+					"Require a disk of at least 120 GB",
+					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
+					"Host couldn't synchronize with any NTP server")),
+			},
+			{
+				name:             "discovering-unbound to insufficient-unbound",
+				srcState:         models.HostStatusDiscoveringUnbound,
+				dstState:         models.HostStatusInsufficientUnbound,
+				validCheckInTime: true,
+				inventory:        insufficientHWInventory(),
+				eventRaised:      true,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
+					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
+					"Require a disk of at least 120 GB",
+					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
+					"Host couldn't synchronize with any NTP server")),
+			},
+			{
+				name:             "insufficient-unbound to insufficient-unbound",
+				srcState:         models.HostStatusInsufficientUnbound,
+				dstState:         models.HostStatusInsufficientUnbound,
+				validCheckInTime: true,
+				inventory:        insufficientHWInventory(),
+				eventRaised:      false,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
+					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
+					"Require a disk of at least 120 GB",
+					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
+					"Host couldn't synchronize with any NTP server")),
+			},
+			{
+				name:             "known-unbound to insufficient-unbound",
+				srcState:         models.HostStatusKnownUnbound,
+				dstState:         models.HostStatusInsufficientUnbound,
+				validCheckInTime: true,
+				inventory:        insufficientHWInventory(),
+				eventRaised:      true,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
+					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
+					"Require a disk of at least 120 GB",
+					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
+					"Host couldn't synchronize with any NTP server")),
+			},
+			{
+				name:              "binding to binding",
+				srcState:          models.HostStatusBinding,
+				dstState:          models.HostStatusBinding,
+				validCheckInTime:  true,
+				inventory:         insufficientHWInventory(),
+				eventRaised:       false,
+				statusInfoChecker: makeValueChecker(statusInfoBinding),
+			},
+			{
+				name:              "disabled-unbound to disabled-unbound",
+				srcState:          models.HostStatusDisabledUnbound,
+				dstState:          models.HostStatusDisabledUnbound,
+				validCheckInTime:  true,
+				inventory:         insufficientHWInventory(),
+				eventRaised:       false,
+				statusInfoChecker: makeValueChecker(statusInfoDisabled),
+			},
+			{
+				name:              "disconnected-unbound to known-unbound",
+				srcState:          models.HostStatusDisconnectedUnbound,
+				dstState:          models.HostStatusKnownUnbound,
+				validCheckInTime:  true,
+				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
+				hostname:          "test-hostname",
+				eventRaised:       true,
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+			},
+			{
+				name:              "discovering-unbound to known-unbound",
+				srcState:          models.HostStatusDiscoveringUnbound,
+				dstState:          models.HostStatusKnownUnbound,
+				validCheckInTime:  true,
+				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
+				hostname:          "test-hostname",
+				eventRaised:       true,
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+			},
+			{
+				name:              "insufficient-unbound to known-unbound",
+				srcState:          models.HostStatusInsufficientUnbound,
+				dstState:          models.HostStatusKnownUnbound,
+				validCheckInTime:  true,
+				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
+				hostname:          "test-hostname",
+				eventRaised:       true,
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+			},
+			{
+				name:              "known-unbound to known-unbound",
+				srcState:          models.HostStatusKnownUnbound,
+				dstState:          models.HostStatusKnownUnbound,
+				validCheckInTime:  true,
+				inventory:         hostutil.GenerateMasterInventory(),
+				eventRaised:       false,
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				hostCheckInAt := strfmt.DateTime(time.Now())
+				host = hostutil.GenerateTestHost(hostId, infraEnvId, t.srcState)
+				host.Inventory = t.inventory
+				host.ClusterID = nil
+				if !t.validCheckInTime {
+					// Timeout for checkin is 3 minutes so subtract 4 minutes from the current time
+					hostCheckInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
+				}
+				host.CheckedInAt = hostCheckInAt
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				mockDefaultInfraEnvHostRequirements(mockHwValidator)
+				if t.eventRaised {
+					msgHostId := hostId.String()
+					if t.hostname != "" {
+						msgHostId = t.hostname
+					}
+
+					mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvId, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
+						fmt.Sprintf("Host %s: updated status from \"%s\" to \"%s\" (%s)",
+							msgHostId, t.srcState, t.dstState, t.statusInfoChecker.String()), gomock.Any())
+				}
+
+				Expect(hapi.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and infra_env_id = ?", host.ID, infraEnvId.String()).Error).ToNot(HaveOccurred())
+				Expect(resultHost.Status).To(Equal(&t.dstState))
+			})
+		}
+	})
+
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
@@ -4461,8 +4838,36 @@ func mockDefaultClusterHostRequirements(mockHwValidator *hardware.MockValidator)
 	mockPreflightHardwareRequirements(mockHwValidator, &defaultMasterRequirements, &defaultWorkerRequirements)
 }
 
+func mockDefaultInfraEnvHostRequirements(mockHwValidator *hardware.MockValidator) {
+	mockHwValidator.EXPECT().GetInfraEnvHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).DoAndReturn(func(ctx context.Context, infraEnv *common.InfraEnv, host *models.Host) (*models.ClusterHostRequirements, error) {
+		var details models.ClusterHostRequirementsDetails
+		if host.Role == models.HostRoleMaster {
+			details = defaultMasterRequirements
+		} else {
+			details = defaultWorkerRequirements
+		}
+		return &models.ClusterHostRequirements{Total: &details}, nil
+	})
+
+	mockPreflightInfraEnvHardwareRequirements(mockHwValidator, &defaultMasterRequirements, &defaultWorkerRequirements)
+}
+
 func mockPreflightHardwareRequirements(mockHwValidator *hardware.MockValidator, masterRequirements, workerRequirements *models.ClusterHostRequirementsDetails) *gomock.Call {
 	return mockHwValidator.EXPECT().GetPreflightHardwareRequirements(gomock.Any(), gomock.Any()).AnyTimes().Return(
+		&models.PreflightHardwareRequirements{
+			Ocp: &models.HostTypeHardwareRequirementsWrapper{
+				Master: &models.HostTypeHardwareRequirements{
+					Quantitative: masterRequirements,
+				},
+				Worker: &models.HostTypeHardwareRequirements{
+					Quantitative: workerRequirements,
+				},
+			},
+		}, nil)
+}
+
+func mockPreflightInfraEnvHardwareRequirements(mockHwValidator *hardware.MockValidator, masterRequirements, workerRequirements *models.ClusterHostRequirementsDetails) *gomock.Call {
+	return mockHwValidator.EXPECT().GetPreflightInfraEnvHardwareRequirements(gomock.Any(), gomock.Any()).Times(1).Return(
 		&models.PreflightHardwareRequirements{
 			Ocp: &models.HostTypeHardwareRequirementsWrapper{
 				Master: &models.HostTypeHardwareRequirements{

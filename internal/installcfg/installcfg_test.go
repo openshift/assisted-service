@@ -46,7 +46,7 @@ var _ = Describe("installcfg", func() {
 		id := strfmt.UUID(uuid.New().String())
 		host1 = models.Host{
 			ID:        &id,
-			ClusterID: clusterId,
+			ClusterID: &clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "master",
 			Inventory: getInventoryStr("hostname0", "bootMode", false),
@@ -54,7 +54,7 @@ var _ = Describe("installcfg", func() {
 		id = strfmt.UUID(uuid.New().String())
 		host2 = models.Host{
 			ID:        &id,
-			ClusterID: clusterId,
+			ClusterID: &clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "worker",
 			Inventory: getInventoryStr("hostname1", "bootMode", false),
@@ -62,7 +62,7 @@ var _ = Describe("installcfg", func() {
 
 		host3 = models.Host{
 			ID:        &id,
-			ClusterID: clusterId,
+			ClusterID: &clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "worker",
 			Inventory: getInventoryStr("hostname2", "bootMode", false),

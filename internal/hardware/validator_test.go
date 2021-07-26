@@ -221,9 +221,9 @@ var _ = Describe("hardware_validator", func() {
 		id2 := strfmt.UUID(uuid.New().String())
 		id3 := strfmt.UUID(uuid.New().String())
 		clusterID := strfmt.UUID(uuid.New().String())
-		host1 = &models.Host{ID: &id1, ClusterID: clusterID, Status: &status, RequestedHostname: "reqhostname1"}
-		host2 = &models.Host{ID: &id2, ClusterID: clusterID, Status: &status, RequestedHostname: "reqhostname2"}
-		host3 = &models.Host{ID: &id3, ClusterID: clusterID, Status: &status, RequestedHostname: "reqhostname3"}
+		host1 = &models.Host{ID: &id1, ClusterID: &clusterID, Status: &status, RequestedHostname: "reqhostname1"}
+		host2 = &models.Host{ID: &id2, ClusterID: &clusterID, Status: &status, RequestedHostname: "reqhostname2"}
+		host3 = &models.Host{ID: &id3, ClusterID: &clusterID, Status: &status, RequestedHostname: "reqhostname3"}
 		inventory = &models.Inventory{
 			CPU:    &models.CPU{Count: 16},
 			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
@@ -453,7 +453,7 @@ var _ = Describe("Cluster host requirements", func() {
 	It("should contain correct default requirements for master host", func() {
 		role := models.HostRoleMaster
 		id1 := strfmt.UUID(uuid.New().String())
-		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role}
 
 		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
 
@@ -480,7 +480,7 @@ var _ = Describe("Cluster host requirements", func() {
 	It("should contain correct default requirements for sno master host", func() {
 		role := models.HostRoleMaster
 		id1 := strfmt.UUID(uuid.New().String())
-		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role}
 		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 
 		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
@@ -506,7 +506,7 @@ var _ = Describe("Cluster host requirements", func() {
 	It("should contain correct default requirements for worker host", func() {
 		role := models.HostRoleWorker
 		id1 := strfmt.UUID(uuid.New().String())
-		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role}
 
 		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
 
@@ -533,7 +533,7 @@ var _ = Describe("Cluster host requirements", func() {
 	It("should fail providing on operator API error", func() {
 		role := models.HostRoleWorker
 		id1 := strfmt.UUID(uuid.New().String())
-		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role}
 
 		failure := errors.New("boom")
 		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(nil, failure)
@@ -548,7 +548,7 @@ var _ = Describe("Cluster host requirements", func() {
 		func(role models.HostRole, expectedOcpRequirements models.ClusterHostRequirementsDetails) {
 
 			id1 := strfmt.UUID(uuid.New().String())
-			host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+			host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role}
 			cluster.OpenshiftVersion = "4.7"
 
 			operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
@@ -590,7 +590,7 @@ var _ = Describe("Cluster host requirements", func() {
 		func(role models.HostRole, expectedOcpRequirements models.ClusterHostRequirementsDetails) {
 
 			id1 := strfmt.UUID(uuid.New().String())
-			host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+			host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role}
 			cluster.OpenshiftVersion = "4.6"
 
 			operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)

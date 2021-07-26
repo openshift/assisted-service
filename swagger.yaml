@@ -3822,6 +3822,7 @@ definitions:
         type: string
         format: uuid
         x-go-custom-tag: gorm:"foreignkey:Cluster"
+        x-nullable: true
         description: The cluster that this host is associated with.
       infra_env_id:
         type: string
@@ -3848,6 +3849,12 @@ definitions:
           - resetting
           - added-to-existing-cluster
           - cancelled
+          - binding
+          - known-unbound
+          - disconnected-unbound
+          - insufficient-unbound
+          - disabled-unbound
+          - discovering-unbound
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"

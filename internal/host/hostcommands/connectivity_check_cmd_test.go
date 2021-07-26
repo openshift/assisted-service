@@ -40,7 +40,8 @@ var _ = Describe("connectivitycheckcmd", func() {
 	})
 
 	It("get_step_unknow_cluster_id", func() {
-		host.ClusterID = strfmt.UUID(uuid.New().String())
+		clusterID := strfmt.UUID(uuid.New().String())
+		host.ClusterID = &clusterID
 		stepReply, stepErr = connectivityCheckCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).ShouldNot(HaveOccurred())

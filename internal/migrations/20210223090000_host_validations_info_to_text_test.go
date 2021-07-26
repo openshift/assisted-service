@@ -28,7 +28,7 @@ var _ = Describe("ChangeHostValidationsInfoToText", func() {
 		host := models.Host{
 			ID:              &hostID,
 			ValidationsInfo: hostValidationsInfo,
-			ClusterID:       clusterID,
+			ClusterID:       &clusterID,
 			InfraEnvID:      clusterID,
 		}
 		err := db.Create(&host).Error

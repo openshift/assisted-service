@@ -57,12 +57,12 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 	hostParam := sHost.host
 
 	// If host already exists
-	if _, err := common.GetHostFromDB(params.db, hostParam.ClusterID.String(), hostParam.ID.String()); err == nil {
+	if _, err := common.GetHostFromDB(params.db, hostParam.InfraEnvID.String(), hostParam.ID.String()); err == nil {
 		// The reason for the double register is unknown (HW might have changed) -
 		// so we reset the hw info and progress, and start the discovery process again.
 		extra := append(resetFields[:], "discovery_agent_version", params.discoveryAgentVersion, "ntp_sources", "")
 		var dbHost *common.Host
-		if dbHost, err = hostutil.UpdateHostProgress(params.ctx, log, params.db, th.eventsHandler, hostParam.ClusterID, *hostParam.ID, sHost.srcState,
+		if dbHost, err = hostutil.UpdateHostProgress(params.ctx, log, params.db, th.eventsHandler, hostParam.InfraEnvID, *hostParam.ID, sHost.srcState,
 			swag.StringValue(hostParam.Status), statusInfoDiscovering, hostParam.Progress.CurrentStage, "", "", extra...); err != nil {
 			return err
 		} else {
@@ -76,7 +76,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		Host:                    *hostParam,
 		TriggerMonitorTimestamp: time.Now(),
 	}
-	log.Infof("Register new host %s cluster %s", hostToCreate.ID.String(), hostToCreate.ClusterID)
+	log.Infof("Register new host %s infra env %s", hostToCreate.ID.String(), hostToCreate.InfraEnvID)
 	return params.db.Create(hostToCreate).Error
 }
 
@@ -314,6 +314,29 @@ func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args sta
 }
 
 ////////////////////////////////////////////////////////////////////////////
+// Bind host
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsBindHost struct {
+	ctx context.Context
+	db  *gorm.DB
+}
+
+func (th *transitionHandler) PostBindHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostBindHost incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsBindHost)
+	if !ok {
+		return errors.New("PostBindHost invalid argument")
+	}
+
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoBinding,
+		resetFields[:]...)
+}
+
+////////////////////////////////////////////////////////////////////////////
 // Resetting pending user action
 ////////////////////////////////////////////////////////////////////////////
 
@@ -357,7 +380,7 @@ func (th *transitionHandler) PostResettingPendingUserAction(sw stateswitch.State
 func (th *transitionHandler) updateTransitionHost(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, state *stateHost,
 	statusInfo string, extra ...interface{}) error {
 
-	if host, err := hostutil.UpdateHostStatus(ctx, log, db, th.eventsHandler, state.host.ClusterID, *state.host.ID, state.srcState,
+	if host, err := hostutil.UpdateHostStatus(ctx, log, db, th.eventsHandler, state.host.InfraEnvID, *state.host.ID, state.srcState,
 		swag.StringValue(state.host.Status), statusInfo, extra...); err != nil {
 		return err
 	} else {
@@ -422,7 +445,7 @@ func (th *transitionHandler) PostRefreshLogsProgress(progress string) stateswitc
 		}
 		var err error
 		_, err = hostutil.UpdateLogsProgress(params.ctx, logutil.FromContext(params.ctx, th.log),
-			params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState, progress)
+			params.db, th.eventsHandler, *sHost.host.ClusterID, *sHost.host.ID, sHost.srcState, progress)
 		return err
 	}
 	return ret
@@ -513,7 +536,7 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 
 		if sHost.srcState != swag.StringValue(sHost.host.Status) || swag.StringValue(sHost.host.StatusInfo) != template {
 			_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
-				th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
+				th.eventsHandler, sHost.host.InfraEnvID, *sHost.host.ID,
 				sHost.srcState, swag.StringValue(sHost.host.Status), template)
 		}
 		return err
@@ -527,6 +550,14 @@ func (th *transitionHandler) IsDay2Host(sw stateswitch.StateSwitch, args statesw
 		return false, errors.New("HasClusterError incompatible type of StateSwitch")
 	}
 	return hostutil.IsDay2Host(sHost.host), nil
+}
+
+func (th *transitionHandler) IsUnboundHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("HasClusterError incompatible type of StateSwitch")
+	}
+	return hostutil.IsUnboundHost(sHost.host), nil
 }
 
 func (th *transitionHandler) HostNotResponsiveWhilePreparingInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
@@ -581,7 +612,7 @@ func (th *transitionHandler) PostRefreshHostRefreshStageUpdateTime(
 	_, err = refreshHostStageUpdateTime(
 		logutil.FromContext(params.ctx, th.log),
 		params.db,
-		sHost.host.ClusterID,
+		*sHost.host.ClusterID,
 		*sHost.host.ID,
 		sHost.srcState)
 	return err

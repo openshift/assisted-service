@@ -96,7 +96,7 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 		}
 
 		if err2 == nil {
-			if h.ClusterID == *clusterID {
+			if *h.ClusterID == *clusterID {
 				log.Infof("Agent CR %s already exists, same cluster %s", hostId, h.ClusterID)
 				return nil
 			}
