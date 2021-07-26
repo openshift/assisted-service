@@ -79,6 +79,21 @@ func (mr *MockValidatorMockRecorder) GetClusterHostRequirements(ctx, cluster, ho
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetClusterHostRequirements), ctx, cluster, host)
 }
 
+// GetInfraEnvHostRequirements mocks base method
+func (m *MockValidator) GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv, host *models.Host) (*models.ClusterHostRequirements, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInfraEnvHostRequirements", ctx, infraEnv, host)
+	ret0, _ := ret[0].(*models.ClusterHostRequirements)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInfraEnvHostRequirements indicates an expected call of GetInfraEnvHostRequirements
+func (mr *MockValidatorMockRecorder) GetInfraEnvHostRequirements(ctx, infraEnv, host interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetInfraEnvHostRequirements), ctx, infraEnv, host)
+}
+
 // DiskIsEligible mocks base method
 func (m *MockValidator) DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -136,4 +151,19 @@ func (m *MockValidator) GetPreflightHardwareRequirements(ctx context.Context, cl
 func (mr *MockValidatorMockRecorder) GetPreflightHardwareRequirements(ctx, cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPreflightHardwareRequirements", reflect.TypeOf((*MockValidator)(nil).GetPreflightHardwareRequirements), ctx, cluster)
+}
+
+// GetPreflightInfraEnvHardwareRequirements mocks base method
+func (m *MockValidator) GetPreflightInfraEnvHardwareRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.PreflightHardwareRequirements, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPreflightInfraEnvHardwareRequirements", ctx, infraEnv)
+	ret0, _ := ret[0].(*models.PreflightHardwareRequirements)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPreflightInfraEnvHardwareRequirements indicates an expected call of GetPreflightInfraEnvHardwareRequirements
+func (mr *MockValidatorMockRecorder) GetPreflightInfraEnvHardwareRequirements(ctx, infraEnv interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPreflightInfraEnvHardwareRequirements", reflect.TypeOf((*MockValidator)(nil).GetPreflightInfraEnvHardwareRequirements), ctx, infraEnv)
 }

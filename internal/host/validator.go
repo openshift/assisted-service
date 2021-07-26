@@ -55,6 +55,7 @@ func (v ValidationStatus) String() string {
 type validationContext struct {
 	host                    *models.Host
 	cluster                 *common.Cluster
+	infraEnv                *common.InfraEnv
 	inventory               *models.Inventory
 	db                      *gorm.DB
 	clusterHostRequirements *models.ClusterHostRequirements
@@ -77,6 +78,12 @@ func (c *validationContext) loadCluster() error {
 	if c.cluster == nil {
 		c.cluster, err = common.GetClusterFromDBWithoutDisabledHosts(c.db, c.host.ClusterID)
 	}
+	return err
+}
+
+func (c *validationContext) loadInfraEnv() error {
+	var err error
+	c.infraEnv, err = common.GetInfraEnvFromDB(c.db, c.host.InfraEnvID)
 	return err
 }
 
@@ -130,6 +137,12 @@ func (c *validationContext) loadClusterHostRequirements(hwValidator hardware.Val
 	return err
 }
 
+func (c *validationContext) loadInfraEnvHostRequirements(hwValidator hardware.Validator) error {
+	requirements, err := hwValidator.GetInfraEnvHostRequirements(context.TODO(), c.infraEnv, c.host)
+	c.clusterHostRequirements = requirements
+	return err
+}
+
 func (c *validationContext) loadGeneralMinRequirements(hwValidator hardware.Validator) error {
 	requirements, err := hwValidator.GetPreflightHardwareRequirements(context.TODO(), c.cluster)
 	if err != nil {
@@ -142,30 +155,72 @@ func (c *validationContext) loadGeneralMinRequirements(hwValidator hardware.Vali
 	return err
 }
 
+func (c *validationContext) loadGeneralInfraEnvMinRequirements(hwValidator hardware.Validator) error {
+	requirements, err := hwValidator.GetPreflightInfraEnvHardwareRequirements(context.TODO(), c.infraEnv)
+	if err != nil {
+		return err
+	}
+
+	c.minCPUCoresRequirement = int64(math.Min(float64(requirements.Ocp.Master.Quantitative.CPUCores), float64(requirements.Ocp.Worker.Quantitative.CPUCores)))
+	c.minRAMMibRequirement = int64(math.Min(float64(requirements.Ocp.Master.Quantitative.RAMMib), float64(requirements.Ocp.Worker.Quantitative.RAMMib)))
+
+	return err
+}
+
 func newValidationContext(host *models.Host, c *common.Cluster, db *gorm.DB, hwValidator hardware.Validator) (*validationContext, error) {
 	ret := &validationContext{
-		host:    host,
-		db:      db,
-		cluster: c,
+		host:     host,
+		db:       db,
+		cluster:  c,
+		infraEnv: nil,
 	}
-	err := ret.loadCluster()
-	if err == nil {
+	if host.ClusterID != "" {
+		err := ret.loadCluster()
+		if err != nil {
+			return nil, err
+		}
 		err = ret.loadInventory()
-	}
-	if err == nil {
+		if err != nil {
+			return nil, err
+		}
 		err = ret.validateRole()
-	}
-	if err == nil {
+		if err != nil {
+			return nil, err
+		}
 		err = ret.validateMachineCIDR()
-	}
-	if err == nil {
+		if err != nil {
+			return nil, err
+		}
 		err = ret.loadClusterHostRequirements(hwValidator)
-	}
-	if err == nil {
+		if err != nil {
+			return nil, err
+		}
 		err = ret.loadGeneralMinRequirements(hwValidator)
-	}
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := ret.loadInfraEnv()
+		if err != nil {
+			return nil, err
+		}
+		err = ret.loadInventory()
+		if err != nil {
+			return nil, err
+		}
+		err = ret.validateRole()
+		if err != nil {
+			return nil, err
+		}
+		err = ret.loadInfraEnvHostRequirements(hwValidator)
+		if err != nil {
+			return nil, err
+		}
+
+		err = ret.loadGeneralInfraEnvMinRequirements(hwValidator)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return ret, nil
 }
@@ -280,6 +335,9 @@ func (v *validator) printHasMinValidDisks(c *validationContext, status Validatio
 }
 
 func (v *validator) isMachineCidrDefined(c *validationContext) ValidationStatus {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
 	return boolValue(swag.BoolValue(c.cluster.UserManagedNetworking) || swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || c.cluster.MachineNetworkCidr != "")
 }
 
@@ -367,6 +425,9 @@ func (v *validator) printHasMemoryForRole(c *validationContext, status Validatio
 }
 
 func (v *validator) belongsToMachineCidr(c *validationContext) ValidationStatus {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
 	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || (swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster)) {
 		return ValidationSuccess
 	}
@@ -400,6 +461,9 @@ func getRealHostname(host *models.Host, inventory *models.Inventory) string {
 }
 
 func (v *validator) isHostnameUnique(c *validationContext) ValidationStatus {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
 	if c.inventory == nil {
 		return ValidationPending
 	}
@@ -454,6 +518,9 @@ func (v *validator) printHostnameValid(c *validationContext, status ValidationSt
 }
 
 func (v *validator) isAPIVipConnected(c *validationContext) ValidationStatus {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
 	if c.inventory == nil {
 		return ValidationPending
 	}
@@ -519,6 +586,9 @@ func (v *validator) belongsToL3MajorityGroup(c *validationContext, majorityGroup
 }
 
 func (v *validator) belongsToMajorityGroup(c *validationContext) ValidationStatus {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
 	if hostutil.IsDay2Host(c.host) || common.IsSingleNodeCluster(c.cluster) {
 		return ValidationSuccess
 	}
@@ -694,6 +764,9 @@ func (v *validator) printSufficientOrUnknownInstallationDiskSpeed(c *validationC
 }
 
 func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationContext) ValidationStatus {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
 
 	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.NetworkLatencyThresholdMs == nil || c.host.Role == models.HostRoleAutoAssign {
 		// Single Node use case || no requirements defined || role is auto assign
@@ -760,6 +833,9 @@ func (v *validator) printSufficientNetworkLatencyRequirementForRole(c *validatio
 }
 
 func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationContext) ValidationStatus {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
 
 	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.PacketLossPercentage == nil || c.host.Role == models.HostRoleAutoAssign {
 		// Single Node use case || no requirements defined || role is auto assign
