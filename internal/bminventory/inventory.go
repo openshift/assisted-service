@@ -4429,6 +4429,10 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	if params.LogsType == string(models.LogsTypeController) {
+		firstClusterLogCollectionEvent := false
+		if swag.IsZero(currentCluster.ControllerLogsCollectedAt) {
+			firstClusterLogCollectionEvent = true
+		}
 		err = b.clusterApi.SetUploadControllerLogsAt(ctx, currentCluster, b.db)
 		if err != nil {
 			log.WithError(err).Errorf("Failed update cluster %s controller_logs_collected_at flag", params.ClusterID)
@@ -4439,9 +4443,11 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 			log.WithError(err).Errorf("Failed update cluster %s log progress %s", params.ClusterID, string(models.LogsStateCollecting))
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
-			fmt.Sprintf("Uploaded logs for cluster %s",
-				params.ClusterID.String()), time.Now())
+		if firstClusterLogCollectionEvent { // Issue an event only for the very first cluster log collection event.
+			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
+				fmt.Sprintf("Uploaded logs for cluster %s",
+					params.ClusterID.String()), time.Now())
+		}
 	}
 
 	log.Infof("Done uploading file %s", fileName)

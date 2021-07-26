@@ -5032,10 +5032,16 @@ var _ = Describe("Upload and Download logs test", func() {
 		}
 		fileName := bm.getLogsFullName(clusterID.String(), string(models.LogsTypeController))
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
-		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
-		mockClusterApi.EXPECT().SetUploadControllerLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockClusterApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCollecting)).Return(nil).Times(1)
+		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(2)
+		mockClusterApi.EXPECT().SetUploadControllerLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		mockClusterApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCollecting)).Return(nil).Times(2)
+		By("Upload cluster logs for the first time")
 		reply := bm.UploadLogs(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadLogsNoContent()))
+		By("Upload cluster logs for the second time - expect no additional event to be published")
+		err := db.Model(c).Update("controller_logs_collected_at", strfmt.DateTime(time.Now())).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		reply = bm.UploadLogs(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadLogsNoContent()))
 	})
 	It("Download controller log where not uploaded yet", func() {
