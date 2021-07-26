@@ -204,6 +204,18 @@ type InstallerAPI interface {
 	/* UploadLogs Agent API to upload logs. */
 	UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder
 
+	/* V2GetHost Retrieves the details of the OpenShift host. */
+	V2GetHost(ctx context.Context, params installer.V2GetHostParams) middleware.Responder
+
+	/* V2GetNextSteps Retrieves the next operations that the host agent needs to perform. */
+	V2GetNextSteps(ctx context.Context, params installer.V2GetNextStepsParams) middleware.Responder
+
+	/* V2PostStepReply Posts the result of the operations from the host agent. */
+	V2PostStepReply(ctx context.Context, params installer.V2PostStepReplyParams) middleware.Responder
+
+	/* V2RegisterHost Registers a new OpenShift agent. */
+	V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder
+
 	/* V2RegisterInfraEnv Creates a new OpenShift Discovery ISO. */
 	V2RegisterInfraEnv(ctx context.Context, params installer.V2RegisterInfraEnvParams) middleware.Responder
 }
@@ -670,6 +682,26 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UploadLogs(ctx, params)
+	})
+	api.InstallerV2GetHostHandler = installer.V2GetHostHandlerFunc(func(params installer.V2GetHostParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2GetHost(ctx, params)
+	})
+	api.InstallerV2GetNextStepsHandler = installer.V2GetNextStepsHandlerFunc(func(params installer.V2GetNextStepsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2GetNextSteps(ctx, params)
+	})
+	api.InstallerV2PostStepReplyHandler = installer.V2PostStepReplyHandlerFunc(func(params installer.V2PostStepReplyParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2PostStepReply(ctx, params)
+	})
+	api.InstallerV2RegisterHostHandler = installer.V2RegisterHostHandlerFunc(func(params installer.V2RegisterHostParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2RegisterHost(ctx, params)
 	})
 	api.InstallerV2RegisterInfraEnvHandler = installer.V2RegisterInfraEnvHandlerFunc(func(params installer.V2RegisterInfraEnvParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

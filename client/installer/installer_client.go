@@ -171,6 +171,18 @@ type API interface {
 	   UploadLogs Agent API to upload logs.*/
 	UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error)
 	/*
+	   V2GetHost Retrieves the details of the OpenShift host.*/
+	V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2GetHostOK, error)
+	/*
+	   V2GetNextSteps Retrieves the next operations that the host agent needs to perform.*/
+	V2GetNextSteps(ctx context.Context, params *V2GetNextStepsParams) (*V2GetNextStepsOK, error)
+	/*
+	   V2PostStepReply Posts the result of the operations from the host agent.*/
+	V2PostStepReply(ctx context.Context, params *V2PostStepReplyParams) (*V2PostStepReplyNoContent, error)
+	/*
+	   V2RegisterHost Registers a new OpenShift agent.*/
+	V2RegisterHost(ctx context.Context, params *V2RegisterHostParams) (*V2RegisterHostCreated, error)
+	/*
 	   V2RegisterInfraEnv Creates a new OpenShift Discovery ISO.*/
 	V2RegisterInfraEnv(ctx context.Context, params *V2RegisterInfraEnvParams) (*V2RegisterInfraEnvCreated, error)
 }
@@ -1420,6 +1432,106 @@ func (a *Client) UploadLogs(ctx context.Context, params *UploadLogsParams) (*Upl
 		return nil, err
 	}
 	return result.(*UploadLogsNoContent), nil
+
+}
+
+/*
+V2GetHost Retrieves the details of the OpenShift host.
+*/
+func (a *Client) V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2GetHostOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2GetHost",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetHostOK), nil
+
+}
+
+/*
+V2GetNextSteps Retrieves the next operations that the host agent needs to perform.
+*/
+func (a *Client) V2GetNextSteps(ctx context.Context, params *V2GetNextStepsParams) (*V2GetNextStepsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2GetNextSteps",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetNextStepsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetNextStepsOK), nil
+
+}
+
+/*
+V2PostStepReply Posts the result of the operations from the host agent.
+*/
+func (a *Client) V2PostStepReply(ctx context.Context, params *V2PostStepReplyParams) (*V2PostStepReplyNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2PostStepReply",
+		Method:             "POST",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2PostStepReplyReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2PostStepReplyNoContent), nil
+
+}
+
+/*
+V2RegisterHost Registers a new OpenShift agent.
+*/
+func (a *Client) V2RegisterHost(ctx context.Context, params *V2RegisterHostParams) (*V2RegisterHostCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2RegisterHost",
+		Method:             "POST",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2RegisterHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2RegisterHostCreated), nil
 
 }
 

@@ -2809,6 +2809,30 @@ func (b *bareMetalInventory) generateNextStepRunnerCommand(ctx context.Context, 
 	}
 }
 
+func (b *bareMetalInventory) generateV2NextStepRunnerCommand(ctx context.Context, params *installer.V2RegisterHostParams) *models.HostRegistrationResponseAO1NextStepRunnerCommand {
+
+	currentImageTag := extractImageTag(b.AgentDockerImg)
+	if params.NewHostParams.DiscoveryAgentVersion != currentImageTag {
+		log := logutil.FromContext(ctx, b.log)
+		log.Infof("Host %s in infra-env %s has outdated agent image %s, updating to %s",
+			params.NewHostParams.HostID.String(), params.InfraEnvID.String(), params.NewHostParams.DiscoveryAgentVersion, currentImageTag)
+	}
+
+	config := hostcommands.V2NextStepRunnerConfig{
+		ServiceBaseURL:       b.ServiceBaseURL,
+		InfraEnvID:           params.InfraEnvID.String(),
+		HostID:               params.NewHostParams.HostID.String(),
+		UseCustomCACert:      b.ServiceCACertPath != "",
+		NextStepRunnerImage:  b.AgentDockerImg,
+		SkipCertVerification: b.SkipCertVerification,
+	}
+	command, args := hostcommands.V2GetNextStepRunnerCommand(&config)
+	return &models.HostRegistrationResponseAO1NextStepRunnerCommand{
+		Command: command,
+		Args:    *args,
+	}
+}
+
 func extractImageTag(fullName string) string {
 	suffix := strings.Split(fullName, ":")
 	return suffix[len(suffix)-1]
@@ -3273,7 +3297,7 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 }
 
 func logReplyReceived(params installer.PostStepReplyParams, log logrus.FieldLogger, host *common.Host) {
-	if !shouldStepReplyBeLogged(params, host) {
+	if !shouldStepReplyBeLogged(params.Reply, host) {
 		return
 	}
 
@@ -3293,7 +3317,7 @@ func logReplyReceived(params installer.PostStepReplyParams, log logrus.FieldLogg
 	}
 }
 
-func shouldStepReplyBeLogged(params installer.PostStepReplyParams, host *common.Host) bool {
+func shouldStepReplyBeLogged(reply *models.StepReply, host *common.Host) bool {
 	// Host with a disconnected ISO device is unstable and all the steps should be failed
 	// Currently the assisted-service logs are full with the media disconnection errors.
 	// Here we are filtering these errors and log the message once per host.
@@ -3301,7 +3325,7 @@ func shouldStepReplyBeLogged(params installer.PostStepReplyParams, host *common.
 	// TODO: Maybe we should collect the logs even in this state.
 	notFirstMediaDisconnectionFailure := *host.Status == models.HostStatusError && host.StatusInfo != nil &&
 		strings.Contains(*host.StatusInfo, mediaDisconnectionMessage)
-	return !(params.Reply.ExitCode == MediaDisconnected && notFirstMediaDisconnectionFailure)
+	return !(reply.ExitCode == MediaDisconnected && notFirstMediaDisconnectionFailure)
 }
 
 func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
@@ -4721,4 +4745,238 @@ func (b *bareMetalInventory) AddOpenshiftVersion(ctx context.Context, ocpRelease
 
 func (b *bareMetalInventory) V2RegisterInfraEnv(ctx context.Context, params installer.V2RegisterInfraEnvParams) middleware.Responder {
 	return installer.NewV2RegisterInfraEnvNotImplemented()
+}
+
+func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Register host: %+v", params)
+
+	txSuccess := false
+	tx := b.db.Begin()
+	tx = transaction.AddForUpdateQueryOption(tx)
+	defer func() {
+		if !txSuccess {
+			log.Error("RegisterHost failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("RegisterHost failed")
+			tx.Rollback()
+		}
+	}()
+
+	infraEnv, err := common.GetInfraEnvFromDB(tx, params.InfraEnvID)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get infra env: %s", params.InfraEnvID)
+		return common.GenerateErrorResponder(err)
+	}
+
+	_, err = common.GetV2HostFromDB(tx, params.InfraEnvID.String(), params.NewHostParams.HostID.String())
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		log.WithError(err).Errorf("failed to get host %s in infra-env: %s",
+			*params.NewHostParams.HostID, params.InfraEnvID.String())
+		return installer.NewRegisterHostInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	// In case host doesn't exists check if the cluster accept new hosts registration
+	newRecord := err != nil && errors.Is(err, gorm.ErrRecordNotFound)
+
+	url := installer.V2GetHostURL{InfraEnvID: params.InfraEnvID, HostID: *params.NewHostParams.HostID}
+	kind := swag.String(models.HostKindHost)
+
+	// We immediately set the role to master in single node clusters to have more strict (master) validations.
+	// Typically, the validations are "weak" because an auto-assign host has the potential to only be a worker,
+	// which has less strict hardware requirements. This early role assignment results in clearer, more early
+	// errors for the user in case of insufficient hardware. In the future, single-node clusters might support
+	// extra nodes (as workers). In that case, this line might need to be removed.
+	defaultRole := models.HostRoleAutoAssign
+
+	host := &models.Host{
+		ID:                    params.NewHostParams.HostID,
+		Href:                  swag.String(url.String()),
+		Kind:                  kind,
+		ClusterID:             infraEnv.ClusterID,
+		CheckedInAt:           strfmt.DateTime(time.Now()),
+		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
+		UserName:              ocm.UserNameFromContext(ctx),
+		Role:                  defaultRole,
+		InfraEnvID:            infraEnv.ID,
+	}
+
+	var cluster *common.Cluster
+	if infraEnv.ClusterID != "" {
+		cluster, err = common.GetClusterFromDB(tx, infraEnv.ClusterID, common.SkipEagerLoading)
+		if err != nil {
+			log.WithError(err).Errorf("Cluster get")
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		if newRecord {
+			if err = b.clusterApi.AcceptRegistration(cluster); err != nil {
+				log.WithError(err).Errorf("failed to register host <%s> to infra-env %s due to: %s",
+					params.NewHostParams.HostID, params.InfraEnvID.String(), err.Error())
+				// TODO Need event for infra-env instead of cluster
+				b.eventsHandler.AddEvent(ctx, params.InfraEnvID, params.NewHostParams.HostID, models.EventSeverityError,
+					err.Error(), time.Now())
+				return common.NewApiError(http.StatusConflict, err)
+			}
+		}
+		if common.IsSingleNodeCluster(cluster) {
+			host.Role = models.HostRoleMaster
+		}
+		if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+			host.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+		}
+		host.ClusterID = infraEnv.ClusterID
+	}
+
+	if err = b.hostApi.RegisterHost(ctx, host, tx); err != nil {
+		log.WithError(err).Errorf("failed to register host <%s> infra-env <%s>",
+			params.NewHostParams.HostID.String(), params.InfraEnvID.String())
+		uerr := errors.Wrap(err, fmt.Sprintf("Failed to register host %s", hostutil.GetHostnameForMsg(host)))
+
+		// TODO event for infra-env
+		b.eventsHandler.AddEvent(ctx, params.InfraEnvID, params.NewHostParams.HostID, models.EventSeverityError,
+			uerr.Error(), time.Now())
+		return returnRegisterHostTransitionError(http.StatusBadRequest, err)
+	}
+
+	if err = b.customizeHost(host); err != nil {
+		b.eventsHandler.AddEvent(ctx, params.InfraEnvID, params.NewHostParams.HostID, models.EventSeverityError,
+			"Failed to register host: error setting host properties", time.Now())
+		return common.GenerateErrorResponder(err)
+	}
+
+	b.eventsHandler.AddEvent(ctx, params.InfraEnvID, params.NewHostParams.HostID, models.EventSeverityInfo,
+		fmt.Sprintf("Host %s: registered to cluster", hostutil.GetHostnameForMsg(host)), time.Now())
+
+	hostRegistration := models.HostRegistrationResponse{
+		Host:                  *host,
+		NextStepRunnerCommand: b.generateV2NextStepRunnerCommand(ctx, &params),
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Error(err)
+		return installer.NewRegisterHostInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	if infraEnv.ClusterID != "" {
+		if err := b.crdUtils.CreateAgentCR(ctx, log, params.NewHostParams.HostID.String(), cluster.KubeKeyNamespace, cluster.KubeKeyName, cluster.ID); err != nil {
+			log.WithError(err).Errorf("Fail to create Agent CR. Namespace: %s, Cluster: %s, HostID: %s", cluster.KubeKeyNamespace, cluster.KubeKeyName, params.NewHostParams.HostID.String())
+			return installer.NewRegisterHostInternalServerError().
+				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
+	}
+
+	txSuccess = true
+
+	return installer.NewV2RegisterHostCreated().WithPayload(&hostRegistration)
+}
+
+func (b *bareMetalInventory) V2GetNextSteps(ctx context.Context, params installer.V2GetNextStepsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var steps models.Steps
+
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("get next steps failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("get next steps failed")
+			tx.Rollback()
+		}
+	}()
+
+	if tx.Error != nil {
+		log.WithError(tx.Error).Errorf("failed to start db transaction")
+		return installer.NewUpdateClusterInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
+	}
+
+	//TODO check the error type
+	host, err := common.GetV2HostFromDB(tx, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to find host: %s", params.HostID)
+		return installer.NewGetNextStepsNotFound().
+			WithPayload(common.GenerateError(http.StatusNotFound, err))
+	}
+
+	host.CheckedInAt = strfmt.DateTime(time.Now())
+	if err = tx.Model(&host).UpdateColumn("checked_in_at", host.CheckedInAt).Error; err != nil {
+		log.WithError(err).Errorf("failed to update host: %s", params.HostID.String())
+		return installer.NewV2GetNextStepsInternalServerError()
+	}
+
+	if err = tx.Commit().Error; err != nil {
+		log.Error(err)
+		return installer.NewGetNextStepsInternalServerError()
+	}
+	txSuccess = true
+
+	steps, err = b.hostApi.GetNextSteps(ctx, &host.Host)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get steps for host %s infra-env %s", params.HostID.String(), params.InfraEnvID.String())
+	}
+
+	return installer.NewV2GetNextStepsOK().WithPayload(&steps)
+}
+
+func (b *bareMetalInventory) V2PostStepReply(ctx context.Context, v2Params installer.V2PostStepReplyParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	host, err := common.GetV2HostFromDB(b.db, v2Params.InfraEnvID.String(), v2Params.HostID.String())
+
+	if err != nil {
+		log.WithError(err).Errorf("Failed to find host <%s> infra-env <%s> step <%s> exit code %d stdout <%s> stderr <%s>",
+			v2Params.HostID, v2Params.InfraEnvID, v2Params.Reply.StepID, v2Params.Reply.ExitCode, v2Params.Reply.Output, v2Params.Reply.Error)
+		return installer.NewPostStepReplyNotFound().
+			WithPayload(common.GenerateError(http.StatusNotFound, err))
+	}
+
+	// TODO Remove this and use infra-env internally
+	params := installer.PostStepReplyParams{
+		ClusterID:             v2Params.InfraEnvID,
+		DiscoveryAgentVersion: v2Params.DiscoveryAgentVersion,
+		HostID:                v2Params.HostID,
+		Reply:                 v2Params.Reply,
+	}
+	logReplyReceived(params, log, host)
+
+	if params.Reply.ExitCode != 0 {
+		handlingError := b.handleReplyError(params, ctx, log, &host.Host, params.Reply.ExitCode)
+		if handlingError != nil {
+			log.WithError(handlingError).Errorf("Failed handling reply error for host <%s> cluster <%s>", params.HostID, params.ClusterID)
+		}
+		return installer.NewV2PostStepReplyNoContent()
+	}
+
+	if !shouldHandle(params) {
+		return installer.NewV2PostStepReplyNoContent()
+	}
+
+	stepReply, err := filterReplyByType(params)
+	if err != nil {
+		log.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
+			params.Reply.StepID, params.HostID, params.ClusterID)
+		return installer.NewV2PostStepReplyBadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+
+	err = handleReplyByType(params, b, ctx, host.Host, stepReply)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to update step reply for host <%s> cluster <%s> step <%s>",
+			params.HostID, params.ClusterID, params.Reply.StepID)
+		return installer.NewV2PostStepReplyInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	return installer.NewV2PostStepReplyNoContent()
+}
+
+func (b *bareMetalInventory) V2GetHost(ctx context.Context, params installer.V2GetHostParams) middleware.Responder {
+	return installer.NewV2GetHostNotImplemented()
 }
