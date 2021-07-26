@@ -5441,8 +5441,7 @@ func init() {
           "type": "string",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes",
-            "auto-assign"
+            "OVNKubernetes"
           ],
           "x-nullable": true
         },
@@ -5633,11 +5632,10 @@ func init() {
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
-          "default": "auto-assign",
+          "default": "OpenShiftSDN",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes",
-            "auto-assign"
+            "OVNKubernetes"
           ]
         },
         "no_proxy": {
@@ -5933,8 +5931,7 @@ func init() {
           "type": "string",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes",
-            "auto-assign"
+            "OVNKubernetes"
           ],
           "x-nullable": true
         },
@@ -13832,8 +13829,7 @@ func init() {
           "type": "string",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes",
-            "auto-assign"
+            "OVNKubernetes"
           ],
           "x-nullable": true
         },
@@ -14024,11 +14020,10 @@ func init() {
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
-          "default": "auto-assign",
+          "default": "OpenShiftSDN",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes",
-            "auto-assign"
+            "OVNKubernetes"
           ]
         },
         "no_proxy": {
@@ -14284,8 +14279,7 @@ func init() {
           "type": "string",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes",
-            "auto-assign"
+            "OVNKubernetes"
           ],
           "x-nullable": true
         },

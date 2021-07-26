@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/manifests"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -697,6 +698,12 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	if !update {
 		return nil
 	}
+
+	updatedNetworkType := selectClusterNetworkType(params, cluster)
+	if updatedNetworkType != swag.StringValue(cluster.NetworkType) {
+		params.NetworkType = swag.String(updatedNetworkType)
+	}
+
 	_, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.UpdateClusterParams{
 		ClusterUpdateParams: params,
 		ClusterID:           *cluster.ID,
@@ -716,6 +723,35 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
 	}
 	return nil
+}
+
+func selectClusterNetworkType(params *models.ClusterUpdateParams, cluster *common.Cluster) string {
+	clusterNetworkCidr := ""
+	if params.ClusterNetworkCidr != nil {
+		clusterNetworkCidr = swag.StringValue(params.ClusterNetworkCidr)
+	} else {
+		clusterNetworkCidr = cluster.ClusterNetworkCidr
+	}
+
+	serviceNetworkCidr := ""
+	if params.ServiceNetworkCidr != nil {
+		serviceNetworkCidr = swag.StringValue(params.ServiceNetworkCidr)
+	} else {
+		serviceNetworkCidr = cluster.ServiceNetworkCidr
+	}
+
+	machineNetworkCidr := ""
+	if params.MachineNetworkCidr != nil {
+		machineNetworkCidr = swag.StringValue(params.MachineNetworkCidr)
+	} else {
+		machineNetworkCidr = cluster.MachineNetworkCidr
+	}
+
+	if network.IsIPv6CIDR(clusterNetworkCidr) || network.IsIPv6CIDR(serviceNetworkCidr) || network.IsIPv6CIDR(machineNetworkCidr) {
+		return models.ClusterNetworkTypeOVNKubernetes
+	} else {
+		return models.ClusterNetworkTypeOpenShiftSDN
+	}
 }
 
 func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall,

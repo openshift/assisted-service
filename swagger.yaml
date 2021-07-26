@@ -4171,8 +4171,8 @@ definitions:
       network_type:
         type: string
         description: "The desired network type used."
-        enum: ['OpenShiftSDN', 'OVNKubernetes', 'auto-assign']
-        default: 'auto-assign'
+        enum: ['OpenShiftSDN', 'OVNKubernetes']
+        default: 'OpenShiftSDN'
       schedulable_masters:
         type: boolean
         description: Schedule workloads on masters
@@ -4328,7 +4328,7 @@ definitions:
       network_type:
         type: string
         description: The desired network type used.
-        enum: ['OpenShiftSDN', 'OVNKubernetes', 'auto-assign']
+        enum: ['OpenShiftSDN', 'OVNKubernetes']
         x-nullable: true
       schedulable_masters:
         type: boolean
@@ -4615,7 +4615,7 @@ definitions:
       network_type:
         type: string
         description: The desired network type used.
-        enum: ['OpenShiftSDN', 'OVNKubernetes', 'auto-assign' ]
+        enum: ['OpenShiftSDN', 'OVNKubernetes']
         x-nullable: true
 
   platform:

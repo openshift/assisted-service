@@ -152,7 +152,7 @@ type Cluster struct {
 	Name string `json:"name,omitempty"`
 
 	// The desired network type used.
-	// Enum: [OpenShiftSDN OVNKubernetes auto-assign]
+	// Enum: [OpenShiftSDN OVNKubernetes]
 	NetworkType *string `json:"network_type,omitempty"`
 
 	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
@@ -790,7 +790,7 @@ var clusterTypeNetworkTypePropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["OpenShiftSDN","OVNKubernetes","auto-assign"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["OpenShiftSDN","OVNKubernetes"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -805,9 +805,6 @@ const (
 
 	// ClusterNetworkTypeOVNKubernetes captures enum value "OVNKubernetes"
 	ClusterNetworkTypeOVNKubernetes string = "OVNKubernetes"
-
-	// ClusterNetworkTypeAutoAssign captures enum value "auto-assign"
-	ClusterNetworkTypeAutoAssign string = "auto-assign"
 )
 
 // prop value enum

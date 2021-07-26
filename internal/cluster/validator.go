@@ -225,7 +225,7 @@ func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) Validation
 }
 
 func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) ValidationStatus {
-	validNetworkTypes := []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN, models.ClusterCreateParamsNetworkTypeAutoAssign}
+	validNetworkTypes := []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN}
 	if !funk.ContainsString(validNetworkTypes, swag.StringValue(c.cluster.NetworkType)) && c.cluster.NetworkType != nil {
 		return ValidationFailure
 	}
@@ -239,12 +239,9 @@ func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) Valid
 func (v *clusterValidator) printIsNetworkTypeValid(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		if context.cluster.NetworkType == nil {
-			return "The cluster will use a default network type"
-		}
 		return "The cluster has a valid network type"
 	case ValidationFailure:
-		validNetworkTypes := []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN, models.ClusterCreateParamsNetworkTypeAutoAssign}
+		validNetworkTypes := []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN}
 		if !funk.ContainsString(validNetworkTypes, swag.StringValue(context.cluster.NetworkType)) && context.cluster.NetworkType != nil {
 			return "The network type is not valid; the valid network types are OpenShiftSDN or OVNKubernetes"
 		}

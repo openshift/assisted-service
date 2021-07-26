@@ -157,18 +157,6 @@ func (i *installConfigBuilder) countHostsByRole(cluster *common.Cluster, role mo
 	return count
 }
 
-func (i *installConfigBuilder) getNetworkType(cluster *common.Cluster) string {
-	if cluster.NetworkType == nil || swag.StringValue(cluster.NetworkType) == models.ClusterCreateParamsNetworkTypeAutoAssign {
-		networkType := "OpenShiftSDN"
-		if network.IsIPv6CIDR(cluster.ClusterNetworkCidr) || network.IsIPv6CIDR(cluster.MachineNetworkCidr) || network.IsIPv6CIDR(cluster.ServiceNetworkCidr) {
-			networkType = "OVNKubernetes"
-		}
-		i.log.Infof("Setting %s as default networkType for cluster %s", networkType, cluster.ID.String())
-		return networkType
-	}
-	return swag.StringValue(cluster.NetworkType)
-}
-
 func (i *installConfigBuilder) generateNoProxy(cluster *common.Cluster) string {
 	noProxy := strings.TrimSpace(cluster.NoProxy)
 	if noProxy == "*" {
@@ -185,7 +173,7 @@ func (i *installConfigBuilder) generateNoProxy(cluster *common.Cluster) string {
 }
 
 func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*InstallerConfigBaremetal, error) {
-	networkType := i.getNetworkType(cluster)
+	networkType := swag.StringValue(cluster.NetworkType)
 	i.log.Infof("Selected network type %s for cluster %s", networkType, cluster.ID.String())
 	cfg := &InstallerConfigBaremetal{
 		APIVersion: "v1",
@@ -407,7 +395,7 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 				{Cidr: bootstrapCidr},
 			}
 			cluster.MachineNetworkCidr = bootstrapCidr
-			cfg.Networking.NetworkType = i.getNetworkType(cluster)
+			cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
 
 		} else {
 			cfg.Networking.MachineNetwork = nil

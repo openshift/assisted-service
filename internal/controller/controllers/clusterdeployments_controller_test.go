@@ -2469,3 +2469,59 @@ var _ = Describe("TestConditions", func() {
 		})
 	}
 })
+
+var _ = Describe("selectClusterNetworkType", func() {
+	tests := []struct {
+		clusterServiceNetworkCidr string
+		paramServiceNetworkCidr   string
+		resultNetworkType         string
+	}{
+		{
+			clusterServiceNetworkCidr: "1.2.8.0/23",
+			paramServiceNetworkCidr:   "",
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
+		},
+		{
+			clusterServiceNetworkCidr: "1002:db8::/119",
+			paramServiceNetworkCidr:   "",
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+		},
+		{
+			clusterServiceNetworkCidr: "1.2.8.0/23",
+			paramServiceNetworkCidr:   "1.2.8.0/23",
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
+		},
+		{
+			clusterServiceNetworkCidr: "1002:db8::/119",
+			paramServiceNetworkCidr:   "1.2.8.0/23",
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
+		},
+		{
+			clusterServiceNetworkCidr: "1002:db8::/119",
+			paramServiceNetworkCidr:   "1.2.8.0/23",
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
+		},
+		{
+			clusterServiceNetworkCidr: "1002:db8::/119",
+			paramServiceNetworkCidr:   "1003:db8::/119",
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It("getNetworkType", func() {
+			ClusterUpdateParams := &models.ClusterUpdateParams{}
+			if t.paramServiceNetworkCidr != "" {
+				ClusterUpdateParams = &models.ClusterUpdateParams{ServiceNetworkCidr: &t.paramServiceNetworkCidr}
+			}
+
+			cluster := &common.Cluster{Cluster: models.Cluster{
+				ServiceNetworkCidr: t.clusterServiceNetworkCidr,
+				ClusterNetworkCidr: "10.56.20.0/24",
+				MachineNetworkCidr: "1.2.3.0/24",
+			}}
+			networkType := selectClusterNetworkType(ClusterUpdateParams, cluster)
+			Expect(networkType).To(Equal(t.resultNetworkType))
+		})
+	}
+})
