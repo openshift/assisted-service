@@ -543,7 +543,10 @@ var _ = Describe("cluster reconcile", func() {
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&common.Host{Approved: true}, nil).Times(1)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil, errors.Errorf("failed to get host from db")).Times(1)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&common.Host{Approved: true, Host: models.Host{LogsCollectedAt: strfmt.DateTime(time.Now())}}, nil).Times(1)
+
 		By("before installation")
 		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -560,6 +563,15 @@ var _ = Describe("cluster reconcile", func() {
 		}
 		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
 		Expect(clusterInstall.Status.DebugInfo.LogsURL).To(Equal(""))
+
+		By("failed to get host from db")
+		backEndCluster.Status = swag.String(models.ClusterStatusInstalling)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		_, err = cr.Reconcile(ctx, request)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
+		Expect(clusterInstall.Status.DebugInfo.LogsURL).To(Equal(""))
+
 		By("during installation")
 		backEndCluster.Status = swag.String(models.ClusterStatusInstalling)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
