@@ -3930,6 +3930,9 @@ definitions:
         type: boolean
         description: Schedule workloads on masters
         default: false
+      network_configuration:
+        $ref: '#/definitions/network_configuration'
+        x-nullable: true
 
   cluster-update-params:
     type: object
@@ -4087,6 +4090,9 @@ definitions:
         type: boolean
         description: Schedule workloads on masters
         default: false
+      network_configuration:
+        $ref: '#/definitions/network_configuration'
+        x-nullable: true
 
   add-hosts-cluster-create-params:
     type: object
@@ -4370,6 +4376,9 @@ definitions:
         description: The desired network type used.
         enum: ['OpenShiftSDN', 'OVNKubernetes', 'auto-assign' ]
         x-nullable: true
+      network_configuration:
+        type: string
+        description: JSON-formatted string containing the networking data for the install-config.yaml file.
 
   platform:
     type: object
@@ -5500,3 +5509,52 @@ definitions:
         type: string
         format: uuid
         description: If set, all hosts that register will be associated with the specified cluster.
+
+  subnet:
+    type: string
+    pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$'
+
+  network_configuration:
+    type: object
+    properties:
+      cluster_network:
+        type: array
+        items:
+          $ref: '#/definitions/cluster_network'
+      machine_network:
+        type: array
+        items:
+          $ref: '#/definitions/machine_network'
+      service_network:
+        type: array
+        items:
+          $ref: '#/definitions/service_network'
+
+  cluster_network:
+    type: object
+    description: IP address block for pod IP blocks.
+    properties:
+      cidr:
+        $ref: '#/definitions/subnet'
+        description: The IP block address pool.
+      host_prefix:
+        type: integer
+        description: The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.
+        minimum: 1
+        maximum: 128
+
+  machine_network:
+    type: object
+    description: IP address block for node IP blocks.
+    properties:
+      cidr:
+        $ref: '#/definitions/subnet'
+        description: The IP block address pool for machines within the cluster.
+
+  service_network:
+    type: object
+    description: List of IP address pools for services.
+    properties:
+      cidr:
+        $ref: '#/definitions/subnet'
+        description: The IP block address pool.

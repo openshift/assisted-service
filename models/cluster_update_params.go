@@ -81,6 +81,9 @@ type ClusterUpdateParams struct {
 	// Min Length: 1
 	Name *string `json:"name,omitempty"`
 
+	// network configuration
+	NetworkConfiguration *NetworkConfiguration `json:"network_configuration,omitempty"`
+
 	// The desired network type used.
 	// Enum: [OpenShiftSDN OVNKubernetes auto-assign]
 	NetworkType *string `json:"network_type,omitempty"`
@@ -159,6 +162,10 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateName(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateNetworkConfiguration(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -414,6 +421,24 @@ func (m *ClusterUpdateParams) validateName(formats strfmt.Registry) error {
 
 	if err := validate.MaxLength("name", "body", string(*m.Name), 54); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterUpdateParams) validateNetworkConfiguration(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.NetworkConfiguration) { // not required
+		return nil
+	}
+
+	if m.NetworkConfiguration != nil {
+		if err := m.NetworkConfiguration.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("network_configuration")
+			}
+			return err
+		}
 	}
 
 	return nil

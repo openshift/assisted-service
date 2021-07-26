@@ -5070,6 +5070,10 @@ func init() {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
         },
+        "network_configuration": {
+          "description": "JSON-formatted string containing the networking data for the install-config.yaml file.",
+          "type": "string"
+        },
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
@@ -5263,6 +5267,10 @@ func init() {
           "type": "string",
           "maxLength": 54,
           "minLength": 1
+        },
+        "network_configuration": {
+          "x-nullable": true,
+          "$ref": "#/definitions/network_configuration"
         },
         "network_type": {
           "description": "The desired network type used.",
@@ -5562,6 +5570,10 @@ func init() {
           "minLength": 1,
           "x-nullable": true
         },
+        "network_configuration": {
+          "x-nullable": true,
+          "$ref": "#/definitions/network_configuration"
+        },
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
@@ -5667,6 +5679,22 @@ func init() {
         "service_network_cidr": {
           "type": "string",
           "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
+        }
+      }
+    },
+    "cluster_network": {
+      "description": "IP address block for pod IP blocks.",
+      "type": "object",
+      "properties": {
+        "cidr": {
+          "description": "The IP block address pool.",
+          "$ref": "#/definitions/subnet"
+        },
+        "host_prefix": {
+          "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
+          "type": "integer",
+          "maximum": 128,
+          "minimum": 1
         }
       }
     },
@@ -7224,6 +7252,16 @@ func init() {
         }
       }
     },
+    "machine_network": {
+      "description": "IP address block for node IP blocks.",
+      "type": "object",
+      "properties": {
+        "cidr": {
+          "description": "The IP block address pool for machines within the cluster.",
+          "$ref": "#/definitions/subnet"
+        }
+      }
+    },
     "managed-domain": {
       "type": "object",
       "properties": {
@@ -7319,6 +7357,29 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/monitored-operator"
+      }
+    },
+    "network_configuration": {
+      "type": "object",
+      "properties": {
+        "cluster_network": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/cluster_network"
+          }
+        },
+        "machine_network": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/machine_network"
+          }
+        },
+        "service_network": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/service_network"
+          }
+        }
       }
     },
     "ntp_source": {
@@ -7629,6 +7690,16 @@ func init() {
         }
       }
     },
+    "service_network": {
+      "description": "List of IP address pools for services.",
+      "type": "object",
+      "properties": {
+        "cidr": {
+          "description": "The IP block address pool.",
+          "$ref": "#/definitions/subnet"
+        }
+      }
+    },
     "source_state": {
       "type": "string",
       "enum": [
@@ -7725,6 +7796,10 @@ func init() {
       "items": {
         "$ref": "#/definitions/step-reply"
       }
+    },
+    "subnet": {
+      "type": "string",
+      "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
     },
     "system_vendor": {
       "type": "object",
@@ -13095,6 +13170,10 @@ func init() {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
         },
+        "network_configuration": {
+          "description": "JSON-formatted string containing the networking data for the install-config.yaml file.",
+          "type": "string"
+        },
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
@@ -13288,6 +13367,10 @@ func init() {
           "type": "string",
           "maxLength": 54,
           "minLength": 1
+        },
+        "network_configuration": {
+          "x-nullable": true,
+          "$ref": "#/definitions/network_configuration"
         },
         "network_type": {
           "description": "The desired network type used.",
@@ -13547,6 +13630,10 @@ func init() {
           "minLength": 1,
           "x-nullable": true
         },
+        "network_configuration": {
+          "x-nullable": true,
+          "$ref": "#/definitions/network_configuration"
+        },
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
@@ -13652,6 +13739,22 @@ func init() {
         "service_network_cidr": {
           "type": "string",
           "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
+        }
+      }
+    },
+    "cluster_network": {
+      "description": "IP address block for pod IP blocks.",
+      "type": "object",
+      "properties": {
+        "cidr": {
+          "description": "The IP block address pool.",
+          "$ref": "#/definitions/subnet"
+        },
+        "host_prefix": {
+          "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
+          "type": "integer",
+          "maximum": 128,
+          "minimum": 1
         }
       }
     },
@@ -15164,6 +15267,16 @@ func init() {
         "$ref": "#/definitions/MacInterfaceMapItems0"
       }
     },
+    "machine_network": {
+      "description": "IP address block for node IP blocks.",
+      "type": "object",
+      "properties": {
+        "cidr": {
+          "description": "The IP block address pool for machines within the cluster.",
+          "$ref": "#/definitions/subnet"
+        }
+      }
+    },
     "managed-domain": {
       "type": "object",
       "properties": {
@@ -15259,6 +15372,29 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/monitored-operator"
+      }
+    },
+    "network_configuration": {
+      "type": "object",
+      "properties": {
+        "cluster_network": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/cluster_network"
+          }
+        },
+        "machine_network": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/machine_network"
+          }
+        },
+        "service_network": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/service_network"
+          }
+        }
       }
     },
     "ntp_source": {
@@ -15569,6 +15705,16 @@ func init() {
         }
       }
     },
+    "service_network": {
+      "description": "List of IP address pools for services.",
+      "type": "object",
+      "properties": {
+        "cidr": {
+          "description": "The IP block address pool.",
+          "$ref": "#/definitions/subnet"
+        }
+      }
+    },
     "source_state": {
       "type": "string",
       "enum": [
@@ -15665,6 +15811,10 @@ func init() {
       "items": {
         "$ref": "#/definitions/step-reply"
       }
+    },
+    "subnet": {
+      "type": "string",
+      "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
     },
     "system_vendor": {
       "type": "object",
