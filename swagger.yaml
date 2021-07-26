@@ -514,7 +514,7 @@ paths:
           name: file_name
           description: The file to be downloaded.
           type: string
-          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml, discovery.ign, custom_manifests.json]
+          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml, discovery.ign, custom_manifests.json, custom_manifests.yaml]
           required: true
         - in: header
           name: discovery_agent_version
