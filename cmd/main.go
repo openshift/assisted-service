@@ -256,7 +256,7 @@ func main() {
 	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig, objectHandler)
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
-	Options.InstructionConfig.SupportFreeAddresses = Options.InstructionConfig.SupportFreeAddresses && !Options.EnableKubeAPI
+	Options.InstructionConfig.DisabledSteps = disableFreeAddressesIfNeeded(Options.EnableKubeAPI, Options.InstructionConfig.DisabledSteps)
 	instructionApi := hostcommands.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
 		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler)
 
@@ -744,4 +744,12 @@ func createControllerManager() (manager.Manager, error) {
 		})
 	}
 	return nil, nil
+}
+
+func disableFreeAddressesIfNeeded(enableKubeAPI bool, disabledSteps []models.StepType) []models.StepType {
+	if enableKubeAPI {
+		// If this step was already disabled via environment, it wont matter once parsed.
+		return append(disabledSteps, models.StepTypeFreeNetworkAddresses)
+	}
+	return disabledSteps
 }
