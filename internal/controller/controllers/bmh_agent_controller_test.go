@@ -26,6 +26,7 @@ import (
 )
 
 var BASIC_KUBECONFIG = `test`
+var BASIC_CERT = `test`
 
 var _ = Describe("bmac reconcile", func() {
 	var (
@@ -664,6 +665,9 @@ var _ = Describe("bmac reconcile", func() {
 
 			image := &bmh_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
 			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{Image: image, BootMACAddress: macStr, BMC: bmh_v1alpha1.BMCDetails{CredentialsName: fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)}})
+			annotations := make(map[string]string)
+			annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = `{"ignition":{"version":"3.1.0", "security": {"tls":{"certificateAuthorities":[{"source":"data:text/plain;charset=utf-8;base64,c29tZSBjZXJ0aWZpY2F0ZQ=="}]}}}}`
+			host.ObjectMeta.SetAnnotations(annotations)
 			Expect(c.Create(ctx, host)).To(BeNil())
 
 			defaultClusterSpec := getDefaultClusterDeploymentSpec(clusterName, "test-cluster-aci", pullSecretName)
@@ -695,6 +699,17 @@ var _ = Describe("bmac reconcile", func() {
 				},
 			}
 			Expect(c.Create(ctx, spokeMachine)).To(BeNil())
+
+			configMap := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "root-ca",
+					Namespace: "kube-system",
+				},
+				Data: map[string]string{
+					"ca.crt": BASIC_CERT,
+				},
+			}
+			Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -715,6 +730,9 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
 
 				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
 				spokeClient := bmhr.spokeClient
