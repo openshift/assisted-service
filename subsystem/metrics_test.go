@@ -161,11 +161,15 @@ func getValidationMetricCounter(validationID, expectedMetric string) int {
 	if len(filteredMetrics) == 0 {
 		return 0
 	}
-	Expect(len(filteredMetrics)).To(Equal(1))
 
-	counter, err := strconv.Atoi(strings.ReplaceAll((strings.Split(filteredMetrics[0], "}")[1]), " ", ""))
-	Expect(err).NotTo(HaveOccurred())
-	return counter
+	totalCounter := 0
+	for _, metric := range filteredMetrics {
+		metricCounter, err := strconv.Atoi(strings.ReplaceAll((strings.Split(metric, "}")[1]), " ", ""))
+		Expect(err).NotTo(HaveOccurred())
+		totalCounter += metricCounter
+	}
+
+	return totalCounter
 }
 
 func getMetricRecord(name string) (string, error) {
