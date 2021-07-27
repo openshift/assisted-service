@@ -55,6 +55,8 @@ const (
 	ClusterInstallationFailedMsg        string = "The installation has failed:"
 	ClusterInstallationNotStartedReason string = "InstallationNotStarted"
 	ClusterInstallationNotStartedMsg    string = "The installation has not yet started"
+	ClusterInstallationOnHoldReason     string = "InstallationOnHold"
+	ClusterInstallationOnHoldMsg        string = "The installation is on hold. To unhold set holdInstallation to false"
 	ClusterInstallationInProgressReason string = "InstallationInProgress"
 	ClusterInstallationInProgressMsg    string = "The installation is in progress:"
 	ClusterUnknownStatusReason          string = "UnknownStatus"
@@ -138,6 +140,12 @@ type AgentClusterInstallSpec struct {
 	// IngressVIP is the virtual IP used for cluster ingress traffic.
 	// +optional
 	IngressVIP string `json:"ingressVIP,omitempty"`
+
+	// HoldInstallation will prevent installation from happening when true.
+	// Inspection and validation will proceed as usual, but once the RequirementsMet condition is true,
+	// installation will not begin until this field is set to false.
+	// +optional
+	HoldInstallation bool `json:"holdInstallation,omitempty"`
 }
 
 // AgentClusterInstallStatus defines the observed state of the AgentClusterInstall.

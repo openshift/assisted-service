@@ -209,24 +209,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 
 	// In case the Cluster is a Day 1 cluster and is installed, update the Metadata and create secrets for credentials
 	if *cluster.Status == models.ClusterStatusInstalled && swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
-		if !isInstalled(clusterDeployment, clusterInstall) {
-			// create secrets and update status
-			err = r.updateClusterMetadata(ctx, log, clusterDeployment, cluster, clusterInstall)
-			if err != nil {
-				log.WithError(err).Error("failed to update cluster metadata")
-			}
-			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-		} else if r.EnableDay2Cluster && !r.isSNO(clusterInstall) {
-			// Delete Day1 Cluster
-			_, err = r.deregisterClusterIfNeeded(ctx, log, req.NamespacedName)
-			if err != nil {
-				log.WithError(err).Error("failed to deregister cluster")
-				return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-			}
-			//Create Day2 cluster
-			return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
-		}
-		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		return r.handleClusterInstalled(ctx, log, clusterDeployment, cluster, clusterInstall, req.NamespacedName)
 	}
 
 	// Create Kubeconfig no-ingress if needed
@@ -237,7 +220,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		}
 	}
 
-	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
+	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster && !clusterInstall.Spec.HoldInstallation {
 		// Day 1
 		return r.installDay1(ctx, log, clusterDeployment, clusterInstall, cluster)
 
@@ -377,7 +360,6 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 }
 
 func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
-
 	for _, h := range cluster.Hosts {
 		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
 		if err != nil {
@@ -1367,7 +1349,15 @@ func clusterCompleted(clusterInstall *hiveext.AgentClusterInstall, status, statu
 		condStatus = corev1.ConditionFalse
 		reason = hiveext.ClusterInstallationFailedReason
 		msg = fmt.Sprintf("%s %s", hiveext.ClusterInstallationFailedMsg, statusInfo)
-	case models.ClusterStatusInsufficient, models.ClusterStatusPendingForInput, models.ClusterStatusReady:
+	case models.ClusterStatusReady:
+		condStatus = corev1.ConditionFalse
+		reason = hiveext.ClusterInstallationNotStartedReason
+		msg = hiveext.ClusterInstallationNotStartedMsg
+		if clusterInstall.Spec.HoldInstallation {
+			reason = hiveext.ClusterInstallationOnHoldReason
+			msg = hiveext.ClusterInstallationOnHoldMsg
+		}
+	case models.ClusterStatusInsufficient, models.ClusterStatusPendingForInput:
 		condStatus = corev1.ConditionFalse
 		reason = hiveext.ClusterInstallationNotStartedReason
 		msg = hiveext.ClusterInstallationNotStartedMsg
@@ -1633,4 +1623,26 @@ func (r *ClusterDeploymentsReconciler) generateControllerLogsDownloadURL(cluster
 	}
 
 	return downloadURL, nil
+}
+
+func (r *ClusterDeploymentsReconciler) handleClusterInstalled(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster, clusterInstall *hiveext.AgentClusterInstall, key types.NamespacedName) (ctrl.Result, error) {
+	var err error
+	if !isInstalled(clusterDeployment, clusterInstall) {
+		// create secrets and update status
+		err = r.updateClusterMetadata(ctx, log, clusterDeployment, cluster, clusterInstall)
+		if err != nil {
+			log.WithError(err).Error("failed to update cluster metadata")
+		}
+		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+	} else if r.EnableDay2Cluster && !r.isSNO(clusterInstall) {
+		// Delete Day1 Cluster
+		_, err = r.deregisterClusterIfNeeded(ctx, log, key)
+		if err != nil {
+			log.WithError(err).Error("failed to deregister cluster")
+			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		}
+		//Create Day2 cluster
+		return r.createNewDay2Cluster(ctx, log, key, clusterDeployment, clusterInstall)
+	}
+	return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 }

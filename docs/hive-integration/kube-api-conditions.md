@@ -28,6 +28,7 @@ AgentClusterInstall supported condition types are: `SpecSynced`, `RequirementsMe
 |Completed|True|InstallationCompleted|The installation has completed: "status_info"|If the cluster status is "installed"|
 |Completed|False|InstallationFailed|The installation has failed: "status_info"|If the cluster status is "error"|
 |Completed|False|InstallationNotStarted|The installation has not yet started|If the cluster is before installation ("insufficient"/"pending-for-input"/"ready")|
+|Completed|False|InstallationOnHold|The installation is on hold, to unhold set holdInstallation to false|If the cluster is before installation and holdInstallation is set to true in the spec ("ready")|
 |Completed|False|InstallationInProgress|The installation is in progress: "status_info"|If the cluster is installing ("preparing-for-installation", "installing", "finalizing", "installing-pending-user-action")|
 ||||||
 |Failed|True|InstallationFailed|The installation failed: "status_info"|if the cluster status is "error"|

@@ -878,6 +878,54 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
+		It("hold installation", func() {
+			backEndCluster.Status = swag.String(models.ClusterStatusReady)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(15)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
+
+			installClusterReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:         backEndCluster.ID,
+					Status:     swag.String(models.ClusterStatusPreparingForInstallation),
+					StatusInfo: swag.String("Waiting for control plane"),
+				},
+			}
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+				Return(installClusterReply, nil)
+
+			By("hold installation")
+			aci = getTestClusterInstall()
+			aci.Spec.HoldInstallation = true
+			Expect(c.Update(ctx, aci)).To(BeNil())
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstallationOnHoldReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(hiveext.ClusterInstallationOnHoldMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
+
+			By("unhold installation")
+			aci.Spec.HoldInstallation = false
+			Expect(c.Update(ctx, aci)).To(BeNil())
+
+			request = newClusterDeploymentRequest(cluster)
+			result, err = cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(hiveext.ClusterInstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
+		})
+
 		It("CVO status", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusReady)
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
@@ -1443,6 +1491,12 @@ var _ = Describe("cluster reconcile", func() {
 				ID:     &id,
 				Status: swag.String(models.HostStatusKnown),
 			}
+
+			By("hold installation should not affect day2")
+			aci = getTestClusterInstall()
+			aci.Spec.HoldInstallation = true
+			Expect(c.Update(ctx, aci)).To(BeNil())
+
 			backEndCluster.Hosts = []*models.Host{h}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
 			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(2)
