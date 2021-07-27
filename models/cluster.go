@@ -151,6 +151,9 @@ type Cluster struct {
 	// Name of the OpenShift cluster.
 	Name string `json:"name,omitempty"`
 
+	// JSON-formatted string containing the networking data for the install-config.yaml file.
+	NetworkConfiguration string `json:"network_configuration,omitempty"`
+
 	// The desired network type used.
 	// Enum: [OpenShiftSDN OVNKubernetes auto-assign]
 	NetworkType *string `json:"network_type,omitempty"`
