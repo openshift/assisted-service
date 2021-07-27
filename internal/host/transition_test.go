@@ -2175,6 +2175,7 @@ var _ = Describe("Refresh Host", func() {
 
 	Context("All transitions", func() {
 		var srcState string
+		domainNameResolutions := common.TestDomainNameResolutionSuccess
 
 		tests := []struct {
 			// Test parameters
@@ -3339,6 +3340,10 @@ var _ = Describe("Refresh Host", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				host.ImagesStatus = string(bytes)
 				host.DisksInfo = t.disksInfo
+				bytes, err = json.Marshal(domainNameResolutions)
+				Expect(err).ShouldNot(HaveOccurred())
+				host.DomainNameResolutions = string(bytes)
+
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 				for i := 0; i < t.numAdditionalHosts; i++ {
@@ -3358,6 +3363,8 @@ var _ = Describe("Refresh Host", func() {
 				// Test setup - Cluster creation
 				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworkCidr)
 				cluster.UserManagedNetworking = &t.userManagedNetworking
+				cluster.Name = common.TestDefaultConfig.ClusterName
+				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 				if t.connectivity == "" {
 					if t.userManagedNetworking {
 						cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", network.IPv4.String(), hostId.String())
@@ -3448,16 +3455,18 @@ var _ = Describe("Refresh Host", func() {
 	})
 	Context("Unique hostname", func() {
 		var (
-			srcState      string
-			otherHostID   strfmt.UUID
-			ntpSources    []*models.NtpSource
-			imageStatuses map[string]*models.ContainerImageAvailability
+			srcState              string
+			otherHostID           strfmt.UUID
+			ntpSources            []*models.NtpSource
+			imageStatuses         map[string]*models.ContainerImageAvailability
+			domainNameResolutions *models.DomainResolutionResponse
 		)
 
 		BeforeEach(func() {
 			otherHostID = strfmt.UUID(uuid.New().String())
 			ntpSources = defaultNTPSources
 			imageStatuses = map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess}
+			domainNameResolutions = common.TestDomainNameResolutionSuccess
 			mockDefaultClusterHostRequirements(mockHwValidator)
 		})
 
@@ -3502,8 +3511,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
-					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
-				}),
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"}}),
 				inventory:      hostutil.GenerateMasterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
 				otherInventory: hostutil.GenerateMasterInventoryWithHostname("second"),
@@ -3675,8 +3683,7 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
-					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
-				}),
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"}}),
 				inventory:      hostutil.GenerateMasterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
 				otherInventory: hostutil.GenerateMasterInventoryWithHostname("second"),
@@ -3816,8 +3823,7 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
-					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
-				}),
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"}}),
 				inventory:              hostutil.GenerateMasterInventoryWithHostname("first"),
 				requestedHostname:      "third",
 				otherState:             models.HostStatusInsufficient,
@@ -3843,6 +3849,9 @@ var _ = Describe("Refresh Host", func() {
 				bytes, err = json.Marshal(imageStatuses)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.ImagesStatus = string(bytes)
+				bytes, err = json.Marshal(domainNameResolutions)
+				Expect(err).ShouldNot(HaveOccurred())
+				host.DomainNameResolutions = string(bytes)
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
@@ -3958,12 +3967,16 @@ var _ = Describe("Refresh Host", func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
 			Expect(err).NotTo(HaveOccurred())
+			domainNameResolutions := common.TestDomainNameResolutionSuccess
 			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusDiscovering)
 			host.Inventory = hostutil.GenerateInventoryWithResourcesWithBytes(4, conversions.GibToBytes(16), conversions.GibToBytes(16), "master")
 			host.Role = models.HostRoleMaster
 			host.NtpSources = string(defaultNTPSourcesInBytes)
+			bytes, err := json.Marshal(domainNameResolutions)
+			Expect(err).ShouldNot(HaveOccurred())
+			host.DomainNameResolutions = string(bytes)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -4186,7 +4199,10 @@ var _ = Describe("Refresh Host", func() {
 				}
 				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworkCIDR)
 				cluster.UserManagedNetworking = swag.Bool(true)
+				cluster.Name = common.TestDefaultConfig.ClusterName
+				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 				connectivityGroups := make(map[string][]strfmt.UUID)
+				domainNameResolutions := common.TestDomainNameResolutionSuccess
 				for _, h := range hosts {
 
 					if network.IsIPV4CIDR(t.machineNetworkCIDR) {
@@ -4194,6 +4210,9 @@ var _ = Describe("Refresh Host", func() {
 					} else {
 						connectivityGroups[network.IPv6.String()] = append(connectivityGroups[network.IPv6.String()], *h.ID)
 					}
+					b, err := json.Marshal(domainNameResolutions)
+					Expect(err).ShouldNot(HaveOccurred())
+					h.DomainNameResolutions = string(b)
 				}
 				b, err := json.Marshal(&connectivityGroups)
 				Expect(err).ToNot(HaveOccurred())
@@ -4205,6 +4224,7 @@ var _ = Describe("Refresh Host", func() {
 					tmpHosts = append(tmpHosts, hosts[n+1:]...)
 					rep := hostutil.GenerateL3ConnectivityReport(tmpHosts, t.latencyInMs, t.packetLossInPercentage)
 					b, err := json.Marshal(&rep)
+					Expect(err).ShouldNot(HaveOccurred())
 					h.Connectivity = string(b)
 					Expect(db.Create(h).Error).ShouldNot(HaveOccurred())
 					Expect(err).NotTo(HaveOccurred())
@@ -4249,6 +4269,7 @@ var _ = Describe("Refresh Host", func() {
 			{Family: common.FamilyIPv4, Destination: "0.0.0.0", Gateway: "invalid"},
 		}
 		defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
+		domainNameResolutions := common.TestDomainNameResolutionSuccess
 		Expect(err).ShouldNot(HaveOccurred())
 		BeforeEach(func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
@@ -4257,6 +4278,8 @@ var _ = Describe("Refresh Host", func() {
 			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 			cluster.UserManagedNetworking = swag.Bool(true)
 			cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", network.IPv4.String(), hostId.String())
+			cluster.Name = common.TestDefaultConfig.ClusterName
+			cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
@@ -4383,6 +4406,9 @@ var _ = Describe("Refresh Host", func() {
 				host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusDiscovering)
 				host.Inventory = inventory
 				host.NtpSources = string(defaultNTPSourcesInBytes)
+				bytes, err := json.Marshal(domainNameResolutions)
+				Expect(err).ShouldNot(HaveOccurred())
+				host.DomainNameResolutions = string(bytes)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				if t.srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),

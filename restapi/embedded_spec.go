@@ -6774,6 +6774,11 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "domain_name_resolutions": {
+          "description": "The domain name resolution result.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "free_addresses": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
@@ -7095,7 +7100,10 @@ func init() {
         "cnv-requirements-satisfied",
         "sufficient-network-latency-requirement-for-role",
         "sufficient-packet-loss-requirement-for-role",
-        "has-default-route"
+        "has-default-route",
+        "api-domain-name-resolved-correctly",
+        "api-int-domain-name-resolved-correctly",
+        "apps-domain-name-resolved-correctly"
       ]
     },
     "host_network": {
@@ -15164,6 +15172,11 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "domain_name_resolutions": {
+          "description": "The domain name resolution result.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "free_addresses": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
@@ -15485,7 +15498,10 @@ func init() {
         "cnv-requirements-satisfied",
         "sufficient-network-latency-requirement-for-role",
         "sufficient-packet-loss-requirement-for-role",
-        "has-default-route"
+        "has-default-route",
+        "api-domain-name-resolved-correctly",
+        "api-int-domain-name-resolved-correctly",
+        "apps-domain-name-resolved-correctly"
       ]
     },
     "host_network": {

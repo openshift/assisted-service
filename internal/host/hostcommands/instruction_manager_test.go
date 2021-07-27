@@ -67,7 +67,7 @@ var _ = Describe("instruction_manager", func() {
 
 	Context("No DHCP", func() {
 		BeforeEach(func() {
-			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(false), MachineNetworkCidr: "1.2.3.0/24"}}
+			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(false), MachineNetworkCidr: "1.2.3.0/24", Name: "example", BaseDNSDomain: "test.com"}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		})
 		Context("get_next_steps", func() {
@@ -85,6 +85,7 @@ var _ = Describe("instruction_manager", func() {
 				checkStep(models.HostStatusKnown, []models.StepType{
 					models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses,
 					models.StepTypeInventory, models.StepTypeNtpSynchronizer,
+					models.StepTypeDomainResolution,
 				})
 			})
 			It("disconnected", func() {
@@ -96,12 +97,14 @@ var _ = Describe("instruction_manager", func() {
 				checkStep(models.HostStatusInsufficient, []models.StepType{
 					models.StepTypeInventory, models.StepTypeConnectivityCheck,
 					models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
+					models.StepTypeDomainResolution,
 				})
 			})
 			It("pending-for-input", func() {
 				checkStep(models.HostStatusPendingForInput, []models.StepType{
 					models.StepTypeInventory, models.StepTypeConnectivityCheck,
 					models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
+					models.StepTypeDomainResolution,
 				})
 			})
 			It("error", func() {
@@ -136,7 +139,7 @@ var _ = Describe("instruction_manager", func() {
 
 	Context("With DHCP", func() {
 		BeforeEach(func() {
-			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(true), MachineNetworkCidr: "1.2.3.0/24"}}
+			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(true), MachineNetworkCidr: "1.2.3.0/24", Name: "example", BaseDNSDomain: "test.com"}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		})
 		Context("get_next_steps", func() {
@@ -154,7 +157,7 @@ var _ = Describe("instruction_manager", func() {
 				checkStep(models.HostStatusKnown, []models.StepType{
 					models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses,
 					models.StepTypeDhcpLeaseAllocate, models.StepTypeInventory,
-					models.StepTypeNtpSynchronizer,
+					models.StepTypeNtpSynchronizer, models.StepTypeDomainResolution,
 				})
 			})
 			It("disconnected", func() {
@@ -166,14 +169,14 @@ var _ = Describe("instruction_manager", func() {
 				checkStep(models.HostStatusInsufficient, []models.StepType{
 					models.StepTypeInventory, models.StepTypeConnectivityCheck,
 					models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate,
-					models.StepTypeNtpSynchronizer,
+					models.StepTypeNtpSynchronizer, models.StepTypeDomainResolution,
 				})
 			})
 			It("pending-for-input", func() {
 				checkStep(models.HostStatusPendingForInput, []models.StepType{
 					models.StepTypeInventory, models.StepTypeConnectivityCheck,
 					models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate,
-					models.StepTypeNtpSynchronizer,
+					models.StepTypeNtpSynchronizer, models.StepTypeDomainResolution,
 				})
 			})
 			It("error", func() {

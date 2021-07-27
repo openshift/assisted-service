@@ -34,12 +34,15 @@ const (
 	HasSufficientNetworkLatencyRequirementForRole  = validationID(models.HostValidationIDSufficientNetworkLatencyRequirementForRole)
 	HasSufficientPacketLossRequirementForRole      = validationID(models.HostValidationIDSufficientPacketLossRequirementForRole)
 	HasDefaultRoute                                = validationID(models.HostValidationIDHasDefaultRoute)
+	IsAPIDomainNameResolvedCorrectly               = validationID(models.HostValidationIDAPIDomainNameResolvedCorrectly)
+	IsAPIInternalDomainNameResolvedCorrectly       = validationID(models.HostValidationIDAPIIntDomainNameResolvedCorrectly)
+	IsAppsDomainNameResolvedCorrectly              = validationID(models.HostValidationIDAppsDomainNameResolvedCorrectly)
 )
 
 func (v validationID) category() (string, error) {
 	switch v {
 	case IsConnected, IsMachineCidrDefined, BelongsToMachineCidr,
-		IsAPIVipConnected, BelongsToMajorityGroup, IsNTPSynced, SucessfullOrUnknownContainerImagesAvailability, HasSufficientNetworkLatencyRequirementForRole, HasSufficientPacketLossRequirementForRole, HasDefaultRoute:
+		IsAPIVipConnected, BelongsToMajorityGroup, IsNTPSynced, SucessfullOrUnknownContainerImagesAvailability, HasSufficientNetworkLatencyRequirementForRole, HasSufficientPacketLossRequirementForRole, HasDefaultRoute, IsAPIDomainNameResolvedCorrectly, IsAPIInternalDomainNameResolvedCorrectly, IsAppsDomainNameResolvedCorrectly:
 		return "network", nil
 	case HasInventory, HasMinCPUCores, HasMinValidDisks, HasMinMemory, SufficientOrUnknownInstallationDiskSpeed,
 		HasCPUCoresForRole, HasMemoryForRole, IsHostnameUnique, IsHostnameValid, IsPlatformValid:

@@ -51,6 +51,9 @@ type Host struct {
 	// Additional information about disks, formatted as JSON.
 	DisksInfo string `json:"disks_info,omitempty" gorm:"type:text"`
 
+	// The domain name resolution result.
+	DomainNameResolutions string `json:"domain_name_resolutions,omitempty" gorm:"type:text"`
+
 	// free addresses
 	FreeAddresses string `json:"free_addresses,omitempty" gorm:"type:text"`
 

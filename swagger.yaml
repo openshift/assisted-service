@@ -3962,6 +3962,10 @@ definitions:
         x-go-custom-tag: gorm:"type:text"
         type: string
         description: Array of image statuses.
+      domain_name_resolutions:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
+        description: The domain name resolution result.
 
 
   installer-args-params:
@@ -5334,6 +5338,9 @@ definitions:
       - 'sufficient-network-latency-requirement-for-role'
       - 'sufficient-packet-loss-requirement-for-role'
       - 'has-default-route'
+      - 'api-domain-name-resolved-correctly'
+      - 'api-int-domain-name-resolved-correctly'
+      - 'apps-domain-name-resolved-correctly'
 
   dhcp_allocation_request:
     type: object
