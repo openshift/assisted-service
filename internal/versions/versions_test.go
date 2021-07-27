@@ -118,7 +118,7 @@ var _ = Describe("list versions", func() {
 
 		It("get_defaults", func() {
 			readDefaultOpenshiftVersions()
-			CURRENT_DEFAULT_VERSION := "4.7" //keep align with default_ocp_versions.json
+			CURRENT_DEFAULT_VERSION := "4.8" //keep align with default_ocp_versions.json
 
 			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
