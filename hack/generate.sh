@@ -131,26 +131,6 @@ function generate_bundle() {
     rm ${BUNDLE_OUTPUT_DIR}/manifests/assisted-service_v1_serviceaccount.yaml
     mv ${__root}/bundle.Dockerfile ${BUNDLE_OUTPUT_DIR}/bundle.Dockerfile && sed -i '/scorecard/d' ${BUNDLE_OUTPUT_DIR}/bundle.Dockerfile
 
-    # Reference all images by digest when asked
-    if [ "${IMAGES_BY_DIGEST:-}" == "true" ]; then
-        local csv="${BUNDLE_OUTPUT_DIR}/manifests/assisted-service-operator.clusterserviceversion.yaml"
-        local created_at=$(date +"%Y-%m-%dT%H:%M:%SZ")
-        sed -i "s|createdAt: \"\"|createdAt: ${created_at}|" $csv
-        local images=$(grep '\- image:' ${csv} | awk '{ print $3 }')
-        for full_image in $images; do
-            local tag=${full_image#*:}
-            local image=${full_image%:*}
-            local registry=${image%%/*}
-            local image_name=${image#*/}
-            local digest=$(curl -G https://${registry}/api/v1/repository/${image_name}/tag/ | \
-                jq -r --arg TAG "${tag}" '
-                            .tags[]
-                            | select(.name==$TAG and (has("expiration")
-                            | not))
-                            | .manifest_digest')
-            sed -i "s,${full_image},${image}@${digest},g" ${csv}
-        done
-    fi
     operator-sdk bundle validate ${BUNDLE_OUTPUT_DIR}
 }
 
