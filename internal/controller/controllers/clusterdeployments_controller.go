@@ -70,6 +70,8 @@ const (
 	InstallConfigOverrides            = aiv1beta1.Group + "/install-config-overrides"
 	ClusterDeploymentFinalizerName    = "clusterdeployments." + aiv1beta1.Group + "/ai-deprovision"
 	AgentClusterInstallFinalizerName  = "agentclusterinstall." + aiv1beta1.Group + "/ai-deprovision"
+	SecretLabelName                   = "agentclusterinstalls.extensions.hive.openshift.io"
+	SecretLabelValue                  = "true"
 )
 
 const HighAvailabilityModeNone = "None"
@@ -79,6 +81,7 @@ const longerRequeueAfterOnError = 1 * time.Minute
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
 	client.Client
+	APIReader         client.Reader
 	Log               logrus.FieldLogger
 	Scheme            *runtime.Scheme
 	Installer         bminventory.InstallerInternals
@@ -192,6 +195,13 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 
+	// Make sure that the PullSecret Secret has the needed label
+	err = r.ensurePullSecretLabel(ctx, clusterDeployment.Spec.PullSecretRef, req.Namespace)
+	if err != nil {
+		log.WithError(err).Error("error setting label on Pull Secret")
+		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+	}
+
 	// check for updates from user, compare spec and update if needed
 	err = r.updateIfNeeded(ctx, log, clusterDeployment, clusterInstall, cluster)
 	if err != nil {
@@ -208,26 +218,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 
 	// In case the Cluster is a Day 1 cluster and is installed, update the Metadata and create secrets for credentials
 	if *cluster.Status == models.ClusterStatusInstalled && swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
-		if !isInstalled(clusterDeployment, clusterInstall) {
-			// create secrets and update status
-			err = r.updateClusterMetadata(ctx, log, clusterDeployment, cluster, clusterInstall)
-			if err != nil {
-				log.WithError(err).Error("failed to update cluster metadata")
-			}
-			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-		} else if r.EnableDay2Cluster {
-			// Delete Day1 Cluster
-			_, err = r.deregisterClusterIfNeeded(ctx, log, req.NamespacedName)
-			if err != nil {
-				log.WithError(err).Error("failed to deregister cluster")
-				return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-			}
-			if !r.isSNO(clusterInstall) {
-				//Create Day2 cluster
-				return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
-			}
-		}
-		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		return r.handleClusterInstalled(ctx, log, clusterDeployment, cluster, clusterInstall, req.NamespacedName)
 	}
 
 	// Create Kubeconfig no-ingress if needed
@@ -438,9 +429,8 @@ func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context
 }
 
 func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
-	s := &corev1.Secret{}
 	name := fmt.Sprintf(adminPasswordSecretStringTemplate, cluster.Name)
-	getErr := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: name}, s)
+	s, getErr := getSecret(ctx, r.Client, r.APIReader, cluster.Namespace, name)
 	if getErr == nil || !k8serrors.IsNotFound(getErr) {
 		return s, getErr
 	}
@@ -458,9 +448,8 @@ func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Con
 }
 
 func (r *ClusterDeploymentsReconciler) updateKubeConfigSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
-	s := &corev1.Secret{}
 	name := fmt.Sprintf(adminKubeConfigStringTemplate, cluster.Name)
-	getErr := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: name}, s)
+	s, getErr := getSecret(ctx, r.Client, r.APIReader, cluster.Namespace, name)
 	if getErr != nil && !k8serrors.IsNotFound(getErr) {
 		return nil, getErr
 	}
@@ -670,7 +659,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
 	}
-	pullSecretData, err := getPullSecret(ctx, r.Client, spec.PullSecretRef, clusterDeployment.Namespace)
+	pullSecretData, err := getPullSecretData(ctx, r.Client, r.APIReader, spec.PullSecretRef, clusterDeployment.Namespace)
 	if err != nil {
 		return errors.Wrap(err, "failed to get pull secret for update")
 	}
@@ -836,7 +825,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	log.Infof("Creating a new cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 	spec := clusterDeployment.Spec
 
-	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef, key.Namespace)
+	pullSecret, err := getPullSecretData(ctx, r.Client, r.APIReader, spec.PullSecretRef, key.Namespace)
 	if err != nil {
 		log.WithError(err).Error("failed to get pull secret")
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)
@@ -909,7 +898,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	id := strfmt.UUID(uuid.New().String())
 	apiVipDnsname := fmt.Sprintf("api.%s.%s", spec.ClusterName, spec.BaseDomain)
 
-	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef, key.Namespace)
+	pullSecret, err := getPullSecretData(ctx, r.Client, r.APIReader, spec.PullSecretRef, key.Namespace)
 	if err != nil {
 		log.WithError(err).Error("failed to get pull secret")
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)
@@ -1518,6 +1507,22 @@ func FindStatusCondition(conditions []hivev1.ClusterInstallCondition, conditionT
 	return nil
 }
 
+func (r *ClusterDeploymentsReconciler) ensurePullSecretLabel(ctx context.Context, ref *corev1.LocalObjectReference, namespace string) error {
+	if ref == nil {
+		return newInputError("Missing reference to pull secret")
+	}
+
+	secret, err := getSecret(ctx, r.Client, r.APIReader, namespace, ref.Name)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get pull secret %s to update label", ref.Name)
+	}
+	if !metav1.HasLabel(secret.ObjectMeta, SecretLabelName) {
+		metav1.SetMetaDataLabel(&secret.ObjectMeta, SecretLabelName, SecretLabelValue)
+		return r.Update(ctx, secret)
+	}
+	return nil
+}
+
 // ensureOwnerRef sets the owner reference of ClusterDeployment on AgentClusterInstall
 func (r *ClusterDeploymentsReconciler) ensureOwnerRef(ctx context.Context, log logrus.FieldLogger, cd *hivev1.ClusterDeployment, ci *hiveext.AgentClusterInstall) error {
 
@@ -1559,4 +1564,28 @@ func (r *ClusterDeploymentsReconciler) generateControllerLogsDownloadURL(cluster
 	}
 
 	return downloadURL, nil
+}
+
+func (r *ClusterDeploymentsReconciler) handleClusterInstalled(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster, clusterInstall *hiveext.AgentClusterInstall, key types.NamespacedName) (ctrl.Result, error) {
+	var err error
+	if !isInstalled(clusterDeployment, clusterInstall) {
+		// create secrets and update status
+		err = r.updateClusterMetadata(ctx, log, clusterDeployment, cluster, clusterInstall)
+		if err != nil {
+			log.WithError(err).Error("failed to update cluster metadata")
+		}
+		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+	} else if r.EnableDay2Cluster {
+		// Delete Day1 Cluster
+		_, err = r.deregisterClusterIfNeeded(ctx, log, key)
+		if err != nil {
+			log.WithError(err).Error("failed to deregister cluster")
+			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		}
+		if !r.isSNO(clusterInstall) {
+			//Create Day2 cluster
+			return r.createNewDay2Cluster(ctx, log, key, clusterDeployment, clusterInstall)
+		}
+	}
+	return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 }
