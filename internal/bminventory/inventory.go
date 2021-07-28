@@ -334,6 +334,11 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	if params.NewClusterParams.SchedulableMasters == nil {
 		params.NewClusterParams.SchedulableMasters = swag.Bool(false)
 	}
+	if params.NewClusterParams.Platform == nil {
+		params.NewClusterParams.Platform = &models.Platform{
+			Type: models.PlatformTypeBaremetal,
+		}
+	}
 
 	return params
 }
@@ -345,9 +350,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
-	platform := models.Platform{
-		Type: models.PlatformTypeBaremetal,
-	}
 
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
@@ -473,7 +475,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
 			Hyperthreading:           swag.StringValue(params.NewClusterParams.Hyperthreading),
 			SchedulableMasters:       params.NewClusterParams.SchedulableMasters,
-			Platform:                 &platform,
+			Platform:                 params.NewClusterParams.Platform,
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
@@ -2280,6 +2282,9 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) {
 	cluster.FeatureUsage = string(featusage)
 	b.setUsage(false, usage.NetworkTypeSelectionUsage, &map[string]interface{}{
 		"network_type": cluster.NetworkType}, usages)
+	withCredentials := cluster.Platform.Vsphere != nil && cluster.Platform.Vsphere.VCenter != nil && cluster.Platform.Vsphere.Password != nil && cluster.Platform.Vsphere.Username != nil
+	b.setUsage(cluster.Platform.Type != models.PlatformTypeBaremetal, usage.PlatformSelectionUsage, &map[string]interface{}{
+		"platform_type": cluster.Platform.Type, "with_credentials": withCredentials}, usages)
 }
 
 func (b *bareMetalInventory) setProxyUsage(httpProxy *string, httpsProxy *string, noProxy *string, usages map[string]models.Usage) {
