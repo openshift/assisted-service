@@ -3637,8 +3637,7 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 			return common.GenerateErrorResponder(err)
 		}
 
-		configParams := models.DiscoveryIgnitionParams{Config: cfg}
-		return installer.NewGetDiscoveryIgnitionOK().WithPayload(&configParams)
+		return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(ioutil.NopCloser(strings.NewReader(cfg))), params.FileName, int64(len(cfg)))
 	} else {
 		respBody, contentLength, err := b.DownloadClusterFilesInternal(ctx, params)
 		if err != nil {
