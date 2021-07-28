@@ -13,7 +13,9 @@ export ASSISTED_PULLSECRET_NAME="${ASSISTED_PULLSECRET_NAME:-assisted-pull-secre
 export ASSISTED_PULLSECRET_JSON="${ASSISTED_PULLSECRET_JSON:-${PULL_SECRET_FILE}}"
 export ASSISTED_PRIVATEKEY_NAME="${ASSISTED_PRIVATEKEY_NAME:-assisted-ssh-private-key}"
 export EXTRA_BAREMETALHOSTS_FILE="${EXTRA_BAREMETALHOSTS_FILE:-/home/test/dev-scripts/ocp/ostest/extra_baremetalhosts.json}"
-export CONTROL_PLANE_COUNT="${CONTROL_PLANE_COUNT:-1}"
+export SPOKE_CONTROLPLANE_AGENTS="${SPOKE_CONTROLPLANE_AGENTS:-1}"
+export SPOKE_API_VIP="${SPOKE_API_VIP:-}"
+export SPOKE_INGRESS_VIP="${SPOKE_INGRESS_VIP:-}"
 
 if [[ "${IP_STACK}" == "v4" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
@@ -25,6 +27,12 @@ elif [[ "${IP_STACK}" == "v6" ]]; then
     export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V6}"
     export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V6}"
     export SERVICE_SUBNET="${SERVICE_SUBNET_V6}"
+fi
+
+#  If spoke is a multi cluster then we need to pick IPs for API and Ingress
+if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ]; then
+    export SPOKE_API_VIP=$(nth_ip $EXTERNAL_SUBNET 85)
+    export SPOKE_INGRESS_VIP=$(nth_ip $EXTERNAL_SUBNET 87)
 fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
@@ -61,10 +69,10 @@ done
 
 wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${SPOKE_NAMESPACE}"
 
-echo "Waiting until at least ${CONTROL_PLANE_COUNT} agents are available..."
+echo "Waiting until at least ${SPOKE_CONTROLPLANE_AGENTS} agents are available..."
 export -f wait_for_object_amount
-timeout 20m bash -c "wait_for_object_amount agent ${CONTROL_PLANE_COUNT} 30 ${SPOKE_NAMESPACE}"
-echo "All ${CONTROL_PLANE_COUNT} agents have joined!"
+timeout 20m bash -c "wait_for_object_amount agent ${SPOKE_CONTROLPLANE_AGENTS} 30 ${SPOKE_NAMESPACE}"
+echo "All ${SPOKE_CONTROLPLANE_AGENTS} agents have joined!"
 
 wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "60m" "${SPOKE_NAMESPACE}"
 echo "Cluster has been installed successfully!"
