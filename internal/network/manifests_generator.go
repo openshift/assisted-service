@@ -44,6 +44,7 @@ func NewManifestsGenerator(manifestsApi restapi.ManifestsAPI, config Config) *Ma
 }
 
 const defaultChronyConf = `
+pool 0.rhel.pool.ntp.org iburst
 driftfile /var/lib/chrony/drift
 makestep 1.0 3
 rtcsync
