@@ -224,6 +224,7 @@ var _ = Describe("cluster reconcile", func() {
 		mockManifestsApi = manifests.NewMockClusterManifestsInternals(mockCtrl)
 		cr = &ClusterDeploymentsReconciler{
 			Client:           c,
+			APIReader:        c,
 			Scheme:           scheme.Scheme,
 			Log:              common.GetTestLog(),
 			Installer:        mockInstallerInternal,
@@ -483,6 +484,55 @@ var _ = Describe("cluster reconcile", func() {
 		Expect(clusterInstall.ObjectMeta.OwnerReferences[0]).To(Equal(ownref))
 	})
 
+	It("validate label on Pull Secret", func() {
+		sId := strfmt.UUID(uuid.New().String())
+		backEndCluster := &common.Cluster{
+			Cluster: models.Cluster{
+				ID:                       &sId,
+				Name:                     clusterName,
+				OpenshiftVersion:         "4.8",
+				ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+				ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+				Status:                   swag.String(models.ClusterStatusReady),
+				ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+				IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+				APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+				BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+				SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+				Hyperthreading:           models.ClusterHyperthreadingAll,
+				Kind:                     swag.String(models.ClusterKindCluster),
+			},
+			PullSecret: testPullSecretVal,
+		}
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
+
+		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+		pullSecret := getDefaultTestPullSecret(pullSecretName, testNamespace)
+		Expect(c.Create(ctx, pullSecret)).To(BeNil())
+
+		secret := &corev1.Secret{}
+		secretKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      pullSecretName,
+		}
+		Expect(c.Get(ctx, secretKey, secret)).To(BeNil())
+		Expect(secret.Labels).To(BeNil())
+
+		request := newClusterDeploymentRequest(cluster)
+		result, err := cr.Reconcile(ctx, request)
+
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		Expect(c.Get(ctx, secretKey, secret)).To(BeNil())
+		Expect(secret.Labels[SecretLabelName]).To(Equal(SecretLabelValue))
+	})
+
 	It("validate Event URL", func() {
 		_, priv, err := gencrypto.ECDSAKeyPairPEM()
 		Expect(err).NotTo(HaveOccurred())
@@ -700,6 +750,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockManifestsApi = manifests.NewMockClusterManifestsInternals(mockCtrl)
 			cr = &ClusterDeploymentsReconciler{
 				Client:           c,
+				APIReader:        c,
 				Scheme:           scheme.Scheme,
 				Log:              common.GetTestLog(),
 				Installer:        mockInstallerInternal,
@@ -789,7 +840,6 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
 			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
-			Expect(c.Delete(ctx, aci)).ShouldNot(HaveOccurred())
 			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cd)
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
@@ -2154,6 +2204,7 @@ var _ = Describe("TestConditions", func() {
 		mockClusterApi := cluster.NewMockAPI(mockCtrl)
 		cr = &ClusterDeploymentsReconciler{
 			Client:     c,
+			APIReader:  c,
 			Scheme:     scheme.Scheme,
 			Log:        common.GetTestLog(),
 			Installer:  mockInstallerInternal,

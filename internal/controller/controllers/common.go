@@ -21,6 +21,7 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,18 +36,33 @@ const (
 	mirrorRegistryConfigVolume       = "mirror-registry-config"
 )
 
-func getPullSecret(ctx context.Context, c client.Client, ref *corev1.LocalObjectReference, namespace string) (string, error) {
+func getSecret(ctx context.Context, c client.Client, r client.Reader, namespace, name string) (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	key := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	if err := c.Get(ctx, key, secret); err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return nil, errors.Wrapf(err, "failed to get pull secret %s", key)
+		}
+		// Secret not in cache; check API directly for unlabelled Secret
+		err = r.Get(ctx, key, secret)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get pull secret %s", key)
+		}
+	}
+	return secret, nil
+}
+
+func getPullSecretData(ctx context.Context, c client.Client, r client.Reader, ref *corev1.LocalObjectReference, namespace string) (string, error) {
 	if ref == nil {
 		return "", newInputError("Missing reference to pull secret")
 	}
 
-	secret := &corev1.Secret{}
-	key := types.NamespacedName{
-		Namespace: namespace,
-		Name:      ref.Name,
-	}
-	if err := c.Get(ctx, key, secret); err != nil {
-		return "", errors.Wrapf(err, "failed to get pull secret %s", key)
+	secret, err := getSecret(ctx, c, r, namespace, ref.Name)
+	if err != nil {
+		return "", err
 	}
 
 	data, ok := secret.Data[corev1.DockerConfigJsonKey]

@@ -117,7 +117,8 @@ var _ = Describe("agent reconcile", func() {
 			Namespace: testNamespace,
 			Name:      "host",
 		}
-		Expect(c.Get(ctx, key, agent).Error()).To(Equal("agents.agent-install.openshift.io \"host\" not found"))
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
 	})
 
 	It("cluster not found in database", func() {
@@ -135,7 +136,8 @@ var _ = Describe("agent reconcile", func() {
 			Namespace: testNamespace,
 			Name:      "host",
 		}
-		Expect(c.Get(ctx, key, agent).Error()).To(Equal("agents.agent-install.openshift.io \"host\" not found"))
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
 	})
 
 	It("error getting cluster from database", func() {
@@ -177,7 +179,8 @@ var _ = Describe("agent reconcile", func() {
 			Namespace: testNamespace,
 			Name:      "host",
 		}
-		Expect(c.Get(ctx, key, agent).Error()).To(Equal("agents.agent-install.openshift.io \"host\" not found"))
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
 	})
 
 	It("Agent update", func() {
