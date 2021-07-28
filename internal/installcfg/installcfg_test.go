@@ -41,6 +41,7 @@ var _ = Describe("installcfg", func() {
 			InstallConfigOverrides: `{"fips":true}`,
 			ImageInfo:              &models.ImageInfo{},
 			Platform:               &models.Platform{Type: models.PlatformTypeBaremetal},
+			NetworkType:            swag.String("OpenShiftSDN"),
 		}}
 		id := strfmt.UUID(uuid.New().String())
 		host1 = models.Host{
@@ -205,7 +206,6 @@ var _ = Describe("installcfg", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOVNKubernetes))
 	})
 
 	It("doesn't fail with empty overrides, IPv6 cluster CIDR", func() {
@@ -217,7 +217,6 @@ var _ = Describe("installcfg", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOVNKubernetes))
 	})
 
 	It("doesn't fail with empty overrides, IPv6 service CIDR", func() {
@@ -229,7 +228,6 @@ var _ = Describe("installcfg", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOVNKubernetes))
 	})
 
 	It("CA AdditionalTrustBundle", func() {
@@ -331,7 +329,6 @@ var _ = Describe("installcfg", func() {
 		var none = platformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("fe80::/64"))
-		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOVNKubernetes))
 	})
 
 	It("UserManagedNetworking BareMetal", func() {
@@ -385,7 +382,6 @@ var _ = Describe("installcfg", func() {
 		var none = platformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(cluster.MachineNetworkCidr))
-		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOVNKubernetes))
 	})
 
 	It("Hyperthreading config", func() {
@@ -638,58 +634,6 @@ var _ = Describe("Platform", func() {
 		// cleanup
 		ctrl.Finish()
 	})
-})
-
-var _ = Describe("getNetworkType", func() {
-	tests := []struct {
-		inNetworkType      string
-		serviceNetworkCidr string
-		outNetworkType     string
-	}{
-		{
-			inNetworkType:      models.ClusterCreateParamsNetworkTypeAutoAssign,
-			serviceNetworkCidr: "1.2.8.0/23",
-			outNetworkType:     models.ClusterNetworkTypeOpenShiftSDN,
-		},
-		{
-			inNetworkType:      models.ClusterCreateParamsNetworkTypeAutoAssign,
-			serviceNetworkCidr: "1002:db8::/119",
-			outNetworkType:     models.ClusterNetworkTypeOVNKubernetes,
-		},
-		{
-			inNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
-			serviceNetworkCidr: "1.2.8.0/23",
-			outNetworkType:     models.ClusterNetworkTypeOpenShiftSDN,
-		},
-		{
-			inNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
-			serviceNetworkCidr: "1002:db8::/119",
-			outNetworkType:     models.ClusterNetworkTypeOVNKubernetes,
-		},
-		{
-			inNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
-			serviceNetworkCidr: "1.2.8.0/23",
-			outNetworkType:     models.ClusterNetworkTypeOVNKubernetes,
-		},
-	}
-	for i := range tests {
-		t := tests[i]
-		It("getNetworkType", func() {
-			ctrl := gomock.NewController(GinkgoT())
-			clusterId := strfmt.UUID(uuid.New().String())
-			cluster := &common.Cluster{Cluster: models.Cluster{
-				NetworkType:        &t.inNetworkType,
-				ID:                 &clusterId,
-				ServiceNetworkCidr: t.serviceNetworkCidr,
-				ClusterNetworkCidr: "10.56.20.0/24",
-				MachineNetworkCidr: "1.2.3.0/24",
-			}}
-			mockMirrorRegistriesConfigBuilder := mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
-			installConfig := &installConfigBuilder{log: common.GetTestLog(), mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder}
-			networkType := installConfig.getNetworkType(cluster)
-			Expect(networkType).To(Equal(t.outNetworkType))
-		})
-	}
 })
 
 func TestSubsystem(t *testing.T) {
