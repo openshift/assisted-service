@@ -52,7 +52,6 @@ var Options struct {
 	Storage                 string        `envconfig:"STORAGE" default:""`
 	Namespace               string        `envconfig:"NAMESPACE" default:"assisted-installer"`
 	EnableKubeAPI           bool          `envconfig:"ENABLE_KUBE_API" default:"false"`
-	WithAMSSubscriptions    bool          `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`
 	DeregisterInactiveAfter time.Duration `envconfig:"DELETED_INACTIVE_AFTER" default:"480h"` // 20d
 }
 

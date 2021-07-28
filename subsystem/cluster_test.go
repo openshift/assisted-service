@@ -671,9 +671,6 @@ var _ = Describe("ListClusters", func() {
 			if Options.AuthType == auth.TypeNone {
 				Skip("auth is disabled")
 			}
-			if !Options.WithAMSSubscriptions {
-				Skip("AMS is disabled")
-			}
 		})
 
 		It("searching for an existing AMS subscription ID", func() {

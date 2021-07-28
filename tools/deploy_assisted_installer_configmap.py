@@ -13,7 +13,6 @@ def handle_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-dns-domains")
     parser.add_argument("--auth-type", default="none")
-    parser.add_argument("--with-ams-subscriptions", default="False")
     parser.add_argument("--subsystem-test", action='store_true')
     parser.add_argument("--jwks-url", default="https://api.openshift.com/.well-known/jwks.json")
     parser.add_argument("--ocm-url", default="https://api-integration.6943.hive-integration.openshiftapps.com")
@@ -66,7 +65,6 @@ def main():
 
             data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
             data = data.replace('REPLACE_AUTH_TYPE_FLAG', '"{}"'.format(deploy_options.auth_type))
-            data = data.replace('REPLACE_WITH_AMS_SUBSCRIPTIONS', '"{}"'.format(deploy_options.with_ams_subscriptions))
             data = data.replace('REPLACE_CHECK_CLUSTER_VERSION_FLAG', '"{}"'.format(deploy_options.check_cvo))
             data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))
             data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))

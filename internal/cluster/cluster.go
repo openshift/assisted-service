@@ -1160,7 +1160,7 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 		destStatus = models.ClusterStatusInstalled
 
 		// Update AMS subscription only if configured and installation succeeded
-		if m.ocmClient != nil && m.ocmClient.Config.WithAMSSubscriptions {
+		if m.ocmClient != nil {
 			if err := m.ocmClient.AccountsMgmt.UpdateSubscriptionStatusActive(ctx, cluster.AmsSubscriptionID); err != nil {
 				err = errors.Wrapf(err, "Failed to update AMS subscription for cluster %s with status 'Active'", *cluster.ID)
 				log.Error(err)

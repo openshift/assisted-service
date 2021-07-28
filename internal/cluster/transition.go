@@ -347,7 +347,7 @@ func (th *transitionHandler) WithAMSSubscriptions(sw stateswitch.StateSwitch, ar
 	if !ok {
 		return false, errors.New("WithAMSSubscriptions invalid argument")
 	}
-	if params.ocmClient != nil && params.ocmClient.Config.WithAMSSubscriptions &&
+	if params.ocmClient != nil &&
 		!sCluster.cluster.IsAmsSubscriptionConsoleUrlSet && params.clusterAPI.IsOperatorAvailable(sCluster.cluster, operators.OperatorConsole.Name) {
 		return true, nil
 	}

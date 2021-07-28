@@ -22,9 +22,6 @@ var _ = Describe("test AMS subscriptions", func() {
 		if Options.AuthType == auth.TypeNone {
 			Skip("auth is disabled")
 		}
-		if !Options.WithAMSSubscriptions {
-			Skip("AMS is disabled")
-		}
 	})
 
 	AfterEach(func() {

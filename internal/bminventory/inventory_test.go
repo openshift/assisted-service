@@ -7081,6 +7081,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("success", func() {
 		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -7094,6 +7095,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("SchedulableMasters default value", func() {
 		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -7109,6 +7111,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("SchedulableMasters non default value", func() {
 		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -7125,6 +7128,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("UserManagedNetworking default value", func() {
 		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -7140,6 +7144,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("UserManagedNetworking non default value", func() {
 		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -7187,6 +7192,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			bm.Config.DefaultNTPSource = defaultNtpSource
 
 			mockClusterRegisterSuccess(bm, true)
+			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -7204,6 +7210,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			newNtpSource := "new.ntp.source"
 
 			mockClusterRegisterSuccess(bm, true)
+			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -7237,6 +7244,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("Host Networks default value", func() {
 		defaultHostNetworks := make([]*models.HostNetwork, 0)
 		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -7281,6 +7289,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("openshift release image and version successfully defined", func() {
 		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("some-cluster-name"),
@@ -7331,7 +7340,6 @@ var _ = Describe("AMS subscriptions", func() {
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
-		bm.ocmClient.Config.WithAMSSubscriptions = true
 		mockUsageReports()
 	})
 
@@ -8141,7 +8149,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockUsage = usage.NewMockAPI(ctrl)
 	mockK8sClient = k8sclient.NewMockK8SClient(ctrl)
 	mockAccountsMgmt = ocm.NewMockOCMAccountsMgmt(ctrl)
-	ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt, Config: &ocm.Config{}}
+	ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt}
 	mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 	mockVersions = versions.NewMockHandler(ctrl)
 	mockIsoEditorFactory = isoeditor.NewMockFactory(ctrl)
