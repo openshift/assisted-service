@@ -2032,7 +2032,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(4, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(5, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
 			host := registerNode(ctx, *cluster.ID, hostname, ips[i])
@@ -2141,6 +2141,20 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configureLocalAgentClient(cluster.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostnameday2", ips[3])
 		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		generateApiVipPostStepReply(ctx, host, true)
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		By("Add a second Day 2 host and approve agent")
+		configureLocalAgentClient(cluster.ID.String())
+		host = registerNode(ctx, *cluster.ID, "secondhostnameday2", ips[4])
+		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
