@@ -2689,7 +2689,7 @@ var _ = Describe("Installation stages", func() {
 		Expect(api.IndexOfStage(models.HostStageWaitingForIgnition, MasterStages[:])).To(Equal(-1))
 	})
 
-	It("UpdateInstallProgress test", func() {
+	It("UpdateInstallProgress test - day1 hosts", func() {
 
 		h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), models.HostStatusInstalling)
 		h.Role = models.HostRoleMaster
@@ -2731,6 +2731,88 @@ var _ = Describe("Installation stages", func() {
 			h = hFromDB.Host
 			expectedInstallationPercentage := int64(float64(api.IndexOfStage(newStage, MasterStages[:])+1) / float64(len(MasterStages[:])) * 100)
 			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
+		})
+	})
+
+	It("UpdateInstallProgress test - day2 hosts", func() {
+
+		h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), models.HostStatusInstalling)
+		hostKindDay2 := models.HostKindAddToExistingClusterHost
+		h.Kind = &hostKindDay2
+		h.Role = models.HostRoleWorker
+		Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+		By("report first progress", func() {
+
+			newStage := models.HostStageStartingInstallation
+			progress := models.HostProgress{
+				CurrentStage: newStage,
+			}
+
+			mockEventApi.EXPECT().AddEvent(ctx, h.ClusterID, gomock.Any(), models.EventSeverityInfo, gomock.Any(), gomock.Any(), gomock.Any())
+
+			err := api.UpdateInstallProgress(ctx, &h, &progress)
+			Expect(err).NotTo(HaveOccurred())
+
+			hFromDB := hostutil.GetHostFromDB(*h.ID, h.ClusterID, db)
+			h = hFromDB.Host
+			expectedInstallationPercentage := int64(25)
+			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
+		})
+
+		By("report second progress", func() {
+
+			newStage := models.HostStageInstalling
+			progress := models.HostProgress{
+				CurrentStage: newStage,
+			}
+
+			mockEventApi.EXPECT().AddEvent(ctx, h.ClusterID, gomock.Any(), models.EventSeverityInfo, gomock.Any(), gomock.Any(), gomock.Any())
+
+			err := api.UpdateInstallProgress(ctx, &h, &progress)
+			Expect(err).NotTo(HaveOccurred())
+
+			hFromDB := hostutil.GetHostFromDB(*h.ID, h.ClusterID, db)
+			h = hFromDB.Host
+			expectedInstallationPercentage := int64(50)
+			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
+		})
+
+		By("report third progress", func() {
+
+			newStage := models.HostStageWritingImageToDisk
+			progress := models.HostProgress{
+				CurrentStage: newStage,
+			}
+
+			mockEventApi.EXPECT().AddEvent(ctx, h.ClusterID, gomock.Any(), models.EventSeverityInfo, gomock.Any(), gomock.Any(), gomock.Any())
+
+			err := api.UpdateInstallProgress(ctx, &h, &progress)
+			Expect(err).NotTo(HaveOccurred())
+
+			hFromDB := hostutil.GetHostFromDB(*h.ID, h.ClusterID, db)
+			h = hFromDB.Host
+			expectedInstallationPercentage := int64(75)
+			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
+		})
+
+		By("report last progress", func() {
+
+			newStage := models.HostStageRebooting
+			progress := models.HostProgress{
+				CurrentStage: newStage,
+			}
+
+			mockEventApi.EXPECT().AddEvent(ctx, h.ClusterID, gomock.Any(), models.EventSeverityInfo, gomock.Any(), gomock.Any(), gomock.Any())
+
+			err := api.UpdateInstallProgress(ctx, &h, &progress)
+			Expect(err).NotTo(HaveOccurred())
+
+			hFromDB := hostutil.GetHostFromDB(*h.ID, h.ClusterID, db)
+			h = hFromDB.Host
+			expectedInstallationPercentage := int64(100)
+			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
+			Expect(*h.Status).To(Equal(models.HostStatusAddedToExistingCluster))
 		})
 	})
 })

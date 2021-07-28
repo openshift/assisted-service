@@ -490,6 +490,11 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		}
 
 		stages := m.GetStagesByRole(h.Role, h.Bootstrap)
+		// for day2 hosts, rebooting stage is considered as the last state as we don't have any way to follow up on it further.
+		if *h.Kind == models.HostKindAddToExistingClusterHost {
+			rebootingIndex := m.IndexOfStage(models.HostStageRebooting, stages)
+			stages = stages[:rebootingIndex+1]
+		}
 		currentIndex := m.IndexOfStage(progress.CurrentStage, stages)
 		installationPercentage := (float64(currentIndex+1) / float64(len(stages))) * 100
 		extra = append(extra, "progress_installation_percentage", installationPercentage)
