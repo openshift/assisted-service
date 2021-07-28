@@ -20,6 +20,9 @@ type VspherePlatform struct {
 	// The vCenter cluster to install the OpenShift Container Platform cluster in.
 	Cluster *string `json:"cluster,omitempty"`
 
+	// Optional. The location from which the installer downloads the RHCOS image. You must set this parameter to perform an installation in a restricted network.
+	ClusterOSImage *string `json:"clusterOSImage,omitempty"`
+
 	// The name of the datacenter to use in the vCenter instance.
 	Datacenter *string `json:"datacenter,omitempty"`
 

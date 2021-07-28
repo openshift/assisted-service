@@ -3147,6 +3147,7 @@ var _ = Describe("cluster", func() {
 									Password:         &dummyPassword,
 									Username:         &dummy,
 									VCenter:          &dummy,
+									ClusterOSImage:   &dummy,
 								},
 							},
 						},

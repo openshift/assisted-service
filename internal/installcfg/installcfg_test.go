@@ -598,6 +598,7 @@ var _ = Describe("Platform", func() {
 		password := strfmt.Password("password")
 		username := "username"
 		vCenter := "vCenter"
+		clusterOSImage := "clusterOSImage"
 		cluster.Platform = &models.Platform{Type: models.PlatformTypeVsphere,
 			Vsphere: &models.VspherePlatform{
 				Cluster:          &pcluster,
@@ -608,6 +609,7 @@ var _ = Describe("Platform", func() {
 				Password:         &password,
 				Username:         &username,
 				VCenter:          &vCenter,
+				ClusterOSImage:   &clusterOSImage,
 			}}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
@@ -627,7 +629,7 @@ var _ = Describe("Platform", func() {
 		Expect(result.Platform.Vsphere.Datacenter).Should(Equal(*cluster.Platform.Vsphere.Datacenter))
 		Expect(result.Platform.Vsphere.Network).Should(Equal(*cluster.Platform.Vsphere.Network))
 		Expect(result.Platform.Vsphere.Cluster).Should(Equal(*cluster.Platform.Vsphere.Cluster))
-
+		Expect(result.Platform.Vsphere.ClusterOSImage).Should(Equal(*cluster.Platform.Vsphere.ClusterOSImage))
 	})
 
 	AfterEach(func() {

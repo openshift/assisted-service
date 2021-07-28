@@ -8308,6 +8308,11 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "clusterOSImage": {
+          "description": "Optional. The location from which the installer downloads the RHCOS image. You must set this parameter to perform an installation in a restricted network.",
+          "type": "string",
+          "x-nullable": true
+        },
         "datacenter": {
           "description": "The name of the datacenter to use in the vCenter instance.",
           "type": "string",
@@ -16754,6 +16759,11 @@ func init() {
       "properties": {
         "cluster": {
           "description": "The vCenter cluster to install the OpenShift Container Platform cluster in.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "clusterOSImage": {
+          "description": "Optional. The location from which the installer downloads the RHCOS image. You must set this parameter to perform an installation in a restricted network.",
           "type": "string",
           "x-nullable": true
         },

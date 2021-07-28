@@ -2045,6 +2045,7 @@ func (b *bareMetalInventory) updatePlatformParams(params installer.UpdateCluster
 			updates["platform_vsphere_network"] = platform.Vsphere.Network
 			updates["platform_vsphere_vCenter"] = platform.Vsphere.VCenter
 			updates["platform_vsphere_folder"] = platform.Vsphere.Folder
+			updates["platform_vsphere_clusterOSImage"] = platform.Vsphere.ClusterOSImage
 		}
 	}
 
@@ -2058,6 +2059,7 @@ func (b *bareMetalInventory) updatePlatformParams(params installer.UpdateCluster
 		updates["platform_vsphere_network"] = nil
 		updates["platform_vsphere_vCenter"] = nil
 		updates["platform_vsphere_folder"] = nil
+		updates["platform_vsphere_clusterOSImage"] = nil
 	}
 }
 

@@ -3497,6 +3497,10 @@ definitions:
         type: string
         description: Optional. The absolute path of an existing folder where the installation program creates the virtual machines. If you do not provide this value, the installation program creates a folder that is named with the infrastructure ID in the datacenter virtual machine folder.
         x-nullable: true
+      clusterOSImage:
+        type: string
+        description: Optional. The location from which the installer downloads the RHCOS image. You must set this parameter to perform an installation in a restricted network.
+        x-nullable: true
 
   monitored-operator:
     type: object

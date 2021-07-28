@@ -52,6 +52,7 @@ type platformVsphere struct {
 	Cluster          string          `yaml:"cluster"`
 	APIVIP           string          `yaml:"apiVIP"`
 	IngressVIP       string          `yaml:"ingressVIP"`
+	ClusterOSImage   string          `yaml:"clusterOSImage,omitempty"`
 }
 
 type platformNone struct {
@@ -273,8 +274,12 @@ func setVspherePlatformValues(platform *platformVsphere, clusterPlatform *models
 		platform.DefaultDatastore = *clusterPlatform.DefaultDatastore
 		platform.Network = *clusterPlatform.Network
 		platform.Cluster = *clusterPlatform.Cluster
+		platform.Cluster = *clusterPlatform.Cluster
 		if clusterPlatform.Folder != nil {
 			platform.Folder = *clusterPlatform.Folder
+		}
+		if clusterPlatform.ClusterOSImage != nil {
+			platform.ClusterOSImage = *clusterPlatform.ClusterOSImage
 		}
 	} else {
 		platform.Cluster = "clusterplaceholder"
