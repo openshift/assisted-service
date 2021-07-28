@@ -26,6 +26,20 @@ const (
 )
 
 func clearDB() {
+	if !Options.EnableKubeAPI {
+		// Delete cluster should use the REST API in order to delete any
+		// clusters' resources managed by the service
+		reply, err := userBMClient.Installer.ListClusters(context.Background(), &installer.ListClustersParams{})
+		Expect(err).ShouldNot(HaveOccurred())
+		for _, c := range reply.GetPayload() {
+			// DeregisterCluster API isn't necessarily available (e.g. cluster is being installed)
+			if _, err = userBMClient.Installer.DeregisterCluster(context.Background(), &installer.DeregisterClusterParams{ClusterID: *c.ID}); err != nil {
+				log.WithError(err).Debugf("Cluster %s couldn't be deleted via REST API", *c.ID)
+			}
+		}
+	}
+
+	// Clean the DB to make sure we start tests from scratch
 	db.Delete(&models.Host{})
 	db.Delete(&models.Cluster{})
 }

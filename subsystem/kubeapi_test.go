@@ -496,13 +496,13 @@ func randomNameSuffix() string {
 	return fmt.Sprintf("-%s", strings.Split(uuid.New().String(), "-")[0])
 }
 
-func cleanUP(ctx context.Context, client k8sclient.Client) {
+func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil()) // Should also delete all agents
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterImageSet{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.InfraEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &bmhv1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-	ps := &corev1.Secret{
+	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
 			APIVersion: "v1",
@@ -513,7 +513,7 @@ func cleanUP(ctx context.Context, client k8sclient.Client) {
 		},
 		Type: corev1.SecretTypeDockerConfigJson,
 	}
-	Expect(client.Delete(ctx, ps)).To(BeNil())
+	Expect(client.Delete(ctx, secret)).To(BeNil())
 }
 
 func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
@@ -606,7 +606,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	AfterEach(func() {
-		cleanUP(ctx, kubeClient)
+		cleanUpCRs(ctx, kubeClient)
 		verifyCleanUP(ctx, kubeClient)
 		clearDB()
 	})
@@ -2475,7 +2475,7 @@ var _ = Describe("bmac reconcile flow", func() {
 	})
 
 	AfterEach(func() {
-		cleanUP(ctx, kubeClient)
+		cleanUpCRs(ctx, kubeClient)
 		clearDB()
 	})
 
