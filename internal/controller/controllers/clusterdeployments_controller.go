@@ -230,7 +230,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		}
 	}
 
-	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
+	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster && !clusterInstall.Spec.HoldInstallation {
 		// Day 1
 		return r.installDay1(ctx, log, clusterDeployment, clusterInstall, cluster)
 
@@ -370,7 +370,6 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 }
 
 func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
-
 	for _, h := range cluster.Hosts {
 		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
 		if err != nil {
@@ -1358,7 +1357,15 @@ func clusterCompleted(clusterInstall *hiveext.AgentClusterInstall, status, statu
 		condStatus = corev1.ConditionFalse
 		reason = hiveext.ClusterInstallationFailedReason
 		msg = fmt.Sprintf("%s %s", hiveext.ClusterInstallationFailedMsg, statusInfo)
-	case models.ClusterStatusInsufficient, models.ClusterStatusPendingForInput, models.ClusterStatusReady:
+	case models.ClusterStatusReady:
+		condStatus = corev1.ConditionFalse
+		reason = hiveext.ClusterInstallationNotStartedReason
+		msg = hiveext.ClusterInstallationNotStartedMsg
+		if clusterInstall.Spec.HoldInstallation {
+			reason = hiveext.ClusterInstallationOnHoldReason
+			msg = hiveext.ClusterInstallationOnHoldMsg
+		}
+	case models.ClusterStatusInsufficient, models.ClusterStatusPendingForInput:
 		condStatus = corev1.ConditionFalse
 		reason = hiveext.ClusterInstallationNotStartedReason
 		msg = hiveext.ClusterInstallationNotStartedMsg

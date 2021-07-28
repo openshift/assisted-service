@@ -110,6 +110,9 @@ spec:
                 required:
                 - name
                 type: object
+              holdInstallation:
+                description: HoldInstallation will prevent installation from happening when true. Inspection and validation will proceed as usual, but once the RequirementsMet condition is true, installation will not begin until this field is set to false.
+                type: boolean
               imageSetRef:
                 description: ImageSetRef is a reference to a ClusterImageSet. The release image specified in the ClusterImageSet will be used to install the cluster.
                 properties:
