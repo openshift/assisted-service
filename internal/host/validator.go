@@ -235,11 +235,7 @@ func (v *validator) printHasMinCpuCores(c *validationContext, status ValidationS
 }
 
 func (v *validator) hasMinMemory(c *validationContext) ValidationStatus {
-	if c.inventory == nil {
-		return ValidationPending
-	}
-
-	return boolValue(c.inventory.Memory.PhysicalBytes >= conversions.MibToBytes(c.minRAMMibRequirement))
+	return ValidationSuccess
 }
 
 func (v *validator) printHasMinMemory(c *validationContext, status ValidationStatus) string {
@@ -321,11 +317,7 @@ func (v *validator) printHasCPUCoresForRole(c *validationContext, status Validat
 }
 
 func (v *validator) hasMemoryForRole(c *validationContext) ValidationStatus {
-	if c.inventory == nil {
-		return ValidationPending
-	}
-	requiredBytes := conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)
-	return boolValue(c.inventory.Memory.PhysicalBytes >= requiredBytes)
+	return ValidationSuccess
 }
 
 func (v *validator) isValidPlatform(c *validationContext) ValidationStatus {
