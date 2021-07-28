@@ -78,7 +78,7 @@ Unit tests are located next to a module named `module_name_test.go`
 Subsystem tests requires deploying the assisted-service on a k8s cluster together with DB and storage services.
 The subsystem tests are located on the [subsystem](https://github.com/openshift/assisted-service/tree/master/subsystem) directory.
 * System tests (a.k.a e2e) - Running full flows with all components.
-The e2e tests are divided into u/s (upstream) basic workflows on [assisted-test-infra](https://github.com/openshift/assisted-test-infra/tree/master/discovery-infra/tests) and d/s (downstream) extended regression tests maintained by both DEV and QE teams on [kni-assisted-installer-auto](https://gitlab.cee.redhat.com/ocp-edge-qe/kni-assisted-installer-auto/-/tree/master/api_tests).
+The e2e tests are divided into u/s (upstream) basic workflows on [assisted-test-infra](https://github.com/openshift/assisted-test-infra/tree/master/tests) and d/s (downstream) extended regression tests maintained by both DEV and QE teams on [kni-assisted-installer-auto](https://gitlab.cee.redhat.com/ocp-edge-qe/kni-assisted-installer-auto/-/tree/master/api_tests).
 
 
 ### Subsystem tests pre-configuration
