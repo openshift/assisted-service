@@ -208,6 +208,10 @@ func (f fakeInventory) UpdateHostLogsProgress(ctx context.Context, params instal
 	return installer.NewUpdateHostLogsProgressNoContent()
 }
 
+func (f fakeInventory) GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder {
+	return installer.NewGetClusterSupportedPlatformsOK()
+}
+
 func (f fakeInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
 	return installer.NewUploadLogsNoContent()
 }

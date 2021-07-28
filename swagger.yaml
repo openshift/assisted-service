@@ -299,6 +299,45 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}/supported-platforms:
+    get:
+      tags:
+        - installer
+      description: A list of platforms that this cluster can support in its current configuration.
+      operationId: GetClusterSupportedPlatforms
+      security:
+        - userAuth: [ admin, read-only-admin, user ]
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose platform types should be retrieved.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/platform_type'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /v1/clusters/{cluster_id}/downloads/image:
     post:
       tags:
