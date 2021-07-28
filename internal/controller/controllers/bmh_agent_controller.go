@@ -67,6 +67,8 @@ const (
 	BMH_AGENT_MACHINE_CONFIG_POOL       = "bmac.agent-install.openshift.io/machine-config-pool"
 	BMH_INFRA_ENV_LABEL                 = "infraenvs.agent-install.openshift.io"
 	BMH_AGENT_INSTALLER_ARGS            = "bmac.agent-install.openshift.io/installer-args"
+	BMH_ANNOTATION                      = "metal3.io/BareMetalHost"
+	BMH_API_VERSION                     = "baremetal.cluster.k8s.io/v1alpha1"
 	BMH_DETACHED_ANNOTATION             = "baremetalhost.metal3.io/detached"
 	BMH_INSPECT_ANNOTATION              = "inspect.metal3.io"
 	BMH_HARDWARE_DETAILS_ANNOTATION     = "inspect.metal3.io/hardwaredetails"
@@ -691,7 +693,13 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileError{err}
 	}
 
-	machine, err := r.ensureSpokeMachine(ctx, log, spokeClient, bmh, cd)
+	checksum, url, err := r.getChecksumAndURL(ctx, log, spokeClient)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get checksum and url value from master spoke machine")
+		return reconcileError{err}
+	}
+
+	machine, err := r.ensureSpokeMachine(ctx, log, spokeClient, bmh, cd, checksum, url)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create or update spoke Machine")
 		return reconcileError{err}
@@ -953,8 +961,29 @@ func (r *BMACReconciler) ensureSpokeBMH(ctx context.Context, log logrus.FieldLog
 	return bmhSpoke, nil
 }
 
-func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment) (*machinev1beta1.Machine, error) {
-	machineSpoke, mutateFn := r.newSpokeMachine(bmh, clusterDeployment)
+// get spokeMachineMaster and retrieve checksum , url to set into spokeMachineWorker
+func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client) (string, string, error) {
+	var checksum, url string
+	machineList := &machinev1beta1.MachineList{}
+	err := spokeClient.List(ctx, machineList, client.MatchingLabels{MACHINE_TYPE: string(models.HostRoleMaster)})
+	if err != nil {
+		return checksum, url, err
+	}
+	providerSpecValue := string(machineList.Items[0].Spec.ProviderSpec.Value.Raw)
+
+	var providerSpecValueObj map[string]interface{}
+	err = json.Unmarshal([]byte(providerSpecValue), &providerSpecValueObj)
+	if err != nil {
+		return checksum, url, err
+	}
+	image := providerSpecValueObj["image"].(map[string]interface{})
+	checksum = fmt.Sprint(image["checksum"])
+	url = fmt.Sprint(image["url"])
+	return checksum, url, err
+}
+
+func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, checksum string, URL string) (*machinev1beta1.Machine, error) {
+	machineSpoke, mutateFn := r.newSpokeMachine(bmh, clusterDeployment, checksum, URL)
 	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, machineSpoke, mutateFn); err != nil {
 		return nil, err
 	} else if result != controllerutil.OperationResultNone {
@@ -1124,7 +1153,7 @@ func (r *BMACReconciler) newSpokeBMHSecret(secret *corev1.Secret) (*corev1.Secre
 	return secretSpoke, mutateFn
 }
 
-func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment) (*machinev1beta1.Machine, controllerutil.MutateFn) {
+func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, checksum string, URL string) (*machinev1beta1.Machine, controllerutil.MutateFn) {
 	machineName := fmt.Sprintf("%s-%s", clusterDeployment.Name, bmh.Name)
 	machine := &machinev1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1133,6 +1162,40 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 		},
 	}
 	mutateFn := func() error {
+		if machine.ObjectMeta.Annotations == nil {
+			machine.ObjectMeta.Annotations = make(map[string]string)
+		}
+		machine.ObjectMeta.Annotations[BMH_ANNOTATION] = fmt.Sprintf("%s/%s", OPENSHIFT_MACHINE_API_NAMESPACE, bmh.Name)
+		providerSpecValueFormat := `{
+						"apiVersion": "{{.BMH_API_VERSION}}",
+						"kind": "BareMetalMachineProviderSpec",
+						"image": {
+						"checksum": "{{.CHECKSUM}}",
+						"url": "{{.URL}}"
+						}}`
+
+		tmpl, err := template.New("valueString").Parse(providerSpecValueFormat)
+		if err != nil {
+			return err
+		}
+		buf := &bytes.Buffer{}
+		var providerSpecValue = map[string]interface{}{
+			"BMH_API_VERSION": BMH_API_VERSION,
+			"CHECKSUM":        checksum,
+			"URL":             URL,
+		}
+		if err = tmpl.Execute(buf, providerSpecValue); err != nil {
+			return err
+		}
+
+		machine.Spec = machinev1beta1.MachineSpec{
+			ProviderSpec: machinev1beta1.ProviderSpec{
+				Value: &runtime.RawExtension{
+					Raw: buf.Bytes(),
+				},
+			},
+		}
+
 		// Setting the same labels as the rest of the machines in the spoke cluster
 		machine.Labels = AddLabel(machine.Labels, machinev1beta1.MachineClusterIDLabel, clusterDeployment.Name)
 		machine.Labels = AddLabel(machine.Labels, MACHINE_ROLE, string(models.HostRoleWorker))

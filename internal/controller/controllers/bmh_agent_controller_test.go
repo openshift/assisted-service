@@ -18,6 +18,7 @@ import (
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -634,6 +635,7 @@ var _ = Describe("bmac reconcile", func() {
 		var adminKubeconfigSecret *corev1.Secret
 		var secretName string
 		var bmhName string
+		imageURL := "http://192.168.111.35:6181/images/rhcos-48.84.202106091622-0-openstack.x86_64.qcow2/cached-rhcos-48.84.202106091622-0-openstack.x86_64.qcow2"
 
 		BeforeEach(func() {
 			macStr := "12-34-56-78-9A-BC"
@@ -694,7 +696,7 @@ var _ = Describe("bmac reconcile", func() {
 			spokeMachine := &machinev1beta1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster-bmh-reconcile",
-					Namespace: "test-namespace",
+					Namespace: testNamespace,
 					Labels: map[string]string{
 						machinev1beta1.MachineClusterIDLabel: clusterName,
 						MACHINE_ROLE:                         string(models.HostRoleWorker),
@@ -703,6 +705,34 @@ var _ = Describe("bmac reconcile", func() {
 				},
 			}
 			Expect(c.Create(ctx, spokeMachine)).To(BeNil())
+
+			spokeMachineMaster := &machinev1beta1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "machine.openshift.io/v1beta1",
+					Kind:       "Machine",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "spoke-machine-master-0",
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						machinev1beta1.MachineClusterIDLabel: clusterName,
+						MACHINE_ROLE:                         string(models.HostRoleMaster),
+						MACHINE_TYPE:                         string(models.HostRoleMaster),
+					},
+				},
+				Spec: machinev1beta1.MachineSpec{
+					ProviderSpec: machinev1beta1.ProviderSpec{
+						Value: &runtime.RawExtension{
+							Raw: []byte(fmt.Sprintf(`{
+												"image": {
+												"checksum": "%s.md5sum",
+												"url": "%s"
+												}}`, imageURL, imageURL)),
+						},
+					},
+				},
+			}
+			Expect(bmhr.spokeClient.Create(ctx, spokeMachineMaster)).To(BeNil())
 
 			configMap := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -752,8 +782,10 @@ var _ = Describe("bmac reconcile", func() {
 				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeMachine)
 				Expect(err).To(BeNil())
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(machinev1beta1.MachineClusterIDLabel))
+				Expect(spokeMachine.ObjectMeta.Annotations).To(HaveKey("metal3.io/BareMetalHost"))
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_ROLE))
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_TYPE))
+				Expect(string(spokeMachine.Spec.ProviderSpec.Value.Raw)).To(ContainSubstring(imageURL))
 
 				spokeSecret := &corev1.Secret{}
 				err = spokeClient.Get(ctx, types.NamespacedName{Name: adminKubeconfigSecret.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeSecret)
