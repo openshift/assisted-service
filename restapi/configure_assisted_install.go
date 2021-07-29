@@ -108,9 +108,6 @@ type InstallerAPI interface {
 	/* GetClusterInstallConfig Get the cluster's install config YAML. */
 	GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder
 
-	/* GetClusterSupportedPlatforms A list of platforms that this cluster can support in its current configuration. */
-	GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder
-
 	/* GetCredentials Get the cluster admin credentials. */
 	GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder
 
@@ -480,11 +477,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetClusterInstallConfig(ctx, params)
-	})
-	api.InstallerGetClusterSupportedPlatformsHandler = installer.GetClusterSupportedPlatformsHandlerFunc(func(params installer.GetClusterSupportedPlatformsParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.GetClusterSupportedPlatforms(ctx, params)
 	})
 	api.InstallerGetCredentialsHandler = installer.GetCredentialsHandlerFunc(func(params installer.GetCredentialsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
