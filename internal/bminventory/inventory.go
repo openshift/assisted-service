@@ -141,7 +141,6 @@ type InstallerInternals interface {
 	CancelInstallationInternal(ctx context.Context, params installer.CancelInstallationParams) (*common.Cluster, error)
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
 	AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
-	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -1582,35 +1581,6 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 	}
 
 	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: clusterID})
-}
-
-func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error) {
-	cluster, err := b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: params.ClusterID})
-	if err != nil {
-		return nil, err
-	}
-
-	hostsPlatformsCounter := map[models.PlatformType]int{}
-	for _, h := range cluster.Hosts {
-		inventory, err := hostutil.UnmarshalInventory(h.Inventory)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, p := range *common.GetHostSupportedPlatforms(*inventory) {
-			hostsPlatformsCounter[p] += 1
-		}
-	}
-
-	return common.GetClusterSupportedPlatforms(*cluster, hostsPlatformsCounter), nil
-}
-
-func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder {
-	supportedPlatforms, err := b.GetClusterSupportedPlatformsInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewGetClusterSupportedPlatformsOK().WithPayload(*supportedPlatforms)
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {

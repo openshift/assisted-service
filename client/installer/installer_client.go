@@ -73,9 +73,6 @@ type API interface {
 	   GetClusterInstallConfig Get the cluster's install config YAML.*/
 	GetClusterInstallConfig(ctx context.Context, params *GetClusterInstallConfigParams) (*GetClusterInstallConfigOK, error)
 	/*
-	   GetClusterSupportedPlatforms A list of platforms that this cluster can support in its current configuration.*/
-	GetClusterSupportedPlatforms(ctx context.Context, params *GetClusterSupportedPlatformsParams) (*GetClusterSupportedPlatformsOK, error)
-	/*
 	   GetCredentials Get the cluster admin credentials.*/
 	GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error)
 	/*
@@ -655,31 +652,6 @@ func (a *Client) GetClusterInstallConfig(ctx context.Context, params *GetCluster
 		return nil, err
 	}
 	return result.(*GetClusterInstallConfigOK), nil
-
-}
-
-/*
-GetClusterSupportedPlatforms A list of platforms that this cluster can support in its current configuration.
-*/
-func (a *Client) GetClusterSupportedPlatforms(ctx context.Context, params *GetClusterSupportedPlatformsParams) (*GetClusterSupportedPlatformsOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetClusterSupportedPlatforms",
-		Method:             "GET",
-		PathPattern:        "/v2/clusters/{cluster_id}/supported-platforms",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &GetClusterSupportedPlatformsReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetClusterSupportedPlatformsOK), nil
 
 }
 

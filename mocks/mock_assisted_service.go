@@ -287,20 +287,6 @@ func (mr *MockInstallerAPIMockRecorder) GetClusterInstallConfig(arg0, arg1 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterInstallConfig", reflect.TypeOf((*MockInstallerAPI)(nil).GetClusterInstallConfig), arg0, arg1)
 }
 
-// GetClusterSupportedPlatforms mocks base method
-func (m *MockInstallerAPI) GetClusterSupportedPlatforms(arg0 context.Context, arg1 installer.GetClusterSupportedPlatformsParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetClusterSupportedPlatforms", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// GetClusterSupportedPlatforms indicates an expected call of GetClusterSupportedPlatforms
-func (mr *MockInstallerAPIMockRecorder) GetClusterSupportedPlatforms(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterSupportedPlatforms", reflect.TypeOf((*MockInstallerAPI)(nil).GetClusterSupportedPlatforms), arg0, arg1)
-}
-
 // GetCredentials mocks base method
 func (m *MockInstallerAPI) GetCredentials(arg0 context.Context, arg1 installer.GetCredentialsParams) middleware.Responder {
 	m.ctrl.T.Helper()
