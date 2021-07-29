@@ -120,7 +120,7 @@ tee << EOCR >(oc apply -f -)
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
 metadata:
- name: agent
+ name: agent-asd
  annotations:
   unsupported.agent-install.openshift.io/assisted-service-configmap: "assisted-service-config"
 spec:
