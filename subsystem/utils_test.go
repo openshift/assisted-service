@@ -314,6 +314,11 @@ func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host
 	generateHWPostStepReply(ctx, h, inventory, name)
 	generateFAPostStepReply(ctx, h, validFreeAddresses)
 	generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
+	generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionSuccess)
+}
+
+func generateDomain(ctx context.Context, h *models.Host, name string, baseDomain string) {
+	generateDomainNameResolutionReply(ctx, h, *common.CreateWildcardDomainNameResolutionReply(name, baseDomain))
 }
 
 func generateEssentialPrepareForInstallationSteps(ctx context.Context, hosts ...*models.Host) {
@@ -382,6 +387,22 @@ func generateFailedDiskSpeedResponses(ctx context.Context, path string, hosts ..
 	for _, h := range hosts {
 		generateDiskSpeedChekResponse(ctx, h, path, -1)
 	}
+}
+
+func generateDomainNameResolutionReply(ctx context.Context, h *models.Host, domainNameResolution models.DomainResolutionResponse) {
+	dnsResolotion, err := json.Marshal(&domainNameResolution)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+		InfraEnvID: *h.ClusterID,
+		HostID:     *h.ID,
+		Reply: &models.StepReply{
+			ExitCode: 0,
+			Output:   string(dnsResolotion),
+			StepID:   string(models.StepTypeDomainResolution),
+			StepType: models.StepTypeDomainResolution,
+		},
+	})
+	Expect(err).To(BeNil())
 }
 
 func updateVipParams(ctx context.Context, clusterID strfmt.UUID) {

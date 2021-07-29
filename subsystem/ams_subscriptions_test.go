@@ -303,7 +303,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			By("update subscription with openshfit (external) cluster ID", func() {
 				// in order to simulate infra env generation
 				generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-				registerHostsAndSetRoles(clusterID, minHosts)
+				registerHostsAndSetRoles(clusterID, minHosts, "test-ams-subscriptions-cluster", "example.com")
 				setClusterAsInstalling(ctx, clusterID)
 			})
 
@@ -343,12 +343,18 @@ var _ = Describe("test AMS subscriptions", func() {
 			By("update subscription with openshfit (external) cluster ID", func() {
 				// in order to simulate infra env generation
 				generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-				registerHostsAndSetRoles(clusterID, minHosts)
+				registerHostsAndSetRoles(clusterID, minHosts, "test-ams-subscriptions-cluster", "example.com")
 				reply, err = userBMClient.Installer.InstallCluster(context.Background(), &installer.InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c := reply.GetPayload()
 				Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
 				generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
+				for _, h := range c.Hosts {
+					generateDomain(ctx, h, "test-ams-subscriptions-cluster", "example.com")
+				}
+				for _, host := range c.Hosts {
+					updateProgress(*host.ID, clusterID, models.HostStageDone)
+				}
 				waitForInstallationPreparationCompletionStatus(clusterID, common.InstallationPreparationFailed)
 			})
 

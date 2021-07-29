@@ -323,7 +323,7 @@ var _ = Describe("Metrics tests", func() {
 
 	BeforeEach(func() {
 		var err error
-		clusterID, err = registerCluster(ctx, userBMClient, "test-metrics-cluster", pullSecret)
+		clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 		Expect(err).NotTo(HaveOccurred())
 		// in order to simulate infra env generation
 		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
@@ -345,8 +345,11 @@ var _ = Describe("Metrics tests", func() {
 
 		BeforeEach(func() {
 			//start host installation process
-			registerHostsAndSetRoles(clusterID, 3)
 			c = installCluster(clusterID)
+			registerHostsAndSetRoles(clusterID, 3, "test-cluster", "example.com")
+			for _, h := range c.Hosts {
+				generateDomain(ctx, h, "test-cluster", "example.com")
+			}
 			for _, host := range c.Hosts {
 				waitForHostState(ctx, clusterID, "installing", defaultWaitForHostStateTimeout, host)
 				if host.Bootstrap {
@@ -938,6 +941,10 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation success
 			hosts, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
+			c := getCluster(clusterID)
+			for _, h := range c.Hosts {
+				generateDomain(ctx, h, "test-cluster", "example.com")
+			}
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDAllHostsAreReadyToInstall)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDAllHostsAreReadyToInstall), clusterValidationChangedMetric)
@@ -949,6 +956,7 @@ var _ = Describe("Metrics tests", func() {
 				HostID:    *hosts[0].ID,
 			})
 			Expect(err).NotTo(HaveOccurred())
+
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDAllHostsAreReadyToInstall)
 
 			// check generated events
@@ -964,6 +972,11 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation failure
 			hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
+			c := getCluster(clusterID)
+			for _, h := range c.Hosts {
+				generateDomain(ctx, h, "test-cluster", "example.com")
+			}
+
 			_, err := userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
 				ClusterID: clusterID,
 				HostID:    *hosts[0].ID,
@@ -978,6 +991,9 @@ var _ = Describe("Metrics tests", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			generateEssentialHostSteps(ctx, hosts[0], "h1", ips[0])
+			for _, h := range c.Hosts {
+				generateDomain(ctx, h, "test-cluster", "example.com")
+			}
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDAllHostsAreReadyToInstall)
 
 			// check generated events

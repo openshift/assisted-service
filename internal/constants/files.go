@@ -7,3 +7,6 @@ const KubeconfigNoIngress = "kubeconfig-noingress"
 const AppsSubDomainNameHostDNSValidation = "console-openshift-console"
 const APIName = "api"
 const APIInternalName = "api-int"
+
+//Non existing domain name under clusterName.baseDomain for wildcard configuration check
+const DNSWildcardFalseDomainName = "validateNoWildcardDNS"
