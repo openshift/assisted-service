@@ -207,6 +207,43 @@ var _ = Describe("instruction_manager", func() {
 		})
 	})
 
+	Context("Unbound host steps", func() {
+		BeforeEach(func() {
+			//host_updates := map[string]interface{}{}
+			//host_updates["cluster_id"] = nil
+			Expect(db.Model(&common.Host{}).Select("cluster_id").Updates(map[string]interface{}{"cluster_id": nil}).Error).ShouldNot(HaveOccurred())
+		})
+
+		It("discovering-unbound", func() {
+			checkStep(models.HostStatusDiscoveringUnbound, []models.StepType{
+				models.StepTypeInventory,
+			})
+		})
+
+		It("disconnected-unbound", func() {
+			checkStep(models.HostStatusDisconnectedUnbound, []models.StepType{
+				models.StepTypeInventory,
+			})
+		})
+
+		It("insufficient-unbound", func() {
+			checkStep(models.HostStatusInsufficientUnbound, []models.StepType{
+				models.StepTypeInventory,
+			})
+		})
+
+		It("known-unbound", func() {
+			checkStep(models.HostStatusKnownUnbound, []models.StepType{
+				models.StepTypeInventory,
+			})
+		})
+
+		It("binding", func() {
+			checkStep(models.HostStatusBinding, nil)
+		})
+
+	})
+
 	Context("Disable Steps verification", func() {
 		createInstMngWithDisabledSteps := func(steps []models.StepType) *InstructionManager {
 			instructionConfig.DisabledSteps = steps
@@ -286,16 +323,18 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 	instMng *InstructionManager, mockValidator *hardware.MockValidator, mockRelease *oc.MockRelease, mockVersions *versions.MockHandler,
 	mockConnectivity *connectivity.MockValidator, ctx context.Context, expectedStepTypes []models.StepType) {
 
-	mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, hostutil.GetEventSeverityFromHostStatus(state), gomock.Any(), gomock.Any())
-	updateReply, updateErr := hostutil.UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.ClusterID, *host.ID, *host.Status, state, "")
+	mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, hostutil.GetEventSeverityFromHostStatus(state), gomock.Any(), gomock.Any())
+	updateReply, updateErr := hostutil.UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status, state, "")
 	ExpectWithOffset(1, updateErr).ShouldNot(HaveOccurred())
 	ExpectWithOffset(1, updateReply).ShouldNot(BeNil())
-	h := hostutil.GetHostFromDB(*host.ID, host.ClusterID, db)
+	h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
 	ExpectWithOffset(1, swag.StringValue(h.Status)).Should(Equal(state))
-	mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).AnyTimes()
-	mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/disk/by-id/wwn-sda").AnyTimes()
-	mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).AnyTimes()
-	mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).AnyTimes()
+	if funk.Contains(expectedStepTypes, models.StepTypeInstall) {
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
+		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/disk/by-id/wwn-sda").Times(1)
+		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).Times(1)
+	}
 	if funk.Contains(expectedStepTypes, models.StepTypeConnectivityCheck) {
 		mockConnectivity.EXPECT().GetHostValidInterfaces(gomock.Any()).Return([]*models.Interface{
 			{
@@ -308,15 +347,26 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 		}, nil).Times(1)
 	}
 
+	if funk.Contains(expectedStepTypes, models.StepTypeContainerImageAvailability) {
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).Times(1)
+	}
+
 	stepsReply, stepsErr := instMng.GetNextSteps(ctx, &h.Host)
 	ExpectWithOffset(1, stepsReply.Instructions).To(HaveLen(len(expectedStepTypes)))
 	if stateValues, ok := instMng.installingClusterStateToSteps[state]; ok {
 		Expect(stepsReply.NextInstructionSeconds).Should(Equal(stateValues.NextStepInSec))
+		ExpectWithOffset(1, *stepsReply.PostStepAction).Should(Equal(stateValues.PostStepAction))
+	} else if stateValues, ok = instMng.addHostsClusterToSteps[state]; ok {
+		Expect(stepsReply.NextInstructionSeconds).Should(Equal(stateValues.NextStepInSec))
+		ExpectWithOffset(1, *stepsReply.PostStepAction).Should(Equal(stateValues.PostStepAction))
+	} else if stateValues, ok = instMng.poolHostToSteps[state]; ok {
+		Expect(stepsReply.NextInstructionSeconds).Should(Equal(stateValues.NextStepInSec))
+		ExpectWithOffset(1, *stepsReply.PostStepAction).Should(Equal(stateValues.PostStepAction))
 	} else {
 		Expect(stepsReply.NextInstructionSeconds).Should(Equal(defaultNextInstructionInSec))
+		ExpectWithOffset(1, *stepsReply.PostStepAction).Should(Equal(models.StepsPostStepActionContinue))
 	}
-
-	ExpectWithOffset(1, *stepsReply.PostStepAction).Should(Equal(models.StepsPostStepActionContinue))
 
 	for i, step := range stepsReply.Instructions {
 		ExpectWithOffset(1, step.StepType).Should(Equal(expectedStepTypes[i]))

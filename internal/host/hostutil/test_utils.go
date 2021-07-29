@@ -16,9 +16,9 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
 
-func GetHostFromDB(hostId, clusterId strfmt.UUID, db *gorm.DB) *common.Host {
+func GetHostFromDB(hostId, infraEnvId strfmt.UUID, db *gorm.DB) *common.Host {
 	var host common.Host
-	Expect(db.First(&host, "id = ? and cluster_id = ?", hostId, clusterId).Error).ShouldNot(HaveOccurred())
+	Expect(db.First(&host, "id = ? and infra_env_id = ?", hostId, infraEnvId).Error).ShouldNot(HaveOccurred())
 	return &host
 }
 
@@ -54,7 +54,7 @@ func GenerateTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string, r
 	return models.Host{
 		ID:              &hostID,
 		InfraEnvID:      clusterID,
-		ClusterID:       clusterID,
+		ClusterID:       &clusterID,
 		Status:          swag.String(state),
 		Inventory:       common.GenerateTestDefaultInventory(),
 		Role:            role,
@@ -75,7 +75,7 @@ func GenerateTestHostWithNetworkAddress(hostID, clusterID strfmt.UUID, role mode
 	h := models.Host{
 		ID:                &hostID,
 		RequestedHostname: netAddr.Hostname,
-		ClusterID:         clusterID,
+		ClusterID:         &clusterID,
 		InfraEnvID:        clusterID,
 		Status:            swag.String(status),
 		Inventory:         common.GenerateTestInventoryWithNetwork(netAddr),

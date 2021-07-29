@@ -45,10 +45,10 @@ var _ = Describe("update_host_state", func() {
 
 	Describe("UpdateHostStatus", func() {
 		It("change_status", func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityInfo,
 				fmt.Sprintf("Host %s: updated status from \"status\" to \"newStatus\" (newStatusInfo)", host.ID.String()),
 				gomock.Any())
-			returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.ClusterID, *host.ID, common.TestDefaultConfig.Status,
+			returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, *host.ClusterID, *host.ID, common.TestDefaultConfig.Status,
 				newStatus, newStatusInfo)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(*returnedHost.Status).Should(Equal(newStatus))
@@ -58,16 +58,16 @@ var _ = Describe("update_host_state", func() {
 
 		Describe("negative", func() {
 			It("invalid_extras_amount", func() {
-				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.ClusterID, *host.ID, *host.Status,
+				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, *host.ClusterID, *host.ID, *host.Status,
 					newStatus, newStatusInfo, "1")
 				Expect(err).Should(HaveOccurred())
 				Expect(returnedHost).Should(BeNil())
-				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.ClusterID, *host.ID, *host.Status,
+				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, *host.ClusterID, *host.ID, *host.Status,
 					newStatus, newStatusInfo, "1", "2", "3")
 			})
 
 			It("no_matching_rows", func() {
-				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.ClusterID, *host.ID, "otherStatus",
+				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, *host.ClusterID, *host.ID, "otherStatus",
 					newStatus, newStatusInfo)
 			})
 
@@ -75,7 +75,7 @@ var _ = Describe("update_host_state", func() {
 				Expect(err).Should(HaveOccurred())
 				Expect(returnedHost).Should(BeNil())
 
-				hostFromDb := GetHostFromDB(*host.ID, host.ClusterID, db)
+				hostFromDb := GetHostFromDB(*host.ID, *host.ClusterID, db)
 				Expect(*hostFromDb.Status).ShouldNot(Equal(newStatus))
 				Expect(*hostFromDb.StatusInfo).ShouldNot(Equal(newStatusInfo))
 				Expect(hostFromDb.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
@@ -84,7 +84,7 @@ var _ = Describe("update_host_state", func() {
 
 		It("db_failure", func() {
 			db.Close()
-			_, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.ClusterID, *host.ID, *host.Status,
+			_, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, *host.ClusterID, *host.ID, *host.Status,
 				newStatus, newStatusInfo)
 			Expect(err).Should(HaveOccurred())
 		})
@@ -93,7 +93,7 @@ var _ = Describe("update_host_state", func() {
 	Describe("UpdateHostProgress", func() {
 		Describe("same_status", func() {
 			It("new_stage", func() {
-				returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.ClusterID, *host.ID, *host.Status, common.TestDefaultConfig.Status, common.TestDefaultConfig.StatusInfo,
+				returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, *host.ClusterID, *host.ID, *host.Status, common.TestDefaultConfig.Status, common.TestDefaultConfig.StatusInfo,
 					host.Progress.CurrentStage, common.TestDefaultConfig.HostProgressStage, host.Progress.ProgressInfo)
 				Expect(err).ShouldNot(HaveOccurred())
 
@@ -105,7 +105,7 @@ var _ = Describe("update_host_state", func() {
 
 			It("same_stage", func() {
 				// Still updates because stage_updated_at is being updated
-				returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.ClusterID, *host.ID, *host.Status, common.TestDefaultConfig.Status, common.TestDefaultConfig.StatusInfo,
+				returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, *host.ClusterID, *host.ID, *host.Status, common.TestDefaultConfig.Status, common.TestDefaultConfig.StatusInfo,
 					host.Progress.CurrentStage, host.Progress.CurrentStage, host.Progress.ProgressInfo)
 				Expect(err).ShouldNot(HaveOccurred())
 
@@ -125,10 +125,10 @@ var _ = Describe("update_host_state", func() {
 		})
 
 		It("new_status_new_stage", func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityInfo,
 				fmt.Sprintf("Host %s: updated status from \"status\" to \"newStatus\" (newStatusInfo)", host.ID.String()),
 				gomock.Any())
-			returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.ClusterID, *host.ID, *host.Status, newStatus, newStatusInfo,
+			returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, *host.ClusterID, *host.ID, *host.Status, newStatus, newStatusInfo,
 				host.Progress.CurrentStage, common.TestDefaultConfig.HostProgressStage, "")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -146,7 +146,7 @@ var _ = Describe("update_host_state", func() {
 
 		It("update_info", func() {
 			for _, i := range []int{5, 10, 15} {
-				returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.ClusterID, *host.ID, *host.Status, common.TestDefaultConfig.Status, common.TestDefaultConfig.StatusInfo,
+				returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, *host.ClusterID, *host.ID, *host.Status, common.TestDefaultConfig.Status, common.TestDefaultConfig.StatusInfo,
 					host.Progress.CurrentStage, host.Progress.CurrentStage, fmt.Sprintf("%d%%", i))
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(returnedHost.Progress.ProgressInfo).Should(Equal(fmt.Sprintf("%d%%", i)))

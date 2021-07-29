@@ -83,7 +83,7 @@ var _ = Describe("Progress bar test", func() {
 					Hosts: []*models.Host{
 						{
 							ID:         &hid1,
-							ClusterID:  clusterId,
+							ClusterID:  &clusterId,
 							InfraEnvID: clusterId,
 							Role:       models.HostRoleBootstrap,
 							Bootstrap:  true,
@@ -91,28 +91,28 @@ var _ = Describe("Progress bar test", func() {
 						},
 						{
 							ID:         &hid2,
-							ClusterID:  clusterId,
+							ClusterID:  &clusterId,
 							InfraEnvID: clusterId,
 							Role:       models.HostRoleMaster,
 							Status:     swag.String(models.HostStatusInstalling),
 						},
 						{
 							ID:         &hid3,
-							ClusterID:  clusterId,
+							ClusterID:  &clusterId,
 							InfraEnvID: clusterId,
 							Role:       models.HostRoleMaster,
 							Status:     swag.String(models.HostStatusInstalling),
 						},
 						{
 							ID:         &hid4,
-							ClusterID:  clusterId,
+							ClusterID:  &clusterId,
 							InfraEnvID: clusterId,
 							Role:       models.HostRoleWorker,
 							Status:     swag.String(models.HostStatusInstalling),
 						},
 						{
 							ID:         &hid5,
-							ClusterID:  clusterId,
+							ClusterID:  &clusterId,
 							InfraEnvID: clusterId,
 							Role:       models.HostRoleWorker,
 							Status:     swag.String(models.HostStatusInstalling),
@@ -212,19 +212,19 @@ var _ = Describe("Progress bar test", func() {
 					Hosts: []*models.Host{
 						{
 							ID:         &hid1,
-							ClusterID:  clusterId,
+							ClusterID:  &clusterId,
 							InfraEnvID: clusterId,
 							Status:     swag.String(models.HostStatusPreparingSuccessful),
 						},
 						{
 							ID:         &hid2,
-							ClusterID:  clusterId,
+							ClusterID:  &clusterId,
 							InfraEnvID: clusterId,
 							Status:     swag.String(models.HostStatusPreparingSuccessful),
 						},
 						{
 							ID:         &hid3,
-							ClusterID:  clusterId,
+							ClusterID:  &clusterId,
 							InfraEnvID: clusterId,
 							Status:     swag.String(models.HostStatusPreparingSuccessful),
 						},

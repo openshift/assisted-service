@@ -27,7 +27,7 @@ var _ = Describe("get valid interfaces", func() {
 		connectivityValidator = NewValidator(logrus.New())
 		id := strfmt.UUID(uuid.New().String())
 		clusterID := strfmt.UUID(uuid.New().String())
-		host = &models.Host{ID: &id, ClusterID: clusterID}
+		host = &models.Host{ID: &id, ClusterID: &clusterID}
 		inventory = &models.Inventory{
 			Interfaces: []*models.Interface{
 				{

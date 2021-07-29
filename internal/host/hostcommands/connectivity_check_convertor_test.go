@@ -32,9 +32,9 @@ var _ = Describe("connectivitycheckconvertor", func() {
 		hostId3 = strfmt.UUID(uuid.New().String())
 		currentHostId = strfmt.UUID(uuid.New().String())
 		hosts = []*models.Host{
-			{ID: &currentHostId, ClusterID: clusterId},
-			{ID: &hostId2, ClusterID: clusterId},
-			{ID: &hostId3, ClusterID: clusterId},
+			{ID: &currentHostId, ClusterID: &clusterId},
+			{ID: &hostId2, ClusterID: &clusterId},
+			{ID: &hostId3, ClusterID: &clusterId},
 		}
 
 		interfaces = []*models.Interface{

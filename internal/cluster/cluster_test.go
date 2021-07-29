@@ -1116,7 +1116,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				hostId := strfmt.UUID(uuid.New().String())
 				h.ID = &hostId
 				h.InfraEnvID = id
-				h.ClusterID = id
+				h.ClusterID = &id
 				Expect(db.Create(h).Error).ShouldNot(HaveOccurred())
 			}
 			if t.eventCallExpected {
@@ -1391,7 +1391,7 @@ func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 	host := models.Host{
 		ID:         &hostId,
 		InfraEnvID: clusterId,
-		ClusterID:  clusterId,
+		ClusterID:  &clusterId,
 		Role:       models.HostRoleMaster,
 		Status:     swag.String(state),
 		Inventory:  common.GenerateTestDefaultInventory(),
@@ -1404,7 +1404,7 @@ func createWorkerHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 	host := models.Host{
 		ID:         &hostId,
 		InfraEnvID: clusterId,
-		ClusterID:  clusterId,
+		ClusterID:  &clusterId,
 		Role:       models.HostRoleWorker,
 		Status:     swag.String(state),
 		Inventory:  common.GenerateTestDefaultInventory(),
@@ -1420,7 +1420,7 @@ func addInstallationRequirements(clusterId strfmt.UUID, db *gorm.DB) {
 		host = models.Host{
 			ID:         &hostId,
 			InfraEnvID: clusterId,
-			ClusterID:  clusterId,
+			ClusterID:  &clusterId,
 			Role:       models.HostRoleMaster,
 			Status:     swag.String("known"),
 			Inventory:  common.GenerateTestDefaultInventory(),
@@ -1472,7 +1472,7 @@ func addInstallationRequirementsWithConnectivity(clusterId strfmt.UUID, db *gorm
 		host = models.Host{
 			ID:           &hostId,
 			InfraEnvID:   clusterId,
-			ClusterID:    clusterId,
+			ClusterID:    &clusterId,
 			Role:         models.HostRoleMaster,
 			Status:       swag.String("known"),
 			Inventory:    twoNetworksInventory(),

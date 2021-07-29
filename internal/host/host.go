@@ -174,13 +174,15 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		config:        config,
 		eventsHandler: eventsHandler,
 	}
+	sm := NewHostStateMachine(stateswitch.NewStateMachine(), th)
+	sm = NewPoolHostStateMachine(sm, th)
 	return &Manager{
 		log:            log,
 		db:             db,
 		instructionApi: instructionApi,
 		hwValidator:    hwValidator,
 		eventsHandler:  eventsHandler,
-		sm:             NewHostStateMachine(th),
+		sm:             sm,
 		rp:             newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, config.DisabledHostvalidations),
 		metricApi:      metricApi,
 		Config:         *config,
@@ -189,7 +191,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 }
 
 func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	dbHost, err := common.GetHostFromDB(db, h.ClusterID.String(), h.ID.String())
+	dbHost, err := common.GetHostFromDB(db, h.InfraEnvID.String(), h.ID.String())
 	var host *models.Host
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -198,11 +200,11 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB)
 
 		// Delete any previews record of the host if it was soft deleted from the cluster,
 		// no error will be returned if the host was not existed.
-		if err := db.Unscoped().Delete(&common.Host{}, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error; err != nil {
+		if err := db.Unscoped().Delete(&common.Host{}, "id = ? and infra_env_id = ?", *h.ID, h.InfraEnvID).Error; err != nil {
 			return errors.Wrapf(
 				err,
-				"error while trying to delete previews record from db (if exists) of host %s in cluster %s",
-				h.ID.String(), h.ClusterID.String())
+				"error while trying to delete previews record from db (if exists) of host %s in infra env %s",
+				h.ID.String(), h.InfraEnvID.String())
 		}
 
 		host = h
@@ -294,7 +296,7 @@ func (m *Manager) RefreshInventory(ctx context.Context, cluster *common.Cluster,
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventoryStr string) error {
 	log := logutil.FromContext(ctx, m.log)
-	cluster, err := common.GetClusterFromDB(m.db, h.ClusterID, common.UseEagerLoading)
+	cluster, err := common.GetClusterFromDB(m.db, *h.ClusterID, common.UseEagerLoading)
 	if err != nil {
 		log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID)
 		return common.NewApiError(http.StatusNotFound, err)
@@ -505,7 +507,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	var err error
 	switch progress.CurrentStage {
 	case models.HostStageDone:
-		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, *h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstalled, statusInfo,
 			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
 	case models.HostStageFailed:
@@ -515,18 +517,18 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
 		}
 
-		_, err = hostutil.UpdateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+		_, err = hostutil.UpdateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, *h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
 	case models.HostStageRebooting:
 		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
-			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, *h.ClusterID, *h.ID,
 				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfo,
 				h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
 			break
 		}
 		fallthrough
 	default:
-		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, *h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstallingInProgress, statusInfo,
 			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
 	}
@@ -540,13 +542,13 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}
-		m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo,
+		m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityInfo,
 			fmt.Sprintf("Host %s: set as bootstrap", hostutil.GetHostnameForMsg(h)), time.Now())
 	}
 	return nil
 }
 func (m *Manager) UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error {
-	_, err := hostutil.UpdateLogsProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+	_, err := hostutil.UpdateLogsProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, *h.ClusterID, *h.ID,
 		swag.StringValue(h.Status), progress)
 	return err
 }
@@ -674,7 +676,7 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 				newImageStatus.Time, newImageStatus.SizeBytes, newImageStatus.DownloadRate)
 		}
 
-		m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventInfo, time.Now())
+		m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityInfo, eventInfo, time.Now())
 	}
 	marshalledStatuses, err := common.MarshalImageStatuses(hostImageStatuses)
 	if err != nil {
@@ -743,7 +745,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason
 	shouldAddEvent := true
 	defer func() {
 		if shouldAddEvent {
-			m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
+			m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
 		}
 	}()
 
@@ -785,7 +787,7 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 	shouldAddEvent := true
 	defer func() {
 		if shouldAddEvent {
-			m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
+			m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
 		}
 	}()
 
@@ -823,7 +825,7 @@ func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db
 	shouldAddEvent := true
 	defer func() {
 		if shouldAddEvent {
-			m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
+			m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
 		}
 	}()
 
@@ -878,7 +880,7 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 		log.Errorf("host %s in cluster %s has empty installation path", h.ID.String(), h.ClusterID.String())
 	}
 
-	m.metricApi.ReportHostInstallationMetrics(ctx, cluster.OpenshiftVersion, h.ClusterID, cluster.EmailDomain, boot, h, previousProgress, CurrentStage)
+	m.metricApi.ReportHostInstallationMetrics(ctx, cluster.OpenshiftVersion, *h.ClusterID, cluster.EmailDomain, boot, h, previousProgress, CurrentStage)
 }
 
 func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error {
@@ -910,11 +912,11 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
 					m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
 					eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
-					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
+					m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
 				}
 				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
 					eventMsg := fmt.Sprintf("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
-					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
+					m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
 				}
 			}
 		}
@@ -943,7 +945,7 @@ func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *mod
 	if err != nil {
 		return nil, err
 	}
-	return hostutil.UpdateHost(logutil.FromContext(ctx, m.log), db, h.ClusterID, *h.ID, *h.Status, "validations_info", string(b))
+	return hostutil.UpdateHost(logutil.FromContext(ctx, m.log), db, h.InfraEnvID, *h.ID, *h.Status, "validations_info", string(b))
 }
 
 func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error {

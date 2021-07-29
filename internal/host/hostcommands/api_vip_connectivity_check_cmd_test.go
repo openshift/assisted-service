@@ -45,7 +45,8 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 	})
 
 	It("get_step_unknown_cluster_id", func() {
-		host.ClusterID = strfmt.UUID(uuid.New().String())
+		clusterID := strfmt.UUID(uuid.New().String())
+		host.ClusterID = &clusterID
 		stepReply, stepErr = apivipConnectivityCheckCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).Should(HaveOccurred())

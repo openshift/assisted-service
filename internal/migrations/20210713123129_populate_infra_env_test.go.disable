@@ -51,7 +51,7 @@ var _ = Describe("populateInfraEnv", func() {
 			// [TODO] - currently we check migration by adding dummy value and seeing it replaced
 			// in case we add host v1 model to the swagger, then we can replace the models.Host with it
 			InfraEnvID: strfmt.UUID(uuid.New().String()),
-			ClusterID:  clusterID,
+			ClusterID:  &clusterID,
 		}
 		err := db.Create(&host).Error
 		Expect(err).NotTo(HaveOccurred())

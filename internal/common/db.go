@@ -188,12 +188,12 @@ func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, include
 	return clusters, nil
 }
 
-func GetHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) {
+func GetHostFromDB(db *gorm.DB, infraEnvId, hostId string) (*Host, error) {
 	var host Host
 
-	err := db.First(&host, "id = ? and cluster_id = ?", hostId, clusterId).Error
+	err := db.First(&host, "id = ? and infra_env_id = ?", hostId, infraEnvId).Error
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get host %s in cluster %s", hostId, clusterId)
+		return nil, errors.Wrapf(err, "failed to get host %s in infra_env %s", hostId, infraEnvId)
 	}
 	return &host, nil
 }

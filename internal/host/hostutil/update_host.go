@@ -51,7 +51,7 @@ func UpdateLogsProgress(_ context.Context, log logrus.FieldLogger, db *gorm.DB, 
 	return host, nil
 }
 
-func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, clusterId strfmt.UUID, hostId strfmt.UUID,
+func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, newStatus string, statusInfo string, extra ...interface{}) (*common.Host, error) {
 	var host *common.Host
 	var err error
@@ -63,10 +63,10 @@ func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 		extra = append(extra, "trigger_monitor_timestamp", time.Now())
 	}
 
-	if host, err = UpdateHost(log, db, clusterId, hostId, srcStatus, extra...); err != nil ||
+	if host, err = UpdateHost(log, db, infraEnvId, hostId, srcStatus, extra...); err != nil ||
 		swag.StringValue(host.Status) != newStatus {
 		return nil, errors.Wrapf(err, "failed to update host %s from cluster %s state from %s to %s",
-			hostId, clusterId, srcStatus, newStatus)
+			hostId, infraEnvId, srcStatus, newStatus)
 	}
 
 	if newStatus != srcStatus {
@@ -74,14 +74,14 @@ func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 		if statusInfo != "" {
 			msg += fmt.Sprintf(" (%s)", statusInfo)
 		}
-		eventsHandler.AddEvent(ctx, clusterId, &hostId, GetEventSeverityFromHostStatus(newStatus), msg, time.Now())
-		log.Infof("host %s from cluster %s has been updated with the following updates %+v", hostId, clusterId, extra)
+		eventsHandler.AddEvent(ctx, infraEnvId, &hostId, GetEventSeverityFromHostStatus(newStatus), msg, time.Now())
+		log.Infof("host %s from infra env %s has been updated with the following updates %+v", hostId, infraEnvId, extra)
 	}
 
 	return host, nil
 }
 
-func UpdateHost(_ logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, hostId strfmt.UUID,
+func UpdateHost(_ logrus.FieldLogger, db *gorm.DB, infraEnvId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, extra ...interface{}) (*common.Host, error) {
 	updates := make(map[string]interface{})
 
@@ -94,27 +94,27 @@ func UpdateHost(_ logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, hostId
 
 	// Query by <cluster-id, host-id, status>
 	// Status is required as well to avoid races between different components.
-	dbReply := db.Model(&common.Host{}).Where("id = ? and cluster_id = ? and status = ?",
-		hostId, clusterId, srcStatus).
+	dbReply := db.Model(&common.Host{}).Where("id = ? and infra_env_id = ? and status = ?",
+		hostId, infraEnvId, srcStatus).
 		Updates(updates)
 
-	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !hostExistsInDB(db, hostId, clusterId, updates)) {
-		return nil, errors.Errorf("failed to update host %s from cluster %s. nothing has changed", hostId, clusterId)
+	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !hostExistsInDB(db, hostId, infraEnvId, updates)) {
+		return nil, errors.Errorf("failed to update host %s from cluster %s. nothing has changed", hostId, infraEnvId)
 	}
 
 	var host *common.Host
 	var err error
 
-	if host, err = common.GetHostFromDB(db, clusterId.String(), hostId.String()); err != nil {
-		return nil, errors.Wrapf(err, "failed to read from host %s from cluster %s from the database after the update", hostId, clusterId)
+	if host, err = common.GetHostFromDB(db, infraEnvId.String(), hostId.String()); err != nil {
+		return nil, errors.Wrapf(err, "failed to read from host %s from infraEnv %s from the database after the update", hostId, infraEnvId)
 	}
 
 	return host, nil
 }
 
-func hostExistsInDB(db *gorm.DB, hostId, clusterId strfmt.UUID, where map[string]interface{}) bool {
+func hostExistsInDB(db *gorm.DB, hostId, infraEnvId strfmt.UUID, where map[string]interface{}) bool {
 	where["id"] = hostId.String()
-	where["cluster_id"] = clusterId.String()
+	where["infra_env_id"] = infraEnvId.String()
 	var host models.Host
 	return db.Select("id").Take(&host, where).Error == nil
 }

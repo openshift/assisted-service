@@ -97,7 +97,7 @@ var _ = Describe("host count with 1 cluster", func() {
 		host := models.Host{
 			ID:         &hostId,
 			InfraEnvID: clusterId,
-			ClusterID:  clusterId,
+			ClusterID:  &clusterId,
 			Role:       models.HostRoleMaster,
 			Status:     swag.String(state),
 			Inventory:  common.GenerateTestDefaultInventory(),
@@ -198,7 +198,7 @@ var _ = Describe("host count with 2 cluster", func() {
 		hostId := strfmt.UUID(uuid.New().String())
 		host := models.Host{
 			ID:         &hostId,
-			ClusterID:  clusterId,
+			ClusterID:  &clusterId,
 			InfraEnvID: clusterId,
 			Role:       models.HostRoleMaster,
 			Status:     swag.String(state),

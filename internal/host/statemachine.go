@@ -16,16 +16,28 @@ const (
 	TransitionTypeResettingPendingUserAction = "ResettingPendingUserAction"
 	TransitionTypeRefresh                    = "RefreshHost"
 	TransitionTypeRegisterInstalledHost      = "RegisterInstalledHost"
+	TransitionTypeBindHost                   = "BindHost"
 )
 
-func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
-	sm := stateswitch.NewStateMachine()
+// func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
+func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) stateswitch.StateMachine {
+
+	// Register host by late binding
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRegisterHost,
+		SourceStates: []stateswitch.State{
+			"",
+			stateswitch.State(models.HostStatusBinding),
+		},
+		Condition:        stateswitch.Not(th.IsUnboundHost),
+		DestinationState: stateswitch.State(models.HostStatusDiscovering),
+		PostTransition:   th.PostRegisterHost,
+	})
 
 	// Register host
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRegisterHost,
 		SourceStates: []stateswitch.State{
-			"",
 			stateswitch.State(models.HostStatusDiscovering),
 			stateswitch.State(models.HostStatusKnown),
 			stateswitch.State(models.HostStatusDisconnected),

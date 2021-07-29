@@ -34,6 +34,8 @@ const (
 	statusInfoConnectionTimedOut                               = "Host failed to install due to timeout while connecting to host"
 	statusInfoInstallationInProgressTimedOut                   = "Host failed to install because its installation stage $STAGE took longer than expected $MAX_TIME"
 	statusInfoInstallationInProgressWritingImageToDiskTimedOut = "Host failed to install because its installation stage $STAGE did not sufficiently progress in the last $MAX_TIME."
+	statusInfoHostReadyToBeMoved                               = "Host is part of pool and is ready to be moved"
+	statusInfoBinding                                          = "Host is waiting tobe bound to the cluster"
 )
 
 var hostStatusesBeforeInstallation = [...]string{
@@ -82,7 +84,7 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, db
 	}
 	extras = append(extras, "trigger_monitor_timestamp", time.Now())
 
-	_, err := hostutil.UpdateHost(log, db, h.ClusterID, *h.ID, *h.Status, extras...)
+	_, err := hostutil.UpdateHost(log, db, *h.ClusterID, *h.ID, *h.Status, extras...)
 	return err
 }
 

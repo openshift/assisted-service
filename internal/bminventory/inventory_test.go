@@ -860,7 +860,7 @@ var _ = Describe("GetHost", func() {
 		hostObj := models.Host{
 			ID:         &hostID,
 			InfraEnvID: clusterId,
-			ClusterID:  clusterId,
+			ClusterID:  &clusterId,
 			Status:     swag.String("discovering"),
 		}
 		Expect(db.Create(&hostObj).Error).ShouldNot(HaveOccurred())
@@ -894,7 +894,7 @@ var _ = Describe("GetHost", func() {
 
 		hostObj := models.Host{
 			ID:        &hostID,
-			ClusterID: clusterId,
+			ClusterID: &clusterId,
 			Status:    swag.String("discovering"),
 			Bootstrap: true,
 		}
@@ -1310,7 +1310,7 @@ var _ = Describe("GetNextSteps", func() {
 		host := models.Host{
 			ID:          hostId,
 			InfraEnvID:  *clusterId,
-			ClusterID:   *clusterId,
+			ClusterID:   clusterId,
 			Status:      swag.String("discovering"),
 			CheckedInAt: checkedInAt,
 		}
@@ -1380,7 +1380,7 @@ var _ = Describe("v2GetNextSteps", func() {
 		host := models.Host{
 			ID:          hostId,
 			InfraEnvID:  *clusterId,
-			ClusterID:   *clusterId,
+			ClusterID:   clusterId,
 			Status:      swag.String("discovering"),
 			CheckedInAt: checkedInAt,
 		}
@@ -1461,7 +1461,7 @@ var _ = Describe("PostStepReply", func() {
 			host = &models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("insufficient"),
 			}
 			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
@@ -1550,7 +1550,7 @@ var _ = Describe("PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -1571,7 +1571,7 @@ var _ = Describe("PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -1627,7 +1627,7 @@ var _ = Describe("PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("insufficient"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -1785,7 +1785,7 @@ var _ = Describe("PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -1845,7 +1845,7 @@ var _ = Describe("PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -1909,7 +1909,7 @@ var _ = Describe("PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("discovering"),
 			}
 
@@ -1975,7 +1975,7 @@ var _ = Describe("v2PostStepReply", func() {
 			host = &models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("insufficient"),
 			}
 			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
@@ -2064,7 +2064,7 @@ var _ = Describe("v2PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -2085,7 +2085,7 @@ var _ = Describe("v2PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -2141,7 +2141,7 @@ var _ = Describe("v2PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("insufficient"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -2299,7 +2299,7 @@ var _ = Describe("v2PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -2359,7 +2359,7 @@ var _ = Describe("v2PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -2423,7 +2423,7 @@ var _ = Describe("v2PostStepReply", func() {
 			host := models.Host{
 				ID:         hostId,
 				InfraEnvID: *clusterId,
-				ClusterID:  *clusterId,
+				ClusterID:  clusterId,
 				Status:     swag.String("discovering"),
 			}
 
@@ -2481,7 +2481,7 @@ var _ = Describe("GetFreeAddresses", func() {
 		ret := models.Host{
 			ID:            hostId,
 			InfraEnvID:    *clusterId,
-			ClusterID:     *clusterId,
+			ClusterID:     clusterId,
 			FreeAddresses: freeAddresses,
 			Status:        &status,
 		}
@@ -2634,7 +2634,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 			err := db.Create(&models.Host{
 				ID:         &hostID,
 				InfraEnvID: clusterID,
-				ClusterID:  clusterID,
+				ClusterID:  &clusterID,
 			}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -2747,7 +2747,7 @@ var _ = Describe("cluster", func() {
 		host := models.Host{
 			ID:         &hostId,
 			InfraEnvID: clusterId,
-			ClusterID:  clusterId,
+			ClusterID:  &clusterId,
 			Status:     swag.String(state),
 			Kind:       swag.String(kind),
 			Role:       role,
@@ -4092,7 +4092,7 @@ var _ = Describe("cluster", func() {
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
 					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
 				Expect(err).ToNot(HaveOccurred())
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
@@ -4184,7 +4184,7 @@ var _ = Describe("cluster", func() {
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
 					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
 				Expect(err).ToNot(HaveOccurred())
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
@@ -4349,7 +4349,7 @@ var _ = Describe("cluster", func() {
 				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
 				addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
-				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
 					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
 				Expect(err).ToNot(HaveOccurred())
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
@@ -4914,7 +4914,7 @@ var _ = Describe("cluster", func() {
 			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 			addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
 			addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "10.11.200.180/16"), db)
-			err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+			err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
 				makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
 			Expect(err).ToNot(HaveOccurred())
 			mockDurationsSuccess()
@@ -6377,7 +6377,7 @@ func addHost(hostId strfmt.UUID, role models.HostRole, state, kind string, clust
 	host := models.Host{
 		ID:         &hostId,
 		InfraEnvID: clusterId,
-		ClusterID:  clusterId,
+		ClusterID:  &clusterId,
 		Kind:       swag.String(kind),
 		Status:     swag.String(state),
 		Role:       role,

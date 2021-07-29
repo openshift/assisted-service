@@ -2737,7 +2737,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		ID:                    params.NewHostParams.HostID,
 		Href:                  swag.String(url.String()),
 		Kind:                  kind,
-		ClusterID:             infraEnv.ClusterID,
+		ClusterID:             &infraEnv.ClusterID,
 		CheckedInAt:           strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
 		UserName:              ocm.UserNameFromContext(ctx),
@@ -3115,7 +3115,7 @@ func (b *bareMetalInventory) handleMediaDisconnection(params installer.PostStepR
 		statusInfo = fmt.Sprintf("%s. %s", statusInfo, params.Reply.Error)
 	}
 
-	_, err := hostutil.UpdateHostStatus(ctx, log, b.db, b.eventsHandler, h.ClusterID, *h.ID,
+	_, err := hostutil.UpdateHostStatus(ctx, log, b.db, b.eventsHandler, *h.ClusterID, *h.ID,
 		swag.StringValue(h.Status), models.HostStatusError, statusInfo)
 
 	return err
@@ -3238,7 +3238,7 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 			msg := fmt.Sprintf("Host's disk %s is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: %d ms)",
 				diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 			log.Warnf(msg)
-			b.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, msg, time.Now())
+			b.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityWarning, msg, time.Now())
 		}
 	}
 
@@ -3259,7 +3259,7 @@ func (b *bareMetalInventory) updateDomainNameResolutionResponse(ctx context.Cont
 }
 
 func (b *bareMetalInventory) getInstallationDiskSpeedThresholdMs(ctx context.Context, h *models.Host) (int64, error) {
-	cluster, err := common.GetClusterFromDB(b.db, h.ClusterID, common.UseEagerLoading)
+	cluster, err := common.GetClusterFromDB(b.db, *h.ClusterID, common.UseEagerLoading)
 	if err != nil {
 		return 0, err
 	}
@@ -3903,7 +3903,7 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 
 		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
 		msg := fmt.Sprintf("Host %s: %s", hostutil.GetHostnameForMsg(&host.Host), event)
-		b.eventsHandler.AddEvent(ctx, host.ClusterID, host.ID, models.EventSeverityInfo, msg, time.Now())
+		b.eventsHandler.AddEvent(ctx, *host.ClusterID, host.ID, models.EventSeverityInfo, msg, time.Now())
 
 		if err := b.clusterApi.UpdateInstallProgress(ctx, params.ClusterID); err != nil {
 			log.WithError(err).Errorf("failed to update cluster %s progress", params.ClusterID)
@@ -4817,7 +4817,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		ID:                    params.NewHostParams.HostID,
 		Href:                  swag.String(url.String()),
 		Kind:                  kind,
-		ClusterID:             infraEnv.ClusterID,
+		ClusterID:             &infraEnv.ClusterID,
 		CheckedInAt:           strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
 		UserName:              ocm.UserNameFromContext(ctx),
@@ -4848,7 +4848,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 			host.Kind = swag.String(models.HostKindAddToExistingClusterHost)
 		}
-		host.ClusterID = infraEnv.ClusterID
+		host.ClusterID = &infraEnv.ClusterID
 	}
 
 	if err = b.hostApi.RegisterHost(ctx, host, tx); err != nil {

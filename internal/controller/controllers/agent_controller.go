@@ -230,7 +230,7 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 
 	err = r.Installer.DeregisterHostInternal(
 		ctx, installer.DeregisterHostParams{
-			ClusterID: h.ClusterID,
+			ClusterID: *h.ClusterID,
 			HostID:    *h.ID,
 		})
 

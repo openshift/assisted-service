@@ -63,7 +63,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	step.StepType = models.StepTypeInstall
 	step.Command = "bash"
 
-	cluster, err := common.GetClusterFromDBWithoutDisabledHosts(i.db, host.ClusterID)
+	cluster, err := common.GetClusterFromDBWithoutDisabledHosts(i.db, *host.ClusterID)
 	if err != nil {
 		i.log.Errorf("failed to get cluster %s", host.ClusterID)
 		return nil, err
@@ -86,7 +86,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 
 	step.Args = []string{"-c", unbootableCmd + fullCmd}
 
-	if _, err := hostutil.UpdateHost(i.log, i.db, host.ClusterID, *host.ID, *host.Status,
+	if _, err := hostutil.UpdateHost(i.log, i.db, *host.ClusterID, *host.ID, *host.Status,
 		"installer_version", i.instructionConfig.InstallerImage); err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	podmanCmd := podmanBaseCmd[:]
 	installerCmd := []string{
 		"--role", string(role),
-		"--cluster-id", string(host.ClusterID),
+		"--cluster-id", host.ClusterID.String(),
 		"--host-id", string(*host.ID),
 		"--boot-device", bootdevice,
 		"--url", i.instructionConfig.ServiceBaseURL,
@@ -235,7 +235,7 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 			formatCmds += fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=1 ; ", hostutil.GetDeviceIdentifier(disk))
 			i.eventsHandler.AddEvent(
 				ctx,
-				host.ClusterID,
+				*host.ClusterID,
 				host.ID,
 				models.EventSeverityInfo,
 				fmt.Sprintf("%s: Performing quick format of disk %s(%s)", hostutil.GetHostnameForMsg(&host), disk.Name, hostutil.GetDeviceIdentifier(disk)),

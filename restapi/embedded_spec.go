@@ -6745,7 +6745,8 @@ func init() {
           "description": "The cluster that this host is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"foreignkey:Cluster\"",
+          "x-nullable": true
         },
         "connectivity": {
           "type": "string",
@@ -6906,7 +6907,13 @@ func init() {
             "error",
             "resetting",
             "added-to-existing-cluster",
-            "cancelled"
+            "cancelled",
+            "binding",
+            "known-unbound",
+            "disconnected-unbound",
+            "insufficient-unbound",
+            "disabled-unbound",
+            "discovering-unbound"
           ]
         },
         "status_info": {
@@ -15140,7 +15147,8 @@ func init() {
           "description": "The cluster that this host is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"foreignkey:Cluster\"",
+          "x-nullable": true
         },
         "connectivity": {
           "type": "string",
@@ -15301,7 +15309,13 @@ func init() {
             "error",
             "resetting",
             "added-to-existing-cluster",
-            "cancelled"
+            "cancelled",
+            "binding",
+            "known-unbound",
+            "disconnected-unbound",
+            "insufficient-unbound",
+            "disabled-unbound",
+            "discovering-unbound"
           ]
         },
         "status_info": {

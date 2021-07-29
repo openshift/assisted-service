@@ -131,7 +131,7 @@ var _ = Describe("create agent CR", func() {
 			h := common.Host{
 				Host: models.Host{
 					ID:        &id,
-					ClusterID: clusterId,
+					ClusterID: &clusterId,
 				},
 			}
 			mockHostApi.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&h, nil).Times(1)
@@ -187,7 +187,7 @@ var _ = Describe("create agent CR", func() {
 			h := common.Host{
 				Host: models.Host{
 					ID:        &id,
-					ClusterID: clusterId,
+					ClusterID: &clusterId,
 				},
 			}
 			mockHostApi.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&h, nil).Times(1)
