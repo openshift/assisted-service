@@ -141,6 +141,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		By("checking insufficient state state - one host, no connectivity check")
 		ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
 		generateEssentialHostSteps(ctx, h, "h1host", ips[0])
+		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h)
 		steps = getNextSteps(clusterID, *host.ID)
 		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck}, 2)
@@ -170,6 +171,7 @@ var _ = Describe("Day2 cluster tests", func() {
 
 		By("checking insufficient state state host2 ")
 		generateEssentialHostSteps(ctx, h2, "h2host", ips[1])
+		generateDomainResolution(ctx, h2, "test-cluster", "")
 		generateConnectivityCheckPostStepReply(ctx, h2, ips[0], true)
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h2)
 		steps = getNextSteps(clusterID, *h2.ID)
@@ -178,6 +180,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		By("checking insufficient state state")
 		generateEssentialHostSteps(ctx, h1, "h1host", ips[0])
 		generateConnectivityCheckPostStepReply(ctx, h1, ips[1], true)
+		generateDomainResolution(ctx, h1, "test-cluster", "")
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h1)
 		steps = getNextSteps(clusterID, *h1.ID)
 		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck, models.StepTypeConnectivityCheck}, 3)
@@ -193,6 +196,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
+		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h)
 		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, "known", 60*time.Second, h)
@@ -213,6 +217,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
+		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h)
 		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, "known", 60*time.Second, h)
@@ -238,12 +243,14 @@ var _ = Describe("Day2 cluster tests", func() {
 		h2 := getHost(clusterID, *host.ID)
 		ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
 		generateEssentialHostSteps(ctx, h1, "hostname1", ips[0])
+		generateDomainResolution(ctx, h1, "test-cluster", "")
 		generateConnectivityCheckPostStepReply(ctx, h1, ips[1], true)
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h1)
 		generateApiVipPostStepReply(ctx, h1, true)
 		waitForHostState(ctx, clusterID, "known", 60*time.Second, h1)
 
 		generateEssentialHostSteps(ctx, h2, "hostname2", ips[1])
+		generateDomainResolution(ctx, h2, "test-cluster", "")
 		generateConnectivityCheckPostStepReply(ctx, h2, ips[0], true)
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h2)
 		generateApiVipPostStepReply(ctx, h2, true)
@@ -284,9 +291,11 @@ var _ = Describe("Day2 cluster tests", func() {
 		h2 := getHost(clusterID, *host.ID)
 		ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
 		generateEssentialHostSteps(ctx, h1, "hostname1", ips[0])
+		generateDomainResolution(ctx, h1, "test-cluster", "")
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h1)
 
 		generateEssentialHostSteps(ctx, h2, "hostname2", ips[1])
+		generateDomainResolution(ctx, h2, "test-cluster", "")
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h2)
 
 		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
@@ -307,6 +316,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
+		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h)
 		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, "known", 60*time.Second, h)
@@ -327,6 +337,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
+		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h)
 		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, "known", 60*time.Second, h)
@@ -354,6 +365,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
+		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h)
 		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, "known", 60*time.Second, h)
@@ -383,6 +395,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
+		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h)
 		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, "known", 60*time.Second, h)
@@ -407,6 +420,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
+		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h)
 		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, "known", 60*time.Second, h)
@@ -489,6 +503,7 @@ var _ = Describe("Installation progress", func() {
 		By("install hosts", func() {
 
 			generateEssentialHostSteps(ctx, c.Hosts[0], "hostname", defaultCIDRv4)
+			generateDomainResolution(ctx, c.Hosts[0], "day2-cluster", "")
 			generateApiVipPostStepReply(ctx, c.Hosts[0], true)
 			waitForHostState(ctx, *c.ID, "known", 60*time.Second, c.Hosts[0])
 

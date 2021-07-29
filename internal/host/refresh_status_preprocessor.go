@@ -255,6 +255,11 @@ func newValidations(v *validator) []validation {
 			condition: v.compatibleWithClusterPlatform,
 			formatter: v.printCompatibleWithClusterPlatform,
 		},
+		{
+			id:        IsDNSWildcardNotConfigured,
+			condition: v.isDNSWildcardNotConfigured,
+			formatter: v.printIsDNSWildcardNotConfigured,
+		},
 	}
 }
 

@@ -6394,6 +6394,7 @@ definitions:
       - 'api-int-domain-name-resolved-correctly'
       - 'apps-domain-name-resolved-correctly'
       - 'compatible-with-cluster-platform'
+      - 'dns-wildcard-not-configured'
 
   dhcp_allocation_request:
     type: object

@@ -44,6 +44,7 @@ func (f *domainNameResolutionCmd) prepareParam(host *models.Host, cluster *commo
 	apiDomainName := fmt.Sprintf("api.%s.%s", clusterName, baseDNSDomain)
 	apiInternalDomainName := fmt.Sprintf("api-int.%s.%s", clusterName, baseDNSDomain)
 	appsDomainName := fmt.Sprintf("%s.apps.%s.%s", constants.AppsSubDomainNameHostDNSValidation, clusterName, baseDNSDomain)
+	wildcardDomainName := fmt.Sprintf("%s.%s.%s", constants.DNSWildcardFalseDomainName, clusterName, baseDNSDomain)
 
 	apiDomain := models.DomainResolutionRequestDomain{
 		DomainName: &apiDomainName,
@@ -54,9 +55,12 @@ func (f *domainNameResolutionCmd) prepareParam(host *models.Host, cluster *commo
 	appsDomain := models.DomainResolutionRequestDomain{
 		DomainName: &appsDomainName,
 	}
+	wildcardDomain := models.DomainResolutionRequestDomain{
+		DomainName: &wildcardDomainName,
+	}
 
 	var domains []*models.DomainResolutionRequestDomain
-	domains = append(domains, &apiDomain, &apiInternalDomain, &appsDomain)
+	domains = append(domains, &apiDomain, &apiInternalDomain, &appsDomain, &wildcardDomain)
 
 	request := models.DomainResolutionRequest{
 		Domains: domains,

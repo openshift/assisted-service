@@ -149,7 +149,7 @@ spec:
 		clusterID := *cluster.ID
 
 		By("install cluster", func() {
-			registerHostsAndSetRoles(clusterID, minHosts)
+			registerHostsAndSetRoles(clusterID, minHosts, "test-cluster", "example.com")
 			reply, err := userBMClient.Installer.InstallCluster(context.Background(), &installer.InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := reply.GetPayload()
