@@ -1909,11 +1909,6 @@ func (b *bareMetalInventory) integrateWithAMSClusterUpdateName(ctx context.Conte
 	return nil
 }
 
-func setMachineNetworkCIDRForUpdate(updates map[string]interface{}, machineNetworkCIDR string) {
-	updates["machine_network_cidr"] = machineNetworkCIDR
-	updates["machine_network_cidr_updated_at"] = time.Now()
-}
-
 func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string, interactivity Interactivity) error {
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
@@ -1951,7 +1946,6 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		}
 		if machineNetworkCidr != swag.StringValue(machineCidr) {
 			*machineCidr = machineNetworkCidr
-			setMachineNetworkCIDRForUpdate(updates, machineNetworkCidr)
 		}
 		err = network.VerifyVips(cluster.Hosts, swag.StringValue(machineCidr), apiVip, ingressVip, false, log)
 		if err != nil {
@@ -1987,10 +1981,8 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 	if params.ClusterUpdateParams.MachineNetworkCidr != nil &&
 		*machineCidr != swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr) {
 		*machineCidr = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
-		setMachineNetworkCIDRForUpdate(updates, *machineCidr)
 		updates["api_vip"] = ""
 		updates["ingress_vip"] = ""
-		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr))
 	}
 	return nil
 }
@@ -2084,9 +2076,13 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	return nil
 }
 
+// updateNetworkParams takes care of 3 modes:
+// 1. Bare metal installation
+// 2. None-platform multi-node
+// 3. None-platform single-node (Machine CIDR must be defined)
 func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{}, usages map[string]models.Usage, log logrus.FieldLogger, interactivity Interactivity) error {
 	var err error
-	machineCidr := cluster.MachineNetworkCidr
+	primaryMachineNetworkCIDR := cluster.MachineNetworkCidr
 	serviceCidr := cluster.ServiceNetworkCidr
 	clusterCidr := cluster.ClusterNetworkCidr
 	hostNetworkPrefix := cluster.ClusterNetworkHostPrefix
@@ -2121,26 +2117,6 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 		updates["service_network_cidr"] = serviceCidr
 	}
 
-	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
-		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
-		updates["user_managed_networking"] = userManagedNetworking
-		machineCidr = ""
-	}
-	if userManagedNetworking && !common.IsSingleNodeCluster(cluster) {
-		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
-		if err != nil {
-			return err
-		}
-	}
-
-	if params.ClusterUpdateParams.VipDhcpAllocation != nil && swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != vipDhcpAllocation {
-		vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
-		updates["vip_dhcp_allocation"] = vipDhcpAllocation
-		updates["api_vip"] = ""
-		updates["ingress_vip"] = ""
-		machineCidr = ""
-		setMachineNetworkCIDRForUpdate(updates, machineCidr)
-	}
 	if params.ClusterUpdateParams.NetworkType != nil && params.ClusterUpdateParams.NetworkType != cluster.NetworkType {
 		b.setUsage(true, usage.NetworkTypeSelectionUsage, &map[string]interface{}{
 			"network_type": params.ClusterUpdateParams.NetworkType}, usages)
@@ -2148,34 +2124,59 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 		updates["network_type"] = swag.StringValue(params.ClusterUpdateParams.NetworkType)
 	}
 
-	if !userManagedNetworking {
+	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
+		// User network mode has changed
+		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
+		updates["user_managed_networking"] = userManagedNetworking
+		primaryMachineNetworkCIDR = ""
+	}
+
+	if userManagedNetworking {
+		if params.ClusterUpdateParams.MachineNetworkCidr != nil {
+			primaryMachineNetworkCIDR = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
+		}
+
+		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), primaryMachineNetworkCIDR, updates, log)
+		if err != nil {
+			return err
+		}
+	} else {
+		if params.ClusterUpdateParams.VipDhcpAllocation != nil && swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != vipDhcpAllocation {
+			// VIP DHCP mode has changed
+			vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
+			updates["vip_dhcp_allocation"] = vipDhcpAllocation
+			primaryMachineNetworkCIDR = ""
+		}
+
+		// Not None-platform machines are on the same networks, and thus
+		// a machine CIDR can be calculated
 		if vipDhcpAllocation {
-			err = b.updateDhcpNetworkParams(updates, params, log, &machineCidr)
+			err = b.updateDhcpNetworkParams(updates, params, log, &primaryMachineNetworkCIDR)
 		} else {
-			err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &machineCidr, interactivity)
+			err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &primaryMachineNetworkCIDR, interactivity)
 		}
 		if err != nil {
 			return err
 		}
 	}
 
-	if params.ClusterUpdateParams.MachineNetworkCidr != nil && common.IsSingleNodeCluster(cluster) {
-		machineCidr = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
-		if err = network.VerifyMachineCIDR(machineCidr); err != nil {
-			log.WithError(err).Warningf("Given machine cidr %q is not valid", machineCidr)
-			return common.NewApiError(http.StatusBadRequest, err)
+	if primaryMachineNetworkCIDR != cluster.MachineNetworkCidr {
+		if primaryMachineNetworkCIDR != "" {
+			if err = network.VerifyMachineCIDR(primaryMachineNetworkCIDR); err != nil {
+				log.WithError(err).Warningf("Given machine cidr %q is not valid", primaryMachineNetworkCIDR)
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
 		}
-		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
-		if err != nil {
-			return err
-		}
+
+		updates["machine_network_cidr"] = primaryMachineNetworkCIDR
+		updates["machine_network_cidr_updated_at"] = time.Now()
 	}
 
-	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
+	if err = network.VerifyClusterCIDRsNotOverlap(primaryMachineNetworkCIDR, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if err = validations.ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation, machineCidr); err != nil {
+	if err = validations.ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation, primaryMachineNetworkCIDR); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -2192,7 +2193,6 @@ func setCommonUserNetworkManagedParams(params *models.ClusterUpdateParams, singl
 	updates["api_vip"] = ""
 	updates["ingress_vip"] = ""
 
-	setMachineNetworkCIDRForUpdate(updates, machineCidr)
 	return nil, false
 }
 
