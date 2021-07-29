@@ -6351,6 +6351,7 @@ var _ = Describe("GetClusterSupportedPlatforms", func() {
 			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
 		mockUsageReports()
 		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:                 swag.String("some-cluster-name"),
@@ -6447,7 +6448,11 @@ var _ = Describe("GetClusterSupportedPlatforms", func() {
 		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
 		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
 		Expect(len(platforms)).Should(Equal(2))
-		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere}
+		for _, p := range platforms {
+			Expect(funk.Contains(supportedPlatforms, p))
+		}
 	})
 
 	It("3 vsphere hosts", func() {
