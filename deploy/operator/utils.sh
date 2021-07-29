@@ -127,3 +127,10 @@ function get_image_repository_only() {
     # return "<repository>/<project>"
     get_image_without_registry $(get_image_without_tag "${1}")
 }
+
+function nth_ip() {
+  network=$1
+  idx=$2
+
+  python -c "from ansible.plugins.filter import ipaddr; print(ipaddr.nthhost('"$network"', $idx))"
+}

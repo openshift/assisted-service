@@ -5,6 +5,9 @@
   gather_facts: no
   vars:
     - spoke_namespace: "{{ lookup('env', 'SPOKE_NAMESPACE') }}"
+    - spoke_controlplane_agents: "{{ lookup('env', 'SPOKE_CONTROLPLANE_AGENTS') }}"
+    - spoke_api_vip: "{{ lookup('env', 'SPOKE_API_VIP') }}"
+    - spoke_ingress_vip: "{{ lookup('env', 'SPOKE_INGRESS_VIP') }}"
     - cluster_name: "{{ lookup('env', 'ASSISTED_CLUSTER_NAME') }}"
     - cluster_image_set_name: "{{ lookup('env', 'ASSISTED_OPENSHIFT_VERSION') }}"
     - cluster_release_image: "{{ lookup('env', 'ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE') }}"

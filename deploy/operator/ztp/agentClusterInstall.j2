@@ -8,8 +8,8 @@ spec:
     name: '{{ cluster_deployment_name }}'
   imageSetRef:
     name: '{{ cluster_image_set_name }}'
-  apiVIP: ""
-  ingressVIP: ""
+  apiVIP: '{{ spoke_api_vip }}'
+  ingressVIP: '{{ spoke_ingress_vip }}'
   networking:
     clusterNetwork:
     - cidr: {{ cluster_subnet }}
@@ -19,5 +19,5 @@ spec:
     serviceNetwork:
     - {{ service_subnet }}
   provisionRequirements:
-    controlPlaneAgents: 1
+    controlPlaneAgents: {{ spoke_controlplane_agents }}
   sshPublicKey: '{{ ssh_public_key }}'
