@@ -121,6 +121,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetClusterInstallConfigHandler: installer.GetClusterInstallConfigHandlerFunc(func(params installer.GetClusterInstallConfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetClusterInstallConfig has not yet been implemented")
 		}),
+		InstallerGetClusterSupportedPlatformsHandler: installer.GetClusterSupportedPlatformsHandlerFunc(func(params installer.GetClusterSupportedPlatformsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetClusterSupportedPlatforms has not yet been implemented")
+		}),
 		InstallerGetCredentialsHandler: installer.GetCredentialsHandlerFunc(func(params installer.GetCredentialsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetCredentials has not yet been implemented")
 		}),
@@ -375,6 +378,8 @@ type AssistedInstallAPI struct {
 	InstallerGetClusterHostRequirementsHandler installer.GetClusterHostRequirementsHandler
 	// InstallerGetClusterInstallConfigHandler sets the operation handler for the get cluster install config operation
 	InstallerGetClusterInstallConfigHandler installer.GetClusterInstallConfigHandler
+	// InstallerGetClusterSupportedPlatformsHandler sets the operation handler for the get cluster supported platforms operation
+	InstallerGetClusterSupportedPlatformsHandler installer.GetClusterSupportedPlatformsHandler
 	// InstallerGetCredentialsHandler sets the operation handler for the get credentials operation
 	InstallerGetCredentialsHandler installer.GetCredentialsHandler
 	// InstallerGetDiscoveryIgnitionHandler sets the operation handler for the get discovery ignition operation
@@ -627,6 +632,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetClusterInstallConfigHandler == nil {
 		unregistered = append(unregistered, "installer.GetClusterInstallConfigHandler")
+	}
+	if o.InstallerGetClusterSupportedPlatformsHandler == nil {
+		unregistered = append(unregistered, "installer.GetClusterSupportedPlatformsHandler")
 	}
 	if o.InstallerGetCredentialsHandler == nil {
 		unregistered = append(unregistered, "installer.GetCredentialsHandler")
@@ -967,6 +975,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v1/clusters/{cluster_id}/install-config"] = installer.NewGetClusterInstallConfig(o.context, o.InstallerGetClusterInstallConfigHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/clusters/{cluster_id}/supported-platforms"] = installer.NewGetClusterSupportedPlatforms(o.context, o.InstallerGetClusterSupportedPlatformsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
