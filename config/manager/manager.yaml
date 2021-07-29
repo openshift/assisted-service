@@ -27,7 +27,7 @@ spec:
         - /assisted-service-operator
         args:
         - --leader-elect
-        image: quay.io/ocpmetal/assisted-service:latest
+        image: quay.io/ocpmetal/assisted-service:ocm-2.3
         name: manager
         env:
           - name: SERVICE_IMAGE
