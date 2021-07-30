@@ -234,7 +234,6 @@ var _ = Describe("GenerateClusterISO", func() {
 		clusterId := cluster.ID
 		mockS3Client.EXPECT().IsAwsS3().Return(false)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
 		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -256,7 +255,6 @@ var _ = Describe("GenerateClusterISO", func() {
 		clusterId := cluster.ID
 		mockS3Client.EXPECT().IsAwsS3().Return(false)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
 		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -290,7 +288,6 @@ var _ = Describe("GenerateClusterISO", func() {
 		clusterId := cluster.ID
 		mockS3Client.EXPECT().IsAwsS3().Return(false)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
 		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -383,7 +380,6 @@ var _ = Describe("GenerateClusterISO", func() {
 		Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
 
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 		mockUploadIso(&cluster, nil)
 		mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
@@ -405,7 +401,6 @@ var _ = Describe("GenerateClusterISO", func() {
 		cluster := registerCluster(true)
 		clusterId := cluster.ID
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
 		mockUploadIso(cluster, nil)
 		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
@@ -433,7 +428,6 @@ var _ = Describe("GenerateClusterISO", func() {
 	It("failed_to_upload_iso", func() {
 		cluster := registerCluster(true)
 		clusterId := cluster.ID
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
 		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 		mockUploadIso(cluster, errors.New("failed"))
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
@@ -458,22 +452,9 @@ var _ = Describe("GenerateClusterISO", func() {
 		cluster := registerCluster(true)
 		cluster.PullSecret = "{\"auths\":{\"another.cloud.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"
 		clusterId := cluster.ID
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
 		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 		mockUploadIso(cluster, errors.New("failed"))
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-			ClusterID:         *clusterId,
-			ImageCreateParams: &models.ImageCreateParams{},
-		})
-		verifyApiError(generateReply, http.StatusInternalServerError)
-	})
-
-	It("fails when the ignition upload fails", func() {
-		clusterId := registerCluster(true).ID
-		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed"))
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
@@ -520,7 +501,6 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(staticNetworkConfig).Return(nil).Times(1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
 			mockUploadIso(cluster, nil)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
@@ -550,7 +530,6 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(staticNetworkConfig).Return(nil).Times(1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
 			mockUploadIso(cluster, nil)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
@@ -588,7 +567,6 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes).Times(1)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -610,7 +588,6 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(newStaticNetworkConfig).Return(nil).Times(1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
 			mockUploadIso(cluster, nil)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(newStaticNetworkConfig).Return("new static network res").Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
@@ -676,7 +653,6 @@ var _ = Describe("GenerateClusterISO", func() {
 			stubWithEditor(mockIsoEditorFactory, editor)
 
 			mockS3Client.EXPECT().UploadFile(gomock.Any(), isoFilePath, fmt.Sprintf("discovery-image-%s.iso", cluster.ID))
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", cluster.ID))
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, "Generated image (Image type is \"minimal-iso\", SSH public key is not set)", gomock.Any())
@@ -691,7 +667,6 @@ var _ = Describe("GenerateClusterISO", func() {
 
 		It("Regenerates the iso for a new type", func() {
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", cluster.ID)).Times(2)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(2)
 			mockS3Client.EXPECT().IsAwsS3().Return(false).Times(2)
 
@@ -729,7 +704,6 @@ var _ = Describe("GenerateClusterISO", func() {
 			expectedErrMsg := "some-internal-error"
 
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", cluster.ID))
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("", errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -744,7 +718,6 @@ var _ = Describe("GenerateClusterISO", func() {
 			expectedErrMsg := "some-internal-error"
 
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", cluster.ID))
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(nil, int64(0), errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
@@ -760,7 +733,6 @@ var _ = Describe("GenerateClusterISO", func() {
 			expectedErrMsg := "some-internal-error"
 
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", cluster.ID))
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			mockIsoEditorFactory.EXPECT().WithEditor(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg))
@@ -777,7 +749,6 @@ var _ = Describe("GenerateClusterISO", func() {
 			expectedErrMsg := "some-internal-error"
 
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", cluster.ID))
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			editor := isoeditor.NewMockEditor(ctrl)
@@ -796,7 +767,6 @@ var _ = Describe("GenerateClusterISO", func() {
 			expectedErrMsg := "some-internal-error"
 
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", cluster.ID))
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			editor := isoeditor.NewMockEditor(ctrl)
