@@ -22,7 +22,7 @@ function gather_operator_data() {
 
   oc logs -n "${ASSISTED_NAMESPACE}" --selector app=assisted-service -c assisted-service > ${LOGS_DEST}/assisted-service.log
   oc logs -n "${ASSISTED_NAMESPACE}" --selector app=assisted-service -c postgres > ${LOGS_DEST}/postgres.log
-  oc logs -n "${ASSISTED_NAMESPACE}" --selector control-plane=assisted-service-operator > ${LOGS_DEST}/assisted-service-operator.log
+  oc logs -n "${ASSISTED_NAMESPACE}" --selector control-plane=infrastructure-operator > ${LOGS_DEST}/infrastructure-operator.log
 
   oc get events -n "${ASSISTED_NAMESPACE}" --sort-by=.metadata.creationTimestamp > ${LOGS_DEST}/oc_get_events.log || true
 }
