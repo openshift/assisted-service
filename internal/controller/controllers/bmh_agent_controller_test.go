@@ -736,7 +736,7 @@ var _ = Describe("bmac reconcile", func() {
 
 				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
 				spokeClient := bmhr.spokeClient
-				err = spokeClient.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, spokeBMH)
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)
 				Expect(err).To(BeNil())
 				Expect(spokeBMH.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
 				Expect(spokeBMH.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]).To(Equal(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]))
@@ -745,14 +745,14 @@ var _ = Describe("bmac reconcile", func() {
 
 				spokeMachine := &machinev1beta1.Machine{}
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, spokeBMH.Name)
-				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: testNamespace}, spokeMachine)
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeMachine)
 				Expect(err).To(BeNil())
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(machinev1beta1.MachineClusterIDLabel))
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_ROLE))
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_TYPE))
 
 				spokeSecret := &corev1.Secret{}
-				err = spokeClient.Get(ctx, types.NamespacedName{Name: secret.Name, Namespace: testNamespace}, spokeSecret)
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: secret.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeSecret)
 				Expect(err).To(BeNil())
 				Expect(spokeSecret.Data).To(Equal(secret.Data))
 			})

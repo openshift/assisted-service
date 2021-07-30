@@ -73,6 +73,7 @@ const (
 	MACHINE_ROLE                        = "machine.openshift.io/cluster-api-machine-role"
 	MACHINE_TYPE                        = "machine.openshift.io/cluster-api-machine-type"
 	MCS_CERT_NAME                       = "ca.crt"
+	OPENSHIFT_MACHINE_API_NAMESPACE     = "openshift-machine-api"
 )
 
 var (
@@ -700,6 +701,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 	}
 
 	_, err = r.ensureSpokeBMH(ctx, log, spokeClient, bmh, machine, agent)
+
 	if err != nil {
 		log.WithError(err).Errorf("failed to create or update spoke BareMetalHost")
 		return reconcileError{err}
@@ -1054,7 +1056,7 @@ func (r *BMACReconciler) ensureSpokeBMHSecret(ctx context.Context, log logrus.Fi
 	if err != nil {
 		return secret, err
 	}
-	secretSpoke, mutateFn := r.newSpokeBMHSecret(secret, bmh)
+	secretSpoke, mutateFn := r.newSpokeBMHSecret(secret)
 	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, secretSpoke, mutateFn); err != nil {
 		return nil, err
 	} else if result != controllerutil.OperationResultNone {
@@ -1067,7 +1069,7 @@ func (r *BMACReconciler) newSpokeBMH(bmh *bmh_v1alpha1.BareMetalHost, machine *m
 	bmhSpoke := &bmh_v1alpha1.BareMetalHost{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      bmh.Name,
-			Namespace: bmh.Namespace,
+			Namespace: OPENSHIFT_MACHINE_API_NAMESPACE,
 		},
 	}
 	mutateFn := func() error {
@@ -1099,11 +1101,11 @@ func (r *BMACReconciler) newSpokeBMH(bmh *bmh_v1alpha1.BareMetalHost, machine *m
 	return bmhSpoke, mutateFn
 }
 
-func (r *BMACReconciler) newSpokeBMHSecret(secret *corev1.Secret, bmh *bmh_v1alpha1.BareMetalHost) (*corev1.Secret, controllerutil.MutateFn) {
+func (r *BMACReconciler) newSpokeBMHSecret(secret *corev1.Secret) (*corev1.Secret, controllerutil.MutateFn) {
 	secretSpoke := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secret.Name,
-			Namespace: bmh.Namespace,
+			Namespace: OPENSHIFT_MACHINE_API_NAMESPACE,
 		},
 	}
 	mutateFn := func() error {
@@ -1119,7 +1121,7 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 	machine := &machinev1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
-			Namespace: bmh.Namespace,
+			Namespace: OPENSHIFT_MACHINE_API_NAMESPACE,
 		},
 	}
 	mutateFn := func() error {
