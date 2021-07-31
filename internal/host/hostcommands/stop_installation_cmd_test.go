@@ -18,7 +18,7 @@ var _ = Describe("stop-podman", func() {
 	var host models.Host
 	var db *gorm.DB
 	var stopCmd *stopInstallationCmd
-	var id, clusterId strfmt.UUID
+	var id, clusterId, infraEnvId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
 	var dbName string
@@ -29,7 +29,8 @@ var _ = Describe("stop-podman", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(id, clusterId, models.HostStatusError)
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusError)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 

@@ -18,7 +18,7 @@ var _ = Describe("reset", func() {
 	var host models.Host
 	var db *gorm.DB
 	var rstCmd *resetInstallationCmd
-	var id, clusterId strfmt.UUID
+	var id, clusterId, infraEnvId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
 	var dbName string
@@ -29,7 +29,8 @@ var _ = Describe("reset", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(id, clusterId, models.HostStatusResetting)
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusResetting)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 

@@ -20,7 +20,7 @@ var _ = Describe("disk_performance", func() {
 	var host models.Host
 	var db *gorm.DB
 	var dCmd *diskPerfCheckCmd
-	var id, clusterId strfmt.UUID
+	var id, clusterId, infraEnvId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
 	var dbName string
@@ -36,7 +36,8 @@ var _ = Describe("disk_performance", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(id, clusterId, models.HostStatusPreparingForInstallation)
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusPreparingForInstallation)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 

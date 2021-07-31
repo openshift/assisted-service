@@ -49,6 +49,7 @@ var _ = Describe("installcmd", func() {
 		db                *gorm.DB
 		installCmd        *installCmd
 		clusterId         strfmt.UUID
+		infraEnvId        strfmt.UUID
 		stepReply         []*models.Step
 		stepErr           error
 		ctrl              *gomock.Controller
@@ -70,7 +71,8 @@ var _ = Describe("installcmd", func() {
 		installCmd = NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions)
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeFull)
 		clusterId = *cluster.ID
-		host = createHostInDb(db, clusterId, models.HostRoleMaster, false, "")
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		host = createHostInDb(db, infraEnvId, clusterId, models.HostRoleMaster, false, "")
 	})
 
 	mockGetReleaseImage := func(times int) {
@@ -97,7 +99,7 @@ var _ = Describe("installcmd", func() {
 			stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 			Expect(stepReply).To(BeNil())
 			postvalidation(true, true, nil, stepErr, "")
-			hostFromDb := hostutil.GetHostFromDB(*host.ID, clusterId, db)
+			hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 			Expect(hostFromDb.InstallerVersion).Should(BeEmpty())
 		})
 	})
@@ -109,13 +111,13 @@ var _ = Describe("installcmd", func() {
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
 		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
-		hostFromDb := hostutil.GetHostFromDB(*host.ID, clusterId, db)
+		hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 	})
 
 	It("get_step_three_master_success", func() {
-		host2 := createHostInDb(db, clusterId, models.HostRoleMaster, false, "")
-		host3 := createHostInDb(db, clusterId, models.HostRoleMaster, true, "some_hostname")
+		host2 := createHostInDb(db, infraEnvId, clusterId, models.HostRoleMaster, false, "")
+		host3 := createHostInDb(db, infraEnvId, clusterId, models.HostRoleMaster, true, "some_hostname")
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(3)
 		mockGetReleaseImage(3)
 		mockImages(3)
@@ -164,7 +166,7 @@ var _ = Describe("installcmd", func() {
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
 		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
-		hostFromDb := hostutil.GetHostFromDB(*host.ID, clusterId, db)
+		hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 	})
 
@@ -200,7 +202,7 @@ var _ = Describe("installcmd", func() {
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
 		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, sdb.ID, []string{sda.ID, sdc.ID}, models.ClusterHighAvailabilityModeFull)
-		hostFromDb := hostutil.GetHostFromDB(*host.ID, clusterId, db)
+		hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 	})
 
@@ -227,7 +229,7 @@ var _ = Describe("installcmd", func() {
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
 		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
-		hostFromDb := hostutil.GetHostFromDB(*host.ID, clusterId, db)
+		hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 	})
 
@@ -253,6 +255,7 @@ var _ = Describe("installcmd arguments", func() {
 		ctrl         *gomock.Controller
 		mockEvents   *events.MockHandler
 		mockVersions *versions.MockHandler
+		infraEnvId   strfmt.UUID
 	)
 
 	mockImages := func() {
@@ -263,7 +266,8 @@ var _ = Describe("installcmd arguments", func() {
 	BeforeSuite(func() {
 		db, dbName = common.PrepareTestDB()
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
-		host = createHostInDb(db, *cluster.ID, models.HostRoleMaster, false, "")
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		host = createHostInDb(db, infraEnvId, *cluster.ID, models.HostRoleMaster, false, "")
 		ctrl = gomock.NewController(GinkgoT())
 		validator = hardware.NewMockValidator(ctrl)
 		validator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).AnyTimes()
@@ -919,12 +923,12 @@ func createClusterInDb(db *gorm.DB, haMode string) common.Cluster {
 	return cluster
 }
 
-func createHostInDb(db *gorm.DB, clusterId strfmt.UUID, role models.HostRole, bootstrap bool, hostname string) models.Host {
+func createHostInDb(db *gorm.DB, infraEnvId, clusterId strfmt.UUID, role models.HostRole, bootstrap bool, hostname string) models.Host {
 	id := strfmt.UUID(uuid.New().String())
 	host := models.Host{
 		ID:                &id,
 		ClusterID:         &clusterId,
-		InfraEnvID:        clusterId,
+		InfraEnvID:        infraEnvId,
 		Status:            swag.String(models.HostStatusDiscovering),
 		Role:              role,
 		Bootstrap:         bootstrap,

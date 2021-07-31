@@ -18,7 +18,7 @@ var _ = Describe("free_addresses", func() {
 	var host models.Host
 	var db *gorm.DB
 	var fCmd CommandGetter
-	var id, clusterId strfmt.UUID
+	var id, clusterId, infraEnvId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
 	var dbName string
@@ -28,7 +28,8 @@ var _ = Describe("free_addresses", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(id, clusterId, models.HostStatusInsufficient)
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusInsufficient)
 		host.Inventory = common.GenerateTestDefaultInventory()
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})

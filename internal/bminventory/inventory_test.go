@@ -814,22 +814,24 @@ func createInfraEnv(db *gorm.DB, id strfmt.UUID) *common.InfraEnv {
 
 var _ = Describe("GetHost", func() {
 	var (
-		bm        *bareMetalInventory
-		cfg       Config
-		db        *gorm.DB
-		hostID    strfmt.UUID
-		clusterId strfmt.UUID
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		hostID     strfmt.UUID
+		clusterId  strfmt.UUID
+		infraEnvId strfmt.UUID
 	)
 
 	BeforeEach(func() {
 		clusterId = strfmt.UUID(uuid.New().String())
+		infraEnvId = clusterId
 		hostID = strfmt.UUID(uuid.New().String())
 		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 
 		hostObj := models.Host{
 			ID:         &hostID,
-			InfraEnvID: clusterId,
+			InfraEnvID: infraEnvId,
 			ClusterID:  &clusterId,
 			Status:     swag.String("discovering"),
 		}
@@ -863,13 +865,15 @@ var _ = Describe("GetHost", func() {
 		ctx := context.Background()
 
 		hostObj := models.Host{
-			ID:        &hostID,
-			ClusterID: &clusterId,
-			Status:    swag.String("discovering"),
-			Bootstrap: true,
+			ID:         &hostID,
+			InfraEnvID: infraEnvId,
+			ClusterID:  &clusterId,
+			Status:     swag.String("discovering"),
+			Bootstrap:  true,
 		}
 		Expect(db.Model(&hostObj).Update("Bootstrap", true).Error).ShouldNot(HaveOccurred())
-		objectAfterUpdating, _ := common.GetHostFromDB(db, clusterId.String(), hostID.String())
+		objectAfterUpdating, _ := common.GetHostFromDB(db, infraEnvId.String(), hostID.String())
+		Expect(objectAfterUpdating.Bootstrap).To(BeTrue())
 		Expect(objectAfterUpdating.ProgressStages).To(BeEmpty())
 		params := installer.GetHostParams{
 			ClusterID: clusterId,
@@ -1275,11 +1279,12 @@ var _ = Describe("GetNextSteps", func() {
 
 	It("get_next_steps_success", func() {
 		clusterId := strToUUID(uuid.New().String())
+		infraEnvId := *clusterId
 		hostId := strToUUID(uuid.New().String())
 		checkedInAt := strfmt.DateTime(time.Now().Add(-time.Second))
 		host := models.Host{
 			ID:          hostId,
-			InfraEnvID:  *clusterId,
+			InfraEnvID:  infraEnvId,
 			ClusterID:   clusterId,
 			Status:      swag.String("discovering"),
 			CheckedInAt: checkedInAt,
@@ -1289,7 +1294,7 @@ var _ = Describe("GetNextSteps", func() {
 		var err error
 		expectedStepsReply := models.Steps{NextInstructionSeconds: defaultNextStepIn, Instructions: []*models.Step{{StepType: models.StepTypeInventory},
 			{StepType: models.StepTypeConnectivityCheck}}}
-		h1, err := common.GetHostFromDB(db, clusterId.String(), hostId.String())
+		h1, err := common.GetHostFromDB(db, infraEnvId.String(), hostId.String())
 		Expect(err).ToNot(HaveOccurred())
 		mockHostApi.EXPECT().GetNextSteps(gomock.Any(), gomock.Any()).Return(expectedStepsReply, err)
 		reply := bm.GetNextSteps(ctx, installer.GetNextStepsParams{
@@ -1303,7 +1308,7 @@ var _ = Describe("GetNextSteps", func() {
 		for i, step := range stepsReply.Instructions {
 			Expect(step.StepType).Should(Equal(expectedStepsType[i]))
 		}
-		h2, err := common.GetHostFromDB(db, clusterId.String(), hostId.String())
+		h2, err := common.GetHostFromDB(db, infraEnvId.String(), hostId.String())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(h1.UpdatedAt).To(Equal(h2.UpdatedAt))
 		Expect(h1.CheckedInAt).ToNot(Equal(h2.CheckedInAt))
@@ -1345,11 +1350,12 @@ var _ = Describe("v2GetNextSteps", func() {
 
 	It("get_next_steps_success", func() {
 		clusterId := strToUUID(uuid.New().String())
+		infraEnvId := *clusterId
 		hostId := strToUUID(uuid.New().String())
 		checkedInAt := strfmt.DateTime(time.Now().Add(-time.Second))
 		host := models.Host{
 			ID:          hostId,
-			InfraEnvID:  *clusterId,
+			InfraEnvID:  infraEnvId,
 			ClusterID:   clusterId,
 			Status:      swag.String("discovering"),
 			CheckedInAt: checkedInAt,
@@ -1359,7 +1365,7 @@ var _ = Describe("v2GetNextSteps", func() {
 		var err error
 		expectedStepsReply := models.Steps{NextInstructionSeconds: defaultNextStepIn, Instructions: []*models.Step{{StepType: models.StepTypeInventory},
 			{StepType: models.StepTypeConnectivityCheck}}}
-		h1, err := common.GetV2HostFromDB(db, clusterId.String(), hostId.String())
+		h1, err := common.GetHostFromDB(db, infraEnvId.String(), hostId.String())
 		Expect(err).ToNot(HaveOccurred())
 		mockHostApi.EXPECT().GetNextSteps(gomock.Any(), gomock.Any()).Return(expectedStepsReply, err)
 		reply := bm.V2GetNextSteps(ctx, installer.V2GetNextStepsParams{
@@ -1373,7 +1379,7 @@ var _ = Describe("v2GetNextSteps", func() {
 		for i, step := range stepsReply.Instructions {
 			Expect(step.StepType).Should(Equal(expectedStepsType[i]))
 		}
-		h2, err := common.GetV2HostFromDB(db, clusterId.String(), hostId.String())
+		h2, err := common.GetHostFromDB(db, infraEnvId.String(), hostId.String())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(h1.UpdatedAt).To(Equal(h2.UpdatedAt))
 		Expect(h1.CheckedInAt).ToNot(Equal(h2.CheckedInAt))

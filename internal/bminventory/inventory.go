@@ -4805,7 +4805,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		return common.GenerateErrorResponder(err)
 	}
 
-	_, err = common.GetV2HostFromDB(tx, params.InfraEnvID.String(), params.NewHostParams.HostID.String())
+	_, err = common.GetHostFromDB(tx, params.InfraEnvID.String(), params.NewHostParams.HostID.String())
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.WithError(err).Errorf("failed to get host %s in infra-env: %s",
 			*params.NewHostParams.HostID, params.InfraEnvID.String())
@@ -4932,7 +4932,7 @@ func (b *bareMetalInventory) V2GetNextSteps(ctx context.Context, params installe
 	}
 
 	//TODO check the error type
-	host, err := common.GetV2HostFromDB(tx, params.InfraEnvID.String(), params.HostID.String())
+	host, err := common.GetHostFromDB(tx, params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		log.WithError(err).Errorf("failed to find host: %s", params.HostID)
 		return installer.NewGetNextStepsNotFound().
@@ -4962,7 +4962,7 @@ func (b *bareMetalInventory) V2GetNextSteps(ctx context.Context, params installe
 func (b *bareMetalInventory) V2PostStepReply(ctx context.Context, v2Params installer.V2PostStepReplyParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	host, err := common.GetV2HostFromDB(b.db, v2Params.InfraEnvID.String(), v2Params.HostID.String())
+	host, err := common.GetHostFromDB(b.db, v2Params.InfraEnvID.String(), v2Params.HostID.String())
 
 	if err != nil {
 		log.WithError(err).Errorf("Failed to find host <%s> infra-env <%s> step <%s> exit code %d stdout <%s> stderr <%s>",
