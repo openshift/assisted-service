@@ -27,6 +27,8 @@ func GenerateTestCluster(clusterID strfmt.UUID, machineNetworkCidr string) commo
 		Cluster: models.Cluster{
 			ID:                 &clusterID,
 			MachineNetworkCidr: machineNetworkCidr,
+			Platform:           &models.Platform{Type: models.PlatformTypeBaremetal},
+			Kind:               swag.String(models.ClusterKindCluster),
 		},
 	}
 }

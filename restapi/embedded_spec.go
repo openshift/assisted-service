@@ -7175,7 +7175,8 @@ func init() {
         "has-default-route",
         "api-domain-name-resolved-correctly",
         "api-int-domain-name-resolved-correctly",
-        "apps-domain-name-resolved-correctly"
+        "apps-domain-name-resolved-correctly",
+        "compatible-with-cluster-platform"
       ]
     },
     "host_network": {
@@ -15645,7 +15646,8 @@ func init() {
         "has-default-route",
         "api-domain-name-resolved-correctly",
         "api-int-domain-name-resolved-correctly",
-        "apps-domain-name-resolved-correctly"
+        "apps-domain-name-resolved-correctly",
+        "compatible-with-cluster-platform"
       ]
     },
     "host_network": {

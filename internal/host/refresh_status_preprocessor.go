@@ -250,6 +250,11 @@ func newValidations(v *validator) []validation {
 			condition: v.isAppsDomainNameResolvedCorrectly,
 			formatter: v.printIsAppsDomainNameResolvedCorrectly,
 		},
+		{
+			id:        CompatibleWithClusterPlatform,
+			condition: v.compatibleWithClusterPlatform,
+			formatter: v.printCompatibleWithClusterPlatform,
+		},
 	}
 }
 

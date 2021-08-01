@@ -514,7 +514,8 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		PostTransition:   th.PostRefreshHost(statusInfoDiscovering),
 	})
 
-	var hasMinRequiredHardware = stateswitch.And(If(HasMinValidDisks), If(HasMinCPUCores), If(HasMinMemory), If(IsPlatformValid))
+	var hasMinRequiredHardware = stateswitch.And(If(HasMinValidDisks), If(HasMinCPUCores), If(HasMinMemory),
+		If(IsPlatformValid), If(CompatibleWithClusterPlatform))
 
 	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined))
 

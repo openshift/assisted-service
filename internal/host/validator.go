@@ -299,6 +299,43 @@ func (v *validator) hasMinMemory(c *validationContext) ValidationStatus {
 	return boolValue(c.inventory.Memory.PhysicalBytes >= conversions.MibToBytes(c.minRAMMibRequirement))
 }
 
+func (v *validator) compatibleWithClusterPlatform(c *validationContext) ValidationStatus {
+	// Late binding
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
+	if *c.cluster.Kind == models.ClusterKindAddHostsCluster {
+		return ValidationSuccess
+	}
+
+	if c.inventory == nil || c.cluster.Platform.Type == "" {
+		return ValidationPending
+	}
+	hostAvailablePlatforms := common.GetHostSupportedPlatforms(*c.inventory)
+
+	for _, platform := range *hostAvailablePlatforms {
+		if c.cluster.Platform.Type == platform {
+			return ValidationSuccess
+		}
+	}
+	return ValidationFailure
+}
+
+func (v *validator) printCompatibleWithClusterPlatform(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return fmt.Sprintf("Host is compatible with cluster platform %s", c.cluster.Platform.Type)
+	case ValidationFailure:
+		hostAvailablePlatforms := common.GetHostSupportedPlatforms(*c.inventory)
+		return fmt.Sprintf("Host is not compatible with cluster platform %s; either disable this host or choose a compatible cluster platform (%v)",
+			c.cluster.Platform.Type, *hostAvailablePlatforms)
+	case ValidationPending:
+		return "Missing inventory"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
 func (v *validator) printHasMinMemory(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:

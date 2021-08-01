@@ -5391,6 +5391,7 @@ definitions:
       - 'api-domain-name-resolved-correctly'
       - 'api-int-domain-name-resolved-correctly'
       - 'apps-domain-name-resolved-correctly'
+      - 'compatible-with-cluster-platform'
 
   dhcp_allocation_request:
     type: object
