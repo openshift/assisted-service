@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -107,7 +107,7 @@ func (o *operator) computeNodeResourceUtil(host *models.Host, ocsClusterResource
 		status = "Missing Inventory in some of the hosts"
 		return status, errors.New("Missing Inventory in some of the hosts ") // to indicate that inventory is empty and the ValidationStatus must be Pending
 	}
-	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(host.Inventory)
 	if err != nil {
 		return status, err
 	}

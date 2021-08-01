@@ -93,7 +93,7 @@ func GetHostnameAndRoleByIP(ip string, hosts []*models.Host) (string, models.Hos
 		if h.Inventory == "" {
 			continue
 		}
-		inv, err := hostutil.UnmarshalInventory(h.Inventory)
+		inv, err := common.UnmarshalInventory(h.Inventory)
 		if err != nil {
 			return "", "", fmt.Errorf("unable to unmarshall cluster inventory for host %s: %s", h.RequestedHostname, err)
 		}

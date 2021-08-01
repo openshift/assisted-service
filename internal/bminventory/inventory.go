@@ -1586,19 +1586,7 @@ func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(ctx context.Co
 		return nil, err
 	}
 
-	hostsPlatformsCounter := map[models.PlatformType]int{}
-	for _, h := range cluster.Hosts {
-		inventory, err := hostutil.UnmarshalInventory(h.Inventory)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, p := range *common.GetHostSupportedPlatforms(*inventory) {
-			hostsPlatformsCounter[p] += 1
-		}
-	}
-
-	return common.GetClusterSupportedPlatforms(*cluster, hostsPlatformsCounter), nil
+	return common.GetClusterSupportedPlatforms(*cluster)
 }
 
 func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder {

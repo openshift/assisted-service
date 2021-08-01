@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/openshift/assisted-service/models"
+	"github.com/thoas/go-funk"
 )
 
 const (
@@ -12,11 +13,18 @@ var supportedManufacturers = map[string]models.PlatformType{
 	VmwareManufacturer: models.PlatformTypeVsphere,
 }
 
+func GetAllSupportedPlatforms() *[]models.PlatformType {
+	return &[]models.PlatformType{
+		models.PlatformTypeVsphere,
+		models.PlatformTypeBaremetal,
+	}
+}
+
 func GetPlatformFromVendor(vendor models.SystemVendor) models.PlatformType {
 	return supportedManufacturers[vendor.Manufacturer]
 }
 
-func GetHostSupportedPlatforms(inventory models.Inventory) *[]models.PlatformType {
+func GetSupportedPlatformsFromInventory(inventory models.Inventory) *[]models.PlatformType {
 	hostPlatform := []models.PlatformType{models.PlatformTypeBaremetal}
 
 	if platform := GetPlatformFromVendor(*inventory.SystemVendor); platform != "" {
@@ -26,20 +34,22 @@ func GetHostSupportedPlatforms(inventory models.Inventory) *[]models.PlatformTyp
 	return &hostPlatform
 }
 
-func GetClusterSupportedPlatforms(cluster Cluster, hostsPlatformsCounter map[models.PlatformType]int) *[]models.PlatformType {
-	supportedPlatforms := make([]models.PlatformType, 0)
+func GetClusterSupportedPlatforms(cluster Cluster) (*[]models.PlatformType, error) {
 	hostsCount := len(cluster.Hosts)
 
 	// SNO or no hosts
 	if hostsCount == 0 || *cluster.HighAvailabilityMode != models.ClusterHighAvailabilityModeFull {
-		supportedPlatforms = append(supportedPlatforms, models.PlatformTypeBaremetal)
-		return &supportedPlatforms
+		return &[]models.PlatformType{models.PlatformTypeBaremetal}, nil
 	}
 
-	for platform, count := range hostsPlatformsCounter {
-		if count == hostsCount {
-			supportedPlatforms = append(supportedPlatforms, platform)
+	hostsSupportedPlatforms := *GetAllSupportedPlatforms()
+	for _, h := range cluster.Hosts {
+		inventory, err := UnmarshalInventory(h.Inventory)
+		if err != nil {
+			return nil, err
 		}
+		hostsSupportedPlatforms = funk.Join(hostsSupportedPlatforms, *GetSupportedPlatformsFromInventory(*inventory), funk.InnerJoin).([]models.PlatformType)
 	}
-	return &supportedPlatforms
+
+	return &hostsSupportedPlatforms, nil
 }

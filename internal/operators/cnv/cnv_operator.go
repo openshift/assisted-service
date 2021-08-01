@@ -7,7 +7,6 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
@@ -79,7 +78,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		o.log.Info("Empty Inventory of host with hostID ", host.ID)
 		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in some of the hosts"}}, nil
 	}
-	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(host.Inventory)
 	if err != nil {
 		o.log.Errorf("Failed to get inventory from host with id %s", host.ID)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID()}, err
@@ -196,7 +195,7 @@ func (o *operator) getDevicesMemoryOverhead(host *models.Host) (int64, error) {
 	if host.Inventory == "" {
 		return 0, nil
 	}
-	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(host.Inventory)
 	if err != nil {
 		return 0, err
 	}

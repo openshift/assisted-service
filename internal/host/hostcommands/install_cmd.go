@@ -285,7 +285,7 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, installerArgs []
 	if machineNetworkCIDR != "" {
 		ipv6 := network.IsIPv6CIDR(machineNetworkCIDR)
 		log.Debugf("Machine network CIDR: %s. IPv6: %t", machineNetworkCIDR, ipv6)
-		inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+		inventory, err := common.UnmarshalInventory(host.Inventory)
 		if err != nil {
 			return nil, err
 		}

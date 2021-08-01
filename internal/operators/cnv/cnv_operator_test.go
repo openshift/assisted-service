@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
@@ -230,7 +230,7 @@ func getInventoryWith(gpus []*models.Gpu, interfaces []*models.Interface) string
 }
 
 func marshal(inventory models.Inventory) string {
-	inventoryJSON, err := hostutil.MarshalInventory(&inventory)
+	inventoryJSON, err := common.MarshalInventory(&inventory)
 	Expect(err).ToNot(HaveOccurred())
 	return inventoryJSON
 }

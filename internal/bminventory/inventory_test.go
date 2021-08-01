@@ -60,7 +60,6 @@ import (
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -6450,9 +6449,7 @@ var _ = Describe("GetClusterSupportedPlatforms", func() {
 		Expect(len(platforms)).Should(Equal(2))
 
 		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere}
-		for _, p := range platforms {
-			Expect(funk.Contains(supportedPlatforms, p))
-		}
+		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 
 	It("3 vsphere hosts", func() {
@@ -6466,9 +6463,7 @@ var _ = Describe("GetClusterSupportedPlatforms", func() {
 
 		platforms := *getClusterPlatforms()
 		Expect(len(platforms)).Should(Equal(2))
-		for _, p := range platforms {
-			Expect(funk.Contains(supportedPlatforms, p))
-		}
+		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 
 	It("5 vsphere hosts", func() {
@@ -6484,9 +6479,7 @@ var _ = Describe("GetClusterSupportedPlatforms", func() {
 
 		platforms := *getClusterPlatforms()
 		Expect(len(platforms)).Should(Equal(2))
-		for _, p := range platforms {
-			Expect(funk.Contains(supportedPlatforms, p))
-		}
+		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 
 	It("2 vsphere hosts 1 generic host", func() {

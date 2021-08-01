@@ -124,7 +124,7 @@ var _ = Describe("Host tests", func() {
 		host := &registerHost(clusterID).Host
 		host = getHost(clusterID, *host.ID)
 		Expect(host).NotTo(BeNil())
-		inventory, error := hostutil.UnmarshalInventory(defaultInventory())
+		inventory, error := common.UnmarshalInventory(defaultInventory())
 		Expect(error).ToNot(HaveOccurred())
 		inventory.Disks = []*models.Disk{
 			{
@@ -145,7 +145,7 @@ var _ = Describe("Host tests", func() {
 			},
 		}
 
-		inventoryStr, err := hostutil.MarshalInventory(inventory)
+		inventoryStr, err := common.MarshalInventory(inventory)
 		Expect(err).ToNot(HaveOccurred())
 		host = updateInventory(ctx, clusterID, *host.ID, inventoryStr)
 

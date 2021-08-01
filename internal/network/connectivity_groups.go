@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang-collections/go-datastructures/bitarray"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
@@ -359,7 +359,7 @@ func newL3QueryFactory(hosts []*models.Host, family AddressFamily) (hostQueryFac
 			continue
 		}
 		value := make(map[string]bool)
-		inventory, err := hostutil.UnmarshalInventory(h.Inventory)
+		inventory, err := common.UnmarshalInventory(h.Inventory)
 		if err != nil {
 			return nil, err
 		}
