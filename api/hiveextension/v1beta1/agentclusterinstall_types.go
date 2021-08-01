@@ -210,6 +210,13 @@ type Networking struct {
 	// +kubebuilder:validation:MaxItems=1
 	// +optional
 	ServiceNetwork []string `json:"serviceNetwork,omitempty"`
+
+	//NetworkType is the Container Network Interface (CNI) plug-in to install
+	//The default value is OpenShiftSDN for IPv4 and OVNKubernetes for IPv6
+	//
+	// +kubebuilder:validation:Enum=OpenShiftSDN;OVNKubernetes
+	// +optional
+	NetworkType string `json:"networkType,omitempty"`
 }
 
 // MachineNetworkEntry is a single IP address block for node IP blocks.
