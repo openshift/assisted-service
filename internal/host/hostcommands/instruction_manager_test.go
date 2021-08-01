@@ -1,7 +1,12 @@
 package hostcommands
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -249,6 +254,33 @@ var _ = Describe("instruction_manager", func() {
 			instructionConfig.DisabledSteps = steps
 			return NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions)
 		}
+		executeExternalEnvTest := func(envVariable *string) error {
+			pwd, err := os.Getwd()
+			Expect(err).ToNot(HaveOccurred())
+			testerPath := fmt.Sprintf("%v/spawnable_test_runners/disabled_steps/disabled_steps_env_parsing_tester.go", pwd)
+			cmd := exec.Command("go", "run", testerPath)
+			var stderr bytes.Buffer
+			cmd.Stderr = &stderr
+			if envVariable != nil {
+				cmd.Env = append(os.Environ(), *envVariable)
+			}
+			err = cmd.Run()
+			if err != nil && stderr.Len() != 0 {
+				err = fmt.Errorf(strings.Split(stderr.String(), "\n")[0]) // Panic message
+			}
+			return err
+		}
+		Context("DISABLED_STEPS environment variable parsing", func() {
+			It("Should parse the environment DISABLED_STEPS to a valid slice of strings", func() {
+				envVar := "DISABLED_STEPS=execute,val2,val3,val-4"
+				err := executeExternalEnvTest(&envVar)
+				Expect(err).ToNot(HaveOccurred())
+			})
+			It("Should be empty array if no variable set", func() {
+				err := executeExternalEnvTest(nil)
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
 		Context("disabledStepsMap in InstructionManager", func() {
 			It("Should except empty DISABLED_STEPS", func() {
 				Expect(instMng.disabledStepsMap).Should(BeEmpty())
