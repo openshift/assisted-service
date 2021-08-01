@@ -67,10 +67,13 @@ import (
 	"go.elastic.co/apm/module/apmhttp"
 	"go.elastic.co/apm/module/apmlogrus"
 	"golang.org/x/sync/errgroup"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -452,6 +455,7 @@ func main() {
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
 				Client:            ctrlMgr.GetClient(),
+				APIReader:         ctrlMgr.GetAPIReader(),
 				Log:               log,
 				Scheme:            ctrlMgr.GetScheme(),
 				Installer:         bm,
@@ -712,6 +716,13 @@ func createControllerManager() (manager.Manager, error) {
 			Port:             9443,
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.agent-install.openshift.io",
+			NewCache: cache.BuilderWithOptions(cache.Options{
+				SelectorsByObject: cache.SelectorsByObject{
+					&corev1.Secret{}: {
+						Label: labels.SelectorFromSet(labels.Set{controllers.SecretLabelName: controllers.SecretLabelValue}),
+					},
+				},
+			}),
 		})
 	}
 	return nil, nil
