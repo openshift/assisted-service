@@ -65,8 +65,7 @@ func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, para
 
 	pullSecret := params.AssistedServiceIsoCreateParams.PullSecret
 	if pullSecret != "" {
-		err := a.pullSecretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), a.authHandler)
-		if err != nil {
+		if err := a.pullSecretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), a.authHandler); err != nil {
 			log.WithError(err).Errorf("Pull-secret for Assisted Service ISO has invalid format")
 			return assisted_service_iso.NewCreateISOAndUploadToS3BadRequest().
 				WithPayload(common.GenerateError(http.StatusBadRequest, err))
