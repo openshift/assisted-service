@@ -33,6 +33,12 @@ func GenerateTestCluster(clusterID strfmt.UUID, machineNetworkCidr string) commo
 	}
 }
 
+func GenerateTestClusterWithPlatform(clusterID strfmt.UUID, machineNetworkCidr string, platform *models.Platform) common.Cluster {
+	cluster := GenerateTestCluster(clusterID, machineNetworkCidr)
+	cluster.Platform = platform
+	return cluster
+}
+
 func GenerateTestInfraEnv(infraEnvID strfmt.UUID) common.InfraEnv {
 	return common.InfraEnv{
 		InfraEnv: models.InfraEnv{

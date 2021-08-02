@@ -1862,6 +1862,9 @@ var _ = Describe("Refresh Host", func() {
 			dstState         string
 			srcState         string
 			hostRequirements *models.ClusterHostRequirementsDetails
+
+			// cluster fields
+			platformType models.PlatformType
 		}{
 			{
 				name:          "insufficient worker memory",
@@ -2047,11 +2050,48 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				hostRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, RAMMib: 9576},
 			},
+			{
+				name:          "invalid platform",
+				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(4, conversions.MibToBytes(150), conversions.MibToBytes(100), "worker"),
+				role:          models.HostRoleWorker,
+				srcState:      models.HostStatusDiscovering,
+				platformType:  models.PlatformTypeVsphere,
+				dstState:      models.HostStatusInsufficient,
+				statusInfoMsg: "Host is not compatible with cluster platform vsphere; either disable this host or choose a compatible cluster platform ([baremetal])",
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:            {status: ValidationSuccess, messagePattern: "Host is connected"},
+					IsHostnameValid:        {status: ValidationSuccess, messagePattern: ""},
+					BelongsToMajorityGroup: {status: ValidationPending, messagePattern: "Machine Network CIDR or Connectivity Majority Groups missing"},
+					HasInventory:           {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:         {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:           {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster bec"},
+					HasMinValidDisks:       {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:   {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:     {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:       {status: ValidationFailure, messagePattern: "Require at least 8.35 GiB RAM for role worker, found only 100 MiB"},
+					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: "Hostname worker is unique in cluster"},
+					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR 1.2.3.0/24"},
+					IsPlatformValid:        {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:            {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+					AreLsoRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: ""},
+					AreOcsRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreCnvRequirementsSatisfied:                    {status: ValidationFailure, messagePattern: "Insufficient memory to deploy CNV. Required memory is 360 MiB but found 100 MiB"},
+					CompatibleWithClusterPlatform:                  {status: ValidationFailure, messagePattern: "Host is not compatible with cluster platform vsphere; either disable this host or choose a compatible cluster platform \\(\\[baremetal\\]\\)"},
+				}),
+				hostRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, RAMMib: 8550},
+			},
 		}
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
-				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				if t.platformType == "" {
+					cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				} else {
+					cluster = hostutil.GenerateTestClusterWithPlatform(clusterId, "1.2.3.0/24", &models.Platform{Type: models.PlatformTypeVsphere})
+				}
+
 				cluster.MonitoredOperators = []*models.MonitoredOperator{
 					&lso.Operator,
 					&cnv.Operator,
@@ -2398,7 +2438,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:              {status: ValidationPending, messagePattern: "Missing inventory"},
 					BelongsToMachineCidr:          {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:               {status: ValidationPending, messagePattern: "Missing inventory"},
-					CompatibleWithClusterPlatform: {status: ValidationPending, messagePattern: "Missing inventory"},
+					CompatibleWithClusterPlatform: {status: ValidationPending, messagePattern: "Missing inventory or platform isn't set"},
 					IsNTPSynced:                   {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
@@ -2424,7 +2464,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:              {status: ValidationPending, messagePattern: "Missing inventory"},
 					BelongsToMachineCidr:          {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:               {status: ValidationPending, messagePattern: "Missing inventory"},
-					CompatibleWithClusterPlatform: {status: ValidationPending, messagePattern: "Missing inventory"},
+					CompatibleWithClusterPlatform: {status: ValidationPending, messagePattern: "Missing inventory or platform isn't set"},
 					IsNTPSynced:                   {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
@@ -2459,7 +2499,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:              {status: ValidationPending, messagePattern: "Missing inventory"},
 					BelongsToMachineCidr:          {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:               {status: ValidationPending, messagePattern: "Missing inventory"},
-					CompatibleWithClusterPlatform: {status: ValidationPending, messagePattern: "Missing inventory"},
+					CompatibleWithClusterPlatform: {status: ValidationPending, messagePattern: "Missing inventory or platform isn't set"},
 					IsNTPSynced:                   {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
@@ -2485,7 +2525,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:              {status: ValidationPending, messagePattern: "Missing inventory"},
 					BelongsToMachineCidr:          {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:               {status: ValidationPending, messagePattern: "Missing inventory"},
-					CompatibleWithClusterPlatform: {status: ValidationPending, messagePattern: "Missing inventory"},
+					CompatibleWithClusterPlatform: {status: ValidationPending, messagePattern: "Missing inventory or platform isn't set"},
 					IsNTPSynced:                   {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
@@ -2535,7 +2575,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:              {status: ValidationPending, messagePattern: "Missing inventory"},
 					BelongsToMachineCidr:          {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:               {status: ValidationPending, messagePattern: "Missing inventory"},
-					CompatibleWithClusterPlatform: {status: ValidationPending, messagePattern: "Missing inventory"},
+					CompatibleWithClusterPlatform: {status: ValidationPending, messagePattern: "Missing inventory or platform isn't set"},
 					IsNTPSynced:                   {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},

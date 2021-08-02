@@ -330,7 +330,7 @@ func (v *validator) printCompatibleWithClusterPlatform(c *validationContext, sta
 		return fmt.Sprintf("Host is not compatible with cluster platform %s; either disable this host or choose a compatible cluster platform (%v)",
 			c.cluster.Platform.Type, *hostAvailablePlatforms)
 	case ValidationPending:
-		return "Missing inventory"
+		return "Missing inventory or platform isn't set"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
