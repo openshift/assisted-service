@@ -26,6 +26,9 @@ type OpenshiftVersion struct {
 	// Required: true
 	DisplayName *string `json:"display_name"`
 
+	// RHCOS/Release images and versions for each CPU platform.
+	Images map[string]OpenshiftImages `json:"images,omitempty"`
+
 	// The installation image of the OpenShift cluster.
 	// Required: true
 	ReleaseImage *string `json:"release_image"`
@@ -57,6 +60,10 @@ func (m *OpenshiftVersion) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateDisplayName(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateImages(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -94,6 +101,28 @@ func (m *OpenshiftVersion) validateDisplayName(formats strfmt.Registry) error {
 
 	if err := validate.Required("display_name", "body", m.DisplayName); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *OpenshiftVersion) validateImages(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Images) { // not required
+		return nil
+	}
+
+	for k := range m.Images {
+
+		if err := validate.Required("images"+"."+k, "body", m.Images[k]); err != nil {
+			return err
+		}
+		if val, ok := m.Images[k]; ok {
+			if err := val.Validate(formats); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil

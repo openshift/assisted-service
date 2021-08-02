@@ -7795,6 +7795,38 @@ func init() {
         }
       }
     },
+    "openshift-images": {
+      "type": "object",
+      "required": [
+        "release_image",
+        "release_version",
+        "rhcos_image",
+        "rhcos_rootfs",
+        "rhcos_version"
+      ],
+      "properties": {
+        "release_image": {
+          "description": "The installation image of the OpenShift cluster.",
+          "type": "string"
+        },
+        "release_version": {
+          "description": "OCP version from the release metadata.",
+          "type": "string"
+        },
+        "rhcos_image": {
+          "description": "The base RHCOS image used for the discovery iso.",
+          "type": "string"
+        },
+        "rhcos_rootfs": {
+          "description": "The RHCOS rootfs url.",
+          "type": "string"
+        },
+        "rhcos_version": {
+          "description": "Build ID of the RHCOS image.",
+          "type": "string"
+        }
+      }
+    },
     "openshift-version": {
       "type": "object",
       "required": [
@@ -7814,6 +7846,13 @@ func init() {
         "display_name": {
           "description": "Name of the version to be presented to the user.",
           "type": "string"
+        },
+        "images": {
+          "description": "RHCOS/Release images and versions for each CPU platform.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/openshift-images"
+          }
         },
         "release_image": {
           "description": "The installation image of the OpenShift cluster.",
@@ -16188,6 +16227,38 @@ func init() {
         }
       }
     },
+    "openshift-images": {
+      "type": "object",
+      "required": [
+        "release_image",
+        "release_version",
+        "rhcos_image",
+        "rhcos_rootfs",
+        "rhcos_version"
+      ],
+      "properties": {
+        "release_image": {
+          "description": "The installation image of the OpenShift cluster.",
+          "type": "string"
+        },
+        "release_version": {
+          "description": "OCP version from the release metadata.",
+          "type": "string"
+        },
+        "rhcos_image": {
+          "description": "The base RHCOS image used for the discovery iso.",
+          "type": "string"
+        },
+        "rhcos_rootfs": {
+          "description": "The RHCOS rootfs url.",
+          "type": "string"
+        },
+        "rhcos_version": {
+          "description": "Build ID of the RHCOS image.",
+          "type": "string"
+        }
+      }
+    },
     "openshift-version": {
       "type": "object",
       "required": [
@@ -16207,6 +16278,13 @@ func init() {
         "display_name": {
           "description": "Name of the version to be presented to the user.",
           "type": "string"
+        },
+        "images": {
+          "description": "RHCOS/Release images and versions for each CPU platform.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/openshift-images"
+          }
         },
         "release_image": {
           "description": "The installation image of the OpenShift cluster.",

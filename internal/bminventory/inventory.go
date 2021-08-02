@@ -606,10 +606,10 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
 	}
 
-	openshiftVersion, err := b.versionsHandler.GetVersion(inputOpenshiftVersion)
+	releaseImage, releaseVersion, err := b.versionsHandler.GetRelease(inputOpenshiftVersion, versions.DefaultCPUArchitecture)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion)
-		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
+		log.WithError(err).Errorf("Failed to get openshift version supported by versions map from version %s", inputOpenshiftVersion)
+		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get openshift version supported by versions map from version %s", inputOpenshiftVersion))
 	}
 
 	if kubeKey == nil {
@@ -621,7 +621,6 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		Href:             swag.String(url.String()),
 		Kind:             swag.String(models.ClusterKindAddHostsCluster),
 		Name:             clusterName,
-		OpenshiftVersion: *openshiftVersion.ReleaseVersion,
 		OcpReleaseImage:  *openshiftVersion.ReleaseImage,
 		UserName:         ocm.UserNameFromContext(ctx),
 		OrgID:            ocm.OrgIDFromContext(ctx),
@@ -1084,7 +1083,6 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	} else {
-		baseISOName, err := b.objectHandler.GetBaseIsoObject(infraEnv.OpenshiftVersion)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", infraEnv.ID, infraEnv.OpenshiftVersion)
 			return common.NewApiError(http.StatusInternalServerError, err)
@@ -1624,7 +1622,6 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	releaseImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
 
 	if err != nil {
-		log.WithError(err).Errorf("failed to get release image for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
 		return errors.Wrapf(err, "failed to get release image for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
 	}
 
