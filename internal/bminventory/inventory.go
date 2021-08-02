@@ -1507,7 +1507,7 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 		return err
 	}
 	if installErr := b.hostApi.Install(ctx, &h.Host, tx); installErr != nil {
-		log.Errorf("Failed to move host %s to installing", h.RequestedHostname)
+		log.WithError(installErr).Errorf("Failed to move host %s to installing", h.RequestedHostname)
 		return installErr
 	}
 

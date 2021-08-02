@@ -1095,7 +1095,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			backEndCluster.OpenshiftClusterID = openshiftID
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(3)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			password := "test"
 			username := "admin"
 			kubeconfig := "kubeconfig content"
@@ -1104,18 +1104,9 @@ var _ = Describe("cluster reconcile", func() {
 				Username: username,
 			}
 
-			id := strfmt.UUID(uuid.New().String())
-			clusterReply := &common.Cluster{
-				Cluster: models.Cluster{
-					ID:     &id,
-					Status: swag.String(models.ClusterStatusAddingHosts),
-				},
-			}
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
 			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
-			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(clusterReply, nil)
-			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
+			mockInstallerInternal.EXPECT().TransformClusterToDay2Internal(gomock.Any(), gomock.Any()).Times(1)
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
@@ -1130,10 +1121,83 @@ var _ = Describe("cluster reconcile", func() {
 			secretKubeConfig := getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name)
 			Expect(string(secretKubeConfig.Data["kubeconfig"])).To(Equal(kubeconfig))
 
-			By("Call reconcile again to test delete of day1 cluster")
+			By("Call reconcile again to test transform into day2 cluster")
 			result, err = cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("installed with day2 flag set to false", func() {
+			cr.EnableDay2Cluster = false
+			openshiftID := strfmt.UUID(uuid.New().String())
+			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
+			backEndCluster.OpenshiftClusterID = openshiftID
+			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			password := "test"
+			username := "admin"
+			kubeconfig := "kubeconfig content"
+			cred := &models.Credentials{
+				Password: password,
+				Username: username,
+			}
+
+			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
+			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			cluster = getTestCluster()
+			Expect(aci.Spec.ClusterMetadata.ClusterID).To(Equal(openshiftID.String()))
+			secretAdmin := getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminPasswordSecretRef.Name)
+			Expect(string(secretAdmin.Data["password"])).To(Equal(password))
+			Expect(string(secretAdmin.Data["username"])).To(Equal(username))
+			secretKubeConfig := getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name)
+			Expect(string(secretKubeConfig.Data["kubeconfig"])).To(Equal(kubeconfig))
+		})
+
+		It("Reconcile to upgrade a day1 to day2 cluster", func() {
+			By("Create a Day1 cluster")
+			cr.EnableDay2Cluster = false
+			openshiftID := strfmt.UUID(uuid.New().String())
+			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
+			backEndCluster.OpenshiftClusterID = openshiftID
+			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+			kubeconfig := "kubeconfig content"
+			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(&models.Credentials{Password: "foo", Username: "bar"}, nil).Times(1)
+			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+			aci = getTestClusterInstall()
+			Expect(aci.Status.DebugInfo.State).To(Equal(models.ClusterStatusInstalled))
+
+			By("Reconcile to transform into day2 cluster")
+			day2backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               backEndCluster.ID,
+					Name:             clusterName,
+					OpenshiftVersion: "4.8",
+					Status:           swag.String(models.ClusterStatusAddingHosts),
+					APIVip:           backEndCluster.APIVip,
+					BaseDNSDomain:    backEndCluster.BaseDNSDomain,
+					Kind:             swag.String(models.ClusterKindAddHostsCluster),
+					APIVipDNSName:    swag.String(fmt.Sprintf("api.%s.%s", backEndCluster.Name, backEndCluster.BaseDNSDomain)),
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().TransformClusterToDay2Internal(gomock.Any(), gomock.Any()).Times(1).Return(day2backEndCluster, nil)
+			cr.EnableDay2Cluster = true
+			result, err = cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+			aci = getTestClusterInstall()
+			Expect(aci.Status.DebugInfo.State).To(Equal(models.ClusterStatusAddingHosts))
 		})
 
 		It("update kubeconfig ingress", func() {
@@ -1227,48 +1291,15 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 		})
 
-		It("Fail to delete day1", func() {
+		It("Fail to transform into day2", func() {
 			cr.EnableDay2Cluster = true
 			openshiftID := strfmt.UUID(uuid.New().String())
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			backEndCluster.OpenshiftClusterID = openshiftID
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
-			expectedError := errors.New("internal error")
-			expectedErrMsg := fmt.Sprintf("failed to deregister cluster: %s: %s", cluster.Name, expectedError)
-			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(expectedError).Times(1)
-			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
-				Type:    hiveext.ClusterCompletedCondition,
-				Status:  corev1.ConditionTrue,
-				Reason:  hiveext.ClusterInstalledReason,
-				Message: hiveext.ClusterInstalledMsg,
-			})
-			Expect(c.Status().Update(ctx, aci)).Should(BeNil())
-			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(ctx, request)
-			Expect(err).To(BeNil())
-			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
-
-			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErrMsg)
-			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstalledReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
-		})
-
-		It("Fail to create day2", func() {
-			cr.EnableDay2Cluster = true
-			openshiftID := strfmt.UUID(uuid.New().String())
-			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
-			backEndCluster.OpenshiftClusterID = openshiftID
-			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
 			expectedErr := "internal error"
-			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil, errors.New(expectedErr))
-			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
+			mockInstallerInternal.EXPECT().TransformClusterToDay2Internal(gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New(expectedErr))
 			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
 				Type:    hiveext.ClusterCompletedCondition,
 				Status:  corev1.ConditionTrue,
