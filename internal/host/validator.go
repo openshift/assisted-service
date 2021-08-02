@@ -311,7 +311,7 @@ func (v *validator) compatibleWithClusterPlatform(c *validationContext) Validati
 	if c.inventory == nil || c.cluster.Platform.Type == "" {
 		return ValidationPending
 	}
-	hostAvailablePlatforms := common.GetHostSupportedPlatforms(*c.inventory)
+	hostAvailablePlatforms := common.GetSupportedPlatformsFromInventory(*c.inventory)
 
 	for _, platform := range *hostAvailablePlatforms {
 		if c.cluster.Platform.Type == platform {
@@ -326,7 +326,7 @@ func (v *validator) printCompatibleWithClusterPlatform(c *validationContext, sta
 	case ValidationSuccess:
 		return fmt.Sprintf("Host is compatible with cluster platform %s", c.cluster.Platform.Type)
 	case ValidationFailure:
-		hostAvailablePlatforms := common.GetHostSupportedPlatforms(*c.inventory)
+		hostAvailablePlatforms := common.GetSupportedPlatformsFromInventory(*c.inventory)
 		return fmt.Sprintf("Host is not compatible with cluster platform %s; either disable this host or choose a compatible cluster platform (%v)",
 			c.cluster.Platform.Type, *hostAvailablePlatforms)
 	case ValidationPending:

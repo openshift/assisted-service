@@ -24,7 +24,7 @@ func GetPlatformFromVendor(vendor models.SystemVendor) models.PlatformType {
 	return supportedManufacturers[vendor.Manufacturer]
 }
 
-func GetHostSupportedPlatforms(inventory models.Inventory) *[]models.PlatformType {
+func GetSupportedPlatformsFromInventory(inventory models.Inventory) *[]models.PlatformType {
 	hostPlatform := []models.PlatformType{models.PlatformTypeBaremetal}
 
 	if platform := GetPlatformFromVendor(*inventory.SystemVendor); platform != "" {
@@ -48,7 +48,7 @@ func GetClusterSupportedPlatforms(cluster Cluster) (*[]models.PlatformType, erro
 		if err != nil {
 			return nil, err
 		}
-		hostsSupportedPlatforms = funk.Join(hostsSupportedPlatforms, *GetHostSupportedPlatforms(*inventory), funk.InnerJoin).([]models.PlatformType)
+		hostsSupportedPlatforms = funk.Join(hostsSupportedPlatforms, *GetSupportedPlatformsFromInventory(*inventory), funk.InnerJoin).([]models.PlatformType)
 	}
 
 	return &hostsSupportedPlatforms, nil

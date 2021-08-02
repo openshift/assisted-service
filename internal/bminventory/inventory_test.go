@@ -6254,7 +6254,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 	})
 })
 
-var _ = Describe("GetClusterSupportedPlatforms", func() {
+var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 	var (
 		bm        *bareMetalInventory
 		cfg       Config
