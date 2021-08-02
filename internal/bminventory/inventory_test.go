@@ -6679,7 +6679,6 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		bm = createInventory(db, cfg)
-		mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 	})
 
 	AfterEach(func() {

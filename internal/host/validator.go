@@ -769,7 +769,7 @@ func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationC
 		return ValidationSuccessSuppressOutput
 	}
 
-	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.NetworkLatencyThresholdMs == nil || c.host.Role == models.HostRoleAutoAssign {
+	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.NetworkLatencyThresholdMs == nil || c.host.Role == models.HostRoleAutoAssign || hostutil.IsDay2Host(c.host) {
 		// Single Node use case || no requirements defined || role is auto assign
 		return ValidationSuccess
 	}
@@ -838,7 +838,7 @@ func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationConte
 		return ValidationSuccessSuppressOutput
 	}
 
-	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.PacketLossPercentage == nil || c.host.Role == models.HostRoleAutoAssign {
+	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.PacketLossPercentage == nil || c.host.Role == models.HostRoleAutoAssign || hostutil.IsDay2Host(c.host) {
 		// Single Node use case || no requirements defined || role is auto assign
 		return ValidationSuccess
 	}
