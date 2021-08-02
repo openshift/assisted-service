@@ -4191,6 +4191,10 @@ definitions:
       network_configuration:
         $ref: '#/definitions/network_configuration'
         x-nullable: true
+      platform:
+        type: object
+        $ref: '#/definitions/platform'
+        x-nullable: true
 
   cluster-update-params:
     type: object

@@ -5666,6 +5666,11 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
         },
+        "platform": {
+          "type": "object",
+          "x-nullable": true,
+          "$ref": "#/definitions/platform"
+        },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
           "type": "string"
@@ -14143,6 +14148,11 @@ func init() {
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
+        },
+        "platform": {
+          "type": "object",
+          "x-nullable": true,
+          "$ref": "#/definitions/platform"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",

@@ -3094,88 +3094,6 @@ var _ = Describe("cluster", func() {
 			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusConflict, errors.Errorf("error"))))
 		})
 
-		Context("Update cluster platform", func() {
-			clusterName := "some-cluster"
-			var (
-				c                  *common.Cluster
-				setVSpherePlatform = func() {
-					dummy := "dummy"
-					dummyPassword := strfmt.Password(dummy)
-
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: *c.ID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							Platform: &models.Platform{
-								Type: models.PlatformTypeVsphere,
-								Vsphere: &models.VspherePlatform{
-									Cluster:          &dummy,
-									Datacenter:       &dummy,
-									DefaultDatastore: &dummy,
-									Folder:           &dummy,
-									Network:          &dummy,
-									Password:         &dummyPassword,
-									Username:         &dummy,
-									VCenter:          &dummy,
-								},
-							},
-						},
-					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-					var err error
-					c, err = bm.getCluster(ctx, c.ID.String())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(c.Platform).ShouldNot(BeNil())
-					Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeVsphere))
-					Expect(c.Platform.Vsphere).ShouldNot(BeNil())
-					Expect(c.Platform.Vsphere.Network).Should(BeEquivalentTo(&dummy))
-				}
-			)
-			BeforeEach(func() {
-				mockOperators := operators.NewMockAPI(ctrl)
-				bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
-				mockClusterRegisterSuccess(bm, true)
-				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						Name:             swag.String(clusterName),
-						OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-						PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-					},
-				})
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-				actual := reply.(*installer.RegisterClusterCreated)
-				var err error
-				c, err = bm.getCluster(ctx, actual.Payload.ID.String())
-				Expect(err).ToNot(HaveOccurred())
-				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).AnyTimes()
-				mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any()).AnyTimes()
-				Expect(c.Platform).ShouldNot(BeNil())
-				Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
-				Expect(c.Platform.Vsphere.Username).Should(BeNil())
-			})
-			It("vsphere platform creation", func() {
-				setVSpherePlatform()
-			})
-			It("switch to bare-metal platform", func() {
-				setVSpherePlatform()
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: *c.ID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						Platform: &models.Platform{
-							Type:    models.PlatformTypeBaremetal,
-							Vsphere: nil,
-						},
-					},
-				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				var err error
-				c, err = bm.getCluster(ctx, c.ID.String())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(c.Platform).ShouldNot(BeNil())
-				Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
-				Expect(c.Platform.Vsphere.Username).Should(BeNil())
-			})
-		})
-
 		Context("check pull secret", func() {
 			BeforeEach(func() {
 				v, err := validations.NewPullSecretValidator(validations.Config{})
@@ -7989,22 +7907,25 @@ var _ = Describe("IPv6 support disabled", func() {
 			}
 		})
 
-		It("IPv6 cluster network rejected", func() {
-			params.NewClusterParams.ClusterNetworkCidr = swag.String("2001:db8::/64")
-			reply := bm.RegisterCluster(ctx, params)
-			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
-		})
+		Context("IPV6 cluster", func() {
 
-		It("IPv6 service network rejected", func() {
-			params.NewClusterParams.ServiceNetworkCidr = swag.String("2002:db8::/120")
-			reply := bm.RegisterCluster(ctx, params)
-			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
-		})
+			It("IPv6 cluster network rejected", func() {
+				params.NewClusterParams.ClusterNetworkCidr = swag.String("2001:db8::/64")
+				reply := bm.RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
 
-		It("IPv6 ingress VIP rejected", func() {
-			params.NewClusterParams.IngressVip = "2001:db8::1"
-			reply := bm.RegisterCluster(ctx, params)
-			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			It("IPv6 service network rejected", func() {
+				params.NewClusterParams.ServiceNetworkCidr = swag.String("2002:db8::/120")
+				reply := bm.RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("IPv6 ingress VIP rejected", func() {
+				params.NewClusterParams.IngressVip = "2001:db8::1"
+				reply := bm.RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
 		})
 	})
 
@@ -8128,5 +8049,158 @@ var _ = Describe("AddOpenshiftVersion", func() {
 
 		_, err := bm.AddOpenshiftVersion(ctx, releaseImage, pullSecret)
 		Expect(err).Should(HaveOccurred())
+	})
+})
+
+var _ = Describe("Platform tests", func() {
+
+	var (
+		cfg                = Config{}
+		ctx                = context.Background()
+		bm                 *bareMetalInventory
+		db                 *gorm.DB
+		dbName             string
+		registerParams     *installer.RegisterClusterParams
+		getVSpherePlatform = func() *models.Platform {
+			dummy := "dummy"
+			dummyPassword := strfmt.Password(dummy)
+
+			return &models.Platform{
+				Type: models.PlatformTypeVsphere,
+				Vsphere: &models.VspherePlatform{
+					Cluster:          &dummy,
+					Datacenter:       &dummy,
+					DefaultDatastore: &dummy,
+					Folder:           &dummy,
+					Network:          &dummy,
+					Password:         &dummyPassword,
+					Username:         &dummy,
+					VCenter:          &dummy,
+				},
+			}
+		}
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB(dbName)
+		bm = createInventory(db, cfg)
+		mockOperators := operators.NewMockAPI(ctrl)
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
+		bm.ocmClient = nil
+
+		registerParams = &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("cluster"),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+			},
+		}
+
+		mockClusterRegisterSuccess(bm, true)
+		mockUsageReports()
+		mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any()).AnyTimes()
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	Context("Register cluster", func() {
+
+		It("default platform", func() {
+			reply := bm.RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			cluster := reply.(*installer.RegisterClusterCreated).Payload
+			Expect(cluster.Platform).ShouldNot(BeNil())
+			Expect(cluster.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
+			Expect(cluster.Platform.Vsphere.VCenter).Should(BeNil())
+		})
+
+		It("vsphere platform", func() {
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type:    models.PlatformTypeVsphere,
+				Vsphere: &models.VspherePlatform{},
+			}
+
+			reply := bm.RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			cluster := reply.(*installer.RegisterClusterCreated).Payload
+			Expect(cluster.Platform).ShouldNot(BeNil())
+			Expect(cluster.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeVsphere))
+			Expect(cluster.Platform.Vsphere).ShouldNot(BeNil())
+		})
+
+		It("vsphere platform with credentials", func() {
+			registerParams.NewClusterParams.Platform = getVSpherePlatform()
+			reply := bm.RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			cluster := reply.(*installer.RegisterClusterCreated).Payload
+			Expect(cluster.Platform).ShouldNot(BeNil())
+			Expect(cluster.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeVsphere))
+			Expect(cluster.Platform.Vsphere).ShouldNot(BeNil())
+		})
+	})
+
+	Context("Update cluster", func() {
+		var (
+			c                   *common.Cluster
+			updateClusterParams = installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{},
+			}
+			toVSphere = func() {
+				updateClusterParams.ClusterID = *c.ID
+				updateClusterParams.ClusterUpdateParams = &models.ClusterUpdateParams{
+					Platform: getVSpherePlatform(),
+				}
+
+				reply := bm.UpdateCluster(ctx, updateClusterParams)
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				var err error
+				c, err = bm.getCluster(ctx, c.ID.String())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(c.Platform).ShouldNot(BeNil())
+				Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeVsphere))
+				Expect(c.Platform.Vsphere).ShouldNot(BeNil())
+				Expect(c.Platform.Vsphere.Network).Should(BeEquivalentTo(updateClusterParams.ClusterUpdateParams.Platform.Vsphere.Network))
+			}
+		)
+
+		BeforeEach(func() {
+			reply := bm.RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			actual := reply.(*installer.RegisterClusterCreated)
+			var err error
+			c, err = bm.getCluster(ctx, actual.Payload.ID.String())
+			Expect(err).ToNot(HaveOccurred())
+			mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).AnyTimes()
+			Expect(c.Platform).ShouldNot(BeNil())
+			Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
+			Expect(c.Platform.Vsphere.Username).Should(BeNil())
+		})
+
+		It("vsphere platform creation", func() {
+			toVSphere()
+		})
+
+		It("switch to bare-metal platform", func() {
+			toVSphere()
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: *c.ID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					Platform: &models.Platform{
+						Type:    models.PlatformTypeBaremetal,
+						Vsphere: nil,
+					},
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			var err error
+			c, err = bm.getCluster(ctx, c.ID.String())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(c.Platform).ShouldNot(BeNil())
+			Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
+			Expect(c.Platform.Vsphere.Username).Should(BeNil())
+		})
 	})
 })

@@ -85,6 +85,9 @@ type ClusterCreateParams struct {
 	// Required: true
 	OpenshiftVersion *string `json:"openshift_version"`
 
+	// platform
+	Platform *Platform `json:"platform,omitempty"`
+
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
 	// Required: true
 	PullSecret *string `json:"pull_secret"`
@@ -147,6 +150,10 @@ func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePlatform(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -406,6 +413,24 @@ func (m *ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) 
 
 	if err := validate.Required("openshift_version", "body", m.OpenshiftVersion); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterCreateParams) validatePlatform(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Platform) { // not required
+		return nil
+	}
+
+	if m.Platform != nil {
+		if err := m.Platform.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("platform")
+			}
+			return err
+		}
 	}
 
 	return nil
