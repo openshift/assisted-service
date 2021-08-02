@@ -6248,6 +6248,185 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 	})
 })
 
+var _ = Describe("GetClusterSupportedPlatforms", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		dbName    string
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         *models.Cluster
+	)
+
+	BeforeEach(func() {
+		cfg.DefaultNTPSource = ""
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
+		mockUsageReports()
+		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:                 swag.String("some-cluster-name"),
+				OpenshiftVersion:     swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:           swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+			},
+		})
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+		c = reply.(*installer.RegisterClusterCreated).Payload
+		clusterID = *c.ID
+
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	addHost := func(clusterId strfmt.UUID, inventory string, role models.HostRole) {
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterId, inventory, db)
+	}
+
+	addVsphereHost := func(clusterId strfmt.UUID, role models.HostRole) {
+		const vsphereInventory = "{\"system_vendor\": {\"manufacturer\": \"VMware, Inc.\", \"product_name\": \"VMware7,1\", \"serial_number\": \"VMware-12 34 56 78 90 12 ab cd-ef gh 12 34 56 67 89 90\", \"virtual\": true}}"
+		addHost(clusterId, vsphereInventory, role)
+	}
+
+	addGenericHost := func(clusterId strfmt.UUID, role models.HostRole) {
+		const genericInventory = "{\"system_vendor\": {\"manufacturer\": \"Red Hat\", \"product_name\": \"KVM\", \"serial_number\": \"\", \"virtual\": true}}"
+		addHost(clusterId, genericInventory, role)
+	}
+
+	validateInventory := func(host models.Host, manufacturer string) bool {
+		var inventory models.Inventory
+		if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+			Expect(err).ShouldNot(HaveOccurred())
+		}
+		return inventory.SystemVendor.Manufacturer == manufacturer
+	}
+
+	validateHostsInventory := func(vsphereHostsCount int, genericHostsCount int) {
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID}).(*installer.GetClusterOK)
+		Expect(len(getReply.Payload.Hosts)).Should(Equal(vsphereHostsCount + genericHostsCount))
+		vsphereHosts := 0
+		genericHosts := 0
+		for _, h := range getReply.Payload.Hosts {
+			if validateInventory(*h, common.VmwareManufacturer) {
+				vsphereHosts++
+			}
+			if validateInventory(*h, "Red Hat") {
+				genericHosts++
+			}
+		}
+
+		Expect(vsphereHosts).Should(Equal(vsphereHostsCount))
+		Expect(genericHosts).Should(Equal(genericHostsCount))
+
+	}
+
+	getClusterPlatforms := func() *[]models.PlatformType {
+		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
+		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
+		return &platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+
+	}
+
+	It("no hosts", func() {
+		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
+		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
+		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		Expect(len(platforms)).Should(Equal(1))
+		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+	})
+
+	It("single SNO vsphere host", func() {
+		*c.HighAvailabilityMode = models.ClusterHighAvailabilityModeNone
+		db.Save(c)
+
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		validateHostsInventory(1, 0)
+		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
+		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
+		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		Expect(len(platforms)).Should(Equal(1))
+		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+	})
+
+	It("single vsphere host", func() {
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		validateHostsInventory(1, 0)
+		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
+		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
+		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		Expect(len(platforms)).Should(Equal(2))
+
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere}
+		Expect(platforms).Should(ContainElements(supportedPlatforms))
+	})
+
+	It("3 vsphere hosts", func() {
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeVsphere, models.PlatformTypeBaremetal}
+
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		addVsphereHost(clusterID, models.HostRoleMaster)
+
+		validateHostsInventory(3, 0)
+
+		platforms := *getClusterPlatforms()
+		Expect(len(platforms)).Should(Equal(2))
+		Expect(platforms).Should(ContainElements(supportedPlatforms))
+	})
+
+	It("5 vsphere hosts", func() {
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeVsphere, models.PlatformTypeBaremetal}
+
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		addVsphereHost(clusterID, models.HostRoleMaster)
+
+		validateHostsInventory(5, 0)
+
+		platforms := *getClusterPlatforms()
+		Expect(len(platforms)).Should(Equal(2))
+		Expect(platforms).Should(ContainElements(supportedPlatforms))
+	})
+
+	It("2 vsphere hosts 1 generic host", func() {
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		addGenericHost(clusterID, models.HostRoleMaster)
+
+		validateHostsInventory(2, 1)
+
+		platforms := *getClusterPlatforms()
+		Expect(len(platforms)).Should(Equal(1))
+		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+	})
+
+	It("3 vsphere masters 2 generic workers", func() {
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		addGenericHost(clusterID, models.HostRoleMaster)
+		addGenericHost(clusterID, models.HostRoleMaster)
+
+		validateHostsInventory(3, 2)
+
+		platforms := *getClusterPlatforms()
+		Expect(len(platforms)).Should(Equal(1))
+		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+	})
+})
+
 func verifyApiError(responder middleware.Responder, expectedHttpStatus int32) {
 	ExpectWithOffset(1, responder).To(BeAssignableToTypeOf(common.NewApiError(expectedHttpStatus, nil)))
 	concreteError := responder.(*common.ApiErrorResponse)

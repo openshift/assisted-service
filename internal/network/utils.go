@@ -4,14 +4,13 @@ import (
 	"net"
 
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
 
 // GetHostAddressFamilies tests if a host has addresses in IPv4, in IPv6 family, or both
 func GetHostAddressFamilies(host *models.Host) (bool, bool, error) {
-	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(host.Inventory)
 	if err != nil {
 		return false, false, err
 	}

@@ -13,7 +13,6 @@ import (
 	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
@@ -48,7 +47,7 @@ var _ = BeforeEach(func() {
 		},
 	}
 	cluster.ImageInfo = &models.ImageInfo{}
-	b, err := hostutil.MarshalInventory(&models.Inventory{
+	b, err := common.MarshalInventory(&models.Inventory{
 		CPU:    &models.CPU{Count: 8},
 		Memory: &models.Memory{UsableBytes: 64 * conversions.GiB},
 		Disks: []*models.Disk{

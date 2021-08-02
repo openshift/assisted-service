@@ -316,7 +316,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 				hostStatus, allowedStatuses))
 	}
 
-	inventory, err := hostutil.UnmarshalInventory(inventoryStr)
+	inventory, err := common.UnmarshalInventory(inventoryStr)
 	if err != nil {
 		return err
 	}
@@ -328,7 +328,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	}
 	m.populateDisksId(inventory)
 
-	marshalledInventory, err := hostutil.MarshalInventory(inventory)
+	marshalledInventory, err := common.MarshalInventory(inventory)
 	if err != nil {
 		return err
 	}

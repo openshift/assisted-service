@@ -908,7 +908,7 @@ func (v *validator) hasDefaultRoute(c *validationContext) ValidationStatus {
 		return ValidationPending
 	}
 
-	inv, err := hostutil.UnmarshalInventory(c.host.Inventory)
+	inv, err := common.UnmarshalInventory(c.host.Inventory)
 	if err != nil || len(inv.Routes) == 0 {
 		return ValidationFailure
 	}

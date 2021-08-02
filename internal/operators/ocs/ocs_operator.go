@@ -6,7 +6,6 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
@@ -79,7 +78,7 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 	if host.Inventory == "" {
 		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in the host."}}, nil
 	}
-	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(host.Inventory)
 	if err != nil {
 		message := "Failed to get inventory from host."
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, err
@@ -133,7 +132,7 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 
 	var diskCount int64 = 0
 	if host.Inventory != "" {
-		inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+		inventory, err := common.UnmarshalInventory(host.Inventory)
 		if err != nil {
 			return nil, err
 		}

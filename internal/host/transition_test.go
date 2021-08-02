@@ -4554,10 +4554,10 @@ var _ = Describe("Refresh Host", func() {
 			It(t.name, func() {
 				var inventory string
 				if len(t.inventory) > 0 {
-					inv, err := hostutil.UnmarshalInventory(t.inventory)
+					inv, err := common.UnmarshalInventory(t.inventory)
 					Expect(err).To(Not(HaveOccurred()))
 					inv.Routes = t.routes
-					inventory, err = hostutil.MarshalInventory(inv)
+					inventory, err = common.MarshalInventory(inv)
 					Expect(err).To(Not(HaveOccurred()))
 				}
 				host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusDiscovering)
