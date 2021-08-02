@@ -168,7 +168,7 @@ func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID st
 	var err error
 
 	for _, disk := range disks {
-		if (disk.DriveType == ssdDrive || disk.DriveType == hddDrive) && installationDiskID != disk.ID && disk.InstallationEligibility.Eligible {
+		if (disk.DriveType == ssdDrive || disk.DriveType == hddDrive) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
 			if disk.SizeBytes < conversions.GbToBytes(o.config.OCSMinDiskSizeGB) {
 				err = fmt.Errorf("OCS requires all the non-bootable disks to be more than %d GB", o.config.OCSMinDiskSizeGB)
 			} else {
