@@ -112,7 +112,8 @@ var (
 
 func mockClusterRegisterSteps() {
 	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	mockVersions.EXPECT().GetVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+	mockVersions.EXPECT().GetRelease(gomock.Any(), gomock.Any()).Return(
+		*common.TestDefaultConfig.Version.ReleaseImage, *common.TestDefaultConfig.Version.ReleaseVersion, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 }
 
@@ -153,7 +154,7 @@ func strToUUID(s string) *strfmt.UUID {
 
 func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallConfigGenerator, mockVersions *versions.MockHandler) {
 	if mockGenerator != nil {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return("releaseImage", nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return("releaseImage", nil).Times(1)
 		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 }
@@ -217,7 +218,7 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	mockUploadIso := func(cluster *common.Cluster, returnValue error) {
 		srcIso := "rhcos"
-		mockS3Client.EXPECT().GetBaseIsoObject(cluster.OpenshiftVersion).Return(srcIso, nil).Times(1)
+		mockS3Client.EXPECT().GetBaseIsoObject(cluster.OpenshiftVersion, gomock.Any()).Return(srcIso, nil).Times(1)
 		mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), srcIso,
 			fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())).Return(returnValue).Times(1)
 	}
@@ -645,7 +646,7 @@ var _ = Describe("GenerateClusterISO", func() {
 
 		It("Creates the iso successfully", func() {
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
+			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion, gomock.Any()).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			editor := isoeditor.NewMockEditor(ctrl)
 			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "", gomock.Any()).Return(isoFilePath, nil)
@@ -688,7 +689,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "", gomock.Any()).Return(isoFilePath, nil)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 			mockS3Client.EXPECT().UploadFile(gomock.Any(), isoFilePath, fmt.Sprintf("discovery-image-%s.iso", cluster.ID))
-			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
+			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion, gomock.Any()).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, "Generated image (Image type is \"minimal-iso\", SSH public key is not set)", gomock.Any())
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -704,7 +705,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			expectedErrMsg := "some-internal-error"
 
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("", errors.New(expectedErrMsg))
+			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion, gomock.Any()).Return("", errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
@@ -718,7 +719,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			expectedErrMsg := "some-internal-error"
 
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
+			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion, gomock.Any()).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(nil, int64(0), errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -733,7 +734,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			expectedErrMsg := "some-internal-error"
 
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
+			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion, gomock.Any()).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			mockIsoEditorFactory.EXPECT().WithEditor(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
@@ -749,7 +750,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			expectedErrMsg := "some-internal-error"
 
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
+			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion, gomock.Any()).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			editor := isoeditor.NewMockEditor(ctrl)
 			stubWithEditor(mockIsoEditorFactory, editor)
@@ -767,7 +768,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			expectedErrMsg := "some-internal-error"
 
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
+			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion, gomock.Any()).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			editor := isoeditor.NewMockEditor(ctrl)
 			stubWithEditor(mockIsoEditorFactory, editor)
@@ -3559,7 +3560,8 @@ var _ = Describe("cluster", func() {
 				It("OLM invalid name", func() {
 					newOperatorName := "invalid-name"
 
-					mockVersions.EXPECT().GetVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+					mockVersions.EXPECT().GetRelease(gomock.Any(), gomock.Any()).Return(
+						*common.TestDefaultConfig.Version.ReleaseImage, *common.TestDefaultConfig.Version.ReleaseVersion, nil).Times(1)
 					mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 					mockOperatorManager.EXPECT().GetOperatorByName(newOperatorName).Return(nil, errors.Errorf("error")).Times(1)
 
@@ -6442,7 +6444,8 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		}
 		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, clusterID, "Unknown").Times(1)
-		mockVersions.EXPECT().GetVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+		mockVersions.EXPECT().GetRelease(gomock.Any(), gomock.Any()).Return(
+			*common.TestDefaultConfig.Version.ReleaseImage, *common.TestDefaultConfig.Version.ReleaseVersion, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		actual := res.(*installer.RegisterAddHostsClusterCreated)
 
@@ -7051,8 +7054,8 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(errors.New("error")).Times(1)
 		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
-		mockVersions.EXPECT().GetVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
-
+		mockVersions.EXPECT().GetRelease(gomock.Any(), gomock.Any()).Return(
+			*common.TestDefaultConfig.Version.ReleaseImage, *common.TestDefaultConfig.Version.ReleaseVersion, nil).Times(1)
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("some-cluster-name"),
@@ -7064,7 +7067,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("openshift version not supported", func() {
-		mockVersions.EXPECT().GetVersion(gomock.Any()).Return(nil, errors.Errorf("OpenShift VVersion is not supported")).Times(1)
+		mockVersions.EXPECT().GetRelease(gomock.Any(), gomock.Any()).Return("", "", errors.Errorf("OpenShift Version is not supported")).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{

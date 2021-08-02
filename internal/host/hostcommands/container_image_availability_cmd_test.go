@@ -54,7 +54,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 	})
 
 	It("get_step", func() {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
 		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).Times(1)
 
@@ -74,7 +74,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 	})
 
 	It("get_step_release_image_failure", func() {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return("", errors.New("err")).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return("", errors.New("err")).Times(1)
 
 		step, err := cmd.GetSteps(ctx, &host)
 		Expect(err).To(HaveOccurred())
@@ -82,7 +82,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 	})
 
 	It("get_step_get_mco_failure", func() {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("err")).Times(1)
 
 		step, err := cmd.GetSteps(ctx, &host)
@@ -91,7 +91,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 	})
 
 	It("get_step_get_must_gather_failure", func() {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
 		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("err")).Times(1)
 
@@ -128,7 +128,7 @@ var _ = Describe("get images", func() {
 		release := "image-rel"
 		mco := "image-mco"
 		mg := "image-must-gather"
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(release, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(release, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mco, nil).Times(1)
 		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mg, nil).Times(1)
 		expected := Images{

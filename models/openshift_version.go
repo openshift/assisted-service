@@ -26,7 +26,7 @@ type OpenshiftVersion struct {
 	// Required: true
 	DisplayName *string `json:"display_name"`
 
-	// RHCOS/Release images and versions for each CPU platform.
+	// RHCOS/Release images and versions for each CPU architectures.
 	Images map[string]OpenshiftImages `json:"images,omitempty"`
 
 	// The installation image of the OpenShift cluster.

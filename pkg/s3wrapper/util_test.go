@@ -33,12 +33,13 @@ const (
 	defaultTestOpenShiftVersion = "4.6"
 	defaultTestRhcosURL         = "rhcosURL"
 	defaultTestRhcosRootFSURL   = "rhcosRootFSURL"
+	defaultTestCpuArchitecture  = "x86_64"
 )
 
 var (
 	defaultTestRhcosVersion       = fmt.Sprintf("%s.00.000000000000-0", strings.ReplaceAll(defaultTestOpenShiftVersion, ".", ""))
-	defaultTestRhcosObject        = fmt.Sprintf("rhcos-%s.iso", defaultTestRhcosVersion)
-	defaultTestRhcosObjectMinimal = fmt.Sprintf("rhcos-%s-minimal.iso", defaultTestRhcosVersion)
+	defaultTestRhcosObject        = fmt.Sprintf("rhcos-%s-%s.iso", defaultTestRhcosVersion, defaultTestCpuArchitecture)
+	defaultTestRhcosObjectMinimal = fmt.Sprintf("rhcos-%s-%s-minimal.iso", defaultTestRhcosVersion, defaultTestCpuArchitecture)
 )
 
 var _ = Describe("FixEndpointURL", func() {

@@ -320,19 +320,19 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 // necessary boot files and the minimal template has been created, download the
 // livecd iso if not available, extract the boot files from the iso, and
 // construct the minimal iso on the filesystem.
-func (f *FSClient) UploadISOs(ctx context.Context, openshiftVersion string, haveLatestMinimalTemplate bool) error {
+func (f *FSClient) UploadISOs(ctx context.Context, openshiftVersion, cpuArchitecture string, haveLatestMinimalTemplate bool) error {
 	log := logutil.FromContext(ctx, f.log)
-	rhcosImage, err := f.versionsHandler.GetRHCOSImage(openshiftVersion)
+	rhcosImage, err := f.versionsHandler.GetRHCOSImage(openshiftVersion, cpuArchitecture)
 	if err != nil {
 		return err
 	}
 
-	baseIsoObject, err := f.GetBaseIsoObject(openshiftVersion)
+	baseIsoObject, err := f.GetBaseIsoObject(openshiftVersion, cpuArchitecture)
 	if err != nil {
 		return err
 	}
 
-	minimalIsoObject, err := f.GetMinimalIsoObjectName(openshiftVersion)
+	minimalIsoObject, err := f.GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture)
 	if err != nil {
 		return err
 	}
@@ -367,7 +367,7 @@ func (f *FSClient) UploadISOs(ctx context.Context, openshiftVersion string, have
 
 	isoFilePath := filepath.Join(f.basedir, baseIsoObject)
 	if !minimalExists {
-		rootFSURL, err := f.versionsHandler.GetRHCOSRootFS(openshiftVersion)
+		rootFSURL, err := f.versionsHandler.GetRHCOSRootFS(openshiftVersion, cpuArchitecture)
 		if err != nil {
 			return err
 		}
@@ -378,22 +378,22 @@ func (f *FSClient) UploadISOs(ctx context.Context, openshiftVersion string, have
 	return nil
 }
 
-func (f *FSClient) GetBaseIsoObject(openshiftVersion string) (string, error) {
-	rhcosVersion, err := f.versionsHandler.GetRHCOSVersion(openshiftVersion)
+func (f *FSClient) GetBaseIsoObject(openshiftVersion, cpuArchitecture string) (string, error) {
+	rhcosVersion, err := f.versionsHandler.GetRHCOSVersion(openshiftVersion, cpuArchitecture)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf(rhcosObjectTemplate, rhcosVersion), nil
+	return fmt.Sprintf(rhcosObjectTemplate, cpuArchitecture, rhcosVersion), nil
 }
 
-func (f *FSClient) GetMinimalIsoObjectName(openshiftVersion string) (string, error) {
-	rhcosVersion, err := f.versionsHandler.GetRHCOSVersion(openshiftVersion)
+func (f *FSClient) GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture string) (string, error) {
+	rhcosVersion, err := f.versionsHandler.GetRHCOSVersion(openshiftVersion, cpuArchitecture)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf(rhcosMinimalObjectTemplate, rhcosVersion), nil
+	return fmt.Sprintf(rhcosMinimalObjectTemplate, cpuArchitecture, rhcosVersion), nil
 }
 
 type FSClientDecorator struct {
@@ -527,20 +527,20 @@ func (d *FSClientDecorator) ListObjectsByPrefix(ctx context.Context, prefix stri
 	return d.fsClient.ListObjectsByPrefix(ctx, prefix)
 }
 
-func (d *FSClientDecorator) UploadISOs(ctx context.Context, openshiftVersion string, haveLatestMinimalTemplate bool) error {
-	err := d.fsClient.UploadISOs(ctx, openshiftVersion, haveLatestMinimalTemplate)
+func (d *FSClientDecorator) UploadISOs(ctx context.Context, openshiftVersion, cpuArchitecture string, haveLatestMinimalTemplate bool) error {
+	err := d.fsClient.UploadISOs(ctx, openshiftVersion, cpuArchitecture, haveLatestMinimalTemplate)
 	if err != nil {
 		d.reportFilesystemUsageMetrics()
 	}
 	return err
 }
 
-func (d *FSClientDecorator) GetBaseIsoObject(openshiftVersion string) (string, error) {
-	return d.fsClient.GetBaseIsoObject(openshiftVersion)
+func (d *FSClientDecorator) GetBaseIsoObject(openshiftVersion, cpuArchitecture string) (string, error) {
+	return d.fsClient.GetBaseIsoObject(openshiftVersion, cpuArchitecture)
 }
 
-func (d *FSClientDecorator) GetMinimalIsoObjectName(openshiftVersion string) (string, error) {
-	return d.fsClient.GetMinimalIsoObjectName(openshiftVersion)
+func (d *FSClientDecorator) GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture string) (string, error) {
+	return d.fsClient.GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture)
 }
 
 func (d *FSClientDecorator) CreatePublicBucket() error {

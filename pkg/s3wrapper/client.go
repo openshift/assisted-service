@@ -33,8 +33,8 @@ import (
 
 const (
 	awsEndpointSuffix          = ".amazonaws.com"
-	rhcosObjectTemplate        = "rhcos-%s.iso"
-	rhcosMinimalObjectTemplate = "rhcos-%s-minimal.iso"
+	rhcosObjectTemplate        = "rhcos-%s-%s.iso"
+	rhcosMinimalObjectTemplate = "rhcos-%s-%s-minimal.iso"
 	DiscoveryImageTemplate     = "discovery-image-%s"
 )
 
@@ -56,9 +56,9 @@ type API interface {
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
 	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
 	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
-	UploadISOs(ctx context.Context, openshiftVersion string, haveLatestMinimalTemplate bool) error
-	GetBaseIsoObject(openshiftVersion string) (string, error)
-	GetMinimalIsoObjectName(openshiftVersion string) (string, error)
+	UploadISOs(ctx context.Context, openshiftVersion, cpuArchitecture string, haveLatestMinimalTemplate bool) error
+	GetBaseIsoObject(openshiftVersion, cpuArchitecture string) (string, error)
+	GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture string) (string, error)
 
 	CreatePublicBucket() error
 	UploadStreamToPublicBucket(ctx context.Context, reader io.Reader, objectName string) error
@@ -479,26 +479,26 @@ func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	return objects, nil
 }
 
-func (c *S3Client) UploadISOs(ctx context.Context, openshiftVersion string, haveLatestMinimalTemplate bool) error {
-	rhcosImage, err := c.versionsHandler.GetRHCOSImage(openshiftVersion)
+func (c *S3Client) UploadISOs(ctx context.Context, openshiftVersion, cpuArchitecture string, haveLatestMinimalTemplate bool) error {
+	rhcosImage, err := c.versionsHandler.GetRHCOSImage(openshiftVersion, cpuArchitecture)
 	if err != nil {
 		return err
 	}
 
-	baseIsoObject, err := c.GetBaseIsoObject(openshiftVersion)
+	baseIsoObject, err := c.GetBaseIsoObject(openshiftVersion, cpuArchitecture)
 	if err != nil {
 		return err
 	}
 
-	minimalIsoObject, err := c.GetMinimalIsoObjectName(openshiftVersion)
+	minimalIsoObject, err := c.GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture)
 	if err != nil {
 		return err
 	}
 
-	return c.uploadISOs(ctx, baseIsoObject, minimalIsoObject, rhcosImage, openshiftVersion, haveLatestMinimalTemplate)
+	return c.uploadISOs(ctx, baseIsoObject, minimalIsoObject, rhcosImage, openshiftVersion, cpuArchitecture, haveLatestMinimalTemplate)
 }
 
-func (c *S3Client) uploadISOs(ctx context.Context, isoObjectName, minimalIsoObject, isoURL, openshiftVersion string, haveLatestMinimalTemplate bool) error {
+func (c *S3Client) uploadISOs(ctx context.Context, isoObjectName, minimalIsoObject, isoURL, openshiftVersion, cpuArchitecture string, haveLatestMinimalTemplate bool) error {
 	log := logutil.FromContext(ctx, c.log)
 
 	baseExists, err := c.DoesPublicObjectExist(ctx, isoObjectName)
@@ -538,7 +538,7 @@ func (c *S3Client) uploadISOs(ctx context.Context, isoObjectName, minimalIsoObje
 	}
 
 	if !minimalExists {
-		rootFSURL, err := c.versionsHandler.GetRHCOSRootFS(openshiftVersion)
+		rootFSURL, err := c.versionsHandler.GetRHCOSRootFS(openshiftVersion, cpuArchitecture)
 		if err != nil {
 			return err
 		}
@@ -550,20 +550,20 @@ func (c *S3Client) uploadISOs(ctx context.Context, isoObjectName, minimalIsoObje
 	return nil
 }
 
-func (c *S3Client) GetBaseIsoObject(openshiftVersion string) (string, error) {
-	rhcosVersion, err := c.versionsHandler.GetRHCOSVersion(openshiftVersion)
+func (c *S3Client) GetBaseIsoObject(openshiftVersion, cpuArchitecture string) (string, error) {
+	rhcosVersion, err := c.versionsHandler.GetRHCOSVersion(openshiftVersion, cpuArchitecture)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf(rhcosObjectTemplate, rhcosVersion), nil
+	return fmt.Sprintf(rhcosObjectTemplate, rhcosVersion, cpuArchitecture), nil
 }
 
-func (c *S3Client) GetMinimalIsoObjectName(openshiftVersion string) (string, error) {
-	rhcosVersion, err := c.versionsHandler.GetRHCOSVersion(openshiftVersion)
+func (c *S3Client) GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture string) (string, error) {
+	rhcosVersion, err := c.versionsHandler.GetRHCOSVersion(openshiftVersion, cpuArchitecture)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf(rhcosMinimalObjectTemplate, rhcosVersion), nil
+	return fmt.Sprintf(rhcosMinimalObjectTemplate, rhcosVersion, cpuArchitecture), nil
 }

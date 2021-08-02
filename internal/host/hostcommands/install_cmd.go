@@ -105,7 +105,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		haMode = *cluster.HighAvailabilityMode
 	}
 
-	releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
+	releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, versions.DefaultCPUArchitecture)
 	if err != nil {
 		return "", err
 	}

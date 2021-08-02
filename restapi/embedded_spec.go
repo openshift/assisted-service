@@ -7848,7 +7848,7 @@ func init() {
           "type": "string"
         },
         "images": {
-          "description": "RHCOS/Release images and versions for each CPU platform.",
+          "description": "RHCOS/Release images and versions for each CPU architectures.",
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/openshift-images"
@@ -16280,7 +16280,7 @@ func init() {
           "type": "string"
         },
         "images": {
-          "description": "RHCOS/Release images and versions for each CPU platform.",
+          "description": "RHCOS/Release images and versions for each CPU architectures.",
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/openshift-images"

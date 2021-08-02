@@ -21,6 +21,7 @@ type TestConfiguration struct {
 	RhcosImage       string
 	RhcosVersion     string
 	SupportLevel     string
+	CPUArchitecture  string
 	Version          *models.OpenshiftVersion
 
 	Status            string
@@ -44,6 +45,7 @@ var (
 	ReleaseImage            = "quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64"
 	RhcosImage              = "rhcos_4.6.0"
 	RhcosVersion            = "version-46.123-0"
+	CPUArchitecture         = "x86_64"
 	SupportLevel            = "beta"
 )
 
@@ -52,6 +54,7 @@ var TestDefaultConfig = &TestConfiguration{
 	OpenShiftVersion: OpenShiftVersion,
 	ReleaseVersion:   ReleaseVersion,
 	ReleaseImage:     ReleaseImage,
+	CPUArchitecture:  CPUArchitecture,
 	Version: &models.OpenshiftVersion{
 		DisplayName:    &OpenShiftVersion,
 		ReleaseImage:   &ReleaseImage,

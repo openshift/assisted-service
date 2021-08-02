@@ -421,10 +421,11 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 	}
 
-	openshiftVersion, err := b.versionsHandler.GetVersion(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+	releaseImage, releaseVersion, err := b.versionsHandler.GetRelease(
+		swag.StringValue(params.NewClusterParams.OpenshiftVersion), versions.DefaultCPUArchitecture)
 	if err != nil {
-		err = errors.Errorf("Openshift version %s is not supported",
-			swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+		err = errors.Errorf("Openshift version %s is not supported: %v",
+			swag.StringValue(params.NewClusterParams.OpenshiftVersion), err)
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -454,8 +455,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			ClusterNetworkHostPrefix: params.NewClusterParams.ClusterNetworkHostPrefix,
 			IngressVip:               params.NewClusterParams.IngressVip,
 			Name:                     swag.StringValue(params.NewClusterParams.Name),
-			OpenshiftVersion:         *openshiftVersion.ReleaseVersion,
-			OcpReleaseImage:          *openshiftVersion.ReleaseImage,
+			OpenshiftVersion:         releaseVersion,
+			OcpReleaseImage:          releaseImage,
 			ServiceNetworkCidr:       swag.StringValue(params.NewClusterParams.ServiceNetworkCidr),
 			SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
 			UpdatedAt:                strfmt.DateTime{},
@@ -621,7 +622,8 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		Href:             swag.String(url.String()),
 		Kind:             swag.String(models.ClusterKindAddHostsCluster),
 		Name:             clusterName,
-		OcpReleaseImage:  *openshiftVersion.ReleaseImage,
+		OpenshiftVersion: releaseVersion,
+		OcpReleaseImage:  releaseImage,
 		UserName:         ocm.UserNameFromContext(ctx),
 		OrgID:            ocm.OrgIDFromContext(ctx),
 		EmailDomain:      ocm.EmailDomainFromContext(ctx),
@@ -1083,6 +1085,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	} else {
+		baseISOName, err := b.objectHandler.GetBaseIsoObject(infraEnv.OpenshiftVersion, versions.DefaultCPUArchitecture)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", infraEnv.ID, infraEnv.OpenshiftVersion)
 			return common.NewApiError(http.StatusInternalServerError, err)
@@ -1131,7 +1134,7 @@ func (b *bareMetalInventory) getIgnitionConfigForLogging(infraEnv *common.InfraE
 func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log logrus.FieldLogger,
 	infraEnv *common.InfraEnv, ignitionConfig, objectPrefix string) error {
 
-	baseISOName, err := b.objectHandler.GetMinimalIsoObjectName(infraEnv.OpenshiftVersion)
+	baseISOName, err := b.objectHandler.GetMinimalIsoObjectName(infraEnv.OpenshiftVersion, versions.DefaultCPUArchitecture)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get source object name for infraEnv %s with ocp version %s", infraEnv.ID, infraEnv.OpenshiftVersion)
 		return err
@@ -1619,10 +1622,15 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
 	}
 
-	releaseImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
+	releaseImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, versions.DefaultCPUArchitecture)
+	if err != nil {
+		msg := fmt.Sprintf("failed to get release image for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
+		return errors.Wrapf(err, msg)
+	}
 
 	if err != nil {
-		return errors.Wrapf(err, "failed to get release image for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
+		msg := fmt.Sprintf("failed to get release image for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
+		return errors.Wrapf(err, msg)
 	}
 
 	if err := b.generator.GenerateInstallConfig(ctx, cluster, cfg, releaseImage); err != nil {

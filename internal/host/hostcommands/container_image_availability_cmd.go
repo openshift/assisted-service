@@ -44,7 +44,7 @@ func NewImageAvailabilityCmd(log logrus.FieldLogger, db *gorm.DB, ocRelease oc.R
 func (cmd *imageAvailabilityCmd) getImages(cluster *common.Cluster) (Images, error) {
 
 	images := Images{}
-	releaseImage, err := cmd.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
+	releaseImage, err := cmd.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, versions.DefaultCPUArchitecture)
 	if err != nil {
 		return images, err
 	}

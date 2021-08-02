@@ -449,10 +449,10 @@ func main() {
 				"assisted-service-baseiso-helper",
 				log.WithField("pkg", "baseISOUploadLeader"))
 
-			uploadFunc := func() error { return uploadISOs(objectHandler, openshiftVersionsMap, log) }
+			uploadFunc := func() error { return uploadISOs(objectHandler, openshiftVersionsMap, versionHandler, log) }
 			failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), uploadFunc), "Failed to upload boot files")
 		} else {
-			failOnError(uploadISOs(objectHandler, openshiftVersionsMap, log), "Failed to upload boot files")
+			failOnError(uploadISOs(objectHandler, openshiftVersionsMap, versionHandler, log), "Failed to upload boot files")
 		}
 
 		apiEnabler.Enable()
@@ -542,7 +542,7 @@ func generateAPMTransactionName(request *http.Request) string {
 	return route.Operation.ID
 }
 
-func uploadISOs(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, log logrus.FieldLogger) error {
+func uploadISOs(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, versionHandler versions.Handler, log logrus.FieldLogger) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	errs, _ := errgroup.WithContext(ctx)
 	//cancel the context in case this method ends
@@ -556,10 +556,14 @@ func uploadISOs(objectHandler s3wrapper.API, openshiftVersionsMap models.Openshi
 	haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(uploadctx, log, objectHandler)
 	for version := range openshiftVersionsMap {
 		currVersion := version
-		errs.Go(func() error {
-			err := objectHandler.UploadISOs(uploadctx, currVersion, haveLatestMinimalTemplate)
-			return errors.Wrapf(err, "Failed uploading boot files for OCP version %s", currVersion)
-		})
+		cpuArchitectures, _ := versionHandler.GetCPUArchitectures(currVersion)
+		for _, cpuArchitecture := range cpuArchitectures {
+			currCpuArchitecture := cpuArchitecture
+			errs.Go(func() error {
+				err := objectHandler.UploadISOs(uploadctx, currVersion, currCpuArchitecture, haveLatestMinimalTemplate)
+				return errors.Wrapf(err, "Failed uploading boot files for OCP version %s", currVersion)
+			})
+		}
 	}
 
 	return errs.Wait()
