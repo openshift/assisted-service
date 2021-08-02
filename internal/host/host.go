@@ -563,21 +563,19 @@ func (m *Manager) SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.
 
 func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error {
 	if h.Connectivity != connectivityReport {
-		//retrieve cluster
-		var cluster common.Cluster
-		err := m.db.First(&cluster, "id = ?", h.ClusterID).Error
-		if err != nil {
-			return errors.Wrapf(err, "failed to find cluster %s", h.ClusterID)
-		}
 		if len(connectivityReport) > 0 {
+			//retrieve cluster
+			cluster, err := common.GetClusterFromDB(m.db, *h.ClusterID, common.UseEagerLoading)
+			if err != nil {
+				m.log.WithError(err).Errorf("unable to process connectivity report: failed to find cluster %s", h.ClusterID)
+				return err
+			}
 			m.captureConnectivityReportMetrics(ctx, cluster.OpenshiftVersion, h, connectivityReport, cluster.Hosts)
 		}
-
 		// Only if the connectivity between the hosts changed change the updated_at field
 		if err := m.db.Model(h).Update("connectivity", connectivityReport).Error; err != nil {
 			return errors.Wrapf(err, "failed to set connectivity to host %s", h.ID.String())
 		}
-
 	}
 	return nil
 }
@@ -1198,7 +1196,7 @@ func (m *Manager) captureConnectivityReportMetrics(ctx context.Context, openshif
 	log := logutil.FromContext(ctx, logrus.New())
 	defer commonutils.MeasureOperation("CaptureConnectivityReportMetrics", log, m.metricApi)
 
-	connectivityReport, err := hostutil.UnmarshalConnectivityReport(h.Connectivity)
+	connectivityReport, err := hostutil.UnmarshalConnectivityReport(report)
 	if err != nil {
 		log.Errorf("unable to unmarshal connectivity report for host ID %s:%v", h.ID, err)
 		return
