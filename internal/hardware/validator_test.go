@@ -87,9 +87,10 @@ var _ = Describe("Disk eligibility", func() {
 	BeforeEach(func() {
 
 		clusterID := strfmt.UUID(uuid.New().String())
+		infraEnvID := strfmt.UUID(uuid.New().String())
 		cluster = hostutil.GenerateTestCluster(clusterID, "10.0.0.1/24")
 		hostID := strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(hostID, clusterID, models.HostStatusDiscovering)
+		host = hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusDiscovering)
 
 		cfg := ValidatorCfg{VersionedRequirements: versionRequirements}
 

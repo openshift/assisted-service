@@ -63,7 +63,8 @@ var _ = Describe("monitor_disconnection", func() {
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
 			mockMetricApi, defaultConfig, dummy, mockOperators)
 		clusterID := strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, models.HostStatusDiscovering)
 		cluster := hostutil.GenerateTestCluster(clusterID, "1.1.0.0/16")
 		Expect(db.Save(&cluster).Error).ToNot(HaveOccurred())
 		host.Inventory = workerInventory()
@@ -105,7 +106,7 @@ var _ = Describe("monitor_disconnection", func() {
 		})
 
 		AfterEach(func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityWarning,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, host.ID, models.EventSeverityWarning,
 				fmt.Sprintf("Host %s: updated status from \"%s\" to \"disconnected\" (Host has stopped communicating with the installation service)",
 					host.ID.String(), *host.Status),
 				gomock.Any())
@@ -124,7 +125,7 @@ var _ = Describe("monitor_disconnection", func() {
 		})
 
 		AfterEach(func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityInfo,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, host.ID, models.EventSeverityInfo,
 				fmt.Sprintf("Host %s: updated status from \"disconnected\" to \"discovering\" (Waiting for host to send hardware details)", host.ID.String()),
 				gomock.Any())
 			state.HostMonitoring()
@@ -150,6 +151,7 @@ var _ = Describe("TestHostMonitoring", func() {
 		mockEvents    *events.MockHandler
 		dbName        string
 		clusterID     = strfmt.UUID(uuid.New().String())
+		infraEnvID    = strfmt.UUID(uuid.New().String())
 		mockMetricApi *metrics.MockAPI
 	)
 
@@ -204,7 +206,7 @@ var _ = Describe("TestHostMonitoring", func() {
 					cluster := hostutil.GenerateTestCluster(clusterID, "1.1.0.0/16")
 					Expect(db.Save(&cluster).Error).ToNot(HaveOccurred())
 				}
-				host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
+				host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, models.HostStatusDiscovering)
 				host.Inventory = workerInventory()
 				Expect(state.RegisterHost(ctx, &host, db)).ShouldNot(HaveOccurred())
 				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))

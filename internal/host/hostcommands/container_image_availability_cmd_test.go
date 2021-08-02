@@ -25,16 +25,16 @@ const (
 
 var _ = Describe("container_image_availability_cmd", func() {
 	var (
-		ctx           = context.Background()
-		host          models.Host
-		cluster       common.Cluster
-		db            *gorm.DB
-		cmd           *imageAvailabilityCmd
-		id, clusterID strfmt.UUID
-		dbName        string
-		ctrl          *gomock.Controller
-		mockRelease   *oc.MockRelease
-		mockVersions  *versions.MockHandler
+		ctx                       = context.Background()
+		host                      models.Host
+		cluster                   common.Cluster
+		db                        *gorm.DB
+		cmd                       *imageAvailabilityCmd
+		id, clusterID, infraEnvID strfmt.UUID
+		dbName                    string
+		ctrl                      *gomock.Controller
+		mockRelease               *oc.MockRelease
+		mockVersions              *versions.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -47,7 +47,8 @@ var _ = Describe("container_image_availability_cmd", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHostAddedToCluster(id, clusterID, models.HostStatusInsufficient)
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHostAddedToCluster(id, infraEnvID, clusterID, models.HostStatusInsufficient)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID, OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())

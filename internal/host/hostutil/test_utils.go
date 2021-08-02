@@ -41,19 +41,19 @@ func GenerateTestInfraEnv(infraEnvID strfmt.UUID) common.InfraEnv {
 
 /* Host */
 
-func GenerateTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {
-	return GenerateTestHostByKind(hostID, clusterID, state, models.HostKindHost, models.HostRoleWorker)
+func GenerateTestHost(hostID, infraEnvID, clusterID strfmt.UUID, state string) models.Host {
+	return GenerateTestHostByKind(hostID, infraEnvID, clusterID, state, models.HostKindHost, models.HostRoleWorker)
 }
 
-func GenerateTestHostAddedToCluster(hostID, clusterID strfmt.UUID, state string) models.Host {
-	return GenerateTestHostByKind(hostID, clusterID, state, models.HostKindAddToExistingClusterHost, models.HostRoleWorker)
+func GenerateTestHostAddedToCluster(hostID, infraEnvID, clusterID strfmt.UUID, state string) models.Host {
+	return GenerateTestHostByKind(hostID, infraEnvID, clusterID, state, models.HostKindAddToExistingClusterHost, models.HostRoleWorker)
 }
 
-func GenerateTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string, role models.HostRole) models.Host {
+func GenerateTestHostByKind(hostID, infraEnvID, clusterID strfmt.UUID, state, kind string, role models.HostRole) models.Host {
 	now := strfmt.DateTime(time.Now())
 	return models.Host{
 		ID:              &hostID,
-		InfraEnvID:      clusterID,
+		InfraEnvID:      infraEnvID,
 		ClusterID:       &clusterID,
 		Status:          swag.String(state),
 		Inventory:       common.GenerateTestDefaultInventory(),
@@ -70,13 +70,13 @@ func GenerateTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string, r
 	}
 }
 
-func GenerateTestHostWithNetworkAddress(hostID, clusterID strfmt.UUID, role models.HostRole, status string, netAddr common.NetAddress) *models.Host {
+func GenerateTestHostWithNetworkAddress(hostID, infraEnvID, clusterID strfmt.UUID, role models.HostRole, status string, netAddr common.NetAddress) *models.Host {
 	now := strfmt.DateTime(time.Now())
 	h := models.Host{
 		ID:                &hostID,
 		RequestedHostname: netAddr.Hostname,
 		ClusterID:         &clusterID,
-		InfraEnvID:        clusterID,
+		InfraEnvID:        infraEnvID,
 		Status:            swag.String(status),
 		Inventory:         common.GenerateTestInventoryWithNetwork(netAddr),
 		Role:              role,

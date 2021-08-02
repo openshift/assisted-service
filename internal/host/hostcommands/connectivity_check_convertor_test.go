@@ -14,11 +14,11 @@ import (
 
 var _ = Describe("connectivitycheckconvertor", func() {
 	var (
-		ctrl                                       *gomock.Controller
-		mockValidator                              *connectivity.MockValidator
-		currentHostId, hostId2, hostId3, clusterId strfmt.UUID
-		hosts                                      []*models.Host
-		interfaces                                 []*models.Interface
+		ctrl                                                   *gomock.Controller
+		mockValidator                                          *connectivity.MockValidator
+		currentHostId, hostId2, hostId3, clusterId, infraEnvId strfmt.UUID
+		hosts                                                  []*models.Host
+		interfaces                                             []*models.Interface
 	)
 
 	BeforeEach(func() {
@@ -27,14 +27,15 @@ var _ = Describe("connectivitycheckconvertor", func() {
 		mockValidator = connectivity.NewMockValidator(ctrl)
 
 		clusterId = strfmt.UUID(uuid.New().String())
+		infraEnvId = strfmt.UUID(uuid.New().String())
 		currentHostId = strfmt.UUID(uuid.New().String())
 		hostId2 = strfmt.UUID(uuid.New().String())
 		hostId3 = strfmt.UUID(uuid.New().String())
 		currentHostId = strfmt.UUID(uuid.New().String())
 		hosts = []*models.Host{
-			{ID: &currentHostId, ClusterID: &clusterId},
-			{ID: &hostId2, ClusterID: &clusterId},
-			{ID: &hostId3, ClusterID: &clusterId},
+			{ID: &currentHostId, ClusterID: &clusterId, InfraEnvID: infraEnvId},
+			{ID: &hostId2, ClusterID: &clusterId, InfraEnvID: infraEnvId},
+			{ID: &hostId3, ClusterID: &clusterId, InfraEnvID: infraEnvId},
 		}
 
 		interfaces = []*models.Interface{

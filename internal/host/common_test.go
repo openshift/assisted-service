@@ -23,6 +23,7 @@ var _ = Describe("GetHostnameAndRoleByIP", func() {
 	hostRolesIpv4 := []hostNetProfile{{role: models.HostRoleMaster, hostname: "master-0", ip: "1.2.3.1"}, {role: models.HostRoleWorker, hostname: "worker-0", ip: "1.2.3.2"}}
 	hostrolesIpv6 := []hostNetProfile{{role: models.HostRoleMaster, hostname: "master-1", ip: "1001:db8::11"}, {role: models.HostRoleWorker, hostname: "worker-1", ip: "1001:db8::12"}}
 	clusterID := strfmt.UUID(uuid.New().String())
+	infraEnvID := strfmt.UUID(uuid.New().String())
 
 	Context("resolves hostname and role based on IP", func() {
 
@@ -71,12 +72,12 @@ var _ = Describe("GetHostnameAndRoleByIP", func() {
 				hosts := []*models.Host{}
 				for _, v := range test.hostRolesIpv4 {
 					netAddr := common.NetAddress{Hostname: v.hostname, IPv4Address: []string{fmt.Sprintf("%s/%d", v.ip, 24)}}
-					h := hostutil.GenerateTestHostWithNetworkAddress(strfmt.UUID(uuid.New().String()), clusterID, v.role, models.HostStatusKnown, netAddr)
+					h := hostutil.GenerateTestHostWithNetworkAddress(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, v.role, models.HostStatusKnown, netAddr)
 					hosts = append(hosts, h)
 				}
 				for _, v := range test.hostRolesIpv6 {
 					netAddr := common.NetAddress{Hostname: v.hostname, IPv6Address: []string{fmt.Sprintf("%s/%d", v.ip, 120)}}
-					h := hostutil.GenerateTestHostWithNetworkAddress(strfmt.UUID(uuid.New().String()), clusterID, v.role, models.HostStatusKnown, netAddr)
+					h := hostutil.GenerateTestHostWithNetworkAddress(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, v.role, models.HostStatusKnown, netAddr)
 					hosts = append(hosts, h)
 				}
 				hostname, role, err := GetHostnameAndRoleByIP(test.targetIP, hosts)

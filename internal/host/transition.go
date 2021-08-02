@@ -445,7 +445,7 @@ func (th *transitionHandler) PostRefreshLogsProgress(progress string) stateswitc
 		}
 		var err error
 		_, err = hostutil.UpdateLogsProgress(params.ctx, logutil.FromContext(params.ctx, th.log),
-			params.db, th.eventsHandler, *sHost.host.ClusterID, *sHost.host.ID, sHost.srcState, progress)
+			params.db, th.eventsHandler, sHost.host.InfraEnvID, *sHost.host.ID, sHost.srcState, progress)
 		return err
 	}
 	return ret
@@ -612,7 +612,7 @@ func (th *transitionHandler) PostRefreshHostRefreshStageUpdateTime(
 	_, err = refreshHostStageUpdateTime(
 		logutil.FromContext(params.ctx, th.log),
 		params.db,
-		*sHost.host.ClusterID,
+		sHost.host.InfraEnvID,
 		*sHost.host.ID,
 		sHost.srcState)
 	return err

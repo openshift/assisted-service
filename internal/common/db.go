@@ -198,16 +198,6 @@ func GetHostFromDB(db *gorm.DB, infraEnvId, hostId string) (*Host, error) {
 	return &host, nil
 }
 
-func GetV2HostFromDB(db *gorm.DB, infraEnvId, hostId string) (*Host, error) {
-	var host Host
-
-	err := db.Take(&host, "id = ? and infra_env_id = ?", hostId, infraEnvId).Error
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get host %s in infra-env %s", hostId, infraEnvId)
-	}
-	return &host, nil
-}
-
 func GetHostFromDBWhere(db *gorm.DB, where ...interface{}) (*Host, error) {
 	var host Host
 

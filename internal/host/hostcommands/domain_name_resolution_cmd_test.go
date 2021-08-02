@@ -19,7 +19,7 @@ var _ = Describe("domainNameResolution", func() {
 	var cluster common.Cluster
 	var db *gorm.DB
 	var dCmd *domainNameResolutionCmd
-	var id, clusterID strfmt.UUID
+	var id, clusterID, infraEnvID strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
 	var dbName string
@@ -31,7 +31,8 @@ var _ = Describe("domainNameResolution", func() {
 		dCmd = NewDomainNameResolutionCmd(common.GetTestLog(), "quay.io/ocpmetal/assisted-installer-agent:latest", db)
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(id, clusterID, models.HostStatusPreparingForInstallation)
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(id, infraEnvID, clusterID, models.HostStatusPreparingForInstallation)
 		host.Inventory = hostutil.GenerateMasterInventory()
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		name = "example"

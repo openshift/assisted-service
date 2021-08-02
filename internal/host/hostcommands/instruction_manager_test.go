@@ -25,21 +25,21 @@ import (
 
 var _ = Describe("instruction_manager", func() {
 	var (
-		ctx               = context.Background()
-		host              models.Host
-		db                *gorm.DB
-		mockEvents        *events.MockHandler
-		mockVersions      *versions.MockHandler
-		stepsReply        models.Steps
-		hostId, clusterId strfmt.UUID
-		stepsErr          error
-		instMng           *InstructionManager
-		ctrl              *gomock.Controller
-		hwValidator       *hardware.MockValidator
-		mockRelease       *oc.MockRelease
-		cnValidator       *connectivity.MockValidator
-		instructionConfig InstructionConfig
-		dbName            string
+		ctx                           = context.Background()
+		host                          models.Host
+		db                            *gorm.DB
+		mockEvents                    *events.MockHandler
+		mockVersions                  *versions.MockHandler
+		stepsReply                    models.Steps
+		hostId, clusterId, infraEnvId strfmt.UUID
+		stepsErr                      error
+		instMng                       *InstructionManager
+		ctrl                          *gomock.Controller
+		hwValidator                   *hardware.MockValidator
+		mockRelease                   *oc.MockRelease
+		cnValidator                   *connectivity.MockValidator
+		instructionConfig             InstructionConfig
+		dbName                        string
 	)
 
 	BeforeEach(func() {
@@ -53,11 +53,12 @@ var _ = Describe("instruction_manager", func() {
 		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(hostId, clusterId, "unknown invalid state")
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, "unknown invalid state")
 		host.Role = models.HostRoleMaster
 		host.Inventory = hostutil.GenerateMasterInventory()
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		anotherHost := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), clusterId, "insufficient")
+		anotherHost := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvId, clusterId, "insufficient")
 		Expect(db.Create(&anotherHost).Error).ShouldNot(HaveOccurred())
 	})
 
@@ -323,7 +324,7 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 	instMng *InstructionManager, mockValidator *hardware.MockValidator, mockRelease *oc.MockRelease, mockVersions *versions.MockHandler,
 	mockConnectivity *connectivity.MockValidator, ctx context.Context, expectedStepTypes []models.StepType) {
 
-	mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, hostutil.GetEventSeverityFromHostStatus(state), gomock.Any(), gomock.Any())
+	mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, host.ID, hostutil.GetEventSeverityFromHostStatus(state), gomock.Any(), gomock.Any())
 	updateReply, updateErr := hostutil.UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status, state, "")
 	ExpectWithOffset(1, updateErr).ShouldNot(HaveOccurred())
 	ExpectWithOffset(1, updateReply).ShouldNot(BeNil())

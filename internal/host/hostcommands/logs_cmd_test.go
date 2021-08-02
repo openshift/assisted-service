@@ -21,7 +21,7 @@ var _ = Describe("upload_logs", func() {
 	var host models.Host
 	var db *gorm.DB
 	var logsCmd *logsCmd
-	var id, clusterId strfmt.UUID
+	var id, clusterId, infraEnvId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
 	var dbName string
@@ -32,7 +32,8 @@ var _ = Describe("upload_logs", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(id, clusterId, models.HostStatusError)
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusError)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 
@@ -54,7 +55,7 @@ var _ = Describe("upload_logs", func() {
 		host.Bootstrap = true
 		db.Save(&host)
 		id = strfmt.UUID(uuid.New().String())
-		host2 := hostutil.GenerateTestHost(id, clusterId, models.HostStatusError)
+		host2 := hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusError)
 		host2.Inventory = common.GenerateTestDefaultInventory()
 		host2.Role = models.HostRoleMaster
 		Expect(db.Create(&host2).Error).ToNot(HaveOccurred())
@@ -68,7 +69,7 @@ var _ = Describe("upload_logs", func() {
 		host.Bootstrap = true
 		db.Save(&host)
 		id = strfmt.UUID(uuid.New().String())
-		host2 := hostutil.GenerateTestHost(id, clusterId, models.HostStatusError)
+		host2 := hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusError)
 		inventory := models.Inventory{
 			Interfaces: []*models.Interface{
 				{

@@ -86,7 +86,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 
 	step.Args = []string{"-c", unbootableCmd + fullCmd}
 
-	if _, err := hostutil.UpdateHost(i.log, i.db, *host.ClusterID, *host.ID, *host.Status,
+	if _, err := hostutil.UpdateHost(i.log, i.db, host.InfraEnvID, *host.ID, *host.Status,
 		"installer_version", i.instructionConfig.InstallerImage); err != nil {
 		return nil, err
 	}

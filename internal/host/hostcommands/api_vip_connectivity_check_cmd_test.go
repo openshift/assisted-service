@@ -19,7 +19,7 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 	var cluster common.Cluster
 	var db *gorm.DB
 	var apivipConnectivityCheckCmd *apivipConnectivityCheckCmd
-	var id, clusterID strfmt.UUID
+	var id, clusterID, infraEnvID strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
 	var dbName string
@@ -30,7 +30,8 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHostAddedToCluster(id, clusterID, models.HostStatusInsufficient)
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHostAddedToCluster(id, infraEnvID, clusterID, models.HostStatusInsufficient)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		apiVipDNSName := "test.com"
 		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID, APIVipDNSName: &apiVipDNSName}}

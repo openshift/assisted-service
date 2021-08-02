@@ -507,7 +507,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	var err error
 	switch progress.CurrentStage {
 	case models.HostStageDone:
-		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, *h.ClusterID, *h.ID,
+		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstalled, statusInfo,
 			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
 	case models.HostStageFailed:
@@ -517,18 +517,18 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
 		}
 
-		_, err = hostutil.UpdateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, *h.ClusterID, *h.ID,
+		_, err = hostutil.UpdateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
 	case models.HostStageRebooting:
 		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
-			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, *h.ClusterID, *h.ID,
+			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfo,
 				h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
 			break
 		}
 		fallthrough
 	default:
-		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, *h.ClusterID, *h.ID,
+		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstallingInProgress, statusInfo,
 			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
 	}
@@ -548,7 +548,7 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 	return nil
 }
 func (m *Manager) UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error {
-	_, err := hostutil.UpdateLogsProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, *h.ClusterID, *h.ID,
+	_, err := hostutil.UpdateLogsProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 		swag.StringValue(h.Status), progress)
 	return err
 }
@@ -974,7 +974,7 @@ func (m *Manager) autoRoleSelection(ctx context.Context, h *models.Host, db *gor
 	log.Infof("Auto selected role %s for host %s cluster %s", role, h.ID.String(), h.ClusterID.String())
 	// pointer was changed in selectRole or after the update - need to take the host again
 	return db.Model(&models.Host{}).
-		Take(h, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error
+		Take(h, "id = ? and infra_env_id = ?", h.ID.String(), h.InfraEnvID.String()).Error
 }
 
 func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (models.HostRole, error) {
@@ -1099,16 +1099,16 @@ func (m *Manager) resetContainerImagesValidation(host *models.Host, db *gorm.DB)
 		}).Error
 }
 
-func (m *Manager) ResetHostValidation(ctx context.Context, hostID, clusterID strfmt.UUID, validationID string, db *gorm.DB) error {
+func (m *Manager) ResetHostValidation(ctx context.Context, hostID, infraEnvID strfmt.UUID, validationID string, db *gorm.DB) error {
 	if db == nil {
 		db = m.db
 	}
-	h, err := common.GetHostFromDB(db, clusterID.String(), hostID.String())
+	h, err := common.GetHostFromDB(db, infraEnvID.String(), hostID.String())
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.NewApiError(http.StatusNotFound, errors.Wrapf(err, "Host %s of cluster %s was not found", hostID.String(), clusterID.String()))
+			return common.NewApiError(http.StatusNotFound, errors.Wrapf(err, "Host %s of cluster %s was not found", hostID.String(), infraEnvID.String()))
 		}
-		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Unexpected error while getting host %s of cluster %s", hostID.String(), clusterID.String()))
+		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Unexpected error while getting host %s of cluster %s", hostID.String(), infraEnvID.String()))
 	}
 	log := logutil.FromContext(ctx, m.log)
 	host := &h.Host

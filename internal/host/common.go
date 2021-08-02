@@ -51,18 +51,18 @@ type UpdateReply struct {
 func refreshHostStageUpdateTime(
 	log logrus.FieldLogger,
 	db *gorm.DB,
-	clusterId strfmt.UUID,
+	infraEnvId strfmt.UUID,
 	hostId strfmt.UUID,
 	srcStatus string) (*common.Host, error) {
 	var host *common.Host
 	var err error
 
 	now := strfmt.DateTime(time.Now())
-	if host, err = hostutil.UpdateHost(log, db, clusterId, hostId, srcStatus, "progress_stage_updated_at", now); err != nil {
+	if host, err = hostutil.UpdateHost(log, db, infraEnvId, hostId, srcStatus, "progress_stage_updated_at", now); err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"failed to refresh host status update time %s from cluster %s state from %s",
-			hostId, clusterId, srcStatus)
+			"failed to refresh host status update time %s from infraEnv %s state from %s",
+			hostId, infraEnvId, srcStatus)
 	}
 
 	return host, nil
@@ -84,7 +84,7 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, db
 	}
 	extras = append(extras, "trigger_monitor_timestamp", time.Now())
 
-	_, err := hostutil.UpdateHost(log, db, *h.ClusterID, *h.ID, *h.Status, extras...)
+	_, err := hostutil.UpdateHost(log, db, h.InfraEnvID, *h.ID, *h.Status, extras...)
 	return err
 }
 
