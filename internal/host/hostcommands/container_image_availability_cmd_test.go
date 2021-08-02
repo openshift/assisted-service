@@ -55,15 +55,15 @@ var _ = Describe("container_image_availability_cmd", func() {
 
 	It("get_step", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
-		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).Times(1)
 
 		step, err := cmd.GetSteps(ctx, &host)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(step).NotTo(BeNil())
 
 		request := &models.ContainerImageAvailabilityRequest{
-			Images:  []string{cmd.instructionConfig.InstallerImage, defaultMCOImage, defaultMustGatherImage},
+			Images:  []string{defaultReleaseImage, defaultMCOImage, ocpMustGatherImage, cmd.instructionConfig.InstallerImage},
 			Timeout: defaultImageAvailabilityTimeoutSeconds,
 		}
 
@@ -93,7 +93,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 	It("get_step_get_must_gather_failure", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
-		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("err")).Times(1)
+		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(nil, errors.New("err")).Times(1)
 
 		step, err := cmd.GetSteps(ctx, &host)
 		Expect(err).To(HaveOccurred())
@@ -124,18 +124,13 @@ var _ = Describe("get images", func() {
 		cmd = NewImageAvailabilityCmd(common.GetTestLog(), db, mockRelease, mockVersions, DefaultInstructionConfig, defaultImageAvailabilityTimeoutSeconds)
 	})
 
-	It("get_step_get_must_gather_failure", func() {
+	It("get_step_get_all_images", func() {
 		release := "image-rel"
 		mco := "image-mco"
-		mg := "image-must-gather"
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(release, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mco, nil).Times(1)
-		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mg, nil).Times(1)
-		expected := Images{
-			ReleaseImage:    release,
-			MCOImage:        mco,
-			MustGatherImage: mg,
-		}
+		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(1)
+		expected := []string{release, mco, defaultMustGatherVersion["ocp"]}
 		images, err := cmd.getImages(cluster)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(images).To(Equal(expected))

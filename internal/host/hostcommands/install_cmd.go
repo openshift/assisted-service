@@ -115,7 +115,11 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		return "", err
 	}
 
-	mustGatherImage, err := i.ocRelease.GetMustGatherImage(i.log, releaseImage, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+	mustGatherMap, err := i.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.PullSecret)
+	if err != nil {
+		return "", err
+	}
+	mustGatherImages, err := i.getMustGatherArgument(mustGatherMap)
 	if err != nil {
 		return "", err
 	}
@@ -134,7 +138,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		"--mco-image", mcoImage,
 		"--controller-image", i.instructionConfig.ControllerImage,
 		"--agent-image", i.instructionConfig.AgentImage,
-		"--must-gather-image", mustGatherImage,
+		"--must-gather-image", mustGatherImages,
 	}
 
 	/*
@@ -179,6 +183,22 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 
 	return fmt.Sprintf("%s %s %s", shellescape.QuoteCommand(podmanCmd), i.instructionConfig.InstallerImage,
 		shellescape.QuoteCommand(installerCmd)), nil
+}
+
+func (i *installCmd) getMustGatherArgument(mustGatherMap versions.MustGatherVersion) (string, error) {
+	//for backward compatability, if must gather images map contains only the ocp must gather
+	//we shall send a single image. otherwise, we shall send a json structure holding all the
+	//relevant images
+	if len(mustGatherMap) == 1 && mustGatherMap["ocp"] != "" {
+		return mustGatherMap["ocp"], nil
+	}
+
+	arg, err := json.Marshal(mustGatherMap)
+	if err != nil {
+		i.log.WithError(err).Errorf("can not encode must-gather image map")
+		return "", err
+	}
+	return string(arg), nil
 }
 
 func (i *installCmd) getProxyArguments(clusterName, baseDNSDomain, httpProxy, httpsProxy, noProxy string) []string {

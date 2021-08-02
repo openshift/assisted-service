@@ -27,10 +27,14 @@ import (
 )
 
 const (
-	defaultReleaseImage    = "releaseImage"
-	defaultMCOImage        = "mcoImage"
-	defaultMustGatherImage = "mustGatherImage"
+	defaultReleaseImage = "releaseImage"
+	defaultMCOImage     = "mcoImage"
+	ocpMustGatherImage  = "mustGatherImage"
 )
+
+var defaultMustGatherVersion = versions.MustGatherVersion{
+	"ocp": ocpMustGatherImage,
+}
 
 var DefaultInstructionConfig = InstructionConfig{
 	ServiceBaseURL:      "http://10.35.59.36:30485",
@@ -79,7 +83,7 @@ var _ = Describe("installcmd", func() {
 
 	mockImages := func(times int) {
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(times)
-		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).Times(times)
+		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(times)
 	}
 
 	Context("negative", func() {
@@ -257,7 +261,7 @@ var _ = Describe("installcmd arguments", func() {
 
 	mockImages := func() {
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).AnyTimes()
-		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).AnyTimes()
+		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
 	}
 
 	BeforeSuite(func() {
@@ -364,7 +368,7 @@ var _ = Describe("installcmd arguments", func() {
 		It("verify empty value", func() {
 			mockRelease = oc.NewMockRelease(ctrl)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
-			mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).AnyTimes()
+			mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
 
 			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
@@ -377,7 +381,7 @@ var _ = Describe("installcmd arguments", func() {
 			value := "\nescaped_\n\t_value\n"
 			mockRelease = oc.NewMockRelease(ctrl)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(value, nil).AnyTimes()
-			mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).AnyTimes()
+			mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
 
 			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
@@ -438,6 +442,38 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
 			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", host.InstallerArgs), 1)
+		})
+	})
+
+	Context("must-gather arguments", func() {
+		var (
+			installCmd        *installCmd
+			instructionConfig InstructionConfig
+		)
+
+		BeforeEach(func() {
+			instructionConfig = DefaultInstructionConfig
+			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions)
+		})
+
+		It("single argument with ocp image only", func() {
+			args, err := installCmd.getMustGatherArgument(defaultMustGatherVersion)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(args).To(Equal(ocpMustGatherImage))
+		})
+
+		It("multiple images", func() {
+			versions := map[string]string{
+				"cnv": "cnv-must-gather-image",
+				"lso": "lso-must-gather-image",
+			}
+			args, err := installCmd.getMustGatherArgument(versions)
+			Expect(err).NotTo(HaveOccurred())
+
+			out := make(map[string]string)
+			Expect(json.Unmarshal([]byte(args), &out)).NotTo(HaveOccurred())
+			Expect(out["cnv"]).To(Equal(versions["cnv"]))
+			Expect(out["lso"]).To(Equal(versions["lso"]))
 		})
 	})
 
@@ -904,7 +940,14 @@ func verifyArgInCommand(command, key, value string, count int) {
 	match := r.FindAllStringSubmatch(command, -1)
 	Expect(match).NotTo(BeNil())
 	Expect(match).To(HaveLen(count))
-	Expect(strings.TrimSpace(match[0][1])).To(Equal(value))
+	Expect(strings.TrimSpace(match[0][1])).To(Equal(quoteString(value)))
+}
+
+func quoteString(value string) string {
+	if strings.ContainsRune(value, '"') && !(strings.Index(value, "'") == 0) {
+		return fmt.Sprintf("'%s'", value)
+	}
+	return value
 }
 
 func createClusterInDb(db *gorm.DB, haMode string) common.Cluster {
@@ -952,6 +995,7 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 func validateInstallCommand(installCmd *installCmd, reply *models.Step, role models.HostRole, clusterId, hostId strfmt.UUID,
 	bootDevice string, bootableDisks []string, haMode string) {
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
+	mustGatherImage, _ := installCmd.getMustGatherArgument(defaultMustGatherVersion)
 	verifyArgInCommand(reply.Args[1], "--cluster-id", string(clusterId), 1)
 	verifyArgInCommand(reply.Args[1], "--host-id", string(hostId), 1)
 	verifyArgInCommand(reply.Args[1], "--high-availability-mode", haMode, 1)
@@ -963,5 +1007,5 @@ func validateInstallCommand(installCmd *installCmd, reply *models.Step, role mod
 	verifyArgInCommand(reply.Args[1], "--controller-image", installCmd.instructionConfig.ControllerImage, 1)
 	verifyArgInCommand(reply.Args[1], "--agent-image", installCmd.instructionConfig.AgentImage, 1)
 	verifyArgInCommand(reply.Args[1], "--installation-timeout", strconv.Itoa(int(installCmd.instructionConfig.InstallationTimeout)), 1)
-	verifyArgInCommand(reply.Args[1], "--must-gather-image", defaultMustGatherImage, 1)
+	verifyArgInCommand(reply.Args[1], "--must-gather-image", mustGatherImage, 1)
 }

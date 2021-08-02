@@ -9,7 +9,7 @@ import (
 	middleware "github.com/go-openapi/runtime/middleware"
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
-	versions "github.com/openshift/assisted-service/restapi/operations/versions"
+	versions0 "github.com/openshift/assisted-service/restapi/operations/versions"
 	reflect "reflect"
 )
 
@@ -64,6 +64,21 @@ func (m *MockHandler) GetKey(arg0 string) (string, error) {
 func (mr *MockHandlerMockRecorder) GetKey(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKey", reflect.TypeOf((*MockHandler)(nil).GetKey), arg0)
+}
+
+// GetMustGatherImages mocks base method
+func (m *MockHandler) GetMustGatherImages(arg0, arg1 string) (MustGatherVersion, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMustGatherImages", arg0, arg1)
+	ret0, _ := ret[0].(MustGatherVersion)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMustGatherImages indicates an expected call of GetMustGatherImages
+func (mr *MockHandlerMockRecorder) GetMustGatherImages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMustGatherImages", reflect.TypeOf((*MockHandler)(nil).GetMustGatherImages), arg0, arg1)
 }
 
 // GetRHCOSImage mocks base method
@@ -171,7 +186,7 @@ func (mr *MockHandlerMockRecorder) IsOpenshiftVersionSupported(arg0 interface{})
 }
 
 // ListComponentVersions mocks base method
-func (m *MockHandler) ListComponentVersions(arg0 context.Context, arg1 versions.ListComponentVersionsParams) middleware.Responder {
+func (m *MockHandler) ListComponentVersions(arg0 context.Context, arg1 versions0.ListComponentVersionsParams) middleware.Responder {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListComponentVersions", arg0, arg1)
 	ret0, _ := ret[0].(middleware.Responder)
@@ -185,7 +200,7 @@ func (mr *MockHandlerMockRecorder) ListComponentVersions(arg0, arg1 interface{})
 }
 
 // ListSupportedOpenshiftVersions mocks base method
-func (m *MockHandler) ListSupportedOpenshiftVersions(arg0 context.Context, arg1 versions.ListSupportedOpenshiftVersionsParams) middleware.Responder {
+func (m *MockHandler) ListSupportedOpenshiftVersions(arg0 context.Context, arg1 versions0.ListSupportedOpenshiftVersionsParams) middleware.Responder {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListSupportedOpenshiftVersions", arg0, arg1)
 	ret0, _ := ret[0].(middleware.Responder)

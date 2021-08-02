@@ -15,6 +15,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type MustGatherVersion map[string]string
+type MustGatherVersions map[string]MustGatherVersion
+
 type Versions struct {
 	SelfVersion     string `envconfig:"SELF_VERSION" default:"quay.io/ocpmetal/assisted-service:latest"`
 	AgentDockerImg  string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/agent:latest"`
@@ -26,6 +29,7 @@ type Versions struct {
 //go:generate mockgen -package versions -destination mock_versions.go -self_package github.com/openshift/assisted-service/internal/versions . Handler
 type Handler interface {
 	restapi.VersionsAPI
+	GetMustGatherImages(openshiftVersion string, pullSecret string) (MustGatherVersion, error)
 	GetReleaseImage(openshiftVersion string) (string, error)
 	GetRHCOSImage(openshiftVersion string) (string, error)
 	GetRHCOSRootFS(openshiftVersion string) (string, error)
@@ -39,10 +43,11 @@ type Handler interface {
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 	versions Versions, openshiftVersions models.OpenshiftVersions,
-	releaseImageMirror string) *handler {
+	mustGatherVersions MustGatherVersions, releaseImageMirror string) *handler {
 	return &handler{
 		versions:           versions,
 		openshiftVersions:  openshiftVersions,
+		mustGatherVersions: mustGatherVersions,
 		releaseHandler:     releaseHandler,
 		releaseImageMirror: releaseImageMirror,
 		log:                log,
@@ -54,6 +59,7 @@ var _ restapi.VersionsAPI = (*handler)(nil)
 type handler struct {
 	versions           Versions
 	openshiftVersions  models.OpenshiftVersions
+	mustGatherVersions MustGatherVersions
 	releaseHandler     oc.Release
 	releaseImageMirror string
 	log                logrus.FieldLogger
@@ -138,6 +144,41 @@ func (h *handler) GetRHCOSVersion(openshiftVersion string) (string, error) {
 	}
 
 	return *h.openshiftVersions[versionKey].RhcosVersion, nil
+}
+
+func (h *handler) GetMustGatherImages(openshiftVersion string, pullSecret string) (MustGatherVersion, error) {
+	versionKey, err := h.GetKey(openshiftVersion)
+	if err != nil {
+		return nil, err
+	}
+	if !h.IsOpenshiftVersionSupported(versionKey) {
+		return nil, errors.Errorf("No operators must-gather version for unsupported openshift version %s", versionKey)
+	}
+	if h.mustGatherVersions == nil {
+		h.mustGatherVersions = make(MustGatherVersions)
+	}
+	if h.mustGatherVersions[versionKey] == nil {
+		h.mustGatherVersions[versionKey] = make(MustGatherVersion)
+	}
+
+	//check if ocp must-gather image is already in the cache
+	if h.mustGatherVersions[versionKey]["ocp"] != "" {
+		versions := h.mustGatherVersions[versionKey]
+		return versions, nil
+	}
+	//if not, fetch it from the release image and add it to the cache
+	releaseImage, err := h.GetReleaseImage(openshiftVersion)
+	if err != nil {
+		return nil, err
+	}
+	ocpMustGatherImage, err := h.releaseHandler.GetMustGatherImage(h.log, releaseImage, h.releaseImageMirror, pullSecret)
+	if err != nil {
+		return nil, err
+	}
+	h.mustGatherVersions[versionKey]["ocp"] = ocpMustGatherImage
+
+	versions := h.mustGatherVersions[versionKey]
+	return versions, nil
 }
 
 func (h *handler) IsOpenshiftVersionSupported(versionKey string) bool {
