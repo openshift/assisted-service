@@ -1993,7 +1993,7 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:          "insufficient virtualization cpu",
 				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
-				inventory:     hostutil.GenerateMasterInventoryWithHostnameAndCpuFlags("master", []string{"fpu", "vme", "de", "pse", "tsc", "msr"}),
+				inventory:     hostutil.GenerateMasterInventoryWithHostnameAndCpuFlags("master", []string{"fpu", "vme", "de", "pse", "tsc", "msr"}, "RHEL"),
 				role:          models.HostRoleMaster,
 				srcState:      models.HostStatusDiscovering,
 				dstState:      models.HostStatusInsufficient,
@@ -2838,7 +2838,7 @@ var _ = Describe("Refresh Host", func() {
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
-					"Platform OpenStack Compute is forbidden")),
+					fmt.Sprintf("Platform %s is allowed only for Single Node OpenShift or user-managed networking", OpenStackPlatform))),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:                   {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:                  {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -2851,7 +2851,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:              {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr:          {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsHostnameValid:               {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
-					IsPlatformValid:               {status: ValidationFailure, messagePattern: "Platform OpenStack Compute is forbidden"},
+					IsPlatformValid:               {status: ValidationFailure, messagePattern: fmt.Sprintf("Platform %s is allowed only for Single Node OpenShift or user-managed networking", OpenStackPlatform)},
 					CompatibleWithClusterPlatform: {status: ValidationSuccess, messagePattern: "Host is compatible with cluster platform baremetal"},
 					IsNTPSynced:                   {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
@@ -4263,6 +4263,62 @@ var _ = Describe("Refresh Host", func() {
 						}
 					}
 				}
+			})
+		}
+	})
+	Context("Platform validations", func() {
+
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+			mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvId,
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				AnyTimes()
+		})
+
+		tests := []struct {
+			name                  string
+			hostPlatform          string
+			userManagedNetworking bool
+			dstState              string
+		}{
+			{
+				name:                  fmt.Sprintf("validate %s and userManagedNetwork false", OpenStackPlatform),
+				hostPlatform:          OpenStackPlatform,
+				userManagedNetworking: false,
+				dstState:              models.HostStatusInsufficient,
+			},
+			{
+				name:                  fmt.Sprintf("validate %s and userManagedNetwork true", OpenStackPlatform),
+				hostPlatform:          OpenStackPlatform,
+				userManagedNetworking: true,
+				dstState:              models.HostStatusKnown,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusDiscovering)
+				host.Inventory = hostutil.GenerateMasterInventoryWithSystemPlatform(t.hostPlatform)
+				host.Role = models.HostRoleMaster
+				defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
+				Expect(err).ShouldNot(HaveOccurred())
+				host.NtpSources = string(defaultNTPSourcesInBytes)
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				cluster.UserManagedNetworking = swag.Bool(t.userManagedNetworking)
+				cluster.Name = common.TestDefaultConfig.ClusterName
+				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
+				cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+				Expect(hapi.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())
+
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", host.ID, clusterId.String()).Error).ToNot(HaveOccurred())
+				fmt.Printf("%s", *resultHost.StatusInfo)
+				fmt.Printf("%s", resultHost.ValidationsInfo)
+				Expect(resultHost.Status).To(Equal(&t.dstState))
 			})
 		}
 	})

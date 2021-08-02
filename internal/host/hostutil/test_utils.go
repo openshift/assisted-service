@@ -140,6 +140,10 @@ func generateTestAPIVIpConnectivity() string {
 
 /* Inventory */
 
+func GenerateMasterInventoryWithSystemPlatform(systemPlatform string) string {
+	return GenerateMasterInventoryWithHostnameAndCpuFlags("master-hostname", []string{"vmx"}, systemPlatform)
+}
+
 func GenerateMasterInventory() string {
 	return GenerateMasterInventoryWithHostname("master-hostname")
 }
@@ -149,14 +153,14 @@ func GenerateMasterInventoryV6() string {
 }
 
 func GenerateMasterInventoryWithHostname(hostname string) string {
-	return GenerateMasterInventoryWithHostnameAndCpuFlags(hostname, []string{"vmx"})
+	return GenerateMasterInventoryWithHostnameAndCpuFlags(hostname, []string{"vmx"}, "RHEL")
 }
 
 func GenerateMasterInventoryWithHostnameV6(hostname string) string {
 	return GenerateMasterInventoryWithHostnameAndCpuFlagsV6(hostname, []string{"vmx"})
 }
 
-func GenerateMasterInventoryWithHostnameAndCpuFlags(hostname string, cpuflags []string) string {
+func GenerateMasterInventoryWithHostnameAndCpuFlags(hostname string, cpuflags []string, systemPlatform string) string {
 	inventory := models.Inventory{
 		CPU: &models.CPU{Count: 8, Flags: cpuflags},
 		Disks: []*models.Disk{
@@ -175,7 +179,7 @@ func GenerateMasterInventoryWithHostnameAndCpuFlags(hostname string, cpuflags []
 		},
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		Hostname:     hostname,
-		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: systemPlatform, SerialNumber: "3534"},
 		Timestamp:    1601835002,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}

@@ -37,11 +37,13 @@ const (
 	ValidationDisabled              ValidationStatus = "disabled"
 )
 
+const OpenStackPlatform = "OpenStack Compute"
+
 var (
 	ImageStatusDownloadRateThreshold = 0.001
 
 	invalidPlatforms = []string{
-		"OpenStack Compute",
+		OpenStackPlatform,
 	}
 
 	forbiddenHostnames = []string{
@@ -432,7 +434,16 @@ func (v *validator) isValidPlatform(c *validationContext) ValidationStatus {
 	if c.inventory.SystemVendor == nil {
 		return ValidationError
 	}
-	return boolValue(!funk.ContainsString(invalidPlatforms, c.inventory.SystemVendor.ProductName))
+	if funk.ContainsString(invalidPlatforms, c.inventory.SystemVendor.ProductName) {
+		// In case there is no cluster validation is pending
+		if c.infraEnv != nil {
+			return ValidationSuccessSuppressOutput
+		} else {
+			//In case userManagedNetworking is true, we don't care about the platform
+			return boolValue(swag.BoolValue(c.cluster.UserManagedNetworking))
+		}
+	}
+	return ValidationSuccess
 }
 
 func (v *validator) printValidPlatform(c *validationContext, status ValidationStatus) string {
@@ -440,7 +451,7 @@ func (v *validator) printValidPlatform(c *validationContext, status ValidationSt
 	case ValidationSuccess:
 		return fmt.Sprintf("Platform %s is allowed", c.inventory.SystemVendor.ProductName)
 	case ValidationFailure:
-		return fmt.Sprintf("Platform %s is forbidden", c.inventory.SystemVendor.ProductName)
+		return fmt.Sprintf("Platform %s is allowed only for Single Node OpenShift or user-managed networking", c.inventory.SystemVendor.ProductName)
 	case ValidationPending:
 		return "Missing inventory"
 	default:
