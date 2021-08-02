@@ -5203,6 +5203,10 @@ definitions:
         x-nullable: false
         default: 'x86_64'
         description: The CPU architecture of the image (x86_64/arm64/etc).
+      disk_encryption:
+        type: object
+        $ref: '#/definitions/disk-encryption'
+        description: Installation disks encryption mode and host roles to be applied.
 
   cluster-update-params:
     type: object
@@ -5381,6 +5385,10 @@ definitions:
           type: object
           $ref: '#/definitions/machine_network'
         x-nullable: true
+      disk_encryption:
+        type: object
+        $ref: '#/definitions/disk-encryption'
+        description: Installation disks encryption mode and host roles to be applied.
 
   add-hosts-cluster-create-params:
     type: object
@@ -5537,6 +5545,11 @@ definitions:
         $ref: '#/definitions/cluster-progress-info'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:progress_"
         description: Installation progress percentages of the cluster.
+      disk_encryption:
+        type: object
+        $ref: '#/definitions/disk-encryption'
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:disk_encryption_"
+        description: Information regarding hosts' installation disks encryption.
       hosts:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;association_foreignkey:ID"
         type: array
@@ -5906,6 +5919,22 @@ definitions:
         type: integer
       finalizing_stage_percentage:
         type: integer
+
+  disk-encryption:
+    type: object
+    properties:
+      enable_on:
+        type: string
+        description: Enable/disable disk encryption on master nodes, worker nodes, or all nodes.
+        enum: ['none', 'all', 'masters', 'workers']
+      mode:
+        type: string
+        description: The disk encryption mode to use.
+        enum: ['tpmv2', 'tang']
+      tang_servers:
+        type: string
+        description: JSON-formatted string containing additional information regarding tang's configuration
+        x-go-custom-tag: gorm:"type:text"
 
   host-stage:
     type: string

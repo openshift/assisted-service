@@ -45,6 +45,9 @@ type ClusterUpdateParams struct {
 	// Cluster networks that are associated with this cluster.
 	ClusterNetworks []*ClusterNetwork `json:"cluster_networks"`
 
+	// Installation disks encryption mode and host roles to be applied.
+	DiskEncryption *DiskEncryption `json:"disk_encryption,omitempty"`
+
 	// disks selected config
 	DisksSelectedConfig []*ClusterUpdateParamsDisksSelectedConfigItems0 `json:"disks_selected_config"`
 
@@ -140,6 +143,10 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateClusterNetworks(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateDiskEncryption(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -268,6 +275,24 @@ func (m *ClusterUpdateParams) validateClusterNetworks(formats strfmt.Registry) e
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *ClusterUpdateParams) validateDiskEncryption(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.DiskEncryption) { // not required
+		return nil
+	}
+
+	if m.DiskEncryption != nil {
+		if err := m.DiskEncryption.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("disk_encryption")
+			}
+			return err
+		}
 	}
 
 	return nil

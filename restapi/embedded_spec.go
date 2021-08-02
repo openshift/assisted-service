@@ -6839,6 +6839,12 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
           "x-nullable": true
         },
+        "disk_encryption": {
+          "description": "Information regarding hosts' installation disks encryption.",
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:disk_encryption_\"",
+          "$ref": "#/definitions/disk-encryption"
+        },
         "email_domain": {
           "type": "string"
         },
@@ -7157,6 +7163,11 @@ func init() {
           "default": "x86_64",
           "x-nullable": false
         },
+        "disk_encryption": {
+          "description": "Installation disks encryption mode and host roles to be applied.",
+          "type": "object",
+          "$ref": "#/definitions/disk-encryption"
+        },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
@@ -7415,6 +7426,11 @@ func init() {
             "$ref": "#/definitions/cluster_network"
           },
           "x-nullable": true
+        },
+        "disk_encryption": {
+          "description": "Installation disks encryption mode and host roles to be applied.",
+          "type": "object",
+          "$ref": "#/definitions/disk-encryption"
         },
         "disks_selected_config": {
           "type": "array",
@@ -8044,6 +8060,34 @@ func init() {
         },
         "role": {
           "$ref": "#/definitions/disk-role"
+        }
+      }
+    },
+    "disk-encryption": {
+      "type": "object",
+      "properties": {
+        "enable_on": {
+          "description": "Enable/disable disk encryption on master nodes, worker nodes, or all nodes.",
+          "type": "string",
+          "enum": [
+            "none",
+            "all",
+            "masters",
+            "workers"
+          ]
+        },
+        "mode": {
+          "description": "The disk encryption mode to use.",
+          "type": "string",
+          "enum": [
+            "tpmv2",
+            "tang"
+          ]
+        },
+        "tang_servers": {
+          "description": "JSON-formatted string containing additional information regarding tang's configuration",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         }
       }
     },
@@ -17079,6 +17123,12 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
           "x-nullable": true
         },
+        "disk_encryption": {
+          "description": "Information regarding hosts' installation disks encryption.",
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:disk_encryption_\"",
+          "$ref": "#/definitions/disk-encryption"
+        },
         "email_domain": {
           "type": "string"
         },
@@ -17397,6 +17447,11 @@ func init() {
           "default": "x86_64",
           "x-nullable": false
         },
+        "disk_encryption": {
+          "description": "Installation disks encryption mode and host roles to be applied.",
+          "type": "object",
+          "$ref": "#/definitions/disk-encryption"
+        },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
@@ -17655,6 +17710,11 @@ func init() {
             "$ref": "#/definitions/cluster_network"
           },
           "x-nullable": true
+        },
+        "disk_encryption": {
+          "description": "Installation disks encryption mode and host roles to be applied.",
+          "type": "object",
+          "$ref": "#/definitions/disk-encryption"
         },
         "disks_selected_config": {
           "type": "array",
@@ -18244,6 +18304,34 @@ func init() {
         },
         "role": {
           "$ref": "#/definitions/disk-role"
+        }
+      }
+    },
+    "disk-encryption": {
+      "type": "object",
+      "properties": {
+        "enable_on": {
+          "description": "Enable/disable disk encryption on master nodes, worker nodes, or all nodes.",
+          "type": "string",
+          "enum": [
+            "none",
+            "all",
+            "masters",
+            "workers"
+          ]
+        },
+        "mode": {
+          "description": "The disk encryption mode to use.",
+          "type": "string",
+          "enum": [
+            "tpmv2",
+            "tang"
+          ]
+        },
+        "tang_servers": {
+          "description": "JSON-formatted string containing additional information regarding tang's configuration",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         }
       }
     },
