@@ -72,7 +72,7 @@ wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${S
 echo "Waiting until at least ${SPOKE_CONTROLPLANE_AGENTS} agents are available..."
 export -f wait_for_object_amount
 timeout 20m bash -c "wait_for_object_amount agent ${SPOKE_CONTROLPLANE_AGENTS} 30 ${SPOKE_NAMESPACE}"
-echo "All ${SPOKE_CONTROLPLANE_AGENTS} agents have joined!"
+echo "All ${SPOKE_CONTROLPLANE_AGENTS} agents have been discovered!"
 
 wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "60m" "${SPOKE_NAMESPACE}"
 echo "Cluster has been installed successfully!"
