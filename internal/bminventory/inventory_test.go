@@ -125,6 +125,31 @@ func mockClusterRegisterSuccess(bm *bareMetalInventory, withEvents bool) {
 	}
 }
 
+func mockInfraEnvRegisterSuccess() {
+	mockVersions.EXPECT().GetVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+	mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
+	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(2)
+	mockS3Client.EXPECT().GetBaseIsoObject(gomock.Any()).Return("rhcos", nil).Times(1)
+	mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), "rhcos", gomock.Any()).Return(nil).Times(1)
+	mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+	mockS3Client.EXPECT().IsAwsS3().Return(false)
+	mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).AnyTimes()
+}
+
+func mockInfraEnvUpdateSuccess() {
+	mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(2)
+	mockS3Client.EXPECT().GetBaseIsoObject(gomock.Any()).Return("rhcos", nil).Times(1)
+	mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), "rhcos", gomock.Any()).Return(nil).Times(1)
+	mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+	mockS3Client.EXPECT().IsAwsS3().Return(false)
+	mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).AnyTimes()
+}
+
+func mockInfraEnvDeRegisterSuccess() {
+	mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+}
+
 func mockAMSSubscription(ctx context.Context) {
 	mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any(), gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
 }
@@ -4963,6 +4988,392 @@ var _ = Describe("cluster", func() {
 		AfterEach(func() {
 			close(DoneChannel)
 			common.DeleteTestDB(db, dbName)
+		})
+	})
+})
+
+var _ = Describe("infraEnvs", func() {
+
+	var (
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		ctx        = context.Background()
+		infraEnvID strfmt.UUID
+		dbName     string
+	)
+
+	const (
+		AdditionalNtpSources = "ADDITIONAL_NTP_SOURCES"
+		DownloadUrl          = "DOWNLOAD_URL"
+		HREF                 = "HREF"
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Context("Delete", func() {
+		BeforeEach(func() {
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:                   infraEnvID,
+				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+				AdditionalNtpSources: AdditionalNtpSources,
+				Href:                 HREF,
+				DownloadURL:          DownloadUrl,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("DeRegisterInfraEnv", func() {
+			It("success", func() {
+				mockInfraEnvDeRegisterSuccess()
+				reply := bm.GetInfraEnv(ctx, installer.GetInfraEnvParams{
+					InfraEnvID: infraEnvID,
+				})
+				_, ok := reply.(*installer.GetInfraEnvOK)
+				Expect(ok).To(BeTrue())
+				reply = bm.DeregisterInfraEnv(ctx, installer.DeregisterInfraEnvParams{InfraEnvID: infraEnvID})
+				Expect(reply).Should(BeAssignableToTypeOf(&installer.DeregisterInfraEnvNoContent{}))
+				reply = bm.GetInfraEnv(ctx, installer.GetInfraEnvParams{
+					InfraEnvID: infraEnvID,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
+			})
+
+			It("failure - hosts exists", func() {
+				hostID := strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Host{
+					Host: models.Host{
+						ID:         &hostID,
+						InfraEnvID: infraEnvID,
+					}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				reply := bm.DeregisterInfraEnv(ctx, installer.DeregisterInfraEnvParams{InfraEnvID: infraEnvID})
+				Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusConflict, errors.Errorf(""))))
+			})
+		})
+	})
+
+	Context("List", func() {
+		BeforeEach(func() {
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:                   infraEnvID,
+				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+				AdditionalNtpSources: AdditionalNtpSources,
+				Href:                 HREF,
+				DownloadURL:          DownloadUrl,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:                   infraEnvID,
+				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+				AdditionalNtpSources: AdditionalNtpSources,
+				Href:                 HREF,
+				DownloadURL:          DownloadUrl,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("List InfraEnvs", func() {
+			It("success", func() {
+				resp := bm.ListInfraEnvs(ctx, installer.ListInfraEnvsParams{})
+				payload := resp.(*installer.ListInfraEnvsOK).Payload
+				Expect(len(payload)).Should(Equal(2))
+				Expect(payload[1].ID.String()).Should(Equal(infraEnvID.String()))
+				Expect(payload[1].OpenshiftVersion).Should(Equal(common.TestDefaultConfig.OpenShiftVersion))
+				Expect(payload[1].AdditionalNtpSources).Should(Equal(AdditionalNtpSources))
+				Expect(payload[1].Href).Should(Equal(HREF))
+			})
+		})
+	})
+
+	Context("Get", func() {
+		BeforeEach(func() {
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:                   infraEnvID,
+				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+				AdditionalNtpSources: AdditionalNtpSources,
+				Href:                 HREF,
+				DownloadURL:          DownloadUrl,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("GetInfraEnv", func() {
+			It("success", func() {
+				reply := bm.GetInfraEnv(ctx, installer.GetInfraEnvParams{
+					InfraEnvID: infraEnvID,
+				})
+				actual, ok := reply.(*installer.GetInfraEnvOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload.OpenshiftVersion).To(BeEquivalentTo(common.TestDefaultConfig.OpenShiftVersion))
+				Expect(actual.Payload.AdditionalNtpSources).To(Equal(AdditionalNtpSources))
+				Expect(actual.Payload.DownloadURL).To(Equal(DownloadUrl))
+				Expect(actual.Payload.Href).To(Equal(HREF))
+			})
+
+			It("Unfamilliar ID", func() {
+				resp := bm.GetInfraEnv(ctx, installer.GetInfraEnvParams{InfraEnvID: "12345"})
+				Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
+			})
+
+			It("DB inaccessible", func() {
+				common.DeleteTestDB(db, dbName)
+				resp := bm.GetInfraEnv(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
+				Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusInternalServerError, errors.Errorf(""))))
+			})
+		})
+
+	})
+
+	Context("Create InfraEnv", func() {
+		It("happy flow", func() {
+			mockInfraEnvRegisterSuccess()
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("some-infra-env-name"),
+					OpenshiftVersion: swag.String(MinimalOpenShiftVersionForNoneHA),
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
+			actual := reply.(*installer.RegisterInfraEnvCreated)
+			Expect(actual.Payload.Name).To(Equal("some-infra-env-name"))
+		})
+	})
+
+	Context("Update", func() {
+		Context("Update cluster", func() {
+			infraEnvName := "some-infra-env"
+			var (
+				i *common.InfraEnv
+			)
+			BeforeEach(func() {
+				mockInfraEnvRegisterSuccess()
+				reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String(infraEnvName),
+						OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+						PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+					},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterInfraEnvCreated()))
+				actual := reply.(*installer.RegisterInfraEnvCreated)
+				var err error
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: actual.Payload.ID})
+				Expect(err).ToNot(HaveOccurred())
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("generated_at", strfmt.DateTime(time.Now().AddDate(0, 0, -1))).Error
+				Expect(err).ToNot(HaveOccurred())
+			})
+			It("Update AdditionalNtpSources", func() {
+				mockInfraEnvUpdateSuccess()
+				Expect(i.AdditionalNtpSources).To(Equal(""))
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						AdditionalNtpSources: swag.String("1.1.1.1"),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				var err error
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.AdditionalNtpSources).ToNot(Equal(nil))
+				Expect(i.AdditionalNtpSources).To(Equal("1.1.1.1"))
+			})
+		})
+
+		Context("check pull secret", func() {
+			BeforeEach(func() {
+				v, err := validations.NewPullSecretValidator(validations.Config{})
+				Expect(err).ShouldNot(HaveOccurred())
+				bm.secretValidator = v
+			})
+
+			It("Invalid pull-secret", func() {
+				pullSecret := "asdfasfda"
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						PullSecret: pullSecret,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+			})
+
+			It("pull-secret with newline", func() {
+				mockInfraEnvUpdateSuccess()
+				pullSecret := "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}" // #nosec
+				pullSecretWithNewline := pullSecret + " \n"
+				infraEnvID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+					ID: infraEnvID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						PullSecret: pullSecretWithNewline,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+			})
+		})
+
+		It("ssh key with newline", func() {
+			mockInfraEnvUpdateSuccess()
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.InfraEnv{
+				PullSecret: "PULL_SECRET",
+				InfraEnv: models.InfraEnv{
+					ID:            infraEnvID,
+					PullSecretSet: true,
+				}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			sshKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56u" +
+				"ar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvH" +
+				"MAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqng" +
+				"qbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3f" +
+				"AC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAq" +
+				"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
+			sshKeyWithNewLine := sshKey + " \n"
+
+			reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+				InfraEnvID: infraEnvID,
+				InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+					SSHAuthorizedKey: &sshKeyWithNewLine,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+			var infraEnv common.InfraEnv
+			err = db.First(&infraEnv, "id = ?", infraEnvID).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(infraEnv.SSHAuthorizedKey).Should(Equal(sshKey))
+		})
+
+		It("empty pull-secret", func() {
+			pullSecret := ""
+			reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+				InfraEnvID: infraEnvID,
+				InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+					PullSecret: pullSecret,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
+		})
+
+		Context("Update Proxy", func() {
+			BeforeEach(func() {
+				infraEnvID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.InfraEnv{
+					PullSecret: "PULL_SECRET",
+					InfraEnv: models.InfraEnv{
+						ID:            infraEnvID,
+						PullSecretSet: true,
+					}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			updateInfraEnv := func(httpProxy, httpsProxy, noProxy string) *common.InfraEnv {
+				mockInfraEnvUpdateSuccess()
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						Proxy: &models.Proxy{
+							HTTPProxy:  &httpProxy,
+							HTTPSProxy: &httpsProxy,
+							NoProxy:    &noProxy,
+						},
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				var infraEnv common.InfraEnv
+				err := db.First(&infraEnv, "id = ?", infraEnvID).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				return &infraEnv
+			}
+
+			It("set a valid proxy", func() {
+				_ = updateInfraEnv("http://proxy.proxy", "", "proxy.proxy")
+			})
+		})
+
+		Context("Update Network", func() {
+			BeforeEach(func() {
+				infraEnvID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.InfraEnv{
+					PullSecret: "PULL_SECRET",
+					InfraEnv: models.InfraEnv{
+						ID:            infraEnvID,
+						PullSecretSet: true,
+					}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			updateInfraEnv := func(ntpSource string) *common.InfraEnv {
+				mockInfraEnvUpdateSuccess()
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						AdditionalNtpSources: &ntpSource,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				actual := reply.(*installer.UpdateInfraEnvCreated)
+				Expect(actual.Payload.AdditionalNtpSources).To(Equal(ntpSource))
+				var infraEnv common.InfraEnv
+				err := db.First(&infraEnv, "id = ?", infraEnvID).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				return &infraEnv
+			}
+
+			Context("NTP", func() {
+				It("Empty NTP source", func() {
+					ntpSource := ""
+					_ = updateInfraEnv(ntpSource)
+				})
+
+				It("Valid IP NTP source", func() {
+					ntpSource := "1.1.1.1"
+					_ = updateInfraEnv(ntpSource)
+				})
+
+				It("Valid Hostname NTP source", func() {
+					ntpSource := "clock.redhat.com"
+					_ = updateInfraEnv(ntpSource)
+				})
+
+				It("Valid comma-separated NTP sources", func() {
+					ntpSource := "clock.redhat.com,1.1.1.1"
+					_ = updateInfraEnv(ntpSource)
+				})
+
+				It("Invalid NTP source", func() {
+					ntpSource := "inject'"
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: infraEnvID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							AdditionalNtpSources: &ntpSource,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+			})
 		})
 	})
 })

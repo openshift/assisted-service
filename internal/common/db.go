@@ -208,14 +208,34 @@ func GetHostFromDBWhere(db *gorm.DB, where ...interface{}) (*Host, error) {
 	return &host, nil
 }
 
+func GetHostsFromDBWhere(db *gorm.DB, where ...interface{}) ([]*Host, error) {
+	var hosts []*Host
+
+	err := db.Find(&hosts, where...).Error
+	if err != nil {
+		return nil, err
+	}
+	return hosts, nil
+}
+
 func GetInfraEnvFromDB(db *gorm.DB, infraEnvID strfmt.UUID) (*InfraEnv, error) {
 	var infraEnv InfraEnv
 
 	err := db.First(&infraEnv, "id = ?", infraEnvID.String()).Error
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get infra env %s", infraEnvID)
+		return nil, err
 	}
 	return &infraEnv, nil
+}
+
+func GetInfraEnvsFromDBWhere(db *gorm.DB, where ...interface{}) ([]*InfraEnv, error) {
+	var infraEnvs []*InfraEnv
+
+	err := db.Find(&infraEnvs, where...).Error
+	if err != nil {
+		return nil, err
+	}
+	return infraEnvs, nil
 }
 
 func DeleteRecordsByClusterID(db *gorm.DB, clusterID strfmt.UUID, value interface{}, where ...interface{}) error {

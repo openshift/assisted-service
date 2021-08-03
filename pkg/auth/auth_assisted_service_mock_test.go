@@ -280,8 +280,32 @@ func (f fakeInventory) ResetHostValidation(ctx context.Context, params installer
 	return installer.NewResetHostValidationOK()
 }
 
-func (f fakeInventory) V2RegisterInfraEnv(ctx context.Context, params installer.V2RegisterInfraEnvParams) middleware.Responder {
-	return installer.NewV2RegisterInfraEnvNotImplemented()
+func (f fakeInventory) DeregisterInfraEnv(ctx context.Context, params installer.DeregisterInfraEnvParams) middleware.Responder {
+	return installer.NewDeregisterInfraEnvNoContent()
+}
+
+func (f fakeInventory) DownloadInfraEnvDiscoveryImage(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageParams) middleware.Responder {
+	return installer.NewDownloadInfraEnvDiscoveryImageOK()
+}
+
+func (f fakeInventory) DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageHeadersParams) middleware.Responder {
+	return installer.NewDownloadInfraEnvDiscoveryImageHeadersOK()
+}
+
+func (f fakeInventory) GetInfraEnv(ctx context.Context, params installer.GetInfraEnvParams) middleware.Responder {
+	return installer.NewGetInfraEnvOK()
+}
+
+func (f fakeInventory) ListInfraEnvs(ctx context.Context, params installer.ListInfraEnvsParams) middleware.Responder {
+	return installer.NewListInfraEnvsOK()
+}
+
+func (f fakeInventory) RegisterInfraEnv(ctx context.Context, params installer.RegisterInfraEnvParams) middleware.Responder {
+	return installer.NewRegisterInfraEnvCreated()
+}
+
+func (f fakeInventory) UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder {
+	return installer.NewUpdateInfraEnvCreated()
 }
 
 func (f fakeInventory) V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder {

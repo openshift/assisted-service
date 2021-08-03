@@ -91,6 +91,20 @@ func (mr *MockInstallerAPIMockRecorder) DeregisterHost(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterHost", reflect.TypeOf((*MockInstallerAPI)(nil).DeregisterHost), arg0, arg1)
 }
 
+// DeregisterInfraEnv mocks base method
+func (m *MockInstallerAPI) DeregisterInfraEnv(arg0 context.Context, arg1 installer.DeregisterInfraEnvParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeregisterInfraEnv", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// DeregisterInfraEnv indicates an expected call of DeregisterInfraEnv
+func (mr *MockInstallerAPIMockRecorder) DeregisterInfraEnv(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterInfraEnv", reflect.TypeOf((*MockInstallerAPI)(nil).DeregisterInfraEnv), arg0, arg1)
+}
+
 // DisableHost mocks base method
 func (m *MockInstallerAPI) DisableHost(arg0 context.Context, arg1 installer.DisableHostParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -201,6 +215,34 @@ func (m *MockInstallerAPI) DownloadHostLogs(arg0 context.Context, arg1 installer
 func (mr *MockInstallerAPIMockRecorder) DownloadHostLogs(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadHostLogs", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadHostLogs), arg0, arg1)
+}
+
+// DownloadInfraEnvDiscoveryImage mocks base method
+func (m *MockInstallerAPI) DownloadInfraEnvDiscoveryImage(arg0 context.Context, arg1 installer.DownloadInfraEnvDiscoveryImageParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadInfraEnvDiscoveryImage", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// DownloadInfraEnvDiscoveryImage indicates an expected call of DownloadInfraEnvDiscoveryImage
+func (mr *MockInstallerAPIMockRecorder) DownloadInfraEnvDiscoveryImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadInfraEnvDiscoveryImage", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadInfraEnvDiscoveryImage), arg0, arg1)
+}
+
+// DownloadInfraEnvDiscoveryImageHeaders mocks base method
+func (m *MockInstallerAPI) DownloadInfraEnvDiscoveryImageHeaders(arg0 context.Context, arg1 installer.DownloadInfraEnvDiscoveryImageHeadersParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadInfraEnvDiscoveryImageHeaders", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// DownloadInfraEnvDiscoveryImageHeaders indicates an expected call of DownloadInfraEnvDiscoveryImageHeaders
+func (mr *MockInstallerAPIMockRecorder) DownloadInfraEnvDiscoveryImageHeaders(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadInfraEnvDiscoveryImageHeaders", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadInfraEnvDiscoveryImageHeaders), arg0, arg1)
 }
 
 // EnableHost mocks base method
@@ -371,6 +413,20 @@ func (mr *MockInstallerAPIMockRecorder) GetHostIgnition(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostIgnition", reflect.TypeOf((*MockInstallerAPI)(nil).GetHostIgnition), arg0, arg1)
 }
 
+// GetInfraEnv mocks base method
+func (m *MockInstallerAPI) GetInfraEnv(arg0 context.Context, arg1 installer.GetInfraEnvParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInfraEnv", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// GetInfraEnv indicates an expected call of GetInfraEnv
+func (mr *MockInstallerAPIMockRecorder) GetInfraEnv(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnv", reflect.TypeOf((*MockInstallerAPI)(nil).GetInfraEnv), arg0, arg1)
+}
+
 // GetNextSteps mocks base method
 func (m *MockInstallerAPI) GetNextSteps(arg0 context.Context, arg1 installer.GetNextStepsParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -483,6 +539,20 @@ func (mr *MockInstallerAPIMockRecorder) ListHosts(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListHosts", reflect.TypeOf((*MockInstallerAPI)(nil).ListHosts), arg0, arg1)
 }
 
+// ListInfraEnvs mocks base method
+func (m *MockInstallerAPI) ListInfraEnvs(arg0 context.Context, arg1 installer.ListInfraEnvsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListInfraEnvs", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// ListInfraEnvs indicates an expected call of ListInfraEnvs
+func (mr *MockInstallerAPIMockRecorder) ListInfraEnvs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInfraEnvs", reflect.TypeOf((*MockInstallerAPI)(nil).ListInfraEnvs), arg0, arg1)
+}
+
 // PostStepReply mocks base method
 func (m *MockInstallerAPI) PostStepReply(arg0 context.Context, arg1 installer.PostStepReplyParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -537,6 +607,20 @@ func (m *MockInstallerAPI) RegisterHost(arg0 context.Context, arg1 installer.Reg
 func (mr *MockInstallerAPIMockRecorder) RegisterHost(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterHost", reflect.TypeOf((*MockInstallerAPI)(nil).RegisterHost), arg0, arg1)
+}
+
+// RegisterInfraEnv mocks base method
+func (m *MockInstallerAPI) RegisterInfraEnv(arg0 context.Context, arg1 installer.RegisterInfraEnvParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterInfraEnv", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// RegisterInfraEnv indicates an expected call of RegisterInfraEnv
+func (mr *MockInstallerAPIMockRecorder) RegisterInfraEnv(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInfraEnv", reflect.TypeOf((*MockInstallerAPI)(nil).RegisterInfraEnv), arg0, arg1)
 }
 
 // ResetCluster mocks base method
@@ -693,6 +777,20 @@ func (mr *MockInstallerAPIMockRecorder) UpdateHostLogsProgress(arg0, arg1 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostLogsProgress", reflect.TypeOf((*MockInstallerAPI)(nil).UpdateHostLogsProgress), arg0, arg1)
 }
 
+// UpdateInfraEnv mocks base method
+func (m *MockInstallerAPI) UpdateInfraEnv(arg0 context.Context, arg1 installer.UpdateInfraEnvParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInfraEnv", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// UpdateInfraEnv indicates an expected call of UpdateInfraEnv
+func (mr *MockInstallerAPIMockRecorder) UpdateInfraEnv(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInfraEnv", reflect.TypeOf((*MockInstallerAPI)(nil).UpdateInfraEnv), arg0, arg1)
+}
+
 // UploadClusterIngressCert mocks base method
 func (m *MockInstallerAPI) UploadClusterIngressCert(arg0 context.Context, arg1 installer.UploadClusterIngressCertParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -789,18 +887,4 @@ func (m *MockInstallerAPI) V2RegisterHost(arg0 context.Context, arg1 installer.V
 func (mr *MockInstallerAPIMockRecorder) V2RegisterHost(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2RegisterHost", reflect.TypeOf((*MockInstallerAPI)(nil).V2RegisterHost), arg0, arg1)
-}
-
-// V2RegisterInfraEnv mocks base method
-func (m *MockInstallerAPI) V2RegisterInfraEnv(arg0 context.Context, arg1 installer.V2RegisterInfraEnvParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "V2RegisterInfraEnv", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// V2RegisterInfraEnv indicates an expected call of V2RegisterInfraEnv
-func (mr *MockInstallerAPIMockRecorder) V2RegisterInfraEnv(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2RegisterInfraEnv", reflect.TypeOf((*MockInstallerAPI)(nil).V2RegisterInfraEnv), arg0, arg1)
 }

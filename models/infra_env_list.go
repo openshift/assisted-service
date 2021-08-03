@@ -15,7 +15,7 @@ import (
 
 // InfraEnvList infra env list
 //
-// swagger:model infra_env_list
+// swagger:model infra-env-list
 type InfraEnvList []*InfraEnv
 
 // Validate validates this infra env list

@@ -540,6 +540,19 @@ func updateSSHPublicKey(cluster *common.Cluster) error {
 	return nil
 }
 
+func updateSSHAuthorizedKey(infraEnv *common.InfraEnv) error {
+	sshPublicKey := swag.StringValue(&infraEnv.SSHAuthorizedKey)
+	if sshPublicKey == "" {
+		return nil
+	}
+	sshPublicKey = strings.TrimSpace(infraEnv.SSHAuthorizedKey)
+	if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+		return err
+	}
+	infraEnv.SSHAuthorizedKey = sshPublicKey
+	return nil
+}
+
 func (b *bareMetalInventory) validateDNSName(cluster common.Cluster) error {
 	if cluster.Name == "" || cluster.BaseDNSDomain == "" {
 		return nil
@@ -735,11 +748,15 @@ func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, para
 }
 
 func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder {
+	return b.DownloadISOInternal(ctx, params.ClusterID)
+}
+
+func (b *bareMetalInventory) DownloadISOInternal(ctx context.Context, infraEnvID strfmt.UUID) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, infraEnvID)
 	if err != nil {
-		log.WithError(err).Errorf("failed to get infra env %s", params.ClusterID)
+		log.WithError(err).Errorf("failed to get infra env %s", infraEnvID)
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -747,13 +764,13 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 	exists, err := b.objectHandler.DoesObjectExist(ctx, imgName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get ISO for cluster %s", infraEnv.ID.String())
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError,
+		b.eventsHandler.AddEvent(ctx, infraEnvID, nil, models.EventSeverityError,
 			"Failed to download image: error fetching from storage backend", time.Now())
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 	if !exists {
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError,
+		b.eventsHandler.AddEvent(ctx, infraEnvID, nil, models.EventSeverityError,
 			"Failed to download image: the image was not found (perhaps it expired) - please generate the image and try again", time.Now())
 		return installer.NewDownloadClusterISONotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, errors.New("The image was not found "+
@@ -762,25 +779,29 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 	reader, contentLength, err := b.objectHandler.Download(ctx, imgName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get ISO for cluster %s", infraEnv.ID.String())
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError,
+		b.eventsHandler.AddEvent(ctx, infraEnvID, nil, models.EventSeverityError,
 			"Failed to download image: error fetching from storage backend", time.Now())
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
+	b.eventsHandler.AddEvent(ctx, infraEnvID, nil, models.EventSeverityInfo,
 		fmt.Sprintf(`Started image download (image type is "%s")`, infraEnv.Type), time.Now())
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(reader),
-		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()),
+		fmt.Sprintf("cluster-%s-discovery.iso", infraEnvID),
 		contentLength)
 }
 
 func (b *bareMetalInventory) DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder {
+	return b.DownloadISOHeadersInternal(ctx, params.ClusterID)
+}
+
+func (b *bareMetalInventory) DownloadISOHeadersInternal(ctx context.Context, infraEnvID strfmt.UUID) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, infraEnvID)
 	if err != nil {
-		log.WithError(err).Errorf("failed to get infra env %s", params.ClusterID)
+		log.WithError(err).Errorf("failed to get infra env %s", infraEnvID)
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -788,7 +809,7 @@ func (b *bareMetalInventory) DownloadClusterISOHeaders(ctx context.Context, para
 	exists, err := b.objectHandler.DoesObjectExist(ctx, imgName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get ISO for infra env %s", infraEnv.ID.String())
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError,
+		b.eventsHandler.AddEvent(ctx, infraEnvID, nil, models.EventSeverityError,
 			"Failed to download image: error fetching from storage backend", time.Now())
 		return installer.NewDownloadClusterISOHeadersInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
@@ -1057,7 +1078,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: params.ClusterID})
 	}
 
-	err = b.createAndUploadNewImage(ctx, log, infraEnvProxyHash, infraEnv, params)
+	err = b.createAndUploadNewImage(ctx, log, infraEnvProxyHash, infraEnv, params.ImageCreateParams.ImageType)
 	if err != nil {
 		return nil, err
 	}
@@ -1065,25 +1086,100 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: params.ClusterID})
 }
 
+func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, infraEnv *common.InfraEnv) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("prepare image for infraEnv %s", infraEnv.ID)
+
+	if !infraEnv.PullSecretSet {
+		errMsg := "Can't generate infraEnv ISO without pull secret"
+		log.Error(errMsg)
+		return common.NewApiError(http.StatusBadRequest, errors.New(errMsg))
+	}
+
+	/* We need to ensure that the metadata in the DB matches the image that will be uploaded to S3,
+	so we check that at least 10 seconds have past since the previous request to reduce the chance
+	of a race between two consecutive requests.
+	*/
+	now := time.Now()
+	previousCreatedAt := time.Time(infraEnv.GeneratedAt)
+	if previousCreatedAt.Add(WindowBetweenRequestsInSeconds).After(now) {
+		log.Error("request came too soon after previous request")
+		return common.NewApiError(
+			http.StatusConflict,
+			errors.New("Another request to generate an image has been recently submitted. Please wait a few seconds and try again."))
+	}
+
+	/* If the request has the same parameters as the previous request and the image is still in S3,
+	just refresh the timestamp.
+	*/
+	var imageExists bool
+	var err error
+	if infraEnv.Generated {
+		imgName := getImageName(infraEnv.ID)
+		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
+		if err != nil {
+			log.WithError(err).Errorf("failed to contact storage backend")
+			return common.NewApiError(http.StatusInternalServerError, errors.New("failed to contact storage backend"))
+		}
+	}
+
+	updates := map[string]interface{}{}
+	updates["generated_at"] = strfmt.DateTime(now)
+	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
+	if !imageExists {
+		// set image-generated indicator to false before the attempt to genearate the image in order to have an explicit
+		// state of the image creation based on the cluster parameters which will be committed to the DB
+		updates["generated"] = false
+		updates["download_url"] = ""
+	}
+	dbReply := b.db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates)
+	if dbReply.Error != nil {
+		log.WithError(dbReply.Error).Errorf("failed to update infra env: %s", infraEnv.ID)
+		msg := "Failed to generate image: error updating metadata"
+		return common.NewApiError(http.StatusInternalServerError, errors.New(msg))
+	}
+
+	if infraEnv, err = common.GetInfraEnvFromDB(b.db, infraEnv.ID); err != nil {
+		log.WithError(err).Errorf("failed to get infra env %s after update", infraEnv.ID)
+		return err
+	}
+
+	if imageExists {
+		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnv.ProxyHash, infraEnv.Type, false); err != nil {
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+
+		log.Infof("Re-used existing InfraEnv <%s> image", infraEnv.ID)
+		return nil
+	}
+
+	err = b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, infraEnv, infraEnv.Type)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log logrus.FieldLogger, infraEnvProxyHash string,
-	infraEnv *common.InfraEnv, params installer.GenerateClusterISOParams) error {
+	infraEnv *common.InfraEnv, imageType models.ImageType) error {
 	// Setting ImageInfo.Type at this point in order to pass it to FormatDiscoveryIgnitionFile without saving it to the DB.
 	// Saving it to the DB will be done after a successful image generation by updateImageInfoPostUpload
-	infraEnv.Type = params.ImageCreateParams.ImageType
+	infraEnv.Type = imageType
 	ignitionConfig, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
 	if err != nil {
 		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", infraEnv.ID)
 		msg := "Failed to generate image: error formatting ignition file"
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
+		b.eventsHandler.AddEvent(ctx, infraEnv.ID, nil, models.EventSeverityError, msg, time.Now())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	objectPrefix := fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, infraEnv.ID.String())
 
-	if params.ImageCreateParams.ImageType == models.ImageTypeMinimalIso {
+	if imageType == models.ImageTypeMinimalIso {
 		if err := b.generateClusterMinimalISO(ctx, log, infraEnv, ignitionConfig, objectPrefix); err != nil {
 			log.WithError(err).Errorf("Failed to generate minimal ISO for cluster %s", infraEnv.ID)
-			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to generate minimal ISO", time.Now())
+			b.eventsHandler.AddEvent(ctx, infraEnv.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", time.Now())
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	} else {
@@ -1095,23 +1191,24 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 
 		if err := b.objectHandler.UploadISO(ctx, ignitionConfig, baseISOName, objectPrefix); err != nil {
 			log.WithError(err).Errorf("Upload ISO failed for cluster %s", infraEnv.ID)
-			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
+			b.eventsHandler.AddEvent(ctx, infraEnv.ID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
 
-	if err := b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, params.ImageCreateParams.ImageType, true); err != nil {
+	if err := b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, imageType, true); err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	msg := b.getIgnitionConfigForLogging(infraEnv, params, log)
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
+	msg := b.getIgnitionConfigForLogging(infraEnv, log, imageType)
+	b.eventsHandler.AddEvent(ctx, infraEnv.ID, nil, models.EventSeverityInfo, msg, time.Now())
+	log.Infof(msg)
 
 	return nil
 }
 
-func (b *bareMetalInventory) getIgnitionConfigForLogging(infraEnv *common.InfraEnv, params installer.GenerateClusterISOParams, log logrus.FieldLogger) string {
+func (b *bareMetalInventory) getIgnitionConfigForLogging(infraEnv *common.InfraEnv, log logrus.FieldLogger, imageType models.ImageType) string {
 	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, true, b.authHandler.AuthType())
-	log.Infof("Generated infra env <%s> image with ignition config %s", params.ClusterID, ignitionConfigForLogging)
+	log.Infof("Generated infra env <%s> image with ignition config %s", infraEnv.ID, ignitionConfigForLogging)
 	msg := "Generated image"
 	var msgExtras []string
 
@@ -1120,10 +1217,10 @@ func (b *bareMetalInventory) getIgnitionConfigForLogging(infraEnv *common.InfraE
 		msgExtras = append(msgExtras, fmt.Sprintf(`proxy URL is "%s"`, httpProxy))
 	}
 
-	msgExtras = append(msgExtras, fmt.Sprintf(`Image type is "%s"`, string(params.ImageCreateParams.ImageType)))
+	msgExtras = append(msgExtras, fmt.Sprintf(`Image type is "%s"`, string(imageType)))
 
 	sshExtra := "SSH public key is not set"
-	if params.ImageCreateParams.SSHPublicKey != "" {
+	if infraEnv.SSHAuthorizedKey != "" {
 		sshExtra = "SSH public key is set"
 	}
 
@@ -1176,8 +1273,8 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 	return os.Remove(clusterISOPath)
 }
 
-func getImageName(clusterID strfmt.UUID) string {
-	return fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))
+func getImageName(infraEnvID strfmt.UUID) string {
+	return fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, infraEnvID.String()))
 }
 
 func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *common.Cluster) error {
@@ -4064,6 +4161,15 @@ func setPullSecret(cluster *common.Cluster, pullSecret string) {
 	}
 }
 
+func setInfraEnvPullSecret(infraEnv *common.InfraEnv, pullSecret string) {
+	infraEnv.PullSecret = pullSecret
+	if pullSecret != "" {
+		infraEnv.PullSecretSet = true
+	} else {
+		infraEnv.PullSecretSet = false
+	}
+}
+
 func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
 	c, err := b.CancelInstallationInternal(ctx, params)
 	if err != nil {
@@ -4800,8 +4906,418 @@ func (b *bareMetalInventory) AddOpenshiftVersion(ctx context.Context, ocpRelease
 	return openshiftVersion, nil
 }
 
-func (b *bareMetalInventory) V2RegisterInfraEnv(ctx context.Context, params installer.V2RegisterInfraEnvParams) middleware.Responder {
-	return installer.NewV2RegisterInfraEnvNotImplemented()
+func (b *bareMetalInventory) DeregisterInfraEnv(ctx context.Context, params installer.DeregisterInfraEnvParams) middleware.Responder {
+	if err := b.DeregisterInfraEnvInternal(ctx, params); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewDeregisterInfraEnvNoContent()
+}
+
+func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, params installer.DeregisterInfraEnvParams) error {
+	log := logutil.FromContext(ctx, b.log)
+	var infraEnv *common.InfraEnv
+	var err error
+	log.Infof("Deregister infraEnv id %s", params.InfraEnvID)
+
+	if infraEnv, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+
+	hosts, err := common.GetHostsFromDBWhere(b.db, "infra_env_id = ?", params.InfraEnvID)
+	if err != nil {
+		return err
+	}
+	if len(hosts) > 0 {
+		log.WithError(err).Errorf("failed to deregister infraEnv %s, hosts are still associated", params.InfraEnvID)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	// Delete discovery image for deregistered infraEnv
+	discoveryImage := fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, params.InfraEnvID.String()))
+	exists, err := b.objectHandler.DoesObjectExist(ctx, discoveryImage)
+	if err != nil {
+		log.WithError(err).Errorf("failed to deregister infraEnv %s", params.InfraEnvID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if exists {
+		_, err = b.objectHandler.DeleteObject(ctx, discoveryImage)
+		if err != nil {
+			log.WithError(err).Errorf("failed to deregister infraEnv %s", params.InfraEnvID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+
+	if err = b.db.Delete(infraEnv).Error; err != nil {
+		log.WithError(err).Errorf("failed to deregister infraEnv %s", params.InfraEnvID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) DownloadInfraEnvDiscoveryImage(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageParams) middleware.Responder {
+	return b.DownloadISOInternal(ctx, params.InfraEnvID)
+}
+
+func (b *bareMetalInventory) DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageHeadersParams) middleware.Responder {
+	return b.DownloadISOHeadersInternal(ctx, params.InfraEnvID)
+}
+
+func (b *bareMetalInventory) GetInfraEnv(ctx context.Context, params installer.GetInfraEnvParams) middleware.Responder {
+	i, err := b.GetInfraEnvInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewGetInfraEnvOK().WithPayload(&i.InfraEnv)
+}
+
+func (b *bareMetalInventory) GetInfraEnvInternal(ctx context.Context, params installer.GetInfraEnvParams) (*common.InfraEnv, error) {
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
+	if err != nil {
+		return nil, err
+	}
+	return infraEnv, nil
+}
+
+func (b *bareMetalInventory) ListInfraEnvs(ctx context.Context, params installer.ListInfraEnvsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	db := b.db
+	var dbInfraEnvs []*common.InfraEnv
+	var infraEnvs []*models.InfraEnv
+	whereCondition := identity.AddUserFilter(ctx, "")
+
+	dbInfraEnvs, err := common.GetInfraEnvsFromDBWhere(db, whereCondition)
+	if err != nil {
+		log.WithError(err).Error("Failed to list infraEnvs in db")
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	for _, i := range dbInfraEnvs {
+		infraEnvs = append(infraEnvs, &i.InfraEnv)
+	}
+	return installer.NewListInfraEnvsOK().WithPayload(infraEnvs)
+}
+
+func (b *bareMetalInventory) RegisterInfraEnv(ctx context.Context, params installer.RegisterInfraEnvParams) middleware.Responder {
+	i, err := b.RegisterInfraEnvInternal(ctx, nil, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewRegisterInfraEnvCreated().WithPayload(&i.InfraEnv)
+}
+
+func (b *bareMetalInventory) RegisterInfraEnvInternal(
+	ctx context.Context,
+	kubeKey *types.NamespacedName,
+	params installer.RegisterInfraEnvParams) (*common.InfraEnv, error) {
+
+	id := strfmt.UUID(uuid.New().String())
+	url := installer.GetInfraEnvURL{InfraEnvID: id}
+
+	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
+	log.Infof("Register infraenv: %s with id %s", swag.StringValue(params.InfraenvCreateParams.Name), id)
+	success := false
+	var err error
+	defer func() {
+		if success {
+			msg := fmt.Sprintf("Successfully registered InfraEnv %s with id %s",
+				swag.StringValue(params.InfraenvCreateParams.Name), id)
+			log.Info(msg)
+		} else {
+			errWrapperLog := log
+			if err != nil {
+				errWrapperLog = log.WithError(err)
+			}
+			errWrapperLog.Errorf("Failed to registered InfraEnv %s with id %s",
+				swag.StringValue(params.InfraenvCreateParams.Name), id)
+		}
+	}()
+
+	if params.InfraenvCreateParams.Proxy != nil {
+		if params.InfraenvCreateParams.Proxy.HTTPProxy != nil &&
+			(params.InfraenvCreateParams.Proxy.HTTPSProxy == nil || *params.InfraenvCreateParams.Proxy.HTTPSProxy == "") {
+			params.InfraenvCreateParams.Proxy.HTTPSProxy = params.InfraenvCreateParams.Proxy.HTTPProxy
+		}
+
+		if err = validateProxySettings(params.InfraenvCreateParams.Proxy.HTTPProxy,
+			params.InfraenvCreateParams.Proxy.HTTPSProxy,
+			params.InfraenvCreateParams.Proxy.NoProxy, params.InfraenvCreateParams.OpenshiftVersion); err != nil {
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	if params.InfraenvCreateParams.AdditionalNtpSources == nil {
+		params.InfraenvCreateParams.AdditionalNtpSources = &b.Config.DefaultNTPSource
+	} else {
+		ntpSource := swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources)
+
+		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
+			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	openshiftVersion, err := b.versionsHandler.GetVersion(swag.StringValue(params.InfraenvCreateParams.OpenshiftVersion))
+	if err != nil {
+		err = errors.Errorf("Openshift version %s is not supported",
+			swag.StringValue(params.InfraenvCreateParams.OpenshiftVersion))
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if params.InfraenvCreateParams.SSHAuthorizedKey != nil && *params.InfraenvCreateParams.SSHAuthorizedKey != "" {
+		if err = validations.ValidateSSHPublicKey(*params.InfraenvCreateParams.SSHAuthorizedKey); err != nil {
+			err = errors.Errorf("SSH key is not valid")
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	if params.InfraenvCreateParams.StaticNetworkConfig != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	// set the default value for REST API case, in case it was not provided in the request
+	if params.InfraenvCreateParams.ImageType == "" {
+		params.InfraenvCreateParams.ImageType = models.ImageType(b.Config.ISOImageType)
+	}
+
+	if params.InfraenvCreateParams.ClusterID != nil {
+		if _, err = common.GetClusterFromDB(b.db, *params.InfraenvCreateParams.ClusterID, common.SkipEagerLoading); err != nil {
+			err = errors.Errorf("Cluster ID %s does not exists",
+				params.InfraenvCreateParams.ClusterID.String())
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	if kubeKey == nil {
+		kubeKey = &types.NamespacedName{}
+	}
+
+	infraEnv := common.InfraEnv{
+		Generated: false,
+		InfraEnv: models.InfraEnv{
+			ID:                     id,
+			Href:                   url.String(),
+			Kind:                   models.InfraEnvKindInfraEnv,
+			Name:                   swag.StringValue(params.InfraenvCreateParams.Name),
+			OpenshiftVersion:       *openshiftVersion.ReleaseVersion,
+			IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
+			StaticNetworkConfig:    b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraenvCreateParams.StaticNetworkConfig),
+			Type:                   params.InfraenvCreateParams.ImageType,
+			UpdatedAt:              strfmt.DateTime{},
+			AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
+			SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
+		},
+		KubeKeyNamespace: kubeKey.Namespace,
+	}
+
+	if params.InfraenvCreateParams.ClusterID != nil {
+		infraEnv.ClusterID = *params.InfraenvCreateParams.ClusterID
+	}
+	if params.InfraenvCreateParams.Proxy != nil {
+		proxy := models.Proxy{
+			HTTPProxy:  params.InfraenvCreateParams.Proxy.HTTPProxy,
+			HTTPSProxy: params.InfraenvCreateParams.Proxy.HTTPSProxy,
+			NoProxy:    params.InfraenvCreateParams.Proxy.NoProxy,
+		}
+		infraEnv.Proxy = &proxy
+		var infraEnvProxyHash string
+		infraEnvProxyHash, err = computeProxyHash(&proxy)
+		if err != nil {
+			msg := "Failed to compute infraEnv proxy hash"
+			log.Error(msg, err)
+			return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
+		}
+		infraEnv.ProxyHash = infraEnvProxyHash
+	}
+
+	pullSecret := swag.StringValue(params.InfraenvCreateParams.PullSecret)
+	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
+	if err != nil {
+		err = errors.Wrap(secretValidationToUserError(err), "pull secret for new infraEnv is invalid")
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+	ps, err := b.updatePullSecret(pullSecret, log)
+	if err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest,
+			errors.New("Failed to update Pull-secret with additional credentials"))
+	}
+	setInfraEnvPullSecret(&infraEnv, ps)
+
+	if err = updateSSHAuthorizedKey(&infraEnv); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = b.db.Create(&infraEnv).Error; err != nil {
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	if err = b.GenerateInfraEnvISOInternal(ctx, &infraEnv); err != nil {
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	success = true
+	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnv.ID})
+}
+
+func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder {
+	i, err := b.updateInfraEnvInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewUpdateInfraEnvCreated().WithPayload(&i.InfraEnv)
+}
+
+func (b *bareMetalInventory) updateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams) (*common.InfraEnv, error) {
+	log := logutil.FromContext(ctx, b.log)
+	var infraEnv *common.InfraEnv
+	var err error
+	log.Infof("update infraEnv %s with params: %+v", params.InfraEnvID, params.InfraEnvUpdateParams)
+
+	if params, err = b.validateAndUpdateInfraEnvParams(ctx, &params); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	success := false
+	defer func() {
+		if success {
+			msg := fmt.Sprintf("Successfully updated InfraEnv with id %s", params.InfraEnvID)
+			log.Info(msg)
+		} else {
+			errWrapperLog := log
+			if err != nil {
+				errWrapperLog = log.WithError(err)
+			}
+			errWrapperLog.Errorf("Failed to update InfraEnv with id %s", params.InfraEnvID)
+		}
+	}()
+
+	if infraEnv, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
+		log.WithError(err).Errorf("failed to get infraEnv: %s", params.InfraEnvID)
+		return nil, common.NewApiError(http.StatusNotFound, err)
+	}
+
+	if params, err = b.validateAndUpdateInfraEnvProxyParams(ctx, &params, &infraEnv.OpenshiftVersion); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	err = b.updateInfraEnvData(ctx, infraEnv, params, b.db, log)
+	if err != nil {
+		log.WithError(err).Error("updateInfraEnvData")
+		return nil, err
+	}
+
+	success = true
+
+	if infraEnv, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
+		log.WithError(err).Errorf("failed to get infraEnv %s after update", params.InfraEnvID)
+		return nil, err
+	}
+
+	if err = b.GenerateInfraEnvISOInternal(ctx, infraEnv); err != nil {
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return infraEnv, nil
+}
+
+func (b *bareMetalInventory) updateInfraEnvData(_ context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger) error {
+	var err error
+	updates := map[string]interface{}{}
+	if params.InfraEnvUpdateParams.Proxy != nil {
+		optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPProxy, "proxy_http_proxy", updates)
+		optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPSProxy, "proxy_https_proxy", updates)
+		optionalParam(params.InfraEnvUpdateParams.Proxy.NoProxy, "proxy_no_proxy", updates)
+	}
+	optionalParam(params.InfraEnvUpdateParams.SSHAuthorizedKey, "ssh_authorized_key", updates)
+
+	if err = b.updateInfraEnvNtpSources(params, updates, log); err != nil {
+		return err
+	}
+
+	if params.InfraEnvUpdateParams.PullSecret != "" {
+		infraEnv.PullSecret = params.InfraEnvUpdateParams.PullSecret
+		updates["pull_secret"] = params.InfraEnvUpdateParams.PullSecret
+		if infraEnv.PullSecret != "" {
+			updates["pull_secret_set"] = true
+		} else {
+			updates["pull_secret_set"] = false
+		}
+	}
+
+	if len(updates) > 0 {
+		updates["generated"] = false
+		dbReply := db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates)
+		if dbReply.Error != nil {
+			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update infraEnv: %s", params.InfraEnvID))
+		}
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) validateAndUpdateInfraEnvParams(ctx context.Context, params *installer.UpdateInfraEnvParams) (installer.UpdateInfraEnvParams, error) {
+
+	log := logutil.FromContext(ctx, b.log)
+
+	if params.InfraEnvUpdateParams.PullSecret != "" {
+		if err := b.secretValidator.ValidatePullSecret(params.InfraEnvUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler); err != nil {
+			log.WithError(err).Errorf("Pull secret for infraEnv %s is invalid", params.InfraEnvID)
+			return installer.UpdateInfraEnvParams{}, err
+		}
+		ps, errUpdate := b.updatePullSecret(params.InfraEnvUpdateParams.PullSecret, log)
+		if errUpdate != nil {
+			return installer.UpdateInfraEnvParams{}, errors.New("Failed to update Pull-secret with additional credentials")
+		}
+		params.InfraEnvUpdateParams.PullSecret = ps
+	}
+
+	if sshPublicKey := swag.StringValue(params.InfraEnvUpdateParams.SSHAuthorizedKey); sshPublicKey != "" {
+		sshPublicKey = strings.TrimSpace(sshPublicKey)
+		if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+			return installer.UpdateInfraEnvParams{}, err
+		}
+		*params.InfraEnvUpdateParams.SSHAuthorizedKey = sshPublicKey
+	}
+
+	return *params, nil
+}
+
+func (b *bareMetalInventory) validateAndUpdateInfraEnvProxyParams(ctx context.Context, params *installer.UpdateInfraEnvParams, ocpVersion *string) (installer.UpdateInfraEnvParams, error) {
+
+	log := logutil.FromContext(ctx, b.log)
+
+	if params.InfraEnvUpdateParams.Proxy != nil {
+		if params.InfraEnvUpdateParams.Proxy.HTTPProxy != nil &&
+			(params.InfraEnvUpdateParams.Proxy.HTTPSProxy == nil || *params.InfraEnvUpdateParams.Proxy.HTTPSProxy == "") {
+			params.InfraEnvUpdateParams.Proxy.HTTPSProxy = params.InfraEnvUpdateParams.Proxy.HTTPProxy
+		}
+
+		if err := validateProxySettings(params.InfraEnvUpdateParams.Proxy.HTTPProxy,
+			params.InfraEnvUpdateParams.Proxy.HTTPSProxy,
+			params.InfraEnvUpdateParams.Proxy.NoProxy, ocpVersion); err != nil {
+			log.WithError(err).Errorf("Failed to validate Proxy settings")
+			return installer.UpdateInfraEnvParams{}, err
+		}
+	}
+
+	return *params, nil
+}
+
+func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInfraEnvParams, updates map[string]interface{}, log logrus.FieldLogger) error {
+	if params.InfraEnvUpdateParams.AdditionalNtpSources != nil {
+		ntpSource := swag.StringValue(params.InfraEnvUpdateParams.AdditionalNtpSources)
+		additionalNtpSourcesDefined := ntpSource != ""
+
+		if additionalNtpSourcesDefined && !validations.ValidateAdditionalNTPSource(ntpSource) {
+			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
+			log.WithError(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		updates["additional_ntp_sources"] = ntpSource
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder {

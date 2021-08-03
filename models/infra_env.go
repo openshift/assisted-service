@@ -16,7 +16,7 @@ import (
 
 // InfraEnv infra env
 //
-// swagger:model infra_env
+// swagger:model infra-env
 type InfraEnv struct {
 
 	// A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
@@ -78,6 +78,10 @@ type InfraEnv struct {
 
 	// type
 	Type ImageType `json:"type,omitempty"`
+
+	// The last time that this infraenv was updated.
+	// Format: date-time
+	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
 }
 
 // Validate validates this infra env
@@ -113,6 +117,10 @@ func (m *InfraEnv) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateType(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateUpdatedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -255,6 +263,19 @@ func (m *InfraEnv) validateType(formats strfmt.Registry) error {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("type")
 		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *InfraEnv) validateUpdatedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.UpdatedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
 		return err
 	}
 

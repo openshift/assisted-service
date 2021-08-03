@@ -16,18 +16,18 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewV2RegisterInfraEnvParams creates a new V2RegisterInfraEnvParams object
+// NewRegisterInfraEnvParams creates a new RegisterInfraEnvParams object
 // no default values defined in spec.
-func NewV2RegisterInfraEnvParams() V2RegisterInfraEnvParams {
+func NewRegisterInfraEnvParams() RegisterInfraEnvParams {
 
-	return V2RegisterInfraEnvParams{}
+	return RegisterInfraEnvParams{}
 }
 
-// V2RegisterInfraEnvParams contains all the bound params for the v2 register infra env operation
+// RegisterInfraEnvParams contains all the bound params for the register infra env operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters v2RegisterInfraEnv
-type V2RegisterInfraEnvParams struct {
+// swagger:parameters RegisterInfraEnv
+type RegisterInfraEnvParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -36,21 +36,21 @@ type V2RegisterInfraEnvParams struct {
 	  Required: true
 	  In: body
 	*/
-	InfraenvCreateParams *models.InfraenvCreateParams
+	InfraenvCreateParams *models.InfraEnvCreateParams
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewV2RegisterInfraEnvParams() beforehand.
-func (o *V2RegisterInfraEnvParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewRegisterInfraEnvParams() beforehand.
+func (o *RegisterInfraEnvParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
 
 	if runtime.HasBody(r) {
 		defer r.Body.Close()
-		var body models.InfraenvCreateParams
+		var body models.InfraEnvCreateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
 				res = append(res, errors.Required("infraenvCreateParams", "body", ""))

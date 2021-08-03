@@ -4769,12 +4769,72 @@ func init() {
       }
     },
     "/v2/infra-envs": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the list of InfraEnvs.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "ListInfraEnvs",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/infra-env-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "post": {
         "description": "Creates a new OpenShift Discovery ISO.",
         "tags": [
           "installer"
         ],
-        "operationId": "v2RegisterInfraEnv",
+        "operationId": "RegisterInfraEnv",
         "parameters": [
           {
             "description": "The parameters for the generated ISO.",
@@ -4782,7 +4842,7 @@ func init() {
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/infraenv_create_params"
+              "$ref": "#/definitions/infra-env-create-params"
             }
           }
         ],
@@ -4790,7 +4850,234 @@ func init() {
           "201": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/infra_env"
+              "$ref": "#/definitions/infra-env"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Retrieves the details of the InfraEnv.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetInfraEnv",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv to be retrieved.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/infra-env"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Deletes an InfraEnv.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DeregisterInfraEnv",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv to be deleted.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "patch": {
+        "description": "Updates an InfraEnv.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "UpdateInfraEnv",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv to be updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The properties to update.",
+            "name": "infra-env-update-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/infra-env-update-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/infra-env"
             }
           },
           "400": {
@@ -5203,6 +5490,179 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/image": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Downloads the discovery image.",
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DownloadInfraEnvDiscoveryImage",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv whose image should be downloaded.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "head": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Downloads the discovery image Headers only.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DownloadInfraEnvDiscoveryImageHeaders",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv whose image headers should be retrieved.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "Content-Length": {
+                "type": "integer",
+                "description": "Size of the ISO in bytes"
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -7298,7 +7758,7 @@ func init() {
         "minimal-iso"
       ]
     },
-    "infra_env": {
+    "infra-env": {
       "type": "object",
       "properties": {
         "additional_ntp_sources": {
@@ -7377,13 +7837,114 @@ func init() {
         },
         "type": {
           "$ref": "#/definitions/image_type"
+        },
+        "updated_at": {
+          "description": "The last time that this infraenv was updated.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         }
       }
     },
-    "infra_env_list": {
+    "infra-env-create-params": {
+      "type": "object",
+      "required": [
+        "name",
+        "openshift_version",
+        "pull_secret"
+      ],
+      "properties": {
+        "additional_ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "cluster_id": {
+          "description": "If set, all hosts that register will be associated with the specified cluster.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true
+        },
+        "ignition_config_override": {
+          "description": "JSON formatted string containing the user overrides for the initial ignition config.",
+          "type": "string"
+        },
+        "image_type": {
+          "$ref": "#/definitions/image_type"
+        },
+        "name": {
+          "description": "Name of the InfraEnv.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
+          "type": "string"
+        },
+        "proxy": {
+          "$ref": "#/definitions/proxy"
+        },
+        "pull_secret": {
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "type": "string"
+        },
+        "ssh_authorized_key": {
+          "description": "SSH public key for debugging the installation.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "static_network_config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host_static_network_config"
+          }
+        }
+      }
+    },
+    "infra-env-list": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/infra_env"
+        "$ref": "#/definitions/infra-env"
+      }
+    },
+    "infra-env-update-params": {
+      "type": "object",
+      "properties": {
+        "additional_ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "cluster_id": {
+          "description": "If set, all hosts that register will be associated with the specified cluster.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true
+        },
+        "ignition_config_override": {
+          "description": "JSON formatted string containing the user overrides for the initial ignition config.",
+          "type": "string"
+        },
+        "image_type": {
+          "$ref": "#/definitions/image_type"
+        },
+        "proxy": {
+          "$ref": "#/definitions/proxy"
+        },
+        "pull_secret": {
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "type": "string"
+        },
+        "ssh_authorized_key": {
+          "description": "SSH public key for debugging the installation.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "static_network_config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host_static_network_config"
+          }
+        }
       }
     },
     "infra_error": {
@@ -7403,48 +7964,6 @@ func init() {
         "message": {
           "description": "Human-readable description of the error.",
           "type": "string"
-        }
-      }
-    },
-    "infraenv_create_params": {
-      "type": "object",
-      "properties": {
-        "additional_ntp_sources": {
-          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
-          "type": "string"
-        },
-        "cluster_id": {
-          "description": "If set, all hosts that register will be associated with the specified cluster.",
-          "type": "string",
-          "format": "uuid"
-        },
-        "ignition_config_override": {
-          "description": "JSON formatted string containing the user overrides for the initial ignition config.",
-          "type": "string"
-        },
-        "image_type": {
-          "$ref": "#/definitions/image_type"
-        },
-        "name": {
-          "description": "Name of the InfraEnv.",
-          "type": "string"
-        },
-        "proxy": {
-          "$ref": "#/definitions/proxy"
-        },
-        "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
-          "type": "string"
-        },
-        "ssh_authorized_key": {
-          "description": "SSH public key for debugging the installation.",
-          "type": "string"
-        },
-        "static_network_config": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/host_static_network_config"
-          }
         }
       }
     },
@@ -13171,12 +13690,72 @@ func init() {
       }
     },
     "/v2/infra-envs": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the list of InfraEnvs.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "ListInfraEnvs",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/infra-env-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "post": {
         "description": "Creates a new OpenShift Discovery ISO.",
         "tags": [
           "installer"
         ],
-        "operationId": "v2RegisterInfraEnv",
+        "operationId": "RegisterInfraEnv",
         "parameters": [
           {
             "description": "The parameters for the generated ISO.",
@@ -13184,7 +13763,7 @@ func init() {
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/infraenv_create_params"
+              "$ref": "#/definitions/infra-env-create-params"
             }
           }
         ],
@@ -13192,7 +13771,234 @@ func init() {
           "201": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/infra_env"
+              "$ref": "#/definitions/infra-env"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Retrieves the details of the InfraEnv.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetInfraEnv",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv to be retrieved.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/infra-env"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Deletes an InfraEnv.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DeregisterInfraEnv",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv to be deleted.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "patch": {
+        "description": "Updates an InfraEnv.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "UpdateInfraEnv",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv to be updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The properties to update.",
+            "name": "infra-env-update-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/infra-env-update-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/infra-env"
             }
           },
           "400": {
@@ -13605,6 +14411,179 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/image": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Downloads the discovery image.",
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DownloadInfraEnvDiscoveryImage",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv whose image should be downloaded.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "head": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Downloads the discovery image Headers only.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DownloadInfraEnvDiscoveryImageHeaders",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv whose image headers should be retrieved.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "Content-Length": {
+                "type": "integer",
+                "description": "Size of the ISO in bytes"
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -15769,7 +16748,7 @@ func init() {
         "minimal-iso"
       ]
     },
-    "infra_env": {
+    "infra-env": {
       "type": "object",
       "properties": {
         "additional_ntp_sources": {
@@ -15849,13 +16828,114 @@ func init() {
         },
         "type": {
           "$ref": "#/definitions/image_type"
+        },
+        "updated_at": {
+          "description": "The last time that this infraenv was updated.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         }
       }
     },
-    "infra_env_list": {
+    "infra-env-create-params": {
+      "type": "object",
+      "required": [
+        "name",
+        "openshift_version",
+        "pull_secret"
+      ],
+      "properties": {
+        "additional_ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "cluster_id": {
+          "description": "If set, all hosts that register will be associated with the specified cluster.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true
+        },
+        "ignition_config_override": {
+          "description": "JSON formatted string containing the user overrides for the initial ignition config.",
+          "type": "string"
+        },
+        "image_type": {
+          "$ref": "#/definitions/image_type"
+        },
+        "name": {
+          "description": "Name of the InfraEnv.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
+          "type": "string"
+        },
+        "proxy": {
+          "$ref": "#/definitions/proxy"
+        },
+        "pull_secret": {
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "type": "string"
+        },
+        "ssh_authorized_key": {
+          "description": "SSH public key for debugging the installation.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "static_network_config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host_static_network_config"
+          }
+        }
+      }
+    },
+    "infra-env-list": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/infra_env"
+        "$ref": "#/definitions/infra-env"
+      }
+    },
+    "infra-env-update-params": {
+      "type": "object",
+      "properties": {
+        "additional_ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "cluster_id": {
+          "description": "If set, all hosts that register will be associated with the specified cluster.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true
+        },
+        "ignition_config_override": {
+          "description": "JSON formatted string containing the user overrides for the initial ignition config.",
+          "type": "string"
+        },
+        "image_type": {
+          "$ref": "#/definitions/image_type"
+        },
+        "proxy": {
+          "$ref": "#/definitions/proxy"
+        },
+        "pull_secret": {
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "type": "string"
+        },
+        "ssh_authorized_key": {
+          "description": "SSH public key for debugging the installation.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "static_network_config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host_static_network_config"
+          }
+        }
       }
     },
     "infra_error": {
@@ -15875,48 +16955,6 @@ func init() {
         "message": {
           "description": "Human-readable description of the error.",
           "type": "string"
-        }
-      }
-    },
-    "infraenv_create_params": {
-      "type": "object",
-      "properties": {
-        "additional_ntp_sources": {
-          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
-          "type": "string"
-        },
-        "cluster_id": {
-          "description": "If set, all hosts that register will be associated with the specified cluster.",
-          "type": "string",
-          "format": "uuid"
-        },
-        "ignition_config_override": {
-          "description": "JSON formatted string containing the user overrides for the initial ignition config.",
-          "type": "string"
-        },
-        "image_type": {
-          "$ref": "#/definitions/image_type"
-        },
-        "name": {
-          "description": "Name of the InfraEnv.",
-          "type": "string"
-        },
-        "proxy": {
-          "$ref": "#/definitions/proxy"
-        },
-        "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
-          "type": "string"
-        },
-        "ssh_authorized_key": {
-          "description": "SSH public key for debugging the installation.",
-          "type": "string"
-        },
-        "static_network_config": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/host_static_network_config"
-          }
         }
       }
     },
