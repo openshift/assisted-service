@@ -2032,7 +2032,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(4, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(5, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
 			host := registerNode(ctx, *cluster.ID, hostname, ips[i])
@@ -2137,25 +2137,47 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
 		}, "2m", "2s").Should(Equal(0))
 
-		By("Add Day 2 host and approve agent")
+		By("Add Day 2 host")
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostnameday2", ips[3])
-		key := types.NamespacedName{
+		day2Host1 := registerNode(ctx, *cluster.ID, "firsthostnameday2", ips[3])
+		generateApiVipPostStepReply(ctx, day2Host1, true)
+
+		By("Add a second Day 2 host")
+		day2Host2 := registerNode(ctx, *cluster.ID, "secondhostnameday2", ips[4])
+		generateApiVipPostStepReply(ctx, day2Host2, true)
+
+		By("Approve Day 2 agents")
+		k1 := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      host.ID.String(),
+			Name:      day2Host1.ID.String(),
 		}
-		generateApiVipPostStepReply(ctx, host, true)
 		Eventually(func() error {
-			agent := getAgentCRD(ctx, kubeClient, key)
+			agent := getAgentCRD(ctx, kubeClient, k1)
 			agent.Spec.Approved = true
 			return kubeClient.Update(ctx, agent)
 		}, "30s", "10s").Should(BeNil())
 
-		checkAgentCondition(ctx, host.ID.String(), v1beta1.InstalledCondition, v1beta1.InstallationInProgressReason)
-		checkAgentCondition(ctx, host.ID.String(), v1beta1.RequirementsMetCondition, v1beta1.AgentAlreadyInstallingReason)
-		checkAgentCondition(ctx, host.ID.String(), v1beta1.SpecSyncedCondition, v1beta1.SyncedOkReason)
-		checkAgentCondition(ctx, host.ID.String(), v1beta1.ConnectedCondition, v1beta1.AgentConnectedReason)
-		checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsPassingReason)
+		k2 := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      day2Host2.ID.String(),
+		}
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, k2)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		By("Verify Day 2 agents conditions")
+		checkAgentCondition(ctx, day2Host1.ID.String(), v1beta1.InstalledCondition, v1beta1.InstallationInProgressReason)
+		checkAgentCondition(ctx, day2Host1.ID.String(), v1beta1.RequirementsMetCondition, v1beta1.AgentAlreadyInstallingReason)
+		checkAgentCondition(ctx, day2Host1.ID.String(), v1beta1.SpecSyncedCondition, v1beta1.SyncedOkReason)
+		checkAgentCondition(ctx, day2Host1.ID.String(), v1beta1.ConnectedCondition, v1beta1.AgentConnectedReason)
+		checkAgentCondition(ctx, day2Host1.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsPassingReason)
+		checkAgentCondition(ctx, day2Host2.ID.String(), v1beta1.InstalledCondition, v1beta1.InstallationInProgressReason)
+		checkAgentCondition(ctx, day2Host2.ID.String(), v1beta1.RequirementsMetCondition, v1beta1.AgentAlreadyInstallingReason)
+		checkAgentCondition(ctx, day2Host2.ID.String(), v1beta1.SpecSyncedCondition, v1beta1.SyncedOkReason)
+		checkAgentCondition(ctx, day2Host2.ID.String(), v1beta1.ConnectedCondition, v1beta1.AgentConnectedReason)
+		checkAgentCondition(ctx, day2Host2.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsPassingReason)
 	})
 
 	It("deploy clusterDeployment with invalid machine cidr", func() {

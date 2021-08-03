@@ -1456,9 +1456,6 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 	var cluster *common.Cluster
 	var h *common.Host
 
-	if cluster, err = common.GetClusterFromDB(b.db, clusterId, common.UseEagerLoading); err != nil {
-		return err
-	}
 	if h, err = b.getHost(ctx, clusterId.String(), hostId.String()); err != nil {
 		return err
 	}
@@ -1473,9 +1470,6 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 		return err
 	}
 
-	if err = b.setMajorityGroupForCluster(cluster.ID, b.db); err != nil {
-		return err
-	}
 	if err = b.hostApi.RefreshStatus(ctx, &h.Host, b.db); err != nil {
 		return err
 	}
