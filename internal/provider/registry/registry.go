@@ -3,6 +3,7 @@ package registry
 import (
 	"errors"
 	"fmt"
+	"github.com/openshift/assisted-service/internal/usage"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
@@ -27,6 +28,10 @@ type ProviderRegistry interface {
 	// AddPlatformToInstallConfig adds the provider platform to the installconfig platform field,
 	// sets platform fields from values within the cluster model.
 	AddPlatformToInstallConfig(p models.PlatformType, cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error
+	// SetPlatformValuesInDBUpdates updates the `updates` data structure with platform specific values
+	SetPlatformValuesInDBUpdates(p models.PlatformType, platformParams *models.Platform, updates map[string]interface{}) error
+	// SetPlatformUsages uses the usageApi to update platform specific usages
+	SetPlatformUsages(p models.PlatformType, platformParams *models.Platform, usages map[string]models.Usage, usageApi usage.API) error
 }
 
 // Registry registers the providers to their names.
@@ -71,6 +76,30 @@ func (r *registry) AddPlatformToInstallConfig(p models.PlatformType, cfg *instal
 		return fmt.Errorf("error adding platform to install config, platform provider wasn't set: %w", err)
 	}
 	return currentProvider.AddPlatformToInstallConfig(cfg, cluster)
+}
+
+func (r *registry) SetPlatformValuesInDBUpdates(
+	p models.PlatformType, platformParams *models.Platform, updates map[string]interface{}) error {
+	currentProvider, err := r.Get(string(p))
+	if err != nil {
+		return fmt.Errorf("error adding platform to install config, platform provider wasn't set: %w", err)
+	}
+	for _, provider := range r.providers {
+		if err = provider.CleanPlatformValuesFromDBUpdates(updates); err != nil {
+			return fmt.Errorf("error while removing platform %v values from database: %w", provider.Name(), err)
+		}
+	}
+	updates[provider.DbFieldPlatformType] = platformParams.Type
+	return currentProvider.SetPlatformValuesInDBUpdates(platformParams, updates)
+}
+
+func (r *registry) SetPlatformUsages(
+	p models.PlatformType, platformParams *models.Platform, usages map[string]models.Usage, usageApi usage.API) error {
+	currentProvider, err := r.Get(string(p))
+	if err != nil {
+		return fmt.Errorf("error adding platform to install config, platform provider wasn't set: %w", err)
+	}
+	return currentProvider.SetPlatformUsages(platformParams, usages, usageApi)
 }
 
 func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
