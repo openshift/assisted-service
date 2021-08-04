@@ -74,7 +74,7 @@ export -f wait_for_object_amount
 timeout 20m bash -c "wait_for_object_amount agent ${SPOKE_CONTROLPLANE_AGENTS} 30 ${SPOKE_NAMESPACE}"
 echo "All ${SPOKE_CONTROLPLANE_AGENTS} agents have been discovered!"
 
-wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "60m" "${SPOKE_NAMESPACE}"
+wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "90m" "${SPOKE_NAMESPACE}"
 echo "Cluster has been installed successfully!"
 
 wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" spec.installed "${SPOKE_NAMESPACE}"
