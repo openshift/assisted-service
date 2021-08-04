@@ -54,6 +54,7 @@ import (
 // BMACReconciler reconciles a Agent object
 type BMACReconciler struct {
 	client.Client
+	APIReader   client.Reader
 	Log         logrus.FieldLogger
 	Scheme      *runtime.Scheme
 	spokeClient client.Client
@@ -674,11 +675,13 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 	if !installed {
 		return reconcileComplete{}
 	}
-	secret, ok, err := r.getSecret(ctx, log, agent, cd)
+
+	key := types.NamespacedName{
+		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Name:      fmt.Sprintf(adminKubeConfigStringTemplate, cd.Name),
+	}
+	secret, err := getSecret(ctx, r.Client, r.APIReader, key)
 	if err != nil {
-		if !ok {
-			return reconcileComplete{}
-		}
 		return reconcileError{err}
 	}
 
@@ -694,7 +697,11 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileError{err}
 	}
 
-	_, err = r.ensureSpokeBMHSecret(ctx, log, spokeClient, bmh)
+	key = types.NamespacedName{
+		Namespace: bmh.Namespace,
+		Name:      bmh.Spec.BMC.CredentialsName,
+	}
+	_, err = r.ensureSpokeBMHSecret(ctx, log, spokeClient, key)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create or update spoke BareMetalHost Secret")
 		return reconcileError{err}
@@ -972,11 +979,13 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 	if !installed {
 		return reconcileComplete{}
 	}
-	secret, ok, err := r.getSecret(ctx, log, agent, cd)
+	key := types.NamespacedName{
+		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Name:      fmt.Sprintf(adminKubeConfigStringTemplate, cd.Name),
+	}
+
+	secret, err := getSecret(ctx, r.Client, r.APIReader, key)
 	if err != nil {
-		if !ok {
-			return reconcileComplete{}
-		}
 		return reconcileError{err}
 	}
 
@@ -1049,11 +1058,10 @@ func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, log logr
 
 }
 
-func (r *BMACReconciler) ensureSpokeBMHSecret(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost) (*corev1.Secret, error) {
-	secretName := bmh.Spec.BMC.CredentialsName
-	secret := &corev1.Secret{}
-	err := r.Get(ctx, types.NamespacedName{Namespace: bmh.Namespace, Name: secretName}, secret)
+func (r *BMACReconciler) ensureSpokeBMHSecret(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, key types.NamespacedName) (*corev1.Secret, error) {
+	secret, err := getSecret(ctx, r.Client, r.APIReader, key)
 	if err != nil {
+		log.WithError(err).Errorf("failed to get secret resource %s/%s", key.Namespace, key.Name)
 		return secret, err
 	}
 	secretSpoke, mutateFn := r.newSpokeBMHSecret(secret)
@@ -1295,18 +1303,4 @@ func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Con
 		return clusterDeployment, false, err
 	}
 	return clusterDeployment, true, err
-}
-
-func (r *BMACReconciler) getSecret(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, clusterDeployment *hivev1.ClusterDeployment) (*corev1.Secret, bool, error) {
-	secret := &corev1.Secret{}
-	name := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeployment.Name)
-
-	err := r.Get(ctx, types.NamespacedName{Namespace: agent.Spec.ClusterDeploymentName.Namespace, Name: name}, secret)
-	if err != nil && k8serrors.IsNotFound(err) {
-		log.WithError(err).Errorf("failed to get secret resource %s/%s", agent.Spec.ClusterDeploymentName.Namespace, name)
-		// TODO: If secret is not found, wait until a reconcile is trigged by a watch event instead
-	} else if err != nil {
-		return secret, true, err
-	}
-	return secret, false, err
 }

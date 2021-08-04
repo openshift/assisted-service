@@ -42,6 +42,7 @@ var _ = Describe("bmac reconcile", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		bmhr = &BMACReconciler{
 			Client:      c,
+			APIReader:   c,
 			Scheme:      scheme.Scheme,
 			Log:         common.GetTestLog(),
 			spokeClient: fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
@@ -630,7 +631,9 @@ var _ = Describe("bmac reconcile", func() {
 		var host *bmh_v1alpha1.BareMetalHost
 		var agent *v1beta1.Agent
 		var cluster *hivev1.ClusterDeployment
-		var secret *corev1.Secret
+		var adminKubeconfigSecret *corev1.Secret
+		var secretName string
+		var bmhName string
 
 		BeforeEach(func() {
 			macStr := "12-34-56-78-9A-BC"
@@ -664,7 +667,8 @@ var _ = Describe("bmac reconcile", func() {
 			Expect(c.Create(ctx, agent)).To(BeNil())
 
 			image := &bmh_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
-			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{Image: image, BootMACAddress: macStr, BMC: bmh_v1alpha1.BMCDetails{CredentialsName: fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)}})
+			bmhName = "bmh-reconcile"
+			host = newBMH(bmhName, &bmh_v1alpha1.BareMetalHostSpec{Image: image, BootMACAddress: macStr, BMC: bmh_v1alpha1.BMCDetails{CredentialsName: fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)}})
 			annotations := make(map[string]string)
 			annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = `{"ignition":{"version":"3.1.0", "security": {"tls":{"certificateAuthorities":[{"source":"data:text/plain;charset=utf-8;base64,c29tZSBjZXJ0aWZpY2F0ZQ=="}]}}}}`
 			host.ObjectMeta.SetAnnotations(annotations)
@@ -675,8 +679,8 @@ var _ = Describe("bmac reconcile", func() {
 			cluster.Spec.Installed = true
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
-			secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)
-			secret = &corev1.Secret{
+			secretName = fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)
+			adminKubeconfigSecret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,
 					Namespace: cluster.Namespace,
@@ -685,7 +689,7 @@ var _ = Describe("bmac reconcile", func() {
 					"kubeconfig": []byte(BASIC_KUBECONFIG),
 				},
 			}
-			Expect(c.Create(ctx, secret)).ShouldNot(HaveOccurred())
+			Expect(c.Create(ctx, adminKubeconfigSecret)).ShouldNot(HaveOccurred())
 
 			spokeMachine := &machinev1beta1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -752,9 +756,24 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_TYPE))
 
 				spokeSecret := &corev1.Secret{}
-				err = spokeClient.Get(ctx, types.NamespacedName{Name: secret.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeSecret)
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: adminKubeconfigSecret.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeSecret)
 				Expect(err).To(BeNil())
-				Expect(spokeSecret.Data).To(Equal(secret.Data))
+				Expect(spokeSecret.Data).To(Equal(adminKubeconfigSecret.Data))
+			})
+
+			It("validate label on Secrets", func() {
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				secret := &corev1.Secret{}
+				By("Checking if the secret has the custom label")
+				secretKey := types.NamespacedName{
+					Name:      secretName,
+					Namespace: cluster.Namespace,
+				}
+				Expect(c.Get(ctx, secretKey, secret)).To(BeNil())
+				Expect(secret.Labels[WatchResourceLabel]).To(Equal(WatchResourceValue))
 			})
 		})
 	})

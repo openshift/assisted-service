@@ -530,7 +530,7 @@ var _ = Describe("cluster reconcile", func() {
 		Expect(result).To(Equal(ctrl.Result{}))
 
 		Expect(c.Get(ctx, secretKey, secret)).To(BeNil())
-		Expect(secret.Labels[SecretLabelName]).To(Equal(SecretLabelValue))
+		Expect(secret.Labels[WatchResourceLabel]).To(Equal(WatchResourceValue))
 	})
 
 	It("validate Event URL", func() {
