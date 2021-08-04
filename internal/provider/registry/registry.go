@@ -2,7 +2,10 @@ package registry
 
 import (
 	"errors"
+	"fmt"
 
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/baremetal"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
@@ -21,6 +24,9 @@ type ProviderRegistry interface {
 	// GetSupportedProvidersByHosts returns a slice of all the providers names which support
 	// installation with the given hosts
 	GetSupportedProvidersByHosts(hosts []*models.Host) ([]models.PlatformType, error)
+	// AddPlatformToInstallConfig adds the provider platform to the installconfig platform field,
+	// sets platform fields from values within the cluster model.
+	AddPlatformToInstallConfig(p models.PlatformType, cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error
 }
 
 // Registry registers the providers to their names.
@@ -57,6 +63,14 @@ func (r *registry) Get(name string) (provider.Provider, error) {
 // Name returns the name of the provider
 func (r *registry) Name() models.PlatformType {
 	return ""
+}
+
+func (r *registry) AddPlatformToInstallConfig(p models.PlatformType, cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+	currentProvider, err := r.Get(string(p))
+	if err != nil {
+		return fmt.Errorf("error adding platform to install config, platform provider wasn't set: %w", err)
+	}
+	return currentProvider.AddPlatformToInstallConfig(cfg, cluster)
 }
 
 func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {

@@ -1,4 +1,4 @@
-package installcfg
+package builder
 
 import (
 	"encoding/json"
@@ -13,6 +13,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
@@ -75,12 +77,15 @@ var _ = Describe("installcfg", func() {
 
 		cluster.Hosts = []*models.Host{&host1, &host2, &host3}
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
-		installConfig = &installConfigBuilder{log: common.GetTestLog(), mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder}
-
+		providerRegistry := registry.NewMockProviderRegistry(ctrl)
+		installConfig = &installConfigBuilder{
+			log:                     common.GetTestLog(),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			providerRegistry:        providerRegistry}
 	})
 
 	It("create_configuration_with_all_hosts", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -91,7 +96,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("create_configuration_with_hostnames", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -105,7 +110,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("create_configuration_with_one_host_disabled", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		host3.Status = swag.String(models.HostStatusDisabled)
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
@@ -118,7 +123,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("create_configuration_with_mirror_registries", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		regData := []mirrorregistries.RegistriesConf{{Location: "location1", Mirror: "mirror1"}, {Location: "location2", Mirror: "mirror2"}}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(2)
 		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
@@ -131,7 +136,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("create_configuration_with_proxy", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		proxyURL := "http://proxyserver:3218"
 		cluster.HTTPProxy = proxyURL
 		cluster.HTTPSProxy = proxyURL
@@ -153,7 +158,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("create_configuration_with_proxy_with_no_proxy", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		proxyURL := "http://proxyserver:3218"
 		cluster.HTTPProxy = proxyURL
 		cluster.HTTPSProxy = proxyURL
@@ -177,7 +182,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("correctly applies cluster overrides", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -192,7 +197,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("doesn't fail with empty overrides", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
@@ -203,7 +208,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("doesn't fail with empty overrides, IPv6 machine CIDR", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "1001:db8::/120"}}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
@@ -214,7 +219,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("doesn't fail with empty overrides, IPv6 cluster CIDR", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.ClusterNetworks = []*models.ClusterNetwork{{Cidr: "1001:db8::/120"}}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
@@ -225,7 +230,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("doesn't fail with empty overrides, IPv6 service CIDR", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.ServiceNetworks = []*models.ServiceNetwork{{Cidr: "1001:db8::/120"}}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
@@ -236,7 +241,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("CA AdditionalTrustBundle", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		ca := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
@@ -253,7 +258,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("CA AdditionalTrustBundle is set to mirror CA", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		ca := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
@@ -275,7 +280,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("CA AdditionalTrustBundle not added", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "CA-CERT")
@@ -287,7 +292,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("UserManagedNetworking None Platform", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
@@ -296,13 +301,13 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
-		var none = platformNone{}
+		var none = installcfg.PlatformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("UserManagedNetworking None Platform Machine network", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.MachineNetworks = []*models.MachineNetwork{}
@@ -313,13 +318,13 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
-		var none = platformNone{}
+		var none = installcfg.PlatformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("10.35.20.0/24"))
 	})
 
 	It("UserManagedNetworking None Platform Machine network IPV6 only", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.MachineNetworks = []*models.MachineNetwork{}
@@ -331,14 +336,14 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
-		var none = platformNone{}
+		var none = installcfg.PlatformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(len(result.Networking.MachineNetwork)).Should(Equal(1))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("fe80::/64"))
 	})
 
 	It("UserManagedNetworking None Platform Machine network dual-stack", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.MachineNetworks = []*models.MachineNetwork{}
@@ -350,7 +355,7 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
-		var none = platformNone{}
+		var none = installcfg.PlatformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(len(result.Networking.MachineNetwork)).Should(Equal(2))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("10.35.20.0/24"))
@@ -358,7 +363,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("UserManagedNetworking BareMetal", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(false)
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
@@ -371,7 +376,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("Single node", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
 		mode := models.ClusterHighAvailabilityModeNone
@@ -386,7 +391,7 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
-		Expect(*result.Platform.None).Should(Equal(platformNone{}))
+		Expect(*result.Platform.None).Should(Equal(installcfg.PlatformNone{}))
 		Expect(result.BootstrapInPlace.InstallationDisk).Should(Equal("/dev/test"))
 		Expect(len(result.Networking.MachineNetwork)).Should(Equal(1))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(network.GetMachineCidrById(&cluster, 0)))
@@ -394,7 +399,7 @@ var _ = Describe("installcfg", func() {
 	})
 
 	It("Single node IPV6 only", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "fe80::/64"}}
@@ -406,14 +411,14 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
-		var none = platformNone{}
+		var none = installcfg.PlatformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(len(result.Networking.MachineNetwork)).Should(Equal(1))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(network.GetMachineCidrById(&cluster, 0)))
 	})
 
 	It("Single node dual-stack", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "1001:db8::/120"}}
@@ -425,7 +430,7 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
-		var none = platformNone{}
+		var none = installcfg.PlatformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(len(result.Networking.MachineNetwork)).Should(Equal(2))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(network.GetMachineCidrById(&cluster, 0)))
@@ -462,7 +467,7 @@ var _ = Describe("installcfg", func() {
 	Context("networking", func() {
 		// TODO MGMT-7365: Deprecate single network
 		It("Single network fields", func() {
-			var result InstallerConfigBaremetal
+			var result installcfg.InstallerConfigBaremetal
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 			data, err := installConfig.GetInstallConfig(&cluster, false, "")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -500,7 +505,7 @@ var _ = Describe("installcfg", func() {
 				},
 			}
 
-			var result InstallerConfigBaremetal
+			var result installcfg.InstallerConfigBaremetal
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 			data, err := installConfig.GetInstallConfig(&cluster, false, "")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -523,6 +528,7 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 		cluster                           *common.Cluster
 		installConfigBuilder              InstallConfigBuilder
 		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		providerRegistry                  *registry.MockProviderRegistry
 	)
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
@@ -537,7 +543,8 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 			Platform:         &models.Platform{Type: models.PlatformTypeBaremetal},
 		}}
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
-		installConfigBuilder = NewInstallConfigBuilder(common.GetTestLog(), mockMirrorRegistriesConfigBuilder)
+		providerRegistry = registry.NewMockProviderRegistry(ctrl)
+		installConfigBuilder = NewInstallConfigBuilder(common.GetTestLog(), mockMirrorRegistriesConfigBuilder, providerRegistry)
 	})
 
 	It("Succeeds when provided valid json", func() {
@@ -664,7 +671,7 @@ var _ = Describe("Platform", func() {
 	})
 
 	It("vsphere_platform", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.Platform = &models.Platform{Type: models.PlatformTypeVsphere}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
@@ -679,7 +686,7 @@ var _ = Describe("Platform", func() {
 	})
 
 	It("baremetal_platform", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		cluster.Platform = &models.Platform{Type: models.PlatformTypeBaremetal}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
@@ -694,7 +701,7 @@ var _ = Describe("Platform", func() {
 	})
 
 	It("vsphere_platform_with_params", func() {
-		var result InstallerConfigBaremetal
+		var result installcfg.InstallerConfigBaremetal
 		pcluster := "cluster"
 		datacenter := "datacenter"
 		defaultDatastore := "defaultDatastore"

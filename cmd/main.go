@@ -33,7 +33,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/imgexpirer"
-	"github.com/openshift/assisted-service/internal/installcfg"
+	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -280,7 +280,7 @@ func main() {
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
 	mirrorRegistriesBuilder := mirrorregistries.New()
 	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder)
-	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder)
+	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig)
 
 	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
@@ -412,7 +412,7 @@ func main() {
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
-		Options.GCConfig, *providerRegistry)
+		Options.GCConfig, providerRegistry)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead, Options.EnableKubeAPI)

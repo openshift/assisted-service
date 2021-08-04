@@ -46,10 +46,12 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/ignition"
-	"github.com/openshift/assisted-service/internal/installcfg"
+	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -9703,7 +9705,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		vsphereHosts := 0
 		genericHosts := 0
 		for _, h := range getReply.Payload.Hosts {
-			if validateInventory(*h, common.VmwareManufacturer) {
+			if validateInventory(*h, vsphere.VmwareManufacturer) {
 				vsphereHosts++
 			}
 			if validateInventory(*h, "Red Hat") {
@@ -12426,6 +12428,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockCRDUtils = NewMockCRDUtils(ctrl)
 	mockOperatorManager = operators.NewMockAPI(ctrl)
 	mockIgnitionBuilder = ignition.NewMockIgnitionBuilder(ctrl)
+	mockProviderRegistry := registry.NewMockProviderRegistry(ctrl)
 	mockInstallConfigBuilder = installcfg.NewMockInstallConfigBuilder(ctrl)
 	mockHwValidator = hardware.NewMockValidator(ctrl)
 	mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
@@ -12435,7 +12438,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder, mockStaticNetworkConfig,
-		gcConfig)
+		gcConfig, mockProviderRegistry)
 }
 
 var _ = Describe("IPv6 support disabled", func() {
