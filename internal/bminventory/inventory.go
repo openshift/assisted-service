@@ -2283,8 +2283,12 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 		updates["machine_network_cidr_updated_at"] = time.Now()
 	}
 
-	if err = network.VerifyClusterCIDRsNotOverlap(primaryMachineNetworkCIDR, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
-		return common.NewApiError(http.StatusBadRequest, err)
+	if primaryMachineNetworkCIDR != cluster.MachineNetworkCidr ||
+		serviceCidr != cluster.ServiceNetworkCidr ||
+		clusterCidr != cluster.ClusterNetworkCidr {
+		if err = network.VerifyClusterCIDRsNotOverlap(primaryMachineNetworkCIDR, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 
 	if err = validations.ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation, primaryMachineNetworkCIDR); err != nil {
