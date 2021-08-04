@@ -86,7 +86,9 @@ func (c *validationContext) loadCluster() error {
 
 func (c *validationContext) loadInfraEnv() error {
 	var err error
-	c.infraEnv, err = common.GetInfraEnvFromDB(c.db, c.host.InfraEnvID)
+	if c.infraEnv == nil {
+		c.infraEnv, err = common.GetInfraEnvFromDB(c.db, c.host.InfraEnvID)
+	}
 	return err
 }
 
@@ -170,12 +172,12 @@ func (c *validationContext) loadGeneralInfraEnvMinRequirements(hwValidator hardw
 	return err
 }
 
-func newValidationContext(host *models.Host, c *common.Cluster, db *gorm.DB, hwValidator hardware.Validator) (*validationContext, error) {
+func newValidationContext(host *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB, hwValidator hardware.Validator) (*validationContext, error) {
 	ret := &validationContext{
 		host:     host,
 		db:       db,
 		cluster:  c,
-		infraEnv: nil,
+		infraEnv: i,
 	}
 	if host.ClusterID != nil {
 		err := ret.loadCluster()

@@ -122,7 +122,7 @@ func (t *timedQuery) Next() ([]*Cluster, error) {
 	return clusters, nil
 }
 
-type MonitorQueryGenerator struct {
+type MonitorClusterQueryGenerator struct {
 	lastInvokeTime  time.Time
 	calls           int64
 	db              *gorm.DB
@@ -130,11 +130,11 @@ type MonitorQueryGenerator struct {
 	batchSize       int
 }
 
-func NewMonitorQueryGenerator(db, dbWithCondition *gorm.DB, batchSize int) *MonitorQueryGenerator {
+func NewMonitorQueryGenerator(db, dbWithCondition *gorm.DB, batchSize int) *MonitorClusterQueryGenerator {
 	if batchSize < 1 {
 		batchSize = DefaultBatchSize
 	}
-	return &MonitorQueryGenerator{
+	return &MonitorClusterQueryGenerator{
 		db:              db,
 		dbWithCondition: dbWithCondition,
 		batchSize:       batchSize,
@@ -145,7 +145,7 @@ func timeForDuration(d time.Duration) time.Time {
 	return time.Now().Add(-d)
 }
 
-func (m *MonitorQueryGenerator) NewQuery() MonitorQuery {
+func (m *MonitorClusterQueryGenerator) NewClusterQuery() MonitorQuery {
 	newInvokeTime := time.Now()
 	defer func() {
 		m.lastInvokeTime = newInvokeTime
@@ -172,5 +172,153 @@ func (m *MonitorQueryGenerator) NewQuery() MonitorQuery {
 		dbWithCondition: m.dbWithCondition,
 		timeToCompare:   timeForDuration(5 * time.Minute),
 		batchSize:       m.batchSize,
+	}
+}
+
+type MonitorInfraEnvQuery interface {
+	Next() ([]*InfraEnv, error)
+}
+
+type dbQuery interface {
+	query(lastId string) *gorm.DB
+	preload() *gorm.DB
+}
+
+type fullDbQuery struct {
+	db *gorm.DB
+}
+
+func (d *fullDbQuery) query(lastId string) *gorm.DB {
+	return d.db.Raw("select distinct(infra_env_id) as id from hosts where (hosts.cluster_id = '' or hosts.cluster_id is null) and infra_env_id > ? order by id limit ?", lastId, IdsQuerySize)
+}
+
+func (d *fullDbQuery) preload() *gorm.DB {
+	return d.db.Preload("Hosts", "cluster_id = '' or cluster_id is null")
+}
+
+type timedDbQuery struct {
+	db *gorm.DB
+
+	// The time to compare to the trigger_monitor_timestamp field
+	timeToCompare time.Time
+}
+
+func (t *timedDbQuery) query(lastId string) *gorm.DB {
+	return t.db.Raw("select distinct(infra_env_id) as id from hosts where (hosts.cluster_id = '' or hosts.cluster_id is null) and infra_env_id > ? and trigger_monitor_timestamp > ? order by id limit ?", lastId, t.timeToCompare, IdsQuerySize)
+}
+
+func (t timedDbQuery) preload() *gorm.DB {
+	return t.db.Preload("Hosts", "trigger_monitor_timestamp > ? and (cluster_id = '' or cluster_id is null)", t.timeToCompare)
+}
+
+type infraEnvQuery struct {
+	// Where to start the next query for ids
+	lastId string
+
+	// db connection to query ids
+	dbQuery dbQuery
+
+	// The relevant infra-env ids
+	ids []string
+
+	// True if last id was already received
+	eof bool
+
+	// Offset in the id list
+	offset int
+
+	// Max batch size (limit)
+	batchSize int
+}
+
+/*
+  Full scan (backward compatible) query.  Instead of using offset, the query uses the lastId to indicate where to start the next batch
+*/
+func (f *infraEnvQuery) Next() ([]*InfraEnv, error) {
+	var (
+		infraEnvs []*InfraEnv
+		err       error
+	)
+	if f.eof && f.offset == len(f.ids) {
+		return infraEnvs, nil
+	}
+	for (!f.eof || f.offset < len(f.ids)) && len(infraEnvs) == 0 {
+		if f.offset == len(f.ids) {
+			f.ids = nil
+			// Retrieve cluster ids that the related cluster or hosts have been updated after the timeToCompare
+			err = f.dbQuery.query(f.lastId).Pluck("id", &f.ids).Error
+			if err != nil {
+				return infraEnvs, err
+			}
+			if len(f.ids) < IdsQuerySize {
+				f.eof = true
+			}
+			if len(f.ids) > 0 {
+				f.lastId = f.ids[len(f.ids)-1]
+			}
+			f.offset = 0
+		}
+		for len(infraEnvs) == 0 && f.offset < len(f.ids) {
+			nextOffset := min(f.offset+f.batchSize, len(f.ids))
+
+			// Query according to moving range on the id slice
+			err = f.dbQuery.preload().Where("id in (?)", f.ids[f.offset:nextOffset]).Find(&infraEnvs).Error
+			if err != nil {
+				return infraEnvs, err
+			}
+			f.offset = nextOffset
+		}
+	}
+	return infraEnvs, nil
+}
+
+type MonitorInfraEnvQueryGenerator struct {
+	lastInvokeTime time.Time
+	calls          int64
+	db             *gorm.DB
+	batchSize      int
+}
+
+func (m *MonitorInfraEnvQueryGenerator) NewInfraEnvQuery() MonitorInfraEnvQuery {
+	newInvokeTime := time.Now()
+	defer func() {
+		m.lastInvokeTime = newInvokeTime
+		m.calls++
+	}()
+	if m.calls == 0 ||
+		m.lastInvokeTime.Minute()/5 != newInvokeTime.Minute()/5 {
+		return &infraEnvQuery{
+			dbQuery: &fullDbQuery{
+				db: m.db,
+			},
+			batchSize: m.batchSize,
+		}
+	}
+
+	if m.lastInvokeTime.Minute() != newInvokeTime.Minute() {
+		return &infraEnvQuery{
+			dbQuery: &timedDbQuery{
+				db:            m.db,
+				timeToCompare: timeForDuration(15 * time.Minute),
+			},
+			batchSize: m.batchSize,
+		}
+	}
+	return &infraEnvQuery{
+		dbQuery: &timedDbQuery{
+			db:            m.db,
+			timeToCompare: timeForDuration(5 * time.Minute),
+		},
+		batchSize: m.batchSize,
+	}
+}
+
+func NewInfraEnvMonitorQueryGenerator(db *gorm.DB, batchSize int) *MonitorInfraEnvQueryGenerator {
+	if batchSize < 1 {
+		batchSize = DefaultBatchSize
+	}
+	return &MonitorInfraEnvQueryGenerator{
+		db:        db,
+		batchSize: batchSize,
 	}
 }

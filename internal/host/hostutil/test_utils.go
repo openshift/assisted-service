@@ -39,8 +39,8 @@ func GenerateTestClusterWithPlatform(clusterID strfmt.UUID, machineNetworkCidr s
 	return cluster
 }
 
-func GenerateTestInfraEnv(infraEnvID strfmt.UUID) common.InfraEnv {
-	return common.InfraEnv{
+func GenerateTestInfraEnv(infraEnvID strfmt.UUID) *common.InfraEnv {
+	return &common.InfraEnv{
 		InfraEnv: models.InfraEnv{
 			ID: infraEnvID,
 		},
@@ -73,6 +73,22 @@ func GenerateTestHostByKind(hostID, infraEnvID, clusterID strfmt.UUID, state, ki
 			StageStartedAt: now,
 			StageUpdatedAt: now,
 		},
+		APIVipConnectivity: generateTestAPIVIpConnectivity(),
+		Connectivity:       GenerateTestConnectivityReport(),
+	}
+}
+
+func GenerateTestHostWithInfraEnv(hostID, infraEnvID strfmt.UUID, state string, role models.HostRole) models.Host {
+	now := strfmt.DateTime(time.Now())
+	return models.Host{
+		ID:                 &hostID,
+		InfraEnvID:         infraEnvID,
+		Status:             swag.String(state),
+		Inventory:          common.GenerateTestDefaultInventory(),
+		Role:               role,
+		Kind:               swag.String(models.HostKindHost),
+		CheckedInAt:        now,
+		StatusUpdatedAt:    now,
 		APIVipConnectivity: generateTestAPIVIpConnectivity(),
 		Connectivity:       GenerateTestConnectivityReport(),
 	}
