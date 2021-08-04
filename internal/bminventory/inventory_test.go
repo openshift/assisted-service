@@ -3971,6 +3971,65 @@ var _ = Describe("cluster", func() {
 			})
 		})
 
+		Context("Overlap", func() {
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			})
+			mockSuccess := func(times int) {
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times * 1)
+				mockSetConnectivityMajorityGroupsForClusterTimes(mockClusterApi, times)
+			}
+
+			It("Overlap - not part of update", func() {
+				err := db.Model(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Update(&common.Cluster{
+					Cluster: models.Cluster{
+						ServiceNetworkCidr:       "1.2.0.0/16",
+						ClusterNetworkCidr:       "1.2.0.0/16",
+						MachineNetworkCidr:       "1.2.0.0/16",
+						ClusterNetworkHostPrefix: 20,
+					},
+				}).Error
+				Expect(err).ToNot(HaveOccurred())
+				mockSuccess(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						UserManagedNetworking: swag.Bool(false),
+					},
+				})
+
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			})
+			It("Overlap - part of update", func() {
+				err := db.Model(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Update(&common.Cluster{
+					Cluster: models.Cluster{
+						ServiceNetworkCidr:       "1.2.0.0/16",
+						ClusterNetworkCidr:       "1.3.0.0/16",
+						MachineNetworkCidr:       "1.4.0.0/16",
+						ClusterNetworkHostPrefix: 20,
+					},
+				}).Error
+				Expect(err).ToNot(HaveOccurred())
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						ServiceNetworkCidr: swag.String("1.3.5.0/24"),
+					},
+				})
+
+				verifyApiErrorString(reply, http.StatusBadRequest, "CIDRS 1.3.5.0/24 and 1.3.0.0/16 overlap")
+			})
+		})
+
 		Context("Update Network", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
