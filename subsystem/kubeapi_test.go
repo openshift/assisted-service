@@ -497,11 +497,22 @@ func randomNameSuffix() string {
 }
 
 func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
-	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil()) // Should also delete all agents
-	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterImageSet{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-	Expect(client.DeleteAllOf(ctx, &v1beta1.InfraEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-	Expect(client.DeleteAllOf(ctx, &v1beta1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-	Expect(client.DeleteAllOf(ctx, &bmhv1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Eventually(func() error {
+		return client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace)) // Should also delete all agents
+	}, "1m", "2s").Should(BeNil())
+	Eventually(func() error {
+		return client.DeleteAllOf(ctx, &hivev1.ClusterImageSet{}, k8sclient.InNamespace(Options.Namespace))
+	}, "1m", "2s").Should(BeNil())
+	Eventually(func() error {
+		return client.DeleteAllOf(ctx, &v1beta1.InfraEnv{}, k8sclient.InNamespace(Options.Namespace))
+	}, "1m", "2s").Should(BeNil())
+	Eventually(func() error {
+		return client.DeleteAllOf(ctx, &v1beta1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))
+	}, "1m", "2s").Should(BeNil())
+
+	Eventually(func() error {
+		return client.DeleteAllOf(ctx, &bmhv1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))
+	}, "1m", "2s").Should(BeNil())
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -513,7 +524,9 @@ func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 		},
 		Type: corev1.SecretTypeDockerConfigJson,
 	}
-	Expect(client.Delete(ctx, secret)).To(BeNil())
+	Eventually(func() error {
+		return client.Delete(ctx, secret)
+	}, "1m", "2s").Should(BeNil())
 }
 
 func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
