@@ -1773,8 +1773,13 @@ var _ = Describe("Refresh Host", func() {
 					Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 					if passedTimeKind == "over_timeout" {
-						mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
-							gomock.Any(), gomock.Any())
+						if stage == models.HostStageRebooting {
+							mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusInstallingPendingUserAction),
+								gomock.Any(), gomock.Any())
+						} else {
+							mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
+								gomock.Any(), gomock.Any())
+						}
 					}
 					err := hapi.RefreshStatus(ctx, &host, db)
 
@@ -1785,11 +1790,15 @@ var _ = Describe("Refresh Host", func() {
 					if passedTimeKind == "under_timeout" {
 						Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingInProgress))
 					} else {
-						Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
-						info := formatProgressTimedOutInfo(stage)
-						Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
+						if stage == models.HostStageRebooting {
+							Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
+							Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(statusRebootTimeout))
+						} else {
+							Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
+							info := formatProgressTimedOutInfo(stage)
+							Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
+						}
 					}
-
 				})
 			}
 		}

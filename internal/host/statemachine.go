@@ -482,9 +482,22 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusInstallingInProgress)},
 		Condition: stateswitch.And(
 			th.HasInstallationInProgressTimedOut,
+			stateswitch.Not(th.IsHostInReboot),
 			stateswitch.Not(shouldIgnoreInstallationProgressTimeout)),
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoInstallationInProgressTimedOut),
+	})
+
+	// Time out while host is rebooting
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingInProgress)},
+		Condition: stateswitch.And(
+			th.HasInstallationInProgressTimedOut,
+			th.IsHostInReboot),
+		DestinationState: stateswitch.State(models.HostStatusInstallingPendingUserAction),
+		PostTransition:   th.PostRefreshHost(statusRebootTimeout),
 	})
 
 	// Noop transitions for cluster error
