@@ -5959,10 +5959,6 @@ func init() {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
         },
-        "network_configuration": {
-          "description": "JSON-formatted string containing the networking data for the install-config.yaml file.",
-          "type": "string"
-        },
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
@@ -5971,6 +5967,15 @@ func init() {
             "OVNKubernetes"
           ],
           "x-nullable": true
+        },
+        "networks": {
+          "description": "Networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/network"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
         },
         "no_proxy": {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
@@ -6156,10 +6161,6 @@ func init() {
           "maxLength": 54,
           "minLength": 1
         },
-        "network_configuration": {
-          "x-nullable": true,
-          "$ref": "#/definitions/network_configuration"
-        },
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
@@ -6168,6 +6169,14 @@ func init() {
             "OpenShiftSDN",
             "OVNKubernetes"
           ]
+        },
+        "networks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/network"
+          },
+          "x-nullable": true
         },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
@@ -6462,10 +6471,6 @@ func init() {
           "minLength": 1,
           "x-nullable": true
         },
-        "network_configuration": {
-          "x-nullable": true,
-          "$ref": "#/definitions/network_configuration"
-        },
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
@@ -6473,6 +6478,14 @@ func init() {
             "OpenShiftSDN",
             "OVNKubernetes"
           ],
+          "x-nullable": true
+        },
+        "networks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/network"
+          },
           "x-nullable": true
         },
         "no_proxy": {
@@ -6570,22 +6583,6 @@ func init() {
         "service_network_cidr": {
           "type": "string",
           "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
-        }
-      }
-    },
-    "cluster_network": {
-      "description": "IP address block for pod IP blocks.",
-      "type": "object",
-      "properties": {
-        "cidr": {
-          "description": "The IP block address pool.",
-          "$ref": "#/definitions/subnet"
-        },
-        "host_prefix": {
-          "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
-          "type": "integer",
-          "maximum": 128,
-          "minimum": 1
         }
       }
     },
@@ -8218,16 +8215,6 @@ func init() {
         }
       }
     },
-    "machine_network": {
-      "description": "IP address block for node IP blocks.",
-      "type": "object",
-      "properties": {
-        "cidr": {
-          "description": "The IP block address pool for machines within the cluster.",
-          "$ref": "#/definitions/subnet"
-        }
-      }
-    },
     "managed-domain": {
       "type": "object",
       "properties": {
@@ -8325,26 +8312,32 @@ func init() {
         "$ref": "#/definitions/monitored-operator"
       }
     },
-    "network_configuration": {
+    "network": {
       "type": "object",
       "properties": {
-        "cluster_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/cluster_network"
-          }
+        "cidr": {
+          "description": "The IP block address pool.",
+          "$ref": "#/definitions/subnet"
         },
-        "machine_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/machine_network"
-          }
+        "cluster_id": {
+          "description": "The cluster that this network is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
         },
-        "service_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/service_network"
-          }
+        "kind": {
+          "type": "string",
+          "enum": [
+            "ClusterNetwork",
+            "ServiceNetwork",
+            "MachineNetwork"
+          ]
+        },
+        "prefix": {
+          "description": "The prefix size to allocate to each instance from the CIDR. For example, 24 would allocate 2^8=256 adresses to each instance.",
+          "type": "integer",
+          "maximum": 128,
+          "minimum": 1
         }
       }
     },
@@ -8653,16 +8646,6 @@ func init() {
         "interface": {
           "description": "Interface to which packets for this route will be sent",
           "type": "string"
-        }
-      }
-    },
-    "service_network": {
-      "description": "List of IP address pools for services.",
-      "type": "object",
-      "properties": {
-        "cidr": {
-          "description": "The IP block address pool.",
-          "$ref": "#/definitions/subnet"
         }
       }
     },
@@ -15025,10 +15008,6 @@ func init() {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
         },
-        "network_configuration": {
-          "description": "JSON-formatted string containing the networking data for the install-config.yaml file.",
-          "type": "string"
-        },
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
@@ -15037,6 +15016,15 @@ func init() {
             "OVNKubernetes"
           ],
           "x-nullable": true
+        },
+        "networks": {
+          "description": "Networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/network"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
         },
         "no_proxy": {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
@@ -15222,10 +15210,6 @@ func init() {
           "maxLength": 54,
           "minLength": 1
         },
-        "network_configuration": {
-          "x-nullable": true,
-          "$ref": "#/definitions/network_configuration"
-        },
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
@@ -15234,6 +15218,14 @@ func init() {
             "OpenShiftSDN",
             "OVNKubernetes"
           ]
+        },
+        "networks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/network"
+          },
+          "x-nullable": true
         },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
@@ -15488,10 +15480,6 @@ func init() {
           "minLength": 1,
           "x-nullable": true
         },
-        "network_configuration": {
-          "x-nullable": true,
-          "$ref": "#/definitions/network_configuration"
-        },
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
@@ -15499,6 +15487,14 @@ func init() {
             "OpenShiftSDN",
             "OVNKubernetes"
           ],
+          "x-nullable": true
+        },
+        "networks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/network"
+          },
           "x-nullable": true
         },
         "no_proxy": {
@@ -15596,22 +15592,6 @@ func init() {
         "service_network_cidr": {
           "type": "string",
           "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
-        }
-      }
-    },
-    "cluster_network": {
-      "description": "IP address block for pod IP blocks.",
-      "type": "object",
-      "properties": {
-        "cidr": {
-          "description": "The IP block address pool.",
-          "$ref": "#/definitions/subnet"
-        },
-        "host_prefix": {
-          "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
-          "type": "integer",
-          "maximum": 128,
-          "minimum": 1
         }
       }
     },
@@ -17199,16 +17179,6 @@ func init() {
         "$ref": "#/definitions/MacInterfaceMapItems0"
       }
     },
-    "machine_network": {
-      "description": "IP address block for node IP blocks.",
-      "type": "object",
-      "properties": {
-        "cidr": {
-          "description": "The IP block address pool for machines within the cluster.",
-          "$ref": "#/definitions/subnet"
-        }
-      }
-    },
     "managed-domain": {
       "type": "object",
       "properties": {
@@ -17306,26 +17276,32 @@ func init() {
         "$ref": "#/definitions/monitored-operator"
       }
     },
-    "network_configuration": {
+    "network": {
       "type": "object",
       "properties": {
-        "cluster_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/cluster_network"
-          }
+        "cidr": {
+          "description": "The IP block address pool.",
+          "$ref": "#/definitions/subnet"
         },
-        "machine_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/machine_network"
-          }
+        "cluster_id": {
+          "description": "The cluster that this network is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
         },
-        "service_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/service_network"
-          }
+        "kind": {
+          "type": "string",
+          "enum": [
+            "ClusterNetwork",
+            "ServiceNetwork",
+            "MachineNetwork"
+          ]
+        },
+        "prefix": {
+          "description": "The prefix size to allocate to each instance from the CIDR. For example, 24 would allocate 2^8=256 adresses to each instance.",
+          "type": "integer",
+          "maximum": 128,
+          "minimum": 1
         }
       }
     },
@@ -17634,16 +17610,6 @@ func init() {
         "interface": {
           "description": "Interface to which packets for this route will be sent",
           "type": "string"
-        }
-      }
-    },
-    "service_network": {
-      "description": "List of IP address pools for services.",
-      "type": "object",
-      "properties": {
-        "cidr": {
-          "description": "The IP block address pool.",
-          "$ref": "#/definitions/subnet"
         }
       }
     },

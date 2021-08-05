@@ -81,12 +81,12 @@ type ClusterUpdateParams struct {
 	// Min Length: 1
 	Name *string `json:"name,omitempty"`
 
-	// network configuration
-	NetworkConfiguration *NetworkConfiguration `json:"network_configuration,omitempty"`
-
 	// The desired network type used.
 	// Enum: [OpenShiftSDN OVNKubernetes]
 	NetworkType *string `json:"network_type,omitempty"`
+
+	// networks
+	Networks []*Network `json:"networks"`
 
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
@@ -165,11 +165,11 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateNetworkConfiguration(formats); err != nil {
+	if err := m.validateNetworkType(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateNetworkType(formats); err != nil {
+	if err := m.validateNetworks(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -426,24 +426,6 @@ func (m *ClusterUpdateParams) validateName(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ClusterUpdateParams) validateNetworkConfiguration(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.NetworkConfiguration) { // not required
-		return nil
-	}
-
-	if m.NetworkConfiguration != nil {
-		if err := m.NetworkConfiguration.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("network_configuration")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
 var clusterUpdateParamsTypeNetworkTypePropEnum []interface{}
 
 func init() {
@@ -482,6 +464,31 @@ func (m *ClusterUpdateParams) validateNetworkType(formats strfmt.Registry) error
 	// value enum
 	if err := m.validateNetworkTypeEnum("network_type", "body", *m.NetworkType); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterUpdateParams) validateNetworks(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Networks) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Networks); i++ {
+		if swag.IsZero(m.Networks[i]) { // not required
+			continue
+		}
+
+		if m.Networks[i] != nil {
+			if err := m.Networks[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("networks" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
