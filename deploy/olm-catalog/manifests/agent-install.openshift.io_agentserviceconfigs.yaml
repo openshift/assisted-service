@@ -209,6 +209,25 @@ spec:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              mustGatherImages:
+                description: MustGatherImages defines a collection of operator related must-gather images that are used if one the operators fails to be successfully deployed
+                items:
+                  properties:
+                    name:
+                      description: Name specifies the name of the component (e.g. operator) that the image is used to collect information about.
+                      type: string
+                    openshiftVersion:
+                      description: OpenshiftVersion is the Major.Minor version of OpenShift that this image is to be associated with.
+                      type: string
+                    url:
+                      description: Url specifies the path to the Operating System image.
+                      type: string
+                  required:
+                  - name
+                  - openshiftVersion
+                  - url
+                  type: object
+                type: array
               osImages:
                 description: OSImages defines a collection of Operating System images (ie. RHCOS images) that the assisted-service should use as the base when generating discovery ISOs.
                 items:

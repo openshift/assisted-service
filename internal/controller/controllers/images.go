@@ -55,6 +55,10 @@ func OpenshiftVersions() string {
 	return getEnvVar(OpenshiftVersionsEnvVar, "")
 }
 
+func MustGatherImages() string {
+	return getEnvVar("MUST_GATHER_IMAGES", "")
+}
+
 func getEnvVar(key, def string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
