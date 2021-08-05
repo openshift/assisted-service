@@ -46,14 +46,7 @@ set -o pipefail
 set -o errexit
 set -o xtrace
 
-echo "Extract information about extra worker nodes..."
-config=$(jq --raw-output '.[] | .name + " " + .ports[0].address + " " + .driver_info.username + " " + .driver_info.password + " " + .driver_info.address' "${EXTRA_BAREMETALHOSTS_FILE}")
-IFS=" " read BMH_NAME MAC_ADDRESS username password ADDRESS <<<"${config}"
-ENCODED_USERNAME=$(echo -n "${username}" | base64)
-ENCODED_PASSWORD=$(echo -n "${password}" | base64)
-
 echo "Running Ansible playbook to create kubernetes objects"
-export BMH_NAME MAC_ADDRESS ENCODED_USERNAME ENCODED_PASSWORD ADDRESS
 ansible-playbook "${__dir}/assisted-installer-crds-playbook.yaml"
 
 oc get namespace "${SPOKE_NAMESPACE}" || oc create namespace "${SPOKE_NAMESPACE}"

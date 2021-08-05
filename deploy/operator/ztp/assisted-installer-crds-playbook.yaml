@@ -17,15 +17,11 @@
     - pull_secret_name: "{{ lookup('env', 'ASSISTED_PULLSECRET_NAME') }}"
     - ssh_private_key_name: "{{ lookup('env', 'ASSISTED_PRIVATEKEY_NAME') }}"
     - ssh_public_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
-    - bmh_name: "{{ lookup('env', 'BMH_NAME') }}"
-    - mac_address: "{{ lookup('env', 'MAC_ADDRESS') }}"
-    - encoded_username: "{{ lookup('env', 'ENCODED_USERNAME') }}"
-    - encoded_password: "{{ lookup('env', 'ENCODED_PASSWORD') }}"
-    - address: "{{ lookup('env', 'ADDRESS') }}"
     - cluster_subnet: "{{ lookup('env', 'CLUSTER_SUBNET') }}"
     - cluster_host_prefix: "{{ lookup('env', 'CLUSTER_HOST_PREFIX') }}"
     - external_subnet: "{{ lookup('env', 'EXTERNAL_SUBNET') }}"
     - service_subnet: "{{ lookup('env', 'SERVICE_SUBNET') }}"
+    - extra_baremetalhosts: "{{ lookup('file', lookup('env', 'EXTRA_BAREMETALHOSTS_FILE')) | from_json }}"
 
   tasks:
   - name: create directory for generated CRDs
