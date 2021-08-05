@@ -5497,6 +5497,94 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Update installation progress.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateHostInstallProgress",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The software version of the discovery agent that is updating progress.",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv of the host being updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to update.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "New progress value.",
+            "name": "host-progress",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-progress"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update install progress."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/image": {
       "get": {
         "security": [
@@ -14406,6 +14494,94 @@ func init() {
           },
           "501": {
             "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Update installation progress.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateHostInstallProgress",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The software version of the discovery agent that is updating progress.",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv of the host being updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to update.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "New progress value.",
+            "name": "host-progress",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-progress"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update install progress."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }
