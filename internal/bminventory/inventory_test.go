@@ -933,8 +933,8 @@ var _ = Describe("RegisterHost", func() {
 	})
 
 	It("register host to non-existing cluster", func() {
-		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
+		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
 			NewHostParams: &models.HostCreateParams{
 				DiscoveryAgentVersion: "v1",
 				HostID:                &hostID,
@@ -964,8 +964,8 @@ var _ = Describe("RegisterHost", func() {
 			Times(1)
 
 		By("trying to register an host while installation takes place")
-		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
-			ClusterID: *cluster.ID,
+		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
+			InfraEnvID: *cluster.ID,
 			NewHostParams: &models.HostCreateParams{
 				DiscoveryAgentVersion: "v1",
 				HostID:                &hostID,
@@ -1013,18 +1013,18 @@ var _ = Describe("RegisterHost", func() {
 				bm.AgentDockerImg = uuid.New().String()
 				bm.SkipCertVerification = true
 
-				reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
-					ClusterID: *cluster.ID,
+				reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
+					InfraEnvID: *cluster.ID,
 					NewHostParams: &models.HostCreateParams{
 						DiscoveryAgentVersion: "v1",
 						HostID:                &hostID,
 					},
 				})
-				_, ok := reply.(*installer.RegisterHostCreated)
+				_, ok := reply.(*installer.V2RegisterHostCreated)
 				Expect(ok).Should(BeTrue())
 
 				By("register_returns_next_step_runner_command")
-				payload := reply.(*installer.RegisterHostCreated).Payload
+				payload := reply.(*installer.V2RegisterHostCreated).Payload
 				Expect(payload).ShouldNot(BeNil())
 				command := payload.NextStepRunnerCommand
 				Expect(command).ShouldNot(BeNil())
@@ -1052,16 +1052,16 @@ var _ = Describe("RegisterHost", func() {
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 			Times(1)
-		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
-			ClusterID: *cluster.ID,
+		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
+			InfraEnvID: *cluster.ID,
 			NewHostParams: &models.HostCreateParams{
 				DiscoveryAgentVersion: "v1",
 				HostID:                &hostID,
 			},
 		})
-		_, ok := reply.(*installer.RegisterHostInternalServerError)
+		_, ok := reply.(*installer.V2RegisterHostInternalServerError)
 		Expect(ok).Should(BeTrue())
-		payload := reply.(*installer.RegisterHostInternalServerError).Payload
+		payload := reply.(*installer.V2RegisterHostInternalServerError).Payload
 		Expect(*payload.Code).Should(Equal(strconv.Itoa(http.StatusInternalServerError)))
 		Expect(*payload.Reason).Should(ContainSubstring(expectedErrMsg))
 	})
@@ -1076,8 +1076,8 @@ var _ = Describe("RegisterHost", func() {
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityError, gomock.Any(), gomock.Any()).
 			Times(1)
-		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
-			ClusterID: *cluster.ID,
+		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
+			InfraEnvID: *cluster.ID,
 			NewHostParams: &models.HostCreateParams{
 				DiscoveryAgentVersion: "v1",
 				HostID:                &hostID,
@@ -1238,9 +1238,9 @@ var _ = Describe("v2RegisterHost", func() {
 				HostID:                &hostID,
 			},
 		})
-		_, ok := reply.(*installer.RegisterHostInternalServerError)
+		_, ok := reply.(*installer.V2RegisterHostInternalServerError)
 		Expect(ok).Should(BeTrue())
-		payload := reply.(*installer.RegisterHostInternalServerError).Payload
+		payload := reply.(*installer.V2RegisterHostInternalServerError).Payload
 		Expect(*payload.Code).Should(Equal(strconv.Itoa(http.StatusInternalServerError)))
 		Expect(*payload.Reason).Should(ContainSubstring(expectedErrMsg))
 	})
@@ -1295,11 +1295,11 @@ var _ = Describe("GetNextSteps", func() {
 		clusterId := strToUUID(uuid.New().String())
 		unregistered_hostID := strToUUID(uuid.New().String())
 
-		generateReply := bm.GetNextSteps(ctx, installer.GetNextStepsParams{
-			ClusterID: *clusterId,
-			HostID:    *unregistered_hostID,
+		generateReply := bm.V2GetNextSteps(ctx, installer.V2GetNextStepsParams{
+			InfraEnvID: *clusterId,
+			HostID:     *unregistered_hostID,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGetNextStepsNotFound()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2GetNextStepsNotFound()))
 	})
 
 	It("get_next_steps_success", func() {
@@ -1322,12 +1322,12 @@ var _ = Describe("GetNextSteps", func() {
 		h1, err := common.GetHostFromDB(db, infraEnvId.String(), hostId.String())
 		Expect(err).ToNot(HaveOccurred())
 		mockHostApi.EXPECT().GetNextSteps(gomock.Any(), gomock.Any()).Return(expectedStepsReply, err)
-		reply := bm.GetNextSteps(ctx, installer.GetNextStepsParams{
-			ClusterID: *clusterId,
-			HostID:    *hostId,
+		reply := bm.V2GetNextSteps(ctx, installer.V2GetNextStepsParams{
+			InfraEnvID: *clusterId,
+			HostID:     *hostId,
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetNextStepsOK()))
-		stepsReply := reply.(*installer.GetNextStepsOK).Payload
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2GetNextStepsOK()))
+		stepsReply := reply.(*installer.V2GetNextStepsOK).Payload
 		expectedStepsType := []models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck}
 		Expect(stepsReply.Instructions).To(HaveLen(len(expectedStepsType)))
 		for i, step := range stepsReply.Instructions {
@@ -1370,7 +1370,7 @@ var _ = Describe("v2GetNextSteps", func() {
 			InfraEnvID: *clusterId,
 			HostID:     *unregistered_hostID,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGetNextStepsNotFound()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2GetNextStepsNotFound()))
 	})
 
 	It("get_next_steps_success", func() {
@@ -1471,9 +1471,9 @@ var _ = Describe("PostStepReply", func() {
 		It("Media disconnection occurred", func() {
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, hostId, models.EventSeverityError, gomock.Any(), gomock.Any())
 
-			params := installer.PostStepReplyParams{
-				ClusterID: *clusterId,
-				HostID:    *hostId,
+			params := installer.V2PostStepReplyParams{
+				InfraEnvID: *clusterId,
+				HostID:     *hostId,
 				Reply: &models.StepReply{
 					ExitCode: MediaDisconnected,
 					Output:   "output",
@@ -1481,7 +1481,7 @@ var _ = Describe("PostStepReply", func() {
 				},
 			}
 
-			Expect(bm.PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
 			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected"))
@@ -1493,9 +1493,9 @@ var _ = Describe("PostStepReply", func() {
 			updates["StatusInfo"] = models.HostStatusError
 			updateErr := db.Model(&common.Host{}).Where("id = ?", hostId).Updates(updates).Error
 			Expect(updateErr).ShouldNot(HaveOccurred())
-			params := installer.PostStepReplyParams{
-				ClusterID: *clusterId,
-				HostID:    *hostId,
+			params := installer.V2PostStepReplyParams{
+				InfraEnvID: *clusterId,
+				HostID:     *hostId,
 				Reply: &models.StepReply{
 					ExitCode: MediaDisconnected,
 					Output:   "output",
@@ -1503,7 +1503,7 @@ var _ = Describe("PostStepReply", func() {
 				},
 			}
 
-			Expect(bm.PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
 			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected. error"))
@@ -1514,9 +1514,9 @@ var _ = Describe("PostStepReply", func() {
 			updates["Status"] = models.HostStatusError
 			updateErr := db.Model(&common.Host{}).Where("id = ?", hostId).Updates(updates).Error
 			Expect(updateErr).ShouldNot(HaveOccurred())
-			params := installer.PostStepReplyParams{
-				ClusterID: *clusterId,
-				HostID:    *hostId,
+			params := installer.V2PostStepReplyParams{
+				InfraEnvID: *clusterId,
+				HostID:     *hostId,
 				Reply: &models.StepReply{
 					ExitCode: MediaDisconnected,
 					Output:   "output",
@@ -1525,7 +1525,7 @@ var _ = Describe("PostStepReply", func() {
 				},
 			}
 
-			Expect(bm.PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
 			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected. error"))
@@ -1533,11 +1533,11 @@ var _ = Describe("PostStepReply", func() {
 	})
 
 	Context("Free addresses", func() {
-		var makeStepReply = func(clusterID, hostID strfmt.UUID, freeAddresses models.FreeNetworksAddresses) installer.PostStepReplyParams {
+		var makeStepReply = func(clusterID, hostID strfmt.UUID, freeAddresses models.FreeNetworksAddresses) installer.V2PostStepReplyParams {
 			b, _ := json.Marshal(&freeAddresses)
-			return installer.PostStepReplyParams{
-				ClusterID: clusterID,
-				HostID:    hostID,
+			return installer.V2PostStepReplyParams{
+				InfraEnvID: clusterID,
+				HostID:     hostID,
 				Reply: &models.StepReply{
 					Output:   string(b),
 					StepType: models.StepTypeFreeNetworkAddresses,
@@ -1557,8 +1557,8 @@ var _ = Describe("PostStepReply", func() {
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			toMarshal := makeFreeNetworksAddresses(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1"))
 			params := makeStepReply(*clusterId, *hostId, toMarshal)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			var h models.Host
 			Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			var f models.FreeNetworksAddresses
@@ -1578,8 +1578,8 @@ var _ = Describe("PostStepReply", func() {
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			toMarshal := makeFreeNetworksAddresses()
 			params := makeStepReply(*clusterId, *hostId, toMarshal)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 			var h models.Host
 			Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(h.FreeAddresses).To(BeEmpty())
@@ -1589,12 +1589,12 @@ var _ = Describe("PostStepReply", func() {
 	Context("Dhcp allocation", func() {
 		var (
 			clusterId, hostId *strfmt.UUID
-			makeStepReply     = func(clusterID, hostID strfmt.UUID, dhcpAllocationResponse *models.DhcpAllocationResponse) installer.PostStepReplyParams {
+			makeStepReply     = func(clusterID, hostID strfmt.UUID, dhcpAllocationResponse *models.DhcpAllocationResponse) installer.V2PostStepReplyParams {
 				b, err := json.Marshal(dhcpAllocationResponse)
 				Expect(err).ToNot(HaveOccurred())
-				return installer.PostStepReplyParams{
-					ClusterID: clusterID,
-					HostID:    hostID,
+				return installer.V2PostStepReplyParams{
+					InfraEnvID: clusterID,
+					HostID:     hostID,
 					Reply: &models.StepReply{
 						Output:   string(b),
 						StepType: models.StepTypeDhcpLeaseAllocate,
@@ -1645,8 +1645,8 @@ var _ = Describe("PostStepReply", func() {
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases("1.2.3.10", "1.2.3.11", "lease { hello abc; }", "lease { hello abc; }"))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 		})
 		It("API lease invalid", func() {
 			cluster := common.Cluster{
@@ -1659,8 +1659,8 @@ var _ = Describe("PostStepReply", func() {
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases("1.2.3.10", "1.2.3.11", "llease { hello abc; }", "lease { hello abc; }"))
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
 		It("Happy flow", func() {
 			cluster := common.Cluster{
@@ -1674,8 +1674,8 @@ var _ = Describe("PostStepReply", func() {
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 		})
 		It("Happy flow IPv6", func() {
 			cluster := common.Cluster{
@@ -1689,8 +1689,8 @@ var _ = Describe("PostStepReply", func() {
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			params := makeStepReply(*clusterId, *hostId, makeResponse("1001:db8::10", "1001:db8::11"))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 		})
 		It("DHCP not enabled", func() {
 			cluster := common.Cluster{
@@ -1703,8 +1703,8 @@ var _ = Describe("PostStepReply", func() {
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
 		It("Bad ingress VIP", func() {
 			cluster := common.Cluster{
@@ -1717,8 +1717,8 @@ var _ = Describe("PostStepReply", func() {
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.4.11"))
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
 		It("New IPs while in insufficient", func() {
 			cluster := common.Cluster{
@@ -1734,8 +1734,8 @@ var _ = Describe("PostStepReply", func() {
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 		})
 		It("New IPs while in installing", func() {
 			cluster := common.Cluster{
@@ -1751,8 +1751,8 @@ var _ = Describe("PostStepReply", func() {
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("Stam"))
 			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
 	})
 
@@ -1762,16 +1762,16 @@ var _ = Describe("PostStepReply", func() {
 			hostId    *strfmt.UUID
 		)
 
-		var makeStepReply = func(clusterID, hostID strfmt.UUID, ntpSources []*models.NtpSource) installer.PostStepReplyParams {
+		var makeStepReply = func(clusterID, hostID strfmt.UUID, ntpSources []*models.NtpSource) installer.V2PostStepReplyParams {
 			response := models.NtpSynchronizationResponse{
 				NtpSources: ntpSources,
 			}
 
 			b, _ := json.Marshal(&response)
 
-			return installer.PostStepReplyParams{
-				ClusterID: clusterID,
-				HostID:    hostID,
+			return installer.V2PostStepReplyParams{
+				InfraEnvID: clusterID,
+				HostID:     hostID,
 				Reply: &models.StepReply{
 					Output:   string(b),
 					StepType: models.StepTypeNtpSynchronizer,
@@ -1801,8 +1801,8 @@ var _ = Describe("PostStepReply", func() {
 			mockHostApi.EXPECT().UpdateNTP(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 			params := makeStepReply(*clusterId, *hostId, toMarshal)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 		})
 
 		It("NTP synchronizer error", func() {
@@ -1810,8 +1810,8 @@ var _ = Describe("PostStepReply", func() {
 
 			toMarshal := []*models.NtpSource{}
 			params := makeStepReply(*clusterId, *hostId, toMarshal)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
 	})
 
@@ -1821,7 +1821,7 @@ var _ = Describe("PostStepReply", func() {
 			hostId    *strfmt.UUID
 		)
 
-		var makeStepReply = func(clusterID, hostID strfmt.UUID, statuses []*models.ContainerImageAvailability) installer.PostStepReplyParams {
+		var makeStepReply = func(clusterID, hostID strfmt.UUID, statuses []*models.ContainerImageAvailability) installer.V2PostStepReplyParams {
 			response := models.ContainerImageAvailabilityResponse{
 				Images: statuses,
 			}
@@ -1829,9 +1829,9 @@ var _ = Describe("PostStepReply", func() {
 			b, err := json.Marshal(&response)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			return installer.PostStepReplyParams{
-				ClusterID: clusterID,
-				HostID:    hostID,
+			return installer.V2PostStepReplyParams{
+				InfraEnvID: clusterID,
+				HostID:     hostID,
 				Reply: &models.StepReply{
 					Output:   string(b),
 					StepType: models.StepTypeContainerImageAvailability,
@@ -1861,8 +1861,8 @@ var _ = Describe("PostStepReply", func() {
 			mockHostApi.EXPECT().UpdateImageStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 
 			params := makeStepReply(*clusterId, *hostId, toMarshal)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 		})
 
 		It("Image availability error", func() {
@@ -1873,8 +1873,8 @@ var _ = Describe("PostStepReply", func() {
 				{Name: "image2", Result: models.ContainerImageAvailabilityResultFailure},
 			}
 			params := makeStepReply(*clusterId, *hostId, toMarshal)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
 	})
 	Context("Disk speed", func() {
@@ -1883,7 +1883,7 @@ var _ = Describe("PostStepReply", func() {
 			hostId    *strfmt.UUID
 		)
 
-		var makeStepReply = func(clusterID, hostID strfmt.UUID, path string, ioDuration, exitCode int64) installer.PostStepReplyParams {
+		var makeStepReply = func(clusterID, hostID strfmt.UUID, path string, ioDuration, exitCode int64) installer.V2PostStepReplyParams {
 			response := models.DiskSpeedCheckResponse{
 				IoSyncDuration: ioDuration,
 				Path:           path,
@@ -1892,9 +1892,9 @@ var _ = Describe("PostStepReply", func() {
 			b, err := json.Marshal(&response)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			return installer.PostStepReplyParams{
-				ClusterID: clusterID,
-				HostID:    hostID,
+			return installer.V2PostStepReplyParams{
+				InfraEnvID: clusterID,
+				HostID:     hostID,
 				Reply: &models.StepReply{
 					ExitCode: exitCode,
 					Output:   string(b),
@@ -1929,16 +1929,16 @@ var _ = Describe("PostStepReply", func() {
 			mockMetric.EXPECT().DiskSyncDuration(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockHwValidator.EXPECT().GetInstallationDiskSpeedThresholdMs(gomock.Any(), gomock.Any(), gomock.Any()).Return(int64(10), nil).Times(1)
 			params := makeStepReply(*clusterId, *hostId, "/dev/sda", 5, 0)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 		})
 
 		It("Disk speed failure", func() {
 			mockHostApi.EXPECT().SetDiskSpeed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 			params := makeStepReply(*clusterId, *hostId, "/dev/sda", 5, -1)
-			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 		})
 	})
 })

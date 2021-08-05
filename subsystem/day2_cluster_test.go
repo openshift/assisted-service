@@ -416,9 +416,9 @@ var _ = Describe("Day2 cluster tests", func() {
 		Expect(*h.Status).Should(Equal("installing"))
 		Expect(h.Role).Should(Equal(models.HostRoleWorker))
 		// post failure to execute the install command
-		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    *host.ID,
+		_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+			InfraEnvID: clusterID,
+			HostID:     *host.ID,
 			Reply: &models.StepReply{
 				ExitCode: bminventory.ContainerAlreadyRunningExitCode,
 				StepType: models.StepTypeInstall,

@@ -106,9 +106,6 @@ type API interface {
 	   GetInfraEnv Retrieves the details of the InfraEnv.*/
 	GetInfraEnv(ctx context.Context, params *GetInfraEnvParams) (*GetInfraEnvOK, error)
 	/*
-	   GetNextSteps Retrieves the next operations that the host agent needs to perform.*/
-	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
-	/*
 	   GetPreflightRequirements Get preflight requirements for a cluster.*/
 	GetPreflightRequirements(ctx context.Context, params *GetPreflightRequirementsParams) (*GetPreflightRequirementsOK, error)
 	/*
@@ -133,17 +130,11 @@ type API interface {
 	   ListInfraEnvs Retrieves the list of InfraEnvs.*/
 	ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams) (*ListInfraEnvsOK, error)
 	/*
-	   PostStepReply Posts the result of the operations from the host agent.*/
-	PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error)
-	/*
 	   RegisterAddHostsCluster Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.*/
 	RegisterAddHostsCluster(ctx context.Context, params *RegisterAddHostsClusterParams) (*RegisterAddHostsClusterCreated, error)
 	/*
 	   RegisterCluster Creates a new OpenShift cluster definition.*/
 	RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error)
-	/*
-	   RegisterHost Registers a new OpenShift host.*/
-	RegisterHost(ctx context.Context, params *RegisterHostParams) (*RegisterHostCreated, error)
 	/*
 	   RegisterInfraEnv Creates a new OpenShift Discovery ISO.*/
 	RegisterInfraEnv(ctx context.Context, params *RegisterInfraEnvParams) (*RegisterInfraEnvCreated, error)
@@ -930,31 +921,6 @@ func (a *Client) GetInfraEnv(ctx context.Context, params *GetInfraEnvParams) (*G
 }
 
 /*
-GetNextSteps Retrieves the next operations that the host agent needs to perform.
-*/
-func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetNextSteps",
-		Method:             "GET",
-		PathPattern:        "/v1/clusters/{cluster_id}/hosts/{host_id}/instructions",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &GetNextStepsReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetNextStepsOK), nil
-
-}
-
-/*
 GetPreflightRequirements Get preflight requirements for a cluster.
 */
 func (a *Client) GetPreflightRequirements(ctx context.Context, params *GetPreflightRequirementsParams) (*GetPreflightRequirementsOK, error) {
@@ -1155,31 +1121,6 @@ func (a *Client) ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams)
 }
 
 /*
-PostStepReply Posts the result of the operations from the host agent.
-*/
-func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PostStepReply",
-		Method:             "POST",
-		PathPattern:        "/v1/clusters/{cluster_id}/hosts/{host_id}/instructions",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &PostStepReplyReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*PostStepReplyNoContent), nil
-
-}
-
-/*
 RegisterAddHostsCluster Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.
 */
 func (a *Client) RegisterAddHostsCluster(ctx context.Context, params *RegisterAddHostsClusterParams) (*RegisterAddHostsClusterCreated, error) {
@@ -1226,31 +1167,6 @@ func (a *Client) RegisterCluster(ctx context.Context, params *RegisterClusterPar
 		return nil, err
 	}
 	return result.(*RegisterClusterCreated), nil
-
-}
-
-/*
-RegisterHost Registers a new OpenShift host.
-*/
-func (a *Client) RegisterHost(ctx context.Context, params *RegisterHostParams) (*RegisterHostCreated, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RegisterHost",
-		Method:             "POST",
-		PathPattern:        "/v1/clusters/{cluster_id}/hosts",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &RegisterHostReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*RegisterHostCreated), nil
 
 }
 

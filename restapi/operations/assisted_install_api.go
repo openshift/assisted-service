@@ -151,9 +151,6 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetInfraEnvHandler: installer.GetInfraEnvHandlerFunc(func(params installer.GetInfraEnvParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetInfraEnv has not yet been implemented")
 		}),
-		InstallerGetNextStepsHandler: installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetNextSteps has not yet been implemented")
-		}),
 		InstallerGetPreflightRequirementsHandler: installer.GetPreflightRequirementsHandlerFunc(func(params installer.GetPreflightRequirementsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetPreflightRequirements has not yet been implemented")
 		}),
@@ -205,17 +202,11 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		OperatorsListSupportedOperatorsHandler: operators.ListSupportedOperatorsHandlerFunc(func(params operators.ListSupportedOperatorsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation operators.ListSupportedOperators has not yet been implemented")
 		}),
-		InstallerPostStepReplyHandler: installer.PostStepReplyHandlerFunc(func(params installer.PostStepReplyParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.PostStepReply has not yet been implemented")
-		}),
 		InstallerRegisterAddHostsClusterHandler: installer.RegisterAddHostsClusterHandlerFunc(func(params installer.RegisterAddHostsClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterAddHostsCluster has not yet been implemented")
 		}),
 		InstallerRegisterClusterHandler: installer.RegisterClusterHandlerFunc(func(params installer.RegisterClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterCluster has not yet been implemented")
-		}),
-		InstallerRegisterHostHandler: installer.RegisterHostHandlerFunc(func(params installer.RegisterHostParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.RegisterHost has not yet been implemented")
 		}),
 		InstallerRegisterInfraEnvHandler: installer.RegisterInfraEnvHandlerFunc(func(params installer.RegisterInfraEnvParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterInfraEnv has not yet been implemented")
@@ -416,8 +407,6 @@ type AssistedInstallAPI struct {
 	InstallerGetHostIgnitionHandler installer.GetHostIgnitionHandler
 	// InstallerGetInfraEnvHandler sets the operation handler for the get infra env operation
 	InstallerGetInfraEnvHandler installer.GetInfraEnvHandler
-	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
-	InstallerGetNextStepsHandler installer.GetNextStepsHandler
 	// InstallerGetPreflightRequirementsHandler sets the operation handler for the get preflight requirements operation
 	InstallerGetPreflightRequirementsHandler installer.GetPreflightRequirementsHandler
 	// AssistedServiceIsoGetPresignedForAssistedServiceISOHandler sets the operation handler for the get presigned for assisted service i s o operation
@@ -452,14 +441,10 @@ type AssistedInstallAPI struct {
 	VersionsListSupportedOpenshiftVersionsHandler versions.ListSupportedOpenshiftVersionsHandler
 	// OperatorsListSupportedOperatorsHandler sets the operation handler for the list supported operators operation
 	OperatorsListSupportedOperatorsHandler operators.ListSupportedOperatorsHandler
-	// InstallerPostStepReplyHandler sets the operation handler for the post step reply operation
-	InstallerPostStepReplyHandler installer.PostStepReplyHandler
 	// InstallerRegisterAddHostsClusterHandler sets the operation handler for the register add hosts cluster operation
 	InstallerRegisterAddHostsClusterHandler installer.RegisterAddHostsClusterHandler
 	// InstallerRegisterClusterHandler sets the operation handler for the register cluster operation
 	InstallerRegisterClusterHandler installer.RegisterClusterHandler
-	// InstallerRegisterHostHandler sets the operation handler for the register host operation
-	InstallerRegisterHostHandler installer.RegisterHostHandler
 	// InstallerRegisterInfraEnvHandler sets the operation handler for the register infra env operation
 	InstallerRegisterInfraEnvHandler installer.RegisterInfraEnvHandler
 	// OperatorsReportMonitoredOperatorStatusHandler sets the operation handler for the report monitored operator status operation
@@ -693,9 +678,6 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerGetInfraEnvHandler == nil {
 		unregistered = append(unregistered, "installer.GetInfraEnvHandler")
 	}
-	if o.InstallerGetNextStepsHandler == nil {
-		unregistered = append(unregistered, "installer.GetNextStepsHandler")
-	}
 	if o.InstallerGetPreflightRequirementsHandler == nil {
 		unregistered = append(unregistered, "installer.GetPreflightRequirementsHandler")
 	}
@@ -747,17 +729,11 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.OperatorsListSupportedOperatorsHandler == nil {
 		unregistered = append(unregistered, "operators.ListSupportedOperatorsHandler")
 	}
-	if o.InstallerPostStepReplyHandler == nil {
-		unregistered = append(unregistered, "installer.PostStepReplyHandler")
-	}
 	if o.InstallerRegisterAddHostsClusterHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterAddHostsClusterHandler")
 	}
 	if o.InstallerRegisterClusterHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterClusterHandler")
-	}
-	if o.InstallerRegisterHostHandler == nil {
-		unregistered = append(unregistered, "installer.RegisterHostHandler")
 	}
 	if o.InstallerRegisterInfraEnvHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterInfraEnvHandler")
@@ -1066,10 +1042,6 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewGetNextSteps(o.context, o.InstallerGetNextStepsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
 	o.handlers["GET"]["/v1/clusters/{cluster_id}/preflight-requirements"] = installer.NewGetPreflightRequirements(o.context, o.InstallerGetPreflightRequirementsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -1138,19 +1110,11 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewPostStepReply(o.context, o.InstallerPostStepReplyHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
 	o.handlers["POST"]["/v1/add_hosts_clusters"] = installer.NewRegisterAddHostsCluster(o.context, o.InstallerRegisterAddHostsClusterHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v1/clusters"] = installer.NewRegisterCluster(o.context, o.InstallerRegisterClusterHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts"] = installer.NewRegisterHost(o.context, o.InstallerRegisterHostHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

@@ -352,9 +352,9 @@ var _ = Describe("Host tests", func() {
 		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
 		Expect(db.Model(host).Update("role", "worker").Error).NotTo(HaveOccurred())
 
-		_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    *host.ID,
+		_, err := agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+			InfraEnvID: clusterID,
+			HostID:     *host.ID,
 			Reply: &models.StepReply{
 				ExitCode: 137,
 				Output:   "Failed to install",
@@ -375,9 +375,9 @@ var _ = Describe("Host tests", func() {
 		connectivity := "{\"remote_hosts\":[{\"host_id\":\"b8a1228d-1091-4e79-be66-738a160f9ff7\",\"l2_connectivity\":null,\"l3_connectivity\":null}]}"
 		extraConnectivity := "{\"extra\":\"data\",\"remote_hosts\":[{\"host_id\":\"b8a1228d-1091-4e79-be66-738a160f9ff7\",\"l2_connectivity\":null,\"l3_connectivity\":null}]}"
 
-		_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    *host.ID,
+		_, err := agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+			InfraEnvID: clusterID,
+			HostID:     *host.ID,
 			Reply: &models.StepReply{
 				ExitCode: 0,
 				Output:   extraConnectivity,
@@ -389,9 +389,9 @@ var _ = Describe("Host tests", func() {
 		host = getHost(clusterID, *host.ID)
 		Expect(host.Connectivity).Should(Equal(connectivity))
 
-		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    *host.ID,
+		_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+			InfraEnvID: clusterID,
+			HostID:     *host.ID,
 			Reply: &models.StepReply{
 				ExitCode: 0,
 				Output:   "not a json",
@@ -404,9 +404,9 @@ var _ = Describe("Host tests", func() {
 		Expect(host.Connectivity).Should(Equal(connectivity))
 
 		//exit code is not 0
-		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    *host.ID,
+		_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+			InfraEnvID: clusterID,
+			HostID:     *host.ID,
 			Reply: &models.StepReply{
 				ExitCode: -1,
 				Error:    "some error",
@@ -425,9 +425,9 @@ var _ = Describe("Host tests", func() {
 
 		free_addresses_report := "[{\"free_addresses\":[\"10.0.0.0\",\"10.0.0.1\"],\"network\":\"10.0.0.0/24\"},{\"free_addresses\":[\"10.0.1.0\"],\"network\":\"10.0.1.0/24\"}]"
 
-		_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    *h.ID,
+		_, err := agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+			InfraEnvID: clusterID,
+			HostID:     *h.ID,
 			Reply: &models.StepReply{
 				ExitCode: 0,
 				Output:   free_addresses_report,
@@ -462,9 +462,9 @@ var _ = Describe("Host tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(freeAddressesReply.Payload).To(BeEmpty())
 
-		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    *h.ID,
+		_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+			InfraEnvID: clusterID,
+			HostID:     *h.ID,
 			Reply: &models.StepReply{
 				ExitCode: 0,
 				Output:   "not a json",
@@ -475,9 +475,9 @@ var _ = Describe("Host tests", func() {
 		Expect(err).To(HaveOccurred())
 
 		//exit code is not 0
-		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    *h.ID,
+		_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+			InfraEnvID: clusterID,
+			HostID:     *h.ID,
 			Reply: &models.StepReply{
 				ExitCode: -1,
 				Error:    "some error",
@@ -642,8 +642,8 @@ var _ = Describe("Host tests", func() {
 	It("register_same_host_id", func() {
 		hostID := strToUUID(uuid.New().String())
 		// register to cluster1
-		_, err := agentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
-			ClusterID: clusterID,
+		_, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+			InfraEnvID: clusterID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
 			},
@@ -662,8 +662,8 @@ var _ = Describe("Host tests", func() {
 		generateClusterISO(*cluster2.GetPayload().ID, models.ImageTypeMinimalIso)
 
 		// register to cluster2
-		_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
-			ClusterID: *cluster2.GetPayload().ID,
+		_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
+			InfraEnvID: *cluster2.GetPayload().ID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
 			},
@@ -685,8 +685,8 @@ var _ = Describe("Host tests", func() {
 		Expect(db.Model(h).Update("status", "known").Error).NotTo(HaveOccurred())
 		h = getHost(*cluster2.GetPayload().ID, *hostID)
 		Expect(swag.StringValue(h.Status)).Should(Equal("known"))
-		_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
-			ClusterID: *cluster2.GetPayload().ID,
+		_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
+			InfraEnvID: *cluster2.GetPayload().ID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
 			},
@@ -705,8 +705,8 @@ var _ = Describe("Host tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		hostID := strToUUID(uuid.New().String())
-		_, err = badAgentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
-			ClusterID: clusterID,
+		_, err = badAgentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+			InfraEnvID: clusterID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
 			},
@@ -727,9 +727,9 @@ var _ = Describe("Host tests", func() {
 })
 
 func updateInventory(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID, inventory string) *models.Host {
-	_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: clusterId,
-		HostID:    hostId,
+	_, err := agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+		InfraEnvID: clusterId,
+		HostID:     hostId,
 		Reply: &models.StepReply{
 			ExitCode: 0,
 			Output:   inventory,
