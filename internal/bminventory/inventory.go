@@ -142,6 +142,8 @@ type InstallerInternals interface {
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
 	AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
+	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
+	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams) (*common.InfraEnv, error)
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -273,8 +275,7 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params
 func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error {
 	log := logutil.FromContext(ctx, b.log)
 
-	//[TODO] - change the code to use InfraEnv once we move the code and test to use InfraEnv CRUD
-	c, err := b.getCluster(ctx, params.ClusterID.String())
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get cluster %s", params.ClusterID)
 		return err
@@ -291,15 +292,20 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	err = b.db.Model(&common.InfraEnv{}).Where(identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Update("ignition_config_overrides", params.DiscoveryIgnitionParams.Config).Error
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Custom discovery ignition config was applied to the cluster", time.Now())
 	log.Infof("Custom discovery ignition config was applied to cluster %s", params.ClusterID)
 
-	existed, err := b.objectHandler.DeleteObject(ctx, getImageName(*c.ID))
+	existed, err := b.objectHandler.DeleteObject(ctx, getImageName(infraEnv.ID))
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	if existed {
-		b.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, "Deleted image from backend because its ignition was updated. The image may be regenerated at any time.", time.Now())
+		b.eventsHandler.AddEvent(ctx, infraEnv.ID, nil, models.EventSeverityInfo, "Deleted image from backend because its ignition was updated. The image may be regenerated at any time.", time.Now())
 	}
 
 	return nil
@@ -1330,6 +1336,14 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewInstallClusterAccepted().WithPayload(&c.Cluster)
+}
+
+func (b *bareMetalInventory) GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error) {
+	infraEnv, err := common.GetInfraEnvFromDBWhere(b.db, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	return infraEnv, nil
 }
 
 func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.Context, amsSubscriptionID, openshiftClusterID strfmt.UUID) error {
@@ -4923,14 +4937,14 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 }
 
 func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder {
-	i, err := b.updateInfraEnvInternal(ctx, params)
+	i, err := b.UpdateInfraEnvInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewUpdateInfraEnvCreated().WithPayload(&i.InfraEnv)
 }
 
-func (b *bareMetalInventory) updateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams) (*common.InfraEnv, error) {
+func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams) (*common.InfraEnv, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var infraEnv *common.InfraEnv
 	var err error

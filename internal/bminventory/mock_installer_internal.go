@@ -6,14 +6,15 @@ package bminventory
 
 import (
 	context "context"
+	io "io"
+	reflect "reflect"
+
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	installer "github.com/openshift/assisted-service/restapi/operations/installer"
-	io "io"
 	types "k8s.io/apimachinery/pkg/types"
-	reflect "reflect"
 )
 
 // MockInstallerInternals is a mock of InstallerInternals interface
@@ -218,6 +219,21 @@ func (mr *MockInstallerInternalsMockRecorder) GetHostByKubeKey(arg0 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostByKubeKey", reflect.TypeOf((*MockInstallerInternals)(nil).GetHostByKubeKey), arg0)
 }
 
+// GetInfraEnvByKubeKey mocks base method
+func (m *MockInstallerInternals) GetInfraEnvByKubeKey(arg0 types.NamespacedName) (*common.InfraEnv, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInfraEnvByKubeKey", arg0)
+	ret0, _ := ret[0].(*common.InfraEnv)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInfraEnvByKubeKey indicates an expected call of GetInfraEnvByKubeKey
+func (mr *MockInstallerInternalsMockRecorder) GetInfraEnvByKubeKey(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvByKubeKey", reflect.TypeOf((*MockInstallerInternals)(nil).GetInfraEnvByKubeKey), arg0)
+}
+
 // InstallClusterInternal mocks base method
 func (m *MockInstallerInternals) InstallClusterInternal(arg0 context.Context, arg1 installer.InstallClusterParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
@@ -378,4 +394,33 @@ func (m *MockInstallerInternals) UpdateHostInstallerArgsInternal(arg0 context.Co
 func (mr *MockInstallerInternalsMockRecorder) UpdateHostInstallerArgsInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostInstallerArgsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateHostInstallerArgsInternal), arg0, arg1)
+}
+
+// UpdateInfraEnvInternal mocks base method
+func (m *MockInstallerInternals) UpdateInfraEnvInternal(arg0 context.Context, arg1 installer.UpdateInfraEnvParams) (*common.InfraEnv, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInfraEnvInternal", arg0, arg1)
+	ret0, _ := ret[0].(*common.InfraEnv)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateInfraEnvInternal indicates an expected call of UpdateInfraEnvInternal
+func (mr *MockInstallerInternalsMockRecorder) UpdateInfraEnvInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInfraEnvInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateInfraEnvInternal), arg0, arg1)
+}
+
+// GenerateInfraEnvISOInternal mocks base method
+func (m *MockInstallerInternals) GenerateInfraEnvISOInternal(ctx context.Context, infraEnv *common.InfraEnv) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateInfraEnvISOInternal", ctx, infraEnv)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GenerateInfraEnvISOInternal indicates an expected call of GenerateInfraEnvISOInternal
+func (mr *MockInstallerInternalsMockRecorder) GenerateInfraEnvISOInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInfraEnvISOInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GenerateInfraEnvISOInternal), arg0, arg1)
 }

@@ -89,72 +89,72 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 	return r.ensureISO(ctx, log, infraEnv)
 }
 
-func (r *InfraEnvReconciler) updateClusterIfNeeded(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) error {
+func (r *InfraEnvReconciler) updateInfraEnvIfNeeded(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, infraEnvInternal *common.InfraEnv) (*common.InfraEnv, error) {
 	var (
-		params = &models.ClusterUpdateParams{}
+		params = &models.InfraEnvUpdateParams{}
 		update bool
 	)
 
 	if infraEnv.Spec.Proxy != nil {
-		if infraEnv.Spec.Proxy.NoProxy != "" && infraEnv.Spec.Proxy.NoProxy != cluster.NoProxy {
-			params.NoProxy = swag.String(infraEnv.Spec.Proxy.NoProxy)
-			log.Debugf("NoProxy changed from %s to %s", cluster.NoProxy, infraEnv.Spec.Proxy.NoProxy)
+		if infraEnv.Spec.Proxy.NoProxy != "" && infraEnv.Spec.Proxy.NoProxy != *infraEnvInternal.Proxy.NoProxy {
+			params.Proxy.NoProxy = swag.String(infraEnv.Spec.Proxy.NoProxy)
+			log.Debugf("NoProxy changed from %s to %s", *infraEnvInternal.Proxy.NoProxy, infraEnv.Spec.Proxy.NoProxy)
 			update = true
 		}
-		if infraEnv.Spec.Proxy.HTTPProxy != "" && infraEnv.Spec.Proxy.HTTPProxy != cluster.HTTPProxy {
-			params.HTTPProxy = swag.String(infraEnv.Spec.Proxy.HTTPProxy)
-			log.Debugf("HTTPProxy changed from %s to %s", cluster.HTTPProxy, infraEnv.Spec.Proxy.HTTPProxy)
+		if infraEnv.Spec.Proxy.HTTPProxy != "" && infraEnv.Spec.Proxy.HTTPProxy != *infraEnvInternal.Proxy.HTTPProxy {
+			params.Proxy.HTTPProxy = swag.String(infraEnv.Spec.Proxy.HTTPProxy)
+			log.Debugf("HTTPProxy changed from %s to %s", *infraEnvInternal.Proxy.HTTPProxy, infraEnv.Spec.Proxy.HTTPProxy)
 			update = true
 		}
-		if infraEnv.Spec.Proxy.HTTPSProxy != "" && infraEnv.Spec.Proxy.HTTPSProxy != cluster.HTTPSProxy {
-			params.HTTPSProxy = swag.String(infraEnv.Spec.Proxy.HTTPSProxy)
-			log.Debugf("HTTPProxy changed from %s to %s", cluster.HTTPSProxy, infraEnv.Spec.Proxy.HTTPSProxy)
+		if infraEnv.Spec.Proxy.HTTPSProxy != "" && infraEnv.Spec.Proxy.HTTPSProxy != *infraEnvInternal.Proxy.HTTPSProxy {
+			params.Proxy.HTTPSProxy = swag.String(infraEnv.Spec.Proxy.HTTPSProxy)
+			log.Debugf("HTTPProxy changed from %s to %s", *infraEnvInternal.Proxy.HTTPSProxy, infraEnv.Spec.Proxy.HTTPSProxy)
 			update = true
 		}
 	}
-	if len(infraEnv.Spec.AdditionalNTPSources) > 0 && cluster.AdditionalNtpSource != infraEnv.Spec.AdditionalNTPSources[0] {
-		params.AdditionalNtpSource = swag.String(strings.Join(infraEnv.Spec.AdditionalNTPSources[:], ","))
-		log.Debugf("AdditionalNTPSources changed from %s to %s", cluster.AdditionalNtpSource, infraEnv.Spec.AdditionalNTPSources[0])
+	if len(infraEnv.Spec.AdditionalNTPSources) > 0 && infraEnvInternal.AdditionalNtpSources != infraEnv.Spec.AdditionalNTPSources[0] {
+		params.AdditionalNtpSources = swag.String(strings.Join(infraEnv.Spec.AdditionalNTPSources[:], ","))
+		log.Debugf("AdditionalNTPSources changed from %s to %s", infraEnvInternal.AdditionalNtpSources, infraEnv.Spec.AdditionalNTPSources[0])
 		update = true
 	}
 
 	if update {
 		updateString, err := json.Marshal(params)
 		if err != nil {
-			return err
+			return infraEnvInternal, err
 		}
-		log.Infof("updating cluster %s %s with %s",
-			infraEnv.Spec.ClusterRef.Name, infraEnv.Spec.ClusterRef.Namespace, string(updateString))
-		_, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.UpdateClusterParams{
-			ClusterUpdateParams: params,
-			ClusterID:           *cluster.ID,
+		log.Infof("updating infraenv %s %s with %s", infraEnv.UID, string(updateString))
+
+		updateInfraEnvInternal, err := r.Installer.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+			InfraEnvID:           infraEnvInternal.ID,
+			InfraEnvUpdateParams: params,
 		})
-		return err
+		return updateInfraEnvInternal, err
 	}
 
-	return nil
+	return infraEnvInternal, nil
 }
 
-func (r *InfraEnvReconciler) updateClusterDiscoveryIgnitionIfNeeded(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) error {
+func (r *InfraEnvReconciler) updateInfraEnvDiscoveryIgnitionIfNeeded(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, infraEnvInternal *common.InfraEnv) error {
 	var (
 		discoveryIgnitionParams = &models.DiscoveryIgnitionParams{}
-		updateClusterIgnition   bool
+		updateInfraEnvIgnition  bool
 	)
-	if infraEnv.Spec.IgnitionConfigOverride != "" && cluster.IgnitionConfigOverrides != infraEnv.Spec.IgnitionConfigOverride {
+	if infraEnv.Spec.IgnitionConfigOverride != "" && infraEnvInternal.IgnitionConfigOverride != infraEnv.Spec.IgnitionConfigOverride {
 		discoveryIgnitionParams.Config = *swag.String(infraEnv.Spec.IgnitionConfigOverride)
-		log.Debugf("AdditionalNTPSources changed from %s to %s", cluster.IgnitionConfigOverrides, infraEnv.Spec.IgnitionConfigOverride)
-		updateClusterIgnition = true
+		log.Debugf("IgnitionConfigOverride changed from %s to %s", infraEnvInternal.IgnitionConfigOverride, infraEnv.Spec.IgnitionConfigOverride)
+		updateInfraEnvIgnition = true
 	}
-	if updateClusterIgnition {
+	if updateInfraEnvIgnition {
 		updateString, err := json.Marshal(discoveryIgnitionParams)
 		if err != nil {
 			return err
 		}
-		log.Infof("updating cluster %s %s with %s",
+		log.Infof("updating infraenv %s %s with %s",
 			infraEnv.Spec.ClusterRef.Name, infraEnv.Spec.ClusterRef.Namespace, string(updateString))
 		err = r.Installer.UpdateDiscoveryIgnitionInternal(ctx, installer.UpdateDiscoveryIgnitionParams{
 			DiscoveryIgnitionParams: discoveryIgnitionParams,
-			ClusterID:               *cluster.ID,
+			ClusterID:               infraEnvInternal.ID,
 		})
 		return err
 	}
@@ -203,7 +203,6 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 	infraEnv.Status.AgentLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{aiv1beta1.InfraEnvNameLabel: infraEnv.Name}}
 	var inventoryErr error
 	var Requeue bool
-	var updatedCluster *common.Cluster
 
 	kubeKey := types.NamespacedName{
 		Name:      infraEnv.Spec.ClusterRef.Name,
@@ -236,11 +235,12 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 		return ctrl.Result{Requeue: Requeue}, nil
 	}
 
-	// Retrieve cluster from the database
-	cluster, err := r.Installer.GetClusterByKubeKey(types.NamespacedName{
+	// Retrieve infraEnv from the database
+	infraEnvInternal, err := r.Installer.GetInfraEnvByKubeKey(types.NamespacedName{
 		Name:      clusterDeployment.Name,
 		Namespace: clusterDeployment.Namespace,
 	})
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			Requeue = true
@@ -272,51 +272,29 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 		return ctrl.Result{Requeue: Requeue}, nil
 	}
 
-	// Check for updates from user, compare spec and update the cluster
-	if err = r.updateClusterIfNeeded(ctx, log, infraEnv, cluster); err != nil {
+	// Check for updates from user, compare spec and update the infraenv
+	infraEnvInternal, err = r.updateInfraEnvIfNeeded(ctx, log, infraEnv, infraEnvInternal)
+	if err != nil {
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
 	}
 
 	// Check for discovery ignition specific updates from user, compare spec and update the ignition config
-	if err = r.updateClusterDiscoveryIgnitionIfNeeded(ctx, log, infraEnv, cluster); err != nil {
+	if err = r.updateInfraEnvDiscoveryIgnitionIfNeeded(ctx, log, infraEnv, infraEnvInternal); err != nil {
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
-	}
-
-	isoParams := installer.GenerateClusterISOParams{
-		ClusterID: *cluster.ID,
-		ImageCreateParams: &models.ImageCreateParams{
-			ImageType:    r.Config.ImageType,
-			SSHPublicKey: infraEnv.Spec.SSHAuthorizedKey,
-		},
-	}
-
-	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
-	}
-	if len(staticNetworkConfig) > 0 {
-		log.Infof("the amount of nmStateConfigs included in the image is: %d", len(staticNetworkConfig))
-		isoParams.ImageCreateParams.StaticNetworkConfig = staticNetworkConfig
 	}
 
 	// Add openshift version to ensure it isn't missing in versions cache
-	_, err = r.Installer.AddOpenshiftVersion(ctx, cluster.OcpReleaseImage, cluster.PullSecret)
+	_, err = r.Installer.AddOpenshiftVersion(ctx, infraEnvInternal.OpenshiftVersion, infraEnvInternal.PullSecret)
 	if err != nil {
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
 	}
 
-	// GenerateClusterISOInternal will generate an ISO only if there it was not generated before,
-	// or something has changed in isoParams.
-	updatedCluster, inventoryErr = r.Installer.GenerateClusterISOInternal(ctx, isoParams)
-	if inventoryErr != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, inventoryErr)
-	}
 	// Image successfully generated. Reflect that in infraEnv obj and conditions
-	return r.updateEnsureISOSuccess(ctx, log, infraEnv, updatedCluster.ImageInfo)
+	return r.updateEnsureISOSuccess(ctx, log, infraEnv, infraEnvInternal)
 }
 
 func (r *InfraEnvReconciler) updateEnsureISOSuccess(
-	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, imageInfo *models.ImageInfo) (ctrl.Result, error) {
+	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, infraEnvInternal *common.InfraEnv) (ctrl.Result, error) {
 	conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ImageCreatedCondition,
 		Status:  corev1.ConditionTrue,
@@ -324,10 +302,10 @@ func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 		Message: aiv1beta1.ImageStateCreated,
 	})
 
-	if infraEnv.Status.ISODownloadURL != imageInfo.DownloadURL {
-		log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, imageInfo.DownloadURL)
-		infraEnv.Status.ISODownloadURL = imageInfo.DownloadURL
-		imageCreatedAt := metav1.NewTime(time.Time(imageInfo.CreatedAt))
+	if infraEnv.Status.ISODownloadURL != infraEnvInternal.DownloadURL {
+		log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, infraEnvInternal.DownloadURL)
+		infraEnv.Status.ISODownloadURL = infraEnvInternal.DownloadURL
+		imageCreatedAt := metav1.NewTime(time.Time(infraEnvInternal.CreatedAt))
 		infraEnv.Status.CreatedTime = &imageCreatedAt
 	}
 
