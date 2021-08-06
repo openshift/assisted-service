@@ -6,37 +6,38 @@ package operators
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	api "github.com/openshift/assisted-service/internal/operators/api"
 	models "github.com/openshift/assisted-service/models"
-	reflect "reflect"
 )
 
-// MockAPI is a mock of API interface
+// MockAPI is a mock of API interface.
 type MockAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockAPIMockRecorder
 }
 
-// MockAPIMockRecorder is the mock recorder for MockAPI
+// MockAPIMockRecorder is the mock recorder for MockAPI.
 type MockAPIMockRecorder struct {
 	mock *MockAPI
 }
 
-// NewMockAPI creates a new mock instance
+// NewMockAPI creates a new mock instance.
 func NewMockAPI(ctrl *gomock.Controller) *MockAPI {
 	mock := &MockAPI{ctrl: ctrl}
 	mock.recorder = &MockAPIMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
-// AnyOLMOperatorEnabled mocks base method
+// AnyOLMOperatorEnabled mocks base method.
 func (m *MockAPI) AnyOLMOperatorEnabled(arg0 *common.Cluster) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AnyOLMOperatorEnabled", arg0)
@@ -44,13 +45,13 @@ func (m *MockAPI) AnyOLMOperatorEnabled(arg0 *common.Cluster) bool {
 	return ret0
 }
 
-// AnyOLMOperatorEnabled indicates an expected call of AnyOLMOperatorEnabled
+// AnyOLMOperatorEnabled indicates an expected call of AnyOLMOperatorEnabled.
 func (mr *MockAPIMockRecorder) AnyOLMOperatorEnabled(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnyOLMOperatorEnabled", reflect.TypeOf((*MockAPI)(nil).AnyOLMOperatorEnabled), arg0)
 }
 
-// GenerateManifests mocks base method
+// GenerateManifests mocks base method.
 func (m *MockAPI) GenerateManifests(arg0 context.Context, arg1 *common.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateManifests", arg0, arg1)
@@ -58,13 +59,13 @@ func (m *MockAPI) GenerateManifests(arg0 context.Context, arg1 *common.Cluster) 
 	return ret0
 }
 
-// GenerateManifests indicates an expected call of GenerateManifests
+// GenerateManifests indicates an expected call of GenerateManifests.
 func (mr *MockAPIMockRecorder) GenerateManifests(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateManifests", reflect.TypeOf((*MockAPI)(nil).GenerateManifests), arg0, arg1)
 }
 
-// GetMonitoredOperatorsList mocks base method
+// GetMonitoredOperatorsList mocks base method.
 func (m *MockAPI) GetMonitoredOperatorsList() map[string]*models.MonitoredOperator {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMonitoredOperatorsList")
@@ -72,13 +73,13 @@ func (m *MockAPI) GetMonitoredOperatorsList() map[string]*models.MonitoredOperat
 	return ret0
 }
 
-// GetMonitoredOperatorsList indicates an expected call of GetMonitoredOperatorsList
+// GetMonitoredOperatorsList indicates an expected call of GetMonitoredOperatorsList.
 func (mr *MockAPIMockRecorder) GetMonitoredOperatorsList() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMonitoredOperatorsList", reflect.TypeOf((*MockAPI)(nil).GetMonitoredOperatorsList))
 }
 
-// GetOperatorByName mocks base method
+// GetOperatorByName mocks base method.
 func (m *MockAPI) GetOperatorByName(arg0 string) (*models.MonitoredOperator, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOperatorByName", arg0)
@@ -87,13 +88,13 @@ func (m *MockAPI) GetOperatorByName(arg0 string) (*models.MonitoredOperator, err
 	return ret0, ret1
 }
 
-// GetOperatorByName indicates an expected call of GetOperatorByName
+// GetOperatorByName indicates an expected call of GetOperatorByName.
 func (mr *MockAPIMockRecorder) GetOperatorByName(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorByName", reflect.TypeOf((*MockAPI)(nil).GetOperatorByName), arg0)
 }
 
-// GetOperatorProperties mocks base method
+// GetOperatorProperties mocks base method.
 func (m *MockAPI) GetOperatorProperties(arg0 string) (models.OperatorProperties, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOperatorProperties", arg0)
@@ -102,13 +103,13 @@ func (m *MockAPI) GetOperatorProperties(arg0 string) (models.OperatorProperties,
 	return ret0, ret1
 }
 
-// GetOperatorProperties indicates an expected call of GetOperatorProperties
+// GetOperatorProperties indicates an expected call of GetOperatorProperties.
 func (mr *MockAPIMockRecorder) GetOperatorProperties(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorProperties", reflect.TypeOf((*MockAPI)(nil).GetOperatorProperties), arg0)
 }
 
-// GetPreflightRequirementsBreakdownForCluster mocks base method
+// GetPreflightRequirementsBreakdownForCluster mocks base method.
 func (m *MockAPI) GetPreflightRequirementsBreakdownForCluster(arg0 context.Context, arg1 *common.Cluster) ([]*models.OperatorHardwareRequirements, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPreflightRequirementsBreakdownForCluster", arg0, arg1)
@@ -117,13 +118,13 @@ func (m *MockAPI) GetPreflightRequirementsBreakdownForCluster(arg0 context.Conte
 	return ret0, ret1
 }
 
-// GetPreflightRequirementsBreakdownForCluster indicates an expected call of GetPreflightRequirementsBreakdownForCluster
+// GetPreflightRequirementsBreakdownForCluster indicates an expected call of GetPreflightRequirementsBreakdownForCluster.
 func (mr *MockAPIMockRecorder) GetPreflightRequirementsBreakdownForCluster(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPreflightRequirementsBreakdownForCluster", reflect.TypeOf((*MockAPI)(nil).GetPreflightRequirementsBreakdownForCluster), arg0, arg1)
 }
 
-// GetRequirementsBreakdownForHostInCluster mocks base method
+// GetRequirementsBreakdownForHostInCluster mocks base method.
 func (m *MockAPI) GetRequirementsBreakdownForHostInCluster(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) ([]*models.OperatorHostRequirements, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRequirementsBreakdownForHostInCluster", arg0, arg1, arg2)
@@ -132,13 +133,13 @@ func (m *MockAPI) GetRequirementsBreakdownForHostInCluster(arg0 context.Context,
 	return ret0, ret1
 }
 
-// GetRequirementsBreakdownForHostInCluster indicates an expected call of GetRequirementsBreakdownForHostInCluster
+// GetRequirementsBreakdownForHostInCluster indicates an expected call of GetRequirementsBreakdownForHostInCluster.
 func (mr *MockAPIMockRecorder) GetRequirementsBreakdownForHostInCluster(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequirementsBreakdownForHostInCluster", reflect.TypeOf((*MockAPI)(nil).GetRequirementsBreakdownForHostInCluster), arg0, arg1, arg2)
 }
 
-// GetSupportedOperators mocks base method
+// GetSupportedOperators mocks base method.
 func (m *MockAPI) GetSupportedOperators() []string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSupportedOperators")
@@ -146,13 +147,13 @@ func (m *MockAPI) GetSupportedOperators() []string {
 	return ret0
 }
 
-// GetSupportedOperators indicates an expected call of GetSupportedOperators
+// GetSupportedOperators indicates an expected call of GetSupportedOperators.
 func (mr *MockAPIMockRecorder) GetSupportedOperators() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedOperators", reflect.TypeOf((*MockAPI)(nil).GetSupportedOperators))
 }
 
-// GetSupportedOperatorsByType mocks base method
+// GetSupportedOperatorsByType mocks base method.
 func (m *MockAPI) GetSupportedOperatorsByType(arg0 models.OperatorType) []*models.MonitoredOperator {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSupportedOperatorsByType", arg0)
@@ -160,13 +161,13 @@ func (m *MockAPI) GetSupportedOperatorsByType(arg0 models.OperatorType) []*model
 	return ret0
 }
 
-// GetSupportedOperatorsByType indicates an expected call of GetSupportedOperatorsByType
+// GetSupportedOperatorsByType indicates an expected call of GetSupportedOperatorsByType.
 func (mr *MockAPIMockRecorder) GetSupportedOperatorsByType(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedOperatorsByType", reflect.TypeOf((*MockAPI)(nil).GetSupportedOperatorsByType), arg0)
 }
 
-// ResolveDependencies mocks base method
+// ResolveDependencies mocks base method.
 func (m *MockAPI) ResolveDependencies(arg0 []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResolveDependencies", arg0)
@@ -175,13 +176,13 @@ func (m *MockAPI) ResolveDependencies(arg0 []*models.MonitoredOperator) ([]*mode
 	return ret0, ret1
 }
 
-// ResolveDependencies indicates an expected call of ResolveDependencies
+// ResolveDependencies indicates an expected call of ResolveDependencies.
 func (mr *MockAPIMockRecorder) ResolveDependencies(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveDependencies", reflect.TypeOf((*MockAPI)(nil).ResolveDependencies), arg0)
 }
 
-// ValidateCluster mocks base method
+// ValidateCluster mocks base method.
 func (m *MockAPI) ValidateCluster(arg0 context.Context, arg1 *common.Cluster) ([]api.ValidationResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateCluster", arg0, arg1)
@@ -190,13 +191,13 @@ func (m *MockAPI) ValidateCluster(arg0 context.Context, arg1 *common.Cluster) ([
 	return ret0, ret1
 }
 
-// ValidateCluster indicates an expected call of ValidateCluster
+// ValidateCluster indicates an expected call of ValidateCluster.
 func (mr *MockAPIMockRecorder) ValidateCluster(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCluster", reflect.TypeOf((*MockAPI)(nil).ValidateCluster), arg0, arg1)
 }
 
-// ValidateHost mocks base method
+// ValidateHost mocks base method.
 func (m *MockAPI) ValidateHost(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) ([]api.ValidationResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateHost", arg0, arg1, arg2)
@@ -205,7 +206,7 @@ func (m *MockAPI) ValidateHost(arg0 context.Context, arg1 *common.Cluster, arg2 
 	return ret0, ret1
 }
 
-// ValidateHost indicates an expected call of ValidateHost
+// ValidateHost indicates an expected call of ValidateHost.
 func (mr *MockAPIMockRecorder) ValidateHost(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateHost", reflect.TypeOf((*MockAPI)(nil).ValidateHost), arg0, arg1, arg2)

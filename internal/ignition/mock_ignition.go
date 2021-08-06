@@ -6,36 +6,37 @@ package ignition
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	auth "github.com/openshift/assisted-service/pkg/auth"
-	reflect "reflect"
 )
 
-// MockGenerator is a mock of Generator interface
+// MockGenerator is a mock of Generator interface.
 type MockGenerator struct {
 	ctrl     *gomock.Controller
 	recorder *MockGeneratorMockRecorder
 }
 
-// MockGeneratorMockRecorder is the mock recorder for MockGenerator
+// MockGeneratorMockRecorder is the mock recorder for MockGenerator.
 type MockGeneratorMockRecorder struct {
 	mock *MockGenerator
 }
 
-// NewMockGenerator creates a new mock instance
+// NewMockGenerator creates a new mock instance.
 func NewMockGenerator(ctrl *gomock.Controller) *MockGenerator {
 	mock := &MockGenerator{ctrl: ctrl}
 	mock.recorder = &MockGeneratorMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockGenerator) EXPECT() *MockGeneratorMockRecorder {
 	return m.recorder
 }
 
-// Generate mocks base method
+// Generate mocks base method.
 func (m *MockGenerator) Generate(ctx context.Context, installConfig []byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Generate", ctx, installConfig)
@@ -43,27 +44,13 @@ func (m *MockGenerator) Generate(ctx context.Context, installConfig []byte) erro
 	return ret0
 }
 
-// Generate indicates an expected call of Generate
+// Generate indicates an expected call of Generate.
 func (mr *MockGeneratorMockRecorder) Generate(ctx, installConfig interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockGenerator)(nil).Generate), ctx, installConfig)
 }
 
-// UploadToS3 mocks base method
-func (m *MockGenerator) UploadToS3(ctx context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadToS3", ctx)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UploadToS3 indicates an expected call of UploadToS3
-func (mr *MockGeneratorMockRecorder) UploadToS3(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadToS3", reflect.TypeOf((*MockGenerator)(nil).UploadToS3), ctx)
-}
-
-// UpdateEtcHosts mocks base method
+// UpdateEtcHosts mocks base method.
 func (m *MockGenerator) UpdateEtcHosts(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateEtcHosts", arg0)
@@ -71,36 +58,50 @@ func (m *MockGenerator) UpdateEtcHosts(arg0 string) error {
 	return ret0
 }
 
-// UpdateEtcHosts indicates an expected call of UpdateEtcHosts
+// UpdateEtcHosts indicates an expected call of UpdateEtcHosts.
 func (mr *MockGeneratorMockRecorder) UpdateEtcHosts(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEtcHosts", reflect.TypeOf((*MockGenerator)(nil).UpdateEtcHosts), arg0)
 }
 
-// MockIgnitionBuilder is a mock of IgnitionBuilder interface
+// UploadToS3 mocks base method.
+func (m *MockGenerator) UploadToS3(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadToS3", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UploadToS3 indicates an expected call of UploadToS3.
+func (mr *MockGeneratorMockRecorder) UploadToS3(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadToS3", reflect.TypeOf((*MockGenerator)(nil).UploadToS3), ctx)
+}
+
+// MockIgnitionBuilder is a mock of IgnitionBuilder interface.
 type MockIgnitionBuilder struct {
 	ctrl     *gomock.Controller
 	recorder *MockIgnitionBuilderMockRecorder
 }
 
-// MockIgnitionBuilderMockRecorder is the mock recorder for MockIgnitionBuilder
+// MockIgnitionBuilderMockRecorder is the mock recorder for MockIgnitionBuilder.
 type MockIgnitionBuilderMockRecorder struct {
 	mock *MockIgnitionBuilder
 }
 
-// NewMockIgnitionBuilder creates a new mock instance
+// NewMockIgnitionBuilder creates a new mock instance.
 func NewMockIgnitionBuilder(ctrl *gomock.Controller) *MockIgnitionBuilder {
 	mock := &MockIgnitionBuilder{ctrl: ctrl}
 	mock.recorder = &MockIgnitionBuilderMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockIgnitionBuilder) EXPECT() *MockIgnitionBuilderMockRecorder {
 	return m.recorder
 }
 
-// FormatDiscoveryIgnitionFile mocks base method
+// FormatDiscoveryIgnitionFile mocks base method.
 func (m *MockIgnitionBuilder) FormatDiscoveryIgnitionFile(infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FormatDiscoveryIgnitionFile", infraEnv, cfg, safeForLogs, authType)
@@ -109,13 +110,13 @@ func (m *MockIgnitionBuilder) FormatDiscoveryIgnitionFile(infraEnv *common.Infra
 	return ret0, ret1
 }
 
-// FormatDiscoveryIgnitionFile indicates an expected call of FormatDiscoveryIgnitionFile
+// FormatDiscoveryIgnitionFile indicates an expected call of FormatDiscoveryIgnitionFile.
 func (mr *MockIgnitionBuilderMockRecorder) FormatDiscoveryIgnitionFile(infraEnv, cfg, safeForLogs, authType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatDiscoveryIgnitionFile", reflect.TypeOf((*MockIgnitionBuilder)(nil).FormatDiscoveryIgnitionFile), infraEnv, cfg, safeForLogs, authType)
 }
 
-// FormatSecondDayWorkerIgnitionFile mocks base method
+// FormatSecondDayWorkerIgnitionFile mocks base method.
 func (m *MockIgnitionBuilder) FormatSecondDayWorkerIgnitionFile(address, machineConfigPoolName string) ([]byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FormatSecondDayWorkerIgnitionFile", address, machineConfigPoolName)
@@ -124,7 +125,7 @@ func (m *MockIgnitionBuilder) FormatSecondDayWorkerIgnitionFile(address, machine
 	return ret0, ret1
 }
 
-// FormatSecondDayWorkerIgnitionFile indicates an expected call of FormatSecondDayWorkerIgnitionFile
+// FormatSecondDayWorkerIgnitionFile indicates an expected call of FormatSecondDayWorkerIgnitionFile.
 func (mr *MockIgnitionBuilderMockRecorder) FormatSecondDayWorkerIgnitionFile(address, machineConfigPoolName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatSecondDayWorkerIgnitionFile", reflect.TypeOf((*MockIgnitionBuilder)(nil).FormatSecondDayWorkerIgnitionFile), address, machineConfigPoolName)

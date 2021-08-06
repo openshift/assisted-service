@@ -6,34 +6,35 @@ package ocm
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockOCMAuthentication is a mock of OCMAuthentication interface
+// MockOCMAuthentication is a mock of OCMAuthentication interface.
 type MockOCMAuthentication struct {
 	ctrl     *gomock.Controller
 	recorder *MockOCMAuthenticationMockRecorder
 }
 
-// MockOCMAuthenticationMockRecorder is the mock recorder for MockOCMAuthentication
+// MockOCMAuthenticationMockRecorder is the mock recorder for MockOCMAuthentication.
 type MockOCMAuthenticationMockRecorder struct {
 	mock *MockOCMAuthentication
 }
 
-// NewMockOCMAuthentication creates a new mock instance
+// NewMockOCMAuthentication creates a new mock instance.
 func NewMockOCMAuthentication(ctrl *gomock.Controller) *MockOCMAuthentication {
 	mock := &MockOCMAuthentication{ctrl: ctrl}
 	mock.recorder = &MockOCMAuthenticationMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockOCMAuthentication) EXPECT() *MockOCMAuthenticationMockRecorder {
 	return m.recorder
 }
 
-// AuthenticatePullSecret mocks base method
+// AuthenticatePullSecret mocks base method.
 func (m *MockOCMAuthentication) AuthenticatePullSecret(ctx context.Context, pullSecret string) (*AuthPayload, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AuthenticatePullSecret", ctx, pullSecret)
@@ -42,7 +43,7 @@ func (m *MockOCMAuthentication) AuthenticatePullSecret(ctx context.Context, pull
 	return ret0, ret1
 }
 
-// AuthenticatePullSecret indicates an expected call of AuthenticatePullSecret
+// AuthenticatePullSecret indicates an expected call of AuthenticatePullSecret.
 func (mr *MockOCMAuthenticationMockRecorder) AuthenticatePullSecret(ctx, pullSecret interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthenticatePullSecret", reflect.TypeOf((*MockOCMAuthentication)(nil).AuthenticatePullSecret), ctx, pullSecret)

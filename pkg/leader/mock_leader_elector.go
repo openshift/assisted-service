@@ -6,34 +6,35 @@ package leader
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockLeader is a mock of Leader interface
+// MockLeader is a mock of Leader interface.
 type MockLeader struct {
 	ctrl     *gomock.Controller
 	recorder *MockLeaderMockRecorder
 }
 
-// MockLeaderMockRecorder is the mock recorder for MockLeader
+// MockLeaderMockRecorder is the mock recorder for MockLeader.
 type MockLeaderMockRecorder struct {
 	mock *MockLeader
 }
 
-// NewMockLeader creates a new mock instance
+// NewMockLeader creates a new mock instance.
 func NewMockLeader(ctrl *gomock.Controller) *MockLeader {
 	mock := &MockLeader{ctrl: ctrl}
 	mock.recorder = &MockLeaderMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockLeader) EXPECT() *MockLeaderMockRecorder {
 	return m.recorder
 }
 
-// IsLeader mocks base method
+// IsLeader mocks base method.
 func (m *MockLeader) IsLeader() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsLeader")
@@ -41,36 +42,36 @@ func (m *MockLeader) IsLeader() bool {
 	return ret0
 }
 
-// IsLeader indicates an expected call of IsLeader
+// IsLeader indicates an expected call of IsLeader.
 func (mr *MockLeaderMockRecorder) IsLeader() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLeader", reflect.TypeOf((*MockLeader)(nil).IsLeader))
 }
 
-// MockElectorInterface is a mock of ElectorInterface interface
+// MockElectorInterface is a mock of ElectorInterface interface.
 type MockElectorInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockElectorInterfaceMockRecorder
 }
 
-// MockElectorInterfaceMockRecorder is the mock recorder for MockElectorInterface
+// MockElectorInterfaceMockRecorder is the mock recorder for MockElectorInterface.
 type MockElectorInterfaceMockRecorder struct {
 	mock *MockElectorInterface
 }
 
-// NewMockElectorInterface creates a new mock instance
+// NewMockElectorInterface creates a new mock instance.
 func NewMockElectorInterface(ctrl *gomock.Controller) *MockElectorInterface {
 	mock := &MockElectorInterface{ctrl: ctrl}
 	mock.recorder = &MockElectorInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockElectorInterface) EXPECT() *MockElectorInterfaceMockRecorder {
 	return m.recorder
 }
 
-// IsLeader mocks base method
+// IsLeader mocks base method.
 func (m *MockElectorInterface) IsLeader() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsLeader")
@@ -78,27 +79,13 @@ func (m *MockElectorInterface) IsLeader() bool {
 	return ret0
 }
 
-// IsLeader indicates an expected call of IsLeader
+// IsLeader indicates an expected call of IsLeader.
 func (mr *MockElectorInterfaceMockRecorder) IsLeader() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLeader", reflect.TypeOf((*MockElectorInterface)(nil).IsLeader))
 }
 
-// StartLeaderElection mocks base method
-func (m *MockElectorInterface) StartLeaderElection(ctx context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StartLeaderElection", ctx)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// StartLeaderElection indicates an expected call of StartLeaderElection
-func (mr *MockElectorInterfaceMockRecorder) StartLeaderElection(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartLeaderElection", reflect.TypeOf((*MockElectorInterface)(nil).StartLeaderElection), ctx)
-}
-
-// RunWithLeader mocks base method
+// RunWithLeader mocks base method.
 func (m *MockElectorInterface) RunWithLeader(ctx context.Context, run func() error) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RunWithLeader", ctx, run)
@@ -106,8 +93,22 @@ func (m *MockElectorInterface) RunWithLeader(ctx context.Context, run func() err
 	return ret0
 }
 
-// RunWithLeader indicates an expected call of RunWithLeader
+// RunWithLeader indicates an expected call of RunWithLeader.
 func (mr *MockElectorInterfaceMockRecorder) RunWithLeader(ctx, run interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunWithLeader", reflect.TypeOf((*MockElectorInterface)(nil).RunWithLeader), ctx, run)
+}
+
+// StartLeaderElection mocks base method.
+func (m *MockElectorInterface) StartLeaderElection(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StartLeaderElection", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StartLeaderElection indicates an expected call of StartLeaderElection.
+func (mr *MockElectorInterfaceMockRecorder) StartLeaderElection(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartLeaderElection", reflect.TypeOf((*MockElectorInterface)(nil).StartLeaderElection), ctx)
 }

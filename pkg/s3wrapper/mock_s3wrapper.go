@@ -6,37 +6,38 @@ package s3wrapper
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
-	logrus "github.com/sirupsen/logrus"
 	io "io"
 	reflect "reflect"
 	time "time"
+
+	gomock "github.com/golang/mock/gomock"
+	logrus "github.com/sirupsen/logrus"
 )
 
-// MockAPI is a mock of API interface
+// MockAPI is a mock of API interface.
 type MockAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockAPIMockRecorder
 }
 
-// MockAPIMockRecorder is the mock recorder for MockAPI
+// MockAPIMockRecorder is the mock recorder for MockAPI.
 type MockAPIMockRecorder struct {
 	mock *MockAPI
 }
 
-// NewMockAPI creates a new mock instance
+// NewMockAPI creates a new mock instance.
 func NewMockAPI(ctrl *gomock.Controller) *MockAPI {
 	mock := &MockAPI{ctrl: ctrl}
 	mock.recorder = &MockAPIMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
-// CreateBucket mocks base method
+// CreateBucket mocks base method.
 func (m *MockAPI) CreateBucket() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateBucket")
@@ -44,13 +45,13 @@ func (m *MockAPI) CreateBucket() error {
 	return ret0
 }
 
-// CreateBucket indicates an expected call of CreateBucket
+// CreateBucket indicates an expected call of CreateBucket.
 func (mr *MockAPIMockRecorder) CreateBucket() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBucket", reflect.TypeOf((*MockAPI)(nil).CreateBucket))
 }
 
-// CreatePublicBucket mocks base method
+// CreatePublicBucket mocks base method.
 func (m *MockAPI) CreatePublicBucket() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreatePublicBucket")
@@ -58,13 +59,13 @@ func (m *MockAPI) CreatePublicBucket() error {
 	return ret0
 }
 
-// CreatePublicBucket indicates an expected call of CreatePublicBucket
+// CreatePublicBucket indicates an expected call of CreatePublicBucket.
 func (mr *MockAPIMockRecorder) CreatePublicBucket() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePublicBucket", reflect.TypeOf((*MockAPI)(nil).CreatePublicBucket))
 }
 
-// DeleteObject mocks base method
+// DeleteObject mocks base method.
 func (m *MockAPI) DeleteObject(arg0 context.Context, arg1 string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteObject", arg0, arg1)
@@ -73,13 +74,13 @@ func (m *MockAPI) DeleteObject(arg0 context.Context, arg1 string) (bool, error) 
 	return ret0, ret1
 }
 
-// DeleteObject indicates an expected call of DeleteObject
+// DeleteObject indicates an expected call of DeleteObject.
 func (mr *MockAPIMockRecorder) DeleteObject(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObject", reflect.TypeOf((*MockAPI)(nil).DeleteObject), arg0, arg1)
 }
 
-// DoesObjectExist mocks base method
+// DoesObjectExist mocks base method.
 func (m *MockAPI) DoesObjectExist(arg0 context.Context, arg1 string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DoesObjectExist", arg0, arg1)
@@ -88,13 +89,13 @@ func (m *MockAPI) DoesObjectExist(arg0 context.Context, arg1 string) (bool, erro
 	return ret0, ret1
 }
 
-// DoesObjectExist indicates an expected call of DoesObjectExist
+// DoesObjectExist indicates an expected call of DoesObjectExist.
 func (mr *MockAPIMockRecorder) DoesObjectExist(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoesObjectExist", reflect.TypeOf((*MockAPI)(nil).DoesObjectExist), arg0, arg1)
 }
 
-// DoesPublicObjectExist mocks base method
+// DoesPublicObjectExist mocks base method.
 func (m *MockAPI) DoesPublicObjectExist(arg0 context.Context, arg1 string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DoesPublicObjectExist", arg0, arg1)
@@ -103,13 +104,13 @@ func (m *MockAPI) DoesPublicObjectExist(arg0 context.Context, arg1 string) (bool
 	return ret0, ret1
 }
 
-// DoesPublicObjectExist indicates an expected call of DoesPublicObjectExist
+// DoesPublicObjectExist indicates an expected call of DoesPublicObjectExist.
 func (mr *MockAPIMockRecorder) DoesPublicObjectExist(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoesPublicObjectExist", reflect.TypeOf((*MockAPI)(nil).DoesPublicObjectExist), arg0, arg1)
 }
 
-// Download mocks base method
+// Download mocks base method.
 func (m *MockAPI) Download(arg0 context.Context, arg1 string) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Download", arg0, arg1)
@@ -119,13 +120,13 @@ func (m *MockAPI) Download(arg0 context.Context, arg1 string) (io.ReadCloser, in
 	return ret0, ret1, ret2
 }
 
-// Download indicates an expected call of Download
+// Download indicates an expected call of Download.
 func (mr *MockAPIMockRecorder) Download(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Download", reflect.TypeOf((*MockAPI)(nil).Download), arg0, arg1)
 }
 
-// DownloadPublic mocks base method
+// DownloadPublic mocks base method.
 func (m *MockAPI) DownloadPublic(arg0 context.Context, arg1 string) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DownloadPublic", arg0, arg1)
@@ -135,25 +136,25 @@ func (m *MockAPI) DownloadPublic(arg0 context.Context, arg1 string) (io.ReadClos
 	return ret0, ret1, ret2
 }
 
-// DownloadPublic indicates an expected call of DownloadPublic
+// DownloadPublic indicates an expected call of DownloadPublic.
 func (mr *MockAPIMockRecorder) DownloadPublic(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadPublic", reflect.TypeOf((*MockAPI)(nil).DownloadPublic), arg0, arg1)
 }
 
-// ExpireObjects mocks base method
+// ExpireObjects mocks base method.
 func (m *MockAPI) ExpireObjects(arg0 context.Context, arg1 string, arg2 time.Duration, arg3 func(context.Context, logrus.FieldLogger, string)) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ExpireObjects", arg0, arg1, arg2, arg3)
 }
 
-// ExpireObjects indicates an expected call of ExpireObjects
+// ExpireObjects indicates an expected call of ExpireObjects.
 func (mr *MockAPIMockRecorder) ExpireObjects(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExpireObjects", reflect.TypeOf((*MockAPI)(nil).ExpireObjects), arg0, arg1, arg2, arg3)
 }
 
-// GeneratePresignedDownloadURL mocks base method
+// GeneratePresignedDownloadURL mocks base method.
 func (m *MockAPI) GeneratePresignedDownloadURL(arg0 context.Context, arg1, arg2 string, arg3 time.Duration) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GeneratePresignedDownloadURL", arg0, arg1, arg2, arg3)
@@ -162,13 +163,13 @@ func (m *MockAPI) GeneratePresignedDownloadURL(arg0 context.Context, arg1, arg2 
 	return ret0, ret1
 }
 
-// GeneratePresignedDownloadURL indicates an expected call of GeneratePresignedDownloadURL
+// GeneratePresignedDownloadURL indicates an expected call of GeneratePresignedDownloadURL.
 func (mr *MockAPIMockRecorder) GeneratePresignedDownloadURL(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GeneratePresignedDownloadURL", reflect.TypeOf((*MockAPI)(nil).GeneratePresignedDownloadURL), arg0, arg1, arg2, arg3)
 }
 
-// GetBaseIsoObject mocks base method
+// GetBaseIsoObject mocks base method.
 func (m *MockAPI) GetBaseIsoObject(arg0 string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBaseIsoObject", arg0)
@@ -177,13 +178,13 @@ func (m *MockAPI) GetBaseIsoObject(arg0 string) (string, error) {
 	return ret0, ret1
 }
 
-// GetBaseIsoObject indicates an expected call of GetBaseIsoObject
+// GetBaseIsoObject indicates an expected call of GetBaseIsoObject.
 func (mr *MockAPIMockRecorder) GetBaseIsoObject(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBaseIsoObject", reflect.TypeOf((*MockAPI)(nil).GetBaseIsoObject), arg0)
 }
 
-// GetMinimalIsoObjectName mocks base method
+// GetMinimalIsoObjectName mocks base method.
 func (m *MockAPI) GetMinimalIsoObjectName(arg0 string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMinimalIsoObjectName", arg0)
@@ -192,13 +193,13 @@ func (m *MockAPI) GetMinimalIsoObjectName(arg0 string) (string, error) {
 	return ret0, ret1
 }
 
-// GetMinimalIsoObjectName indicates an expected call of GetMinimalIsoObjectName
+// GetMinimalIsoObjectName indicates an expected call of GetMinimalIsoObjectName.
 func (mr *MockAPIMockRecorder) GetMinimalIsoObjectName(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMinimalIsoObjectName", reflect.TypeOf((*MockAPI)(nil).GetMinimalIsoObjectName), arg0)
 }
 
-// GetObjectSizeBytes mocks base method
+// GetObjectSizeBytes mocks base method.
 func (m *MockAPI) GetObjectSizeBytes(arg0 context.Context, arg1 string) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetObjectSizeBytes", arg0, arg1)
@@ -207,13 +208,13 @@ func (m *MockAPI) GetObjectSizeBytes(arg0 context.Context, arg1 string) (int64, 
 	return ret0, ret1
 }
 
-// GetObjectSizeBytes indicates an expected call of GetObjectSizeBytes
+// GetObjectSizeBytes indicates an expected call of GetObjectSizeBytes.
 func (mr *MockAPIMockRecorder) GetObjectSizeBytes(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjectSizeBytes", reflect.TypeOf((*MockAPI)(nil).GetObjectSizeBytes), arg0, arg1)
 }
 
-// IsAwsS3 mocks base method
+// IsAwsS3 mocks base method.
 func (m *MockAPI) IsAwsS3() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsAwsS3")
@@ -221,13 +222,13 @@ func (m *MockAPI) IsAwsS3() bool {
 	return ret0
 }
 
-// IsAwsS3 indicates an expected call of IsAwsS3
+// IsAwsS3 indicates an expected call of IsAwsS3.
 func (mr *MockAPIMockRecorder) IsAwsS3() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAwsS3", reflect.TypeOf((*MockAPI)(nil).IsAwsS3))
 }
 
-// ListObjectsByPrefix mocks base method
+// ListObjectsByPrefix mocks base method.
 func (m *MockAPI) ListObjectsByPrefix(arg0 context.Context, arg1 string) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListObjectsByPrefix", arg0, arg1)
@@ -236,13 +237,13 @@ func (m *MockAPI) ListObjectsByPrefix(arg0 context.Context, arg1 string) ([]stri
 	return ret0, ret1
 }
 
-// ListObjectsByPrefix indicates an expected call of ListObjectsByPrefix
+// ListObjectsByPrefix indicates an expected call of ListObjectsByPrefix.
 func (mr *MockAPIMockRecorder) ListObjectsByPrefix(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListObjectsByPrefix", reflect.TypeOf((*MockAPI)(nil).ListObjectsByPrefix), arg0, arg1)
 }
 
-// UpdateObjectTimestamp mocks base method
+// UpdateObjectTimestamp mocks base method.
 func (m *MockAPI) UpdateObjectTimestamp(arg0 context.Context, arg1 string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateObjectTimestamp", arg0, arg1)
@@ -251,13 +252,13 @@ func (m *MockAPI) UpdateObjectTimestamp(arg0 context.Context, arg1 string) (bool
 	return ret0, ret1
 }
 
-// UpdateObjectTimestamp indicates an expected call of UpdateObjectTimestamp
+// UpdateObjectTimestamp indicates an expected call of UpdateObjectTimestamp.
 func (mr *MockAPIMockRecorder) UpdateObjectTimestamp(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateObjectTimestamp", reflect.TypeOf((*MockAPI)(nil).UpdateObjectTimestamp), arg0, arg1)
 }
 
-// Upload mocks base method
+// Upload mocks base method.
 func (m *MockAPI) Upload(arg0 context.Context, arg1 []byte, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Upload", arg0, arg1, arg2)
@@ -265,13 +266,13 @@ func (m *MockAPI) Upload(arg0 context.Context, arg1 []byte, arg2 string) error {
 	return ret0
 }
 
-// Upload indicates an expected call of Upload
+// Upload indicates an expected call of Upload.
 func (mr *MockAPIMockRecorder) Upload(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*MockAPI)(nil).Upload), arg0, arg1, arg2)
 }
 
-// UploadFile mocks base method
+// UploadFile mocks base method.
 func (m *MockAPI) UploadFile(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadFile", arg0, arg1, arg2)
@@ -279,13 +280,13 @@ func (m *MockAPI) UploadFile(arg0 context.Context, arg1, arg2 string) error {
 	return ret0
 }
 
-// UploadFile indicates an expected call of UploadFile
+// UploadFile indicates an expected call of UploadFile.
 func (mr *MockAPIMockRecorder) UploadFile(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFile", reflect.TypeOf((*MockAPI)(nil).UploadFile), arg0, arg1, arg2)
 }
 
-// UploadFileToPublicBucket mocks base method
+// UploadFileToPublicBucket mocks base method.
 func (m *MockAPI) UploadFileToPublicBucket(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadFileToPublicBucket", arg0, arg1, arg2)
@@ -293,13 +294,13 @@ func (m *MockAPI) UploadFileToPublicBucket(arg0 context.Context, arg1, arg2 stri
 	return ret0
 }
 
-// UploadFileToPublicBucket indicates an expected call of UploadFileToPublicBucket
+// UploadFileToPublicBucket indicates an expected call of UploadFileToPublicBucket.
 func (mr *MockAPIMockRecorder) UploadFileToPublicBucket(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFileToPublicBucket", reflect.TypeOf((*MockAPI)(nil).UploadFileToPublicBucket), arg0, arg1, arg2)
 }
 
-// UploadISO mocks base method
+// UploadISO mocks base method.
 func (m *MockAPI) UploadISO(arg0 context.Context, arg1, arg2, arg3 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadISO", arg0, arg1, arg2, arg3)
@@ -307,13 +308,13 @@ func (m *MockAPI) UploadISO(arg0 context.Context, arg1, arg2, arg3 string) error
 	return ret0
 }
 
-// UploadISO indicates an expected call of UploadISO
+// UploadISO indicates an expected call of UploadISO.
 func (mr *MockAPIMockRecorder) UploadISO(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadISO", reflect.TypeOf((*MockAPI)(nil).UploadISO), arg0, arg1, arg2, arg3)
 }
 
-// UploadISOs mocks base method
+// UploadISOs mocks base method.
 func (m *MockAPI) UploadISOs(arg0 context.Context, arg1 string, arg2 bool) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadISOs", arg0, arg1, arg2)
@@ -321,13 +322,13 @@ func (m *MockAPI) UploadISOs(arg0 context.Context, arg1 string, arg2 bool) error
 	return ret0
 }
 
-// UploadISOs indicates an expected call of UploadISOs
+// UploadISOs indicates an expected call of UploadISOs.
 func (mr *MockAPIMockRecorder) UploadISOs(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadISOs", reflect.TypeOf((*MockAPI)(nil).UploadISOs), arg0, arg1, arg2)
 }
 
-// UploadStream mocks base method
+// UploadStream mocks base method.
 func (m *MockAPI) UploadStream(arg0 context.Context, arg1 io.Reader, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadStream", arg0, arg1, arg2)
@@ -335,13 +336,13 @@ func (m *MockAPI) UploadStream(arg0 context.Context, arg1 io.Reader, arg2 string
 	return ret0
 }
 
-// UploadStream indicates an expected call of UploadStream
+// UploadStream indicates an expected call of UploadStream.
 func (mr *MockAPIMockRecorder) UploadStream(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadStream", reflect.TypeOf((*MockAPI)(nil).UploadStream), arg0, arg1, arg2)
 }
 
-// UploadStreamToPublicBucket mocks base method
+// UploadStreamToPublicBucket mocks base method.
 func (m *MockAPI) UploadStreamToPublicBucket(arg0 context.Context, arg1 io.Reader, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadStreamToPublicBucket", arg0, arg1, arg2)
@@ -349,7 +350,7 @@ func (m *MockAPI) UploadStreamToPublicBucket(arg0 context.Context, arg1 io.Reade
 	return ret0
 }
 
-// UploadStreamToPublicBucket indicates an expected call of UploadStreamToPublicBucket
+// UploadStreamToPublicBucket indicates an expected call of UploadStreamToPublicBucket.
 func (mr *MockAPIMockRecorder) UploadStreamToPublicBucket(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadStreamToPublicBucket", reflect.TypeOf((*MockAPI)(nil).UploadStreamToPublicBucket), arg0, arg1, arg2)

@@ -6,36 +6,37 @@ package manifests
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
 	manifests "github.com/openshift/assisted-service/restapi/operations/manifests"
-	reflect "reflect"
 )
 
-// MockClusterManifestsInternals is a mock of ClusterManifestsInternals interface
+// MockClusterManifestsInternals is a mock of ClusterManifestsInternals interface.
 type MockClusterManifestsInternals struct {
 	ctrl     *gomock.Controller
 	recorder *MockClusterManifestsInternalsMockRecorder
 }
 
-// MockClusterManifestsInternalsMockRecorder is the mock recorder for MockClusterManifestsInternals
+// MockClusterManifestsInternalsMockRecorder is the mock recorder for MockClusterManifestsInternals.
 type MockClusterManifestsInternalsMockRecorder struct {
 	mock *MockClusterManifestsInternals
 }
 
-// NewMockClusterManifestsInternals creates a new mock instance
+// NewMockClusterManifestsInternals creates a new mock instance.
 func NewMockClusterManifestsInternals(ctrl *gomock.Controller) *MockClusterManifestsInternals {
 	mock := &MockClusterManifestsInternals{ctrl: ctrl}
 	mock.recorder = &MockClusterManifestsInternalsMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClusterManifestsInternals) EXPECT() *MockClusterManifestsInternalsMockRecorder {
 	return m.recorder
 }
 
-// CreateClusterManifestInternal mocks base method
+// CreateClusterManifestInternal mocks base method.
 func (m *MockClusterManifestsInternals) CreateClusterManifestInternal(arg0 context.Context, arg1 manifests.CreateClusterManifestParams) (*models.Manifest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateClusterManifestInternal", arg0, arg1)
@@ -44,13 +45,13 @@ func (m *MockClusterManifestsInternals) CreateClusterManifestInternal(arg0 conte
 	return ret0, ret1
 }
 
-// CreateClusterManifestInternal indicates an expected call of CreateClusterManifestInternal
+// CreateClusterManifestInternal indicates an expected call of CreateClusterManifestInternal.
 func (mr *MockClusterManifestsInternalsMockRecorder) CreateClusterManifestInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClusterManifestInternal", reflect.TypeOf((*MockClusterManifestsInternals)(nil).CreateClusterManifestInternal), arg0, arg1)
 }
 
-// DeleteClusterManifestInternal mocks base method
+// DeleteClusterManifestInternal mocks base method.
 func (m *MockClusterManifestsInternals) DeleteClusterManifestInternal(arg0 context.Context, arg1 manifests.DeleteClusterManifestParams) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteClusterManifestInternal", arg0, arg1)
@@ -58,13 +59,13 @@ func (m *MockClusterManifestsInternals) DeleteClusterManifestInternal(arg0 conte
 	return ret0
 }
 
-// DeleteClusterManifestInternal indicates an expected call of DeleteClusterManifestInternal
+// DeleteClusterManifestInternal indicates an expected call of DeleteClusterManifestInternal.
 func (mr *MockClusterManifestsInternalsMockRecorder) DeleteClusterManifestInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterManifestInternal", reflect.TypeOf((*MockClusterManifestsInternals)(nil).DeleteClusterManifestInternal), arg0, arg1)
 }
 
-// ListClusterManifestsInternal mocks base method
+// ListClusterManifestsInternal mocks base method.
 func (m *MockClusterManifestsInternals) ListClusterManifestsInternal(arg0 context.Context, arg1 manifests.ListClusterManifestsParams) (models.ListManifests, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListClusterManifestsInternal", arg0, arg1)
@@ -73,7 +74,7 @@ func (m *MockClusterManifestsInternals) ListClusterManifestsInternal(arg0 contex
 	return ret0, ret1
 }
 
-// ListClusterManifestsInternal indicates an expected call of ListClusterManifestsInternal
+// ListClusterManifestsInternal indicates an expected call of ListClusterManifestsInternal.
 func (mr *MockClusterManifestsInternalsMockRecorder) ListClusterManifestsInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusterManifestsInternal", reflect.TypeOf((*MockClusterManifestsInternals)(nil).ListClusterManifestsInternal), arg0, arg1)

@@ -11,30 +11,30 @@ import (
 	event "sigs.k8s.io/controller-runtime/pkg/event"
 )
 
-// MockCRDEventsHandler is a mock of CRDEventsHandler interface
+// MockCRDEventsHandler is a mock of CRDEventsHandler interface.
 type MockCRDEventsHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockCRDEventsHandlerMockRecorder
 }
 
-// MockCRDEventsHandlerMockRecorder is the mock recorder for MockCRDEventsHandler
+// MockCRDEventsHandlerMockRecorder is the mock recorder for MockCRDEventsHandler.
 type MockCRDEventsHandlerMockRecorder struct {
 	mock *MockCRDEventsHandler
 }
 
-// NewMockCRDEventsHandler creates a new mock instance
+// NewMockCRDEventsHandler creates a new mock instance.
 func NewMockCRDEventsHandler(ctrl *gomock.Controller) *MockCRDEventsHandler {
 	mock := &MockCRDEventsHandler{ctrl: ctrl}
 	mock.recorder = &MockCRDEventsHandlerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockCRDEventsHandler) EXPECT() *MockCRDEventsHandlerMockRecorder {
 	return m.recorder
 }
 
-// GetAgentUpdates mocks base method
+// GetAgentUpdates mocks base method.
 func (m *MockCRDEventsHandler) GetAgentUpdates() chan event.GenericEvent {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAgentUpdates")
@@ -42,13 +42,13 @@ func (m *MockCRDEventsHandler) GetAgentUpdates() chan event.GenericEvent {
 	return ret0
 }
 
-// GetAgentUpdates indicates an expected call of GetAgentUpdates
+// GetAgentUpdates indicates an expected call of GetAgentUpdates.
 func (mr *MockCRDEventsHandlerMockRecorder) GetAgentUpdates() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).GetAgentUpdates))
 }
 
-// GetClusterDeploymentUpdates mocks base method
+// GetClusterDeploymentUpdates mocks base method.
 func (m *MockCRDEventsHandler) GetClusterDeploymentUpdates() chan event.GenericEvent {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterDeploymentUpdates")
@@ -56,13 +56,13 @@ func (m *MockCRDEventsHandler) GetClusterDeploymentUpdates() chan event.GenericE
 	return ret0
 }
 
-// GetClusterDeploymentUpdates indicates an expected call of GetClusterDeploymentUpdates
+// GetClusterDeploymentUpdates indicates an expected call of GetClusterDeploymentUpdates.
 func (mr *MockCRDEventsHandlerMockRecorder) GetClusterDeploymentUpdates() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterDeploymentUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).GetClusterDeploymentUpdates))
 }
 
-// GetInfraEnvUpdates mocks base method
+// GetInfraEnvUpdates mocks base method.
 func (m *MockCRDEventsHandler) GetInfraEnvUpdates() chan event.GenericEvent {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetInfraEnvUpdates")
@@ -70,43 +70,43 @@ func (m *MockCRDEventsHandler) GetInfraEnvUpdates() chan event.GenericEvent {
 	return ret0
 }
 
-// GetInfraEnvUpdates indicates an expected call of GetInfraEnvUpdates
+// GetInfraEnvUpdates indicates an expected call of GetInfraEnvUpdates.
 func (mr *MockCRDEventsHandlerMockRecorder) GetInfraEnvUpdates() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).GetInfraEnvUpdates))
 }
 
-// NotifyAgentUpdates mocks base method
+// NotifyAgentUpdates mocks base method.
 func (m *MockCRDEventsHandler) NotifyAgentUpdates(arg0, arg1 string) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "NotifyAgentUpdates", arg0, arg1)
 }
 
-// NotifyAgentUpdates indicates an expected call of NotifyAgentUpdates
+// NotifyAgentUpdates indicates an expected call of NotifyAgentUpdates.
 func (mr *MockCRDEventsHandlerMockRecorder) NotifyAgentUpdates(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyAgentUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).NotifyAgentUpdates), arg0, arg1)
 }
 
-// NotifyClusterDeploymentUpdates mocks base method
+// NotifyClusterDeploymentUpdates mocks base method.
 func (m *MockCRDEventsHandler) NotifyClusterDeploymentUpdates(arg0, arg1 string) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "NotifyClusterDeploymentUpdates", arg0, arg1)
 }
 
-// NotifyClusterDeploymentUpdates indicates an expected call of NotifyClusterDeploymentUpdates
+// NotifyClusterDeploymentUpdates indicates an expected call of NotifyClusterDeploymentUpdates.
 func (mr *MockCRDEventsHandlerMockRecorder) NotifyClusterDeploymentUpdates(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyClusterDeploymentUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).NotifyClusterDeploymentUpdates), arg0, arg1)
 }
 
-// NotifyInfraEnvUpdates mocks base method
+// NotifyInfraEnvUpdates mocks base method.
 func (m *MockCRDEventsHandler) NotifyInfraEnvUpdates(arg0, arg1 string) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "NotifyInfraEnvUpdates", arg0, arg1)
 }
 
-// NotifyInfraEnvUpdates indicates an expected call of NotifyInfraEnvUpdates
+// NotifyInfraEnvUpdates indicates an expected call of NotifyInfraEnvUpdates.
 func (mr *MockCRDEventsHandlerMockRecorder) NotifyInfraEnvUpdates(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyInfraEnvUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).NotifyInfraEnvUpdates), arg0, arg1)

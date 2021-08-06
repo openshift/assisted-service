@@ -5,35 +5,36 @@
 package validations
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	auth "github.com/openshift/assisted-service/pkg/auth"
-	reflect "reflect"
 )
 
-// MockPullSecretValidator is a mock of PullSecretValidator interface
+// MockPullSecretValidator is a mock of PullSecretValidator interface.
 type MockPullSecretValidator struct {
 	ctrl     *gomock.Controller
 	recorder *MockPullSecretValidatorMockRecorder
 }
 
-// MockPullSecretValidatorMockRecorder is the mock recorder for MockPullSecretValidator
+// MockPullSecretValidatorMockRecorder is the mock recorder for MockPullSecretValidator.
 type MockPullSecretValidatorMockRecorder struct {
 	mock *MockPullSecretValidator
 }
 
-// NewMockPullSecretValidator creates a new mock instance
+// NewMockPullSecretValidator creates a new mock instance.
 func NewMockPullSecretValidator(ctrl *gomock.Controller) *MockPullSecretValidator {
 	mock := &MockPullSecretValidator{ctrl: ctrl}
 	mock.recorder = &MockPullSecretValidatorMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockPullSecretValidator) EXPECT() *MockPullSecretValidatorMockRecorder {
 	return m.recorder
 }
 
-// ValidatePullSecret mocks base method
+// ValidatePullSecret mocks base method.
 func (m *MockPullSecretValidator) ValidatePullSecret(secret, username string, authHandler auth.Authenticator) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidatePullSecret", secret, username, authHandler)
@@ -41,7 +42,7 @@ func (m *MockPullSecretValidator) ValidatePullSecret(secret, username string, au
 	return ret0
 }
 
-// ValidatePullSecret indicates an expected call of ValidatePullSecret
+// ValidatePullSecret indicates an expected call of ValidatePullSecret.
 func (mr *MockPullSecretValidatorMockRecorder) ValidatePullSecret(secret, username, authHandler interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidatePullSecret", reflect.TypeOf((*MockPullSecretValidator)(nil).ValidatePullSecret), secret, username, authHandler)

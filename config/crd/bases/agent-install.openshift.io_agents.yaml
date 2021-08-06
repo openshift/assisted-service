@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.0
+    controller-gen.kubebuilder.io/version: v0.6.2
   creationTimestamp: null
   name: agents.agent-install.openshift.io
 spec:
@@ -49,10 +49,14 @@ spec:
         description: Agent is the Schema for the hosts API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -62,25 +66,31 @@ spec:
               approved:
                 type: boolean
               clusterDeploymentName:
-                description: ClusterReference represents a Cluster Reference. It has enough information to retrieve cluster in any namespace
+                description: ClusterReference represents a Cluster Reference. It has
+                  enough information to retrieve cluster in any namespace
                 properties:
                   name:
-                    description: Name is unique within a namespace to reference a cluster resource.
+                    description: Name is unique within a namespace to reference a
+                      cluster resource.
                     type: string
                   namespace:
-                    description: Namespace defines the space within which the cluster name must be unique.
+                    description: Namespace defines the space within which the cluster
+                      name must be unique.
                     type: string
                 type: object
               hostname:
                 type: string
               ignitionConfigOverrides:
-                description: Json formatted string containing the user overrides for the host's ignition config
+                description: Json formatted string containing the user overrides for
+                  the host's ignition config
                 type: string
               installation_disk_id:
-                description: InstallationDiskID defines the installation destination disk (must be equal to the inventory disk id).
+                description: InstallationDiskID defines the installation destination
+                  disk (must be equal to the inventory disk id).
                 type: string
               installerArgs:
-                description: Json formatted string containing the user overrides for the host's coreos installer args
+                description: Json formatted string containing the user overrides for
+                  the host's coreos installer args
                 type: string
               machineConfigPool:
                 type: string
@@ -98,7 +108,8 @@ spec:
                 type: boolean
               conditions:
                 items:
-                  description: Condition represents the state of the operator's reconciliation functionality.
+                  description: Condition represents the state of the operator's reconciliation
+                    functionality.
                   properties:
                     lastHeartbeatTime:
                       format: date-time
@@ -113,7 +124,8 @@ spec:
                     status:
                       type: string
                     type:
-                      description: ConditionType is the state of the operator's reconciliation functionality.
+                      description: ConditionType is the state of the operator's reconciliation
+                        functionality.
                       type: string
                   required:
                   - status
@@ -121,16 +133,19 @@ spec:
                   type: object
                 type: array
               debugInfo:
-                description: DebugInfo includes information for debugging the installation process.
+                description: DebugInfo includes information for debugging the installation
+                  process.
                 properties:
                   eventsURL:
-                    description: EventsURL specifies an HTTP/S URL that contains events which occured during the cluster installation process
+                    description: EventsURL specifies an HTTP/S URL that contains events
+                      which occured during the cluster installation process
                     type: string
                   state:
                     description: Current state of the Agent
                     type: string
                   stateInfo:
-                    description: Additional information pertaining to the status of the Agent
+                    description: Additional information pertaining to the status of
+                      the Agent
                     type: string
                 type: object
               hostname:
