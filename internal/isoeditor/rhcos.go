@@ -203,7 +203,7 @@ func addIgnitionArchive(clusterISOPath, ignition string, ignitionOffset uint64) 
 	return writeAt(archiveBytes, int64(ignitionOffset), clusterISOPath)
 }
 
-func ramdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo) ([]byte, error) {
+func RamdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo) ([]byte, error) {
 	buffer := new(bytes.Buffer)
 	w := cpio.NewWriter(buffer)
 	if len(netFiles) > 0 {
@@ -238,7 +238,7 @@ func ramdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData,
 }
 
 func addCustomRAMDisk(clusterISOPath string, netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo, ramdiskOffsetInfo *OffsetInfo) error {
-	compressedArchive, err := ramdiskImageArchive(netFiles, clusterProxyInfo)
+	compressedArchive, err := RamdiskImageArchive(netFiles, clusterProxyInfo)
 	if err != nil {
 		return err
 	}

@@ -56,6 +56,10 @@ func (f fakeInventory) GetPresignedForClusterFiles(ctx context.Context, params i
 	return installer.NewGetPresignedForClusterFilesOK()
 }
 
+func (f fakeInventory) GetMinimalInitrd(ctx context.Context, params installer.GetMinimalInitrdParams) middleware.Responder {
+	return installer.NewGetMinimalInitrdOK()
+}
+
 func (f fakeInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
 	file, err := ioutil.TempFile("/tmp", "test.file")
 	if err != nil {

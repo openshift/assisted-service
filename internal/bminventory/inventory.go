@@ -1,6 +1,7 @@
 package bminventory
 
 import (
+	"bytes"
 	"context"
 
 	// #nosec
@@ -3535,6 +3536,41 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return installer.NewGetPresignedForClusterFilesOK().WithPayload(&models.Presigned{URL: &url})
+}
+
+func (b *bareMetalInventory) GetMinimalInitrd(ctx context.Context, params installer.GetMinimalInitrdParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if infraEnv.Type != models.ImageTypeMinimalIso {
+	}
+
+	var netFiles []staticnetworkconfig.StaticNetworkConfigData
+	if infraEnv.StaticNetworkConfig != "" {
+		netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(infraEnv.StaticNetworkConfig)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to create static network config data")
+			return common.GenerateErrorResponder(err)
+		}
+	}
+
+	httpProxy, httpsProxy, noProxy := common.GetProxyConfigs(infraEnv.Proxy)
+	infraEnvProxyInfo := isoeditor.ClusterProxyInfo{
+		HTTPProxy:  httpProxy,
+		HTTPSProxy: httpsProxy,
+		NoProxy:    noProxy,
+	}
+
+	minimalInitrd, err := isoeditor.RamdiskImageArchive(netFiles, &infraEnvProxyInfo)
+	if err != nil {
+		log.WithError(err).Error("Failed to create ramdisk image archive")
+		return common.GenerateErrorResponder(err)
+	}
+
+	return installer.NewGetMinimalInitrdOK().WithPayload(ioutil.NopCloser(bytes.NewReader(minimalInitrd)))
 }
 
 func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
