@@ -161,6 +161,12 @@ spec:
                       - cidr
                       type: object
                     type: array
+                  networkType:
+                    description: NetworkType is the Container Network Interface (CNI) plug-in to install The default value is OpenShiftSDN for IPv4 and OVNKubernetes for IPv6
+                    enum:
+                    - OpenShiftSDN
+                    - OVNKubernetes
+                    type: string
                   serviceNetwork:
                     description: 'ServiceNetwork is the list of IP address pools for services. Default is 172.30.0.0/16. NOTE: currently only one entry is supported.'
                     items:

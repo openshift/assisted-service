@@ -362,7 +362,25 @@ func checkAgentCondition(ctx context.Context, hostId string, conditionType condi
 	}
 	Eventually(func() string {
 		return conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, hostkey).Status.Conditions, conditionType).Reason
-	}, "30s", "10s").Should(Equal(reason))
+	}, "3m", "20s").Should(Equal(reason))
+}
+
+func registerIPv6MasterNode(ctx context.Context, clusterID strfmt.UUID, name, ip string) *models.Host {
+	host := &registerHost(clusterID).Host
+	validHwInfoV6.Interfaces[0].IPV6Addresses = []string{ip}
+	generateEssentialHostStepsWithInventory(ctx, host, name, validHwInfoV6)
+	generateEssentialPrepareForInstallationSteps(ctx, host)
+	//update role as master
+	hostkey := types.NamespacedName{
+		Namespace: Options.Namespace,
+		Name:      host.ID.String(),
+	}
+	Eventually(func() error {
+		agent := getAgentCRD(ctx, kubeClient, hostkey)
+		agent.Spec.Role = models.HostRoleMaster
+		return kubeClient.Update(ctx, agent)
+	}, "120s", "30s").Should(BeNil())
+	return host
 }
 
 func checkAgentClusterInstallCondition(ctx context.Context, key types.NamespacedName, conditionType string, reason string) {
@@ -421,6 +439,7 @@ func getDefaultAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.Ag
 				HostPrefix: 23,
 			}},
 			ServiceNetwork: []string{"172.30.0.0/16"},
+			NetworkType:    models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		SSHPublicKey: sshPublicKey,
 		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
@@ -443,6 +462,7 @@ func getDefaultSNOAgentClusterInstallSpec(clusterDeploymentName string) *hiveext
 				HostPrefix: 23,
 			}},
 			ServiceNetwork: []string{"172.30.0.0/16"},
+			NetworkType:    models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		SSHPublicKey: sshPublicKey,
 		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
@@ -450,6 +470,31 @@ func getDefaultSNOAgentClusterInstallSpec(clusterDeploymentName string) *hiveext
 			ControlPlaneAgents: 1,
 			WorkerAgents:       0,
 		},
+		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterDeploymentName},
+	}
+}
+
+func getDefaultAgentClusterIPv6InstallSpec(clusterDeploymentName string) *hiveext.AgentClusterInstallSpec {
+	return &hiveext.AgentClusterInstallSpec{
+		Networking: hiveext.Networking{
+			MachineNetwork: []hiveext.MachineNetworkEntry{{
+				CIDR: "1001:db8::/120",
+			}},
+			ClusterNetwork: []hiveext.ClusterNetworkEntry{{
+				CIDR:       "2002:db8::/53",
+				HostPrefix: 64,
+			}},
+			ServiceNetwork: []string{"2003:db8::/112"},
+			NetworkType:    models.ClusterNetworkTypeOVNKubernetes,
+		},
+		SSHPublicKey: sshPublicKey,
+		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
+		ProvisionRequirements: hiveext.ProvisionRequirements{
+			ControlPlaneAgents: 3,
+			WorkerAgents:       0,
+		},
+		APIVIP:               "1001:db8::64",
+		IngressVIP:           "1001:db8::65",
 		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterDeploymentName},
 	}
 }
@@ -602,6 +647,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraNsName           types.NamespacedName
 		aciSpec               *hiveext.AgentClusterInstallSpec
 		aciSNOSpec            *hiveext.AgentClusterInstallSpec
+		aciV6Spec             *hiveext.AgentClusterInstallSpec
 	)
 
 	BeforeEach(func() {
@@ -609,6 +655,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		clusterDeploymentSpec = getDefaultClusterDeploymentSpec(secretRef)
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSNOSpec = getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciV6Spec = getDefaultAgentClusterIPv6InstallSpec(clusterDeploymentSpec.ClusterName)
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 
 		infraNsName = types.NamespacedName{
@@ -622,6 +669,50 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cleanUpCRs(ctx, kubeClient)
 		verifyCleanUP(ctx, kubeClient)
 		clearDB()
+	})
+
+	It("Verify NetworkType configuration with IPv6", func() {
+		By("Create cluster with network type OVN")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciV6Spec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		By("register hosts")
+		configureLocalAgentClient(cluster.ID.String())
+		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv6Addresses(3, defaultCIDRv6)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := registerIPv6MasterNode(ctx, *cluster.ID, hostname, ips[i])
+			hosts = append(hosts, host)
+		}
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+
+		By("verify validations are successfull")
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterValidatedCondition, hiveext.ClusterValidationsPassingReason)
+
+		By("update network type to SDN")
+		Eventually(func() error {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			aci.Spec.Networking.NetworkType = models.ClusterNetworkTypeOpenShiftSDN
+			return kubeClient.Update(ctx, aci)
+		}, "1m", "20s").Should(BeNil())
+
+		By("verify validations are failing")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterValidatedCondition, hiveext.ClusterValidationsFailingReason)
+		aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+		condition := controllers.FindStatusCondition(aci.Status.Conditions, hiveext.ClusterValidatedCondition)
+		if condition != nil {
+			Expect(condition.Message).Should(ContainSubstring("use OVNKubernetes instead"))
+		}
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete CD and verify ACI and agents deletion", func() {

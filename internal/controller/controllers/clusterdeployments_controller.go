@@ -649,6 +649,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	if len(clusterInstall.Spec.Networking.MachineNetwork) > 0 {
 		updateString(clusterInstall.Spec.Networking.MachineNetwork[0].CIDR, cluster.MachineNetworkCidr, &params.MachineNetworkCidr)
 	}
+	if clusterInstall.Spec.Networking.NetworkType != "" {
+		updateString(clusterInstall.Spec.Networking.NetworkType, swag.StringValue(cluster.NetworkType), &params.NetworkType)
+	} else {
+		updateString(selectClusterNetworkType(params, cluster), swag.StringValue(cluster.NetworkType), &params.NetworkType)
+	}
 
 	// Update APIVIP and IngressVIP only if cluster is not SNO or VipDhcpAllocation is not enabled
 	// In absence of this check, the reconcile loop in the controller fails all the time
@@ -687,11 +692,6 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 
 	if !update {
 		return nil
-	}
-
-	updatedNetworkType := selectClusterNetworkType(params, cluster)
-	if updatedNetworkType != swag.StringValue(cluster.NetworkType) {
-		params.NetworkType = swag.String(updatedNetworkType)
 	}
 
 	_, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.UpdateClusterParams{
