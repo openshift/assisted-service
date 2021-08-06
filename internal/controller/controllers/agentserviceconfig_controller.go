@@ -30,6 +30,7 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -395,12 +396,12 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(log logrus.FieldLogger, ins
 			"SERVICE_BASE_URL": serviceURL.String(),
 
 			// image overrides
-			"AGENT_DOCKER_IMAGE": AgentImage(),
-			"CONTROLLER_IMAGE":   ControllerImage(),
-			"INSTALLER_IMAGE":    InstallerImage(),
-			"SELF_VERSION":       ServiceImage(),
-			"OPENSHIFT_VERSIONS": r.getOpenshiftVersions(log, instance),
-
+			"AGENT_DOCKER_IMAGE":     AgentImage(),
+			"CONTROLLER_IMAGE":       ControllerImage(),
+			"INSTALLER_IMAGE":        InstallerImage(),
+			"SELF_VERSION":           ServiceImage(),
+			"OPENSHIFT_VERSIONS":     r.getOpenshiftVersions(log, instance),
+			"MUST_GATHER_IMAGES":     r.getMustGatherImages(log, instance),
 			"ISO_IMAGE_TYPE":         "minimal-iso",
 			"S3_USE_SSL":             "false",
 			"LOG_LEVEL":              "info",
@@ -1024,6 +1025,35 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	return deployment, mutateFn, nil
 }
 
+func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) string {
+	if instance.Spec.MustGatherImages == nil {
+		return MustGatherImages()
+	}
+	mustGatherVersions := make(versions.MustGatherVersions)
+	for _, specImage := range instance.Spec.MustGatherImages {
+		versionKey, err := getVersionKey(specImage.OpenshiftVersion)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", specImage.OpenshiftVersion))
+			continue
+		}
+		if mustGatherVersions[versionKey] == nil {
+			mustGatherVersions[versionKey] = make(versions.MustGatherVersion)
+		}
+		mustGatherVersions[versionKey][specImage.Name] = specImage.Url
+	}
+
+	if len(mustGatherVersions) == 0 {
+		return MustGatherImages()
+	}
+	encodedVersions, err := json.Marshal(mustGatherVersions)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Problem marshaling must gather images (%v) to string, returning default %v", mustGatherVersions, MustGatherImages()))
+		return MustGatherImages()
+	}
+
+	return string(encodedVersions)
+}
+
 func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) string {
 	if instance.Spec.OSImages == nil {
 		return OpenshiftVersions()
@@ -1031,23 +1061,21 @@ func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogg
 
 	openshiftVersions := make(models.OpenshiftVersions)
 	for i, image := range instance.Spec.OSImages {
-		v, err := version.NewVersion(image.OpenshiftVersion)
+		key, err := getVersionKey(image.OpenshiftVersion)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", image.OpenshiftVersion))
 			continue
 		}
 
-		// put string in x.y format
-		versionString := fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1])
 		openshiftVersion := models.OpenshiftVersion{
-			DisplayName:  &versionString,
+			DisplayName:  &key,
 			RhcosVersion: &instance.Spec.OSImages[i].Version,
 			RhcosImage:   &instance.Spec.OSImages[i].Url,
 			RhcosRootfs:  &instance.Spec.OSImages[i].RootFSUrl,
 		}
 
 		// the last entry for a particular OpenShift version takes precedence.
-		openshiftVersions[versionString] = openshiftVersion
+		openshiftVersions[key] = openshiftVersion
 	}
 
 	if len(openshiftVersions) == 0 {
@@ -1071,6 +1099,16 @@ func (r *AgentServiceConfigReconciler) getCMHash(ctx context.Context, namespaced
 		return "", err
 	}
 	return checksumMap(cm.Data)
+}
+
+func getVersionKey(openshiftVersion string) (string, error) {
+	v, err := version.NewVersion(openshiftVersion)
+	if err != nil {
+		return openshiftVersion, err
+	}
+
+	// put string in x.y format
+	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
 
 func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {

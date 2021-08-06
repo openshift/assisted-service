@@ -36,6 +36,17 @@ type OSImage struct {
 	RootFSUrl string `json:"rootFSUrl"`
 }
 
+type MustGatherImage struct {
+	// OpenshiftVersion is the Major.Minor version of OpenShift that this image
+	// is to be associated with.
+	OpenshiftVersion string `json:"openshiftVersion"`
+	// Name specifies the name of the component (e.g. operator)
+	// that the image is used to collect information about.
+	Name string `json:"name"`
+	// Url specifies the path to the Operating System image.
+	Url string `json:"url"`
+}
+
 // AgentServiceConfigSpec defines the desired state of AgentServiceConfig
 type AgentServiceConfigSpec struct {
 	// FileSystemStorage defines the spec of the PersistentVolumeClaim to be
@@ -66,6 +77,11 @@ type AgentServiceConfigSpec struct {
 	// that the assisted-service should use as the base when generating discovery ISOs.
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operating System Images"
 	OSImages []OSImage `json:"osImages,omitempty"`
+
+	// MustGatherImages defines a collection of operator related must-gather images
+	// that are used if one the operators fails to be successfully deployed
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Must-Gather Images"
+	MustGatherImages []MustGatherImage `json:"mustGatherImages,omitempty"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons

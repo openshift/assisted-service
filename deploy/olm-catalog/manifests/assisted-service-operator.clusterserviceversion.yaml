@@ -78,6 +78,9 @@ spec:
       - description: 'MirrorRegistryRef is the reference to the configmap that contains mirror registry configuration In case no configuration is need, this field will be nil. ConfigMap must contain to entries: ca-bundle.crt - hold the contents of mirror registry certificate/s registries.conf - holds the content of registries.conf file configured with mirror registries'
         displayName: Mirror Registry and Certificate ConfigMap Name
         path: mirrorRegistryRef
+      - description: MustGatherImages defines a collection of operator related must-gather images that are used if one the operators fails to be successfully deployed
+        displayName: Must-Gather Images
+        path: mustGatherImages
       - description: OSImages defines a collection of Operating System images (ie. RHCOS images) that the assisted-service should use as the base when generating discovery ISOs.
         displayName: Operating System Images
         path: osImages

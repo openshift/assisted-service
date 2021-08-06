@@ -11,6 +11,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -468,6 +469,102 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 			})
 		})
 	})
+})
+var _ = Describe("getMustGatherImages", func() {
+	const MUST_GATHER_IMAGES_ENVVAR string = "MUST_GATHER_IMAGES"
+	var defaultSpecMustGatherImages = []aiv1beta1.MustGatherImage{
+		{
+			OpenshiftVersion: "4.8",
+			Name:             "cnv",
+			Url:              "registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5",
+		},
+	}
+	var defaultEnvMustGatherImages = versions.MustGatherVersions{
+		"4.8": versions.MustGatherVersion{
+			"cnv": "registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5",
+			"ocs": "registry.redhat.io/ocs4/ocs-must-gather-rhel8",
+			"lso": "registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8",
+		},
+	}
+	var outSpecMustGatherImages = versions.MustGatherVersions{
+		"4.8": versions.MustGatherVersion{
+			"cnv": "registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5",
+		},
+	}
+	var spec2string = func() string {
+		bytes, err := json.Marshal(outSpecMustGatherImages)
+		Expect(err).NotTo(HaveOccurred())
+		return string(bytes)
+	}
+	var env2string = func() string {
+		bytes, err := json.Marshal(defaultEnvMustGatherImages)
+		Expect(err).NotTo(HaveOccurred())
+		return string(bytes)
+	}
+
+	var (
+		asc  *aiv1beta1.AgentServiceConfig
+		ascr *AgentServiceConfigReconciler
+		log  *logrus.Logger
+	)
+
+	tests := []struct {
+		name     string
+		spec     []aiv1beta1.MustGatherImage
+		env      versions.MustGatherVersions
+		expected string
+	}{
+		{
+			name:     "spec is empty - return the env configuration",
+			spec:     nil,
+			env:      defaultEnvMustGatherImages,
+			expected: env2string(),
+		},
+		{
+			name:     "images in spec - return the spec configuration",
+			spec:     defaultSpecMustGatherImages,
+			env:      nil,
+			expected: spec2string(),
+		},
+		{
+			name:     "both sources - return the spec configuration",
+			spec:     defaultSpecMustGatherImages,
+			env:      defaultEnvMustGatherImages,
+			expected: spec2string(),
+		},
+		{
+			name:     "both empty - return empty string",
+			spec:     nil,
+			env:      nil,
+			expected: "",
+		},
+	}
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		log = logrus.New()
+	})
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			//setup must gather image environment variable, if applicable
+			defer os.Unsetenv(MUST_GATHER_IMAGES_ENVVAR)
+			if t.env != nil {
+				os.Setenv(MUST_GATHER_IMAGES_ENVVAR, env2string())
+			}
+			//setup must gather image SPEC configuration
+			asc.Spec.MustGatherImages = t.spec
+			ascr = newTestReconciler(asc)
+			//verify the result
+			if t.expected != "" {
+				Expect(ascr.getMustGatherImages(log, asc)).To(MatchJSON(t.expected))
+			} else {
+				Expect(ascr.getMustGatherImages(log, asc)).To(Equal(""))
+			}
+		})
+	}
+
 })
 
 var _ = Describe("getOpenshiftVersions", func() {
