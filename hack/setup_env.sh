@@ -17,7 +17,7 @@ function kustomize() {
 
   (cd /usr/bin &&
     curl --retry 5 -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" \
-      | bash -s -- 3.8.8)
+      | bash -s -- 4.2.0)
 }
 
 function golang() {
@@ -56,18 +56,18 @@ function assisted_service() {
 
   ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
   OS=$(uname | awk '{print tolower($0)}')
-  OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.7.2
+  OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.10.1
   curl --retry 5 -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
   chmod +x operator-sdk_${OS}_${ARCH}
   install operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
 
-  go get github.com/onsi/ginkgo/ginkgo@v1.16.1 \
-    golang.org/x/tools/cmd/goimports@v0.1.0 \
-    github.com/golang/mock/mockgen@v1.4.3 \
+  go get github.com/onsi/ginkgo/ginkgo@v1.16.4 \
+    golang.org/x/tools/cmd/goimports@v0.1.5 \
+    github.com/golang/mock/mockgen@v1.5.0 \
     github.com/vektra/mockery/.../@v1.1.2 \
     gotest.tools/gotestsum@v1.6.3 \
     github.com/axw/gocov/gocov \
-    sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.0 \
+    sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.2 \
     github.com/AlekSi/gocov-xml@v0.0.0-20190121064608-3a14fb1c4737
 
   python3 -m pip install --upgrade pip
