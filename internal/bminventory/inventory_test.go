@@ -2689,6 +2689,99 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 	})
 })
 
+var _ = Describe("V2UpdateHostInstallProgress", func() {
+	var (
+		bm     *bareMetalInventory
+		cfg    Config
+		db     *gorm.DB
+		ctx    = context.Background()
+		dbName string
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Context("host exists", func() {
+		var (
+			hostID         strfmt.UUID
+			infraEnvID     strfmt.UUID
+			clusterID      strfmt.UUID
+			progressParams *models.HostProgress
+		)
+
+		BeforeEach(func() {
+			hostID = strfmt.UUID(uuid.New().String())
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			clusterID = strfmt.UUID(uuid.New().String())
+			progressParams = &models.HostProgress{
+				CurrentStage: common.TestDefaultConfig.HostProgressStage,
+			}
+
+			err := db.Create(&models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID,
+				ClusterID:  &clusterID,
+			}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+		})
+
+		It("success", func() {
+
+			By("update with new data", func() {
+				mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+				mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				mockClusterApi.EXPECT().UpdateInstallProgress(ctx, clusterID)
+				reply := bm.V2UpdateHostInstallProgress(ctx, installer.V2UpdateHostInstallProgressParams{
+					InfraEnvID:   infraEnvID,
+					HostProgress: progressParams,
+					HostID:       hostID,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostInstallProgressOK()))
+			})
+
+			By("update with no changes", func() {
+				// We used an hostmock so DB wasn't updated after first step.
+				reply := bm.V2UpdateHostInstallProgress(ctx, installer.V2UpdateHostInstallProgressParams{
+					InfraEnvID:   infraEnvID,
+					HostProgress: &models.HostProgress{},
+					HostID:       hostID,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostInstallProgressOK()))
+			})
+		})
+
+		It("update_failed", func() {
+			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("some error"))
+			reply := bm.V2UpdateHostInstallProgress(ctx, installer.V2UpdateHostInstallProgressParams{
+				InfraEnvID:   infraEnvID,
+				HostProgress: progressParams,
+				HostID:       hostID,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressInternalServerError()))
+		})
+	})
+
+	It("host_dont_exist", func() {
+		reply := bm.V2UpdateHostInstallProgress(ctx, installer.V2UpdateHostInstallProgressParams{
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
+			HostProgress: &models.HostProgress{
+				CurrentStage: common.TestDefaultConfig.HostProgressStage,
+			},
+			HostID: strfmt.UUID(uuid.New().String()),
+		})
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostInstallProgressNotFound()))
+	})
+})
+
 func mockSetConnectivityMajorityGroupsForCluster(mockClusterApi *cluster.MockAPI) {
 	mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 }
