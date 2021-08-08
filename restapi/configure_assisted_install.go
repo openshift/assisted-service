@@ -239,6 +239,9 @@ type InstallerAPI interface {
 
 	/* V2RegisterHost Registers a new OpenShift agent. */
 	V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder
+
+	/* V2UpdateHostInstallProgress Update installation progress. */
+	V2UpdateHostInstallProgress(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) middleware.Responder
 }
 
 //go:generate mockery -name ManagedDomainsAPI -inpkg
@@ -763,6 +766,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2RegisterHost(ctx, params)
+	})
+	api.InstallerV2UpdateHostInstallProgressHandler = installer.V2UpdateHostInstallProgressHandlerFunc(func(params installer.V2UpdateHostInstallProgressParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2UpdateHostInstallProgress(ctx, params)
 	})
 	api.ServerShutdown = func() {}
 	return api.Serve(c.InnerMiddleware), api, nil

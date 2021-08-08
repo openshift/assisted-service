@@ -5551,3 +5551,45 @@ func (b *bareMetalInventory) V2PostStepReply(ctx context.Context, v2Params insta
 func (b *bareMetalInventory) V2GetHost(ctx context.Context, params installer.V2GetHostParams) middleware.Responder {
 	return installer.NewV2GetHostNotImplemented()
 }
+
+func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Update host %s install progress", params.HostID)
+	host, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to find host %s", params.HostID)
+		return installer.NewV2UpdateHostInstallProgressNotFound().
+			WithPayload(common.GenerateError(http.StatusNotFound, err))
+	}
+
+	if host.ClusterID == nil {
+		err = fmt.Errorf("host %s is not bound to any custer, cannot update progress", params.HostID)
+		log.WithError(err).Error()
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	//FIXME: do we need a transaction here? I am guessing that if the call failed the host will retry anyway no?!
+	// Adding a transaction will require to update all lower layer to work with tx instead of db.
+	if params.HostProgress.CurrentStage != host.Progress.CurrentStage || params.HostProgress.ProgressInfo != host.Progress.ProgressInfo {
+		if err := b.hostApi.UpdateInstallProgress(ctx, &host.Host, params.HostProgress); err != nil {
+			log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
+			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
+
+		event := fmt.Sprintf("reached installation stage %s", params.HostProgress.CurrentStage)
+		if params.HostProgress.ProgressInfo != "" {
+			event += fmt.Sprintf(": %s", params.HostProgress.ProgressInfo)
+		}
+
+		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
+		msg := fmt.Sprintf("Host %s: %s", hostutil.GetHostnameForMsg(&host.Host), event)
+		b.eventsHandler.AddEvent(ctx, host.InfraEnvID, host.ID, models.EventSeverityInfo, msg, time.Now())
+
+		if err := b.clusterApi.UpdateInstallProgress(ctx, *host.ClusterID); err != nil {
+			log.WithError(err).Errorf("failed to update cluster %s progress", host.ClusterID)
+			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
+	}
+
+	return installer.NewV2UpdateHostInstallProgressOK()
+}

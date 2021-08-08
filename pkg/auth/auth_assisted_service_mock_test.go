@@ -324,6 +324,10 @@ func (f fakeInventory) V2PostStepReply(ctx context.Context, params installer.V2P
 	return installer.NewV2PostStepReplyNotImplemented()
 }
 
+func (f fakeInventory) V2UpdateHostInstallProgress(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) middleware.Responder {
+	return installer.NewV2UpdateHostInstallProgressOK()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

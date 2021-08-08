@@ -206,6 +206,9 @@ type API interface {
 	/*
 	   V2RegisterHost Registers a new OpenShift agent.*/
 	V2RegisterHost(ctx context.Context, params *V2RegisterHostParams) (*V2RegisterHostCreated, error)
+	/*
+	   V2UpdateHostInstallProgress Update installation progress.*/
+	V2UpdateHostInstallProgress(ctx context.Context, params *V2UpdateHostInstallProgressParams) (*V2UpdateHostInstallProgressOK, error)
 }
 
 // New creates a new installer API client.
@@ -1753,5 +1756,30 @@ func (a *Client) V2RegisterHost(ctx context.Context, params *V2RegisterHostParam
 		return nil, err
 	}
 	return result.(*V2RegisterHostCreated), nil
+
+}
+
+/*
+V2UpdateHostInstallProgress Update installation progress.
+*/
+func (a *Client) V2UpdateHostInstallProgress(ctx context.Context, params *V2UpdateHostInstallProgressParams) (*V2UpdateHostInstallProgressOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2UpdateHostInstallProgress",
+		Method:             "PUT",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2UpdateHostInstallProgressReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2UpdateHostInstallProgressOK), nil
 
 }
