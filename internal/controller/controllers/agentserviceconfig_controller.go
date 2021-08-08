@@ -1025,6 +1025,19 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	return deployment, mutateFn, nil
 }
 
+// getMustGatherImages returns the value of MUST_GATHER_IMAGES variable
+// to be stored in the service's ConfigMap
+//
+// 1. If mustGatherImages field is not present in the AgentServiceConfig's Spec
+//    it returns the value of MUST_GATHER_IMAGES env variable. This is also the
+//    fallback behavior in case of a processing error
+//
+// 2. If mustGatherImages field is present in the AgentServiceConfig's Spec it
+//    converts the structure to the one that can be recognize by the service
+//    and returns it as a JSON string
+//
+// 3. In case both sources are present, the Spec values overrides the env
+//    values
 func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) string {
 	if instance.Spec.MustGatherImages == nil {
 		return MustGatherImages()
@@ -1054,6 +1067,20 @@ func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogge
 	return string(encodedVersions)
 }
 
+// getOpenshiftVersions returns the value of OPENSHIFT_VERSIONS variable
+// to be stored in the service's ConfigMap
+//
+// 1. If osImages field is not present in the AgentServiceConfig's Spec
+//    it returns the value of OPENSHIFT_VERSIONS env variable. This is
+//    also the fallback behavior in case there are no valid versions
+//    in the Spec
+//
+// 2. if osImages field is present in the AgentServiceConfig's Spec it
+//    converts the structure to the one that can be recognize by the service
+//    and returns it as a JSON string
+//
+// 3. In case both sources are present, the Spec values overrides the env
+//    values
 func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) string {
 	if instance.Spec.OSImages == nil {
 		return OpenshiftVersions()
