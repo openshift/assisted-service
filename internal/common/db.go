@@ -68,10 +68,6 @@ type Event struct {
 	models.Event
 }
 
-func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&models.MonitoredOperator{}, &Host{}, &Cluster{}, &Event{}, &InfraEnv{}).Error
-}
-
 type Host struct {
 	models.Host
 	Approved bool `json:"approved"`
@@ -124,9 +120,17 @@ const (
 const (
 	HostsTable              = "Hosts"
 	MonitoredOperatorsTable = "MonitoredOperators"
+	ClusterNetworksTable    = "ClusterNetworks"
+	ServiceNetworksTable    = "ServiceNetworks"
+	MachineNetworksTable    = "MachineNetworks"
 )
 
-var ClusterSubTables = [...]string{HostsTable, MonitoredOperatorsTable}
+var ClusterSubTables = [...]string{HostsTable, MonitoredOperatorsTable, ClusterNetworksTable, ServiceNetworksTable, MachineNetworksTable}
+
+func AutoMigrate(db *gorm.DB) error {
+	return db.AutoMigrate(&models.MonitoredOperator{}, &Host{}, &Cluster{}, &Event{}, &InfraEnv{},
+		&models.ClusterNetwork{}, &models.ServiceNetwork{}, &models.MachineNetwork{}).Error
+}
 
 func LoadTableFromDB(db *gorm.DB, tableName string, conditions ...interface{}) *gorm.DB {
 	return db.Preload(tableName, conditions...)
@@ -143,7 +147,13 @@ func GetClusterFromDB(db *gorm.DB, clusterId strfmt.UUID, eagerLoading EagerLoad
 
 func GetClusterFromDBWithoutDisabledHosts(db *gorm.DB, clusterId strfmt.UUID) (*Cluster, error) {
 	db = LoadTableFromDB(db, HostsTable, "status <> ?", models.HostStatusDisabled)
-	db = LoadTableFromDB(db, MonitoredOperatorsTable)
+	for _, subTable := range ClusterSubTables {
+		if subTable == HostsTable {
+			continue
+		}
+		db = LoadTableFromDB(db, subTable)
+	}
+
 	return GetClusterFromDB(db, clusterId, SkipEagerLoading)
 }
 

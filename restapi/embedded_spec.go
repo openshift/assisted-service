@@ -5798,6 +5798,15 @@ func init() {
           "maximum": 128,
           "minimum": 1
         },
+        "cluster_networks": {
+          "description": "Cluster networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+        },
         "connectivity_majority_groups": {
           "description": "Json formatted string containing the majority groups for connectivity checks.",
           "type": "string",
@@ -5946,6 +5955,15 @@ func init() {
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
         },
+        "machine_networks": {
+          "description": "Machine networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/machine_network"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+        },
         "monitored_operators": {
           "description": "Operators that are associated with this cluster.",
           "type": "array",
@@ -5957,10 +5975,6 @@ func init() {
         },
         "name": {
           "description": "Name of the OpenShift cluster.",
-          "type": "string"
-        },
-        "network_configuration": {
-          "description": "JSON-formatted string containing the networking data for the install-config.yaml file.",
           "type": "string"
         },
         "network_type": {
@@ -6020,6 +6034,15 @@ func init() {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
+        },
+        "service_networks": {
+          "description": "Service networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
@@ -6115,6 +6138,15 @@ func init() {
           "maximum": 128,
           "minimum": 1
         },
+        "cluster_networks": {
+          "description": "Cluster networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          },
+          "x-nullable": true
+        },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
@@ -6150,15 +6182,20 @@ func init() {
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
+        "machine_networks": {
+          "description": "Machine networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/machine_network"
+          },
+          "x-nullable": true
+        },
         "name": {
           "description": "Name of the OpenShift cluster.",
           "type": "string",
           "maxLength": 54,
           "minLength": 1
-        },
-        "network_configuration": {
-          "x-nullable": true,
-          "$ref": "#/definitions/network_configuration"
         },
         "network_type": {
           "description": "The desired network type used.",
@@ -6208,6 +6245,15 @@ func init() {
           "type": "string",
           "default": "172.30.0.0/16",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
+        },
+        "service_networks": {
+          "description": "Service networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          },
+          "x-nullable": true
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
@@ -6351,6 +6397,15 @@ func init() {
           "minimum": 1,
           "x-nullable": true
         },
+        "cluster_networks": {
+          "description": "Cluster networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          },
+          "x-nullable": true
+        },
         "disks_selected_config": {
           "type": "array",
           "items": {
@@ -6455,16 +6510,21 @@ func init() {
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
           "x-nullable": true
         },
+        "machine_networks": {
+          "description": "Machine networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/machine_network"
+          },
+          "x-nullable": true
+        },
         "name": {
           "description": "OpenShift cluster name.",
           "type": "string",
           "maxLength": 54,
           "minLength": 1,
           "x-nullable": true
-        },
-        "network_configuration": {
-          "x-nullable": true,
-          "$ref": "#/definitions/network_configuration"
         },
         "network_type": {
           "description": "The desired network type used.",
@@ -6505,6 +6565,15 @@ func init() {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
+          "x-nullable": true
+        },
+        "service_networks": {
+          "description": "Service networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          },
           "x-nullable": true
         },
         "ssh_public_key": {
@@ -6579,7 +6648,14 @@ func init() {
       "properties": {
         "cidr": {
           "description": "The IP block address pool.",
+          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
+        },
+        "cluster_id": {
+          "description": "The cluster that this network is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
         },
         "host_prefix": {
           "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
@@ -8224,7 +8300,14 @@ func init() {
       "properties": {
         "cidr": {
           "description": "The IP block address pool for machines within the cluster.",
+          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
+        },
+        "cluster_id": {
+          "description": "The cluster that this network is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
         }
       }
     },
@@ -8323,29 +8406,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/monitored-operator"
-      }
-    },
-    "network_configuration": {
-      "type": "object",
-      "properties": {
-        "cluster_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/cluster_network"
-          }
-        },
-        "machine_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/machine_network"
-          }
-        },
-        "service_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/service_network"
-          }
-        }
       }
     },
     "ntp_source": {
@@ -8657,12 +8717,19 @@ func init() {
       }
     },
     "service_network": {
-      "description": "List of IP address pools for services.",
+      "description": "IP address block for service IP blocks.",
       "type": "object",
       "properties": {
         "cidr": {
           "description": "The IP block address pool.",
+          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
+        },
+        "cluster_id": {
+          "description": "The cluster that this network is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
         }
       }
     },
@@ -14864,6 +14931,15 @@ func init() {
           "maximum": 128,
           "minimum": 1
         },
+        "cluster_networks": {
+          "description": "Cluster networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+        },
         "connectivity_majority_groups": {
           "description": "Json formatted string containing the majority groups for connectivity checks.",
           "type": "string",
@@ -15012,6 +15088,15 @@ func init() {
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
         },
+        "machine_networks": {
+          "description": "Machine networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/machine_network"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+        },
         "monitored_operators": {
           "description": "Operators that are associated with this cluster.",
           "type": "array",
@@ -15023,10 +15108,6 @@ func init() {
         },
         "name": {
           "description": "Name of the OpenShift cluster.",
-          "type": "string"
-        },
-        "network_configuration": {
-          "description": "JSON-formatted string containing the networking data for the install-config.yaml file.",
           "type": "string"
         },
         "network_type": {
@@ -15086,6 +15167,15 @@ func init() {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
+        },
+        "service_networks": {
+          "description": "Service networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
@@ -15181,6 +15271,15 @@ func init() {
           "maximum": 128,
           "minimum": 1
         },
+        "cluster_networks": {
+          "description": "Cluster networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          },
+          "x-nullable": true
+        },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
@@ -15216,15 +15315,20 @@ func init() {
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
+        "machine_networks": {
+          "description": "Machine networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/machine_network"
+          },
+          "x-nullable": true
+        },
         "name": {
           "description": "Name of the OpenShift cluster.",
           "type": "string",
           "maxLength": 54,
           "minLength": 1
-        },
-        "network_configuration": {
-          "x-nullable": true,
-          "$ref": "#/definitions/network_configuration"
         },
         "network_type": {
           "description": "The desired network type used.",
@@ -15274,6 +15378,15 @@ func init() {
           "type": "string",
           "default": "172.30.0.0/16",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
+        },
+        "service_networks": {
+          "description": "Service networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          },
+          "x-nullable": true
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
@@ -15417,6 +15530,15 @@ func init() {
           "minimum": 1,
           "x-nullable": true
         },
+        "cluster_networks": {
+          "description": "Cluster networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          },
+          "x-nullable": true
+        },
         "disks_selected_config": {
           "type": "array",
           "items": {
@@ -15481,16 +15603,21 @@ func init() {
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
           "x-nullable": true
         },
+        "machine_networks": {
+          "description": "Machine networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/machine_network"
+          },
+          "x-nullable": true
+        },
         "name": {
           "description": "OpenShift cluster name.",
           "type": "string",
           "maxLength": 54,
           "minLength": 1,
           "x-nullable": true
-        },
-        "network_configuration": {
-          "x-nullable": true,
-          "$ref": "#/definitions/network_configuration"
         },
         "network_type": {
           "description": "The desired network type used.",
@@ -15531,6 +15658,15 @@ func init() {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
+          "x-nullable": true
+        },
+        "service_networks": {
+          "description": "Service networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          },
           "x-nullable": true
         },
         "ssh_public_key": {
@@ -15605,7 +15741,14 @@ func init() {
       "properties": {
         "cidr": {
           "description": "The IP block address pool.",
+          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
+        },
+        "cluster_id": {
+          "description": "The cluster that this network is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
         },
         "host_prefix": {
           "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
@@ -17205,7 +17348,14 @@ func init() {
       "properties": {
         "cidr": {
           "description": "The IP block address pool for machines within the cluster.",
+          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
+        },
+        "cluster_id": {
+          "description": "The cluster that this network is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
         }
       }
     },
@@ -17304,29 +17454,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/monitored-operator"
-      }
-    },
-    "network_configuration": {
-      "type": "object",
-      "properties": {
-        "cluster_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/cluster_network"
-          }
-        },
-        "machine_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/machine_network"
-          }
-        },
-        "service_network": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/service_network"
-          }
-        }
       }
     },
     "ntp_source": {
@@ -17638,12 +17765,19 @@ func init() {
       }
     },
     "service_network": {
-      "description": "List of IP address pools for services.",
+      "description": "IP address block for service IP blocks.",
       "type": "object",
       "properties": {
         "cidr": {
           "description": "The IP block address pool.",
+          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
+        },
+        "cluster_id": {
+          "description": "The cluster that this network is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
         }
       }
     },
