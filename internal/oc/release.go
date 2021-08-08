@@ -134,7 +134,7 @@ func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, release
 	cmd := fmt.Sprintf(templateGetImage, imageName, insecure, releaseImage)
 
 	log.Infof("Fetching image from OCP release (%s)", cmd)
-	image, err := r.execute(log, pullSecret, cmd)
+	image, err := execute(log, r.executer, pullSecret, cmd)
 	if err != nil {
 		return "", err
 	}
@@ -148,7 +148,7 @@ func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, release
 
 func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, releaseImage string, pullSecret string, insecure bool) (string, error) {
 	cmd := fmt.Sprintf(templateGetVersion, insecure, releaseImage)
-	version, err := r.execute(log, pullSecret, cmd)
+	version, err := execute(log, r.executer, pullSecret, cmd)
 	if err != nil {
 		return "", err
 	}
@@ -192,7 +192,7 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 	}
 
 	cmd := fmt.Sprintf(templateExtract, workdir, insecure, releaseImage)
-	_, err = retry.Do(r.config.MaxTries, r.config.RetryDelay, r.execute, log, pullSecret, cmd)
+	_, err = retry.Do(r.config.MaxTries, r.config.RetryDelay, execute, log, r.executer, pullSecret, cmd)
 	if err != nil {
 		return "", err
 	}
@@ -202,9 +202,9 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 	return path, nil
 }
 
-func (r *release) execute(log logrus.FieldLogger, pullSecret string, command string) (string, error) {
+func execute(log logrus.FieldLogger, executer executer.Executer, pullSecret string, command string) (string, error) {
 	// write pull secret to a temp file
-	ps, err := r.executer.TempFile("", "registry-config")
+	ps, err := executer.TempFile("", "registry-config")
 	if err != nil {
 		return "", err
 	}
@@ -221,7 +221,7 @@ func (r *release) execute(log logrus.FieldLogger, pullSecret string, command str
 	executeCommand := command[:] + " --registry-config=" + ps.Name()
 	args := strings.Split(executeCommand, " ")
 
-	stdout, stderr, exitCode := r.executer.Execute(args[0], args[1:]...)
+	stdout, stderr, exitCode := executer.Execute(args[0], args[1:]...)
 
 	if exitCode == 0 {
 		return strings.TrimSpace(stdout), nil
