@@ -8339,6 +8339,79 @@ var _ = Describe("BindHost", func() {
 
 })
 
+var _ = Describe("UnbindHost", func() {
+	var (
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		ctx        = context.Background()
+		clusterID  strfmt.UUID
+		hostID     strfmt.UUID
+		infraEnvID strfmt.UUID
+		dbName     string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		hostID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		bm = createInventory(db, cfg)
+		err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: infraEnvID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Create(&common.Host{Host: models.Host{ID: &hostID, InfraEnvID: infraEnvID, ClusterID: &clusterID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("successful unbind", func() {
+		params := installer.UnbindHostParams{
+			HostID:     hostID,
+			InfraEnvID: infraEnvID,
+		}
+		mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvID, &params.HostID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any())
+		response := bm.UnbindHost(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UnbindHostOK{}))
+	})
+
+	It("bad infraEnv", func() {
+		params := installer.UnbindHostParams{
+			HostID:     hostID,
+			InfraEnvID: "12345",
+		}
+		response := bm.UnbindHost(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("already unbound", func() {
+		params := installer.UnbindHostParams{
+			HostID:     hostID,
+			InfraEnvID: infraEnvID,
+		}
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("cluster_id", nil).Error).ShouldNot(HaveOccurred())
+		response := bm.UnbindHost(ctx, params)
+		verifyApiError(response, http.StatusConflict)
+	})
+
+	It("transition failed", func() {
+		params := installer.UnbindHostParams{
+			HostID:     hostID,
+			InfraEnvID: infraEnvID,
+		}
+		err := errors.Errorf("Transition failed")
+		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any()).Return(err).Times(1)
+		response := bm.UnbindHost(ctx, params)
+		verifyApiError(response, http.StatusInternalServerError)
+	})
+
+})
+
 var _ = Describe("UpdateHostInstallerArgs", func() {
 	var (
 		bm        *bareMetalInventory

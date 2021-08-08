@@ -119,6 +119,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusInsufficientUnbound: {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusKnownUnbound:        {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusBinding:             {[]CommandGetter{noopCmd}, 0, models.StepsPostStepActionExit},
+			models.HostStatusUnbinding:           {[]CommandGetter{noopCmd}, 0, models.StepsPostStepActionExit},
 		},
 	}
 }

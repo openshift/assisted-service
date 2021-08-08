@@ -79,6 +79,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 			stateswitch.State(models.HostStatusInsufficientUnbound),
 			stateswitch.State(models.HostStatusKnownUnbound),
 			stateswitch.State(models.HostStatusDisconnectedUnbound),
+			stateswitch.State(models.HostStatusUnbinding),
 		},
 		Condition:        stateswitch.Not(If(IsConnected)),
 		DestinationState: stateswitch.State(models.HostStatusDisconnectedUnbound),
@@ -118,6 +119,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 	for _, state := range []stateswitch.State{
 		stateswitch.State(models.HostStatusDisabledUnbound),
 		stateswitch.State(models.HostStatusBinding),
+		stateswitch.State(models.HostStatusUnbinding),
 	} {
 		sm.AddTransition(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefresh,

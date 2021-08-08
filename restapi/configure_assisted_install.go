@@ -186,6 +186,9 @@ type InstallerAPI interface {
 	/* ResetHostValidation Reset failed host validation. */
 	ResetHostValidation(ctx context.Context, params installer.ResetHostValidationParams) middleware.Responder
 
+	/* UnbindHost Unbind host to a cluster */
+	UnbindHost(ctx context.Context, params installer.UnbindHostParams) middleware.Responder
+
 	/* UpdateCluster Updates an OpenShift cluster definition. */
 	UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder
 
@@ -670,6 +673,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.ResetHostValidation(ctx, params)
+	})
+	api.InstallerUnbindHostHandler = installer.UnbindHostHandlerFunc(func(params installer.UnbindHostParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.UnbindHost(ctx, params)
 	})
 	api.InstallerUpdateClusterHandler = installer.UpdateClusterHandlerFunc(func(params installer.UpdateClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

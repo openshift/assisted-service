@@ -226,6 +226,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerResetHostValidationHandler: installer.ResetHostValidationHandlerFunc(func(params installer.ResetHostValidationParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ResetHostValidation has not yet been implemented")
 		}),
+		InstallerUnbindHostHandler: installer.UnbindHostHandlerFunc(func(params installer.UnbindHostParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.UnbindHost has not yet been implemented")
+		}),
 		InstallerUpdateClusterHandler: installer.UpdateClusterHandlerFunc(func(params installer.UpdateClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateCluster has not yet been implemented")
 		}),
@@ -463,6 +466,8 @@ type AssistedInstallAPI struct {
 	InstallerResetHostHandler installer.ResetHostHandler
 	// InstallerResetHostValidationHandler sets the operation handler for the reset host validation operation
 	InstallerResetHostValidationHandler installer.ResetHostValidationHandler
+	// InstallerUnbindHostHandler sets the operation handler for the unbind host operation
+	InstallerUnbindHostHandler installer.UnbindHostHandler
 	// InstallerUpdateClusterHandler sets the operation handler for the update cluster operation
 	InstallerUpdateClusterHandler installer.UpdateClusterHandler
 	// InstallerUpdateClusterInstallConfigHandler sets the operation handler for the update cluster install config operation
@@ -762,6 +767,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerResetHostValidationHandler == nil {
 		unregistered = append(unregistered, "installer.ResetHostValidationHandler")
+	}
+	if o.InstallerUnbindHostHandler == nil {
+		unregistered = append(unregistered, "installer.UnbindHostHandler")
 	}
 	if o.InstallerUpdateClusterHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateClusterHandler")
@@ -1155,6 +1163,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}"] = installer.NewResetHostValidation(o.context, o.InstallerResetHostValidationHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind"] = installer.NewUnbindHost(o.context, o.InstallerUnbindHostHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}

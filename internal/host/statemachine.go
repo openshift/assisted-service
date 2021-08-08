@@ -17,6 +17,7 @@ const (
 	TransitionTypeRefresh                    = "RefreshHost"
 	TransitionTypeRegisterInstalledHost      = "RegisterInstalledHost"
 	TransitionTypeBindHost                   = "BindHost"
+	TransitionTypeUnbindHost                 = "UnbindHost"
 )
 
 // func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -292,6 +293,24 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusDisabled),
 		},
 		DestinationState: stateswitch.State(models.HostStatusDisabled),
+	})
+
+	// Unbind host
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeUnbindHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusKnown),
+			stateswitch.State(models.HostStatusDiscovering),
+			stateswitch.State(models.HostStatusDisconnected),
+			stateswitch.State(models.HostStatusInsufficient),
+			stateswitch.State(models.HostStatusDisabled),
+			stateswitch.State(models.HostStatusPendingForInput),
+			stateswitch.State(models.HostStatusError),
+			stateswitch.State(models.HostStatusAddedToExistingCluster),
+			stateswitch.State(models.HostStatusCancelled),
+		},
+		DestinationState: stateswitch.State(models.HostStatusUnbinding),
+		PostTransition:   th.PostUnbindHost,
 	})
 
 	// Refresh host

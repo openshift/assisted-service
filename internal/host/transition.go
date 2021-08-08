@@ -339,6 +339,30 @@ func (th *transitionHandler) PostBindHost(sw stateswitch.StateSwitch, args state
 }
 
 ////////////////////////////////////////////////////////////////////////////
+// Unbind host
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsUnbindHost struct {
+	ctx context.Context
+	db  *gorm.DB
+}
+
+func (th *transitionHandler) PostUnbindHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostUnbindHost incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsUnbindHost)
+	if !ok {
+		return errors.New("PostUnbindHost invalid argument")
+	}
+
+	extra := append(resetFields[:], "cluster_id", nil)
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoUnbinding,
+		extra...)
+}
+
+////////////////////////////////////////////////////////////////////////////
 // Resetting pending user action
 ////////////////////////////////////////////////////////////////////////////
 
