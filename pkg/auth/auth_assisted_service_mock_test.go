@@ -124,10 +124,6 @@ func (f fakeInventory) GetHost(ctx context.Context, params installer.GetHostPara
 	return installer.NewGetHostOK()
 }
 
-func (f fakeInventory) GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder {
-	return installer.NewGetNextStepsOK()
-}
-
 func (f fakeInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
 	return installer.NewInstallClusterAccepted()
 }
@@ -148,20 +144,12 @@ func (f fakeInventory) ListHosts(ctx context.Context, params installer.ListHosts
 	return installer.NewListHostsOK()
 }
 
-func (f fakeInventory) PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder {
-	return installer.NewPostStepReplyNoContent()
-}
-
 func (f fakeInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
 	return installer.NewRegisterClusterCreated()
 }
 
 func (f fakeInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
 	return installer.NewRegisterAddHostsClusterCreated()
-}
-
-func (f fakeInventory) RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder {
-	return installer.NewRegisterHostCreated()
 }
 
 func (f fakeInventory) ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder {
@@ -309,7 +297,7 @@ func (f fakeInventory) UpdateInfraEnv(ctx context.Context, params installer.Upda
 }
 
 func (f fakeInventory) V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder {
-	return installer.NewV2RegisterHostNotImplemented()
+	return installer.NewV2RegisterHostCreated()
 }
 
 func (f fakeInventory) V2GetHost(ctx context.Context, params installer.V2GetHostParams) middleware.Responder {
@@ -317,11 +305,11 @@ func (f fakeInventory) V2GetHost(ctx context.Context, params installer.V2GetHost
 }
 
 func (f fakeInventory) V2GetNextSteps(ctx context.Context, params installer.V2GetNextStepsParams) middleware.Responder {
-	return installer.NewV2GetNextStepsNotImplemented()
+	return installer.NewV2GetNextStepsOK()
 }
 
 func (f fakeInventory) V2PostStepReply(ctx context.Context, params installer.V2PostStepReplyParams) middleware.Responder {
-	return installer.NewV2PostStepReplyNotImplemented()
+	return installer.NewV2PostStepReplyNoContent()
 }
 
 func (f fakeInventory) V2UpdateHostInstallProgress(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) middleware.Responder {

@@ -141,9 +141,6 @@ type InstallerAPI interface {
 	/* GetInfraEnv Retrieves the details of the InfraEnv. */
 	GetInfraEnv(ctx context.Context, params installer.GetInfraEnvParams) middleware.Responder
 
-	/* GetNextSteps Retrieves the next operations that the host agent needs to perform. */
-	GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder
-
 	/* GetPreflightRequirements Get preflight requirements for a cluster. */
 	GetPreflightRequirements(ctx context.Context, params installer.GetPreflightRequirementsParams) middleware.Responder
 
@@ -168,17 +165,11 @@ type InstallerAPI interface {
 	/* ListInfraEnvs Retrieves the list of InfraEnvs. */
 	ListInfraEnvs(ctx context.Context, params installer.ListInfraEnvsParams) middleware.Responder
 
-	/* PostStepReply Posts the result of the operations from the host agent. */
-	PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder
-
 	/* RegisterAddHostsCluster Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster. */
 	RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder
 
 	/* RegisterCluster Creates a new OpenShift cluster definition. */
 	RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder
-
-	/* RegisterHost Registers a new OpenShift host. */
-	RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder
 
 	/* RegisterInfraEnv Creates a new OpenShift Discovery ISO. */
 	RegisterInfraEnv(ctx context.Context, params installer.RegisterInfraEnvParams) middleware.Responder
@@ -552,11 +543,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetInfraEnv(ctx, params)
 	})
-	api.InstallerGetNextStepsHandler = installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.GetNextSteps(ctx, params)
-	})
 	api.InstallerGetPreflightRequirementsHandler = installer.GetPreflightRequirementsHandlerFunc(func(params installer.GetPreflightRequirementsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -642,11 +628,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.OperatorsAPI.ListSupportedOperators(ctx, params)
 	})
-	api.InstallerPostStepReplyHandler = installer.PostStepReplyHandlerFunc(func(params installer.PostStepReplyParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.PostStepReply(ctx, params)
-	})
 	api.InstallerRegisterAddHostsClusterHandler = installer.RegisterAddHostsClusterHandlerFunc(func(params installer.RegisterAddHostsClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -656,11 +637,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.RegisterCluster(ctx, params)
-	})
-	api.InstallerRegisterHostHandler = installer.RegisterHostHandlerFunc(func(params installer.RegisterHostParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.RegisterHost(ctx, params)
 	})
 	api.InstallerRegisterInfraEnvHandler = installer.RegisterInfraEnvHandlerFunc(func(params installer.RegisterInfraEnvParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

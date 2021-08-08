@@ -784,10 +784,10 @@ func completeInstallation(ctx context.Context, cli *client.AssistedInstall) erro
 
 func registerHost(ctx context.Context, cli *client.AssistedInstall) error {
 	hostId := strfmt.UUID(uuid.New().String())
-	_, err := cli.Installer.RegisterHost(
+	_, err := cli.Installer.V2RegisterHost(
 		ctx,
-		&installer.RegisterHostParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
+		&installer.V2RegisterHostParams{
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
 			NewHostParams: &models.HostCreateParams{
 				HostID: &hostId,
 			},
@@ -858,21 +858,21 @@ func disableHost(ctx context.Context, cli *client.AssistedInstall) error {
 }
 
 func getNextSteps(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.GetNextSteps(
+	_, err := cli.Installer.V2GetNextSteps(
 		ctx,
-		&installer.GetNextStepsParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-			HostID:    strfmt.UUID(uuid.New().String()),
+		&installer.V2GetNextStepsParams{
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
+			HostID:     strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }
 
 func postStepReply(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.PostStepReply(
+	_, err := cli.Installer.V2PostStepReply(
 		ctx,
-		&installer.PostStepReplyParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-			HostID:    strfmt.UUID(uuid.New().String()),
+		&installer.V2PostStepReplyParams{
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
+			HostID:     strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }

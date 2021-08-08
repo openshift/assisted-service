@@ -185,8 +185,8 @@ var _ = Describe("Cluster", func() {
 			HostID:    *h.ID,
 		})
 		Expect(err1).ShouldNot(HaveOccurred())
-		_, err2 := agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
-			ClusterID: clusterID,
+		_, err2 := agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
+			InfraEnvID: clusterID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: h.ID,
 			},
@@ -727,9 +727,9 @@ var _ = Describe("cluster install - DHCP", func() {
 		}
 		b, err := json.Marshal(&r)
 		Expect(err).ToNot(HaveOccurred())
-		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: *h.ClusterID,
-			HostID:    *h.ID,
+		_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+			InfraEnvID: *h.ClusterID,
+			HostID:     *h.ID,
 			Reply: &models.StepReply{
 				ExitCode: 0,
 				StepType: models.StepTypeDhcpLeaseAllocate,
@@ -1421,13 +1421,13 @@ var _ = Describe("cluster install", func() {
 			installCluster(clusterID)
 			waitForClusterState(ctx, clusterID, models.ClusterStatusInstalling, defaultWaitForClusterStateTimeout,
 				IgnoreStateInfo)
-			_, err := agentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
-				ClusterID: clusterID,
+			_, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+				InfraEnvID: clusterID,
 				NewHostParams: &models.HostCreateParams{
 					HostID: strToUUID(uuid.New().String()),
 				},
 			})
-			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostConflict()))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterHostConflict()))
 		})
 
 		It("register host while cluster in error state", func() {
@@ -1435,13 +1435,13 @@ var _ = Describe("cluster install", func() {
 			//Wait for cluster to get to error state
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
 				IgnoreStateInfo)
-			_, err := agentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
-				ClusterID: clusterID,
+			_, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+				InfraEnvID: clusterID,
 				NewHostParams: &models.HostCreateParams{
 					HostID: strToUUID(uuid.New().String()),
 				},
 			})
-			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostConflict()))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterHostConflict()))
 		})
 
 		It("fail installation if there is only a single worker that manages to install", func() {
@@ -1454,8 +1454,8 @@ var _ = Describe("cluster install", func() {
 		It("register existing host while cluster in installing state", func() {
 			c := installCluster(clusterID)
 			hostID := c.Hosts[0].ID
-			_, err := agentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
-				ClusterID: clusterID,
+			_, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+				InfraEnvID: clusterID,
 				NewHostParams: &models.HostCreateParams{
 					HostID: hostID,
 				},
@@ -1485,8 +1485,8 @@ var _ = Describe("cluster install", func() {
 			})
 
 			By("Try to register", func() {
-				_, err := agentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
-					ClusterID: clusterID,
+				_, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+					InfraEnvID: clusterID,
 					NewHostParams: &models.HostCreateParams{
 						HostID: hostID,
 					},
@@ -1554,9 +1554,9 @@ var _ = Describe("cluster install", func() {
 			}
 
 			// post failure to execute the install command
-			_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-				ClusterID: clusterID,
-				HostID:    masterID,
+			_, err := agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+				InfraEnvID: clusterID,
+				HostID:     masterID,
 				Reply: &models.StepReply{
 					ExitCode: bminventory.ContainerAlreadyRunningExitCode,
 					StepType: models.StepTypeInstall,
@@ -1582,9 +1582,9 @@ var _ = Describe("cluster install", func() {
 			}
 
 			// post failure to execute the install command due to a running assisted-installer
-			_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-				ClusterID: clusterID,
-				HostID:    *c.Hosts[0].ID,
+			_, err := agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+				InfraEnvID: clusterID,
+				HostID:     *c.Hosts[0].ID,
 				Reply: &models.StepReply{
 					ExitCode: bminventory.ContainerAlreadyRunningExitCode,
 					StepType: models.StepTypeInstall,
@@ -2188,8 +2188,8 @@ var _ = Describe("cluster install", func() {
 				Expect(ok).Should(Equal(true))
 				updateProgress(*hostID, clusterID, models.HostStageRebooting)
 
-				_, err := agentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
-					ClusterID: clusterID,
+				_, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+					InfraEnvID: clusterID,
 					NewHostParams: &models.HostCreateParams{
 						HostID: hostID,
 					},
@@ -2258,8 +2258,8 @@ var _ = Describe("cluster install", func() {
 						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
 							defaultWaitForHostStateTimeout)
 					}
-					_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
-						ClusterID: clusterID,
+					_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
+						InfraEnvID: clusterID,
 						NewHostParams: &models.HostCreateParams{
 							HostID: host.ID,
 						},
@@ -2312,8 +2312,8 @@ var _ = Describe("cluster install", func() {
 						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
 						_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetInstallation)
 						Expect(ok).Should(Equal(true))
-						_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
-							ClusterID: clusterID,
+						_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
+							InfraEnvID: clusterID,
 							NewHostParams: &models.HostCreateParams{
 								HostID: host.ID,
 							},
@@ -2413,8 +2413,8 @@ var _ = Describe("cluster install", func() {
 				for _, host := range c.Hosts {
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
 						defaultWaitForHostStateTimeout)
-					_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
-						ClusterID: clusterID,
+					_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
+						InfraEnvID: clusterID,
 						NewHostParams: &models.HostCreateParams{
 							HostID: host.ID,
 						},
@@ -3457,9 +3457,9 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 		}
 		b, err := json.Marshal(&r)
 		Expect(err).ToNot(HaveOccurred())
-		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: *h.ClusterID,
-			HostID:    *h.ID,
+		_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+			InfraEnvID: *h.ClusterID,
+			HostID:     *h.ID,
 			Reply: &models.StepReply{
 				ExitCode: 0,
 				StepType: models.StepTypeDhcpLeaseAllocate,
@@ -3527,9 +3527,9 @@ func getClusterWorkers(c *models.Cluster) (workers []*models.Host) {
 func generateConnectivityPostStepReply(ctx context.Context, h *models.Host, connectivityReport *models.ConnectivityReport) {
 	fa, err := json.Marshal(connectivityReport)
 	Expect(err).NotTo(HaveOccurred())
-	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: *h.ClusterID,
-		HostID:    *h.ID,
+	_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+		InfraEnvID: *h.ClusterID,
+		HostID:     *h.ID,
 		Reply: &models.StepReply{
 			ExitCode: 0,
 			Output:   string(fa),
