@@ -3143,20 +3143,21 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 	Context("All transitions", func() {
 		var srcState string
 		tests := []struct {
-			name               string
-			srcState           string
-			srcStatusInfo      string
-			machineNetworkCidr string
-			apiVip             string
-			ingressVip         string
-			dnsDomain          string
-			pullSecretSet      bool
-			dstState           string
-			hosts              []models.Host
-			statusInfoChecker  statusInfoChecker
-			withOCMClient      bool
-			requiresAMSUpdate  bool
-			operators          []*models.MonitoredOperator
+			name                string
+			srcState            string
+			srcStatusInfo       string
+			machineNetworkCidr  string
+			apiVip              string
+			ingressVip          string
+			dnsDomain           string
+			pullSecretSet       bool
+			dstState            string
+			hosts               []models.Host
+			statusInfoChecker   statusInfoChecker
+			withOCMClient       bool
+			requiresAMSUpdate   bool
+			installationTimeout bool
+			operators           []*models.MonitoredOperator
 		}{
 			{
 				name:               "installing to installing",
@@ -3276,6 +3277,24 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					{ID: &hid5, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoError),
+			},
+			{
+				name:               "installing-pending-user-action to error due to timeout",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker:   makeValueChecker(statusInfoTimeout),
+				installationTimeout: true,
 			},
 			{
 				name:               "installing-pending-user-action to installing",
@@ -3430,6 +3449,12 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					}
 				}
 				cluster.MachineNetworkCidrUpdatedAt = time.Now().Add(-3 * time.Minute)
+				if t.installationTimeout {
+					// adjust the cluster InstallStartedAt to trigger a timeout
+					cluster.InstallStartedAt = strfmt.DateTime(time.Now().Add(-25 * time.Hour))
+				} else {
+					cluster.InstallStartedAt = strfmt.DateTime(time.Now().Add(-time.Hour))
+				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 				for i := range t.hosts {
 					t.hosts[i].InfraEnvID = clusterId

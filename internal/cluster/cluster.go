@@ -116,13 +116,14 @@ type LogTimeoutConfig struct {
 }
 type PrepareConfig struct {
 	LogTimeoutConfig
-	InstallationTimeout time.Duration `envconfig:"PREPARE_FOR_INSTALLATION_TIMEOUT" default:"10m"`
+	PrepareForInstallationTimeout time.Duration `envconfig:"PREPARE_FOR_INSTALLATION_TIMEOUT" default:"10m"`
 }
 
 type Config struct {
 	PrepareConfig           PrepareConfig
-	MonitorBatchSize        int  `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
-	EnableSingleNodeDnsmasq bool `envconfig:"ENABLE_SINGLE_NODE_DNSMASQ" default:"false"`
+	InstallationTimeout     time.Duration `envconfig:"INSTALLATION_TIMEOUT" default:"24h"`
+	MonitorBatchSize        int           `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
+	EnableSingleNodeDnsmasq bool          `envconfig:"ENABLE_SINGLE_NODE_DNSMASQ" default:"false"`
 }
 
 type Manager struct {
@@ -149,10 +150,11 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
 	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API, dnsApi dns.DNSApi) *Manager {
 	th := &transitionHandler{
-		log:           log,
-		db:            db,
-		prepareConfig: cfg.PrepareConfig,
-		eventsHandler: eventsHandler,
+		log:                 log,
+		db:                  db,
+		prepareConfig:       cfg.PrepareConfig,
+		installationTimeout: cfg.InstallationTimeout,
+		eventsHandler:       eventsHandler,
 	}
 	return &Manager{
 		Config:                cfg,
