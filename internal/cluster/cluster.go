@@ -142,7 +142,7 @@ type Manager struct {
 	ocmClient             *ocm.Client
 	objectHandler         s3wrapper.API
 	dnsApi                dns.DNSApi
-	monitorQueryGenerator *common.MonitorQueryGenerator
+	monitorQueryGenerator *common.MonitorClusterQueryGenerator
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler,
@@ -521,7 +521,7 @@ func (m *Manager) ClusterMonitoring() {
 	//Then, SkipMonitoring() stops the logic from running forever
 	m.initMonitorQueryGenerator()
 
-	query := m.monitorQueryGenerator.NewQuery()
+	query := m.monitorQueryGenerator.NewClusterQuery()
 	for {
 		clusters, err = query.Next()
 		if err != nil {

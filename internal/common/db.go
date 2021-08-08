@@ -105,6 +105,10 @@ type InfraEnv struct {
 
 	// Timestamp for expiration of the image
 	ImageExpiresAt strfmt.DateTime `json:"image_expires_at" gorm:"type:timestamp with time zone"`
+
+	// Hosts relationship
+	// TODO Add a helper function(s) to load InfraEnv(s) with eager-loading parameter
+	Hosts []*Host `json:"hosts" gorm:"foreignkey:InfraEnvID;association_foreignkey:ID"`
 }
 
 type EagerLoadingState bool

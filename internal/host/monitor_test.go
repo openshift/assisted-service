@@ -140,7 +140,7 @@ var _ = Describe("monitor_disconnection", func() {
 	})
 })
 
-var _ = Describe("TestHostMonitoring", func() {
+var _ = Describe("TestHostMonitoring - with cluster", func() {
 	var (
 		ctx           = context.Background()
 		db            *gorm.DB
@@ -232,6 +232,137 @@ var _ = Describe("TestHostMonitoring", func() {
 		It("765 hosts all disconnected", func() {
 			mockMetricApi.EXPECT().MonitoredHostsCount(int64(765)).Times(1)
 			registerAndValidateDisconnected(765)
+		})
+	})
+})
+
+var _ = Describe("TestHostMonitoring - with infra-env", func() {
+	var (
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		host          models.Host
+		ctrl          *gomock.Controller
+		cfg           Config
+		mockEvents    *events.MockHandler
+		dbName        string
+		infraEnvID    = strfmt.UUID(uuid.New().String())
+		mockMetricApi *metrics.MockAPI
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents.EXPECT().
+			AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			AnyTimes()
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
+		mockMetricApi = metrics.NewMockAPI(ctrl)
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
+		mockHwValidator.EXPECT().GetInfraEnvHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
+			Total: &models.ClusterHostRequirementsDetails{},
+		}, nil)
+		mockHwValidator.EXPECT().GetPreflightInfraEnvHardwareRequirements(gomock.Any(), gomock.Any()).AnyTimes().Return(&models.PreflightHardwareRequirements{
+			Ocp: &models.HostTypeHardwareRequirementsWrapper{
+				Worker: &models.HostTypeHardwareRequirements{
+					Quantitative: &models.ClusterHostRequirementsDetails{},
+				},
+				Master: &models.HostTypeHardwareRequirements{
+					Quantitative: &models.ClusterHostRequirementsDetails{},
+				},
+			},
+		}, nil)
+		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
+		mockOperators := operators.NewMockAPI(ctrl)
+		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
+			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators)
+
+		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
+		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
+		}, nil)
+		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	Context("validate monitor in batches", func() {
+		registerAndValidateDisconnected := func(nHosts int) {
+			for i := 0; i < nHosts; i++ {
+				if i%10 == 0 {
+					infraEnvID = strfmt.UUID(uuid.New().String())
+					infraEnv := hostutil.GenerateTestInfraEnv(infraEnvID)
+					Expect(db.Save(infraEnv).Error).ToNot(HaveOccurred())
+				}
+				host = hostutil.GenerateTestHostWithInfraEnv(strfmt.UUID(uuid.New().String()), infraEnvID, models.HostStatusDiscoveringUnbound, models.HostRoleWorker)
+				host.Inventory = workerInventory()
+				Expect(state.RegisterHost(ctx, &host, db)).ShouldNot(HaveOccurred())
+				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
+				db.Save(&host)
+			}
+			state.HostMonitoring()
+			var count int
+			Expect(db.Model(&models.Host{}).Where("status = ?", models.HostStatusDisconnectedUnbound).Count(&count).Error).
+				ShouldNot(HaveOccurred())
+			Expect(count).Should(Equal(nHosts))
+		}
+
+		registerAndValidateDisconnectedAndDisabled := func(nDisconnected, nDisabled int) {
+			for i := 0; i < nDisconnected; i++ {
+				if i%10 == 0 {
+					infraEnvID = strfmt.UUID(uuid.New().String())
+					infraEnv := hostutil.GenerateTestInfraEnv(infraEnvID)
+					Expect(db.Save(infraEnv).Error).ToNot(HaveOccurred())
+				}
+				host = hostutil.GenerateTestHostWithInfraEnv(strfmt.UUID(uuid.New().String()), infraEnvID, models.HostStatusDiscoveringUnbound, models.HostRoleWorker)
+				host.Inventory = workerInventory()
+				Expect(state.RegisterHost(ctx, &host, db)).ShouldNot(HaveOccurred())
+				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
+				db.Save(&host)
+			}
+			for i := 0; i < nDisabled; i++ {
+				if i%10 == 0 {
+					infraEnvID = strfmt.UUID(uuid.New().String())
+					infraEnv := hostutil.GenerateTestInfraEnv(infraEnvID)
+					Expect(db.Save(infraEnv).Error).ToNot(HaveOccurred())
+				}
+				host = hostutil.GenerateTestHostWithInfraEnv(strfmt.UUID(uuid.New().String()), infraEnvID, models.HostStatusDisabledUnbound, models.HostRoleWorker)
+				host.Inventory = workerInventory()
+				Expect(state.RegisterHost(ctx, &host, db)).ShouldNot(HaveOccurred())
+				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
+				db.Save(&host)
+			}
+			state.HostMonitoring()
+			var count int
+			Expect(db.Model(&models.Host{}).Where("status = ?", models.HostStatusDisconnectedUnbound).Count(&count).Error).
+				ShouldNot(HaveOccurred())
+			Expect(count).Should(Equal(nDisconnected))
+		}
+
+		It("5 hosts all disconnected", func() {
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(5)).Times(1)
+			registerAndValidateDisconnected(5)
+		})
+
+		It("15 hosts all disconnected", func() {
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(15)).Times(1)
+			registerAndValidateDisconnected(15)
+		})
+
+		It("765 hosts all disconnected", func() {
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(765)).Times(1)
+			registerAndValidateDisconnected(765)
+		})
+		It("765 hosts disconnected, 5 disabled", func() {
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(765)).Times(1)
+			registerAndValidateDisconnectedAndDisabled(765, 5)
 		})
 	})
 })
