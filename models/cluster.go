@@ -46,6 +46,9 @@ type Cluster struct {
 	// Minimum: 1
 	ClusterNetworkHostPrefix int64 `json:"cluster_network_host_prefix,omitempty"`
 
+	// Cluster networks that are associated with this cluster.
+	ClusterNetworks []*ClusterNetwork `json:"cluster_networks" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
+
 	// Json formatted string containing the majority groups for connectivity checks.
 	ConnectivityMajorityGroups string `json:"connectivity_majority_groups,omitempty" gorm:"type:text"`
 
@@ -145,14 +148,14 @@ type Cluster struct {
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
 	MachineNetworkCidr string `json:"machine_network_cidr,omitempty"`
 
+	// Machine networks that are associated with this cluster.
+	MachineNetworks []*MachineNetwork `json:"machine_networks" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
+
 	// Operators that are associated with this cluster.
 	MonitoredOperators []*MonitoredOperator `json:"monitored_operators" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
 
 	// Name of the OpenShift cluster.
 	Name string `json:"name,omitempty"`
-
-	// JSON-formatted string containing the networking data for the install-config.yaml file.
-	NetworkConfiguration string `json:"network_configuration,omitempty"`
 
 	// The desired network type used.
 	// Enum: [OpenShiftSDN OVNKubernetes]
@@ -192,6 +195,9 @@ type Cluster struct {
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
 	ServiceNetworkCidr string `json:"service_network_cidr,omitempty"`
+
+	// Service networks that are associated with this cluster.
+	ServiceNetworks []*ServiceNetwork `json:"service_networks" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
 
 	// SSH public key for debugging OpenShift nodes.
 	SSHPublicKey string `json:"ssh_public_key,omitempty"`
@@ -246,6 +252,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateClusterNetworkHostPrefix(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateClusterNetworks(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -317,6 +327,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateMachineNetworks(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateMonitoredOperators(formats); err != nil {
 		res = append(res, err)
 	}
@@ -338,6 +352,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateServiceNetworkCidr(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateServiceNetworks(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -414,6 +432,31 @@ func (m *Cluster) validateClusterNetworkHostPrefix(formats strfmt.Registry) erro
 
 	if err := validate.MaximumInt("cluster_network_host_prefix", "body", int64(m.ClusterNetworkHostPrefix), 128, false); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateClusterNetworks(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ClusterNetworks) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.ClusterNetworks); i++ {
+		if swag.IsZero(m.ClusterNetworks[i]) { // not required
+			continue
+		}
+
+		if m.ClusterNetworks[i] != nil {
+			if err := m.ClusterNetworks[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("cluster_networks" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -764,6 +807,31 @@ func (m *Cluster) validateMachineNetworkCidr(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *Cluster) validateMachineNetworks(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.MachineNetworks) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.MachineNetworks); i++ {
+		if swag.IsZero(m.MachineNetworks[i]) { // not required
+			continue
+		}
+
+		if m.MachineNetworks[i] != nil {
+			if err := m.MachineNetworks[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("machine_networks" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
 func (m *Cluster) validateMonitoredOperators(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.MonitoredOperators) { // not required
@@ -889,6 +957,31 @@ func (m *Cluster) validateServiceNetworkCidr(formats strfmt.Registry) error {
 
 	if err := validate.Pattern("service_network_cidr", "body", string(m.ServiceNetworkCidr), `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$`); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateServiceNetworks(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ServiceNetworks) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.ServiceNetworks); i++ {
+		if swag.IsZero(m.ServiceNetworks[i]) { // not required
+			continue
+		}
+
+		if m.ServiceNetworks[i] != nil {
+			if err := m.ServiceNetworks[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("service_networks" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil

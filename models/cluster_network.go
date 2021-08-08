@@ -18,7 +18,11 @@ import (
 type ClusterNetwork struct {
 
 	// The IP block address pool.
-	Cidr Subnet `json:"cidr,omitempty"`
+	Cidr Subnet `json:"cidr,omitempty" gorm:"primary_key"`
+
+	// The cluster that this network is associated with.
+	// Format: uuid
+	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primary_key;foreignkey:Cluster"`
 
 	// The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.
 	// Maximum: 128
@@ -31,6 +35,10 @@ func (m *ClusterNetwork) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCidr(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateClusterID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -54,6 +62,19 @@ func (m *ClusterNetwork) validateCidr(formats strfmt.Registry) error {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("cidr")
 		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterNetwork) validateClusterID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ClusterID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
 		return err
 	}
 

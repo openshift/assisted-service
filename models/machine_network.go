@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // MachineNetwork IP address block for node IP blocks.
@@ -17,7 +18,11 @@ import (
 type MachineNetwork struct {
 
 	// The IP block address pool for machines within the cluster.
-	Cidr Subnet `json:"cidr,omitempty"`
+	Cidr Subnet `json:"cidr,omitempty" gorm:"primary_key"`
+
+	// The cluster that this network is associated with.
+	// Format: uuid
+	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primary_key;foreignkey:Cluster"`
 }
 
 // Validate validates this machine network
@@ -25,6 +30,10 @@ func (m *MachineNetwork) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCidr(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateClusterID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -44,6 +53,19 @@ func (m *MachineNetwork) validateCidr(formats strfmt.Registry) error {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("cidr")
 		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *MachineNetwork) validateClusterID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ClusterID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
 		return err
 	}
 
