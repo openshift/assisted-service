@@ -316,6 +316,10 @@ func (f fakeInventory) V2UpdateHostInstallProgress(ctx context.Context, params i
 	return installer.NewV2UpdateHostInstallProgressOK()
 }
 
+func (f fakeInventory) BindHost(ctx context.Context, params installer.BindHostParams) middleware.Responder {
+	return installer.NewBindHostOK()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

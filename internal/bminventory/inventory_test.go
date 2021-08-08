@@ -8235,6 +8235,110 @@ var _ = Describe("UpdateHostIgnition", func() {
 	})
 })
 
+var _ = Describe("BindHost", func() {
+	var (
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		ctx        = context.Background()
+		clusterID  strfmt.UUID
+		hostID     strfmt.UUID
+		infraEnvID strfmt.UUID
+		dbName     string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		hostID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		bm = createInventory(db, cfg)
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: infraEnvID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Create(&common.Host{Host: models.Host{ID: &hostID, InfraEnvID: infraEnvID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("successful bind", func() {
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvID, &params.HostID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
+		response := bm.BindHost(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
+	})
+
+	It("bad infraEnv", func() {
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     "12345",
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		response := bm.BindHost(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("bad cluster_id", func() {
+		badClusterID := strfmt.UUID(uuid.New().String())
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &badClusterID},
+		}
+		response := bm.BindHost(ctx, params)
+		verifyApiError(response, http.StatusBadRequest)
+	})
+
+	It("already bound", func() {
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("cluster_id", "some_cluster").Error).ShouldNot(HaveOccurred())
+		response := bm.BindHost(ctx, params)
+		verifyApiError(response, http.StatusConflict)
+	})
+
+	It("wrong cluster status", func() {
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		err := errors.Errorf("Cluster is in wrong state")
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(err).Times(1)
+		response := bm.BindHost(ctx, params)
+		verifyApiError(response, http.StatusConflict)
+	})
+
+	It("transition failed", func() {
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		err := errors.Errorf("Transition failed")
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any()).Return(err).Times(1)
+		response := bm.BindHost(ctx, params)
+		verifyApiError(response, http.StatusInternalServerError)
+	})
+
+})
+
 var _ = Describe("UpdateHostInstallerArgs", func() {
 	var (
 		bm        *bareMetalInventory

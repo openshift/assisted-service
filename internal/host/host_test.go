@@ -1385,6 +1385,150 @@ var _ = Describe("Update hostname", func() {
 	})
 })
 
+var _ = Describe("Bind host", func() {
+	var (
+		ctx                           = context.Background()
+		hapi                          API
+		db                            *gorm.DB
+		hostId, clusterId, infraEnvId strfmt.UUID
+		host                          models.Host
+		dbName                        string
+		mockEvents                    *events.MockHandler
+		ctrl                          *gomock.Controller
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		dummy := &leader.DummyElector{}
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+		infraEnvId = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Context("Bind host", func() {
+		success := func(reply error) {
+			Expect(reply).To(BeNil())
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+			Expect(*h.ClusterID).To(Equal(clusterId))
+		}
+
+		failure := func(reply error) {
+			Expect(reply).To(HaveOccurred())
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+			Expect(h.ClusterID.String()).To(Equal(""))
+		}
+
+		tests := []struct {
+			name       string
+			srcState   string
+			validation func(error)
+		}{
+			{
+				name:       models.HostStatusKnown,
+				srcState:   models.HostStatusKnown,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusDisabled,
+				srcState:   models.HostStatusDisabled,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusDisconnected,
+				srcState:   models.HostStatusDisconnected,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusDiscovering,
+				srcState:   models.HostStatusDiscovering,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusError,
+				srcState:   models.HostStatusError,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstalled,
+				srcState:   models.HostStatusInstalled,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstalling,
+				srcState:   models.HostStatusInstalling,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstallingInProgress,
+				srcState:   models.HostStatusInstallingInProgress,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusResettingPendingUserAction,
+				srcState:   models.HostStatusResettingPendingUserAction,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInsufficient,
+				srcState:   models.HostStatusInsufficient,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusResetting,
+				srcState:   models.HostStatusResetting,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusPendingForInput,
+				srcState:   models.HostStatusPendingForInput,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusKnownUnbound,
+				srcState:   models.HostStatusKnownUnbound,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusDisconnectedUnbound,
+				srcState:   models.HostStatusDisconnectedUnbound,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInsufficientUnbound,
+				srcState:   models.HostStatusInsufficientUnbound,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusDisabledUnbound,
+				srcState:   models.HostStatusDisabledUnbound,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusDiscoveringUnbound,
+				srcState:   models.HostStatusDiscoveringUnbound,
+				validation: failure,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvId, &hostId, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
+				host = hostutil.GenerateTestHost(hostId, infraEnvId, "", t.srcState)
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				t.validation(hapi.BindHost(ctx, &host, clusterId, db))
+			})
+		}
+	})
+})
+
 var _ = Describe("Update disk installation path", func() {
 	var (
 		ctx                           = context.Background()

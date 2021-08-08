@@ -150,6 +150,7 @@ type API interface {
 	ResetHostValidation(ctx context.Context, hostID, clusterID strfmt.UUID, validationID string, db *gorm.DB) error
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	UpdateDomainNameResolution(ctx context.Context, h *models.Host, domainResolutionResponse models.DomainResolutionResponse, db *gorm.DB) error
+	BindHost(ctx context.Context, h *models.Host, clusterID strfmt.UUID, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -435,6 +436,14 @@ func (m *Manager) DisableHost(ctx context.Context, h *models.Host, db *gorm.DB) 
 	return m.sm.Run(TransitionTypeDisableHost, newStateHost(h), &TransitionArgsDisableHost{
 		ctx: ctx,
 		db:  db,
+	})
+}
+
+func (m *Manager) BindHost(ctx context.Context, h *models.Host, clusterID strfmt.UUID, db *gorm.DB) error {
+	return m.sm.Run(TransitionTypeBindHost, newStateHost(h), &TransitionArgsBindHost{
+		ctx:       ctx,
+		db:        db,
+		clusterID: clusterID,
 	})
 }
 
