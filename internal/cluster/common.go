@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/identity"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
@@ -202,4 +203,26 @@ func GetCluster(ctx context.Context, logger logrus.FieldLogger, db *gorm.DB, clu
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return &cluster, nil
+}
+
+func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr string) error {
+	// Delete previous primary machine CIDR
+	if network.IsMachineCidrAvailable(cluster) {
+		if err := common.DeleteRecordsByClusterID(db, *cluster.ID, models.MachineNetwork{}, "cidr = ?", cluster.MachineNetworks[0].Cidr); err != nil {
+			return err
+		}
+	}
+
+	if machineCidr != "" {
+		if err := db.Model(&models.MachineNetwork{}).Save(&models.MachineNetwork{
+			ClusterID: *cluster.ID,
+			Cidr:      models.Subnet(machineCidr),
+		}).Error; err != nil {
+			return err
+		}
+	}
+
+	return db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(&common.Cluster{
+		MachineNetworkCidrUpdatedAt: time.Now(),
+	}).Error
 }

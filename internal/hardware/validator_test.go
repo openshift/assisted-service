@@ -88,7 +88,7 @@ var _ = Describe("Disk eligibility", func() {
 
 		clusterID := strfmt.UUID(uuid.New().String())
 		infraEnvID := strfmt.UUID(uuid.New().String())
-		cluster = hostutil.GenerateTestCluster(clusterID, "10.0.0.1/24")
+		cluster = hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.PrimaryMachineNetworkCidr)
 		hostID := strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusDiscovering)
 
@@ -242,8 +242,8 @@ var _ = Describe("hardware_validator", func() {
 			Routes: common.TestDefaultRouteConfiguration,
 		}
 		cluster = &common.Cluster{Cluster: models.Cluster{
-			ID:                 &clusterID,
-			MachineNetworkCidr: "1.2.3.0/24",
+			ID:              &clusterID,
+			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
 		}}
 		cluster.Hosts = append(cluster.Hosts, host1)
 		cluster.Hosts = append(cluster.Hosts, host2)

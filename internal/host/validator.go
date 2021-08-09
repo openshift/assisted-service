@@ -129,10 +129,13 @@ func (c *validationContext) validateRole() error {
 
 func (c *validationContext) validateMachineCIDR() error {
 	var err error
-	if c.cluster.MachineNetworkCidr != "" {
-		_, _, err = net.ParseCIDR(c.cluster.MachineNetworkCidr)
+	for _, machineNetwork := range c.cluster.MachineNetworks {
+		_, _, err = net.ParseCIDR(string(machineNetwork.Cidr))
+		if err != nil {
+			return err
+		}
 	}
-	return err
+	return nil
 }
 
 func (c *validationContext) loadClusterHostRequirements(hwValidator hardware.Validator) error {
@@ -379,7 +382,7 @@ func (v *validator) isMachineCidrDefined(c *validationContext) ValidationStatus 
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput
 	}
-	return boolValue(swag.BoolValue(c.cluster.UserManagedNetworking) || swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || c.cluster.MachineNetworkCidr != "")
+	return boolValue(swag.BoolValue(c.cluster.UserManagedNetworking) || swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || network.IsMachineCidrAvailable(c.cluster))
 }
 
 func (v *validator) printIsMachineCidrDefined(context *validationContext, status ValidationStatus) string {
@@ -481,10 +484,10 @@ func (v *validator) belongsToMachineCidr(c *validationContext) ValidationStatus 
 	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || (swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster)) {
 		return ValidationSuccess
 	}
-	if c.inventory == nil || c.cluster.MachineNetworkCidr == "" {
+	if c.inventory == nil || !network.IsMachineCidrAvailable(c.cluster) {
 		return ValidationPending
 	}
-	return boolValue(network.IsHostInMachineNetCidr(v.log, c.cluster, c.host))
+	return boolValue(network.IsHostInPrimaryMachineNetCidr(v.log, c.cluster, c.host))
 }
 
 func (v *validator) printBelongsToMachineCidr(c *validationContext, status ValidationStatus) string {
@@ -493,9 +496,17 @@ func (v *validator) printBelongsToMachineCidr(c *validationContext, status Valid
 		if swag.BoolValue(c.cluster.UserManagedNetworking) {
 			return "No machine network CIDR validation needed: User Managed Networking"
 		}
-		return fmt.Sprintf("Host belongs to machine network CIDR %s", c.cluster.MachineNetworkCidr)
+		if network.IsMachineCidrAvailable(c.cluster) {
+			return fmt.Sprintf("Host belongs to machine network CIDR %s", c.cluster.MachineNetworks[0].Cidr)
+		}
+
+		// TODO MGMT-7566: Fix day2 message
+		return "Host belongs to machine network CIDR"
 	case ValidationFailure:
-		return fmt.Sprintf("Host does not belong to machine network CIDR %s", c.cluster.MachineNetworkCidr)
+		if network.IsMachineCidrAvailable(c.cluster) {
+			return fmt.Sprintf("Host does not belong to machine network CIDR %s", c.cluster.MachineNetworks[0].Cidr)
+		}
+		return "Host does not belong to machine network CIDR"
 	case ValidationPending:
 		return "Missing inventory or machine network CIDR"
 	default:
@@ -610,10 +621,12 @@ func getNumEnabledHosts(hosts []*models.Host) int {
 	return ret
 }
 func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
-	if c.cluster.MachineNetworkCidr == "" {
+	if !network.IsMachineCidrAvailable(c.cluster) {
 		return ValidationPending
 	}
-	return boolValue(funk.Contains(majorityGroups[c.cluster.MachineNetworkCidr], *c.host.ID))
+
+	// TODO: Handle multple machine networks
+	return boolValue(funk.Contains(majorityGroups[string(c.cluster.MachineNetworks[0].Cidr)], *c.host.ID))
 }
 
 func (v *validator) belongsToL3MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
@@ -675,7 +688,7 @@ func (v *validator) printBelongsToMajorityGroup(c *validationContext, status Val
 	case ValidationError:
 		return "Parse error for connectivity majority group"
 	case ValidationPending:
-		if c.cluster.MachineNetworkCidr == "" || c.cluster.ConnectivityMajorityGroups == "" {
+		if !network.IsMachineCidrAvailable(c.cluster) || c.cluster.ConnectivityMajorityGroups == "" {
 			return "Machine Network CIDR or Connectivity Majority Groups missing"
 		} else if getNumEnabledHosts(c.cluster.Hosts) < 3 {
 			return "Not enough enabled hosts in cluster to calculate connectivity groups"

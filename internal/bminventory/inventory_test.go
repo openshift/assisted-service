@@ -4190,7 +4190,7 @@ var _ = Describe("cluster", func() {
 						"ingress_vip": common.TestIPv4Networking.IngressVip,
 					}).Error).ShouldNot(HaveOccurred())
 					Expect(db.Model(&models.MachineNetwork{}).Save(
-						&models.MachineNetwork{Cidr: common.TestIPv4Networking.MachineNetworks[0].Cidr, ClusterID: clusterID}).Error).ShouldNot(HaveOccurred())
+						&models.MachineNetwork{Cidr: models.Subnet(common.TestIPv4Networking.PrimaryMachineNetworkCidr), ClusterID: clusterID}).Error).ShouldNot(HaveOccurred())
 
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
@@ -4820,7 +4820,7 @@ var _ = Describe("cluster", func() {
 					}
 				})
 
-				It("No new networks", func() {
+				It("No new networks data", func() {
 					mockSuccess(1)
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID:           clusterID,
@@ -4832,6 +4832,24 @@ var _ = Describe("cluster", func() {
 					Expect(actual.Payload.ClusterNetworks).To(HaveLen(len(clusterNetworks)))
 					Expect(actual.Payload.ServiceNetworks).To(HaveLen(len(serviceNetworks)))
 					Expect(actual.Payload.MachineNetworks).To(HaveLen(len(machineNetworks)))
+				})
+
+				It("Empty networks", func() {
+					mockSuccess(1)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworks: []*models.ClusterNetwork{},
+							ServiceNetworks: []*models.ServiceNetwork{},
+							MachineNetworks: []*models.MachineNetwork{},
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+
+					Expect(actual.Payload.ClusterNetworks).To(BeEmpty())
+					Expect(actual.Payload.ServiceNetworks).To(BeEmpty())
+					Expect(actual.Payload.MachineNetworks).To(BeEmpty())
 				})
 
 				It("Override networks", func() {

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	reflect "reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -416,12 +417,7 @@ func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 		 * Auto assign machine network CIDR is relevant if there is only single host network.  Otherwise the user
 		 * has to select the machine network CIDR
 		 */
-		return m.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(&common.Cluster{
-			Cluster: models.Cluster{
-				MachineNetworkCidr: networks[0],
-			},
-			MachineNetworkCidrUpdatedAt: time.Now(),
-		}).Error
+		return UpdateMachineCidr(m.db, cluster, networks[0])
 	}
 	return nil
 }
@@ -432,14 +428,11 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 
 	if err != nil {
 		return err
-	} else if machineCidr == cluster.MachineNetworkCidr {
+	} else if network.IsMachineCidrAvailable(cluster) && machineCidr == string(cluster.MachineNetworks[0].Cidr) {
 		return nil
 	}
 
-	return m.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(
-		"machine_network_cidr", machineCidr,
-		"machine_network_cidr_updated_at", time.Now(),
-	).Error
+	return UpdateMachineCidr(m.db, cluster, machineCidr)
 }
 
 func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
@@ -459,7 +452,8 @@ func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
 		err = m.tryAssignMachineCidrNonDHCPMode(c)
 	}
 	if err != nil {
-		m.log.WithError(err).Warnf("Set machine cidr for cluster %s", c.ID.String())
+		m.log.WithError(err).Warnf("Set machine cidr for cluster %s. dhcp mode %q user managed networking mode: %q",
+			c.ID.String(), strconv.FormatBool(swag.BoolValue(c.VipDhcpAllocation)), strconv.FormatBool(swag.BoolValue(c.UserManagedNetworking)))
 	}
 	return err
 }
@@ -470,7 +464,7 @@ func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorIn
 		return false
 	}
 	timeToCompare := c.MachineNetworkCidrUpdatedAt.Add(DhcpLeaseTimeoutMinutes * time.Minute)
-	return swag.BoolValue(c.VipDhcpAllocation) && (c.APIVip == "" || c.IngressVip == "") && c.MachineNetworkCidr != "" &&
+	return swag.BoolValue(c.VipDhcpAllocation) && (c.APIVip == "" || c.IngressVip == "") && network.IsMachineCidrAvailable(c) &&
 		(m.prevMonitorInvokedAt.Before(timeToCompare) || m.prevMonitorInvokedAt.Equal(timeToCompare)) &&
 		curMonitorInvokedAt.After(timeToCompare)
 }
@@ -495,8 +489,9 @@ func (m *Manager) initMonitorQueryGenerator() {
 			models.ClusterStatusInstalled,
 		}
 
-		dbWithCondition := m.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).Preload(common.MonitoredOperatorsTable).
-			Where("status NOT IN (?)", noNeedToMonitorInStates)
+		dbWithCondition := common.LoadTableFromDB(m.db, common.HostsTable, "status <> ?", models.HostStatusDisabled)
+		dbWithCondition = common.LoadClusterTablesFromDB(dbWithCondition, common.HostsTable)
+		dbWithCondition = dbWithCondition.Where("status NOT IN (?)", noNeedToMonitorInStates)
 		m.monitorQueryGenerator = common.NewMonitorQueryGenerator(m.db, dbWithCondition, m.MonitorBatchSize)
 	}
 }
@@ -988,15 +983,15 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 		db = m.db
 	}
 	// We want to calculate majority groups only when in pre-install states since it is needed for pre-install validations
-	var cluster common.Cluster
-	if err := db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).Take(&cluster, "id = ?", clusterID.String()).Error; err != nil {
+	cluster, err := common.GetClusterFromDBWithoutDisabledHosts(db, clusterID)
+	if err != nil {
 		var statusCode int32 = http.StatusInternalServerError
 		if gorm.IsRecordNotFoundError(err) {
 			statusCode = http.StatusNotFound
 		}
 		return common.NewApiError(statusCode, errors.Wrapf(err, "Getting cluster %s", clusterID.String()))
 	}
-	return m.setConnectivityMajorityGroupsForClusterInternal(&cluster, db)
+	return m.setConnectivityMajorityGroupsForClusterInternal(cluster, db)
 }
 
 func (m *Manager) deleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, folder string) error {

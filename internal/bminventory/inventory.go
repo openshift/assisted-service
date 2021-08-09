@@ -2081,10 +2081,12 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		if err != nil {
 			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Calculate machine network CIDR"))
 		}
-		if len(cluster.MachineNetworks) > 0 {
-			cluster.MachineNetworks[0].Cidr = models.Subnet(primaryMachineNetworkCidr)
-		} else {
-			cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
+		if primaryMachineNetworkCidr != "" {
+			if network.IsMachineCidrAvailable(cluster) {
+				cluster.MachineNetworks[0].Cidr = models.Subnet(primaryMachineNetworkCidr)
+			} else {
+				cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
+			}
 		}
 		err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, apiVip, ingressVip, false, log)
 		if err != nil {
@@ -2117,8 +2119,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 		log.WithError(err).Warnf("Set Ingress VIP")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if params.ClusterUpdateParams.MachineNetworks != nil &&
-		len(params.ClusterUpdateParams.MachineNetworks) > 0 {
+	if params.ClusterUpdateParams.MachineNetworks != nil {
 		updates["api_vip"] = ""
 		updates["ingress_vip"] = ""
 	}
@@ -2220,7 +2221,7 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.Update
 	userManagedNetworking, vipDhcpAllocation bool) error {
 	var err error
 
-	if params.ClusterUpdateParams.ClusterNetworks != nil && len(params.ClusterUpdateParams.ClusterNetworks) > 0 {
+	if params.ClusterUpdateParams.ClusterNetworks != nil {
 		for _, clusterNetwork := range params.ClusterUpdateParams.ClusterNetworks {
 			if err = network.VerifyClusterOrServiceCIDR(string(clusterNetwork.Cidr)); err != nil {
 				return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Cluster network CIDR %s", string(clusterNetwork.Cidr)))
@@ -2238,7 +2239,7 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.Update
 		cluster.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
 	}
 
-	if params.ClusterUpdateParams.ServiceNetworks != nil && len(params.ClusterUpdateParams.ServiceNetworks) > 0 {
+	if params.ClusterUpdateParams.ServiceNetworks != nil {
 		for _, serviceNetwork := range params.ClusterUpdateParams.ServiceNetworks {
 			if err = network.VerifyClusterOrServiceCIDR(string(serviceNetwork.Cidr)); err != nil {
 				return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Service network CIDR %s", string(serviceNetwork.Cidr)))
@@ -2265,6 +2266,7 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.Update
 
 	if params.ClusterUpdateParams.ClusterNetworks != nil || params.ClusterUpdateParams.ServiceNetworks != nil ||
 		params.ClusterUpdateParams.MachineNetworks != nil {
+		// TODO MGMT-7587: Support any number of subnets
 		// Assumes that the number of cluster networks equal to the number of service networks
 		for index := range cluster.ClusterNetworks {
 			machineNetworkCidr := ""
@@ -2315,6 +2317,7 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 	}
 
 	// TODO: Update machine CIDR only if necessary
+	// The machine cidr can be resetted, calculated and provided by the user
 	if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.MachineNetwork{}).Error; err != nil {
 		err = errors.Wrapf(err, "failed to delete machine networks of cluster %s", *cluster.ID)
 		return common.NewApiError(http.StatusInternalServerError, err)
@@ -3150,7 +3153,7 @@ func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, 
 	apiVip := dhcpAllocationReponse.APIVipAddress.String()
 	ingressVip := dhcpAllocationReponse.IngressVipAddress.String()
 	primaryMachineCIDR := ""
-	if len(cluster.MachineNetworks) > 0 {
+	if network.IsMachineCidrAvailable(cluster) {
 		primaryMachineCIDR = string(cluster.MachineNetworks[0].Cidr)
 	}
 

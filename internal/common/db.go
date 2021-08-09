@@ -10,6 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"github.com/thoas/go-funk"
 )
 
 const (
@@ -141,6 +142,16 @@ func LoadTableFromDB(db *gorm.DB, tableName string, conditions ...interface{}) *
 	return db.Preload(tableName, conditions...)
 }
 
+func LoadClusterTablesFromDB(db *gorm.DB, excludeTables ...string) *gorm.DB {
+	for _, subTable := range ClusterSubTables {
+		if funk.Contains(excludeTables, subTable) {
+			continue
+		}
+		db = LoadTableFromDB(db, subTable)
+	}
+	return db
+}
+
 func GetClusterFromDB(db *gorm.DB, clusterId strfmt.UUID, eagerLoading EagerLoadingState) (*Cluster, error) {
 	c, err := GetClusterFromDBWhere(db, eagerLoading, SkipDeletedRecords, "id = ?", clusterId.String())
 	if err != nil {
@@ -152,29 +163,26 @@ func GetClusterFromDB(db *gorm.DB, clusterId strfmt.UUID, eagerLoading EagerLoad
 
 func GetClusterFromDBWithoutDisabledHosts(db *gorm.DB, clusterId strfmt.UUID) (*Cluster, error) {
 	db = LoadTableFromDB(db, HostsTable, "status <> ?", models.HostStatusDisabled)
-	for _, subTable := range ClusterSubTables {
-		if subTable == HostsTable {
-			continue
-		}
-		db = LoadTableFromDB(db, subTable)
-	}
+	db = LoadClusterTablesFromDB(db, HostsTable)
 
 	return GetClusterFromDB(db, clusterId, SkipEagerLoading)
 }
 
-func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState) *gorm.DB {
+func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, conditions ...interface{}) *gorm.DB {
 	if includeDeleted {
 		db = db.Unscoped()
 	}
 
+	conditions = append(conditions, func(db *gorm.DB) *gorm.DB {
+		if includeDeleted {
+			return db.Unscoped()
+		}
+		return db
+	})
+
 	if eagerLoading {
 		for _, tableName := range ClusterSubTables {
-			db = LoadTableFromDB(db, tableName, func(db *gorm.DB) *gorm.DB {
-				if includeDeleted {
-					return db.Unscoped()
-				}
-				return db
-			})
+			db = LoadTableFromDB(db, tableName, conditions...)
 		}
 	}
 
