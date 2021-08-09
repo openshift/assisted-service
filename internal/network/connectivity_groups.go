@@ -12,13 +12,14 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
+	"golang.org/x/sys/unix"
 )
 
 type AddressFamily int
 
 const (
-	IPv4 AddressFamily = 4
-	IPv6 AddressFamily = 6
+	IPv4 AddressFamily = unix.AF_INET
+	IPv6 AddressFamily = unix.AF_INET6
 )
 
 func (a AddressFamily) String() string {
