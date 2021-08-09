@@ -507,9 +507,10 @@ func main() {
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
 			failOnError((&controllers.BMACReconciler{
-				Client: ctrlMgr.GetClient(),
-				Log:    log,
-				Scheme: ctrlMgr.GetScheme(),
+				Client:    ctrlMgr.GetClient(),
+				APIReader: ctrlMgr.GetAPIReader(),
+				Log:       log,
+				Scheme:    ctrlMgr.GetScheme(),
 			}).SetupWithManager(ctrlMgr), "unable to create controller BMH")
 
 			failOnError((&controllers.AgentClusterInstallReconciler{
@@ -755,7 +756,11 @@ func createControllerManager() (manager.Manager, error) {
 			NewCache: cache.BuilderWithOptions(cache.Options{
 				SelectorsByObject: cache.SelectorsByObject{
 					&corev1.Secret{}: {
-						Label: labels.SelectorFromSet(labels.Set{controllers.SecretLabelName: controllers.SecretLabelValue}),
+						Label: labels.SelectorFromSet(
+							labels.Set{
+								controllers.WatchResourceLabel: controllers.WatchResourceValue,
+							},
+						),
 					},
 				},
 			}),

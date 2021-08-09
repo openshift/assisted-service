@@ -71,8 +71,6 @@ const (
 	InstallConfigOverrides            = aiv1beta1.Group + "/install-config-overrides"
 	ClusterDeploymentFinalizerName    = "clusterdeployments." + aiv1beta1.Group + "/ai-deprovision"
 	AgentClusterInstallFinalizerName  = "agentclusterinstall." + aiv1beta1.Group + "/ai-deprovision"
-	SecretLabelName                   = "agentclusterinstalls.extensions.hive.openshift.io"
-	SecretLabelValue                  = "true"
 )
 
 const HighAvailabilityModeNone = "None"
@@ -196,8 +194,14 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 
+	if clusterDeployment.Spec.PullSecretRef == nil {
+		errorMessage := "Missing reference to pull secret"
+		log.WithError(err).Error(errorMessage)
+		return r.updateStatus(ctx, log, clusterInstall, cluster, newInputError(errorMessage))
+	}
+
 	// Make sure that the PullSecret Secret has the needed label
-	err = r.ensurePullSecretLabel(ctx, clusterDeployment.Spec.PullSecretRef, req.Namespace)
+	_, err = getSecret(ctx, r.Client, r.APIReader, types.NamespacedName{Namespace: req.Namespace, Name: clusterDeployment.Spec.PullSecretRef.Name})
 	if err != nil {
 		log.WithError(err).Error("error setting label on Pull Secret")
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
@@ -430,7 +434,7 @@ func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context
 
 func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
 	name := fmt.Sprintf(adminPasswordSecretStringTemplate, cluster.Name)
-	s, getErr := getSecret(ctx, r.Client, r.APIReader, cluster.Namespace, name)
+	s, getErr := getSecret(ctx, r.Client, r.APIReader, types.NamespacedName{Namespace: cluster.Namespace, Name: name})
 	if getErr == nil || !k8serrors.IsNotFound(getErr) {
 		return s, getErr
 	}
@@ -449,7 +453,7 @@ func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Con
 
 func (r *ClusterDeploymentsReconciler) updateKubeConfigSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
 	name := fmt.Sprintf(adminKubeConfigStringTemplate, cluster.Name)
-	s, getErr := getSecret(ctx, r.Client, r.APIReader, cluster.Namespace, name)
+	s, getErr := getSecret(ctx, r.Client, r.APIReader, types.NamespacedName{Namespace: cluster.Namespace, Name: name})
 	if getErr != nil && !k8serrors.IsNotFound(getErr) {
 		return nil, getErr
 	}
@@ -1562,22 +1566,6 @@ func FindStatusCondition(conditions []hivev1.ClusterInstallCondition, conditionT
 		}
 	}
 
-	return nil
-}
-
-func (r *ClusterDeploymentsReconciler) ensurePullSecretLabel(ctx context.Context, ref *corev1.LocalObjectReference, namespace string) error {
-	if ref == nil {
-		return newInputError("Missing reference to pull secret")
-	}
-
-	secret, err := getSecret(ctx, r.Client, r.APIReader, namespace, ref.Name)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get pull secret %s to update label", ref.Name)
-	}
-	if !metav1.HasLabel(secret.ObjectMeta, SecretLabelName) {
-		metav1.SetMetaDataLabel(&secret.ObjectMeta, SecretLabelName, SecretLabelValue)
-		return r.Update(ctx, secret)
-	}
 	return nil
 }
 

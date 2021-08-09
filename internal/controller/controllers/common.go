@@ -34,22 +34,31 @@ const (
 	mirrorRegistryRefCertKey         = "ca-bundle.crt"
 	mirrorRegistryRefRegistryConfKey = "registries.conf"
 	mirrorRegistryConfigVolume       = "mirror-registry-config"
+	WatchResourceLabel               = "agent-install.openshift.io/watch"
+	WatchResourceValue               = "true"
 )
 
-func getSecret(ctx context.Context, c client.Client, r client.Reader, namespace, name string) (*corev1.Secret, error) {
+func getSecret(ctx context.Context, c client.Client, r client.Reader, key types.NamespacedName) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
-	key := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}
+	errorMessage := fmt.Sprintf("failed to get secret %s/%s from cache", key.Namespace, key.Name)
 	if err := c.Get(ctx, key, secret); err != nil {
 		if !k8serrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "failed to get pull secret %s", key)
+			return nil, errors.Wrapf(err, errorMessage)
 		}
 		// Secret not in cache; check API directly for unlabelled Secret
 		err = r.Get(ctx, key, secret)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get pull secret %s", key)
+			errorMessage = fmt.Sprintf("failed to get secret %s/%s from API", key.Namespace, key.Name)
+			return nil, errors.Wrapf(err, errorMessage)
+		}
+	}
+	// Add the label to secret if not present
+	if !metav1.HasLabel(secret.ObjectMeta, WatchResourceLabel) {
+		metav1.SetMetaDataLabel(&secret.ObjectMeta, WatchResourceLabel, WatchResourceValue)
+		err := c.Update(ctx, secret)
+		if err != nil {
+			errorMessage = fmt.Sprintf("failed to set label %s:%s for secret %s/%s", WatchResourceLabel, WatchResourceValue, key.Namespace, key.Name)
+			return nil, errors.Wrapf(err, errorMessage)
 		}
 	}
 	return secret, nil
@@ -60,7 +69,7 @@ func getPullSecretData(ctx context.Context, c client.Client, r client.Reader, re
 		return "", newInputError("Missing reference to pull secret")
 	}
 
-	secret, err := getSecret(ctx, c, r, namespace, ref.Name)
+	secret, err := getSecret(ctx, c, r, types.NamespacedName{Namespace: namespace, Name: ref.Name})
 	if err != nil {
 		return "", err
 	}
