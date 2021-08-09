@@ -56,7 +56,6 @@ type InstructionConfig struct {
 	AgentImage               string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	SkipCertVerification     bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
 	SupportL2                bool              `envconfig:"SUPPORT_L2" default:"true"`
-	InstallationTimeout      uint              `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
 	DiskCheckTimeout         time.Duration     `envconfig:"DISK_CHECK_TIMEOUT" default:"8m"`
 	ImageAvailabilityTimeout time.Duration     `envconfig:"IMAGE_AVAILABILITY_TIMEOUT" default:"16m"`
 	DisabledSteps            []models.StepType `envconfig:"DISABLED_STEPS" default:""`

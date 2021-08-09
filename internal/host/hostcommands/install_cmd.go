@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 	"time"
 
@@ -158,10 +157,6 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	if i.hasCACert() {
 		podmanCmd = append(podmanCmd, "--volume", fmt.Sprintf("%s:%s:rw", common.HostCACertPath, common.HostCACertPath))
 		installerCmd = append(installerCmd, "--cacert", common.HostCACertPath)
-	}
-
-	if i.instructionConfig.InstallationTimeout != 0 {
-		installerCmd = append(installerCmd, "--installation-timeout", strconv.Itoa(int(i.instructionConfig.InstallationTimeout)))
 	}
 
 	hostInstallerArgs, err := constructHostInstallerArgs(cluster, host, i.log)

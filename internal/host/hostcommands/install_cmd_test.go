@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -37,12 +36,11 @@ var defaultMustGatherVersion = versions.MustGatherVersion{
 }
 
 var DefaultInstructionConfig = InstructionConfig{
-	ServiceBaseURL:      "http://10.35.59.36:30485",
-	InstallerImage:      "quay.io/ocpmetal/assisted-installer:latest",
-	ControllerImage:     "quay.io/ocpmetal/assisted-installer-controller:latest",
-	AgentImage:          "quay.io/ocpmetal/assisted-installer-agent:latest",
-	InstallationTimeout: 120,
-	ReleaseImageMirror:  "local.registry:5000/ocp@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3",
+	ServiceBaseURL:     "http://10.35.59.36:30485",
+	InstallerImage:     "quay.io/ocpmetal/assisted-installer:latest",
+	ControllerImage:    "quay.io/ocpmetal/assisted-installer-controller:latest",
+	AgentImage:         "quay.io/ocpmetal/assisted-installer-agent:latest",
+	ReleaseImageMirror: "local.registry:5000/ocp@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3",
 }
 
 var _ = Describe("installcmd", func() {
@@ -1011,6 +1009,5 @@ func validateInstallCommand(installCmd *installCmd, reply *models.Step, role mod
 	verifyArgInCommand(reply.Args[1], "--mco-image", defaultMCOImage, 1)
 	verifyArgInCommand(reply.Args[1], "--controller-image", installCmd.instructionConfig.ControllerImage, 1)
 	verifyArgInCommand(reply.Args[1], "--agent-image", installCmd.instructionConfig.AgentImage, 1)
-	verifyArgInCommand(reply.Args[1], "--installation-timeout", strconv.Itoa(int(installCmd.instructionConfig.InstallationTimeout)), 1)
 	verifyArgInCommand(reply.Args[1], "--must-gather-image", mustGatherImage, 1)
 }
