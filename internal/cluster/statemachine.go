@@ -193,6 +193,17 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshCluster(statusInfoError),
 	})
 
+	// Installation timeout while pending user action
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusInstallingPendingUserAction),
+		},
+		Condition:        th.IsInstallationTimedOut,
+		DestinationState: stateswitch.State(models.ClusterStatusError),
+		PostTransition:   th.PostRefreshCluster(statusInfoTimeout),
+	})
+
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefreshStatus,
 		SourceStates: []stateswitch.State{

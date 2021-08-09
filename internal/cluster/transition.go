@@ -31,10 +31,11 @@ import (
 var resetLogsField = []interface{}{"logs_info", "", "controller_logs_started_at", strfmt.DateTime(time.Time{}), "controller_logs_collected_at", strfmt.DateTime(time.Time{})}
 
 type transitionHandler struct {
-	log           logrus.FieldLogger
-	db            *gorm.DB
-	prepareConfig PrepareConfig
-	eventsHandler events.Handler
+	log                 logrus.FieldLogger
+	db                  *gorm.DB
+	prepareConfig       PrepareConfig
+	installationTimeout time.Duration
+	eventsHandler       events.Handler
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -409,6 +410,18 @@ func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, sta
 	return false
 }
 
+//check if installation reach to timeout
+func (th *transitionHandler) IsInstallationTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return false, errors.New("IsInstallationTimedOut incompatible type of StateSwitch")
+	}
+	if time.Since(time.Time(sCluster.cluster.InstallStartedAt)) > th.installationTimeout {
+		return true, nil
+	}
+	return false, nil
+}
+
 //check if prepare for installation reach to timeout
 func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)
@@ -416,7 +429,7 @@ func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, arg
 		return false, errors.New("IsPreparingTimedOut incompatible type of StateSwitch")
 	}
 	// can happen if the service was rebooted or somehow the async part crashed.
-	if time.Since(time.Time(sCluster.cluster.StatusUpdatedAt)) > th.prepareConfig.InstallationTimeout {
+	if time.Since(time.Time(sCluster.cluster.StatusUpdatedAt)) > th.prepareConfig.PrepareForInstallationTimeout {
 		return true, nil
 	}
 	return false, nil
