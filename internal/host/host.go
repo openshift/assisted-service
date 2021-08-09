@@ -66,7 +66,7 @@ var InstallationProgressTimeout = map[models.HostStage]time.Duration{
 	models.HostStageInstalling:             60 * time.Minute,
 	models.HostStageJoined:                 60 * time.Minute,
 	models.HostStageWritingImageToDisk:     30 * time.Minute,
-	models.HostStageRebooting:              70 * time.Minute,
+	models.HostStageRebooting:              40 * time.Minute,
 	models.HostStageConfiguring:            60 * time.Minute,
 	models.HostStageWaitingForIgnition:     24 * time.Hour,
 	"DEFAULT":                              60 * time.Minute,
