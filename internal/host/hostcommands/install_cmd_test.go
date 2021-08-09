@@ -114,7 +114,7 @@ var _ = Describe("installcmd", func() {
 		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
 		hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 	})
@@ -127,13 +127,13 @@ var _ = Describe("installcmd", func() {
 		mockImages(3)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host2)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host2.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, infraEnvId, clusterId, *host2.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host3)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleBootstrap)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleBootstrap, clusterId, *host3.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleBootstrap, infraEnvId, clusterId, *host3.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
 	})
 	It("invalid_inventory", func() {
 		host.Inventory = "blah"
@@ -169,7 +169,7 @@ var _ = Describe("installcmd", func() {
 		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
 		hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 	})
@@ -205,7 +205,7 @@ var _ = Describe("installcmd", func() {
 		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, sdb.ID, []string{sda.ID, sdc.ID}, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sdb.ID, []string{sda.ID, sdc.ID}, models.ClusterHighAvailabilityModeFull)
 		hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 	})
@@ -232,7 +232,7 @@ var _ = Describe("installcmd", func() {
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
 		hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 	})
@@ -996,10 +996,11 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 	}
 }
 
-func validateInstallCommand(installCmd *installCmd, reply *models.Step, role models.HostRole, clusterId, hostId strfmt.UUID,
+func validateInstallCommand(installCmd *installCmd, reply *models.Step, role models.HostRole, infraEnvId, clusterId, hostId strfmt.UUID,
 	bootDevice string, bootableDisks []string, haMode string) {
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
 	mustGatherImage, _ := installCmd.getMustGatherArgument(defaultMustGatherVersion)
+	verifyArgInCommand(reply.Args[1], "--infra-env-id", string(infraEnvId), 1)
 	verifyArgInCommand(reply.Args[1], "--cluster-id", string(clusterId), 1)
 	verifyArgInCommand(reply.Args[1], "--host-id", string(hostId), 1)
 	verifyArgInCommand(reply.Args[1], "--high-availability-mode", haMode, 1)

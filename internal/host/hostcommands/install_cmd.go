@@ -129,6 +129,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	podmanCmd := podmanBaseCmd[:]
 	installerCmd := []string{
 		"--role", string(role),
+		"--infra-env-id", host.InfraEnvID.String(),
 		"--cluster-id", host.ClusterID.String(),
 		"--host-id", string(*host.ID),
 		"--boot-device", bootdevice,
