@@ -637,6 +637,20 @@ func (mr *MockInstallerAPIMockRecorder) ResetHostValidation(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetHostValidation", reflect.TypeOf((*MockInstallerAPI)(nil).ResetHostValidation), arg0, arg1)
 }
 
+// UnbindHost mocks base method
+func (m *MockInstallerAPI) UnbindHost(arg0 context.Context, arg1 installer.UnbindHostParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnbindHost", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// UnbindHost indicates an expected call of UnbindHost
+func (mr *MockInstallerAPIMockRecorder) UnbindHost(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnbindHost", reflect.TypeOf((*MockInstallerAPI)(nil).UnbindHost), arg0, arg1)
+}
+
 // UpdateCluster mocks base method
 func (m *MockInstallerAPI) UpdateCluster(arg0 context.Context, arg1 installer.UpdateClusterParams) middleware.Responder {
 	m.ctrl.T.Helper()

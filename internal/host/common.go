@@ -37,6 +37,7 @@ const (
 	statusInfoHostReadyToBeMoved                               = "Host is part of pool and is ready to be moved"
 	statusInfoBinding                                          = "Host is waiting to be bound to the cluster"
 	statusRebootTimeout                                        = "Host failed to reboot within timeout, the installation will resume once the host reboot"
+	statusInfoUnbinding                                        = "Host is waiting to be unbound from the cluster"
 )
 
 var hostStatusesBeforeInstallation = [...]string{

@@ -4870,6 +4870,15 @@ var _ = Describe("Refresh Host", func() {
 				statusInfoChecker: makeValueChecker(statusInfoBinding),
 			},
 			{
+				name:              "unbinding to unbinding",
+				srcState:          models.HostStatusUnbinding,
+				dstState:          models.HostStatusUnbinding,
+				validCheckInTime:  true,
+				inventory:         insufficientHWInventory(),
+				eventRaised:       false,
+				statusInfoChecker: makeValueChecker(statusInfoUnbinding),
+			},
+			{
 				name:              "disabled-unbound to disabled-unbound",
 				srcState:          models.HostStatusDisabledUnbound,
 				dstState:          models.HostStatusDisabledUnbound,

@@ -151,6 +151,7 @@ type API interface {
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	UpdateDomainNameResolution(ctx context.Context, h *models.Host, domainResolutionResponse models.DomainResolutionResponse, db *gorm.DB) error
 	BindHost(ctx context.Context, h *models.Host, clusterID strfmt.UUID, db *gorm.DB) error
+	UnbindHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -444,6 +445,13 @@ func (m *Manager) BindHost(ctx context.Context, h *models.Host, clusterID strfmt
 		ctx:       ctx,
 		db:        db,
 		clusterID: clusterID,
+	})
+}
+
+func (m *Manager) UnbindHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	return m.sm.Run(TransitionTypeUnbindHost, newStateHost(h), &TransitionArgsUnbindHost{
+		ctx: ctx,
+		db:  db,
 	})
 }
 

@@ -5387,3 +5387,28 @@ func (b *bareMetalInventory) BindHost(ctx context.Context, params installer.Bind
 
 	return installer.NewBindHostOK().WithPayload(&host.Host)
 }
+
+func (b *bareMetalInventory) UnbindHost(ctx context.Context, params installer.UnbindHostParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Unbinding host %s", params.HostID)
+	host, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to find host <%s> in infraEnv <%s>",
+			params.HostID, params.InfraEnvID)
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+	if host.ClusterID == nil {
+		return common.NewApiError(http.StatusConflict, errors.Errorf("Host %s is already unbound", params.HostID))
+	}
+	if err = b.hostApi.UnbindHost(ctx, &host.Host, b.db); err != nil {
+		log.WithError(err).Errorf("Failed to unbind host <%s>", params.HostID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	host, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return installer.NewUnbindHostOK().WithPayload(&host.Host)
+}

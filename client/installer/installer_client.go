@@ -153,6 +153,9 @@ type API interface {
 	   Reset failed host validation.  It may be performed on any host validation with persistent validation result.*/
 	ResetHostValidation(ctx context.Context, params *ResetHostValidationParams) (*ResetHostValidationOK, error)
 	/*
+	   UnbindHost Unbind host to a cluster*/
+	UnbindHost(ctx context.Context, params *UnbindHostParams) (*UnbindHostOK, error)
+	/*
 	   UpdateCluster Updates an OpenShift cluster definition.*/
 	UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error)
 	/*
@@ -1300,6 +1303,31 @@ func (a *Client) ResetHostValidation(ctx context.Context, params *ResetHostValid
 		return nil, err
 	}
 	return result.(*ResetHostValidationOK), nil
+
+}
+
+/*
+UnbindHost Unbind host to a cluster
+*/
+func (a *Client) UnbindHost(ctx context.Context, params *UnbindHostParams) (*UnbindHostOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UnbindHost",
+		Method:             "POST",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UnbindHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UnbindHostOK), nil
 
 }
 

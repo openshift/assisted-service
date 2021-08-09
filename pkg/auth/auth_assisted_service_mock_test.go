@@ -320,6 +320,10 @@ func (f fakeInventory) BindHost(ctx context.Context, params installer.BindHostPa
 	return installer.NewBindHostOK()
 }
 
+func (f fakeInventory) UnbindHost(ctx context.Context, params installer.UnbindHostParams) middleware.Responder {
+	return installer.NewUnbindHostOK()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

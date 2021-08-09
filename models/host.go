@@ -137,7 +137,7 @@ type Host struct {
 
 	// status
 	// Required: true
-	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation preparing-successful pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting added-to-existing-cluster cancelled binding known-unbound disconnected-unbound insufficient-unbound disabled-unbound discovering-unbound]
+	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation preparing-successful pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting added-to-existing-cluster cancelled binding unbinding known-unbound disconnected-unbound insufficient-unbound disabled-unbound discovering-unbound]
 	Status *string `json:"status"`
 
 	// status info
@@ -505,7 +505,7 @@ var hostTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","preparing-successful","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting","added-to-existing-cluster","cancelled","binding","known-unbound","disconnected-unbound","insufficient-unbound","disabled-unbound","discovering-unbound"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","preparing-successful","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting","added-to-existing-cluster","cancelled","binding","unbinding","known-unbound","disconnected-unbound","insufficient-unbound","disabled-unbound","discovering-unbound"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -568,6 +568,9 @@ const (
 
 	// HostStatusBinding captures enum value "binding"
 	HostStatusBinding string = "binding"
+
+	// HostStatusUnbinding captures enum value "unbinding"
+	HostStatusUnbinding string = "unbinding"
 
 	// HostStatusKnownUnbound captures enum value "known-unbound"
 	HostStatusKnownUnbound string = "known-unbound"
