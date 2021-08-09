@@ -318,8 +318,9 @@ func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args sta
 ////////////////////////////////////////////////////////////////////////////
 
 type TransitionArgsBindHost struct {
-	ctx context.Context
-	db  *gorm.DB
+	ctx       context.Context
+	db        *gorm.DB
+	clusterID strfmt.UUID
 }
 
 func (th *transitionHandler) PostBindHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -332,8 +333,9 @@ func (th *transitionHandler) PostBindHost(sw stateswitch.StateSwitch, args state
 		return errors.New("PostBindHost invalid argument")
 	}
 
+	extra := append(resetFields[:], "cluster_id", &params.clusterID)
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoBinding,
-		resetFields[:]...)
+		extra...)
 }
 
 ////////////////////////////////////////////////////////////////////////////

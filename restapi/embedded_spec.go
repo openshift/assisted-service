@@ -5046,6 +5046,103 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind": {
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Bind host to a cluster",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "BindHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host that is being bound.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that is being bound.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The parameters for the host binding.",
+            "name": "bind-host-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/bind-host-params"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions": {
       "get": {
         "security": [
@@ -5561,6 +5658,17 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
+        }
+      }
+    },
+    "bind-host-params": {
+      "required": [
+        "cluster_id"
+      ],
+      "properties": {
+        "cluster_id": {
+          "type": "string",
+          "format": "uuid"
         }
       }
     },
@@ -13857,6 +13965,103 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind": {
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Bind host to a cluster",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "BindHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host that is being bound.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that is being bound.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The parameters for the host binding.",
+            "name": "bind-host-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/bind-host-params"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions": {
       "get": {
         "security": [
@@ -14516,6 +14721,17 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
+        }
+      }
+    },
+    "bind-host-params": {
+      "required": [
+        "cluster_id"
+      ],
+      "properties": {
+        "cluster_id": {
+          "type": "string",
+          "format": "uuid"
         }
       }
     },

@@ -53,6 +53,20 @@ func (mr *MockAPIMockRecorder) AutoAssignRole(arg0, arg1, arg2 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AutoAssignRole", reflect.TypeOf((*MockAPI)(nil).AutoAssignRole), arg0, arg1, arg2)
 }
 
+// BindHost mocks base method
+func (m *MockAPI) BindHost(arg0 context.Context, arg1 *models.Host, arg2 strfmt.UUID, arg3 *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BindHost", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BindHost indicates an expected call of BindHost
+func (mr *MockAPIMockRecorder) BindHost(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BindHost", reflect.TypeOf((*MockAPI)(nil).BindHost), arg0, arg1, arg2, arg3)
+}
+
 // CancelInstallation mocks base method
 func (m *MockAPI) CancelInstallation(arg0 context.Context, arg1 *models.Host, arg2 string, arg3 *gorm.DB) *common.ApiErrorResponse {
 	m.ctrl.T.Helper()

@@ -52,6 +52,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		BinProducer:  runtime.ByteStreamProducer(),
 		JSONProducer: runtime.JSONProducer(),
 
+		InstallerBindHostHandler: installer.BindHostHandlerFunc(func(params installer.BindHostParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.BindHost has not yet been implemented")
+		}),
 		InstallerCancelInstallationHandler: installer.CancelInstallationHandlerFunc(func(params installer.CancelInstallationParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.CancelInstallation has not yet been implemented")
 		}),
@@ -344,6 +347,8 @@ type AssistedInstallAPI struct {
 	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
 	APIAuthorizer runtime.Authorizer
 
+	// InstallerBindHostHandler sets the operation handler for the bind host operation
+	InstallerBindHostHandler installer.BindHostHandler
 	// InstallerCancelInstallationHandler sets the operation handler for the cancel installation operation
 	InstallerCancelInstallationHandler installer.CancelInstallationHandler
 	// InstallerCompleteInstallationHandler sets the operation handler for the complete installation operation
@@ -584,6 +589,9 @@ func (o *AssistedInstallAPI) Validate() error {
 		unregistered = append(unregistered, "AuthorizationAuth")
 	}
 
+	if o.InstallerBindHostHandler == nil {
+		unregistered = append(unregistered, "installer.BindHostHandler")
+	}
 	if o.InstallerCancelInstallationHandler == nil {
 		unregistered = append(unregistered, "installer.CancelInstallationHandler")
 	}
@@ -915,6 +923,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind"] = installer.NewBindHost(o.context, o.InstallerBindHostHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

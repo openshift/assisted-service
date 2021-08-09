@@ -19,6 +19,9 @@ import (
 // API is the interface of the installer client
 type API interface {
 	/*
+	   BindHost Bind host to a cluster*/
+	BindHost(ctx context.Context, params *BindHostParams) (*BindHostOK, error)
+	/*
 	   CancelInstallation Cancels an ongoing installation.*/
 	CancelInstallation(ctx context.Context, params *CancelInstallationParams) (*CancelInstallationAccepted, error)
 	/*
@@ -218,6 +221,31 @@ type Client struct {
 	transport runtime.ClientTransport
 	formats   strfmt.Registry
 	authInfo  runtime.ClientAuthInfoWriter
+}
+
+/*
+BindHost Bind host to a cluster
+*/
+func (a *Client) BindHost(ctx context.Context, params *BindHostParams) (*BindHostOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "BindHost",
+		Method:             "POST",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &BindHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*BindHostOK), nil
+
 }
 
 /*

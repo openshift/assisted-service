@@ -5176,11 +5176,13 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	}
 
 	if err = b.customizeHost(host); err != nil {
+		// TODO Need event for infra-env instead of cluster
 		b.eventsHandler.AddEvent(ctx, params.InfraEnvID, params.NewHostParams.HostID, models.EventSeverityError,
 			"Failed to register host: error setting host properties", time.Now())
 		return common.GenerateErrorResponder(err)
 	}
 
+	// TODO Need event for infra-env instead of cluster
 	b.eventsHandler.AddEvent(ctx, params.InfraEnvID, params.NewHostParams.HostID, models.EventSeverityInfo,
 		fmt.Sprintf("Host %s: registered to cluster", hostutil.GetHostnameForMsg(host)), time.Now())
 
@@ -5348,4 +5350,40 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 	}
 
 	return installer.NewV2UpdateHostInstallProgressOK()
+}
+
+func (b *bareMetalInventory) BindHost(ctx context.Context, params installer.BindHostParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Binding host %s to cluster %s", params.HostID, params.BindHostParams.ClusterID)
+	host, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to find host <%s> in infraEnv <%s>",
+			params.HostID, params.InfraEnvID)
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+	if host.ClusterID != nil {
+		return common.NewApiError(http.StatusConflict, errors.Errorf("Host %s is already bound to cluster %s", params.HostID, *host.ClusterID))
+	}
+	cluster, err := common.GetClusterFromDB(b.db, *params.BindHostParams.ClusterID, common.SkipEagerLoading)
+	if err != nil {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Failed to find cluster %s", params.BindHostParams.ClusterID))
+	}
+	if err = b.clusterApi.AcceptRegistration(cluster); err != nil {
+		log.WithError(err).Errorf("failed to bind host <%s> to cluster %s due to: %s",
+			params.HostID.String(), *params.BindHostParams.ClusterID, err.Error())
+		return common.NewApiError(http.StatusConflict, err)
+	}
+
+	if err = b.hostApi.BindHost(ctx, &host.Host, *params.BindHostParams.ClusterID, b.db); err != nil {
+		log.WithError(err).Errorf("Failed to bind host <%s> to cluster <%s>",
+			params.HostID, *params.BindHostParams.ClusterID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	host, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return installer.NewBindHostOK().WithPayload(&host.Host)
 }

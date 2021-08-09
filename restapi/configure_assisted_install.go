@@ -54,6 +54,9 @@ type EventsAPI interface {
 
 /* InstallerAPI  */
 type InstallerAPI interface {
+	/* BindHost Bind host to a cluster */
+	BindHost(ctx context.Context, params installer.BindHostParams) middleware.Responder
+
 	/* CancelInstallation Cancels an ongoing installation. */
 	CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder
 
@@ -378,6 +381,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 	}
 
 	api.APIAuthorizer = authorizer(c.Authorizer)
+	api.InstallerBindHostHandler = installer.BindHostHandlerFunc(func(params installer.BindHostParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.BindHost(ctx, params)
+	})
 	api.InstallerCancelInstallationHandler = installer.CancelInstallationHandlerFunc(func(params installer.CancelInstallationParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)

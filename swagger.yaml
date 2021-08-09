@@ -3633,6 +3633,71 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind:
+    post:
+      tags:
+        - installer
+      security:
+        - agentAuth: [ ]
+      description: Bind host to a cluster
+      operationId: BindHost
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The infra env of the host that is being bound.
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          description: The host that is being bound.
+          type: string
+          format: uuid
+          required: true
+        - name: bind-host-params
+          description: The parameters for the host binding.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/bind-host-params'
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/host'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   vsphere_platform:
     type: object
@@ -6141,3 +6206,11 @@ definitions:
         $ref: '#/definitions/subnet'
         description: The IP block address pool.
         x-go-custom-tag: gorm:"primary_key"
+
+  bind-host-params:
+    required:
+      - cluster_id
+    properties:
+      cluster_id:
+        type: string
+        format: uuid

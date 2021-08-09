@@ -35,6 +35,20 @@ func (m *MockInstallerAPI) EXPECT() *MockInstallerAPIMockRecorder {
 	return m.recorder
 }
 
+// BindHost mocks base method
+func (m *MockInstallerAPI) BindHost(arg0 context.Context, arg1 installer.BindHostParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BindHost", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// BindHost indicates an expected call of BindHost
+func (mr *MockInstallerAPIMockRecorder) BindHost(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BindHost", reflect.TypeOf((*MockInstallerAPI)(nil).BindHost), arg0, arg1)
+}
+
 // CancelInstallation mocks base method
 func (m *MockInstallerAPI) CancelInstallation(arg0 context.Context, arg1 installer.CancelInstallationParams) middleware.Responder {
 	m.ctrl.T.Helper()
