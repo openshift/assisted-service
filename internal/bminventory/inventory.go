@@ -149,7 +149,7 @@ type InstallerInternals interface {
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
 type CRDUtils interface {
-	CreateAgentCR(ctx context.Context, log logrus.FieldLogger, hostId, clusterNamespace, clusterName string, clusterID *strfmt.UUID) error
+	CreateAgentCR(ctx context.Context, log logrus.FieldLogger, hostId string, infraenv *common.InfraEnv, cluster *common.Cluster) error
 }
 type bareMetalInventory struct {
 	Config
@@ -5215,12 +5215,10 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	if infraEnv.ClusterID != "" {
-		if err := b.crdUtils.CreateAgentCR(ctx, log, params.NewHostParams.HostID.String(), cluster.KubeKeyNamespace, cluster.KubeKeyName, cluster.ID); err != nil {
-			log.WithError(err).Errorf("Fail to create Agent CR. Namespace: %s, Cluster: %s, HostID: %s", cluster.KubeKeyNamespace, cluster.KubeKeyName, params.NewHostParams.HostID.String())
-			return installer.NewV2RegisterHostInternalServerError().
-				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-		}
+	if err := b.crdUtils.CreateAgentCR(ctx, log, params.NewHostParams.HostID.String(), infraEnv, cluster); err != nil {
+		log.WithError(err).Errorf("Fail to create Agent CR. Namespace: %s, InfraEnv: %s, HostID: %s", infraEnv.KubeKeyNamespace, infraEnv.Name, params.NewHostParams.HostID.String())
+		return installer.NewV2RegisterHostInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
 	txSuccess = true

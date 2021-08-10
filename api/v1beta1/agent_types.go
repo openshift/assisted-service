@@ -164,7 +164,8 @@ type HostInventory struct {
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	ClusterDeploymentName *ClusterReference `json:"clusterDeploymentName"`
+	// +optional
+	ClusterDeploymentName *ClusterReference `json:"clusterDeploymentName,omitempty"`
 	Role                  models.HostRole   `json:"role" protobuf:"bytes,1,opt,name=role,casttype=HostRole"`
 	Hostname              string            `json:"hostname,omitempty"`
 	MachineConfigPool     string            `json:"machineConfigPool,omitempty"`

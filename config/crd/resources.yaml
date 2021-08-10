@@ -375,7 +375,6 @@ spec:
                 type: string
             required:
             - approved
-            - clusterDeploymentName
             - role
             type: object
           status:
