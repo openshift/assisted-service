@@ -104,6 +104,7 @@ var Options struct {
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
 	OpenshiftVersions           string        `envconfig:"OPENSHIFT_VERSIONS"`
+	OsImages                    string        `envconfig:"OS_IMAGES"`
 	MustGatherImages            string        `envconfig:"MUST_GATHER_IMAGES" default:""`
 	ReleaseImageMirror          string        `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	CreateS3Bucket              bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
@@ -204,7 +205,18 @@ func main() {
 	failOnError(json.Unmarshal([]byte(Options.OpenshiftVersions), &openshiftVersionsMap),
 		"Failed to parse supported openshift versions JSON %s", Options.OpenshiftVersions)
 
-	log.Println(fmt.Sprintf("Started service with OCP versions %v", Options.OpenshiftVersions))
+	var osImagesArray models.OsImages
+	if Options.OsImages == "" {
+		// TODO remove the warning once OsImages is mandatory
+		log.Warn("OsImages list is empty - using only OpenshiftVersions")
+		osImagesArray = models.OsImages{}
+	} else {
+		failOnError(json.Unmarshal([]byte(Options.OsImages), &osImagesArray),
+			"Failed to parse supported OS images JSON %s", Options.OsImages)
+	}
+
+	log.Println(fmt.Sprintf("Started service with OCP versions %v, OS images %v",
+		Options.OpenshiftVersions, Options.OsImages))
 
 	var mustGatherVersionsMap = make(versions.MustGatherVersions)
 	if Options.MustGatherImages != "" {
@@ -249,8 +261,9 @@ func main() {
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
-	versionHandler := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
-		Options.Versions, openshiftVersionsMap, mustGatherVersionsMap, Options.ReleaseImageMirror)
+	versionHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
+		Options.Versions, openshiftVersionsMap, osImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror)
+	failOnError(err, "failed to create Versions handler")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
 	mirrorRegistriesBuilder := mirrorregistries.New()

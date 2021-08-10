@@ -187,7 +187,7 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 			err = ioutil.WriteFile(filepath.Join(baseDir, "files/isolinux/isolinux.cfg"), []byte(" append initrd=/images/pxeboot/initrd.img"), 0600)
 			Expect(err).ToNot(HaveOccurred())
-			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(1)
+			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion).Return(&defaultOsImage, nil).Times(5)
 			srcObject, err := client.GetBaseIsoObject(defaultTestOpenShiftVersion)
 			Expect(err).ToNot(HaveOccurred())
 			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/assisted_installer_custom.img"), make([]byte, isoeditor.RamDiskPaddingLength), 0600)
@@ -201,7 +201,6 @@ var _ = Describe("s3filesystem", func() {
 			err = os.RemoveAll(filepath.Join(baseDir, "files"))
 			Expect(err).ToNot(HaveOccurred())
 
-			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(1)
 			minimalIso, err := client.GetMinimalIsoObjectName(defaultTestOpenShiftVersion)
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -209,10 +208,6 @@ var _ = Describe("s3filesystem", func() {
 				[]byte("minimal iso"), 0600)
 			Expect(err).Should(BeNil())
 
-			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
-
-			// Called once for GetBaseIsoObject and once for GetMinimalIsoObjectName
-			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(2)
 			mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(1)
 
 			err = client.UploadISOs(ctx, defaultTestOpenShiftVersion, true)
@@ -220,7 +215,7 @@ var _ = Describe("s3filesystem", func() {
 		})
 		It("unsupported openshift version", func() {
 			unsupportedVersion := "999"
-			mockVersions.EXPECT().GetRHCOSImage(unsupportedVersion).Return("", errors.New("unsupported")).Times(1)
+			mockVersions.EXPECT().GetOsImage(unsupportedVersion).Return(nil, errors.New("unsupported")).Times(1)
 			err := client.UploadISOs(ctx, unsupportedVersion, false)
 			Expect(err).To(HaveOccurred())
 		})
@@ -241,7 +236,7 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 			err = ioutil.WriteFile(filepath.Join(baseDir, "files/isolinux/isolinux.cfg"), []byte(" append initrd=/images/pxeboot/initrd.img"), 0600)
 			Expect(err).ToNot(HaveOccurred())
-			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(1)
+			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion).Return(&defaultOsImage, nil).Times(6)
 			srcObject, err := client.GetBaseIsoObject(defaultTestOpenShiftVersion)
 			Expect(err).ToNot(HaveOccurred())
 			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/assisted_installer_custom.img"), make([]byte, isoeditor.RamDiskPaddingLength), 0600)
@@ -255,17 +250,11 @@ var _ = Describe("s3filesystem", func() {
 			err = os.RemoveAll(filepath.Join(baseDir, "files"))
 			Expect(err).ToNot(HaveOccurred())
 
-			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
-			mockVersions.EXPECT().GetRHCOSRootFS(defaultTestOpenShiftVersion).Return(defaultTestRhcosRootFSURL, nil).Times(1)
-
-			// Called once for GetBaseIsoObject and once for GetMinimalIsoObjectName
-			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(2)
 			mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).AnyTimes()
 
 			err = client.UploadISOs(ctx, defaultTestOpenShiftVersion, true)
 			Expect(err).ToNot(HaveOccurred())
 
-			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(1)
 			_, err = client.GetBaseIsoObject(defaultTestOpenShiftVersion)
 			Expect(err).ShouldNot(HaveOccurred())
 		})

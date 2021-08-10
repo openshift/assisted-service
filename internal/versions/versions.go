@@ -31,27 +31,33 @@ type Handler interface {
 	restapi.VersionsAPI
 	GetMustGatherImages(openshiftVersion string, pullSecret string) (MustGatherVersion, error)
 	GetReleaseImage(openshiftVersion string) (string, error)
-	GetRHCOSImage(openshiftVersion string) (string, error)
-	GetRHCOSRootFS(openshiftVersion string) (string, error)
-	GetRHCOSVersion(openshiftVersion string) (string, error)
 	GetReleaseVersion(openshiftVersion string) (string, error)
 	GetKey(openshiftVersion string) (string, error)
 	GetVersion(openshiftVersion string) (*models.OpenshiftVersion, error)
+	GetOsImage(openshiftVersion string) (*models.OsImage, error)
 	IsOpenshiftVersionSupported(versionKey string) bool
 	AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
 }
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 	versions Versions, openshiftVersions models.OpenshiftVersions,
-	mustGatherVersions MustGatherVersions, releaseImageMirror string) *handler {
-	return &handler{
+	osImages models.OsImages, mustGatherVersions MustGatherVersions,
+	releaseImageMirror string) (*handler, error) {
+	h := &handler{
 		versions:           versions,
 		openshiftVersions:  openshiftVersions,
 		mustGatherVersions: mustGatherVersions,
+		osImages:           osImages,
 		releaseHandler:     releaseHandler,
 		releaseImageMirror: releaseImageMirror,
 		log:                log,
 	}
+
+	if err := h.validateVersions(); err != nil {
+		return nil, err
+	}
+
+	return h, nil
 }
 
 var _ restapi.VersionsAPI = (*handler)(nil)
@@ -60,6 +66,7 @@ type handler struct {
 	versions           Versions
 	openshiftVersions  models.OpenshiftVersions
 	mustGatherVersions MustGatherVersions
+	osImages           models.OsImages
 	releaseHandler     oc.Release
 	releaseImageMirror string
 	log                logrus.FieldLogger
@@ -96,54 +103,6 @@ func (h *handler) GetReleaseImage(openshiftVersion string) (pullSpec string, err
 	}
 
 	return *h.openshiftVersions[versionKey].ReleaseImage, nil
-}
-
-func (h *handler) GetRHCOSImage(openshiftVersion string) (string, error) {
-	versionKey, err := h.GetKey(openshiftVersion)
-	if err != nil {
-		return "", err
-	}
-	if !h.IsOpenshiftVersionSupported(versionKey) {
-		return "", errors.Errorf("No rhcos image for unsupported openshift version %s", versionKey)
-	}
-
-	if h.openshiftVersions[versionKey].RhcosImage == nil {
-		return "", errors.Errorf("RHCOS image was missing for openshift version %s", versionKey)
-	}
-
-	return *h.openshiftVersions[versionKey].RhcosImage, nil
-}
-
-func (h *handler) GetRHCOSRootFS(openshiftVersion string) (string, error) {
-	versionKey, err := h.GetKey(openshiftVersion)
-	if err != nil {
-		return "", err
-	}
-	if !h.IsOpenshiftVersionSupported(versionKey) {
-		return "", errors.Errorf("No rhcos rootfs for unsupported openshift version %s", versionKey)
-	}
-
-	if h.openshiftVersions[versionKey].RhcosRootfs == nil {
-		return "", errors.Errorf("RHCOS rootfs was missing for openshift version %s", versionKey)
-	}
-
-	return *h.openshiftVersions[versionKey].RhcosRootfs, nil
-}
-
-func (h *handler) GetRHCOSVersion(openshiftVersion string) (string, error) {
-	versionKey, err := h.GetKey(openshiftVersion)
-	if err != nil {
-		return "", err
-	}
-	if !h.IsOpenshiftVersionSupported(versionKey) {
-		return "", errors.Errorf("No rhcos version for unsupported openshift version %s", versionKey)
-	}
-
-	if h.openshiftVersions[versionKey].RhcosVersion == nil {
-		return "", errors.Errorf("RHCOS version was missing for openshift version %s", versionKey)
-	}
-
-	return *h.openshiftVersions[versionKey].RhcosVersion, nil
 }
 
 func (h *handler) GetMustGatherImages(openshiftVersion string, pullSecret string) (MustGatherVersion, error) {
@@ -225,6 +184,34 @@ func (h *handler) GetVersion(openshiftVersion string) (*models.OpenshiftVersion,
 	return &version, nil
 }
 
+// Returns the OsImage entity
+func (h *handler) GetOsImage(openshiftVersion string) (*models.OsImage, error) {
+	versionKey, err := h.GetKey(openshiftVersion)
+	if err != nil {
+		return nil, err
+	}
+	if !h.IsOpenshiftVersionSupported(versionKey) {
+		return nil, errors.Errorf("The requested openshift version (%s) isn't specified in versions list", versionKey)
+	}
+
+	for _, osImage := range h.osImages {
+		if *osImage.OpenshiftVersion == versionKey {
+			return osImage, nil
+		}
+	}
+
+	// Try fetching from OpenshiftVersion struct for backwards compatibility
+	ocpVersion := h.openshiftVersions[versionKey]
+	osImage := models.OsImage{
+		OpenshiftVersion: &versionKey,
+		URL:              ocpVersion.RhcosImage,
+		RootfsURL:        ocpVersion.RhcosRootfs,
+		Version:          ocpVersion.RhcosVersion,
+	}
+
+	return &osImage, nil
+}
+
 // Returns version in major.minor format
 func (h *handler) GetKey(openshiftVersion string) (string, error) {
 	v, err := version.NewVersion(openshiftVersion)
@@ -274,6 +261,7 @@ func (h *handler) AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*mode
 		ReleaseImage:   &ocpReleaseImage,
 		ReleaseVersion: &ocpReleaseVersion,
 		RhcosImage:     versionFromCache.RhcosImage,
+		RhcosRootfs:    versionFromCache.RhcosRootfs,
 		RhcosVersion:   versionFromCache.RhcosVersion,
 		SupportLevel:   &supportLevel,
 	}
@@ -283,4 +271,26 @@ func (h *handler) AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*mode
 	h.log.Infof("Stored OCP version: %s", ocpReleaseVersion)
 
 	return openshiftVersion, nil
+}
+
+// Ensures no missing values in OS images.
+func (h *handler) validateVersions() error {
+	for key := range h.openshiftVersions {
+		osImage, err := h.GetOsImage(key)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("Failed to get OSImage for openshift version: %s", key))
+		}
+
+		missingValueTemplate := "Missing value for '%s' field"
+		if osImage.URL == nil {
+			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "URL"))
+		}
+		if osImage.RootfsURL == nil {
+			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "RootfsURL"))
+		}
+		if osImage.Version == nil {
+			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "Version"))
+		}
+	}
+	return nil
 }
