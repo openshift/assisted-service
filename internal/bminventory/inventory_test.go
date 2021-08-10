@@ -233,6 +233,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		Expect(common.CreateInfraEnvForCluster(db, &cluster)).ShouldNot(HaveOccurred())
 		return &cluster
 	}
 
@@ -7039,7 +7040,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 			},
 		}
-		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), true).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, clusterID, "Unknown").Times(1)
 		mockVersions.EXPECT().GetVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
@@ -7615,7 +7616,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("cluster api failed to register", func() {
 		bm.clusterApi = mockClusterApi
-		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(errors.Errorf("error")).Times(1)
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true).Return(errors.Errorf("error")).Times(1)
 		mockClusterRegisterSteps()
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -7757,7 +7758,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("register cluster - deregister if we failed to create AMS subscription", func() {
 			bm.clusterApi = mockClusterApi
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true).Return(nil)
 			mockClusterRegisterSteps()
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any(), clusterName).Return(nil, errors.New("dummy"))
 			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
@@ -7774,7 +7775,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("register cluster - delete AMS subscription if we failed to patch DB with ams_subscription_id", func() {
 			bm.clusterApi = mockClusterApi
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true).Return(nil)
 			mockClusterRegisterSteps()
 			mockAMSSubscription(ctx)
 			mockClusterApi.EXPECT().UpdateAmsSubscriptionID(ctx, gomock.Any(), strfmt.UUID("")).Return(common.NewApiError(http.StatusInternalServerError, errors.New("dummy")))

@@ -119,7 +119,7 @@ type OCPClusterAPI interface {
 
 //go:generate mockgen -package bminventory -destination mock_installer_internal.go . InstallerInternals
 type InstallerInternals interface {
-	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterClusterParams) (*common.Cluster, error)
+	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterClusterParams, v1Flag bool) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.GetClusterParams) (*common.Cluster, error)
 	UpdateClusterNonInteractive(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
@@ -138,7 +138,7 @@ type InstallerInternals interface {
 	V2UpdateHostIgnitionInternal(ctx context.Context, params installer.V2UpdateHostIgnitionParams) (*models.Host, error)
 	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
 	DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error)
-	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error)
+	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams, v1Flag bool) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.CancelInstallationParams) (*common.Cluster, error)
@@ -250,10 +250,27 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
+	cluster, err := common.GetClusterFromDB(b.db, params.ClusterID, common.SkipEagerLoading)
 	if err != nil {
+		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
 		return common.GenerateErrorResponder(err)
 	}
+
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get infra-env: %s", params.ClusterID)
+		return common.GenerateErrorResponder(err)
+	}
+
+	// update pull secret and proxy, since they could have been set during cluster update
+	proxy := models.Proxy{
+		HTTPProxy:  swag.String(cluster.HTTPProxy),
+		HTTPSProxy: swag.String(cluster.HTTPSProxy),
+		NoProxy:    swag.String(cluster.NoProxy),
+	}
+	infraEnv.PullSecret = cluster.PullSecret
+	infraEnv.Proxy = &proxy
+	infraEnv.IgnitionConfigOverride = cluster.IgnitionConfigOverrides
 
 	cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
 	if err != nil {
@@ -309,7 +326,7 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
-	c, err := b.RegisterClusterInternal(ctx, nil, params)
+	c, err := b.RegisterClusterInternal(ctx, nil, params, true)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -350,7 +367,8 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 func (b *bareMetalInventory) RegisterClusterInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
-	params installer.RegisterClusterParams) (*common.Cluster, error) {
+	params installer.RegisterClusterParams,
+	v1Flag bool) (*common.Cluster, error) {
 
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
@@ -513,7 +531,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	b.setDefaultUsage(&cluster.Cluster)
 
-	err = b.clusterApi.RegisterCluster(ctx, &cluster)
+	err = b.clusterApi.RegisterCluster(ctx, &cluster, v1Flag)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -603,14 +621,14 @@ func verifyMinimalOpenShiftVersionForSingleNode(requestedOpenshiftVersion string
 	return nil
 }
 func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
-	c, err := b.RegisterAddHostsClusterInternal(ctx, nil, params)
+	c, err := b.RegisterAddHostsClusterInternal(ctx, nil, params, true)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&c.Cluster)
 
 }
-func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams, v1Flag bool) (*common.Cluster, error) {
 	id := params.NewAddHostsClusterParams.ID
 	url := installer.GetClusterURL{ClusterID: *id}
 
@@ -660,7 +678,7 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
-	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster)
+	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster, v1Flag)
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", clusterName)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -949,24 +967,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 
 	infraEnv, err := common.GetInfraEnvFromDB(tx, params.ClusterID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			infraEnv = &common.InfraEnv{InfraEnv: models.InfraEnv{
-				ID:               params.ClusterID,
-				ClusterID:        params.ClusterID,
-				OpenshiftVersion: cluster.OpenshiftVersion,
-				PullSecretSet:    true,
-			},
-				PullSecret: cluster.PullSecret,
-			}
-			err = tx.Create(infraEnv).Error
-			if err != nil {
-				log.WithError(err).Errorf("Failed to create infra env for cluster %s", params.ClusterID)
-				return nil, err
-			}
-		} else {
-			log.WithError(err).Errorf("failed to get infra env for cluster: %s", params.ClusterID)
-			return nil, err
-		}
+		log.WithError(err).Errorf("failed to get infra env for cluster: %s", params.ClusterID)
+		return nil, err
 	}
 
 	// [TODO] - set the proxy here in order to get the proxy changes done set during cluster update.
@@ -1020,6 +1022,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	}
 
 	updates := map[string]interface{}{}
+	updates["pull_secret"] = cluster.PullSecret
 	updates["ssh_authorized_key"] = params.ImageCreateParams.SSHPublicKey
 	updates["generated_at"] = strfmt.DateTime(now)
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
@@ -5346,7 +5349,6 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	//FIXME: do we need a transaction here? I am guessing that if the call failed the host will retry anyway no?!
 	// Adding a transaction will require to update all lower layer to work with tx instead of db.
 	if params.HostProgress.CurrentStage != host.Progress.CurrentStage || params.HostProgress.ProgressInfo != host.Progress.ProgressInfo {
 		if err := b.hostApi.UpdateInstallProgress(ctx, &host.Host, params.HostProgress); err != nil {

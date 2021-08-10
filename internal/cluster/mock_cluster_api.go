@@ -39,31 +39,31 @@ func (m *MockRegistrationAPI) EXPECT() *MockRegistrationAPIMockRecorder {
 }
 
 // RegisterCluster mocks base method
-func (m *MockRegistrationAPI) RegisterCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockRegistrationAPI) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterCluster", ctx, c)
+	ret := m.ctrl.Call(m, "RegisterCluster", ctx, c, v1Flag)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegisterCluster indicates an expected call of RegisterCluster
-func (mr *MockRegistrationAPIMockRecorder) RegisterCluster(ctx, c interface{}) *gomock.Call {
+func (mr *MockRegistrationAPIMockRecorder) RegisterCluster(ctx, c, v1Flag interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).RegisterCluster), ctx, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).RegisterCluster), ctx, c, v1Flag)
 }
 
 // RegisterAddHostsCluster mocks base method
-func (m *MockRegistrationAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockRegistrationAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterAddHostsCluster", ctx, c)
+	ret := m.ctrl.Call(m, "RegisterAddHostsCluster", ctx, c, v1Flag)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegisterAddHostsCluster indicates an expected call of RegisterAddHostsCluster
-func (mr *MockRegistrationAPIMockRecorder) RegisterAddHostsCluster(ctx, c interface{}) *gomock.Call {
+func (mr *MockRegistrationAPIMockRecorder) RegisterAddHostsCluster(ctx, c, v1Flag interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAddHostsCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).RegisterAddHostsCluster), ctx, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAddHostsCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).RegisterAddHostsCluster), ctx, c, v1Flag)
 }
 
 // RegisterAddHostsOCPCluster mocks base method
@@ -207,31 +207,31 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 }
 
 // RegisterCluster mocks base method
-func (m *MockAPI) RegisterCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockAPI) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterCluster", ctx, c)
+	ret := m.ctrl.Call(m, "RegisterCluster", ctx, c, v1Flag)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegisterCluster indicates an expected call of RegisterCluster
-func (mr *MockAPIMockRecorder) RegisterCluster(ctx, c interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) RegisterCluster(ctx, c, v1Flag interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockAPI)(nil).RegisterCluster), ctx, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockAPI)(nil).RegisterCluster), ctx, c, v1Flag)
 }
 
 // RegisterAddHostsCluster mocks base method
-func (m *MockAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterAddHostsCluster", ctx, c)
+	ret := m.ctrl.Call(m, "RegisterAddHostsCluster", ctx, c, v1Flag)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegisterAddHostsCluster indicates an expected call of RegisterAddHostsCluster
-func (mr *MockAPIMockRecorder) RegisterAddHostsCluster(ctx, c interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) RegisterAddHostsCluster(ctx, c, v1Flag interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAddHostsCluster", reflect.TypeOf((*MockAPI)(nil).RegisterAddHostsCluster), ctx, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAddHostsCluster", reflect.TypeOf((*MockAPI)(nil).RegisterAddHostsCluster), ctx, c, v1Flag)
 }
 
 // RegisterAddHostsOCPCluster mocks base method
