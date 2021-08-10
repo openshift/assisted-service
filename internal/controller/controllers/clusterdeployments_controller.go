@@ -640,19 +640,73 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	updateString(spec.BaseDomain, cluster.BaseDNSDomain, &params.BaseDNSDomain)
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
-		updateString(clusterInstall.Spec.Networking.ClusterNetwork[0].CIDR, cluster.ClusterNetworkCidr, &params.ClusterNetworkCidr)
-		hostPrefix := int64(clusterInstall.Spec.Networking.ClusterNetwork[0].HostPrefix)
-		if hostPrefix > 0 && hostPrefix != cluster.ClusterNetworkHostPrefix {
-			params.ClusterNetworkHostPrefix = swag.Int64(hostPrefix)
+		// If the lenght is different, the array for sure has changed so we can recreate it from scratch
+		if len(clusterInstall.Spec.Networking.ClusterNetwork) != len(cluster.ClusterNetworks) {
+			newClusterNetworks := []*models.ClusterNetwork{}
+			for _, net := range clusterInstall.Spec.Networking.ClusterNetwork {
+				newClusterNetworks = append(newClusterNetworks, &models.ClusterNetwork{
+					Cidr:       models.Subnet(net.CIDR),
+					HostPrefix: int64(net.HostPrefix),
+					ClusterID:  *cluster.ID,
+				})
+			}
+			cluster.ClusterNetworks = newClusterNetworks
 			update = true
+		} else { // If the length is the same, we need to compare elements one-by-one
+			for iter, net := range clusterInstall.Spec.Networking.ClusterNetwork {
+				if string(cluster.ClusterNetworks[iter].Cidr) != net.CIDR {
+					params.ClusterNetworks[iter].Cidr = models.Subnet(net.CIDR)
+					update = true
+				}
+				if cluster.ClusterNetworks[iter].HostPrefix != int64(net.HostPrefix) {
+					params.ClusterNetworks[iter].HostPrefix = int64(net.HostPrefix)
+					update = true
+				}
+			}
 		}
 	}
+
 	if len(clusterInstall.Spec.Networking.ServiceNetwork) > 0 {
-		updateString(clusterInstall.Spec.Networking.ServiceNetwork[0], cluster.ServiceNetworkCidr, &params.ServiceNetworkCidr)
+		if len(clusterInstall.Spec.Networking.ServiceNetwork) != len(cluster.ServiceNetworks) {
+			newServiceNetworks := []*models.ServiceNetwork{}
+			for _, cidr := range clusterInstall.Spec.Networking.ServiceNetwork {
+				newServiceNetworks = append(newServiceNetworks, &models.ServiceNetwork{
+					Cidr:      models.Subnet(cidr),
+					ClusterID: *cluster.ID,
+				})
+			}
+			cluster.ServiceNetworks = newServiceNetworks
+			update = true
+		} else {
+			for iter, cidr := range clusterInstall.Spec.Networking.ServiceNetwork {
+				if string(cluster.ServiceNetworks[iter].Cidr) != cidr {
+					params.ServiceNetworks[iter].Cidr = models.Subnet(cidr)
+					update = true
+				}
+			}
+		}
 	}
 	if len(clusterInstall.Spec.Networking.MachineNetwork) > 0 {
-		updateString(clusterInstall.Spec.Networking.MachineNetwork[0].CIDR, cluster.MachineNetworkCidr, &params.MachineNetworkCidr)
+		if len(clusterInstall.Spec.Networking.MachineNetwork) != len(cluster.MachineNetworks) {
+			newMachineNetworks := []*models.MachineNetwork{}
+			for _, cidr := range clusterInstall.Spec.Networking.MachineNetwork {
+				newMachineNetworks = append(newMachineNetworks, &models.MachineNetwork{
+					Cidr:      models.Subnet(cidr.CIDR),
+					ClusterID: *cluster.ID,
+				})
+			}
+			cluster.MachineNetworks = newMachineNetworks
+			update = true
+		} else {
+			for iter, cidr := range clusterInstall.Spec.Networking.MachineNetwork {
+				if string(cluster.MachineNetworks[iter].Cidr) != cidr.CIDR {
+					params.MachineNetworks[iter].Cidr = models.Subnet(cidr.CIDR)
+					update = true
+				}
+			}
+		}
 	}
+
 	if clusterInstall.Spec.Networking.NetworkType != "" {
 		updateString(clusterInstall.Spec.Networking.NetworkType, swag.StringValue(cluster.NetworkType), &params.NetworkType)
 	} else {
@@ -899,12 +953,21 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	}
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
-		clusterParams.ClusterNetworkCidr = swag.String(clusterInstall.Spec.Networking.ClusterNetwork[0].CIDR)
-		clusterParams.ClusterNetworkHostPrefix = int64(clusterInstall.Spec.Networking.ClusterNetwork[0].HostPrefix)
+		for _, net := range clusterInstall.Spec.Networking.ClusterNetwork {
+			clusterParams.ClusterNetworks = append(clusterParams.ClusterNetworks, &models.ClusterNetwork{
+				Cidr:       models.Subnet(net.CIDR),
+				HostPrefix: int64(net.HostPrefix)})
+			//TODO(mko) Handle ClusterID
+		}
 	}
 
 	if len(clusterInstall.Spec.Networking.ServiceNetwork) > 0 {
-		clusterParams.ServiceNetworkCidr = swag.String(clusterInstall.Spec.Networking.ServiceNetwork[0])
+		for _, cidr := range clusterInstall.Spec.Networking.ServiceNetwork {
+			clusterParams.ServiceNetworks = append(clusterParams.ServiceNetworks, &models.ServiceNetwork{
+				Cidr: models.Subnet(cidr),
+				//TODO(mko) Handle ClusterID
+			})
+		}
 	}
 
 	if clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
