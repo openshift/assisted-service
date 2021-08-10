@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"sort"
 	"strings"
 	"time"
 
@@ -839,7 +838,7 @@ func (v *validator) validateNetworkLatencyForRole(host *models.Host, clusterRole
 		return ValidationError, nil, nil
 	}
 	failedHostIPs := map[string]struct{}{}
-	failedHostNames := []string{}
+	failedHostLatencies := []string{}
 	for _, r := range connectivityReport.RemoteHosts {
 		for _, l3 := range r.L3Connectivity {
 			if l3.AverageRTTMs > *clusterRoleReqs.Total.NetworkLatencyThresholdMs {
@@ -851,16 +850,28 @@ func (v *validator) validateNetworkLatencyForRole(host *models.Host, clusterRole
 					}
 					if role == host.Role {
 						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
-						failedHostNames = append(failedHostNames, hostname)
+						failedHostLatencies = append(failedHostLatencies, fmt.Sprintf(" %s (%.2f ms)", hostname, l3.AverageRTTMs))
 					}
 				}
 			}
 		}
 	}
-	if len(failedHostNames) > 0 {
-		return ValidationFailure, failedHostNames, nil
+	if len(failedHostLatencies) > 0 {
+		return ValidationFailure, failedHostLatencies, nil
 	}
 	return ValidationSuccess, nil, nil
+}
+
+const (
+	lessThanOr = "less than or"
+	equals     = "equals"
+)
+
+func comparisonBuilder(value float64) string {
+	if value > 0 {
+		return fmt.Sprintf("%s %s", lessThanOr, equals)
+	}
+	return equals
 }
 
 func (v *validator) printSufficientNetworkLatencyRequirementForRole(c *validationContext, status ValidationStatus) string {
@@ -868,12 +879,11 @@ func (v *validator) printSufficientNetworkLatencyRequirementForRole(c *validatio
 	case ValidationSuccess:
 		return "Network latency requirement has been satisfied."
 	case ValidationFailure:
-		_, hostNames, err := v.validateNetworkLatencyForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
+		_, hostLatencies, err := v.validateNetworkLatencyForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
 		if err != nil {
 			return fmt.Sprintf("Error while attempting to validate network latency: %s", err)
 		}
-		sort.Strings(hostNames)
-		return fmt.Sprintf("Network latency requirements of less or equals than %.3f ms not met for connectivity between %s and %s.", *c.clusterHostRequirements.Total.NetworkLatencyThresholdMs, c.host.ID, strings.Join(hostNames, ","))
+		return fmt.Sprintf("Network latency requirements of %s %.2f ms not met for connectivity between %s and%s.", comparisonBuilder(*c.clusterHostRequirements.Total.NetworkLatencyThresholdMs), *c.clusterHostRequirements.Total.NetworkLatencyThresholdMs, c.host.ID, strings.Join(hostLatencies, ","))
 	case ValidationPending:
 		return "Missing network latency information."
 	case ValidationError:
@@ -908,7 +918,7 @@ func (v *validator) validatePacketLossForRole(host *models.Host, clusterRoleReqs
 		return ValidationError, nil, nil
 	}
 	failedHostIPs := map[string]struct{}{}
-	failedHostNames := []string{}
+	failedHostPacketLoss := []string{}
 	for _, r := range connectivityReport.RemoteHosts {
 		for _, l3 := range r.L3Connectivity {
 			if l3.PacketLossPercentage > *clusterRoleReqs.Total.PacketLossPercentage {
@@ -920,14 +930,14 @@ func (v *validator) validatePacketLossForRole(host *models.Host, clusterRoleReqs
 					}
 					if role == host.Role {
 						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
-						failedHostNames = append(failedHostNames, hostname)
+						failedHostPacketLoss = append(failedHostPacketLoss, fmt.Sprintf(" %s (%.2f%%)", hostname, l3.PacketLossPercentage))
 					}
 				}
 			}
 		}
 	}
-	if len(failedHostNames) > 0 {
-		return ValidationFailure, failedHostNames, nil
+	if len(failedHostPacketLoss) > 0 {
+		return ValidationFailure, failedHostPacketLoss, nil
 	}
 	return ValidationSuccess, nil, nil
 }
@@ -937,12 +947,11 @@ func (v *validator) printSufficientPacketLossRequirementForRole(c *validationCon
 	case ValidationSuccess:
 		return "Packet loss requirement has been satisfied."
 	case ValidationFailure:
-		_, hostNames, err := v.validatePacketLossForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
+		_, hostPacketLoss, err := v.validatePacketLossForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
 		if err != nil {
 			return fmt.Sprintf("Error while attempting to validate packet loss validation: %s", err)
 		}
-		sort.Strings(hostNames)
-		return fmt.Sprintf("Packet loss percentage requirement of less or equals than %.2f%% not met for connectivity between %s and %s.", *c.clusterHostRequirements.Total.PacketLossPercentage, c.host.ID, strings.Join(hostNames, ","))
+		return fmt.Sprintf("Packet loss percentage requirement of %s %.2f%% not met for connectivity between %s and%s.", comparisonBuilder(*c.clusterHostRequirements.Total.PacketLossPercentage), *c.clusterHostRequirements.Total.PacketLossPercentage, c.host.ID, strings.Join(hostPacketLoss, ","))
 	case ValidationPending:
 		return "Missing packet loss information."
 	case ValidationError:
