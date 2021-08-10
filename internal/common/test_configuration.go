@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 
 	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/gomega"
@@ -13,6 +14,15 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
+
+type TestNetworking struct {
+	ClusterNetworkCidr       string
+	ClusterNetworkHostPrefix int64
+	ServiceNetworkCidr       string
+	MachineNetworkCidr       string
+	APIVip                   string
+	IngressVip               string
+}
 
 type TestConfiguration struct {
 	OpenShiftVersion string
@@ -125,6 +135,52 @@ var TestDomainNameResolutionSuccess = &models.DomainResolutionResponse{
 	Resolutions: DomainResolution}
 
 var TestDefaultRouteConfiguration = []*models.Route{{Family: FamilyIPv4, Interface: "eth0", Gateway: "192.168.1.1", Destination: "0.0.0.0"}}
+
+var TestIPv4Networking = TestNetworking{
+	ClusterNetworkCidr:       "1.3.0.0/16",
+	ClusterNetworkHostPrefix: 24,
+	ServiceNetworkCidr:       "1.2.5.0/24",
+	MachineNetworkCidr:       "1.2.3.0/24",
+	APIVip:                   "1.2.3.5",
+	IngressVip:               "1.2.3.6",
+}
+
+var TestIPv6Networking = TestNetworking{
+	ClusterNetworkCidr:       "1003:db8::/53",
+	ClusterNetworkHostPrefix: 64,
+	ServiceNetworkCidr:       "1002:db8::/119",
+	MachineNetworkCidr:       "1001:db8::/120",
+	APIVip:                   "1001:db8::64",
+	IngressVip:               "1001:db8::65",
+}
+
+func IncrementCidrIP(subnet string) string {
+	_, cidr, _ := net.ParseCIDR(subnet)
+	IncrementIP(cidr.IP)
+	return cidr.String()
+}
+
+func IncrementIPString(ipString string) string {
+	ip := net.ParseIP(ipString)
+	IncrementIP(ip)
+	return ip.String()
+}
+
+func IncrementIP(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
+	}
+}
+
+func IncrementCidrMask(subnet string) string {
+	_, cidr, _ := net.ParseCIDR(subnet)
+	ones, bits := cidr.Mask.Size()
+	cidr.Mask = net.CIDRMask(ones+1, bits)
+	return cidr.String()
+}
 
 func GenerateTestDefaultInventory() string {
 	inventory := &models.Inventory{

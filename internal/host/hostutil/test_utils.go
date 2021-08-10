@@ -339,17 +339,8 @@ func GenerateIPv6Addresses(count int, machineCIDR string) []string {
 func generateIPAddresses(count int, ipAddress net.IP, mask int) []string {
 	ret := make([]string, count)
 	for i := 0; i < count; i++ {
-		incrementIP(ipAddress)
+		common.IncrementIP(ipAddress)
 		ret[i] = fmt.Sprintf("%s/%d", ipAddress, mask)
 	}
 	return ret
-}
-
-func incrementIP(ip net.IP) {
-	for j := len(ip) - 1; j >= 0; j-- {
-		ip[j]++
-		if ip[j] > 0 {
-			break
-		}
-	}
 }

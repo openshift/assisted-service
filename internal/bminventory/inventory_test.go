@@ -1638,12 +1638,12 @@ var _ = Describe("PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases("1.2.3.10", "1.2.3.11", "lease { hello abc; }", "lease { hello abc; }"))
+			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip, "lease { hello abc; }", "lease { hello abc; }"))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
@@ -1653,12 +1653,12 @@ var _ = Describe("PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases("1.2.3.10", "1.2.3.11", "llease { hello abc; }", "lease { hello abc; }"))
+			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip, "llease { hello abc; }", "lease { hello abc; }"))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -1667,12 +1667,12 @@ var _ = Describe("PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
@@ -1697,12 +1697,12 @@ var _ = Describe("PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(false),
-					MachineNetworkCidr: "1.2.3.0/24",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -1711,12 +1711,12 @@ var _ = Describe("PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.4.11"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(common.TestIPv4Networking.APIVip, "1.2.4.11"))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -1725,14 +1725,15 @@ var _ = Describe("PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
-					APIVip:             "1.2.3.20",
-					IngressVip:         "1.2.3.11",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+					APIVip:             common.TestIPv4Networking.APIVip,
+					IngressVip:         common.TestIPv4Networking.IngressVip,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(
+				common.IncrementIPString(common.TestIPv4Networking.APIVip), common.IncrementIPString(common.TestIPv4Networking.IngressVip)))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
@@ -1742,15 +1743,16 @@ var _ = Describe("PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
-					APIVip:             "1.2.3.20",
-					IngressVip:         "1.2.3.11",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+					APIVip:             common.TestIPv4Networking.APIVip,
+					IngressVip:         common.TestIPv4Networking.IngressVip,
 					Status:             swag.String(models.ClusterStatusInstalling),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("Stam"))
-			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(
+				common.IncrementIPString(common.TestIPv4Networking.APIVip), common.IncrementIPString(common.TestIPv4Networking.IngressVip)))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -2152,12 +2154,12 @@ var _ = Describe("v2PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases("1.2.3.10", "1.2.3.11", "lease { hello abc; }", "lease { hello abc; }"))
+			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip, "lease { hello abc; }", "lease { hello abc; }"))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
@@ -2167,12 +2169,12 @@ var _ = Describe("v2PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases("1.2.3.10", "1.2.3.11", "llease { hello abc; }", "lease { hello abc; }"))
+			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip, "llease { hello abc; }", "lease { hello abc; }"))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -2181,12 +2183,12 @@ var _ = Describe("v2PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
@@ -2211,12 +2213,12 @@ var _ = Describe("v2PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(false),
-					MachineNetworkCidr: "1.2.3.0/24",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -2225,12 +2227,12 @@ var _ = Describe("v2PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.4.11"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(common.TestIPv4Networking.APIVip, "1.2.4.11"))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -2239,14 +2241,15 @@ var _ = Describe("v2PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
-					APIVip:             "1.2.3.20",
-					IngressVip:         "1.2.3.11",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+					APIVip:             common.TestIPv4Networking.APIVip,
+					IngressVip:         common.TestIPv4Networking.IngressVip,
 					Status:             swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(
+				common.IncrementIPString(common.TestIPv4Networking.APIVip), common.IncrementIPString(common.TestIPv4Networking.IngressVip)))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
@@ -2256,15 +2259,16 @@ var _ = Describe("v2PostStepReply", func() {
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: "1.2.3.0/24",
-					APIVip:             "1.2.3.20",
-					IngressVip:         "1.2.3.11",
+					MachineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+					APIVip:             common.TestIPv4Networking.APIVip,
+					IngressVip:         common.TestIPv4Networking.IngressVip,
 					Status:             swag.String(models.ClusterStatusInstalling),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("Stam"))
-			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(
+				common.IncrementIPString(common.TestIPv4Networking.APIVip), common.IncrementIPString(common.TestIPv4Networking.IngressVip)))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -4083,10 +4087,10 @@ var _ = Describe("cluster", func() {
 					ID: &clusterID,
 				}}).Update(&common.Cluster{
 					Cluster: models.Cluster{
-						ServiceNetworkCidr:       "1.2.0.0/16",
-						ClusterNetworkCidr:       "1.2.0.0/16",
-						MachineNetworkCidr:       "1.2.0.0/16",
-						ClusterNetworkHostPrefix: 20,
+						ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+						ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+						ServiceNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+						MachineNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
 					},
 				}).Error
 				Expect(err).ToNot(HaveOccurred())
@@ -4101,25 +4105,27 @@ var _ = Describe("cluster", func() {
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 			})
 			It("Overlap - part of update", func() {
+				baseCIDR := common.TestIPv4Networking.ClusterNetworkCidr
+				incrementCIDR := common.IncrementCidrMask(baseCIDR)
 				err := db.Model(&common.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
 				}}).Update(&common.Cluster{
 					Cluster: models.Cluster{
-						ServiceNetworkCidr:       "1.2.0.0/16",
-						ClusterNetworkCidr:       "1.3.0.0/16",
-						MachineNetworkCidr:       "1.4.0.0/16",
-						ClusterNetworkHostPrefix: 20,
+						ClusterNetworkCidr:       baseCIDR,
+						ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+						ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+						MachineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
 					},
 				}).Error
 				Expect(err).ToNot(HaveOccurred())
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.ClusterUpdateParams{
-						ServiceNetworkCidr: swag.String("1.3.5.0/24"),
+						ServiceNetworkCidr: swag.String(incrementCIDR),
 					},
 				})
 
-				verifyApiErrorString(reply, http.StatusBadRequest, "CIDRS 1.3.5.0/24 and 1.3.0.0/16 overlap")
+				verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("CIDRS %s and %s overlap", incrementCIDR, baseCIDR))
 			})
 		})
 
@@ -4168,12 +4174,12 @@ var _ = Describe("cluster", func() {
 
 				It("Set Machine CIDR", func() {
 					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
-						"api_vip":     "1.2.3.15",
-						"ingress_vip": "1.2.3.16",
+						"api_vip":     common.TestIPv4Networking.APIVip,
+						"ingress_vip": common.TestIPv4Networking.IngressVip,
 					}).Error).ShouldNot(HaveOccurred())
 
 					mockSuccess(1)
-					machineCidr := "1.2.3.0/24"
+					machineCidr := common.TestIPv4Networking.MachineNetworkCidr
 
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
@@ -4236,9 +4242,9 @@ var _ = Describe("cluster", func() {
 				It("Unset non relevant parameters", func() {
 					mockSuccess(1)
 					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
-						"machine_network_cidr": "10.12.0.0/16",
-						"api_vip":              "10.11.12.15",
-						"ingress_vip":          "10.11.12.16",
+						"machine_network_cidr": common.TestIPv4Networking.MachineNetworkCidr,
+						"api_vip":              common.TestIPv4Networking.APIVip,
+						"ingress_vip":          common.TestIPv4Networking.IngressVip,
 					}).Error).ShouldNot(HaveOccurred())
 
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -4638,7 +4644,7 @@ var _ = Describe("cluster", func() {
 					reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.ClusterUpdateParams{
-							MachineNetworkCidr: swag.String("1.2.3.0/24"),
+							MachineNetworkCidr: swag.String(common.TestIPv4Networking.MachineNetworkCidr),
 							VipDhcpAllocation:  swag.Bool(true),
 						},
 					})
@@ -4646,7 +4652,7 @@ var _ = Describe("cluster", func() {
 					actual = reply.(*installer.UpdateClusterCreated)
 					Expect(actual.Payload.APIVip).To(BeEmpty())
 					Expect(actual.Payload.IngressVip).To(BeEmpty())
-					Expect(actual.Payload.MachineNetworkCidr).To(Equal("1.2.3.0/24"))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal(common.TestIPv4Networking.MachineNetworkCidr))
 					expectedNetworks := sortedNetworks([]*models.HostNetwork{
 						{
 							Cidr: "1.2.3.0/24",
