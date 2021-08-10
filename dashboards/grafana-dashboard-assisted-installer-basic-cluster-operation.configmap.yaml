@@ -18,8 +18,8 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 4,
-      "iteration": 1603358885567,
+      "id": 150,
+      "iteration": 1628582766839,
       "links": [],
       "panels": [
         {
@@ -61,7 +61,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -160,7 +160,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -282,7 +282,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -381,7 +381,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -503,7 +503,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -602,7 +602,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -726,7 +726,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -825,7 +825,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -882,6 +882,255 @@ data:
           "timeRegions": [],
           "timeShift": null,
           "title": "POST UploadHostLogs Latency",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {
+            "avg": "purple"
+          },
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "$datasource",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "links": []
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 33
+          },
+          "hiddenSeries": false,
+          "id": 11,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.2.1",
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(service_assisted_installer_host_network_latency_in_ms_bucket[5m])) by (le))\n",
+              "interval": "",
+              "legendFormat": "0.99",
+              "refId": "E"
+            },
+            {
+              "expr": "histogram_quantile(0.9, sum(rate(service_assisted_installer_host_network_latency_in_ms_bucket[5m])) by (le))\n",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "0.9",
+              "refId": "B"
+            },
+            {
+              "expr": "histogram_quantile(0.75, sum(rate(service_assisted_installer_host_network_latency_in_ms_bucket[5m])) by (le))\n",
+              "interval": "",
+              "legendFormat": "0.75",
+              "refId": "D"
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(service_assisted_installer_host_network_latency_in_ms_bucket[5m])) by (le))\n",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "0.5",
+              "refId": "A"
+            },
+            {
+              "expr": "sum(rate(service_assisted_installer_host_network_latency_in_ms_sum[5m])) by (handler) / sum(rate(service_assisted_installer_host_network_latency_in_ms_count[5m])) by (handler)",
+              "interval": "",
+              "legendFormat": "avg",
+              "refId": "C"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Host network latency",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {
+            "avg": "purple"
+          },
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "$datasource",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "links": []
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 33
+          },
+          "hiddenSeries": false,
+          "id": 12,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.2.1",
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(service_assisted_installer_packet_loss_percentage_bucket[5m])) by (le))\n",
+              "interval": "",
+              "legendFormat": "0.99",
+              "refId": "E"
+            },
+            {
+              "expr": "histogram_quantile(0.9, sum(rate(service_assisted_installer_packet_loss_percentage_bucket[5m])) by (le))\n",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "0.9",
+              "refId": "B"
+            },
+            {
+              "expr": "histogram_quantile(0.75, sum(rate(service_assisted_installer_packet_loss_percentage_bucket[5m])) by (le))\n",
+              "interval": "",
+              "legendFormat": "0.75",
+              "refId": "D"
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(service_assisted_installer_packet_loss_percentage_bucket[5m])) by (le))\n",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "0.5",
+              "refId": "A"
+            },
+            {
+              "expr": "sum(rate(service_assisted_installer_packet_loss_percentage_bucket[5m])) by (handler) / sum(rate(service_assisted_installer_packet_loss_percentage_bucket[5m])) by (handler)",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "avg",
+              "refId": "C"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Packet loss percentage",
           "tooltip": {
             "shared": true,
             "sort": 0,
