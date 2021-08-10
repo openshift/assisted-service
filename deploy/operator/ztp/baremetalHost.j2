@@ -20,6 +20,7 @@ metadata:
     infraenvs.agent-install.openshift.io: '{{ infraenv_name }}'
   annotations:
     bmac.agent-install.openshift.io/hostname: '{{ host["name"] }}'
+    bmac.agent-install.openshift.io/role: master
 spec:
   online: true
   bootMACAddress: '{{ host["ports"][0]["address"] }}'
