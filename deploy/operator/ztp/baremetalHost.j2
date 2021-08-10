@@ -1,4 +1,6 @@
+{% set ns = namespace(counter=1) %}
 {% for host in extra_baremetalhosts %}
+{% if ns.counter <= spoke_controlplane_agents|int %}
 ---
 apiVersion: v1
 kind: Secret
@@ -27,4 +29,6 @@ spec:
     address: '{{ host["driver_info"]["address"] }}'
     credentialsName: '{{ host["name"] }}-bmc-secret'
 
+{% endif %}
+{% set ns.counter = ns.counter + 1 %} 
 {% endfor %}
