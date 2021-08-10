@@ -231,6 +231,9 @@ type InstallerAPI interface {
 	/* V2GetNextSteps Retrieves the next operations that the host agent needs to perform. */
 	V2GetNextSteps(ctx context.Context, params installer.V2GetNextStepsParams) middleware.Responder
 
+	/* V2ListHosts Retrieves the list of OpenShift hosts that belong to infra-env. */
+	V2ListHosts(ctx context.Context, params installer.V2ListHostsParams) middleware.Responder
+
 	/* V2PostStepReply Posts the result of the operations from the host agent. */
 	V2PostStepReply(ctx context.Context, params installer.V2PostStepReplyParams) middleware.Responder
 
@@ -748,6 +751,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetNextSteps(ctx, params)
+	})
+	api.InstallerV2ListHostsHandler = installer.V2ListHostsHandlerFunc(func(params installer.V2ListHostsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2ListHosts(ctx, params)
 	})
 	api.InstallerV2PostStepReplyHandler = installer.V2PostStepReplyHandlerFunc(func(params installer.V2PostStepReplyParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -847,6 +847,20 @@ func (mr *MockInstallerAPIMockRecorder) V2GetNextSteps(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetNextSteps", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetNextSteps), arg0, arg1)
 }
 
+// V2ListHosts mocks base method
+func (m *MockInstallerAPI) V2ListHosts(arg0 context.Context, arg1 installer.V2ListHostsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2ListHosts", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2ListHosts indicates an expected call of V2ListHosts
+func (mr *MockInstallerAPIMockRecorder) V2ListHosts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ListHosts", reflect.TypeOf((*MockInstallerAPI)(nil).V2ListHosts), arg0, arg1)
+}
+
 // V2PostStepReply mocks base method
 func (m *MockInstallerAPI) V2PostStepReply(arg0 context.Context, arg1 installer.V2PostStepReplyParams) middleware.Responder {
 	m.ctrl.T.Helper()

@@ -5251,6 +5251,65 @@ var _ = Describe("infraEnvs", func() {
 		})
 	})
 
+	Context("List Infra Env Hosts", func() {
+		var (
+			infraEnvId1, infraEnvId2 strfmt.UUID
+		)
+		BeforeEach(func() {
+			infraEnvId1 = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:                   infraEnvId1,
+				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+				AdditionalNtpSources: AdditionalNtpSources,
+				Href:                 HREF,
+				DownloadURL:          DownloadUrl,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			for i := 0; i != 2; i++ {
+				hostID := strfmt.UUID(uuid.New().String())
+				err = db.Create(&models.Host{
+					ID:         &hostID,
+					InfraEnvID: infraEnvId1,
+				}).Error
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			infraEnvId2 = strfmt.UUID(uuid.New().String())
+			err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:                   infraEnvId2,
+				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+				AdditionalNtpSources: AdditionalNtpSources,
+				Href:                 HREF,
+				DownloadURL:          DownloadUrl,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			for i := 0; i != 3; i++ {
+				hostID := strfmt.UUID(uuid.New().String())
+				err = db.Create(&models.Host{
+					ID:         &hostID,
+					InfraEnvID: infraEnvId2,
+				}).Error
+				Expect(err).ToNot(HaveOccurred())
+			}
+		})
+
+		Context("List Hosts", func() {
+			It("success", func() {
+				resp := bm.V2ListHosts(ctx, installer.V2ListHostsParams{
+					InfraEnvID: infraEnvId1,
+				})
+				payload := resp.(*installer.V2ListHostsOK).Payload
+				Expect(len(payload)).Should(Equal(2))
+				resp = bm.V2ListHosts(ctx, installer.V2ListHostsParams{
+					InfraEnvID: infraEnvId2,
+				})
+				payload = resp.(*installer.V2ListHostsOK).Payload
+				Expect(len(payload)).Should(Equal(3))
+			})
+		})
+	})
+
 	Context("Get", func() {
 		BeforeEach(func() {
 			infraEnvID = strfmt.UUID(uuid.New().String())
