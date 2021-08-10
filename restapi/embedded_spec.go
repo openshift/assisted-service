@@ -9132,6 +9132,44 @@ func init() {
         "olm"
       ]
     },
+    "os-image": {
+      "type": "object",
+      "required": [
+        "openshift_version",
+        "cpu_architecture",
+        "url",
+        "rootfs_url",
+        "version"
+      ],
+      "properties": {
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
+        "rootfs_url": {
+          "description": "The OS rootfs url.",
+          "type": "string"
+        },
+        "url": {
+          "description": "The base OS image used for the discovery iso.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Build ID of the OS image.",
+          "type": "string"
+        }
+      }
+    },
+    "os-images": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/os-image"
+      }
+    },
     "platform": {
       "description": "The configuration for the specific platform upon which to perform the installation.",
       "type": "object",
@@ -18689,6 +18727,44 @@ func init() {
         "builtin",
         "olm"
       ]
+    },
+    "os-image": {
+      "type": "object",
+      "required": [
+        "openshift_version",
+        "cpu_architecture",
+        "url",
+        "rootfs_url",
+        "version"
+      ],
+      "properties": {
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
+        "rootfs_url": {
+          "description": "The OS rootfs url.",
+          "type": "string"
+        },
+        "url": {
+          "description": "The base OS image used for the discovery iso.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Build ID of the OS image.",
+          "type": "string"
+        }
+      }
+    },
+    "os-images": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/os-image"
+      }
     },
     "platform": {
       "description": "The configuration for the specific platform upon which to perform the installation.",
