@@ -168,10 +168,9 @@ spec:
                     - OVNKubernetes
                     type: string
                   serviceNetwork:
-                    description: 'ServiceNetwork is the list of IP address pools for services. Default is 172.30.0.0/16. NOTE: currently only one entry is supported.'
+                    description: ServiceNetwork is the list of IP address pools for services. Default is 172.30.0.0/16.
                     items:
                       type: string
-                    maxItems: 1
                     type: array
                 type: object
               provisionRequirements:

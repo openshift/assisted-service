@@ -194,6 +194,7 @@ type DebugInfo struct {
 // Networking defines the pod network provider in the cluster.
 type Networking struct {
 	// MachineNetwork is the list of IP address pools for machines.
+	//
 	// +optional
 	MachineNetwork []MachineNetworkEntry `json:"machineNetwork,omitempty"`
 
@@ -205,9 +206,7 @@ type Networking struct {
 
 	// ServiceNetwork is the list of IP address pools for services.
 	// Default is 172.30.0.0/16.
-	// NOTE: currently only one entry is supported.
 	//
-	// +kubebuilder:validation:MaxItems=1
 	// +optional
 	ServiceNetwork []string `json:"serviceNetwork,omitempty"`
 
