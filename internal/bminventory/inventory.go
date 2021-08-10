@@ -129,10 +129,13 @@ type InstallerInternals interface {
 	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
 	DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error
-	GetCommonHostInternal(ctx context.Context, clusterId string, hostId string) (*common.Host, error)
-	UpdateHostApprovedInternal(ctx context.Context, clusterId string, hostId string, approved bool) error
+	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams) error
+	GetCommonHostInternal(ctx context.Context, infraEnvId string, hostId string) (*common.Host, error)
+	UpdateHostApprovedInternal(ctx context.Context, infraEnvId string, hostId string, approved bool) error
 	UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error)
+	V2UpdateHostInstallerArgsInternal(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) (*models.Host, error)
 	UpdateHostIgnitionInternal(ctx context.Context, params installer.UpdateHostIgnitionParams) (*models.Host, error)
+	V2UpdateHostIgnitionInternal(ctx context.Context, params installer.V2UpdateHostIgnitionParams) (*models.Host, error)
 	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
 	DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error)
@@ -2853,6 +2856,21 @@ func (b *bareMetalInventory) DeregisterHostInternal(ctx context.Context, params 
 	return nil
 }
 
+func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Deregister host: %s infra env %s", params.HostID, params.InfraEnvID)
+
+	if err := b.hostApi.UnRegisterHost(ctx, params.HostID.String(), params.InfraEnvID.String()); err != nil {
+		// TODO: check error type
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	// TODO: need to check that host can be deleted from the cluster
+	b.eventsHandler.AddEvent(ctx, params.InfraEnvID, &params.HostID, models.EventSeverityInfo,
+		fmt.Sprintf("Host %s: deregistered from cluster", params.HostID.String()), time.Now())
+	return nil
+}
+
 func (b *bareMetalInventory) GetHost(_ context.Context, params installer.GetHostParams) middleware.Responder {
 	// TODO: validate what is the error
 	host, err := common.GetHostFromDB(b.db, params.ClusterID.String(), params.HostID.String())
@@ -4498,23 +4516,23 @@ func (b *bareMetalInventory) getHost(ctx context.Context, clusterId string, host
 	return host, nil
 }
 
-func (b *bareMetalInventory) GetCommonHostInternal(_ context.Context, clusterId, hostId string) (*common.Host, error) {
-	return common.GetHostFromDB(b.db, clusterId, hostId)
+func (b *bareMetalInventory) GetCommonHostInternal(_ context.Context, infraEnvId, hostId string) (*common.Host, error) {
+	return common.GetHostFromDB(b.db, infraEnvId, hostId)
 }
 
-func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, clusterId, hostId string, approved bool) error {
+func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, infraEnvId, hostId string, approved bool) error {
 	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Updating Approved to %t Host %s Cluster %s", approved, hostId, clusterId)
-	dbHost, err := b.GetCommonHostInternal(ctx, clusterId, hostId)
+	log.Infof("Updating Approved to %t Host %s InfraEnv %s", approved, hostId, infraEnvId)
+	dbHost, err := common.GetHostFromDB(b.db, infraEnvId, hostId)
 	if err != nil {
 		return err
 	}
-	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), hostId, clusterId).Update("approved", approved).Error
+	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and infra_env_id = ?"), hostId, infraEnvId).Update("approved", approved).Error
 	if err != nil {
 		log.WithError(err).Errorf("failed to update 'approved' in host: %s", hostId)
 		return err
 	}
-	b.eventsHandler.AddEvent(ctx, strfmt.UUID(clusterId), dbHost.ID, models.EventSeverityInfo,
+	b.eventsHandler.AddEvent(ctx, strfmt.UUID(infraEnvId), dbHost.ID, models.EventSeverityInfo,
 		fmt.Sprintf("Host %s: updated approved to %t", hostutil.GetHostnameForMsg(&dbHost.Host), approved), time.Now())
 	return nil
 }
@@ -5428,4 +5446,95 @@ func (b *bareMetalInventory) V2ListHosts(ctx context.Context, params installer.V
 	}
 
 	return installer.NewV2ListHostsOK().WithPayload(common.ToModelsHosts(hosts))
+}
+
+func (b *bareMetalInventory) V2DeregisterHost(ctx context.Context, params installer.V2DeregisterHostParams) middleware.Responder {
+	if err := b.V2DeregisterHostInternal(ctx, params); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2DeregisterHostNoContent()
+}
+
+func (b *bareMetalInventory) V2UpdateHostInstallerArgs(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) middleware.Responder {
+	updatedHost, err := b.V2UpdateHostInstallerArgsInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2UpdateHostInstallerArgsCreated().WithPayload(updatedHost)
+}
+
+func (b *bareMetalInventory) V2UpdateHostInstallerArgsInternal(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) (*models.Host, error) {
+
+	log := logutil.FromContext(ctx, b.log)
+
+	err := hostutil.ValidateInstallerArgs(params.InstallerArgsParams.Args)
+	if err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	h, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	argsBytes, err := json.Marshal(params.InstallerArgsParams.Args)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and infra_env_id = ?"), params.HostID, params.InfraEnvID).Update("installer_args", string(argsBytes)).Error
+	if err != nil {
+		log.WithError(err).Errorf("failed to update host %s", params.HostID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	b.eventsHandler.AddEvent(ctx, params.InfraEnvID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom installer arguments were applied", hostutil.GetHostnameForMsg(&h.Host)), time.Now())
+	log.Infof("Custom installer arguments were applied to host %s in infra env %s", params.HostID, params.InfraEnvID)
+
+	h, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to get host %s after update", params.HostID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return &h.Host, nil
+}
+
+func (b *bareMetalInventory) V2UpdateHostIgnition(ctx context.Context, params installer.V2UpdateHostIgnitionParams) middleware.Responder {
+	_, err := b.V2UpdateHostIgnitionInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2UpdateHostIgnitionCreated()
+}
+
+func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, params installer.V2UpdateHostIgnitionParams) (*models.Host, error) {
+	log := logutil.FromContext(ctx, b.log)
+
+	h, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	if params.HostIgnitionParams.Config != "" {
+		_, err = ignition.ParseToLatest([]byte(params.HostIgnitionParams.Config))
+		if err != nil {
+			log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and infra_env_id = ?"), params.HostID, params.InfraEnvID).Update("ignition_config_overrides", params.HostIgnitionParams.Config).Error
+	if err != nil {
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	b.eventsHandler.AddEvent(ctx, params.InfraEnvID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom discovery ignition config was applied", hostutil.GetHostnameForMsg(&h.Host)), time.Now())
+	log.Infof("Custom discovery ignition config was applied to host %s in infra-env %s", params.HostID, params.InfraEnvID)
+	h, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to get host %s after update", params.HostID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return &h.Host, nil
 }

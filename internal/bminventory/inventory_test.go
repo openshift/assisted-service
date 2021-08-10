@@ -5906,7 +5906,7 @@ var _ = Describe("List clusters", func() {
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		hostID = strfmt.UUID(uuid.New().String())
-		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 	})
 
 	AfterEach(func() {
@@ -6067,7 +6067,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		kubeconfigFile, err = os.Open("../../subsystem/test_kubeconfig")
 		Expect(err).ShouldNot(HaveOccurred())
 		hostID = strfmt.UUID(uuid.New().String())
-		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
@@ -6110,7 +6110,7 @@ var _ = Describe("Upload and Download logs test", func() {
 
 	It("Upload S3 upload fails", func() {
 		newHostID := strfmt.UUID(uuid.New().String())
-		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		params := installer.UploadHostLogsParams{
 			ClusterID:   clusterID,
 			HostID:      *host.ID,
@@ -6124,7 +6124,7 @@ var _ = Describe("Upload and Download logs test", func() {
 	It("Upload Hosts logs Happy flow", func() {
 
 		newHostID := strfmt.UUID(uuid.New().String())
-		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		params := installer.UploadHostLogsParams{
 			ClusterID:   clusterID,
 			HostID:      *host.ID,
@@ -6141,7 +6141,7 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 	It("start collecting hosts logs indication", func() {
 		newHostID := strfmt.UUID(uuid.New().String())
-		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		params := installer.UpdateHostLogsProgressParams{
 			ClusterID:   clusterID,
 			HostID:      *host.ID,
@@ -6156,7 +6156,7 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 	It("complete collecting hosts logs indication", func() {
 		newHostID := strfmt.UUID(uuid.New().String())
-		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		params := installer.UpdateHostLogsProgressParams{
 			ClusterID:   clusterID,
 			HostID:      *host.ID,
@@ -6232,7 +6232,7 @@ var _ = Describe("Upload and Download logs test", func() {
 
 	It("Download Hosts logs happy flow", func() {
 		newHostID := strfmt.UUID(uuid.New().String())
-		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		params := installer.DownloadHostLogsParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
@@ -6275,7 +6275,7 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 	It("Logs presigned no logs found", func() {
 		hostID := strfmt.UUID(uuid.New().String())
-		_ = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		_ = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
@@ -6287,7 +6287,7 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 	It("Logs presigned s3 error", func() {
 		hostID := strfmt.UUID(uuid.New().String())
-		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
@@ -6304,7 +6304,7 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 	It("host logs presigned happy flow", func() {
 		hostID := strfmt.UUID(uuid.New().String())
-		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
@@ -6322,7 +6322,7 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 	It("host logs presigned happy flow without log type", func() {
 		hostID := strfmt.UUID(uuid.New().String())
-		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
@@ -6786,7 +6786,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 
 	addHost := func(clusterId strfmt.UUID, inventory string, role models.HostRole) {
 		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(2)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterId, inventory, db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterId, clusterID, inventory, db)
 	}
 
 	addVsphereHost := func(clusterId strfmt.UUID, role models.HostRole) {
@@ -6936,10 +6936,10 @@ func verifyApiErrorString(responder middleware.Responder, expectedHttpStatus int
 	ExpectWithOffset(1, concreteError.Error()).To(ContainSubstring(expectedSubstring))
 }
 
-func addHost(hostId strfmt.UUID, role models.HostRole, state, kind string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
+func addHost(hostId strfmt.UUID, role models.HostRole, state, kind string, infraEnvId, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
 	host := models.Host{
 		ID:         &hostId,
-		InfraEnvID: clusterId,
+		InfraEnvID: infraEnvId,
 		ClusterID:  &clusterId,
 		Kind:       swag.String(kind),
 		Status:     swag.String(state),
@@ -7106,7 +7106,7 @@ var _ = Describe("Reset Host test", func() {
 			ClusterID:   clusterID,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		res := bm.ResetHost(ctx, params)
@@ -7119,7 +7119,7 @@ var _ = Describe("Reset Host test", func() {
 			ClusterID:   clusterID,
 			HostID:      strfmt.UUID(uuid.New().String()),
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		res := bm.ResetHost(ctx, params)
 		verifyApiError(res, http.StatusNotFound)
 	})
@@ -7130,7 +7130,7 @@ var _ = Describe("Reset Host test", func() {
 			ClusterID:   clusterID,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		res := bm.ResetHost(ctx, params)
 		verifyApiError(res, http.StatusConflict)
 	})
@@ -7174,7 +7174,7 @@ var _ = Describe("Install Host test", func() {
 			ClusterID:   clusterID,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -7190,7 +7190,7 @@ var _ = Describe("Install Host test", func() {
 			ClusterID:   clusterID,
 			HostID:      strfmt.UUID(uuid.New().String()),
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		res := bm.InstallHost(ctx, params)
 		verifyApiError(res, http.StatusNotFound)
 	})
@@ -7201,7 +7201,7 @@ var _ = Describe("Install Host test", func() {
 			ClusterID:   clusterID,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		res := bm.InstallHost(ctx, params)
 		verifyApiError(res, http.StatusConflict)
 	})
@@ -7212,7 +7212,7 @@ var _ = Describe("Install Host test", func() {
 			ClusterID:   clusterID,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		res := bm.InstallHost(ctx, params)
 		verifyApiError(res, http.StatusConflict)
 	})
@@ -7223,7 +7223,7 @@ var _ = Describe("Install Host test", func() {
 			ClusterID:   clusterID,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(0)
@@ -7238,7 +7238,7 @@ var _ = Describe("Install Host test", func() {
 			ClusterID:   clusterID,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
@@ -7281,7 +7281,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 
 	It("Install Single Day2 Host", func() {
 		hostId := strfmt.UUID(uuid.New().String())
-		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -7294,7 +7294,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 	It("Install fail Single Day2 Host", func() {
 		expectedErrMsg := "some-internal-error"
 		hostId := strfmt.UUID(uuid.New().String())
-		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
@@ -7387,9 +7387,9 @@ var _ = Describe("Install Hosts test", func() {
 			HTTPRequest: request,
 			ClusterID:   clusterID,
 		}
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
@@ -7404,12 +7404,12 @@ var _ = Describe("Install Hosts test", func() {
 			HTTPRequest: request,
 			ClusterID:   clusterID,
 		}
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalling, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalling, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		knownHostID := strfmt.UUID(uuid.New().String())
-		addHost(knownHostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalled, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname3", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusAddedToExistingCluster, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname4", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(knownHostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalled, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname3", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusAddedToExistingCluster, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname4", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(5)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -7425,9 +7425,9 @@ var _ = Describe("Install Hosts test", func() {
 			HTTPRequest: request,
 			ClusterID:   clusterID,
 		}
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalling, models.HostKindAddToExistingClusterHost, clusterID, "", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, "", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusDisconnected, models.HostKindAddToExistingClusterHost, clusterID, "", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalling, models.HostKindAddToExistingClusterHost, clusterID, clusterID, "", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, clusterID, "", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusDisconnected, models.HostKindAddToExistingClusterHost, clusterID, clusterID, "", db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(0)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(0)
@@ -8076,11 +8076,11 @@ var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
 
 		// add some hosts
 		hostID = strfmt.UUID(uuid.New().String())
-		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
 	})
 
 	AfterEach(func() {
@@ -8112,7 +8112,7 @@ var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		otherHostID := strfmt.UUID(uuid.New().String())
-		addHost(otherHostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, otherClusterID, "{}", db)
+		addHost(otherHostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, otherClusterID, otherClusterID, "{}", db)
 
 		getParams := installer.GetHostIgnitionParams{
 			ClusterID: clusterID,
@@ -8208,11 +8208,11 @@ var _ = Describe("UpdateHostIgnition", func() {
 
 		// add some hosts
 		hostID = strfmt.UUID(uuid.New().String())
-		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
 	})
 
 	AfterEach(func() {
@@ -8290,6 +8290,114 @@ var _ = Describe("UpdateHostIgnition", func() {
 			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
 		}
 		response := bm.UpdateHostIgnition(ctx, params)
+		verifyApiError(response, http.StatusBadRequest)
+	})
+})
+
+var _ = Describe("V2UpdateHostIgnition", func() {
+	var (
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		ctx        = context.Background()
+		clusterID  strfmt.UUID
+		infraEnvID strfmt.UUID
+		hostID     strfmt.UUID
+		dbName     string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		bm = createInventory(db, cfg)
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// add some hosts
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("saves the given string to the host", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.InfraEnvID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom discovery ignition config was applied", params.HostID.String()), gomock.Any())
+		response := bm.V2UpdateHostIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostIgnitionCreated{}))
+
+		var updated models.Host
+		err := db.First(&updated, "id = ?", hostID).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(updated.IgnitionConfigOverrides).To(Equal(override))
+	})
+
+	It("returns not found with a non-existant infra-env", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         strfmt.UUID(uuid.New().String()),
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.V2UpdateHostIgnition(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("returns not found with a non-existant host", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             strfmt.UUID(uuid.New().String()),
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.V2UpdateHostIgnition(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("returns bad request when provided invalid json", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.V2UpdateHostIgnition(ctx, params)
+		verifyApiError(response, http.StatusBadRequest)
+	})
+
+	It("returns bad request when provided invalid options", func() {
+		// Missing the version
+		override := `{"storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.V2UpdateHostIgnition(ctx, params)
+		verifyApiError(response, http.StatusBadRequest)
+	})
+
+	It("returns bad request when provided an old version", func() {
+		// Wrong version
+		override := `{"ignition": {"version": "3.0.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.V2UpdateHostIgnition(ctx, params)
 		verifyApiError(response, http.StatusBadRequest)
 	})
 })
@@ -8491,7 +8599,7 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 
 		// add a host
 		hostID = strfmt.UUID(uuid.New().String())
-		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
 	})
 
 	AfterEach(func() {
@@ -8554,26 +8662,113 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 	})
 })
 
-var _ = Describe("UpdateHostApproved", func() {
+var _ = Describe("V2UpdateHostInstallerArgs", func() {
 	var (
-		bm        *bareMetalInventory
-		cfg       Config
-		db        *gorm.DB
-		ctx       = context.Background()
-		clusterID strfmt.UUID
-		hostID    strfmt.UUID
-		dbName    string
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		ctx        = context.Background()
+		clusterID  strfmt.UUID
+		infraEnvID strfmt.UUID
+		hostID     strfmt.UUID
+		dbName     string
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		bm = createInventory(db, cfg)
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// add a host
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("saves the given array to the host", func() {
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
+		params := installer.V2UpdateHostInstallerArgsParams{
+			InfraEnvID:          infraEnvID,
+			HostID:              hostID,
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.InfraEnvID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom installer arguments were applied", params.HostID.String()), gomock.Any())
+		response := bm.V2UpdateHostInstallerArgs(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostInstallerArgsCreated{}))
+
+		var updated models.Host
+		err := db.First(&updated, "id = ?", hostID).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var newArgs []string
+		err = json.Unmarshal([]byte(updated.InstallerArgs), &newArgs)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(newArgs).To(Equal(args))
+	})
+
+	It("returns not found with a non-existant infra-env", func() {
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
+		params := installer.V2UpdateHostInstallerArgsParams{
+			InfraEnvID:          strfmt.UUID(uuid.New().String()),
+			HostID:              hostID,
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+		response := bm.V2UpdateHostInstallerArgs(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("returns not found with a non-existant host", func() {
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
+		params := installer.V2UpdateHostInstallerArgsParams{
+			InfraEnvID:          infraEnvID,
+			HostID:              strfmt.UUID(uuid.New().String()),
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+		response := bm.V2UpdateHostInstallerArgs(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("returns bad request when provided an invalid flag", func() {
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-a"}
+		params := installer.V2UpdateHostInstallerArgsParams{
+			InfraEnvID:          infraEnvID,
+			HostID:              hostID,
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+		response := bm.V2UpdateHostInstallerArgs(ctx, params)
+		verifyApiError(response, http.StatusBadRequest)
+	})
+})
+
+var _ = Describe("UpdateHostApproved", func() {
+	var (
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		ctx        = context.Background()
+		clusterID  strfmt.UUID
+		infraEnvID strfmt.UUID
+		hostID     strfmt.UUID
+		dbName     string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
 		hostID = strfmt.UUID(uuid.New().String())
-		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
 	})
 
 	AfterEach(func() {
@@ -8581,18 +8776,18 @@ var _ = Describe("UpdateHostApproved", func() {
 	})
 
 	It("get default approved value", func() {
-		h, err := bm.GetCommonHostInternal(ctx, string(clusterID), string(hostID))
+		h, err := bm.GetCommonHostInternal(ctx, infraEnvID.String(), hostID.String())
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(h.Approved).To(Equal(false))
 	})
 
 	It("update approved value", func() {
-		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityInfo,
+		mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvID, &hostID, models.EventSeverityInfo,
 			fmt.Sprintf("Host %s: updated approved to %t", hostID.String(), true),
 			gomock.Any()).Times(1)
-		err := bm.UpdateHostApprovedInternal(ctx, string(clusterID), string(hostID), true)
+		err := bm.UpdateHostApprovedInternal(ctx, infraEnvID.String(), hostID.String(), true)
 		Expect(err).ShouldNot(HaveOccurred())
-		h, err := bm.GetCommonHostInternal(ctx, string(clusterID), string(hostID))
+		h, err := bm.GetCommonHostInternal(ctx, infraEnvID.String(), hostID.String())
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(h.Approved).To(Equal(true))
 	})
@@ -8617,7 +8812,7 @@ var _ = Describe("Calculate host networks", func() {
 
 		// add a host
 		hostID = strfmt.UUID(uuid.New().String())
-		addHost(hostID, models.HostRoleMaster, models.HostStatusInsufficient, "kind", clusterID,
+		addHost(hostID, models.HostRoleMaster, models.HostStatusInsufficient, "kind", clusterID, clusterID,
 			getInventoryStrWithIPv6("host", "bios", []string{
 				"1.1.1.1/24",
 				"1.1.1.2/24",

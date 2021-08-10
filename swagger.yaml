@@ -3490,6 +3490,52 @@ paths:
           description: Not implemented.
           schema:
             $ref: '#/definitions/error'
+    delete:
+      tags:
+        - installer
+      description: Deregisters an OpenShift host.
+      operationId: v2DeregisterHost
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The infra env of the host that should be deregistered.
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          description: The host that should be deregistered.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "204":
+          description: Success.
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
 
   /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions:
     get:
@@ -3798,6 +3844,126 @@ paths:
             $ref: '#/definitions/error'
         "503":
           description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args:
+    patch:
+      tags:
+        - installer
+      description: Updates a host's installer arguments.
+      operationId: v2UpdateHostInstallerArgs
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The InfraEnv of the host whose installer arguments should be updated.
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          description: The host whose installer arguments should be updated.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: installer-args-params
+          description: The updated installer arguments.
+          required: true
+          schema:
+            $ref: '#/definitions/installer-args-params'
+      responses:
+        "201":
+          description: Success.
+          schema:
+            $ref: '#/definitions/host'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition:
+    patch:
+      tags:
+        - installer
+      description: Patch the ignition file for this host
+      operationId: v2UpdateHostIgnition
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The InfraEnv of the host whose ignition file should be updated.
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          description: The host whose ignition file should be updated.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: host-ignition-params
+          description: Ignition config overrides.
+          required: true
+          schema:
+            $ref: '#/definitions/host-ignition-params'
+      responses:
+        "201":
+          description: Success.
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
           schema:
             $ref: '#/definitions/error'
 

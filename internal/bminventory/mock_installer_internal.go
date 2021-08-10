@@ -379,3 +379,47 @@ func (mr *MockInstallerInternalsMockRecorder) UpdateHostInstallerArgsInternal(ar
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostInstallerArgsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateHostInstallerArgsInternal), arg0, arg1)
 }
+
+// V2DeregisterHostInternal mocks base method
+func (m *MockInstallerInternals) V2DeregisterHostInternal(arg0 context.Context, arg1 installer.V2DeregisterHostParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2DeregisterHostInternal", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// V2DeregisterHostInternal indicates an expected call of V2DeregisterHostInternal
+func (mr *MockInstallerInternalsMockRecorder) V2DeregisterHostInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DeregisterHostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).V2DeregisterHostInternal), arg0, arg1)
+}
+
+// V2UpdateHostIgnitionInternal mocks base method
+func (m *MockInstallerInternals) V2UpdateHostIgnitionInternal(arg0 context.Context, arg1 installer.V2UpdateHostIgnitionParams) (*models.Host, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2UpdateHostIgnitionInternal", arg0, arg1)
+	ret0, _ := ret[0].(*models.Host)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// V2UpdateHostIgnitionInternal indicates an expected call of V2UpdateHostIgnitionInternal
+func (mr *MockInstallerInternalsMockRecorder) V2UpdateHostIgnitionInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateHostIgnitionInternal", reflect.TypeOf((*MockInstallerInternals)(nil).V2UpdateHostIgnitionInternal), arg0, arg1)
+}
+
+// V2UpdateHostInstallerArgsInternal mocks base method
+func (m *MockInstallerInternals) V2UpdateHostInstallerArgsInternal(arg0 context.Context, arg1 installer.V2UpdateHostInstallerArgsParams) (*models.Host, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2UpdateHostInstallerArgsInternal", arg0, arg1)
+	ret0, _ := ret[0].(*models.Host)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// V2UpdateHostInstallerArgsInternal indicates an expected call of V2UpdateHostInstallerArgsInternal
+func (mr *MockInstallerInternalsMockRecorder) V2UpdateHostInstallerArgsInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateHostInstallerArgsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).V2UpdateHostInstallerArgsInternal), arg0, arg1)
+}
