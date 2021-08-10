@@ -58,6 +58,8 @@ var (
 	}
 )
 
+const testAdditionalMachineCidr = "5.6.7.0/24"
+
 func createValidatorCfg() *hardware.ValidatorCfg {
 	return &hardware.ValidatorCfg{
 		VersionedRequirements: hardware.VersionedRequirementsDecoder{
@@ -945,7 +947,7 @@ var _ = Describe("Install", func() {
 			host.StatusInfo = swag.String(statusInfoHostPreparationSuccessful)
 			host.Inventory = hostutil.GenerateMasterInventory()
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 			cluster.Status = swag.String(models.ClusterStatusInstalling)
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			clusterRequirements := models.ClusterHostRequirements{
@@ -1505,7 +1507,7 @@ var _ = Describe("Refresh Host", func() {
 					CurrentStage:   t.stage,
 				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 				cluster.Status = swag.String(models.ClusterStatusInstallingPendingUserAction)
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 				if t.expectTimeout {
@@ -1570,7 +1572,7 @@ var _ = Describe("Refresh Host", func() {
 				host.Progress = &progress
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 				mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
@@ -1614,7 +1616,7 @@ var _ = Describe("Refresh Host", func() {
 				host.Progress = &progress
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 				err := hapi.RefreshStatus(ctx, &host, db)
@@ -1659,7 +1661,7 @@ var _ = Describe("Refresh Host", func() {
 			host.Progress = &progress
 
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 			mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusDisconnected),
@@ -1702,7 +1704,7 @@ var _ = Describe("Refresh Host", func() {
 				host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-passedTime))
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				if passedTimeKind == "over_timeout" {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
@@ -1769,7 +1771,7 @@ var _ = Describe("Refresh Host", func() {
 					host.Progress = &progress
 
 					Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-					cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+					cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 					Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 					if passedTimeKind == "over_timeout" {
@@ -1804,7 +1806,7 @@ var _ = Describe("Refresh Host", func() {
 		}
 		It("state info progress when failed", func() {
 
-			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 			masterID := strfmt.UUID("1")
@@ -2096,9 +2098,9 @@ var _ = Describe("Refresh Host", func() {
 			t := tests[i]
 			It(t.name, func() {
 				if t.platformType == "" {
-					cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+					cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 				} else {
-					cluster = hostutil.GenerateTestClusterWithPlatform(clusterId, "1.2.3.0/24", &models.Platform{Type: models.PlatformTypeVsphere})
+					cluster = hostutil.GenerateTestClusterWithPlatform(clusterId, common.TestIPv4Networking.MachineNetworkCidr, &models.Platform{Type: models.PlatformTypeVsphere})
 				}
 
 				cluster.MonitoredOperators = []*models.MonitoredOperator{
@@ -2291,7 +2293,7 @@ var _ = Describe("Refresh Host", func() {
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 				// Test setup - Cluster creation
-				machineCidr := "1.2.3.0/24"
+				machineCidr := common.TestIPv4Networking.MachineNetworkCidr
 				cluster = hostutil.GenerateTestCluster(clusterId, machineCidr)
 				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", machineCidr, hostId.String())
 				cluster.Status = swag.String(t.clusterState)
@@ -2370,7 +2372,7 @@ var _ = Describe("Refresh Host", func() {
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 				// Test setup - Cluster creation
-				machineCidr := "1.2.3.0/24"
+				machineCidr := common.TestIPv4Networking.MachineNetworkCidr
 				cluster = hostutil.GenerateTestCluster(clusterId, machineCidr)
 				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", machineCidr, hostId.String())
 				cluster.Status = swag.String(t.clusterState)
@@ -2774,12 +2776,12 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusDisconnected,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "5.6.7.0/24",
+				machineNetworkCidr: testAdditionalMachineCidr,
 				ntpSources:         []*models.NtpSource{common.TestNTPSourceUnsynced},
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
 				role:               models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDR 5.6.7.0/24",
+					fmt.Sprintf("Host does not belong to machine network CIDR %s", testAdditionalMachineCidr),
 					"Host couldn't synchronize with any NTP server",
 					"Failed to fetch container images needed for installation from image")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -2807,12 +2809,12 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusDiscovering,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "5.6.7.0/24",
+				machineNetworkCidr: testAdditionalMachineCidr,
 				ntpSources:         []*models.NtpSource{common.TestNTPSourceUnsynced},
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDR 5.6.7.0/24",
+					fmt.Sprintf("Host does not belong to machine network CIDR %s", testAdditionalMachineCidr),
 					"Require at least 4 CPU cores for master role, found only 2",
 					"Require at least 16.00 GiB RAM for role master, found only 8.00 GiB",
 					"Host couldn't synchronize with any NTP server",
@@ -2842,7 +2844,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusDiscovering,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
@@ -2874,7 +2876,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
@@ -2903,7 +2905,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusPendingForInput,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
@@ -2932,12 +2934,12 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "5.6.7.0/24",
+				machineNetworkCidr: testAdditionalMachineCidr,
 				ntpSources:         []*models.NtpSource{common.TestNTPSourceUnsynced},
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDR 5.6.7.0/24",
+					fmt.Sprintf("Host does not belong to machine network CIDR %s", testAdditionalMachineCidr),
 					"Host couldn't synchronize with any NTP server",
 					"Failed to fetch container images needed for installation from image")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -2962,12 +2964,12 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "5.6.7.0/24",
+				machineNetworkCidr: testAdditionalMachineCidr,
 				ntpSources:         []*models.NtpSource{common.TestNTPSourceUnsynced},
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDR 5.6.7.0/24",
+					fmt.Sprintf("Host does not belong to machine network CIDR %s", testAdditionalMachineCidr),
 					"Host couldn't synchronize with any NTP server",
 					"Failed to fetch container images needed for installation from image")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -2993,7 +2995,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
@@ -3023,7 +3025,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusDiscovering,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
@@ -3052,7 +3054,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusDiscovering,
 				dstState:           models.HostStatusKnown,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -3081,7 +3083,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusDiscovering,
 				dstState:           models.HostStatusInsufficient,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeRegexChecker("Host cannot be installed due to following failing validation"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -3111,7 +3113,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusDiscovering,
 				dstState:           models.HostStatusInsufficient,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeRegexChecker("Host cannot be installed due to following failing validation"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -3141,7 +3143,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleWorker,
@@ -3170,7 +3172,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleWorker,
@@ -3200,7 +3202,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleWorker,
@@ -3230,7 +3232,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusPendingForInput,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleWorker,
@@ -3258,7 +3260,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusPendingForInput,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1001:db8::/120",
+				machineNetworkCidr: common.TestIPv6Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleWorker,
@@ -3286,7 +3288,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
@@ -3315,7 +3317,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
@@ -3337,7 +3339,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:     hostutil.GenerateMasterInventory(),
-				connectivity:  fmt.Sprintf("{\"%s\":[]}", "1.2.3.0/24"),
+				connectivity:  fmt.Sprintf("{\"%s\":[]}", common.TestIPv4Networking.MachineNetworkCidr),
 				errorExpected: false,
 			},
 			{
@@ -3345,7 +3347,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
@@ -3366,7 +3368,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:          hostutil.GenerateMasterInventory(),
-				connectivity:       fmt.Sprintf("{\"%s\":[]}", "1.2.3.0/24"),
+				connectivity:       fmt.Sprintf("{\"%s\":[]}", common.TestIPv4Networking.MachineNetworkCidr),
 				errorExpected:      false,
 				numAdditionalHosts: 2,
 			},
@@ -3375,7 +3377,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               "kuku",
 				statusInfoChecker:  makeValueChecker(""),
 				inventory:          hostutil.GenerateMasterInventory(),
@@ -3395,7 +3397,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleWorker,
@@ -3426,7 +3428,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
@@ -3461,7 +3463,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
@@ -3490,7 +3492,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
@@ -3519,7 +3521,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:   true,
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				ntpSources:         defaultNTPSources,
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleWorker,
@@ -3669,7 +3671,7 @@ var _ = Describe("Refresh Host", func() {
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusPreparingForInstallation)
 				host.Inventory = hostutil.GenerateMasterInventory()
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 				cluster.Status = &t.clusterStatus
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				if *host.Status != t.dstState {
@@ -3733,7 +3735,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "insufficient to known",
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -3758,7 +3760,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "insufficient to insufficient (same hostname) 1",
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Hostname first is not unique in cluster")),
@@ -3787,7 +3789,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "insufficient to insufficient (same hostname) 2",
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Hostname first is not unique in cluster")),
@@ -3817,7 +3819,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "insufficient to insufficient (same hostname) 3",
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Hostname second is not unique in cluster")),
@@ -3847,7 +3849,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "insufficient to insufficient (same hostname) 4 loveeee",
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Hostname third is not unique in cluster")),
@@ -3878,7 +3880,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "insufficient to known 2",
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -3909,7 +3911,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "known to known",
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -3936,7 +3938,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "known to insufficient (same hostname) 1",
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Hostname first is not unique in cluster")),
@@ -3965,7 +3967,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "known to insufficient (same hostname) 2",
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Hostname first is not unique in cluster")),
@@ -3995,7 +3997,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "known to insufficient (same hostname) 3",
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Hostname second is not unique in cluster")),
@@ -4025,7 +4027,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "known to insufficient (same hostname) 4",
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Hostname third is not unique in cluster")),
@@ -4056,7 +4058,7 @@ var _ = Describe("Refresh Host", func() {
 				name:               "known to known 2",
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusKnown,
-				machineNetworkCidr: "1.2.3.0/24",
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -4175,7 +4177,7 @@ var _ = Describe("Refresh Host", func() {
 					h.Progress.CurrentStage = installationStage
 					h.Inventory = hostutil.GenerateMasterInventory()
 					Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-					c := hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+					c := hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 					c.Status = swag.String(models.ClusterStatusInstalling)
 					Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 
@@ -4189,7 +4191,7 @@ var _ = Describe("Refresh Host", func() {
 					h.Progress.CurrentStage = installationStage
 					h.Inventory = hostutil.GenerateMasterInventory()
 					Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-					c := hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+					c := hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 					c.Status = swag.String(models.ClusterStatusError)
 					Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 
@@ -4216,7 +4218,7 @@ var _ = Describe("Refresh Host", func() {
 			defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
 			Expect(err).NotTo(HaveOccurred())
 			domainNameResolutions := common.TestDomainNameResolutionSuccess
-			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusDiscovering)
 			host.Inventory = hostutil.GenerateInventoryWithResourcesWithBytes(4, conversions.GibToBytes(16), conversions.GibToBytes(16), "master")
@@ -4314,7 +4316,7 @@ var _ = Describe("Refresh Host", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				host.NtpSources = string(defaultNTPSourcesInBytes)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 				cluster.UserManagedNetworking = swag.Bool(t.userManagedNetworking)
 				cluster.Name = common.TestDefaultConfig.ClusterName
 				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
@@ -4363,23 +4365,23 @@ var _ = Describe("Refresh Host", func() {
 				hostRole:               models.HostRoleMaster,
 				latencyInMs:            50,
 				packetLossInPercentage: 0,
-				IPAddressPool:          hostutil.GenerateIPv4Addresses(2, "1.2.3.1/24"),
-				machineNetworkCIDR:     "1.2.3.0/24",
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(2, common.IncrementCidrIP(common.TestIPv4Networking.MachineNetworkCidr)),
+				machineNetworkCIDR:     common.TestIPv4Networking.MachineNetworkCidr,
 				ipType:                 ipv4,
 				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
 					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
 				}),
-			}, {name: "known wit hIPv6 and 3 masters",
+			}, {name: "known with IPv6 and 3 masters",
 				srcState:               models.HostStatusDiscovering,
 				dstState:               models.HostStatusKnown,
 				hostRole:               models.HostRoleMaster,
 				latencyInMs:            50,
 				packetLossInPercentage: 0,
-				IPAddressPool:          hostutil.GenerateIPv6Addresses(2, "1001:db8::1/120"),
-				machineNetworkCIDR:     "1001:db8::/120",
-				ipType:                 ipv4,
+				IPAddressPool:          hostutil.GenerateIPv6Addresses(2, common.IncrementCidrIP(common.TestIPv6Networking.MachineNetworkCidr)),
+				machineNetworkCIDR:     common.TestIPv6Networking.MachineNetworkCidr,
+				ipType:                 ipv6,
 				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
@@ -4391,8 +4393,8 @@ var _ = Describe("Refresh Host", func() {
 				hostRole:               models.HostRoleWorker,
 				latencyInMs:            50,
 				packetLossInPercentage: 0,
-				IPAddressPool:          hostutil.GenerateIPv4Addresses(2, "1.2.3.1/24"),
-				machineNetworkCIDR:     "1.2.3.0/24",
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(2, common.IncrementCidrIP(common.TestIPv4Networking.MachineNetworkCidr)),
+				machineNetworkCIDR:     common.TestIPv4Networking.MachineNetworkCidr,
 				ipType:                 ipv4,
 				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -4405,8 +4407,8 @@ var _ = Describe("Refresh Host", func() {
 				hostRole:               models.HostRoleWorker,
 				latencyInMs:            50,
 				packetLossInPercentage: 0,
-				IPAddressPool:          hostutil.GenerateIPv6Addresses(2, "1001:db8::1/120"),
-				machineNetworkCIDR:     "1001:db8::/120",
+				IPAddressPool:          hostutil.GenerateIPv6Addresses(2, common.IncrementCidrIP(common.TestIPv6Networking.MachineNetworkCidr)),
+				machineNetworkCIDR:     common.TestIPv6Networking.MachineNetworkCidr,
 				ipType:                 ipv6,
 				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -4419,8 +4421,8 @@ var _ = Describe("Refresh Host", func() {
 				hostRole:               models.HostRoleMaster,
 				latencyInMs:            200,
 				packetLossInPercentage: 50,
-				IPAddressPool:          hostutil.GenerateIPv4Addresses(1, "1.2.3.1/24"),
-				machineNetworkCIDR:     "1.2.3.0/24",
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(1, common.IncrementCidrIP(common.TestIPv4Networking.MachineNetworkCidr)),
+				machineNetworkCIDR:     common.TestIPv4Networking.MachineNetworkCidr,
 				ipType:                 ipv4,
 				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -4433,8 +4435,8 @@ var _ = Describe("Refresh Host", func() {
 				hostRole:               models.HostRoleAutoAssign,
 				latencyInMs:            500,
 				packetLossInPercentage: 5,
-				IPAddressPool:          hostutil.GenerateIPv4Addresses(2, "1.2.3.1/24"),
-				machineNetworkCIDR:     "1.2.3.0/24",
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(2, common.IncrementCidrIP(common.TestIPv4Networking.MachineNetworkCidr)),
+				machineNetworkCIDR:     common.TestIPv4Networking.MachineNetworkCidr,
 				ipType:                 ipv4,
 				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -4447,8 +4449,8 @@ var _ = Describe("Refresh Host", func() {
 				hostRole:               models.HostRoleAutoAssign,
 				latencyInMs:            2000,
 				packetLossInPercentage: 90,
-				IPAddressPool:          hostutil.GenerateIPv4Addresses(3, "1.2.3.1/24"),
-				machineNetworkCIDR:     "1.2.3.0/24",
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(3, common.IncrementCidrIP(common.TestIPv4Networking.MachineNetworkCidr)),
+				machineNetworkCIDR:     common.TestIPv4Networking.MachineNetworkCidr,
 				ipType:                 ipv4,
 				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -4461,8 +4463,8 @@ var _ = Describe("Refresh Host", func() {
 				hostRole:               models.HostRoleMaster,
 				latencyInMs:            200,
 				packetLossInPercentage: 1,
-				IPAddressPool:          hostutil.GenerateIPv4Addresses(3, "1.2.3.1/24"),
-				machineNetworkCIDR:     "1.2.3.0/24",
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(3, common.IncrementCidrIP(common.TestIPv4Networking.MachineNetworkCidr)),
+				machineNetworkCIDR:     common.TestIPv4Networking.MachineNetworkCidr,
 				ipType:                 ipv4,
 				statusInfoChecker:      makeRegexChecker("Network latency requirements of less or equals than 100.000 ms not met for connectivity between.*Packet loss percentage requirement of less or equals than 0.00% not met for connectivity between"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -4475,8 +4477,8 @@ var _ = Describe("Refresh Host", func() {
 				hostRole:               models.HostRoleMaster,
 				latencyInMs:            200,
 				packetLossInPercentage: 1,
-				IPAddressPool:          hostutil.GenerateIPv6Addresses(3, "1001:db8::1/120"),
-				machineNetworkCIDR:     "1001:db8::/120",
+				IPAddressPool:          hostutil.GenerateIPv6Addresses(3, common.IncrementCidrIP(common.TestIPv6Networking.MachineNetworkCidr)),
+				machineNetworkCIDR:     common.TestIPv6Networking.MachineNetworkCidr,
 				ipType:                 ipv6,
 				statusInfoChecker:      makeRegexChecker("Network latency requirements of less or equals than 100.000 ms not met for connectivity between.*Packet loss percentage requirement of less or equals than 0.00% not met for connectivity between"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -4579,7 +4581,7 @@ var _ = Describe("Refresh Host", func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager)
 			mockDefaultClusterHostRequirements(mockHwValidator)
-			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworkCidr)
 			cluster.UserManagedNetworking = swag.Bool(true)
 			cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", network.IPv4.String(), hostId.String())
 			cluster.Name = common.TestDefaultConfig.ClusterName
