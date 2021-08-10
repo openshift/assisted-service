@@ -819,6 +819,20 @@ func (mr *MockInstallerAPIMockRecorder) UploadLogs(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadLogs", reflect.TypeOf((*MockInstallerAPI)(nil).UploadLogs), arg0, arg1)
 }
 
+// V2DeregisterHost mocks base method
+func (m *MockInstallerAPI) V2DeregisterHost(arg0 context.Context, arg1 installer.V2DeregisterHostParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2DeregisterHost", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2DeregisterHost indicates an expected call of V2DeregisterHost
+func (mr *MockInstallerAPIMockRecorder) V2DeregisterHost(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DeregisterHost", reflect.TypeOf((*MockInstallerAPI)(nil).V2DeregisterHost), arg0, arg1)
+}
+
 // V2GetHost mocks base method
 func (m *MockInstallerAPI) V2GetHost(arg0 context.Context, arg1 installer.V2GetHostParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -889,6 +903,20 @@ func (mr *MockInstallerAPIMockRecorder) V2RegisterHost(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2RegisterHost", reflect.TypeOf((*MockInstallerAPI)(nil).V2RegisterHost), arg0, arg1)
 }
 
+// V2UpdateHostIgnition mocks base method
+func (m *MockInstallerAPI) V2UpdateHostIgnition(arg0 context.Context, arg1 installer.V2UpdateHostIgnitionParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2UpdateHostIgnition", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2UpdateHostIgnition indicates an expected call of V2UpdateHostIgnition
+func (mr *MockInstallerAPIMockRecorder) V2UpdateHostIgnition(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateHostIgnition", reflect.TypeOf((*MockInstallerAPI)(nil).V2UpdateHostIgnition), arg0, arg1)
+}
+
 // V2UpdateHostInstallProgress mocks base method
 func (m *MockInstallerAPI) V2UpdateHostInstallProgress(arg0 context.Context, arg1 installer.V2UpdateHostInstallProgressParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -901,4 +929,18 @@ func (m *MockInstallerAPI) V2UpdateHostInstallProgress(arg0 context.Context, arg
 func (mr *MockInstallerAPIMockRecorder) V2UpdateHostInstallProgress(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateHostInstallProgress", reflect.TypeOf((*MockInstallerAPI)(nil).V2UpdateHostInstallProgress), arg0, arg1)
+}
+
+// V2UpdateHostInstallerArgs mocks base method
+func (m *MockInstallerAPI) V2UpdateHostInstallerArgs(arg0 context.Context, arg1 installer.V2UpdateHostInstallerArgsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2UpdateHostInstallerArgs", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2UpdateHostInstallerArgs indicates an expected call of V2UpdateHostInstallerArgs
+func (mr *MockInstallerAPIMockRecorder) V2UpdateHostInstallerArgs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateHostInstallerArgs", reflect.TypeOf((*MockInstallerAPI)(nil).V2UpdateHostInstallerArgs), arg0, arg1)
 }

@@ -265,6 +265,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerUploadLogsHandler: installer.UploadLogsHandlerFunc(func(params installer.UploadLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UploadLogs has not yet been implemented")
 		}),
+		InstallerV2DeregisterHostHandler: installer.V2DeregisterHostHandlerFunc(func(params installer.V2DeregisterHostParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2DeregisterHost has not yet been implemented")
+		}),
 		InstallerV2GetHostHandler: installer.V2GetHostHandlerFunc(func(params installer.V2GetHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetHost has not yet been implemented")
 		}),
@@ -280,8 +283,14 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2RegisterHostHandler: installer.V2RegisterHostHandlerFunc(func(params installer.V2RegisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2RegisterHost has not yet been implemented")
 		}),
+		InstallerV2UpdateHostIgnitionHandler: installer.V2UpdateHostIgnitionHandlerFunc(func(params installer.V2UpdateHostIgnitionParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2UpdateHostIgnition has not yet been implemented")
+		}),
 		InstallerV2UpdateHostInstallProgressHandler: installer.V2UpdateHostInstallProgressHandlerFunc(func(params installer.V2UpdateHostInstallProgressParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateHostInstallProgress has not yet been implemented")
+		}),
+		InstallerV2UpdateHostInstallerArgsHandler: installer.V2UpdateHostInstallerArgsHandlerFunc(func(params installer.V2UpdateHostInstallerArgsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2UpdateHostInstallerArgs has not yet been implemented")
 		}),
 
 		// Applies when the "X-Secret-Key" header is set
@@ -495,6 +504,8 @@ type AssistedInstallAPI struct {
 	InstallerUploadHostLogsHandler installer.UploadHostLogsHandler
 	// InstallerUploadLogsHandler sets the operation handler for the upload logs operation
 	InstallerUploadLogsHandler installer.UploadLogsHandler
+	// InstallerV2DeregisterHostHandler sets the operation handler for the v2 deregister host operation
+	InstallerV2DeregisterHostHandler installer.V2DeregisterHostHandler
 	// InstallerV2GetHostHandler sets the operation handler for the v2 get host operation
 	InstallerV2GetHostHandler installer.V2GetHostHandler
 	// InstallerV2GetNextStepsHandler sets the operation handler for the v2 get next steps operation
@@ -505,8 +516,12 @@ type AssistedInstallAPI struct {
 	InstallerV2PostStepReplyHandler installer.V2PostStepReplyHandler
 	// InstallerV2RegisterHostHandler sets the operation handler for the v2 register host operation
 	InstallerV2RegisterHostHandler installer.V2RegisterHostHandler
+	// InstallerV2UpdateHostIgnitionHandler sets the operation handler for the v2 update host ignition operation
+	InstallerV2UpdateHostIgnitionHandler installer.V2UpdateHostIgnitionHandler
 	// InstallerV2UpdateHostInstallProgressHandler sets the operation handler for the v2 update host install progress operation
 	InstallerV2UpdateHostInstallProgressHandler installer.V2UpdateHostInstallProgressHandler
+	// InstallerV2UpdateHostInstallerArgsHandler sets the operation handler for the v2 update host installer args operation
+	InstallerV2UpdateHostInstallerArgsHandler installer.V2UpdateHostInstallerArgsHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -812,6 +827,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerUploadLogsHandler == nil {
 		unregistered = append(unregistered, "installer.UploadLogsHandler")
 	}
+	if o.InstallerV2DeregisterHostHandler == nil {
+		unregistered = append(unregistered, "installer.V2DeregisterHostHandler")
+	}
 	if o.InstallerV2GetHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetHostHandler")
 	}
@@ -827,8 +845,14 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerV2RegisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2RegisterHostHandler")
 	}
+	if o.InstallerV2UpdateHostIgnitionHandler == nil {
+		unregistered = append(unregistered, "installer.V2UpdateHostIgnitionHandler")
+	}
 	if o.InstallerV2UpdateHostInstallProgressHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateHostInstallProgressHandler")
+	}
+	if o.InstallerV2UpdateHostInstallerArgsHandler == nil {
+		unregistered = append(unregistered, "installer.V2UpdateHostInstallerArgsHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -1223,6 +1247,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v1/clusters/{cluster_id}/logs"] = installer.NewUploadLogs(o.context, o.InstallerUploadLogsHandler)
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}"] = installer.NewV2DeregisterHost(o.context, o.InstallerV2DeregisterHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -1243,10 +1271,18 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts"] = installer.NewV2RegisterHost(o.context, o.InstallerV2RegisterHostHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition"] = installer.NewV2UpdateHostIgnition(o.context, o.InstallerV2UpdateHostIgnitionHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
 	o.handlers["PUT"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress"] = installer.NewV2UpdateHostInstallProgress(o.context, o.InstallerV2UpdateHostInstallProgressHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args"] = installer.NewV2UpdateHostInstallerArgs(o.context, o.InstallerV2UpdateHostInstallerArgsHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

@@ -44,6 +44,10 @@ func (f fakeInventory) DeregisterHost(ctx context.Context, params installer.Dere
 	return installer.NewDeregisterHostNoContent()
 }
 
+func (f fakeInventory) V2DeregisterHost(ctx context.Context, params installer.V2DeregisterHostParams) middleware.Responder {
+	return installer.NewV2DeregisterHostNoContent()
+}
+
 func (f fakeInventory) DisableHost(ctx context.Context, params installer.DisableHostParams) middleware.Responder {
 	return installer.NewDisableHostOK()
 }
@@ -240,6 +244,10 @@ func (f fakeInventory) UpdateHostIgnition(ctx context.Context, params installer.
 	return installer.NewUpdateHostIgnitionCreated()
 }
 
+func (f fakeInventory) V2UpdateHostIgnition(ctx context.Context, params installer.V2UpdateHostIgnitionParams) middleware.Responder {
+	return installer.NewV2UpdateHostIgnitionCreated()
+}
+
 func (f fakeInventory) GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder {
 	return installer.NewGetHostIgnitionOK()
 }
@@ -258,6 +266,10 @@ func (f fakeInventory) DownloadHostIgnition(ctx context.Context, params installe
 
 func (f fakeInventory) UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder {
 	return installer.NewUpdateHostInstallerArgsCreated()
+}
+
+func (f fakeInventory) V2UpdateHostInstallerArgs(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) middleware.Responder {
+	return installer.NewV2UpdateHostInstallerArgsCreated()
 }
 
 func (f fakeInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {

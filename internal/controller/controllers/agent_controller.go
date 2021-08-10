@@ -715,7 +715,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		return errors.New("Host not found in cluster")
 	}
 
-	internalHost, err := r.Installer.GetCommonHostInternal(ctx, string(*c.ID), agent.Name)
+	internalHost, err := r.Installer.GetCommonHostInternal(ctx, host.InfraEnvID.String(), agent.Name)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = common.NewApiError(http.StatusNotFound, err)
@@ -725,7 +725,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 	}
 
 	if internalHost.Approved != spec.Approved {
-		err = r.Installer.UpdateHostApprovedInternal(ctx, string(*c.ID), agent.Name, spec.Approved)
+		err = r.Installer.UpdateHostApprovedInternal(ctx, internalHost.InfraEnvID.String(), agent.Name, spec.Approved)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				err = common.NewApiError(http.StatusNotFound, err)

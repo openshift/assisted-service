@@ -212,6 +212,16 @@ func GetHostFromDB(db *gorm.DB, infraEnvId, hostId string) (*Host, error) {
 	return &host, nil
 }
 
+func GetClusterHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) {
+	var host Host
+
+	err := db.First(&host, "id = ? and cluster_id = ?", hostId, clusterId).Error
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get host %s in cluster %s", hostId, clusterId)
+	}
+	return &host, nil
+}
+
 func GetHostFromDBWhere(db *gorm.DB, where ...interface{}) (*Host, error) {
 	var host Host
 
@@ -230,6 +240,10 @@ func GetHostsFromDBWhere(db *gorm.DB, where ...interface{}) ([]*Host, error) {
 		return nil, err
 	}
 	return hosts, nil
+}
+
+func DeleteHostFromDB(db *gorm.DB, hostId, infraEnvId string) error {
+	return db.Where("id = ? and infra_env_id = ?", hostId, infraEnvId).Delete(&Host{}).Error
 }
 
 func GetInfraEnvFromDB(db *gorm.DB, infraEnvID strfmt.UUID) (*InfraEnv, error) {

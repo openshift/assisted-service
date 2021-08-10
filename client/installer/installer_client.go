@@ -192,6 +192,9 @@ type API interface {
 	   UploadLogs Agent API to upload logs.*/
 	UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error)
 	/*
+	   V2DeregisterHost Deregisters an OpenShift host.*/
+	V2DeregisterHost(ctx context.Context, params *V2DeregisterHostParams) (*V2DeregisterHostNoContent, error)
+	/*
 	   V2GetHost Retrieves the details of the OpenShift host.*/
 	V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2GetHostOK, error)
 	/*
@@ -207,8 +210,14 @@ type API interface {
 	   V2RegisterHost Registers a new OpenShift agent.*/
 	V2RegisterHost(ctx context.Context, params *V2RegisterHostParams) (*V2RegisterHostCreated, error)
 	/*
+	   V2UpdateHostIgnition Patch the ignition file for this host*/
+	V2UpdateHostIgnition(ctx context.Context, params *V2UpdateHostIgnitionParams) (*V2UpdateHostIgnitionCreated, error)
+	/*
 	   V2UpdateHostInstallProgress Update installation progress.*/
 	V2UpdateHostInstallProgress(ctx context.Context, params *V2UpdateHostInstallProgressParams) (*V2UpdateHostInstallProgressOK, error)
+	/*
+	   V2UpdateHostInstallerArgs Updates a host's installer arguments.*/
+	V2UpdateHostInstallerArgs(ctx context.Context, params *V2UpdateHostInstallerArgsParams) (*V2UpdateHostInstallerArgsCreated, error)
 }
 
 // New creates a new installer API client.
@@ -1635,6 +1644,31 @@ func (a *Client) UploadLogs(ctx context.Context, params *UploadLogsParams) (*Upl
 }
 
 /*
+V2DeregisterHost Deregisters an OpenShift host.
+*/
+func (a *Client) V2DeregisterHost(ctx context.Context, params *V2DeregisterHostParams) (*V2DeregisterHostNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2DeregisterHost",
+		Method:             "DELETE",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2DeregisterHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2DeregisterHostNoContent), nil
+
+}
+
+/*
 V2GetHost Retrieves the details of the OpenShift host.
 */
 func (a *Client) V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2GetHostOK, error) {
@@ -1760,6 +1794,31 @@ func (a *Client) V2RegisterHost(ctx context.Context, params *V2RegisterHostParam
 }
 
 /*
+V2UpdateHostIgnition Patch the ignition file for this host
+*/
+func (a *Client) V2UpdateHostIgnition(ctx context.Context, params *V2UpdateHostIgnitionParams) (*V2UpdateHostIgnitionCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2UpdateHostIgnition",
+		Method:             "PATCH",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2UpdateHostIgnitionReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2UpdateHostIgnitionCreated), nil
+
+}
+
+/*
 V2UpdateHostInstallProgress Update installation progress.
 */
 func (a *Client) V2UpdateHostInstallProgress(ctx context.Context, params *V2UpdateHostInstallProgressParams) (*V2UpdateHostInstallProgressOK, error) {
@@ -1781,5 +1840,30 @@ func (a *Client) V2UpdateHostInstallProgress(ctx context.Context, params *V2Upda
 		return nil, err
 	}
 	return result.(*V2UpdateHostInstallProgressOK), nil
+
+}
+
+/*
+V2UpdateHostInstallerArgs Updates a host's installer arguments.
+*/
+func (a *Client) V2UpdateHostInstallerArgs(ctx context.Context, params *V2UpdateHostInstallerArgsParams) (*V2UpdateHostInstallerArgsCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2UpdateHostInstallerArgs",
+		Method:             "PATCH",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2UpdateHostInstallerArgsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2UpdateHostInstallerArgsCreated), nil
 
 }

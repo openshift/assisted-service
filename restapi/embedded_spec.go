@@ -5117,6 +5117,72 @@ func init() {
             }
           }
         }
+      },
+      "delete": {
+        "description": "Deregisters an OpenShift host.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2DeregisterHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host that should be deregistered.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that should be deregistered.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind": {
@@ -5297,6 +5363,181 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition": {
+      "patch": {
+        "description": "Patch the ignition file for this host",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv of the host whose ignition file should be updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose ignition file should be updated.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Ignition config overrides.",
+            "name": "host-ignition-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-ignition-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args": {
+      "patch": {
+        "description": "Updates a host's installer arguments.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateHostInstallerArgs",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv of the host whose installer arguments should be updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose installer arguments should be updated.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The updated installer arguments.",
+            "name": "installer-args-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/installer-args-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -14198,6 +14439,72 @@ func init() {
             }
           }
         }
+      },
+      "delete": {
+        "description": "Deregisters an OpenShift host.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2DeregisterHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host that should be deregistered.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that should be deregistered.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind": {
@@ -14378,6 +14685,181 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition": {
+      "patch": {
+        "description": "Patch the ignition file for this host",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv of the host whose ignition file should be updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose ignition file should be updated.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Ignition config overrides.",
+            "name": "host-ignition-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-ignition-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args": {
+      "patch": {
+        "description": "Updates a host's installer arguments.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateHostInstallerArgs",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv of the host whose installer arguments should be updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose installer arguments should be updated.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The updated installer arguments.",
+            "name": "installer-args-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/installer-args-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
             "schema": {
               "$ref": "#/definitions/error"
             }
