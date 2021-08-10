@@ -1691,8 +1691,6 @@ func init() {
         "security": [
           {
             "userAuth": [
-              "admin",
-              "read-only-admin",
               "user"
             ]
           },
@@ -11014,8 +11012,6 @@ func init() {
         "security": [
           {
             "userAuth": [
-              "admin",
-              "read-only-admin",
               "user"
             ]
           },

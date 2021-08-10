@@ -55,6 +55,12 @@ var S3FileNames = []string{
 	"custom_manifests.yaml",
 }
 
+var ClusterOwnerFileNames = []string{
+	constants.Kubeconfig,
+	"kubeadmin-password",
+	"kubeconfig-noingress",
+}
+
 //go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.go
 
 type RegistrationAPI interface {

@@ -3,12 +3,17 @@ package subsystem
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"reflect"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/cluster"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 )
 
@@ -115,4 +120,60 @@ var _ = Describe("test authorization", func() {
 			Expect(err).To(BeAssignableToTypeOf(installer.NewDeregisterClusterForbidden()))
 		})
 	})
+})
+
+var _ = Describe("Make sure that sensitive files are accessible only by owners of cluster", func() {
+	var ctx context.Context
+	var clusterID strfmt.UUID
+	var file *os.File
+	AfterEach(func() {
+		clearDB()
+	})
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		cID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+		Expect(err).ToNot(HaveOccurred())
+		file, err = ioutil.TempFile("", "tmp")
+		Expect(err).ToNot(HaveOccurred())
+		clusterID = cID
+		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
+		registerHostsAndSetRoles(clusterID, minHosts)
+		setClusterAsFinalizing(ctx, clusterID)
+		res, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
+	})
+	It("Should not allow read-only-admins to download kubeconfig", func() {
+		_, err := readOnlyAdminUserBMClient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+		Expect(err).To(HaveOccurred())
+		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterKubeconfigForbidden())))
+	})
+	It("Should allow 'user role' to download kubeconfig", func() {
+		res, err := userBMClient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterKubeconfigOK(file))))
+	})
+	for _, name := range cluster.ClusterOwnerFileNames {
+		// No access tests
+		fileName := name
+		it := fmt.Sprintf("Should not read-only-admins to download '%v' via download/files endpoint", fileName)
+		It(it, func() {
+			file, err := ioutil.TempFile("", "tmp")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = readOnlyAdminUserBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: fileName}, file)
+			Expect(err).To(HaveOccurred())
+			Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterFilesForbidden())))
+		})
+		// Access granted
+		it = fmt.Sprintf("Should allow cluster users to download '%v' via download/files endpoint", fileName)
+		It(it, func() {
+			file, err := ioutil.TempFile("", "tmp")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: fileName}, file)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+	}
+
 })

@@ -3528,7 +3528,6 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 
 func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-
 	if params.FileName == "discovery.ign" {
 		infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
 		if err != nil {
@@ -3542,13 +3541,22 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 		}
 
 		return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(ioutil.NopCloser(strings.NewReader(cfg))), params.FileName, int64(len(cfg)))
-	} else {
-		respBody, contentLength, err := b.DownloadClusterFilesInternal(ctx, params)
-		if err != nil {
-			return common.GenerateErrorResponder(err)
-		}
-		return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
 	}
+
+	if funk.Contains(clusterPkg.ClusterOwnerFileNames, params.FileName) {
+		authPayload := ocm.PayloadFromContext(ctx)
+		if ocm.UserRole != authPayload.Role {
+			errMsg := fmt.Sprintf("File '%v' is accessible only for cluster owners", params.FileName)
+			payload := common.GenerateInfraError(http.StatusForbidden, errors.New(errMsg))
+			return installer.NewDownloadClusterFilesForbidden().WithPayload(payload)
+		}
+	}
+	respBody, contentLength, err := b.DownloadClusterFilesInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
+
 }
 
 func (b *bareMetalInventory) DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error) {
