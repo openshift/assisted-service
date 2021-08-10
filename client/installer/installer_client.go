@@ -198,6 +198,9 @@ type API interface {
 	   V2GetNextSteps Retrieves the next operations that the host agent needs to perform.*/
 	V2GetNextSteps(ctx context.Context, params *V2GetNextStepsParams) (*V2GetNextStepsOK, error)
 	/*
+	   V2ListHosts Retrieves the list of OpenShift hosts that belong to infra-env.*/
+	V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V2ListHostsOK, error)
+	/*
 	   V2PostStepReply Posts the result of the operations from the host agent.*/
 	V2PostStepReply(ctx context.Context, params *V2PostStepReplyParams) (*V2PostStepReplyNoContent, error)
 	/*
@@ -1678,6 +1681,31 @@ func (a *Client) V2GetNextSteps(ctx context.Context, params *V2GetNextStepsParam
 		return nil, err
 	}
 	return result.(*V2GetNextStepsOK), nil
+
+}
+
+/*
+V2ListHosts Retrieves the list of OpenShift hosts that belong to infra-env.
+*/
+func (a *Client) V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V2ListHostsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2ListHosts",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ListHostsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ListHostsOK), nil
 
 }
 

@@ -4866,6 +4866,79 @@ func init() {
       }
     },
     "/v2/infra-envs/{infra_env_id}/hosts": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Retrieves the list of OpenShift hosts that belong to infra-env.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2ListHosts",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv that the hosts are asociated with.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "post": {
         "security": [
           {
@@ -13874,6 +13947,79 @@ func init() {
       }
     },
     "/v2/infra-envs/{infra_env_id}/hosts": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Retrieves the list of OpenShift hosts that belong to infra-env.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2ListHosts",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv that the hosts are asociated with.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "post": {
         "security": [
           {

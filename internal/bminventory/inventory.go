@@ -5412,3 +5412,20 @@ func (b *bareMetalInventory) UnbindHost(ctx context.Context, params installer.Un
 
 	return installer.NewUnbindHostOK().WithPayload(&host.Host)
 }
+
+func (b *bareMetalInventory) V2ListHosts(ctx context.Context, params installer.V2ListHostsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	hosts, err := common.GetInfraEnvHostsFromDB(b.db, params.InfraEnvID)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get list of hosts for infra-env %s", params.InfraEnvID)
+		return installer.NewV2ListHostsInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	for _, host := range hosts {
+		// Clear this field as it is not needed to be sent via API
+		host.FreeAddresses = ""
+	}
+
+	return installer.NewV2ListHostsOK().WithPayload(common.ToModelsHosts(hosts))
+}
