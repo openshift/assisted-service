@@ -1260,6 +1260,7 @@ func init() {
               "kubeconfig-noingress",
               "install-config.yaml",
               "discovery.ign",
+              "custom_manifests.json",
               "custom_manifests.yaml"
             ],
             "type": "string",
@@ -10582,6 +10583,7 @@ func init() {
               "kubeconfig-noingress",
               "install-config.yaml",
               "discovery.ign",
+              "custom_manifests.json",
               "custom_manifests.yaml"
             ],
             "type": "string",

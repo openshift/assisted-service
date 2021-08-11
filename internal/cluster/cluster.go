@@ -51,6 +51,7 @@ var S3FileNames = []string{
 	"kubeadmin-password",
 	"kubeconfig-noingress",
 	"install-config.yaml",
+	"custom_manifests.json",
 	"custom_manifests.yaml",
 }
 
