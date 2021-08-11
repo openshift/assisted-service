@@ -58,9 +58,9 @@ var S3FileNames = []string{
 
 type RegistrationAPI interface {
 	// Register a new cluster
-	RegisterCluster(ctx context.Context, c *common.Cluster) error
+	RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag bool) error
 	// Register a new add-host cluster
-	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error
+	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag bool) error
 	// Register a new add-host-ocp cluster
 	RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error
 	//deregister cluster
@@ -174,8 +174,8 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 	}
 }
 
-func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error {
-	err := m.registrationAPI.RegisterCluster(ctx, c)
+func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag bool) error {
+	err := m.registrationAPI.RegisterCluster(ctx, c, v1Flag)
 	if err != nil {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
 			fmt.Sprintf("Failed to register cluster with name \"%s\". Error: %s", c.Name, err.Error()), time.Now())
@@ -186,8 +186,8 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error 
 	return err
 }
 
-func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
-	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c)
+func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag bool) error {
+	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c, v1Flag)
 	if err != nil {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
 			fmt.Sprintf("Failed to register add-hosts cluster with name \"%s\". Error: %s", c.Name, err.Error()), time.Now())

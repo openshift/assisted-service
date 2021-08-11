@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -261,4 +262,23 @@ func ToSqlList(strs []string) string {
 	res := strings.Join(strs, `', '`)
 	res = fmt.Sprintf("('%s')", res)
 	return res
+}
+
+func CreateInfraEnvForCluster(db *gorm.DB, cluster *Cluster) error {
+	proxy := models.Proxy{
+		HTTPProxy:  swag.String(cluster.HTTPProxy),
+		HTTPSProxy: swag.String(cluster.HTTPSProxy),
+		NoProxy:    swag.String(cluster.NoProxy),
+	}
+	infraEnv := &InfraEnv{InfraEnv: models.InfraEnv{
+		ID:               *cluster.ID,
+		ClusterID:        *cluster.ID,
+		OpenshiftVersion: cluster.OpenshiftVersion,
+		PullSecretSet:    true,
+		Proxy:            &proxy,
+	},
+		PullSecret: cluster.PullSecret,
+	}
+	err := db.Create(infraEnv).Error
+	return err
 }
