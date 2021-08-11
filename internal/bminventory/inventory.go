@@ -2177,7 +2177,9 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		}
 	}
 	if params.ClusterUpdateParams.SchedulableMasters != nil {
-		updates["schedulable_masters"] = swag.BoolValue(params.ClusterUpdateParams.SchedulableMasters)
+		value := swag.BoolValue(params.ClusterUpdateParams.SchedulableMasters)
+		updates["schedulable_masters"] = value
+		b.setUsage(value, usage.SchedulableMasters, nil, usages)
 	}
 	if len(updates) > 0 {
 		updates["trigger_monitor_timestamp"] = time.Now()

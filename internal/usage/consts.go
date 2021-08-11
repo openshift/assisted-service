@@ -19,4 +19,6 @@ const (
 	NetworkTypeSelectionUsage string = "NetworkType"
 	//usage of platform provider other than baremetal
 	PlatformSelectionUsage string = "Platform selection"
+	//ussage of schedulable masters
+	SchedulableMasters string = "Schedulable masters"
 )
