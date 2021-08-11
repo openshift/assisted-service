@@ -14,16 +14,27 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -source=event.go -package=events -destination=mock_event.go
-
-type Handler interface {
-	//Add event record to the event table. Use the prop field to add list of arbitrary key value pairs
-	//when additional information is needed (for example: "vendor": "RedHat")
+type Sender interface {
+	// AddEvent add an event for and entityID.
+	// Since events, might relate to multiple entities, for example:
+	//     host added to cluster, we have the host-ID as the main entityID and
+	//     the cluster-ID as another ID that this event should be related to
+	// Use the prop field to add list of arbitrary key value pairs when additional information is needed (for example: "vendor": "RedHat")
 	AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{})
+
 	//Add metric-related event. These events are hidden from the user and has 'metrics' Category field
 	AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{})
-	//Get a list of events. Events can be filtered by category. if no filter is specified,
-	//events with the default category are returned
+
+	SendClusterEvent(ctx context.Context, event ClusterEvent)
+	SendClusterEventAtTime(ctx context.Context, event ClusterEvent, eventTime time.Time)
+	SendHostEvent(ctx context.Context, event HostEvent)
+	SendHostEventAtTime(ctx context.Context, event HostEvent, eventTime time.Time)
+}
+
+//go:generate mockgen -source=event.go -package=events -destination=mock_event.go
+type Handler interface {
+	Sender
+	//Get a list of events. Events can be filtered by category. if no filter is specified, events with the default category are returned
 	GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error)
 }
 
@@ -55,7 +66,6 @@ func (e *Events) saveEvent(ctx context.Context, clusterID strfmt.UUID, hostID *s
 	if err != nil {
 		log.WithError(err).Error("failed to parse event's properties field")
 	}
-
 	event := common.Event{
 		Event: models.Event{
 			EventTime: &tt,
@@ -86,6 +96,22 @@ func (e *Events) saveEvent(ctx context.Context, clusterID strfmt.UUID, hostID *s
 		log.WithError(err).Error("Error adding event")
 	}
 	return dberr
+}
+
+func (e *Events) SendClusterEvent(ctx context.Context, event ClusterEvent) {
+	e.SendClusterEventAtTime(ctx, event, time.Now())
+}
+
+func (e *Events) SendClusterEventAtTime(ctx context.Context, event ClusterEvent, eventTime time.Time) {
+	e.AddEvent(ctx, *event.GetClusterId(), nil, event.GetSeverity(), event.FormatMessage(), eventTime)
+}
+
+func (e *Events) SendHostEvent(ctx context.Context, event HostEvent) {
+	e.SendHostEventAtTime(ctx, event, time.Now())
+}
+
+func (e *Events) SendHostEventAtTime(ctx context.Context, event HostEvent, eventTime time.Time) {
+	e.AddEvent(ctx, *event.GetClusterId(), event.GetHostId(), event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
 func (e *Events) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
@@ -152,4 +178,21 @@ func toProps(attrs ...interface{}) (result string, err error) {
 	}
 
 	return "", err
+}
+
+type BaseEvent interface {
+	GetName() string
+	GetSeverity() string
+	FormatMessage() string
+}
+
+type ClusterEvent interface {
+	BaseEvent
+	GetClusterId() *strfmt.UUID
+}
+
+type HostEvent interface {
+	BaseEvent
+	GetClusterId() *strfmt.UUID
+	GetHostId() *strfmt.UUID
 }

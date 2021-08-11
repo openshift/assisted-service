@@ -58,6 +58,12 @@ function generate_from_swagger() {
     generate_go_server
 }
 
+function generate_events() {
+    rm -rf internal/common/events
+    mkdir -p internal/common/events
+    tools/generate_events.py ./data/events.yaml internal/common/events/events.go
+}
+
 function generate_configuration() {
     OPENSHIFT_VERSIONS=$(< ${__root}/data/default_ocp_versions.json tr -d "\n\t ")
     MUST_GATHER_IMAGES=$(< ${__root}/data/default_must_gather_versions.json tr -d "\n\t ")
@@ -138,6 +144,7 @@ function generate_bundle() {
 
 function generate_all() {
     generate_from_swagger
+    generate_events
     generate_mocks
     generate_configuration
     generate_bundle

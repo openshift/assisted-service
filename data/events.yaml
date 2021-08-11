@@ -1,0 +1,22 @@
+x-events:
+- name: cancel_install_failed_start
+  message: "Failed to cancel installation: error starting DB transaction"
+  event_type: cluster
+  severity: "error"
+  properties:
+    cluster_id:  UUID
+
+- name: cancel_install_failed_commit
+  message: "Failed to cancel installation: error committing DB transaction"
+  event_type: cluster
+  severity: "error"
+  properties:
+    cluster_id:  UUID
+
+- name: host_registration_failed_setting_properties
+  message: "Failed to register host: error setting host properties"
+  event_type: host
+  severity: "error"
+  properties:
+    cluster_id: UUID
+    host_id: UUID

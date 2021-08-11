@@ -28,6 +28,7 @@ import (
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
@@ -3981,7 +3982,7 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 	if tx.Error != nil {
 		msg := "Failed to cancel installation: error starting DB transaction"
 		log.WithError(tx.Error).Errorf(msg)
-		b.eventsHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityError, msg, time.Now())
+		eventgen.SendCancelInstallFailedStartEvent(ctx, b.eventsHandler, *cluster.ID)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
@@ -4009,8 +4010,7 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 
 	if err := tx.Commit().Error; err != nil {
 		log.Errorf("Failed to cancel installation: error committing DB transaction (%s)", err)
-		msg := "Failed to cancel installation: error committing DB transaction"
-		b.eventsHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityError, msg, time.Now())
+		eventgen.SendCancelInstallFailedCommitEvent(ctx, b.eventsHandler, *cluster.ID)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
 	}
 	txSuccess = true
@@ -5195,8 +5195,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 	if err = b.customizeHost(host); err != nil {
 		// TODO Need event for infra-env instead of cluster
-		b.eventsHandler.AddEvent(ctx, params.InfraEnvID, params.NewHostParams.HostID, models.EventSeverityError,
-			"Failed to register host: error setting host properties", time.Now())
+		eventgen.SendHostRegistrationFailedSettingPropertiesEvent(ctx, b.eventsHandler, params.InfraEnvID, *params.NewHostParams.HostID)
 		return common.GenerateErrorResponder(err)
 	}
 
