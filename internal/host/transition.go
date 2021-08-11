@@ -60,7 +60,9 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 	if _, err := common.GetHostFromDB(params.db, hostParam.InfraEnvID.String(), hostParam.ID.String()); err == nil {
 		// The reason for the double register is unknown (HW might have changed) -
 		// so we reset the hw info and progress, and start the discovery process again.
+		// also log info is not current and should be resetted
 		extra := append(resetFields[:], "discovery_agent_version", params.discoveryAgentVersion, "ntp_sources", "")
+		extra = append(extra, resetLogsField...)
 		var dbHost *common.Host
 		if dbHost, err = hostutil.UpdateHostProgress(params.ctx, log, params.db, th.eventsHandler, hostParam.InfraEnvID, *hostParam.ID, sHost.srcState,
 			swag.StringValue(hostParam.Status), statusInfoDiscovering, hostParam.Progress.CurrentStage, "", "", extra...); err != nil {
