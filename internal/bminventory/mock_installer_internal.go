@@ -98,6 +98,20 @@ func (mr *MockInstallerInternalsMockRecorder) DeregisterHostInternal(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterHostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DeregisterHostInternal), arg0, arg1)
 }
 
+// DeregisterInfraEnvInternal mocks base method.
+func (m *MockInstallerInternals) DeregisterInfraEnvInternal(arg0 context.Context, arg1 installer.DeregisterInfraEnvParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeregisterInfraEnvInternal", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeregisterInfraEnvInternal indicates an expected call of DeregisterInfraEnvInternal.
+func (mr *MockInstallerInternalsMockRecorder) DeregisterInfraEnvInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterInfraEnvInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DeregisterInfraEnvInternal), arg0, arg1)
+}
+
 // DownloadClusterFilesInternal mocks base method.
 func (m *MockInstallerInternals) DownloadClusterFilesInternal(arg0 context.Context, arg1 installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()
@@ -219,6 +233,21 @@ func (mr *MockInstallerInternalsMockRecorder) GetHostByKubeKey(arg0 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostByKubeKey", reflect.TypeOf((*MockInstallerInternals)(nil).GetHostByKubeKey), arg0)
 }
 
+// GetInfraEnvByKubeKey mocks base method.
+func (m *MockInstallerInternals) GetInfraEnvByKubeKey(arg0 types.NamespacedName) (*common.InfraEnv, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInfraEnvByKubeKey", arg0)
+	ret0, _ := ret[0].(*common.InfraEnv)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInfraEnvByKubeKey indicates an expected call of GetInfraEnvByKubeKey.
+func (mr *MockInstallerInternalsMockRecorder) GetInfraEnvByKubeKey(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvByKubeKey", reflect.TypeOf((*MockInstallerInternals)(nil).GetInfraEnvByKubeKey), arg0)
+}
+
 // InstallClusterInternal mocks base method.
 func (m *MockInstallerInternals) InstallClusterInternal(arg0 context.Context, arg1 installer.InstallClusterParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
@@ -235,17 +264,17 @@ func (mr *MockInstallerInternalsMockRecorder) InstallClusterInternal(arg0, arg1 
 }
 
 // InstallSingleDay2HostInternal mocks base method.
-func (m *MockInstallerInternals) InstallSingleDay2HostInternal(arg0 context.Context, arg1, arg2 strfmt.UUID) error {
+func (m *MockInstallerInternals) InstallSingleDay2HostInternal(arg0 context.Context, arg1, arg2, arg3 strfmt.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InstallSingleDay2HostInternal", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "InstallSingleDay2HostInternal", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // InstallSingleDay2HostInternal indicates an expected call of InstallSingleDay2HostInternal.
-func (mr *MockInstallerInternalsMockRecorder) InstallSingleDay2HostInternal(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockInstallerInternalsMockRecorder) InstallSingleDay2HostInternal(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallSingleDay2HostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).InstallSingleDay2HostInternal), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallSingleDay2HostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).InstallSingleDay2HostInternal), arg0, arg1, arg2, arg3)
 }
 
 // RegisterAddHostsClusterInternal mocks base method.
@@ -276,6 +305,21 @@ func (m *MockInstallerInternals) RegisterClusterInternal(arg0 context.Context, a
 func (mr *MockInstallerInternalsMockRecorder) RegisterClusterInternal(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).RegisterClusterInternal), arg0, arg1, arg2, arg3)
+}
+
+// RegisterInfraEnvInternal mocks base method.
+func (m *MockInstallerInternals) RegisterInfraEnvInternal(arg0 context.Context, arg1 *types.NamespacedName, arg2 installer.RegisterInfraEnvParams) (*common.InfraEnv, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterInfraEnvInternal", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*common.InfraEnv)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RegisterInfraEnvInternal indicates an expected call of RegisterInfraEnvInternal.
+func (mr *MockInstallerInternalsMockRecorder) RegisterInfraEnvInternal(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInfraEnvInternal", reflect.TypeOf((*MockInstallerInternals)(nil).RegisterInfraEnvInternal), arg0, arg1, arg2)
 }
 
 // TransformClusterToDay2Internal mocks base method.
@@ -379,6 +423,21 @@ func (m *MockInstallerInternals) UpdateHostInstallerArgsInternal(arg0 context.Co
 func (mr *MockInstallerInternalsMockRecorder) UpdateHostInstallerArgsInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostInstallerArgsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateHostInstallerArgsInternal), arg0, arg1)
+}
+
+// UpdateInfraEnvInternal mocks base method.
+func (m *MockInstallerInternals) UpdateInfraEnvInternal(arg0 context.Context, arg1 installer.UpdateInfraEnvParams) (*common.InfraEnv, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInfraEnvInternal", arg0, arg1)
+	ret0, _ := ret[0].(*common.InfraEnv)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateInfraEnvInternal indicates an expected call of UpdateInfraEnvInternal.
+func (mr *MockInstallerInternalsMockRecorder) UpdateInfraEnvInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInfraEnvInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateInfraEnvInternal), arg0, arg1)
 }
 
 // V2DeregisterHostInternal mocks base method.

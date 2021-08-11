@@ -6008,7 +6008,7 @@ var _ = Describe("infraEnvs", func() {
 						PullSecretSet: true,
 					}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
-				reponse, err := bm.updateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+				reponse, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 					InfraEnvID:           infraEnvID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{},
 				})
@@ -8271,7 +8271,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
-		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, hostId)
+		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, clusterID, hostId)
 		Expect(res).Should(BeNil())
 	})
 
@@ -8284,7 +8284,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
-		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, hostId)
+		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, clusterID, hostId)
 		Expect(res.Error()).Should(Equal(expectedErrMsg))
 	})
 })

@@ -126,9 +126,8 @@ spec:
                     type: string
                 type: object
               pullSecretRef:
-                description: This field is currently not used. The Pull Secret from
-                  ClusterDeployment will be used for the ISO creation. PullSecretRef
-                  is the reference to the secret to use when pulling images.
+                description: PullSecretRef is the reference to the secret to use when
+                  pulling images.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names

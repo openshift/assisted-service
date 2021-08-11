@@ -92,7 +92,7 @@ func getInfraEnvByClusterDeployment(ctx context.Context, log logrus.FieldLogger,
 	}
 	for _, infraEnv := range infraEnvs.Items {
 		clusterRef := infraEnv.Spec.ClusterRef
-		if clusterRef.Name == name && clusterRef.Namespace == namespace {
+		if clusterRef != nil && clusterRef.Name == name && clusterRef.Namespace == namespace {
 			return &infraEnv, nil
 		}
 	}

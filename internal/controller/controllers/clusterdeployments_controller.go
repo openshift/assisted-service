@@ -374,14 +374,14 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 
 func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
 	for _, h := range cluster.Hosts {
-		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
+		commonh, err := r.Installer.GetCommonHostInternal(ctx, h.InfraEnvID.String(), h.ID.String())
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get common host %s from cluster %s", h.ID.String(), cluster.ID.String())
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
 		if r.HostApi.IsInstallable(h) && commonh.Approved {
 			log.Infof("Installing Day2 host %s in %s %s", *h.ID, clusterDeployment.Name, clusterDeployment.Namespace)
-			err = r.Installer.InstallSingleDay2HostInternal(ctx, *cluster.ID, *h.ID)
+			err = r.Installer.InstallSingleDay2HostInternal(ctx, *cluster.ID, h.InfraEnvID, *h.ID)
 			if err != nil {
 				return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 			}
@@ -960,7 +960,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.RegisterClusterParams{
 		NewClusterParams: clusterParams,
-	}, true)
+	}, false)
 	if err == nil { // Cluster registration succeeded
 		infraEnv, err = getInfraEnvByClusterDeployment(ctx, log, r.Client, clusterDeployment.Name, clusterDeployment.Namespace)
 		if err != nil {
@@ -1138,7 +1138,8 @@ func (r *ClusterDeploymentsReconciler) DeleteClusterDeploymentAgents(ctx context
 		return err
 	}
 	for i, clusterAgent := range agents.Items {
-		if clusterAgent.Spec.ClusterDeploymentName.Name == clusterDeployment.Name &&
+		if clusterAgent.Spec.ClusterDeploymentName != nil &&
+			clusterAgent.Spec.ClusterDeploymentName.Name == clusterDeployment.Name &&
 			clusterAgent.Spec.ClusterDeploymentName.Namespace == clusterDeployment.Namespace {
 			log.Infof("delete agent %s namespace %s", clusterAgent.Name, clusterAgent.Namespace)
 			if err := r.Client.Delete(ctx, &agents.Items[i]); err != nil {
@@ -1298,7 +1299,7 @@ func (r *ClusterDeploymentsReconciler) getNumOfClusterAgents(ctx context.Context
 	for _, h := range c.Hosts {
 		if r.HostApi.IsInstallable(h) {
 			registeredHosts += 1
-			commonh, err := r.Installer.GetCommonHostInternal(ctx, c.ID.String(), h.ID.String())
+			commonh, err := r.Installer.GetCommonHostInternal(ctx, h.InfraEnvID.String(), h.ID.String())
 			if err != nil {
 				return 0, 0, err
 			}
@@ -1635,7 +1636,7 @@ func (r *ClusterDeploymentsReconciler) areLogsCollected(ctx context.Context, log
 		return true, nil
 	}
 	for _, h := range cluster.Hosts {
-		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
+		commonh, err := r.Installer.GetCommonHostInternal(ctx, h.InfraEnvID.String(), h.ID.String())
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get common host %s from cluster %s", h.ID.String(), cluster.ID.String())
 			return false, err
