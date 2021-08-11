@@ -918,7 +918,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.RegisterClusterParams{
 		NewClusterParams: clusterParams,
-	})
+	}, true)
 	if err == nil { // Cluster registration succeeded
 		infraEnv, err = getInfraEnvByClusterDeployment(ctx, log, r.Client, clusterDeployment.Name, clusterDeployment.Namespace)
 		if err != nil {
@@ -968,7 +968,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 
 	c, err := r.Installer.RegisterAddHostsClusterInternal(ctx, &key, installer.RegisterAddHostsClusterParams{
 		NewAddHostsClusterParams: clusterParams,
-	})
+	}, true)
 	if err != nil {
 		log.WithError(err).Error("failed to create day2 cluster")
 	}
