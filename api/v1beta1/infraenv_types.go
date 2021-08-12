@@ -78,7 +78,8 @@ type InfraEnvSpec struct {
 	// this InfraEnv.
 	// Future versions will allow for multiple ClusterDeployments and this reference will be
 	// removed.
-	ClusterRef *ClusterReference `json:"clusterRef"`
+	// +optional
+	ClusterRef *ClusterReference `json:"clusterRef,omitempty"`
 	// Json formatted string containing the user overrides for the initial ignition config
 	// +optional
 	IgnitionConfigOverride string `json:"ignitionConfigOverride,omitempty"`

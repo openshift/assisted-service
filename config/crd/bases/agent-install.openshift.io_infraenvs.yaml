@@ -107,7 +107,6 @@ spec:
                 description: SSHAuthorizedKey is a SSH public keys that will be added to all agents for use in debugging.
                 type: string
             required:
-            - clusterRef
             - pullSecretRef
             type: object
           status:
