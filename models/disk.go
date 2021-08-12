@@ -52,6 +52,9 @@ type Disk struct {
 	// path
 	Path string `json:"path,omitempty"`
 
+	// removable
+	Removable bool `json:"removable,omitempty"`
+
 	// serial
 	Serial string `json:"serial,omitempty"`
 

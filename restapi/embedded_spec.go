@@ -7335,6 +7335,9 @@ func init() {
         "path": {
           "type": "string"
         },
+        "removable": {
+          "type": "boolean"
+        },
         "serial": {
           "type": "string"
         },
@@ -16760,6 +16763,9 @@ func init() {
         },
         "path": {
           "type": "string"
+        },
+        "removable": {
+          "type": "boolean"
         },
         "serial": {
           "type": "string"

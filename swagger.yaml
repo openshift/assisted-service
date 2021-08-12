@@ -5606,6 +5606,8 @@ definitions:
         type: integer
       bootable:
         type: boolean
+      removable:
+        type: boolean
       is_installation_media:
         type: boolean
         description: Whether the disk appears to be an installation media or not
