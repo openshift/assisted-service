@@ -5372,6 +5372,81 @@ func init() {
       }
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition": {
+      "get": {
+        "description": "Fetch the ignition file for this host.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2GetHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host whose ignition file should be obtained.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose ignition file should be obtained.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-ignition-params"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "patch": {
         "description": "Patch the ignition file for this host",
         "tags": [
@@ -14695,6 +14770,81 @@ func init() {
       }
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition": {
+      "get": {
+        "description": "Fetch the ignition file for this host.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2GetHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host whose ignition file should be obtained.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose ignition file should be obtained.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-ignition-params"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "patch": {
         "description": "Patch the ignition file for this host",
         "tags": [

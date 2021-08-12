@@ -3720,6 +3720,40 @@ func (b *bareMetalInventory) DownloadHostIgnition(ctx context.Context, params in
 	return filemiddleware.NewResponder(installer.NewDownloadHostIgnitionOK().WithPayload(respBody), fileName, contentLength)
 }
 
+// v2DownloadHostIgnition returns the ignition file name, the content as an io.ReadCloser, and the file content length
+func (b *bareMetalInventory) v2DownloadHostIgnition(ctx context.Context, infraEnvID string, hostID string) (string, io.ReadCloser, int64, error) {
+	infraEnvHost, err := common.GetHostFromDB(b.db, infraEnvID, hostID)
+	if err != nil {
+		err = errors.Errorf("host %s not found in infra env %s", hostID, infraEnvID)
+		return "", nil, 0, common.NewApiError(http.StatusNotFound, err)
+	}
+
+	// If host is not assigned to any cluster, we fail the ignition download.
+	if infraEnvHost.ClusterID == nil {
+		err = errors.Errorf("Cluster not found for host %s in infra env %s", hostID, infraEnvID)
+		return "", nil, 0, common.NewApiError(http.StatusNotFound, err)
+	}
+
+	c, err := b.getCluster(ctx, infraEnvHost.ClusterID.String(), common.SkipEagerLoading)
+	if err != nil {
+		return "", nil, 0, err
+	}
+
+	// check if cluster is in the correct state to download files
+	err = clusterPkg.CanDownloadFiles(c)
+	if err != nil {
+		return "", nil, 0, common.NewApiError(http.StatusConflict, err)
+	}
+
+	fileName := hostutil.IgnitionFileName(&infraEnvHost.Host)
+	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", infraEnvHost.ClusterID.String(), fileName))
+	if err != nil {
+		return "", nil, 0, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return fileName, respBody, contentLength, nil
+}
+
 // downloadHostIgnition returns the ignition file name, the content as an io.ReadCloser, and the file content length
 func (b *bareMetalInventory) downloadHostIgnition(ctx context.Context, clusterID string, hostID string) (string, io.ReadCloser, int64, error) {
 	c, err := b.getCluster(ctx, clusterID, common.UseEagerLoading)
@@ -5229,6 +5263,24 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	txSuccess = true
 
 	return installer.NewV2RegisterHostCreated().WithPayload(&hostRegistration)
+}
+
+func (b *bareMetalInventory) V2GetHostIgnition(ctx context.Context, params installer.V2GetHostIgnitionParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	_, respBody, _, err := b.v2DownloadHostIgnition(ctx, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to download host %s ignition", params.HostID)
+		return common.GenerateErrorResponder(err)
+	}
+
+	respBytes, err := ioutil.ReadAll(respBody)
+	if err != nil {
+		log.WithError(err).Errorf("failed to read ignition content for host %s", params.HostID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return installer.NewV2GetHostIgnitionOK().WithPayload(&models.HostIgnitionParams{Config: string(respBytes)})
 }
 
 func (b *bareMetalInventory) V2GetNextSteps(ctx context.Context, params installer.V2GetNextStepsParams) middleware.Responder {
