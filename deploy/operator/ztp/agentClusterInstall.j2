@@ -14,8 +14,10 @@ spec:
     clusterNetwork:
     - cidr: {{ cluster_subnet }}
       hostPrefix: {{ cluster_host_prefix }}
+{% if spoke_controlplane_agents|int == 1 %}
     machineNetwork:
     - cidr: {{ external_subnet }}
+{% endif %}
     serviceNetwork:
     - {{ service_subnet }}
   provisionRequirements:
