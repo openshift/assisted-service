@@ -6,8 +6,8 @@ package bminventory
 
 import (
 	context "context"
-	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
+	common "github.com/openshift/assisted-service/internal/common"
 	logrus "github.com/sirupsen/logrus"
 	reflect "reflect"
 )
@@ -36,15 +36,15 @@ func (m *MockCRDUtils) EXPECT() *MockCRDUtilsMockRecorder {
 }
 
 // CreateAgentCR mocks base method
-func (m *MockCRDUtils) CreateAgentCR(arg0 context.Context, arg1 logrus.FieldLogger, arg2, arg3, arg4 string, arg5 *strfmt.UUID) error {
+func (m *MockCRDUtils) CreateAgentCR(arg0 context.Context, arg1 logrus.FieldLogger, arg2 string, arg3 *common.InfraEnv, arg4 *common.Cluster) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAgentCR", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret := m.ctrl.Call(m, "CreateAgentCR", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateAgentCR indicates an expected call of CreateAgentCR
-func (mr *MockCRDUtilsMockRecorder) CreateAgentCR(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+func (mr *MockCRDUtilsMockRecorder) CreateAgentCR(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAgentCR", reflect.TypeOf((*MockCRDUtils)(nil).CreateAgentCR), arg0, arg1, arg2, arg3, arg4, arg5)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAgentCR", reflect.TypeOf((*MockCRDUtils)(nil).CreateAgentCR), arg0, arg1, arg2, arg3, arg4)
 }
