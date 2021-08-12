@@ -469,7 +469,12 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 	}
 
 	// Add hostname
-	hardwareDetails.Hostname = agent.Status.Inventory.Hostname
+	annotations := bmh.ObjectMeta.GetAnnotations()
+	if val, ok := annotations[BMH_AGENT_HOSTNAME]; ok {
+		hardwareDetails.Hostname = val
+	} else {
+		hardwareDetails.Hostname = agent.Status.Inventory.Hostname
+	}
 
 	bytes, err := json.Marshal(hardwareDetails)
 	if err != nil {
