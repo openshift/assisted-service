@@ -677,7 +677,7 @@ paths:
       tags:
         - installer
       security:
-        - userAuth: [admin, read-only-admin, user]
+        - userAuth: [user]
         - urlAuth: []
       description: Downloads the kubeconfig file for this cluster.
       operationId: DownloadClusterKubeconfig

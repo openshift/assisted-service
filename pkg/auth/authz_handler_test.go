@@ -361,7 +361,7 @@ var _ = Describe("authz", func() {
 		},
 		{
 			name:         "download cluster kubeconfig",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			allowedRoles: []ocm.RoleType{ocm.UserRole},
 			apiCall:      downloadClusterKubeconfig,
 		},
 		{
