@@ -4986,6 +4986,10 @@ func (b *bareMetalInventory) updateInfraEnvInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
+	if params, err = b.validateInfraEnvIgnitionParams(ctx, &params); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	err = b.updateInfraEnvData(ctx, infraEnv, params, b.db, log)
 	if err != nil {
 		log.WithError(err).Error("updateInfraEnvData")
@@ -5018,6 +5022,10 @@ func (b *bareMetalInventory) updateInfraEnvData(_ context.Context, infraEnv *com
 
 	if err = b.updateInfraEnvNtpSources(params, updates, log); err != nil {
 		return err
+	}
+
+	if params.InfraEnvUpdateParams.IgnitionConfigOverride != "" {
+		updates["ignition_config_override"] = params.InfraEnvUpdateParams.IgnitionConfigOverride
 	}
 
 	if params.InfraEnvUpdateParams.PullSecret != "" {
@@ -5083,6 +5091,21 @@ func (b *bareMetalInventory) validateAndUpdateInfraEnvProxyParams(ctx context.Co
 			params.InfraEnvUpdateParams.Proxy.NoProxy, ocpVersion); err != nil {
 			log.WithError(err).Errorf("Failed to validate Proxy settings")
 			return installer.UpdateInfraEnvParams{}, err
+		}
+	}
+
+	return *params, nil
+}
+
+func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context, params *installer.UpdateInfraEnvParams) (installer.UpdateInfraEnvParams, error) {
+
+	log := logutil.FromContext(ctx, b.log)
+
+	if params.InfraEnvUpdateParams.IgnitionConfigOverride != "" {
+		_, err := ignition.ParseToLatest([]byte(params.InfraEnvUpdateParams.IgnitionConfigOverride))
+		if err != nil {
+			log.WithError(err).Errorf("Failed to parse ignition config patch %s", params.InfraEnvUpdateParams.IgnitionConfigOverride)
+			return *params, err
 		}
 	}
 

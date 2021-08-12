@@ -5413,6 +5413,21 @@ var _ = Describe("infraEnvs", func() {
 				Expect(i.AdditionalNtpSources).ToNot(Equal(nil))
 				Expect(i.AdditionalNtpSources).To(Equal("1.1.1.1"))
 			})
+			It("Update Ignition", func() {
+				mockInfraEnvUpdateSuccess()
+				override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						IgnitionConfigOverride: override,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				var err error
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.IgnitionConfigOverride).To(Equal(override))
+			})
 		})
 
 		Context("check pull secret", func() {
