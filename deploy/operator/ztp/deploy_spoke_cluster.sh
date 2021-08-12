@@ -31,8 +31,8 @@ fi
 
 #  If spoke is a multi cluster then we need to pick IPs for API and Ingress
 if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ]; then
-    export SPOKE_API_VIP=$(nth_ip $EXTERNAL_SUBNET 85)
-    export SPOKE_INGRESS_VIP=$(nth_ip $EXTERNAL_SUBNET 87)
+    export SPOKE_API_VIP=${SPOKE_API_VIP:-$(nth_ip $EXTERNAL_SUBNET 85)}
+    export SPOKE_INGRESS_VIP=${SPOKE_INGRESS_VIP:-$(nth_ip $EXTERNAL_SUBNET 87)}
 fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
