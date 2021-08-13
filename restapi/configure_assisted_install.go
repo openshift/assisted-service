@@ -231,6 +231,9 @@ type InstallerAPI interface {
 	/* V2GetHost Retrieves the details of the OpenShift host. */
 	V2GetHost(ctx context.Context, params installer.V2GetHostParams) middleware.Responder
 
+	/* V2GetHostIgnition Fetch the ignition file for this host. */
+	V2GetHostIgnition(ctx context.Context, params installer.V2GetHostIgnitionParams) middleware.Responder
+
 	/* V2GetNextSteps Retrieves the next operations that the host agent needs to perform. */
 	V2GetNextSteps(ctx context.Context, params installer.V2GetNextStepsParams) middleware.Responder
 
@@ -760,6 +763,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetHost(ctx, params)
+	})
+	api.InstallerV2GetHostIgnitionHandler = installer.V2GetHostIgnitionHandlerFunc(func(params installer.V2GetHostIgnitionParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2GetHostIgnition(ctx, params)
 	})
 	api.InstallerV2GetNextStepsHandler = installer.V2GetNextStepsHandlerFunc(func(params installer.V2GetNextStepsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

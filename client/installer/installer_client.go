@@ -198,6 +198,9 @@ type API interface {
 	   V2GetHost Retrieves the details of the OpenShift host.*/
 	V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2GetHostOK, error)
 	/*
+	   V2GetHostIgnition Fetch the ignition file for this host.*/
+	V2GetHostIgnition(ctx context.Context, params *V2GetHostIgnitionParams) (*V2GetHostIgnitionOK, error)
+	/*
 	   V2GetNextSteps Retrieves the next operations that the host agent needs to perform.*/
 	V2GetNextSteps(ctx context.Context, params *V2GetNextStepsParams) (*V2GetNextStepsOK, error)
 	/*
@@ -1690,6 +1693,31 @@ func (a *Client) V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2Get
 		return nil, err
 	}
 	return result.(*V2GetHostOK), nil
+
+}
+
+/*
+V2GetHostIgnition Fetch the ignition file for this host.
+*/
+func (a *Client) V2GetHostIgnition(ctx context.Context, params *V2GetHostIgnitionParams) (*V2GetHostIgnitionOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2GetHostIgnition",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetHostIgnitionReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetHostIgnitionOK), nil
 
 }
 

@@ -8210,6 +8210,108 @@ var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
 	})
 })
 
+var _ = Describe("V2GetHostIgnition", func() {
+	var (
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		ctx        = context.Background()
+		dbName     string
+		clusterID  strfmt.UUID
+		infraEnvID strfmt.UUID
+		hostID     strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+
+		// create a cluster
+		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnvID = clusterID
+		status := models.ClusterStatusInstalling
+		c := common.Cluster{Cluster: models.Cluster{ID: &clusterID, Status: &status}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// add some hosts
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("return not found when given a non-existent infra env", func() {
+		otherInfraEnvID := strfmt.UUID(uuid.New().String())
+
+		getParams := installer.V2GetHostIgnitionParams{
+			InfraEnvID: otherInfraEnvID,
+			HostID:     hostID,
+		}
+		resp := bm.V2GetHostIgnition(ctx, getParams)
+		verifyApiError(resp, http.StatusNotFound)
+	})
+
+	It("return not found for a host in a different cluster", func() {
+		otherClusterID := strfmt.UUID(uuid.New().String())
+		c := common.Cluster{Cluster: models.Cluster{ID: &otherClusterID}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		otherHostID := strfmt.UUID(uuid.New().String())
+		addHost(otherHostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, otherClusterID, otherClusterID, "{}", db)
+
+		getParams := installer.V2GetHostIgnitionParams{
+			InfraEnvID: infraEnvID,
+			HostID:     otherHostID,
+		}
+		resp := bm.V2GetHostIgnition(ctx, getParams)
+		verifyApiError(resp, http.StatusNotFound)
+	})
+
+	It("return conflict when the cluster is in the incorrect status", func() {
+		db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Update("status", models.ClusterStatusInsufficient)
+
+		getParams := installer.V2GetHostIgnitionParams{
+			InfraEnvID: infraEnvID,
+			HostID:     hostID,
+		}
+		resp := bm.V2GetHostIgnition(ctx, getParams)
+		verifyApiError(resp, http.StatusConflict)
+	})
+
+	It("return server error when the download fails", func() {
+		mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/master-%s.ign", clusterID, hostID)).Return(nil, int64(0), errors.Errorf("download failed")).Times(1)
+
+		getParams := installer.V2GetHostIgnitionParams{
+			InfraEnvID: infraEnvID,
+			HostID:     hostID,
+		}
+		resp := bm.V2GetHostIgnition(ctx, getParams)
+		verifyApiError(resp, http.StatusInternalServerError)
+	})
+
+	It("return the correct content", func() {
+		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/master-%s.ign", clusterID, hostID)).Return(r, int64(4), nil).Times(1)
+
+		getParams := installer.V2GetHostIgnitionParams{
+			InfraEnvID: infraEnvID,
+			HostID:     hostID,
+		}
+		resp := bm.V2GetHostIgnition(ctx, getParams)
+		Expect(resp).To(BeAssignableToTypeOf(&installer.V2GetHostIgnitionOK{}))
+		replyPayload := resp.(*installer.V2GetHostIgnitionOK).Payload
+		Expect(replyPayload.Config).Should(Equal("test"))
+	})
+})
+
 var _ = Describe("UpdateHostIgnition", func() {
 	var (
 		bm        *bareMetalInventory
