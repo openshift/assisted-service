@@ -4466,10 +4466,10 @@ var _ = Describe("Refresh Host", func() {
 				IPAddressPool:          hostutil.GenerateIPv4Addresses(3, common.IncrementCidrIP(common.TestIPv4Networking.MachineNetworkCidr)),
 				machineNetworkCIDR:     common.TestIPv4Networking.MachineNetworkCidr,
 				ipType:                 ipv4,
-				statusInfoChecker:      makeRegexChecker("Network latency requirements of less or equals than 100.000 ms not met for connectivity between.*Packet loss percentage requirement of less or equals than 0.00% not met for connectivity between"),
+				statusInfoChecker:      makeRegexChecker("Host cannot be installed due to following failing validation\\(s\\): Network latency requirements of less than or equals 100.00 ms not met for connectivity between.*Packet loss percentage requirement of equals 0.00% not met for connectivity between.*"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationFailure, messagePattern: "Network latency requirements of less or equals than 100.000 ms not met for connectivity between (.*?) and master-1,master-2."},
-					HasSufficientPacketLossRequirementForRole:     {status: ValidationFailure, messagePattern: "Packet loss percentage requirement of less or equals than 0.00% not met for connectivity between (.*?) and master-1,master-2."},
+					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationFailure, messagePattern: "Network latency requirements of less than or equals 100.00 ms not met for connectivity between .*? and master-1 \\(200.00 ms\\), master-2 \\(200.00 ms\\)."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationFailure, messagePattern: "Packet loss percentage requirement of equals 0.00% not met for connectivity between .*? and master-1 \\(1.00%\\), master-2 \\(1.00%\\)."},
 				}),
 			}, {name: "insufficient with IPv6 and 3 masters with high latency and packet loss",
 				srcState:               models.HostStatusDiscovering,
@@ -4480,10 +4480,10 @@ var _ = Describe("Refresh Host", func() {
 				IPAddressPool:          hostutil.GenerateIPv6Addresses(3, common.IncrementCidrIP(common.TestIPv6Networking.MachineNetworkCidr)),
 				machineNetworkCIDR:     common.TestIPv6Networking.MachineNetworkCidr,
 				ipType:                 ipv6,
-				statusInfoChecker:      makeRegexChecker("Network latency requirements of less or equals than 100.000 ms not met for connectivity between.*Packet loss percentage requirement of less or equals than 0.00% not met for connectivity between"),
+				statusInfoChecker:      makeRegexChecker("Host cannot be installed due to following failing validation\\(s\\): Network latency requirements of less than or equals 100.00 ms not met for connectivity between.*Packet loss percentage requirement of equals 0.00% not met for connectivity between.*"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationFailure, messagePattern: "Network latency requirements of less or equals than 100.000 ms not met for connectivity between.*and master-1,master-2."},
-					HasSufficientPacketLossRequirementForRole:     {status: ValidationFailure, messagePattern: "Packet loss percentage requirement of less or equals than 0.00% not met for connectivity between.*and master-1,master-2."},
+					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationFailure, messagePattern: "Network latency requirements of less than or equals 100.00 ms not met for connectivity between .*? and master-1 \\(200.00 ms\\), master-2 \\(200.00 ms\\)."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationFailure, messagePattern: "Packet loss percentage requirement of equals 0.00% not met for connectivity between .*? and master-1 \\(1.00%\\), master-2 \\(1.00%\\)."},
 				}),
 			},
 		}
@@ -4983,6 +4983,15 @@ var _ = Describe("validationResult sort", func() {
 		Expect(validationResults[1].ID.String()).Should(Equal("acb"))
 		Expect(validationResults[2].ID.String()).Should(Equal("bac"))
 		Expect(validationResults[3].ID.String()).Should(Equal("cab"))
+	})
+})
+
+var _ = Describe("Comparison builder", func() {
+	It("should return 'equals' when value is == 0", func() {
+		Expect(comparisonBuilder(0)).To(Equal("equals"))
+	})
+	It("should return 'less than or equals' when value is > 0", func() {
+		Expect(comparisonBuilder(1)).To(Equal("less than or equals"))
 	})
 })
 
