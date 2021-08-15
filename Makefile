@@ -445,6 +445,16 @@ unit-test:
 	SKIP_UT_DB=1 $(MAKE) _test TEST_SCENARIO=unit TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem))" || (docker kill postgres && /bin/false)
 	docker kill postgres
 
+ci-unit-test:
+	./hack/setup_db.sh
+	SKIP_UT_DB=1 $(MAKE) _test TEST_SCENARIO=unit TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem))" 
+
+build-ci-unit-test:
+	docker build -f Dockerfile.ci-unit-test -t assisted-service-unit-test .
+
+run-ci-unit-test: build-ci-unit-test
+	docker run --rm -it assisted-service-unit-test make ci-unit-test
+
 $(REPORTS):
 	-mkdir -p $(REPORTS)
 

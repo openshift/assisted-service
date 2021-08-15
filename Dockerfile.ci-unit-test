@@ -1,0 +1,29 @@
+FROM registry.ci.openshift.org/openshift/release:golang-1.16 as gotestsum
+FROM quay.io/centos/centos:stream8
+
+ENV DIRPATH /tmp/assisted-service
+ENV TZ=UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN dnf install -y \
+    golang \
+    genisoimage \
+    make \
+    jq \
+    git \
+    https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm 
+
+# Disable the built-in PostgreSQL module in centos to be able to perform the installation of postgresql13
+RUN dnf -qy module disable postgresql
+# Install PostgreSQL server:
+RUN dnf install -y postgresql13-server
+
+WORKDIR $DIRPATH
+
+COPY --from=gotestsum /usr/bin/gotestsum /usr/bin
+COPY . $DIRPATH
+
+# postgres user is auto created when installing postgres db
+RUN chown -R postgres:postgres $DIRPATH
+RUN chmod -R 755 $DIRPATH
+USER postgres
