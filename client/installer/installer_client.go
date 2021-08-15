@@ -232,6 +232,9 @@ type API interface {
 	/*
 	   V2UpdateHostInstallerArgs Updates a host's installer arguments.*/
 	V2UpdateHostInstallerArgs(ctx context.Context, params *V2UpdateHostInstallerArgsParams) (*V2UpdateHostInstallerArgsCreated, error)
+	/*
+	   V2UpdateHostLogsProgress Update log collection state and progress.*/
+	V2UpdateHostLogsProgress(ctx context.Context, params *V2UpdateHostLogsProgressParams) (*V2UpdateHostLogsProgressNoContent, error)
 }
 
 // New creates a new installer API client.
@@ -1981,5 +1984,30 @@ func (a *Client) V2UpdateHostInstallerArgs(ctx context.Context, params *V2Update
 		return nil, err
 	}
 	return result.(*V2UpdateHostInstallerArgsCreated), nil
+
+}
+
+/*
+V2UpdateHostLogsProgress Update log collection state and progress.
+*/
+func (a *Client) V2UpdateHostLogsProgress(ctx context.Context, params *V2UpdateHostLogsProgressParams) (*V2UpdateHostLogsProgressNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2UpdateHostLogsProgress",
+		Method:             "PUT",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/logs-progress",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2UpdateHostLogsProgressReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2UpdateHostLogsProgressNoContent), nil
 
 }

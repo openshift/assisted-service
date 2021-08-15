@@ -304,6 +304,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2UpdateHostInstallerArgsHandler: installer.V2UpdateHostInstallerArgsHandlerFunc(func(params installer.V2UpdateHostInstallerArgsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateHostInstallerArgs has not yet been implemented")
 		}),
+		InstallerV2UpdateHostLogsProgressHandler: installer.V2UpdateHostLogsProgressHandlerFunc(func(params installer.V2UpdateHostLogsProgressParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2UpdateHostLogsProgress has not yet been implemented")
+		}),
 
 		// Applies when the "X-Secret-Key" header is set
 		AgentAuthAuth: func(token string) (interface{}, error) {
@@ -542,6 +545,8 @@ type AssistedInstallAPI struct {
 	InstallerV2UpdateHostInstallProgressHandler installer.V2UpdateHostInstallProgressHandler
 	// InstallerV2UpdateHostInstallerArgsHandler sets the operation handler for the v2 update host installer args operation
 	InstallerV2UpdateHostInstallerArgsHandler installer.V2UpdateHostInstallerArgsHandler
+	// InstallerV2UpdateHostLogsProgressHandler sets the operation handler for the v2 update host logs progress operation
+	InstallerV2UpdateHostLogsProgressHandler installer.V2UpdateHostLogsProgressHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -885,6 +890,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2UpdateHostInstallerArgsHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateHostInstallerArgsHandler")
+	}
+	if o.InstallerV2UpdateHostLogsProgressHandler == nil {
+		unregistered = append(unregistered, "installer.V2UpdateHostLogsProgressHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -1331,6 +1339,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args"] = installer.NewV2UpdateHostInstallerArgs(o.context, o.InstallerV2UpdateHostInstallerArgsHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/logs-progress"] = installer.NewV2UpdateHostLogsProgress(o.context, o.InstallerV2UpdateHostLogsProgressHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

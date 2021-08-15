@@ -224,6 +224,10 @@ func (f fakeInventory) UpdateHostLogsProgress(ctx context.Context, params instal
 	return installer.NewUpdateHostLogsProgressNoContent()
 }
 
+func (f fakeInventory) V2UpdateHostLogsProgress(ctx context.Context, params installer.V2UpdateHostLogsProgressParams) middleware.Responder {
+	return installer.NewV2UpdateHostLogsProgressNoContent()
+}
+
 func (f fakeInventory) GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder {
 	return installer.NewGetClusterSupportedPlatformsOK()
 }
