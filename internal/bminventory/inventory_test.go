@@ -9374,3 +9374,50 @@ var _ = Describe("Platform tests", func() {
 		})
 	})
 })
+
+var _ = Describe("DownloadClusterFiles", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		clusterID = strfmt.UUID(uuid.New().String())
+		ctx       = context.Background()
+		db        *gorm.DB
+		dbName    string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB(dbName)
+		bm = createInventory(db, cfg)
+
+		cluster := common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			PullSecretSet:    true,
+			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+			Status:           swag.String(models.ClusterStatusInstalled),
+		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		Expect(common.CreateInfraEnvForCluster(db, &cluster)).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("allows downloading cluster owner files when not using auth", func() {
+		for _, fileName := range cluster.ClusterOwnerFileNames {
+			By(fmt.Sprintf("downloading %s", fileName))
+
+			params := installer.DownloadClusterFilesParams{
+				ClusterID: clusterID,
+				FileName:  fileName,
+			}
+
+			r := io.NopCloser(bytes.NewReader([]byte("testfile")))
+			expected := filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(r), fileName, int64(8))
+			mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", clusterID, fileName)).Return(r, int64(8), nil)
+			resp := bm.DownloadClusterFiles(ctx, params)
+			Expect(resp).Should(Equal(expected))
+		}
+	})
+})

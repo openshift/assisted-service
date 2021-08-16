@@ -3543,7 +3543,8 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 		return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(ioutil.NopCloser(strings.NewReader(cfg))), params.FileName, int64(len(cfg)))
 	}
 
-	if funk.Contains(clusterPkg.ClusterOwnerFileNames, params.FileName) {
+	// the OCM payload is only set in the cloud environment when the auth type is RHSSO
+	if funk.Contains(clusterPkg.ClusterOwnerFileNames, params.FileName) && b.authHandler.AuthType() == auth.TypeRHSSO {
 		authPayload := ocm.PayloadFromContext(ctx)
 		if ocm.UserRole != authPayload.Role {
 			errMsg := fmt.Sprintf("File '%v' is accessible only for cluster owners", params.FileName)
