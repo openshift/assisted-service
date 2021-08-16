@@ -1,0 +1,41 @@
+pipeline {
+    agent { label 'centos_worker' }
+    environment {
+        SLACK_TOKEN = credentials('slack-token')
+        JIRA_CREDS = credentials('Ronnie-jira')
+        GITHUB_CREDS = credentials('oshercc_github_cred')
+        GITLAB_PRIVKEY = credentials('42f405bb-779e-418d-8219-b1807ec332ad')
+        GITLAB_TOKEN = credentials('ca661806-6ca4-4841-9937-3ab4bf723a05')
+
+        JENKINS_CRED = credentials('bot-user-jenkins')
+    }
+
+    triggers { cron('0 0 * * *') }
+
+    options {
+      timeout(time: 2, unit: 'HOURS')
+    }
+
+    stages {
+        stage('Update master and snapshot branch') {
+            steps {
+                sh '''git clean -fdx'''
+                sh '''skipper run python3 tools/ocp_version_update/update_default_release_versions_to_latest.py\
+                 --jira-user-password "${JIRA_CREDS}"\
+                 --github-user-password "${GITHUB_CREDS}"\
+                 --gitlab-key-file "${GITLAB_PRIVKEY}"\
+                 --gitlab-token "${GITLAB_TOKEN}"'''
+            }
+        }
+    }
+
+    post {
+        failure {
+            script {
+                def data = [text: "OCP version failed, see: ${BUILD_URL}"]
+                writeJSON(file: 'data.txt', json: data, pretty: 4)
+            }
+            sh '''curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt"  https://hooks.slack.com/services/$SLACK_TOKEN'''
+        }
+    }
+}

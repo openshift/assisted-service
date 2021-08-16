@@ -126,7 +126,7 @@ def get_rchos_version_from_iso(rhcos_latest_release, iso_url):
         except FileNotFoundError:
             pass
 
-        subprocess.check_output(f"7z x {tmp_live_iso_file.name} zipl.prm", shell=True, cwd="/tmp")
+        subprocess.check_output(f"7za x {tmp_live_iso_file.name} zipl.prm", shell=True, cwd="/tmp")
         with open("/tmp/zipl.prm", 'r') as f:
             zipl_info = f.read()
         result = RCHOS_VERSION_FROM_ISO_REGEX.search(zipl_info)
@@ -186,7 +186,7 @@ def clone_assisted_service(github_user, github_password):
     cmd(["git", "clone", ASSISTED_SERVICE_CLONE_URL.format(github_user=github_user, github_password=github_password, ASSISTED_SERVICE_GITHUB_FORK_REPO=ASSISTED_SERVICE_GITHUB_FORK_REPO), ASSISTED_SERVICE_CLONE_DIR])
 
     def git_cmd(*args: str):
-        return cmd(("git", "-C", ASSISTED_SERVICE_CLONE_DIR) + args)
+        return subprocess.check_output("git " +  " ".join(args), cwd=ASSISTED_SERVICE_CLONE_DIR, shell=True)
 
     git_cmd("remote", "add", "upstream", ASSISTED_SERVICE_UPSTREAM_URL)
     git_cmd("fetch", "upstream")
@@ -409,16 +409,18 @@ def main(args):
     dry_run = args.dry_run
     if dry_run:
         logger.info("Running dry-run")
-    if not dry_run:
-        if is_open_update_version_ticket(args) and not dry_run:
-            logger.info("No updates today since there is a update waiting to be merged")
-            return
+    # if not dry_run:
+    #     if is_open_update_version_ticket(args) and not dry_run:
+    #         logger.info("No updates today since there is a update waiting to be merged")
+    #         return
 
     default_version_json = get_default_release_json()
     updated_version_json = copy.deepcopy(default_version_json)
 
     updates_made = set()
     updates_made_str = set()
+
+
 
     for release in default_version_json:
 
@@ -494,6 +496,7 @@ def main(args):
         body = get_pr_body(updates_made)
 
         commit_message = title + '\n\n' + get_release_notes(updates_made)
+
         branch = commit_and_push_version_update_changes(task, commit_message)
 
         github_pr = open_pr(args, task, title, body)
