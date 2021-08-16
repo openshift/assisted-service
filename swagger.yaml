@@ -4080,6 +4080,70 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}/downloads/files:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+        - agentAuth: []
+        - urlAuth: []
+      description: Downloads files relating to the installed/installing cluster.
+      operationId: V2DownloadClusterFiles
+      produces:
+        - application/octet-stream
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster that owns the file that should be downloaded.
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: file_name
+          description: The file to be downloaded.
+          type: string
+          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, install-config.yaml, custom_manifests.json, custom_manifests.yaml]
+          required: true
+        - in: header
+          name: discovery_agent_version
+          description: The software version of the discovery agent that is downloading the file.
+          type: string
+          required: false
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: file
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   vsphere_platform:
     type: object

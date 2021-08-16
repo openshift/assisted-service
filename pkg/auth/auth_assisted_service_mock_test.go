@@ -68,6 +68,18 @@ func (f fakeInventory) DownloadClusterFiles(ctx context.Context, params installe
 		0)
 }
 
+func (f fakeInventory) V2DownloadClusterFiles(ctx context.Context, params installer.V2DownloadClusterFilesParams) middleware.Responder {
+	file, err := ioutil.TempFile("/tmp", "test.file")
+	if err != nil {
+		return installer.NewV2DownloadClusterFilesInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, err))
+	}
+	return filemiddleware.NewResponder(
+		installer.NewV2DownloadClusterFilesOK().WithPayload(io.ReadCloser(file)),
+		"test",
+		0)
+}
+
 func (f fakeInventory) V2DownloadInfraEnvFiles(ctx context.Context, params installer.V2DownloadInfraEnvFilesParams) middleware.Responder {
 	file, err := ioutil.TempFile("/tmp", "test.file")
 	if err != nil {

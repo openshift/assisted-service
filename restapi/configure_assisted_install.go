@@ -225,6 +225,9 @@ type InstallerAPI interface {
 	/* UploadLogs Agent API to upload logs. */
 	UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder
 
+	/* V2DownloadClusterFiles Downloads files relating to the installed/installing cluster. */
+	V2DownloadClusterFiles(ctx context.Context, params installer.V2DownloadClusterFilesParams) middleware.Responder
+
 	/* V2DeregisterHost Deregisters an OpenShift host. */
 	V2DeregisterHost(ctx context.Context, params installer.V2DeregisterHostParams) middleware.Responder
 
@@ -756,6 +759,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UploadLogs(ctx, params)
+	})
+	api.InstallerV2DownloadClusterFilesHandler = installer.V2DownloadClusterFilesHandlerFunc(func(params installer.V2DownloadClusterFilesParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2DownloadClusterFiles(ctx, params)
 	})
 	api.InstallerV2DeregisterHostHandler = installer.V2DeregisterHostHandlerFunc(func(params installer.V2DeregisterHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
