@@ -523,7 +523,7 @@ var _ = Describe("update progress special cases", func() {
 		id := strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHostByKind(id, infraEnvId, clusterId, models.HostStatusInstalling, models.HostKindHost, models.HostRoleMaster)
+		host = hostutil.GenerateTestHostByKind(id, infraEnvId, &clusterId, models.HostStatusInstalling, models.HostKindHost, models.HostRoleMaster)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, host.ID, models.EventSeverityInfo,
 			fmt.Sprintf("Host %s: set as bootstrap", host.ID.String()),
@@ -2797,10 +2797,15 @@ var _ = Describe("ResetHostValidation", func() {
 		h               *models.Host
 	)
 
-	registerTestHost := func(infraEnvID, clusterID strfmt.UUID) *models.Host {
+	registerTestHost := func(infraEnvID strfmt.UUID, clusterID *strfmt.UUID) *models.Host {
 
 		hostID := strfmt.UUID(uuid.New().String())
-		h := hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusInsufficient)
+		var h models.Host
+		if clusterID == nil {
+			h = hostutil.GenerateUnassignedTestHost(hostID, infraEnvID, models.HostStatusInsufficient)
+		} else {
+			h = hostutil.GenerateTestHost(hostID, infraEnvID, *clusterID, models.HostStatusInsufficient)
+		}
 
 		h.Inventory = hostutil.GenerateMasterInventory()
 		h.InstallationDiskID = "/dev/sda"
@@ -2810,6 +2815,10 @@ var _ = Describe("ResetHostValidation", func() {
 		return &h
 	}
 
+	registerUnassignedTestHost := func(infraEnvID strfmt.UUID) *models.Host {
+		return registerTestHost(infraEnvID, nil)
+	}
+
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
@@ -2817,8 +2826,9 @@ var _ = Describe("ResetHostValidation", func() {
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		validatorCfg = createValidatorCfg()
 		mockMetric := metrics.NewMockAPI(ctrl)
+		clusterId := strfmt.UUID(uuid.New().String())
 		m = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil)
-		h = registerTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()))
+		h = registerTestHost(strfmt.UUID(uuid.New().String()), &clusterId)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
 		mockMetric.EXPECT().ImagePullStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -2888,6 +2898,14 @@ var _ = Describe("ResetHostValidation", func() {
 		apiErr, ok := err.(*common.ApiErrorResponse)
 		Expect(ok).To(BeTrue())
 		Expect(apiErr.StatusCode()).To(BeNumerically("==", http.StatusNotFound))
+	})
+	It("Unassigned host", func() {
+		h = registerUnassignedTestHost(strfmt.UUID(uuid.New().String()))
+		err := m.ResetHostValidation(ctx, *h.ID, h.InfraEnvID, string(models.HostValidationIDContainerImagesAvailable), nil)
+		Expect(err).To(HaveOccurred())
+		apiErr, ok := err.(*common.ApiErrorResponse)
+		Expect(ok).To(BeTrue())
+		Expect(apiErr.StatusCode()).To(BeNumerically("==", http.StatusInternalServerError))
 	})
 })
 

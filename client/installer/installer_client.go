@@ -213,6 +213,11 @@ type API interface {
 	   V2RegisterHost Registers a new OpenShift agent.*/
 	V2RegisterHost(ctx context.Context, params *V2RegisterHostParams) (*V2RegisterHostCreated, error)
 	/*
+	   V2ResetHostValidation resets failed host validation
+
+	   Reset failed host validation. It may be performed on any host validation with persistent validation result.*/
+	V2ResetHostValidation(ctx context.Context, params *V2ResetHostValidationParams) (*V2ResetHostValidationOK, error)
+	/*
 	   V2UpdateHostIgnition Patch the ignition file for this host*/
 	V2UpdateHostIgnition(ctx context.Context, params *V2UpdateHostIgnitionParams) (*V2UpdateHostIgnitionCreated, error)
 	/*
@@ -1818,6 +1823,33 @@ func (a *Client) V2RegisterHost(ctx context.Context, params *V2RegisterHostParam
 		return nil, err
 	}
 	return result.(*V2RegisterHostCreated), nil
+
+}
+
+/*
+V2ResetHostValidation resets failed host validation
+
+Reset failed host validation. It may be performed on any host validation with persistent validation result.
+*/
+func (a *Client) V2ResetHostValidation(ctx context.Context, params *V2ResetHostValidationParams) (*V2ResetHostValidationOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2ResetHostValidation",
+		Method:             "PATCH",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ResetHostValidationReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ResetHostValidationOK), nil
 
 }
 

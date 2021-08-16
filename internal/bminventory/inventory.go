@@ -4709,6 +4709,16 @@ func (b *bareMetalInventory) GetPreflightRequirements(ctx context.Context, param
 	return installer.NewGetPreflightRequirementsOK().WithPayload(requirements)
 }
 
+func (b *bareMetalInventory) V2ResetHostValidation(ctx context.Context, params installer.V2ResetHostValidationParams) middleware.Responder {
+	err := b.hostApi.ResetHostValidation(ctx, params.HostID, params.InfraEnvID, params.ValidationID, nil)
+	if err != nil {
+		log := logutil.FromContext(ctx, b.log)
+		log.WithError(err).Error("Reset host validation")
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2ResetHostValidationOK()
+}
+
 func (b *bareMetalInventory) ResetHostValidation(ctx context.Context, params installer.ResetHostValidationParams) middleware.Responder {
 	err := b.hostApi.ResetHostValidation(ctx, params.HostID, params.ClusterID, params.ValidationID, nil)
 	if err != nil {
