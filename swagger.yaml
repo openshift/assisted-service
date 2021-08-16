@@ -4018,6 +4018,68 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/infra-envs/{infra_env_id}/downloads/files:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+        - agentAuth: []
+      description: Downloads the customized ignition file for this host
+      operationId: v2DownloadInfraEnvFiles
+      produces:
+        - application/octet-stream
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The InfraEnv whose file should be downloaded.
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: file_name
+          description: The file to be downloaded.
+          type: string
+          enum: [discovery.ign]
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: file
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   vsphere_platform:
     type: object

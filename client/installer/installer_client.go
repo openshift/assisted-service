@@ -195,6 +195,9 @@ type API interface {
 	   V2DeregisterHost Deregisters an OpenShift host.*/
 	V2DeregisterHost(ctx context.Context, params *V2DeregisterHostParams) (*V2DeregisterHostNoContent, error)
 	/*
+	   V2DownloadInfraEnvFiles Downloads the customized ignition file for this host*/
+	V2DownloadInfraEnvFiles(ctx context.Context, params *V2DownloadInfraEnvFilesParams, writer io.Writer) (*V2DownloadInfraEnvFilesOK, error)
+	/*
 	   V2GetHost Retrieves the details of the OpenShift host.*/
 	V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2GetHostOK, error)
 	/*
@@ -1668,6 +1671,31 @@ func (a *Client) V2DeregisterHost(ctx context.Context, params *V2DeregisterHostP
 		return nil, err
 	}
 	return result.(*V2DeregisterHostNoContent), nil
+
+}
+
+/*
+V2DownloadInfraEnvFiles Downloads the customized ignition file for this host
+*/
+func (a *Client) V2DownloadInfraEnvFiles(ctx context.Context, params *V2DownloadInfraEnvFilesParams, writer io.Writer) (*V2DownloadInfraEnvFilesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2DownloadInfraEnvFiles",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/downloads/files",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2DownloadInfraEnvFilesReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2DownloadInfraEnvFilesOK), nil
 
 }
 

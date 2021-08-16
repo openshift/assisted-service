@@ -268,6 +268,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2DeregisterHostHandler: installer.V2DeregisterHostHandlerFunc(func(params installer.V2DeregisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DeregisterHost has not yet been implemented")
 		}),
+		InstallerV2DownloadInfraEnvFilesHandler: installer.V2DownloadInfraEnvFilesHandlerFunc(func(params installer.V2DownloadInfraEnvFilesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2DownloadInfraEnvFiles has not yet been implemented")
+		}),
 		InstallerV2GetHostHandler: installer.V2GetHostHandlerFunc(func(params installer.V2GetHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetHost has not yet been implemented")
 		}),
@@ -509,6 +512,8 @@ type AssistedInstallAPI struct {
 	InstallerUploadLogsHandler installer.UploadLogsHandler
 	// InstallerV2DeregisterHostHandler sets the operation handler for the v2 deregister host operation
 	InstallerV2DeregisterHostHandler installer.V2DeregisterHostHandler
+	// InstallerV2DownloadInfraEnvFilesHandler sets the operation handler for the v2 download infra env files operation
+	InstallerV2DownloadInfraEnvFilesHandler installer.V2DownloadInfraEnvFilesHandler
 	// InstallerV2GetHostHandler sets the operation handler for the v2 get host operation
 	InstallerV2GetHostHandler installer.V2GetHostHandler
 	// InstallerV2GetHostIgnitionHandler sets the operation handler for the v2 get host ignition operation
@@ -834,6 +839,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2DeregisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2DeregisterHostHandler")
+	}
+	if o.InstallerV2DownloadInfraEnvFilesHandler == nil {
+		unregistered = append(unregistered, "installer.V2DownloadInfraEnvFilesHandler")
 	}
 	if o.InstallerV2GetHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetHostHandler")
@@ -1259,6 +1267,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}"] = installer.NewV2DeregisterHost(o.context, o.InstallerV2DeregisterHostHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/files"] = installer.NewV2DownloadInfraEnvFiles(o.context, o.InstallerV2DownloadInfraEnvFilesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

@@ -5623,3 +5623,21 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 	}
 	return &h.Host, nil
 }
+
+func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params installer.V2DownloadInfraEnvFilesParams) middleware.Responder {
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
+	if err != nil {
+		b.log.WithError(err).Errorf("Failed to get infra env %s", params.InfraEnvID)
+		return common.GenerateErrorResponder(err)
+	}
+	if params.FileName == "discovery.ign" {
+		cfg, err2 := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
+		if err2 != nil {
+			b.log.WithError(err).Error("Failed to format ignition config")
+			return common.GenerateErrorResponder(err)
+		}
+		return filemiddleware.NewResponder(installer.NewV2DownloadInfraEnvFilesOK().WithPayload(ioutil.NopCloser(strings.NewReader(cfg))), params.FileName, int64(len(cfg)))
+	} else {
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
+	}
+}
