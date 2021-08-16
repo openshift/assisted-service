@@ -207,7 +207,7 @@ var _ = Describe("image tests", func() {
 		cluster, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				OpenshiftVersion: swag.String(openshiftVersion),
 				PullSecret:       swag.String(pullSecret),
 			},
 		})

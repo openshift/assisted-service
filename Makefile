@@ -47,10 +47,7 @@ endif
 
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
-# RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
-OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell hack/get_ocp_versions_for_testing.sh))
 MUST_GATHER_IMAGES := $(or ${MUST_GATHER_IMAGES}, $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_must_gather_versions.json)))
-RHCOS_BASE_ISO := $(shell (jq -n '$(OPENSHIFT_VERSIONS)' | jq '[.[].rhcos_image]|max'))
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 PUBLISH_TAG := $(or ${GIT_REVISION})
@@ -103,7 +100,13 @@ GO_TEST_FORMAT = pkgname
 
 ifeq ($(CI), true)
 	VERBOSE = true
+	OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell hack/get_ocp_versions_for_testing.sh))
+else
+	OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell hack/get_ocp_versions_for_testing.sh | jq 'with_entries(select(.value.default))'))
 endif
+
+# RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
+RHCOS_BASE_ISO := $(shell (jq -n '$(OPENSHIFT_VERSIONS)' | jq '[.[].rhcos_image]|max'))
 
 ifeq ($(VERBOSE), true)
 	GO_TEST_FORMAT=standard-verbose
