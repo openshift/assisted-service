@@ -45,7 +45,7 @@ var MasterStages = [...]models.HostStage{
 }
 var WorkerStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
-	models.HostStageWritingImageToDisk, models.HostStageRebooting,
+	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane, models.HostStageRebooting,
 	models.HostStageWaitingForIgnition, models.HostStageConfiguring,
 	models.HostStageJoined, models.HostStageDone,
 }

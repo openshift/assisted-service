@@ -507,21 +507,21 @@ var _ = Describe("Installation progress", func() {
 			updateProgress(*c.Hosts[0].ID, *c.ID, models.HostStageStartingInstallation)
 			c = getCluster(*c.ID)
 			Expect(*c.Hosts[0].Status).Should(Equal("installing-in-progress"))
-			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(25)))
+			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(20)))
 		})
 
 		By("report hosts' progress - 2nd report", func() {
 
 			updateProgress(*c.Hosts[0].ID, *c.ID, models.HostStageInstalling)
 			c = getCluster(*c.ID)
-			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(50)))
+			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(40)))
 		})
 
 		By("report hosts' progress - 3rd report", func() {
 
 			updateProgress(*c.Hosts[0].ID, *c.ID, models.HostStageWritingImageToDisk)
 			c = getCluster(*c.ID)
-			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(75)))
+			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(60)))
 		})
 
 		By("report hosts' progress - last report", func() {
