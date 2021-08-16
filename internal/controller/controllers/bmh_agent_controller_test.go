@@ -623,6 +623,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(hDetails.RAMMebibytes).To(BeEquivalentTo(agent.Status.Inventory.Memory.PhysicalBytes / (1024 * 1024)))
 				Expect(hDetails.CPU.Arch).To(Equal(agent.Status.Inventory.Cpu.Architecture))
 				Expect(hDetails.CPU.Model).To(Equal(agent.Status.Inventory.Cpu.ModelName))
+				Expect(hDetails.Hostname).To(Equal(agent.Spec.Hostname))
 			})
 		})
 	})
