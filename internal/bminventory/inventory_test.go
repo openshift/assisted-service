@@ -7122,6 +7122,19 @@ var _ = Describe("Reset Host test", func() {
 		ctrl.Finish()
 	})
 
+	It("V2 Reset day2 host", func() {
+		params := installer.V2ResetHostParams{
+			HTTPRequest: request,
+			InfraEnvID:  clusterID,
+			HostID:      hostID,
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		res := bm.V2ResetHost(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ResetHostOK()))
+	})
+
 	It("Reset day2 host", func() {
 		params := installer.ResetHostParams{
 			HTTPRequest: request,
@@ -7133,6 +7146,17 @@ var _ = Describe("Reset Host test", func() {
 		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		res := bm.ResetHost(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewResetHostOK()))
+	})
+
+	It("V2 Reset day2 host, host not found", func() {
+		params := installer.V2ResetHostParams{
+			HTTPRequest: request,
+			InfraEnvID:  clusterID,
+			HostID:      strfmt.UUID(uuid.New().String()),
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		res := bm.V2ResetHost(ctx, params)
+		verifyApiError(res, http.StatusNotFound)
 	})
 
 	It("Reset day2 host, host not found", func() {
@@ -7154,6 +7178,17 @@ var _ = Describe("Reset Host test", func() {
 		}
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		res := bm.ResetHost(ctx, params)
+		verifyApiError(res, http.StatusConflict)
+	})
+
+	It("V2 Reset day2 host, host is not day2 host", func() {
+		params := installer.V2ResetHostParams{
+			HTTPRequest: request,
+			InfraEnvID:  clusterID,
+			HostID:      hostID,
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		res := bm.V2ResetHost(ctx, params)
 		verifyApiError(res, http.StatusConflict)
 	})
 })

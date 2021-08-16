@@ -219,6 +219,9 @@ type API interface {
 	   V2RegisterHost Registers a new OpenShift agent.*/
 	V2RegisterHost(ctx context.Context, params *V2RegisterHostParams) (*V2RegisterHostCreated, error)
 	/*
+	   V2ResetHost reset a failed host for day2 cluster.*/
+	V2ResetHost(ctx context.Context, params *V2ResetHostParams) (*V2ResetHostOK, error)
+	/*
 	   V2ResetHostValidation resets failed host validation
 
 	   Reset failed host validation. It may be performed on any host validation with persistent validation result.*/
@@ -1879,6 +1882,31 @@ func (a *Client) V2RegisterHost(ctx context.Context, params *V2RegisterHostParam
 		return nil, err
 	}
 	return result.(*V2RegisterHostCreated), nil
+
+}
+
+/*
+V2ResetHost reset a failed host for day2 cluster.
+*/
+func (a *Client) V2ResetHost(ctx context.Context, params *V2ResetHostParams) (*V2ResetHostOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2ResetHost",
+		Method:             "POST",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ResetHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ResetHostOK), nil
 
 }
 

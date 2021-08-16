@@ -252,6 +252,9 @@ type InstallerAPI interface {
 	/* V2RegisterHost Registers a new OpenShift agent. */
 	V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder
 
+	/* V2ResetHost reset a failed host for day2 cluster. */
+	V2ResetHost(ctx context.Context, params installer.V2ResetHostParams) middleware.Responder
+
 	/* V2ResetHostValidation Reset failed host validation. */
 	V2ResetHostValidation(ctx context.Context, params installer.V2ResetHostValidationParams) middleware.Responder
 
@@ -807,6 +810,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2RegisterHost(ctx, params)
+	})
+	api.InstallerV2ResetHostHandler = installer.V2ResetHostHandlerFunc(func(params installer.V2ResetHostParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2ResetHost(ctx, params)
 	})
 	api.InstallerV2ResetHostValidationHandler = installer.V2ResetHostValidationHandlerFunc(func(params installer.V2ResetHostValidationParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

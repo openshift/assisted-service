@@ -4193,24 +4193,46 @@ func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.I
 	return installer.NewInstallHostAccepted().WithPayload(h)
 }
 
+func (b *bareMetalInventory) V2ResetHost(ctx context.Context, params installer.V2ResetHostParams) middleware.Responder {
+	host, err := b.resetHost(ctx, params.HostID, params.InfraEnvID)
+	if err != nil {
+		return err
+	}
+	return installer.NewV2ResetHostOK().WithPayload(host)
+}
+
 func (b *bareMetalInventory) ResetHost(ctx context.Context, params installer.ResetHostParams) middleware.Responder {
+	host, err := b.resetHost(ctx, params.HostID, params.ClusterID)
+	if err != nil {
+		return err
+	}
+	return installer.NewResetHostOK().WithPayload(host)
+}
+
+func (b *bareMetalInventory) resetHost(ctx context.Context, hostId, infraEnvId strfmt.UUID) (*models.Host, middleware.Responder) {
 	log := logutil.FromContext(ctx, b.log)
-	log.Info("Resetting host: ", params.HostID)
-	host, err := common.GetHostFromDB(b.db, params.ClusterID.String(), params.HostID.String())
+	log.Info("Resetting host: ", hostId)
+	host, err := common.GetHostFromDB(b.db, infraEnvId.String(), hostId.String())
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.WithError(err).Errorf("host %s not found", params.HostID)
-			return common.NewApiError(http.StatusNotFound, err)
+			log.WithError(err).Errorf("host %s not found", hostId)
+			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
-		log.WithError(err).Errorf("failed to get host %s", params.HostID)
-		msg := fmt.Sprintf("Failed to reset host %s: error fetching host from DB", params.HostID.String())
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
-		return common.NewApiError(http.StatusInternalServerError, err)
+		log.WithError(err).Errorf("failed to get host %s", hostId)
+		msg := fmt.Sprintf("Failed to reset host %s: error fetching host from DB", hostId)
+		b.eventsHandler.AddEvent(ctx, infraEnvId, &hostId, models.EventSeverityError, msg, time.Now())
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if !hostutil.IsDay2Host(&host.Host) {
-		log.Errorf("ResetHost for host %s is forbidden: not a Day2 hosts", params.HostID.String())
-		return common.NewApiError(http.StatusConflict, fmt.Errorf("method only allowed when adding hosts to an existing cluster"))
+		log.Errorf("ResetHost for host %s is forbidden: not a Day2 hosts", hostId)
+		return nil, common.NewApiError(http.StatusConflict, fmt.Errorf("method only allowed when adding hosts to an existing cluster"))
+	}
+
+	if host.ClusterID == nil {
+		err = fmt.Errorf("host %s is not bound to any cluster, cannot reset host", hostId)
+		log.Errorf("ResetHost for host %s is forbidden: not a Day2 hosts", hostId)
+		return nil, common.NewApiError(http.StatusConflict, fmt.Errorf("method only allowed when host assigned to an existing cluster"))
 	}
 
 	err = b.db.Transaction(func(tx *gorm.DB) error {
@@ -4224,10 +4246,10 @@ func (b *bareMetalInventory) ResetHost(ctx context.Context, params installer.Res
 	})
 
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, common.GenerateErrorResponder(err)
 	}
 
-	return installer.NewResetHostOK().WithPayload(&host.Host)
+	return &host.Host, nil
 }
 
 func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder {
