@@ -42,6 +42,7 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/handler"
+	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -257,7 +258,8 @@ func main() {
 	Options.InstructionConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.OperatorsConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.GeneratorConfig.ReleaseImageMirror = Options.ReleaseImageMirror
-
+	//Initialize Provider API
+	providerRegistry := registry.InitProviderRegistry(log.WithField("pkg", "provider"))
 	// Make sure that prepare for installation timeout is more than the timeouts of all underlying tools + 2m extra
 	Options.ClusterConfig.PrepareConfig.PrepareForInstallationTimeout = maxDuration(Options.ClusterConfig.PrepareConfig.PrepareForInstallationTimeout,
 		maxDuration(Options.InstructionConfig.DiskCheckTimeout, Options.InstructionConfig.ImageAvailabilityTimeout)+2*time.Minute)
@@ -410,7 +412,7 @@ func main() {
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
-		Options.GCConfig)
+		Options.GCConfig, *providerRegistry)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead, Options.EnableKubeAPI)
