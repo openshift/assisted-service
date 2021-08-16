@@ -933,6 +933,19 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
 
+func (r *ClusterDeploymentsReconciler) TransformClusterToDay2(
+	ctx context.Context,
+	log logrus.FieldLogger,
+	cluster *common.Cluster,
+	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
+	log.Infof("transforming day1 cluster %s into day2 cluster", cluster.ID.String())
+	c, err := r.Installer.TransformClusterToDay2Internal(ctx, *cluster.ID)
+	if err != nil {
+		log.WithError(err).Errorf("failed to transform cluster %s into day2 cluster", cluster.ID.String())
+	}
+	return r.updateStatus(ctx, log, clusterInstall, c, err)
+}
+
 func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	ctx context.Context,
 	log logrus.FieldLogger,
@@ -1647,14 +1660,7 @@ func (r *ClusterDeploymentsReconciler) handleClusterInstalled(ctx context.Contex
 		}
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	} else if r.EnableDay2Cluster && !r.isSNO(clusterInstall) {
-		// Delete Day1 Cluster
-		_, err = r.deregisterClusterIfNeeded(ctx, log, key)
-		if err != nil {
-			log.WithError(err).Error("failed to deregister cluster")
-			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-		}
-		//Create Day2 cluster
-		return r.createNewDay2Cluster(ctx, log, key, clusterDeployment, clusterInstall)
+		return r.TransformClusterToDay2(ctx, log, cluster, clusterInstall)
 	}
 	return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 }
