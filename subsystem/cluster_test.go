@@ -37,6 +37,8 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"github.com/thoas/go-funk"
+	"golang.org/x/sync/errgroup"
 	"k8s.io/utils/pointer"
 )
 
@@ -411,34 +413,53 @@ func isHostInState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.UUI
 	return swag.StringValue(h.Status) == state, swag.StringValue(h.Status), swag.StringValue(h.StatusInfo)
 }
 
-func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.UUID, state string, timeout time.Duration) {
-	log.Infof("Waiting for host %s state %s", hostID, state)
-	var (
-		lastState      string
-		lastStatusInfo string
-		success        bool
-	)
+func waitForHostState(ctx context.Context, clusterID strfmt.UUID, state string, timeout time.Duration, hosts ...*models.Host) {
+	waitForHost := func(hostID strfmt.UUID) error {
+		log.Infof("Waiting for host %s state %s", hostID, state)
+		var (
+			lastState      string
+			lastStatusInfo string
+			success        bool
+		)
 
-	for start, successInRow := time.Now(), 0; time.Since(start) < timeout; {
-		success, lastState, lastStatusInfo = isHostInState(ctx, clusterID, hostID, state)
+		for start, successInRow := time.Now(), 0; time.Since(start) < timeout; {
+			success, lastState, lastStatusInfo = isHostInState(ctx, clusterID, hostID, state)
 
-		if success {
-			successInRow++
-		} else {
-			successInRow = 0
+			if success {
+				successInRow++
+			} else {
+				successInRow = 0
+			}
+
+			// Wait for host state to be consistent
+			if successInRow >= minSuccessesInRow {
+				log.Infof("host %s has status %s", hostID, state)
+				return nil
+			}
+
+			time.Sleep(time.Second)
 		}
 
-		// Wait for host state to be consistent
-		if successInRow >= minSuccessesInRow {
-			log.Infof("host %s has status %s", hostID, state)
-			return
+		if lastState != state {
+			return fmt.Errorf("Host %s in Cluster %s wasn't in state %s for %d times in a row. Actual %s (%s)",
+				hostID, clusterID, state, minSuccessesInRow, lastState, lastStatusInfo)
 		}
 
-		time.Sleep(time.Second)
+		return nil
 	}
 
-	Expect(lastState).Should(Equal(state), fmt.Sprintf("Host %s in Cluster %s wasn't in state %s for %d times in a row. Actual %s (%s)",
-		hostID, clusterID, state, minSuccessesInRow, lastState, lastStatusInfo))
+	ctx, cancel := context.WithCancel(context.Background())
+	errs, _ := errgroup.WithContext(ctx)
+	defer cancel()
+
+	for idx := range hosts {
+		host := hosts[idx]
+		errs.Go(func() error {
+			return waitForHost(*host.ID)
+		})
+	}
+
+	Expect(errs.Wait()).ShouldNot(HaveOccurred())
 }
 
 func waitForMachineNetworkCIDR(
@@ -476,11 +497,8 @@ func installCluster(clusterID strfmt.UUID) *models.Cluster {
 	waitForClusterState(ctx, clusterID, models.ClusterStatusInstalling,
 		180*time.Second, "Installation in progress")
 
-	for _, host := range c.Hosts {
-		if swag.StringValue(host.Status) != models.HostStatusDisabled {
-			waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInstalling, defaultWaitForHostStateTimeout)
-		}
-	}
+	waitForHostState(ctx, clusterID, models.HostStatusInstalling, defaultWaitForHostStateTimeout,
+		funk.Filter(c.Hosts, func(host *models.Host) bool { return swag.StringValue(host.Status) != models.HostStatusDisabled }).([]*models.Host)...)
 
 	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
@@ -502,12 +520,8 @@ func tryInstallClusterWithDiskResponses(clusterID strfmt.UUID, successfulHosts, 
 
 	waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient,
 		180*time.Second, IgnoreStateInfo)
-
-	for _, host := range failedHosts {
-		if swag.StringValue(host.Status) != models.HostStatusDisabled {
-			waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInsufficient, defaultWaitForHostStateTimeout)
-		}
-	}
+	waitForHostState(ctx, clusterID, models.HostStatusInsufficient, defaultWaitForHostStateTimeout,
+		funk.Filter(failedHosts, func(host *models.Host) bool { return swag.StringValue(host.Status) != models.HostStatusDisabled }).([]*models.Host)...)
 
 	expectedKnownHosts := make([]*models.Host, 0)
 outer:
@@ -520,11 +534,9 @@ outer:
 		expectedKnownHosts = append(expectedKnownHosts, h)
 	}
 
-	for _, host := range expectedKnownHosts {
-		if swag.StringValue(host.Status) != models.HostStatusDisabled {
-			waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
-		}
-	}
+	waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout,
+		funk.Filter(expectedKnownHosts, func(host *models.Host) bool { return swag.StringValue(host.Status) != models.HostStatusDisabled }).([]*models.Host)...)
+
 	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 	c = rep.GetPayload()
@@ -1065,8 +1077,7 @@ var _ = Describe("cluster install", func() {
 		generateEssentialHostSteps(ctx, h5, "h5", newIPs[1])
 
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
-		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
-		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, h4, h5)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 
@@ -1077,7 +1088,7 @@ var _ = Describe("cluster install", func() {
 
 		generateEssentialHostStepsWithInventory(ctx, h6, "h6", getValidWorkerHwInfoWithCIDR(newIPs[2]))
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5, h6)
-		waitForHostState(ctx, clusterID, *h6.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, h6)
 
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
@@ -1130,8 +1141,7 @@ var _ = Describe("cluster install", func() {
 		generateEssentialHostStepsWithInventory(ctx, h4, "h4", getValidWorkerHwInfoWithCIDR(newIPs[0]))
 		generateEssentialHostStepsWithInventory(ctx, h5, "h5", getValidWorkerHwInfoWithCIDR(newIPs[1]))
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
-		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
-		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, h4, h5)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 
@@ -1370,7 +1380,7 @@ var _ = Describe("cluster install", func() {
 					generateNTPPostStepReply(ctx, hosts[0], []*models.NtpSource{
 						{SourceName: common.TestNTPSourceSynced.SourceName, SourceState: models.SourceStateUnreachable},
 					})
-					waitForHostState(ctx, clusterID, *hosts[0].ID, models.HostStatusInsufficient, defaultWaitForHostStateTimeout)
+					waitForHostState(ctx, clusterID, models.HostStatusInsufficient, defaultWaitForHostStateTimeout, hosts[0])
 				})
 
 				By("Set new NTP source", func() {
@@ -1390,7 +1400,7 @@ var _ = Describe("cluster install", func() {
 					})
 				})
 
-				waitForHostState(ctx, clusterID, *hosts[0].ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+				waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, hosts[0])
 			})
 		})
 
@@ -1773,9 +1783,7 @@ var _ = Describe("cluster install", func() {
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c := rep.GetPayload()
-				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusError, defaultWaitForHostStateTimeout)
-				}
+				waitForHostState(ctx, clusterID, models.HostStatusError, defaultWaitForHostStateTimeout, c.Hosts...)
 			})
 		})
 
@@ -2054,18 +2062,13 @@ var _ = Describe("cluster install", func() {
 			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := rep.GetPayload()
-			for _, host := range c.Hosts {
-				waitForHostState(ctx, clusterID, *host.ID, models.HostStatusError, defaultWaitForHostStateTimeout)
-			}
+			waitForHostState(ctx, clusterID, models.HostStatusError, defaultWaitForHostStateTimeout, c.Hosts...)
 		})
 
 		Context("cancel installation", func() {
 			It("cancel running installation", func() {
 				c := installCluster(clusterID)
-				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInstalling,
-						defaultWaitForHostStateTimeout)
-				}
+				waitForHostState(ctx, clusterID, models.HostStatusInstalling, defaultWaitForHostStateTimeout, c.Hosts...)
 				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				waitForClusterState(ctx, clusterID, models.ClusterStatusCancelled, defaultWaitForClusterStateTimeout, clusterCanceledInfo)
@@ -2096,10 +2099,7 @@ var _ = Describe("cluster install", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				c := rep.GetPayload()
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
-				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusError,
-						defaultWaitForHostStateTimeout)
-				}
+				waitForHostState(ctx, clusterID, models.HostStatusError, defaultWaitForHostStateTimeout, c.Hosts...)
 				By("cancel installation, check cluster and hosts statuses")
 				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
@@ -2125,10 +2125,7 @@ var _ = Describe("cluster install", func() {
 
 				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
-				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusCancelled,
-						defaultWaitForClusterStateTimeout)
-				}
+				waitForHostState(ctx, clusterID, models.HostStatusCancelled, defaultWaitForClusterStateTimeout, c.Hosts...)
 			})
 			It("cancel installation with a disabled host", func() {
 				By("register a new worker")
@@ -2148,8 +2145,7 @@ var _ = Describe("cluster install", func() {
 					HostID:    *disabledHost.ID,
 				})
 				Expect(err).ShouldNot(HaveOccurred())
-				waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusDisabled,
-					defaultWaitForHostStateTimeout)
+				waitForHostState(ctx, clusterID, models.HostStatusDisabled, defaultWaitForHostStateTimeout, disabledHost)
 				waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 					clusterReadyStateInfo)
 
@@ -2161,8 +2157,7 @@ var _ = Describe("cluster install", func() {
 						Expect(*host.Status).Should(Equal(models.HostStatusDisabled))
 						continue
 					}
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInstalling,
-						defaultWaitForHostStateTimeout)
+					waitForHostState(ctx, clusterID, models.HostStatusInstalling, defaultWaitForHostStateTimeout, host)
 				}
 
 				By("cancel installation")
@@ -2207,10 +2202,7 @@ var _ = Describe("cluster install", func() {
 
 				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
-				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusCancelled,
-						defaultWaitForHostStateTimeout)
-				}
+				waitForHostState(ctx, clusterID, models.HostStatusCancelled, defaultWaitForHostStateTimeout, c.Hosts...)
 			})
 			It("cancel installation - cluster in finalizing status", func() {
 				setClusterAsFinalizing(ctx, clusterID)
@@ -2222,10 +2214,7 @@ var _ = Describe("cluster install", func() {
 				c := rep.GetPayload()
 				Expect(c).NotTo(BeNil())
 
-				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusCancelled,
-						defaultWaitForHostStateTimeout)
-				}
+				waitForHostState(ctx, clusterID, models.HostStatusCancelled, defaultWaitForHostStateTimeout, c.Hosts...)
 			})
 		})
 		Context("reset installation", func() {
@@ -2255,8 +2244,7 @@ var _ = Describe("cluster install", func() {
 						_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetInstallation)
 						Expect(ok).Should(Equal(true))
 					} else {
-						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
-							defaultWaitForHostStateTimeout)
+						waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, host)
 					}
 					_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
 						InfraEnvID: clusterID,
@@ -2265,14 +2253,12 @@ var _ = Describe("cluster install", func() {
 						},
 					})
 					Expect(err).ShouldNot(HaveOccurred())
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
-						defaultWaitForHostStateTimeout)
+					waitForHostState(ctx, clusterID, models.HostStatusDiscovering, defaultWaitForHostStateTimeout, host)
 					generateEssentialHostSteps(ctx, host, fmt.Sprintf("host-after-reset-%d", i), ips[i])
 				}
 				generateFullMeshConnectivity(ctx, ips[0], c.Hosts...)
 				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown,
-						defaultWaitForHostStateTimeout)
+					waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, host)
 					host = getHost(clusterID, *host.ID)
 					Expect(host.Progress.CurrentStage).Should(Equal(models.HostStage("")))
 					Expect(host.Progress.ProgressInfo).Should(Equal(""))
@@ -2319,14 +2305,12 @@ var _ = Describe("cluster install", func() {
 							},
 						})
 						Expect(err).ShouldNot(HaveOccurred())
-						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
-							defaultWaitForHostStateTimeout)
+						waitForHostState(ctx, clusterID, models.HostStatusDiscovering, defaultWaitForHostStateTimeout, host)
 						generateEssentialHostSteps(ctx, host, fmt.Sprintf("host-after-reset-%d", i), ips[i])
 					}
 					generateFullMeshConnectivity(ctx, ips[0], c.Hosts...)
 					for _, host := range c.Hosts {
-						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown,
-							defaultWaitForHostStateTimeout)
+						waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, host)
 
 						if host.Bootstrap {
 							_, err = userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
@@ -2362,10 +2346,7 @@ var _ = Describe("cluster install", func() {
 				_, err := userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
 				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewResetClusterConflict())))
 				c := installCluster(clusterID)
-				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInstalling,
-						defaultWaitForHostStateTimeout)
-				}
+				waitForHostState(ctx, clusterID, models.HostStatusInstalling, defaultWaitForHostStateTimeout, c.Hosts...)
 				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
@@ -2375,8 +2356,7 @@ var _ = Describe("cluster install", func() {
 					if enableReset {
 						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
 					} else {
-						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
-							defaultWaitForHostStateTimeout)
+						waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, host)
 					}
 				}
 			})
@@ -2395,10 +2375,7 @@ var _ = Describe("cluster install", func() {
 
 				_, err := userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
-				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
-						defaultWaitForClusterStateTimeout)
-				}
+				waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForClusterStateTimeout, c.Hosts...)
 			})
 
 			It("reset cluster - wrong boot order", func() {
@@ -2411,8 +2388,7 @@ var _ = Describe("cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout, clusterResetStateInfo)
 				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
-						defaultWaitForHostStateTimeout)
+					waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, host)
 					_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
 						InfraEnvID: clusterID,
 						NewHostParams: &models.HostCreateParams{
@@ -2420,8 +2396,7 @@ var _ = Describe("cluster install", func() {
 						},
 					})
 					Expect(err).ShouldNot(HaveOccurred())
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
-						defaultWaitForHostStateTimeout)
+					waitForHostState(ctx, clusterID, models.HostStatusDiscovering, defaultWaitForHostStateTimeout, host)
 				}
 			})
 			It("reset cluster with a disabled host", func() {
@@ -2442,8 +2417,7 @@ var _ = Describe("cluster install", func() {
 					HostID:    *disabledHost.ID,
 				})
 				Expect(err).ShouldNot(HaveOccurred())
-				waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusDisabled,
-					defaultWaitForHostStateTimeout)
+				waitForHostState(ctx, clusterID, models.HostStatusDisabled, defaultWaitForHostStateTimeout, disabledHost)
 				waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 					clusterReadyStateInfo)
 
@@ -2455,8 +2429,7 @@ var _ = Describe("cluster install", func() {
 						Expect(*host.Status).Should(Equal(models.HostStatusDisabled))
 						continue
 					}
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInstalling,
-						defaultWaitForHostStateTimeout)
+					waitForHostState(ctx, clusterID, models.HostStatusInstalling, defaultWaitForHostStateTimeout, host)
 				}
 
 				By("reset installation")
@@ -2477,8 +2450,7 @@ var _ = Describe("cluster install", func() {
 					if enableReset {
 						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
 					} else {
-						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
-							defaultWaitForHostStateTimeout)
+						waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, host)
 					}
 				}
 			})
@@ -2501,8 +2473,7 @@ var _ = Describe("cluster install", func() {
 					HostID:    *disabledHost.ID,
 				})
 				Expect(err).ShouldNot(HaveOccurred())
-				waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusDisabled,
-					defaultWaitForHostStateTimeout)
+				waitForHostState(ctx, clusterID, models.HostStatusDisabled, defaultWaitForHostStateTimeout, disabledHost)
 				waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 					clusterReadyStateInfo)
 
@@ -2514,8 +2485,7 @@ var _ = Describe("cluster install", func() {
 						Expect(*host.Status).Should(Equal(models.HostStatusDisabled))
 						continue
 					}
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInstalling,
-						defaultWaitForHostStateTimeout)
+					waitForHostState(ctx, clusterID, models.HostStatusInstalling, defaultWaitForHostStateTimeout, host)
 					updateProgress(*host.ID, clusterID, models.HostStageRebooting)
 				}
 
@@ -2534,8 +2504,7 @@ var _ = Describe("cluster install", func() {
 						Expect(*host.Status).Should(Equal(models.HostStatusDisabled))
 						continue
 					}
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
-						defaultWaitForClusterStateTimeout)
+					waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForClusterStateTimeout, host)
 				}
 			})
 
@@ -2549,10 +2518,7 @@ var _ = Describe("cluster install", func() {
 				c := rep.GetPayload()
 				Expect(c).NotTo(BeNil())
 
-				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
-						defaultWaitForHostStateTimeout)
-				}
+				waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, c.Hosts...)
 			})
 
 			It("reset cluster doesn't delete manifests", func() {
@@ -2595,10 +2561,7 @@ spec:
 
 				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
-				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
-						defaultWaitForClusterStateTimeout)
-				}
+				waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForClusterStateTimeout, c.Hosts...)
 
 				// verify manifest remains after cluster reset
 				response2, err := userBMClient.Manifests.ListClusterManifests(ctx, &manifests.ListClusterManifestsParams{
@@ -2748,7 +2711,7 @@ spec:
 			}},
 			ClusterID: clusterID,
 		})
-		waitForHostState(ctx, clusterID, *mh3.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, mh3)
 
 		Expect(err).NotTo(HaveOccurred())
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout, clusterReadyStateInfo)
@@ -2771,7 +2734,7 @@ spec:
 			}},
 			ClusterID: clusterID,
 		})
-		waitForHostState(ctx, clusterID, *mh3.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, mh3)
 
 		Expect(err).NotTo(HaveOccurred())
 		waitForClusterState(ctx, clusterID, "ready", 60*time.Second, clusterReadyStateInfo)
@@ -2834,7 +2797,7 @@ spec:
 		h4 := registerNode(ctx, clusterID, "h4", ips[2])
 
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
-		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusKnown, defaultWaitForClusterStateTimeout)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h1)
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
@@ -2846,7 +2809,7 @@ spec:
 		})
 		Expect(err).NotTo(HaveOccurred())
 		By("validate that host 1 is insufficient")
-		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusInsufficient, defaultWaitForClusterStateTimeout)
+		waitForHostState(ctx, clusterID, models.HostStatusInsufficient, defaultWaitForClusterStateTimeout, h1)
 	})
 
 	It("unique_hostname_validation", func() {
@@ -2865,7 +2828,7 @@ spec:
 		h2 := getHost(clusterID, *hosts[1].ID)
 		h3 := getHost(clusterID, *hosts[2].ID)
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
-		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
+		waitForHostState(ctx, clusterID, "known", 60*time.Second, h1)
 		Expect(h1.RequestedHostname).Should(Equal("h1"))
 
 		By("Registering host with same hostname")
@@ -2874,7 +2837,7 @@ spec:
 		h4 := registerNode(ctx, clusterID, "h1", newIPs[0])
 		h4 = getHost(clusterID, *h4.ID)
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
-		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
+		waitForHostState(ctx, clusterID, "insufficient", 60*time.Second, h1)
 		Expect(h4.RequestedHostname).Should(Equal("h1"))
 		h1 = getHost(clusterID, *h1.ID)
 		Expect(*h1.Status).Should(Equal("insufficient"))
@@ -2897,8 +2860,7 @@ spec:
 		By("Registering one more host with same hostname")
 		disabledHost := registerNode(ctx, clusterID, "h1", newIPs[1])
 		disabledHost = getHost(clusterID, *disabledHost.ID)
-		waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusInsufficient,
-			defaultWaitForHostStateTimeout)
+		waitForHostState(ctx, clusterID, models.HostStatusInsufficient, defaultWaitForHostStateTimeout, disabledHost)
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -2909,7 +2871,7 @@ spec:
 
 		By("Changing hostname, verify host is known now")
 		generateEssentialHostSteps(ctx, h4, "h4", newIPs[0])
-		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, h4)
 		h4 = getHost(clusterID, *h4.ID)
 		Expect(h4.RequestedHostname).Should(Equal("h4"))
 
@@ -2921,7 +2883,7 @@ spec:
 		Expect(err).NotTo(HaveOccurred())
 		disabledHost = getHost(clusterID, *disabledHost.ID)
 		Expect(*disabledHost.Status).Should(Equal(models.HostStatusDisabled))
-		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, h1)
 
 		By("add one more worker to get 2 functioning workers")
 		h5 := registerNode(ctx, clusterID, "h5", newIPs[1])
@@ -2956,12 +2918,12 @@ spec:
 		Expect(err).NotTo(HaveOccurred())
 
 		h1 := getHost(clusterID, *hosts[0].ID)
-		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
+		waitForHostState(ctx, clusterID, "known", 60*time.Second, h1)
 		Expect(h1.RequestedHostname).Should(Equal("h1"))
 
 		By("Changing hostname reply to localhost")
 		generateEssentialHostSteps(ctx, h1, localhost, ips[0])
-		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusInsufficient, 60*time.Second)
+		waitForHostState(ctx, clusterID, models.HostStatusInsufficient, 60*time.Second, h1)
 		h1Host := getHost(clusterID, *h1.ID)
 		Expect(h1Host.RequestedHostname).Should(Equal(localhost))
 
@@ -2974,7 +2936,7 @@ spec:
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusKnown, 60*time.Second)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, 60*time.Second, h1)
 
 		By("Setting hostname to localhost")
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -2985,7 +2947,7 @@ spec:
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusInsufficient, 60*time.Second)
+		waitForHostState(ctx, clusterID, models.HostStatusInsufficient, 60*time.Second, h1)
 
 	})
 
@@ -3027,9 +2989,7 @@ spec:
 		h1 := getHost(clusterID, *hosts[0].ID)
 		h2 := getHost(clusterID, *hosts[1].ID)
 		h3 := getHost(clusterID, *hosts[2].ID)
-		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusKnown, time.Minute)
-		waitForHostState(ctx, clusterID, *h2.ID, models.HostStatusKnown, time.Minute)
-		waitForHostState(ctx, clusterID, *h3.ID, models.HostStatusKnown, time.Minute)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, time.Minute, h1, h2, h3)
 		// update requested hostnames
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
@@ -3056,8 +3016,7 @@ spec:
 		h4 := registerNode(ctx, clusterID, "h3", newIPs[0])
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
 		h4 = getHost(clusterID, *h4.ID)
-		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusInsufficient, time.Minute)
-		waitForHostState(ctx, clusterID, *h3.ID, models.HostStatusInsufficient, time.Minute)
+		waitForHostState(ctx, clusterID, models.HostStatusInsufficient, time.Minute, h3, h4)
 
 		By("Check cluster install fails on validation")
 		_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
@@ -3067,8 +3026,7 @@ spec:
 		h5 := registerNode(ctx, clusterID, "reqh0", newIPs[1])
 		h5 = getHost(clusterID, *h5.ID)
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
-		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusInsufficient, time.Minute)
-		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusInsufficient, time.Minute)
+		waitForHostState(ctx, clusterID, models.HostStatusInsufficient, time.Minute, h1, h5)
 
 		By("Change requested hostname of an insufficient node")
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -3083,8 +3041,7 @@ spec:
 			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusKnown, time.Minute)
-		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusKnown, time.Minute)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, time.Minute, h1, h5)
 
 		By("change the requested hostname of the insufficient node")
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -3099,7 +3056,7 @@ spec:
 			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		waitForHostState(ctx, clusterID, *h3.ID, models.HostStatusKnown, time.Minute)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, time.Minute, h3)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, time.Minute, clusterReadyStateInfo)
 		_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
@@ -3275,9 +3232,8 @@ var _ = Describe("cluster install, with default network params", func() {
 		c = installCluster(clusterID)
 		Expect(len(c.Hosts)).Should(Equal(5))
 		Expect(c.InstallStartedAt).ShouldNot(Equal(startTimeInstalling))
-		for _, host := range c.Hosts {
-			waitForHostState(ctx, clusterID, *host.ID, "installing", 10*time.Second)
-		}
+		waitForHostState(ctx, clusterID, "installing", 10*time.Second, c.Hosts...)
+
 		// fake installation completed
 		for _, host := range c.Hosts {
 			updateProgress(*host.ID, clusterID, models.HostStageDone)
@@ -3433,10 +3389,7 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 
 	Expect(err).NotTo(HaveOccurred())
 
-	for _, host := range hosts {
-		waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
-	}
-
+	waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, hosts...)
 	waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
 
 	return hosts
