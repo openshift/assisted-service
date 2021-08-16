@@ -252,7 +252,8 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 	formatCmds := ""
 	for _, disk := range inventory.Disks {
 		isFcIscsi := strings.Contains(disk.ByPath, "-fc-") || strings.Contains(disk.ByPath, "-iscsi-")
-		if disk.Bootable && !isFcIscsi && !disk.IsInstallationMedia {
+		isMmcblk := strings.Contains(disk.ByPath, "mmcblk") //mmc devices should be treated as removable
+		if disk.Bootable && !disk.Removable && !isMmcblk && !isFcIscsi && !disk.IsInstallationMedia {
 			formatCmds += fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=1 ; ", hostutil.GetDeviceIdentifier(disk))
 			i.eventsHandler.AddEvent(
 				ctx,
