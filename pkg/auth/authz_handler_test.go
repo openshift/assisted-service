@@ -356,7 +356,7 @@ var _ = Describe("authz", func() {
 		},
 		{
 			name:         "get credentials",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			allowedRoles: []ocm.RoleType{ocm.UserRole},
 			apiCall:      getCredentials,
 		},
 		{

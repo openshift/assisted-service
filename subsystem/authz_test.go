@@ -177,3 +177,35 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 	}
 
 })
+
+var _ = Describe("Cluster credentials should be accessed only by cluster owner", func() {
+	var ctx context.Context
+	var clusterID strfmt.UUID
+	AfterEach(func() {
+		clearDB()
+	})
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		cID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+		Expect(err).ToNot(HaveOccurred())
+		clusterID = cID
+		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
+		registerHostsAndSetRoles(clusterID, minHosts)
+		setClusterAsFinalizing(ctx, clusterID)
+		res, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
+		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
+
+	})
+	It("Should not allow read-only-admins to get credentials", func() {
+		_, err := readOnlyAdminUserBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
+		Expect(err).To(HaveOccurred())
+		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewGetCredentialsForbidden())))
+	})
+	It("Should allow cluster user to get credentials", func() {
+		_, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
+		Expect(err).ToNot(HaveOccurred())
+	})
+})
