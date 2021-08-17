@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+sleep 5m
+
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(realpath ${__dir}/../../..)"
 source ${__dir}/../common.sh
