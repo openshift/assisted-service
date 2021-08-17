@@ -7,9 +7,11 @@ import (
 	"regexp"
 
 	"github.com/go-openapi/swag"
+	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
@@ -192,4 +194,23 @@ func UnmarshalConnectivityReport(reportStr string) (*models.ConnectivityReport, 
 		return nil, err
 	}
 	return &report, nil
+}
+
+func GetHostCluster(log logrus.FieldLogger, db *gorm.DB, host *models.Host) (*common.Cluster, error) {
+	var cluster common.Cluster
+	err := db.First(&cluster, "id = ?", host.ClusterID).Error
+	if err != nil {
+		log.WithError(err).Errorf("Failed to find cluster %s", host.ClusterID)
+		return nil, errors.Errorf("Failed to find cluster %s", host.ClusterID)
+	}
+	return &cluster, nil
+}
+
+func IsSingleNode(log logrus.FieldLogger, db *gorm.DB, host *models.Host) bool {
+	cluster, err := GetHostCluster(log, db, host)
+	if err != nil {
+		log.Debug("Can't check if host is part of single node OpenShift")
+		return false
+	}
+	return common.IsSingleNodeCluster(cluster)
 }

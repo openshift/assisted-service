@@ -66,11 +66,13 @@ var InstallationProgressTimeout = map[models.HostStage]time.Duration{
 	models.HostStageInstalling:             60 * time.Minute,
 	models.HostStageJoined:                 60 * time.Minute,
 	models.HostStageWritingImageToDisk:     30 * time.Minute,
-	models.HostStageRebooting:              70 * time.Minute,
+	models.HostStageRebooting:              40 * time.Minute,
 	models.HostStageConfiguring:            60 * time.Minute,
 	models.HostStageWaitingForIgnition:     24 * time.Hour,
 	"DEFAULT":                              60 * time.Minute,
 }
+
+const singleNodeRebootTimeout = 80 * time.Minute
 
 var disconnectionValidationStages = []models.HostStage{
 	models.HostStageWritingImageToDisk,
@@ -1149,30 +1151,12 @@ func (m Manager) PermanentHostsDeletion(olderThan strfmt.DateTime) error {
 	return nil
 }
 
-func (m *Manager) getHostCluster(host *models.Host) (*common.Cluster, error) {
-	var cluster common.Cluster
-	err := m.db.First(&cluster, "id = ?", host.ClusterID).Error
-	if err != nil {
-		m.log.WithError(err).Errorf("Failed to find cluster %s", host.ClusterID)
-		return nil, errors.Errorf("Failed to find cluster %s", host.ClusterID)
-	}
-	return &cluster, nil
-}
-
 func (m *Manager) allowStageOutOfOrder(h *models.Host, stage models.HostStage) bool {
 	// Return True in case the given stage order is exceptional in case of SNO
 	if stage != models.HostStageWritingImageToDisk {
 		return false
 	}
-	cluster, err := m.getHostCluster(h)
-	if err != nil {
-		m.log.Debug("Can't check if host is part of single node OpenShift")
-		return false
-	}
-	if !common.IsSingleNodeCluster(cluster) {
-		return false
-	}
-	return true
+	return hostutil.IsSingleNode(m.log, m.db, h)
 }
 
 type DisabledHostValidations map[string]struct{}
