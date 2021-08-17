@@ -6062,6 +6062,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		cfg            Config
 		db             *gorm.DB
 		ctx            = context.Background()
+		infraEnvID     strfmt.UUID
 		clusterID      strfmt.UUID
 		hostID         strfmt.UUID
 		c              common.Cluster
@@ -6076,6 +6077,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
 
 		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
@@ -6190,6 +6192,37 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCompleted)).Return(nil).Times(1)
 		reply := bm.UpdateHostLogsProgress(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostLogsProgressNoContent()))
+	})
+
+	It(" V2 start collecting hosts logs indication", func() {
+		newHostID := strfmt.UUID(uuid.New().String())
+		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, "{}", db)
+		params := installer.V2UpdateHostLogsProgressParams{
+			InfraEnvID:  infraEnvID,
+			HostID:      *host.ID,
+			HTTPRequest: request,
+			LogsProgressParams: &models.LogsProgressParams{
+				LogsState: models.LogsStateRequested,
+			},
+		}
+		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateRequested)).Return(nil).Times(1)
+		reply := bm.V2UpdateHostLogsProgress(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostLogsProgressNoContent()))
+	})
+	It("V2 complete collecting hosts logs indication", func() {
+		newHostID := strfmt.UUID(uuid.New().String())
+		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, "{}", db)
+		params := installer.V2UpdateHostLogsProgressParams{
+			InfraEnvID:  infraEnvID,
+			HostID:      *host.ID,
+			HTTPRequest: request,
+			LogsProgressParams: &models.LogsProgressParams{
+				LogsState: models.LogsStateCompleted,
+			},
+		}
+		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCompleted)).Return(nil).Times(1)
+		reply := bm.V2UpdateHostLogsProgress(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostLogsProgressNoContent()))
 	})
 
 	It("Upload Controller logs Happy flow", func() {

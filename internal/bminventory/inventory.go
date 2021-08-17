@@ -5675,3 +5675,17 @@ func (b *bareMetalInventory) V2DownloadClusterFilesInternal(ctx context.Context,
 
 	return respBody, contentLength, nil
 }
+
+func (b *bareMetalInventory) V2UpdateHostLogsProgress(ctx context.Context, params installer.V2UpdateHostLogsProgressParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("update log progress on host %s infra-env %s to %s", params.HostID, params.InfraEnvID, params.LogsProgressParams.LogsState)
+	currentHost, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err == nil {
+		err = b.hostApi.UpdateLogsProgress(ctx, &currentHost.Host, string(params.LogsProgressParams.LogsState))
+	}
+	if err != nil {
+		b.log.WithError(err).Errorf("failed to update log progress %s on infra-env %s host %s", params.LogsProgressParams.LogsState, params.InfraEnvID.String(), params.HostID.String())
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2UpdateHostLogsProgressNoContent()
+}

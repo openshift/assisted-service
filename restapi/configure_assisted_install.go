@@ -263,6 +263,9 @@ type InstallerAPI interface {
 
 	/* V2UpdateHostInstallerArgs Updates a host's installer arguments. */
 	V2UpdateHostInstallerArgs(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) middleware.Responder
+
+	/* V2UpdateHostLogsProgress Update log collection state and progress. */
+	V2UpdateHostLogsProgress(ctx context.Context, params installer.V2UpdateHostLogsProgressParams) middleware.Responder
 }
 
 //go:generate mockery -name ManagedDomainsAPI -inpkg
@@ -827,6 +830,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2UpdateHostInstallerArgs(ctx, params)
+	})
+	api.InstallerV2UpdateHostLogsProgressHandler = installer.V2UpdateHostLogsProgressHandlerFunc(func(params installer.V2UpdateHostLogsProgressParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2UpdateHostLogsProgress(ctx, params)
 	})
 	api.ServerShutdown = func() {}
 	return api.Serve(c.InnerMiddleware), api, nil
