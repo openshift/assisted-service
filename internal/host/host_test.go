@@ -3089,7 +3089,7 @@ var _ = Describe("Installation stages", func() {
 
 			hFromDB := hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db)
 			h = hFromDB.Host
-			expectedInstallationPercentage := int64(25)
+			expectedInstallationPercentage := int64(20)
 			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
 		})
 
@@ -3107,7 +3107,7 @@ var _ = Describe("Installation stages", func() {
 
 			hFromDB := hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db)
 			h = hFromDB.Host
-			expectedInstallationPercentage := int64(50)
+			expectedInstallationPercentage := int64(40)
 			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
 		})
 
@@ -3125,7 +3125,7 @@ var _ = Describe("Installation stages", func() {
 
 			hFromDB := hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db)
 			h = hFromDB.Host
-			expectedInstallationPercentage := int64(75)
+			expectedInstallationPercentage := int64(60)
 			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
 		})
 
