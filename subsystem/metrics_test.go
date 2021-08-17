@@ -348,7 +348,7 @@ var _ = Describe("Metrics tests", func() {
 			registerHostsAndSetRoles(clusterID, 3)
 			c = installCluster(clusterID)
 			for _, host := range c.Hosts {
-				waitForHostState(ctx, clusterID, *host.ID, "installing", defaultWaitForHostStateTimeout)
+				waitForHostState(ctx, clusterID, "installing", defaultWaitForHostStateTimeout, host)
 				if host.Bootstrap {
 					bootstrap = *host
 				}
