@@ -312,14 +312,24 @@ func GetClusterNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {
 }
 
 func IsHostInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
+	// The host should belong to all the networks specified as Machine Networks.
+
+	// TODO(mko) This rule should be revised as soon as OCP supports multiple machineNetwork
+	//           entries using the same IP stack.
+
 	if !IsMachineCidrAvailable(cluster) {
 		return false
 	}
-	_, machineIpnet, err := net.ParseCIDR(string(cluster.MachineNetworks[0].Cidr))
-	if err != nil {
-		return false
+
+	ret := true
+	for _, machineNet := range cluster.MachineNetworks {
+		_, machineIpnet, err := net.ParseCIDR(string(machineNet.Cidr))
+		if err != nil {
+			return false
+		}
+		ret = ret && belongsToNetwork(log, host, machineIpnet)
 	}
-	return belongsToNetwork(log, host, machineIpnet)
+	return ret
 }
 
 type IPSet map[strfmt.IPv4]struct{}
