@@ -49,20 +49,24 @@ func GenerateTestInfraEnv(infraEnvID strfmt.UUID) *common.InfraEnv {
 
 /* Host */
 
+func GenerateUnassignedTestHost(hostID, infraEnvID strfmt.UUID, state string) models.Host {
+	return GenerateTestHostByKind(hostID, infraEnvID, nil, state, models.HostKindHost, models.HostRoleWorker)
+}
+
 func GenerateTestHost(hostID, infraEnvID, clusterID strfmt.UUID, state string) models.Host {
-	return GenerateTestHostByKind(hostID, infraEnvID, clusterID, state, models.HostKindHost, models.HostRoleWorker)
+	return GenerateTestHostByKind(hostID, infraEnvID, &clusterID, state, models.HostKindHost, models.HostRoleWorker)
 }
 
 func GenerateTestHostAddedToCluster(hostID, infraEnvID, clusterID strfmt.UUID, state string) models.Host {
-	return GenerateTestHostByKind(hostID, infraEnvID, clusterID, state, models.HostKindAddToExistingClusterHost, models.HostRoleWorker)
+	return GenerateTestHostByKind(hostID, infraEnvID, &clusterID, state, models.HostKindAddToExistingClusterHost, models.HostRoleWorker)
 }
 
-func GenerateTestHostByKind(hostID, infraEnvID, clusterID strfmt.UUID, state, kind string, role models.HostRole) models.Host {
+func GenerateTestHostByKind(hostID, infraEnvID strfmt.UUID, clusterID *strfmt.UUID, state, kind string, role models.HostRole) models.Host {
 	now := strfmt.DateTime(time.Now())
 	return models.Host{
 		ID:              &hostID,
 		InfraEnvID:      infraEnvID,
-		ClusterID:       &clusterID,
+		ClusterID:       clusterID,
 		Status:          swag.String(state),
 		Inventory:       common.GenerateTestDefaultInventory(),
 		Role:            role,

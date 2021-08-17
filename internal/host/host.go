@@ -149,7 +149,7 @@ type API interface {
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
 	UpdateImageStatus(ctx context.Context, h *models.Host, imageStatus *models.ContainerImageAvailability, db *gorm.DB) error
 	SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error
-	ResetHostValidation(ctx context.Context, hostID, clusterID strfmt.UUID, validationID string, db *gorm.DB) error
+	ResetHostValidation(ctx context.Context, hostID, infraEnvID strfmt.UUID, validationID string, db *gorm.DB) error
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	UpdateDomainNameResolution(ctx context.Context, h *models.Host, domainResolutionResponse models.DomainResolutionResponse, db *gorm.DB) error
 	BindHost(ctx context.Context, h *models.Host, clusterID strfmt.UUID, db *gorm.DB) error
@@ -1128,7 +1128,16 @@ func (m *Manager) ResetHostValidation(ctx context.Context, hostID, infraEnvID st
 		}
 		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Unexpected error while getting host %s of cluster %s", hostID.String(), infraEnvID.String()))
 	}
+
 	log := logutil.FromContext(ctx, m.log)
+
+	// Cluster ID could be potentially nil in case of V2 call:
+	if h.ClusterID == nil {
+		err = fmt.Errorf("host %s is not bound to any cluster, reset validation", hostID)
+		log.WithError(err).Error()
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	host := &h.Host
 	switch validationID {
 	case string(models.HostValidationIDSufficientInstallationDiskSpeed):
