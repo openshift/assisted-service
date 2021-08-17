@@ -632,7 +632,7 @@ paths:
       tags:
         - installer
       security:
-        - userAuth: [admin, read-only-admin, user]
+        - userAuth: [user]
       description: Get the cluster admin credentials.
       operationId: GetCredentials
       parameters:
