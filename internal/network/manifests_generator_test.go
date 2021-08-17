@@ -169,7 +169,7 @@ var _ = Describe("dnsmasq manifest", func() {
 
 	Context("Create dnsmasq Manifest", func() {
 		It("Happy flow", func() {
-			cluster := createCluster("", "3.3.3.0/24",
+			cluster := createCluster("", []string{"3.3.3.0/24"},
 				createInventory(createInterface("3.3.3.3/24")))
 			cluster.Hosts[0].Bootstrap = true
 			cluster.Cluster.BaseDNSDomain = "test.com"
@@ -196,7 +196,7 @@ var _ = Describe("dnsmasq manifest", func() {
 		})
 
 		It("Happy flow ipv6", func() {
-			cluster := createCluster("", "1001:db8::/120",
+			cluster := createCluster("", []string{"1001:db8::/120"},
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::1/120")))
 			cluster.Hosts[0].Bootstrap = true
 			cluster.Cluster.BaseDNSDomain = "test.com"
@@ -223,7 +223,7 @@ var _ = Describe("dnsmasq manifest", func() {
 		})
 
 		It("Happy flow dual stack - ipv6", func() {
-			cluster := createCluster("", "1001:db8::/120",
+			cluster := createCluster("", []string{"1001:db8::/120"},
 				createInventory(addIPv6Addresses(createInterface("3.3.3.3/24"), "1001:db8::1/120", "2001:db8::1/120")))
 			cluster.Hosts[0].Bootstrap = true
 			cluster.Cluster.BaseDNSDomain = "test.com"
@@ -249,7 +249,7 @@ var _ = Describe("dnsmasq manifest", func() {
 		})
 
 		It("Happy flow dual stack - ipv4", func() {
-			cluster := createCluster("", "3.3.3.0/24",
+			cluster := createCluster("", []string{"3.3.3.0/24"},
 				createInventory(addIPv6Addresses(createInterface("3.3.3.3/24", "1.2.3.4/24"), "1001:db8::1/120", "2001:db8::1/120")))
 			cluster.Hosts[0].Bootstrap = true
 			cluster.Cluster.BaseDNSDomain = "test.com"
@@ -275,7 +275,7 @@ var _ = Describe("dnsmasq manifest", func() {
 		})
 
 		It("Happy flow dual stack - no machine cidr", func() {
-			cluster := createCluster("", "",
+			cluster := createCluster("", []string{""},
 				createInventory(addIPv6Addresses(createInterface("3.3.3.3/24"), "1001:db8::1/120")))
 			cluster.Hosts[0].Bootstrap = true
 			cluster.Cluster.BaseDNSDomain = "test.com"
@@ -301,7 +301,7 @@ var _ = Describe("dnsmasq manifest", func() {
 		})
 
 		It("no bootstrap", func() {
-			cluster := createCluster("", "3.3.3.0/24",
+			cluster := createCluster("", []string{"3.3.3.0/24"},
 				createInventory(createInterface("3.3.3.3/24")))
 
 			_, err := createDnsmasqForSingleNode(logrus.New(), cluster)

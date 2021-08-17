@@ -37,11 +37,19 @@ func createHosts(inventories ...string) []*models.Host {
 	return ret
 }
 
-func createCluster(apiVip string, machineCidr string, inventories ...string) *common.Cluster {
+func createMachineNetworks(machineCidr []string) []*models.MachineNetwork {
+	ret := make([]*models.MachineNetwork, 0)
+	for _, i := range machineCidr {
+		ret = append(ret, &models.MachineNetwork{Cidr: models.Subnet(i)})
+	}
+	return ret
+}
+
+func createCluster(apiVip string, machineCidr []string, inventories ...string) *common.Cluster {
 	return &common.Cluster{Cluster: models.Cluster{
-		APIVip:             apiVip,
-		MachineNetworkCidr: machineCidr,
-		Hosts:              createHosts(inventories...),
+		APIVip:          apiVip,
+		MachineNetworks: createMachineNetworks(machineCidr),
+		Hosts:           createHosts(inventories...),
 	}}
 }
 
@@ -56,16 +64,16 @@ var _ = Describe("inventory", func() {
 		return ret
 	}
 
-	createDisabledCluster := func(apiVip string, machineCidr string, inventories ...string) *common.Cluster {
+	createDisabledCluster := func(apiVip string, machineCidr []string, inventories ...string) *common.Cluster {
 		return &common.Cluster{Cluster: models.Cluster{
-			APIVip:             apiVip,
-			MachineNetworkCidr: machineCidr,
-			Hosts:              createDisabledHosts(inventories...),
+			APIVip:          apiVip,
+			MachineNetworks: createMachineNetworks(machineCidr),
+			Hosts:           createDisabledHosts(inventories...),
 		}}
 	}
 	Context("CalculateMachineNetworkCIDR", func() {
 		It("happpy flow", func() {
-			cluster := createCluster("1.2.5.6", "",
+			cluster := createCluster("1.2.5.6", []string{""},
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
 			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
@@ -74,7 +82,7 @@ var _ = Describe("inventory", func() {
 		})
 
 		It("happy flow IPv6", func() {
-			cluster := createCluster("1001:db8::64", "",
+			cluster := createCluster("1001:db8::64", []string{""},
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::1/120")),
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::2/120")),
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::3/120")))
@@ -84,7 +92,7 @@ var _ = Describe("inventory", func() {
 		})
 
 		It("Disabled", func() {
-			cluster := createDisabledCluster("1.2.5.6", "",
+			cluster := createDisabledCluster("1.2.5.6", []string{""},
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
 			_, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
@@ -92,7 +100,7 @@ var _ = Describe("inventory", func() {
 		})
 
 		It("Illegal VIP", func() {
-			cluster := createCluster("1.2.5.257", "",
+			cluster := createCluster("1.2.5.257", []string{""},
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
 			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
@@ -101,7 +109,7 @@ var _ = Describe("inventory", func() {
 		})
 
 		It("No Match", func() {
-			cluster := createCluster("1.2.5.200", "",
+			cluster := createCluster("1.2.5.200", []string{""},
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.6.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
 			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
@@ -109,7 +117,7 @@ var _ = Describe("inventory", func() {
 			Expect(cidr).To(Equal(""))
 		})
 		It("Bad inventory", func() {
-			cluster := createCluster("1.2.5.6", "",
+			cluster := createCluster("1.2.5.6", []string{""},
 				"Bad inventory",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
@@ -118,7 +126,7 @@ var _ = Describe("inventory", func() {
 			Expect(cidr).To(Equal("1.2.4.0/23"))
 		})
 		It("No Match - no match required", func() {
-			cluster := createCluster("1.2.5.200", "",
+			cluster := createCluster("1.2.5.200", []string{""},
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.6.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
 			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, false)
@@ -128,14 +136,14 @@ var _ = Describe("inventory", func() {
 	})
 	Context("GetMachineCIDRHosts", func() {
 		It("No Machine CIDR", func() {
-			cluster := createCluster("1.2.5.6", "",
+			cluster := createCluster("1.2.5.6", []string{""},
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
 			_, err := GetMachineCIDRHosts(logrus.New(), cluster)
 			Expect(err).To(HaveOccurred())
 		})
 		It("No matching Machine CIDR", func() {
-			cluster := createCluster("1.2.5.6", "1.1.0.0/16",
+			cluster := createCluster("1.2.5.6", []string{"1.1.0.0/16"},
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
 			hosts, err := GetMachineCIDRHosts(logrus.New(), cluster)
@@ -143,7 +151,7 @@ var _ = Describe("inventory", func() {
 			Expect(hosts).To(BeEmpty())
 		})
 		It("Some matched", func() {
-			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
+			cluster := createCluster("1.2.5.6", []string{"1.2.4.0/23"},
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")),
 				createInventory(createInterface("1.2.4.79/23")))
@@ -163,7 +171,7 @@ var _ = Describe("inventory", func() {
 			log = logrus.New()
 		})
 		It("Same vips", func() {
-			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
+			cluster := createCluster("1.2.5.6", []string{"1.2.4.0/23"},
 				createInventory(createInterface("1.2.5.7/23")))
 			cluster.Hosts = []*models.Host{
 				{
@@ -171,13 +179,13 @@ var _ = Describe("inventory", func() {
 				},
 			}
 			cluster.IngressVip = cluster.APIVip
-			err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+			err := VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, false, log)
 			Expect(err).To(HaveOccurred())
-			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+			err = VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).To(HaveOccurred())
 		})
 		It("Different vips", func() {
-			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
+			cluster := createCluster("1.2.5.6", []string{"1.2.4.0/23"},
 				createInventory(createInterface("1.2.5.7/23")))
 			cluster.IngressVip = "1.2.5.8"
 			cluster.Hosts = []*models.Host{
@@ -185,13 +193,13 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.6\",\"1.2.5.8\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+			err := VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, false, log)
 			Expect(err).ToNot(HaveOccurred())
-			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+			err = VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("Not free", func() {
-			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
+			cluster := createCluster("1.2.5.6", []string{"1.2.4.0/23"},
 				createInventory(createInterface("1.2.5.7/23")))
 			cluster.IngressVip = "1.2.5.8"
 			cluster.Hosts = []*models.Host{
@@ -199,13 +207,13 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.9\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+			err := VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, false, log)
 			Expect(err).To(HaveOccurred())
-			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+			err = VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).To(HaveOccurred())
 		})
 		It("Disabled", func() {
-			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
+			cluster := createCluster("1.2.5.6", []string{"1.2.4.0/23"},
 				createInventory(createInterface("1.2.5.7/23")))
 			cluster.IngressVip = "1.2.5.8"
 			cluster.Hosts = []*models.Host{
@@ -214,13 +222,13 @@ var _ = Describe("inventory", func() {
 					Status:        swag.String(models.HostStatusDisabled),
 				},
 			}
-			err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+			err := VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, false, log)
 			Expect(err).ToNot(HaveOccurred())
-			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+			err = VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("Empty", func() {
-			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
+			cluster := createCluster("1.2.5.6", []string{"1.2.4.0/23"},
 				createInventory(createInterface("1.2.5.7/23")))
 			cluster.IngressVip = "1.2.5.8"
 			cluster.Hosts = []*models.Host{
@@ -228,13 +236,13 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+			err := VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, false, log)
 			Expect(err).ToNot(HaveOccurred())
-			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+			err = VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("Free", func() {
-			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
+			cluster := createCluster("1.2.5.6", []string{"1.2.4.0/23"},
 				createInventory(createInterface("1.2.5.7/23")))
 			cluster.IngressVip = "1.2.5.8"
 			cluster.Hosts = []*models.Host{
@@ -242,9 +250,9 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.6\",\"1.2.5.8\",\"1.2.5.9\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+			err := VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, false, log)
 			Expect(err).ToNot(HaveOccurred())
-			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+			err = VerifyVips(cluster.Hosts, string(cluster.MachineNetworks[0].Cidr), cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -336,7 +344,7 @@ var _ = Describe("inventory", func() {
 		})
 
 		It("No bootstrap host", func() {
-			cluster := createCluster("", "",
+			cluster := createCluster("", []string{""},
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
 			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log)
@@ -344,7 +352,7 @@ var _ = Describe("inventory", func() {
 		})
 
 		It("No machine cidr was set - cidr from bootstrap must be set", func() {
-			cluster := createCluster("", "",
+			cluster := createCluster("", []string{""},
 				createInventory(addIPv6Addresses(createInterface("1.2.3.4/28"), "2001:db8::a1/120")),
 				createInventory(addIPv6Addresses(createInterface("10.2.3.20/24"), "fe80:5054::4/120")))
 			cluster.Hosts[0].Bootstrap = true
@@ -354,7 +362,7 @@ var _ = Describe("inventory", func() {
 		})
 
 		It("Machine cidr exists", func() {
-			cluster := createCluster("", "",
+			cluster := createCluster("", []string{""},
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
 			cluster.MachineNetworkCidr = "1.2.5.0/23"

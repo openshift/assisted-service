@@ -219,7 +219,7 @@ func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) Validation
 	if c.cluster.APIVip == "" || !c.hasHostsWithInventories {
 		return ValidationPending
 	}
-	err := network.VerifyVip(c.cluster.Hosts, c.cluster.MachineNetworkCidr, c.cluster.APIVip, ApiVipName,
+	err := network.VerifyVip(c.cluster.Hosts, string(c.cluster.MachineNetworks[0].Cidr), c.cluster.APIVip, ApiVipName,
 		true, v.log)
 	return boolValue(err == nil)
 }
@@ -314,7 +314,7 @@ func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) Valida
 	if c.cluster.IngressVip == "" || !c.hasHostsWithInventories {
 		return ValidationPending
 	}
-	err := network.VerifyVip(c.cluster.Hosts, c.cluster.MachineNetworkCidr, c.cluster.IngressVip, IngressVipName,
+	err := network.VerifyVip(c.cluster.Hosts, string(c.cluster.MachineNetworks[0].Cidr), c.cluster.IngressVip, IngressVipName,
 		true, v.log)
 	return boolValue(err == nil)
 }
