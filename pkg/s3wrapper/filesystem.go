@@ -322,7 +322,7 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 // construct the minimal iso on the filesystem.
 func (f *FSClient) UploadISOs(ctx context.Context, openshiftVersion string, haveLatestMinimalTemplate bool) error {
 	log := logutil.FromContext(ctx, f.log)
-	rhcosImage, err := f.versionsHandler.GetRHCOSImage(openshiftVersion)
+	osImage, err := f.versionsHandler.GetOsImage(openshiftVersion)
 	if err != nil {
 		return err
 	}
@@ -358,7 +358,7 @@ func (f *FSClient) UploadISOs(ctx context.Context, openshiftVersion string, have
 	}
 
 	if !baseExists {
-		err = UploadFromURLToPublicBucket(ctx, baseIsoObject, rhcosImage, f)
+		err = UploadFromURLToPublicBucket(ctx, baseIsoObject, *osImage.URL, f)
 		if err != nil {
 			return err
 		}
@@ -367,11 +367,11 @@ func (f *FSClient) UploadISOs(ctx context.Context, openshiftVersion string, have
 
 	isoFilePath := filepath.Join(f.basedir, baseIsoObject)
 	if !minimalExists {
-		rootFSURL, err := f.versionsHandler.GetRHCOSRootFS(openshiftVersion)
+		osImage, err := f.versionsHandler.GetOsImage(openshiftVersion)
 		if err != nil {
 			return err
 		}
-		if err = CreateAndUploadMinimalIso(ctx, log, isoFilePath, minimalIsoObject, rootFSURL, f, f.isoEditorFactory); err != nil {
+		if err = CreateAndUploadMinimalIso(ctx, log, isoFilePath, minimalIsoObject, *osImage.RootfsURL, f, f.isoEditorFactory); err != nil {
 			return err
 		}
 	}
@@ -379,21 +379,21 @@ func (f *FSClient) UploadISOs(ctx context.Context, openshiftVersion string, have
 }
 
 func (f *FSClient) GetBaseIsoObject(openshiftVersion string) (string, error) {
-	rhcosVersion, err := f.versionsHandler.GetRHCOSVersion(openshiftVersion)
+	osImage, err := f.versionsHandler.GetOsImage(openshiftVersion)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf(rhcosObjectTemplate, rhcosVersion), nil
+	return fmt.Sprintf(rhcosObjectTemplate, *osImage.Version), nil
 }
 
 func (f *FSClient) GetMinimalIsoObjectName(openshiftVersion string) (string, error) {
-	rhcosVersion, err := f.versionsHandler.GetRHCOSVersion(openshiftVersion)
+	osImage, err := f.versionsHandler.GetOsImage(openshiftVersion)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf(rhcosMinimalObjectTemplate, rhcosVersion), nil
+	return fmt.Sprintf(rhcosMinimalObjectTemplate, *osImage.Version), nil
 }
 
 type FSClientDecorator struct {

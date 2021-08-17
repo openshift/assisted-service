@@ -6335,6 +6335,36 @@ definitions:
         type: boolean
         description: Indication that the version is the recommended one.
 
+  os-image:
+    type: object
+    required:
+      - openshift_version
+      - cpu_architecture
+      - url
+      - rootfs_url
+      - version
+    properties:
+      openshift_version:
+        type: string
+        description: Version of the OpenShift cluster.
+      cpu_architecture:
+        type: string
+        description: The CPU architecture of the image (x86_64/arm64/etc).
+      url:
+        type: string
+        description: The base OS image used for the discovery iso.
+      rootfs_url:
+        type: string
+        description: The OS rootfs url.
+      version:
+        type: string
+        description: Build ID of the OS image.
+
+  os-images:
+    type: array
+    items:
+      $ref: '#/definitions/os-image'
+
   operator-property:
     type: object
     properties:

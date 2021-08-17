@@ -81,49 +81,19 @@ func (mr *MockHandlerMockRecorder) GetMustGatherImages(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMustGatherImages", reflect.TypeOf((*MockHandler)(nil).GetMustGatherImages), arg0, arg1)
 }
 
-// GetRHCOSImage mocks base method
-func (m *MockHandler) GetRHCOSImage(arg0 string) (string, error) {
+// GetOsImage mocks base method
+func (m *MockHandler) GetOsImage(arg0 string) (*models.OsImage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRHCOSImage", arg0)
-	ret0, _ := ret[0].(string)
+	ret := m.ctrl.Call(m, "GetOsImage", arg0)
+	ret0, _ := ret[0].(*models.OsImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetRHCOSImage indicates an expected call of GetRHCOSImage
-func (mr *MockHandlerMockRecorder) GetRHCOSImage(arg0 interface{}) *gomock.Call {
+// GetOsImage indicates an expected call of GetOsImage
+func (mr *MockHandlerMockRecorder) GetOsImage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRHCOSImage", reflect.TypeOf((*MockHandler)(nil).GetRHCOSImage), arg0)
-}
-
-// GetRHCOSRootFS mocks base method
-func (m *MockHandler) GetRHCOSRootFS(arg0 string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRHCOSRootFS", arg0)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRHCOSRootFS indicates an expected call of GetRHCOSRootFS
-func (mr *MockHandlerMockRecorder) GetRHCOSRootFS(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRHCOSRootFS", reflect.TypeOf((*MockHandler)(nil).GetRHCOSRootFS), arg0)
-}
-
-// GetRHCOSVersion mocks base method
-func (m *MockHandler) GetRHCOSVersion(arg0 string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRHCOSVersion", arg0)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRHCOSVersion indicates an expected call of GetRHCOSVersion
-func (mr *MockHandlerMockRecorder) GetRHCOSVersion(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRHCOSVersion", reflect.TypeOf((*MockHandler)(nil).GetRHCOSVersion), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImage", reflect.TypeOf((*MockHandler)(nil).GetOsImage), arg0)
 }
 
 // GetReleaseImage mocks base method

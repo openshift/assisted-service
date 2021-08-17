@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/versions"
+	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -29,16 +30,21 @@ func TestJob(t *testing.T) {
 	RunSpecs(t, "Util")
 }
 
-const (
-	defaultTestOpenShiftVersion = "4.6"
-	defaultTestRhcosURL         = "rhcosURL"
-	defaultTestRhcosRootFSURL   = "rhcosRootFSURL"
-)
-
 var (
 	defaultTestRhcosVersion       = fmt.Sprintf("%s.00.000000000000-0", strings.ReplaceAll(defaultTestOpenShiftVersion, ".", ""))
 	defaultTestRhcosObject        = fmt.Sprintf("rhcos-%s.iso", defaultTestRhcosVersion)
 	defaultTestRhcosObjectMinimal = fmt.Sprintf("rhcos-%s-minimal.iso", defaultTestRhcosVersion)
+
+	defaultTestOpenShiftVersion string = "4.6"
+	defaultTestRhcosURL         string = "rhcosURL"
+	defaultTestRhcosRootFSURL   string = "https://example.com/rootfs/url"
+
+	defaultOsImage = models.OsImage{
+		OpenshiftVersion: &defaultTestOpenShiftVersion,
+		URL:              &defaultTestRhcosURL,
+		RootfsURL:        &defaultTestRhcosRootFSURL,
+		Version:          &defaultTestRhcosVersion,
+	}
 )
 
 var _ = Describe("FixEndpointURL", func() {

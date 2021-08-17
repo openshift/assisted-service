@@ -29,14 +29,34 @@ var defaultOpenShiftVersions = models.OpenshiftVersions{
 	"4.5": models.OpenshiftVersion{
 		DisplayName:  swag.String("4.5.1"),
 		ReleaseImage: swag.String("release_4.5"), ReleaseVersion: swag.String("4.5.1"),
-		RhcosImage: swag.String("rhcos_4.5"), RhcosVersion: swag.String("version-45.123-0"),
+		RhcosImage: swag.String("rhcos_4.5"), RhcosRootfs: swag.String("rhcos_rootfs_4.5"),
+		RhcosVersion: swag.String("version-45.123-0"),
 		SupportLevel: swag.String("oldie"),
 	},
 	"4.6": models.OpenshiftVersion{
 		DisplayName:  swag.String("4.6-candidate"),
 		ReleaseImage: swag.String("release_4.6"), ReleaseVersion: swag.String("4.6-candidate"),
-		RhcosImage: swag.String("rhcos_4.6"), RhcosVersion: swag.String("version-46.123-0"),
+		RhcosImage: swag.String("rhcos_4.6"), RhcosRootfs: swag.String("rhcos_rootfs_4.6"),
+		RhcosVersion: swag.String("version-46.123-0"),
 		SupportLevel: swag.String("newbie"),
+	},
+}
+
+var newOpenShiftVersions = models.OpenshiftVersions{
+	"4.9": models.OpenshiftVersion{
+		DisplayName:  swag.String("4.9-candidate"),
+		ReleaseImage: swag.String("release_4.9"), ReleaseVersion: swag.String("4.9-candidate"),
+		SupportLevel: swag.String("newbie"),
+	},
+}
+
+var defaultOsImages = models.OsImages{
+	&models.OsImage{
+		CPUArchitecture:  swag.String("x86_64"),
+		OpenshiftVersion: swag.String("4.9"),
+		URL:              swag.String("rhcos_4.9"),
+		RootfsURL:        swag.String("rhcos_rootfs_4.9"),
+		Version:          swag.String("version-49.123-0"),
 	},
 }
 
@@ -44,7 +64,8 @@ var supportedCustomOpenShiftVersions = models.OpenshiftVersions{
 	"4.8": models.OpenshiftVersion{
 		DisplayName:  swag.String("4.8.0"),
 		ReleaseImage: swag.String("release_4.8"), ReleaseVersion: swag.String("4.8.0-fc.1"),
-		RhcosImage: swag.String("rhcos_4.8"), RhcosVersion: swag.String("version-48.123-0"),
+		RhcosImage: swag.String("rhcos_4.8"), RhcosRootfs: swag.String("rhcos_rootfs_4.8"),
+		RhcosVersion: swag.String("version-48.123-0"),
 		SupportLevel: swag.String(models.OpenshiftVersionSupportLevelCustom),
 	},
 }
@@ -60,10 +81,12 @@ var mustgatherImages = MustGatherVersions{
 var _ = Describe("list versions", func() {
 	var (
 		h                 *handler
+		err               error
 		logger            logrus.FieldLogger
 		mockRelease       *oc.MockRelease
 		versions          Versions
 		openshiftVersions *models.OpenshiftVersions
+		osImages          *models.OsImages
 	)
 
 	BeforeEach(func() {
@@ -72,12 +95,14 @@ var _ = Describe("list versions", func() {
 
 		logger = logrus.New()
 		openshiftVersions = &models.OpenshiftVersions{}
+		osImages = &models.OsImages{}
 	})
 
 	Context("ListComponentVersions", func() {
 		It("default values", func() {
 			Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
 			val, _ := reply.(*operations.ListComponentVersionsOK)
@@ -94,7 +119,8 @@ var _ = Describe("list versions", func() {
 			os.Setenv("INSTALLER_IMAGE", "installer-image")
 			os.Setenv("CONTROLLER_IMAGE", "controller-image")
 			Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
 			val, _ := reply.(*operations.ListComponentVersionsOK)
@@ -108,7 +134,8 @@ var _ = Describe("list versions", func() {
 
 	Context("ListSupportedOpenshiftVersions", func() {
 		It("empty", func() {
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListSupportedOpenshiftVersionsOK()))
@@ -118,7 +145,8 @@ var _ = Describe("list versions", func() {
 		})
 
 		readDefaultOpenshiftVersions := func() {
-			bytes, err := ioutil.ReadFile("../../data/default_ocp_versions.json")
+			var bytes []byte
+			bytes, err = ioutil.ReadFile("../../data/default_ocp_versions.json")
 			Expect(err).ShouldNot(HaveOccurred())
 			err = json.Unmarshal(bytes, openshiftVersions)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -128,7 +156,8 @@ var _ = Describe("list versions", func() {
 			readDefaultOpenshiftVersions()
 			CURRENT_DEFAULT_VERSION := "4.8" //keep align with default_ocp_versions.json
 
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListSupportedOpenshiftVersionsOK()))
 			val, _ := reply.(*operations.ListSupportedOpenshiftVersionsOK)
@@ -145,12 +174,12 @@ var _ = Describe("list versions", func() {
 	Context("GetReleaseImage", func() {
 		var (
 			releaseImage string
-			err          error
 		)
 
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("default", func() {
@@ -168,67 +197,67 @@ var _ = Describe("list versions", func() {
 		})
 	})
 
-	Context("GetRHCOSImage", func() {
+	Context("GetOsImage", func() {
 		var (
-			rhcosImage string
-			err        error
+			osImage *models.OsImage
 		)
 
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
+			osImages = &defaultOsImages
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("default", func() {
 			for key := range *openshiftVersions {
-				rhcosImage, err = h.GetRHCOSImage(key)
+				currKey := key
+				osImage, err = h.GetOsImage(currKey)
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(rhcosImage).Should(Equal(*(*openshiftVersions)[key].RhcosImage))
+
+				ocpVersion := (*openshiftVersions)[currKey]
+				Expect(*osImage).Should(Equal(models.OsImage{
+					OpenshiftVersion: &currKey,
+					URL:              ocpVersion.RhcosImage,
+					RootfsURL:        ocpVersion.RhcosRootfs,
+					Version:          ocpVersion.RhcosVersion,
+				}))
 			}
 		})
 
 		It("unsupported_key", func() {
-			rhcosImage, err = h.GetRHCOSImage("unsupported")
+			osImage, err = h.GetOsImage("unsupported")
 			Expect(err).Should(HaveOccurred())
-			Expect(rhcosImage).Should(BeEmpty())
-		})
-	})
-
-	Context("GetRHCOSVersion", func() {
-		var (
-			rhcosVersion string
-			err          error
-		)
-
-		BeforeEach(func() {
-			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
+			Expect(osImage).Should(BeNil())
 		})
 
-		It("default", func() {
+		It("get from OsImages", func() {
+			openshiftVersions = &newOpenShiftVersions
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+
 			for key := range *openshiftVersions {
-				rhcosVersion, err = h.GetRHCOSVersion(key)
+				osImage, err = h.GetOsImage(key)
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(rhcosVersion).Should(Equal(*(*openshiftVersions)[key].RhcosVersion))
-			}
-		})
 
-		It("unsupported_key", func() {
-			rhcosVersion, err = h.GetRHCOSVersion("unsupported")
-			Expect(err).Should(HaveOccurred())
-			Expect(rhcosVersion).Should(BeEmpty())
+				for _, rhcos := range *osImages {
+					if *rhcos.OpenshiftVersion == key {
+						Expect(osImage).Should(Equal(rhcos))
+					}
+				}
+			}
 		})
 	})
 
 	Context("GetReleaseVersion", func() {
 		var (
 			releaseVersion string
-			err            error
 		)
 
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("default", func() {
@@ -249,12 +278,12 @@ var _ = Describe("list versions", func() {
 	Context("GetVersion", func() {
 		var (
 			version *models.OpenshiftVersion
-			err     error
 		)
 
 		BeforeEach(func() {
 			openshiftVersions = &supportedCustomOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("default", func() {
@@ -274,7 +303,8 @@ var _ = Describe("list versions", func() {
 	Context("IsOpenshiftVersionSupported", func() {
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("positive", func() {
@@ -294,11 +324,13 @@ var _ = Describe("list versions", func() {
 			ocpVersion = "4.8.0-fc.1"
 			keyVersion = "4.8"
 			mirror     = "release-mirror"
+			images     MustGatherVersion
 		)
 
 		BeforeEach(func() {
 			openshiftVersions = &supportedCustomOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, mustgatherImages, mirror)
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, mustgatherImages, mirror)
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		verifyOcpVersion := func(images MustGatherVersion, size int) {
@@ -308,7 +340,7 @@ var _ = Describe("list versions", func() {
 
 		It("happy flow", func() {
 			mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "release_4.8", mirror, pullSecret).Return("blah", nil).Times(1)
-			images, err := h.GetMustGatherImages(ocpVersion, pullSecret)
+			images, err = h.GetMustGatherImages(ocpVersion, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			verifyOcpVersion(images, 4)
@@ -316,16 +348,17 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("unsupported_key", func() {
-			images, err := h.GetMustGatherImages("unsupported", pullSecret)
+			images, err = h.GetMustGatherImages("unsupported", pullSecret)
 			Expect(err).Should(HaveOccurred())
 			Expect(images).Should(BeEmpty())
 		})
 
 		It("caching", func() {
 			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, mustgatherImages, mirror)
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, mustgatherImages, mirror)
+			Expect(err).ShouldNot(HaveOccurred())
 			mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "release_4.5", mirror, pullSecret).Return("blah", nil).Times(1)
-			images, err := h.GetMustGatherImages("4.5.1", pullSecret)
+			images, err = h.GetMustGatherImages("4.5.1", pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			verifyOcpVersion(images, 1)
 
@@ -344,12 +377,14 @@ var _ = Describe("list versions", func() {
 			customOcpVersion        = "4.8.0-fc.1"
 			customKeyVersion        = "4.8"
 			customOpenShiftVersions models.OpenshiftVersions
+			version                 *models.OpenshiftVersion
 		)
 
 		BeforeEach(func() {
 			customOpenShiftVersions = models.OpenshiftVersions{
 				"4.7": models.OpenshiftVersion{
 					RhcosImage:     swag.String("rhcos_4.7.0"),
+					RhcosRootfs:    swag.String("rhcos_rootfs_4.7"),
 					RhcosVersion:   swag.String("version-47.123-0"),
 					ReleaseVersion: nil, DisplayName: nil, ReleaseImage: nil, SupportLevel: nil,
 				},
@@ -357,31 +392,38 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("added version successfully", func() {
-			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, customOpenShiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
 
-			version, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			version, err = h.AddOpenshiftVersion(releaseImage, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			versionKey, err := h.GetKey(ocpVersion)
+			var versionKey string
+			versionKey, err = h.GetKey(ocpVersion)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			versionFromCache := h.openshiftVersions[versionKey]
 			Expect(*version.DisplayName).Should(Equal(ocpVersion))
+			Expect(*version.SupportLevel).Should(Equal(models.OpenshiftVersionSupportLevelCustom))
 			Expect(h.GetReleaseVersion(keyVersion)).Should(Equal(ocpVersion))
 			Expect(h.GetReleaseImage(keyVersion)).Should(Equal(releaseImage))
-			Expect(h.GetRHCOSImage(keyVersion)).Should(Equal(*versionFromCache.RhcosImage))
-			Expect(h.GetRHCOSVersion(keyVersion)).Should(Equal(*versionFromCache.RhcosVersion))
-			Expect(*version.SupportLevel).Should(Equal(models.OpenshiftVersionSupportLevelCustom))
+			Expect(h.GetOsImage(keyVersion)).Should(Equal(&models.OsImage{
+				OpenshiftVersion: &versionKey,
+				URL:              versionFromCache.RhcosImage,
+				RootfsURL:        versionFromCache.RhcosRootfs,
+				Version:          versionFromCache.RhcosVersion,
+			}))
 		})
 
 		It("override version successfully", func() {
-			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, customOpenShiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
 
-			_, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			_, err = h.AddOpenshiftVersion(releaseImage, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(h.GetReleaseImage(keyVersion)).Should(Equal(releaseImage))
 
@@ -393,14 +435,16 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("keep support level from cache", func() {
-			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
 
-			version, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			version, err = h.AddOpenshiftVersion(releaseImage, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			versionKey, err := h.GetKey(customOcpVersion)
+			var versionKey string
+			versionKey, err = h.GetKey(customOcpVersion)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			versionFromCache := h.openshiftVersions[versionKey]
@@ -408,20 +452,22 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("failed getting version from release", func() {
-			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, customOpenShiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("invalid")).AnyTimes()
 
-			_, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			_, err = h.AddOpenshiftVersion(releaseImage, pullSecret)
 			Expect(err).Should(HaveOccurred())
 		})
 
 		It("missing from OPENSHIFT_VERSIONS", func() {
-			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
 
-			_, err := h.AddOpenshiftVersion("invalidRelease", pullSecret)
+			_, err = h.AddOpenshiftVersion("invalidRelease", pullSecret)
 			Expect(err).Should(HaveOccurred())
 
 			versionKey, _ := h.GetKey(ocpVersion)
@@ -430,21 +476,112 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("release image already exists", func() {
-			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, nil, "")
-
-			versionFromCache, err := h.GetVersion(customKeyVersion)
+			h, err = NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, *osImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			version, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			var versionFromCache *models.OpenshiftVersion
+			versionFromCache, err = h.GetVersion(customKeyVersion)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			version, err = h.AddOpenshiftVersion(releaseImage, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(version).Should(Equal(versionFromCache))
+		})
+	})
+
+	Context("validateVersions", func() {
+		var (
+			versionKey        = "4.8"
+			openshiftVersions *models.OpenshiftVersions
+			openshiftVersion  models.OpenshiftVersion
+			osImages          *models.OsImages
+		)
+
+		BeforeEach(func() {
+			openshiftVersions = &models.OpenshiftVersions{
+				"4.8": models.OpenshiftVersion{
+					DisplayName:  swag.String("4.8-candidate"),
+					ReleaseImage: swag.String("release_4.8"), ReleaseVersion: swag.String("4.8-candidate"),
+					RhcosImage: swag.String("rhcos_4.8"), RhcosRootfs: swag.String("rhcos_rootfs_4.8"),
+					RhcosVersion: swag.String("version-48.123-0"),
+					SupportLevel: swag.String("newbie"),
+				},
+			}
+			openshiftVersion = (*openshiftVersions)[versionKey]
+
+			osImages = &models.OsImages{
+				&models.OsImage{
+					CPUArchitecture:  swag.String("x86_64"),
+					OpenshiftVersion: swag.String("4.9"),
+					URL:              swag.String("rhcos_4.9"),
+					RootfsURL:        swag.String("rhcos_rootfs_4.9"),
+					Version:          swag.String("version-49.123-0"),
+				},
+			}
+		})
+
+		It("OS images specified", func() {
+			osImages = &defaultOsImages
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("only OpenShift versions specified", func() {
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("missing RhcosImage in OpenShift versions", func() {
+			openshiftVersion.RhcosImage = nil
+			(*openshiftVersions)[versionKey] = openshiftVersion
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("URL"))
+		})
+
+		It("missing RhcosRootfs in OpenShift versions", func() {
+			openshiftVersion.RhcosRootfs = nil
+			(*openshiftVersions)[versionKey] = openshiftVersion
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("RootfsURL"))
+		})
+
+		It("missing RhcosVersion in OpenShift versions", func() {
+			openshiftVersion.RhcosVersion = nil
+			(*openshiftVersions)[versionKey] = openshiftVersion
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, nil, "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Version"))
+		})
+
+		It("missing URL in OS images", func() {
+			(*osImages)[0].URL = nil
+			h, err = NewHandler(logger, mockRelease, versions, newOpenShiftVersions, *osImages, nil, "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("URL"))
+		})
+
+		It("missing Rootfs in OS images", func() {
+			(*osImages)[0].RootfsURL = nil
+			h, err = NewHandler(logger, mockRelease, versions, newOpenShiftVersions, *osImages, nil, "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Rootfs"))
+		})
+
+		It("missing Version in OS images", func() {
+			(*osImages)[0].Version = nil
+			h, err = NewHandler(logger, mockRelease, versions, newOpenShiftVersions, *osImages, nil, "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Version"))
 		})
 	})
 })
 
 var _ = Describe("list versions", func() {
 	var (
-		h *handler
+		h   *handler
+		err error
 	)
 	BeforeEach(func() {
 		ctrl := gomock.NewController(GinkgoT())
@@ -454,7 +591,8 @@ var _ = Describe("list versions", func() {
 		Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
 
 		logger := logrus.New()
-		h = NewHandler(logger, mockRelease, versions, models.OpenshiftVersions{}, nil, "")
+		h, err = NewHandler(logger, mockRelease, versions, models.OpenshiftVersions{}, models.OsImages{}, nil, "")
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("positive", func() {
