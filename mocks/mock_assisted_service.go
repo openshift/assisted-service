@@ -259,6 +259,20 @@ func (mr *MockInstallerAPIMockRecorder) DownloadInfraEnvDiscoveryImageHeaders(ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadInfraEnvDiscoveryImageHeaders", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadInfraEnvDiscoveryImageHeaders), arg0, arg1)
 }
 
+// DownloadMinimalInitrd mocks base method
+func (m *MockInstallerAPI) DownloadMinimalInitrd(arg0 context.Context, arg1 installer.DownloadMinimalInitrdParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadMinimalInitrd", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// DownloadMinimalInitrd indicates an expected call of DownloadMinimalInitrd
+func (mr *MockInstallerAPIMockRecorder) DownloadMinimalInitrd(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadMinimalInitrd", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadMinimalInitrd), arg0, arg1)
+}
+
 // EnableHost mocks base method
 func (m *MockInstallerAPI) EnableHost(arg0 context.Context, arg1 installer.EnableHostParams) middleware.Responder {
 	m.ctrl.T.Helper()

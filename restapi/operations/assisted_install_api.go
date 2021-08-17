@@ -115,6 +115,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerDownloadInfraEnvDiscoveryImageHeadersHandler: installer.DownloadInfraEnvDiscoveryImageHeadersHandlerFunc(func(params installer.DownloadInfraEnvDiscoveryImageHeadersParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadInfraEnvDiscoveryImageHeaders has not yet been implemented")
 		}),
+		InstallerDownloadMinimalInitrdHandler: installer.DownloadMinimalInitrdHandlerFunc(func(params installer.DownloadMinimalInitrdParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.DownloadMinimalInitrd has not yet been implemented")
+		}),
 		InstallerEnableHostHandler: installer.EnableHostHandlerFunc(func(params installer.EnableHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.EnableHost has not yet been implemented")
 		}),
@@ -416,6 +419,8 @@ type AssistedInstallAPI struct {
 	InstallerDownloadInfraEnvDiscoveryImageHandler installer.DownloadInfraEnvDiscoveryImageHandler
 	// InstallerDownloadInfraEnvDiscoveryImageHeadersHandler sets the operation handler for the download infra env discovery image headers operation
 	InstallerDownloadInfraEnvDiscoveryImageHeadersHandler installer.DownloadInfraEnvDiscoveryImageHeadersHandler
+	// InstallerDownloadMinimalInitrdHandler sets the operation handler for the download minimal initrd operation
+	InstallerDownloadMinimalInitrdHandler installer.DownloadMinimalInitrdHandler
 	// InstallerEnableHostHandler sets the operation handler for the enable host operation
 	InstallerEnableHostHandler installer.EnableHostHandler
 	// InstallerGenerateClusterISOHandler sets the operation handler for the generate cluster i s o operation
@@ -696,6 +701,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerDownloadInfraEnvDiscoveryImageHeadersHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadInfraEnvDiscoveryImageHeadersHandler")
+	}
+	if o.InstallerDownloadMinimalInitrdHandler == nil {
+		unregistered = append(unregistered, "installer.DownloadMinimalInitrdHandler")
 	}
 	if o.InstallerEnableHostHandler == nil {
 		unregistered = append(unregistered, "installer.EnableHostHandler")
@@ -1079,6 +1087,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["HEAD"] = make(map[string]http.Handler)
 	}
 	o.handlers["HEAD"]["/v2/infra-envs/{infra_env_id}/image"] = installer.NewDownloadInfraEnvDiscoveryImageHeaders(o.context, o.InstallerDownloadInfraEnvDiscoveryImageHeadersHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/minimal-initrd"] = installer.NewDownloadMinimalInitrd(o.context, o.InstallerDownloadMinimalInitrdHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

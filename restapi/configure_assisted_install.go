@@ -102,6 +102,10 @@ type InstallerAPI interface {
 	/* DownloadInfraEnvDiscoveryImageHeaders Downloads the discovery image Headers only. */
 	DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageHeadersParams) middleware.Responder
 
+	/* DownloadMinimalInitrd Get the initial ramdisk for minimal ISO based installations.
+	 */
+	DownloadMinimalInitrd(ctx context.Context, params installer.DownloadMinimalInitrdParams) middleware.Responder
+
 	/* EnableHost Enables a host for inclusion in the cluster. */
 	EnableHost(ctx context.Context, params installer.EnableHostParams) middleware.Responder
 
@@ -512,6 +516,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadInfraEnvDiscoveryImageHeaders(ctx, params)
+	})
+	api.InstallerDownloadMinimalInitrdHandler = installer.DownloadMinimalInitrdHandlerFunc(func(params installer.DownloadMinimalInitrdParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.DownloadMinimalInitrd(ctx, params)
 	})
 	api.InstallerEnableHostHandler = installer.EnableHostHandlerFunc(func(params installer.EnableHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
