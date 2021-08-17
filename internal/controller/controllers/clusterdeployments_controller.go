@@ -80,17 +80,16 @@ const longerRequeueAfterOnError = 1 * time.Minute
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
 	client.Client
-	APIReader         client.Reader
-	Log               logrus.FieldLogger
-	Scheme            *runtime.Scheme
-	Installer         bminventory.InstallerInternals
-	ClusterApi        cluster.API
-	HostApi           host.API
-	CRDEventsHandler  CRDEventsHandler
-	Manifests         manifests.ClusterManifestsInternals
-	ServiceBaseURL    string
-	AuthType          auth.AuthType
-	EnableDay2Cluster bool
+	APIReader        client.Reader
+	Log              logrus.FieldLogger
+	Scheme           *runtime.Scheme
+	Installer        bminventory.InstallerInternals
+	ClusterApi       cluster.API
+	HostApi          host.API
+	CRDEventsHandler CRDEventsHandler
+	Manifests        manifests.ClusterManifestsInternals
+	ServiceBaseURL   string
+	AuthType         auth.AuthType
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;create
@@ -184,7 +183,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		if !isInstalled(clusterDeployment, clusterInstall) {
 			return r.createNewCluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 		}
-		if !r.isSNO(clusterInstall) && r.EnableDay2Cluster {
+		if !r.isSNO(clusterInstall) {
 			return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 		}
 		// cluster is installed and SNO nothing to do.
@@ -1266,8 +1265,6 @@ func (r *ClusterDeploymentsReconciler) populateEventsURL(log logrus.FieldLogger,
 			}
 			clusterInstall.Status.DebugInfo.EventsURL = eventUrl
 		}
-	} else if r.EnableDay2Cluster && !r.isSNO(clusterInstall) {
-		clusterInstall.Status.DebugInfo.EventsURL = ""
 	}
 	return nil
 }
@@ -1278,8 +1275,6 @@ func (r *ClusterDeploymentsReconciler) populateLogsURL(ctx context.Context, log 
 			log.WithError(err).Error("failed to generate controller logs URL")
 			return err
 		}
-	} else if r.EnableDay2Cluster && !r.isSNO(clusterInstall) {
-		clusterInstall.Status.DebugInfo.LogsURL = ""
 	}
 	return nil
 }
@@ -1702,7 +1697,7 @@ func (r *ClusterDeploymentsReconciler) handleClusterInstalled(ctx context.Contex
 			log.WithError(err).Error("failed to update cluster metadata")
 		}
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-	} else if r.EnableDay2Cluster && !r.isSNO(clusterInstall) {
+	} else if !r.isSNO(clusterInstall) {
 		return r.TransformClusterToDay2(ctx, log, cluster, clusterInstall)
 	}
 	return r.updateStatus(ctx, log, clusterInstall, cluster, err)
