@@ -22,3 +22,11 @@ func NewBaremetalProvider(log logrus.FieldLogger) provider.Provider {
 func (p *baremetalProvider) Name() models.PlatformType {
 	return models.PlatformTypeBaremetal
 }
+
+func (p *baremetalProvider) IsHostSupported(_ *models.Host) (bool, error) {
+	return true, nil
+}
+
+func (p *baremetalProvider) AreHostsSupported(_ []*models.Host) (bool, error) {
+	return true, nil
+}

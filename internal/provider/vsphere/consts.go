@@ -18,4 +18,6 @@ const (
 	DbFieldNetwork          = "platform_vsphere_network"
 	DbFieldVCenter          = "platform_vsphere_vCenter"
 	DbFieldFolder           = "platform_vsphere_folder"
+
+	VmwareManufacturer string = "VMware, Inc."
 )

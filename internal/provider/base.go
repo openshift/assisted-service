@@ -24,4 +24,8 @@ type Provider interface {
 	CleanPlatformValuesFromDBUpdates(updates map[string]interface{}) error
 	// SetPlatformUsages uses the usageApi to update platform specific usages
 	SetPlatformUsages(platformParams *models.Platform, usages map[string]models.Usage, usageApi usage.API) error
+	// IsHostSupported checks if the provider supports the host
+	IsHostSupported(hosts *models.Host) (bool, error)
+	// AreHostsSupported checks if the provider supports the hosts
+	AreHostsSupported(host []*models.Host) (bool, error)
 }

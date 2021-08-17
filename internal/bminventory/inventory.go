@@ -1948,13 +1948,22 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 	return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: clusterID})
 }
 
-func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error) {
+func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(
+	ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error) {
 	cluster, err := b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: params.ClusterID})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting cluster, error: %w", err)
 	}
-
-	return common.GetClusterSupportedPlatforms(*cluster)
+	// no hosts or SNO
+	if len(cluster.Hosts) == 0 || *cluster.HighAvailabilityMode != models.ClusterHighAvailabilityModeFull {
+		return &[]models.PlatformType{models.PlatformTypeBaremetal}, nil
+	}
+	hostSupportedPlatforms, err := b.providerRegistry.GetSupportedProvidersByHosts(cluster.Hosts)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"error while checking supported platforms, error: %w", err)
+	}
+	return &hostSupportedPlatforms, nil
 }
 
 func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder {

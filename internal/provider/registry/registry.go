@@ -32,6 +32,10 @@ type ProviderRegistry interface {
 	SetPlatformValuesInDBUpdates(p models.PlatformType, platformParams *models.Platform, updates map[string]interface{}) error
 	// SetPlatformUsages uses the usageApi to update platform specific usages
 	SetPlatformUsages(p models.PlatformType, platformParams *models.Platform, usages map[string]models.Usage, usageApi usage.API) error
+	// IsHostSupported checks if the provider supports the host
+	IsHostSupported(p models.PlatformType, host *models.Host) (bool, error)
+	// AreHostsSupported checks if the provider supports the hosts
+	AreHostsSupported(p models.PlatformType, hosts []*models.Host) (bool, error)
 }
 
 // Registry registers the providers to their names.
@@ -100,6 +104,43 @@ func (r *registry) SetPlatformUsages(
 		return fmt.Errorf("error adding platform to install config, platform provider wasn't set: %w", err)
 	}
 	return currentProvider.SetPlatformUsages(platformParams, usages, usageApi)
+}
+
+func (r *registry) IsHostSupported(p models.PlatformType, host *models.Host) (bool, error) {
+	currentProvider, err := r.Get(string(p))
+	if err != nil {
+		return false, fmt.Errorf("error while checking if hosts are supported by platform %s, error %w",
+			currentProvider.Name(), err)
+	}
+	return currentProvider.IsHostSupported(host)
+}
+
+func (r *registry) AreHostsSupported(p models.PlatformType, hosts []*models.Host) (bool, error) {
+	currentProvider, err := r.Get(string(p))
+	if err != nil {
+		return false, fmt.Errorf("error while checking if hosts are supported by platform %s, error %w",
+			currentProvider.Name(), err)
+	}
+	return currentProvider.AreHostsSupported(hosts)
+}
+
+func (r *registry) GetSupportedProvidersByHosts(hosts []*models.Host) ([]models.PlatformType, error) {
+	var clusterSupportedPlatforms []models.PlatformType
+	if len(hosts) == 0 {
+		return nil, nil
+	}
+	for _, p := range r.providers {
+		supported, err := p.AreHostsSupported(hosts)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"error while checking if hosts are supported by platform %s, error %w",
+				p.Name(), err)
+		}
+		if supported {
+			clusterSupportedPlatforms = append(clusterSupportedPlatforms, p.Name())
+		}
+	}
+	return clusterSupportedPlatforms, nil
 }
 
 func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
