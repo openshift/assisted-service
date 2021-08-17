@@ -2,6 +2,7 @@ package bminventory
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cavaliercoder/go-cpio"
 	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
 	ign_3_1_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/go-openapi/runtime/middleware"
@@ -5714,6 +5716,128 @@ var _ = Describe("KubeConfig download", func() {
 			ClusterID: clusterID,
 		})
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(r), constants.Kubeconfig, 4)))
+	})
+})
+
+var _ = Describe("DownloadMinimalInitrd", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		infraEnv  common.InfraEnv
+		dbName    string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		bm = createInventory(db, cfg)
+		infraEnv = common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:            clusterID,
+				PullSecretSet: true,
+				Type:          models.ImageTypeMinimalIso,
+			},
+			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+		}
+		err := db.Create(&infraEnv).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("returns not found with a non-existant cluster", func() {
+		params := installer.DownloadMinimalInitrdParams{InfraEnvID: strfmt.UUID(uuid.New().String())}
+		response := bm.DownloadMinimalInitrd(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("returns conflict when not minimal-iso", func() {
+		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnv = common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:            clusterID,
+				PullSecretSet: true,
+				Type:          models.ImageTypeFullIso,
+			},
+			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+		}
+		err := db.Create(&infraEnv).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		params := installer.DownloadMinimalInitrdParams{InfraEnvID: clusterID}
+		response := bm.DownloadMinimalInitrd(ctx, params)
+		verifyApiError(response, http.StatusConflict)
+	})
+
+	It("returns no content without network customizations", func() {
+		params := installer.DownloadMinimalInitrdParams{InfraEnvID: clusterID}
+		response := bm.DownloadMinimalInitrd(ctx, params)
+		Expect(response).Should(BeAssignableToTypeOf(&installer.DownloadMinimalInitrdNoContent{}))
+	})
+
+	It("returns legit archive", func() {
+		clusterID = strfmt.UUID(uuid.New().String())
+
+		httpProxy := "http://10.10.1.1:3128"
+		httpsProxy := "https://10.10.1.1:3128"
+		noProxy := "quay.io"
+
+		clusterProxyInfo := isoeditor.ClusterProxyInfo{
+			HTTPProxy:  httpProxy,
+			HTTPSProxy: httpsProxy,
+			NoProxy:    noProxy,
+		}
+
+		infraEnv = common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:            clusterID,
+				PullSecretSet: true,
+				Type:          models.ImageTypeMinimalIso,
+				Proxy: &models.Proxy{
+					HTTPProxy:  &httpProxy,
+					HTTPSProxy: &httpsProxy,
+					NoProxy:    &noProxy,
+				},
+			},
+			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+		}
+		err := db.Create(&infraEnv).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		params := installer.DownloadMinimalInitrdParams{InfraEnvID: clusterID}
+		responsePayload := bm.DownloadMinimalInitrd(ctx, params).(*installer.DownloadMinimalInitrdOK).Payload
+
+		gzipReader, err := gzip.NewReader(responsePayload)
+		Expect(err).ToNot(HaveOccurred())
+
+		var rootfsServiceConfigContent string
+		r := cpio.NewReader(gzipReader)
+		for {
+			hdr, err := r.Next()
+			if err == io.EOF {
+				break
+			}
+			Expect(err).ToNot(HaveOccurred())
+			switch hdr.Name {
+			case "/etc/systemd/system/coreos-livepxe-rootfs.service.d/10-proxy.conf":
+				rootfsServiceConfigBytes, err := ioutil.ReadAll(r)
+				Expect(err).ToNot(HaveOccurred())
+				rootfsServiceConfigContent = string(rootfsServiceConfigBytes)
+			}
+		}
+
+		rootfsServiceConfig := fmt.Sprintf("[Service]\n"+
+			"Environment=http_proxy=%s\nEnvironment=https_proxy=%s\nEnvironment=no_proxy=%s\n"+
+			"Environment=HTTP_PROXY=%s\nEnvironment=HTTPS_PROXY=%s\nEnvironment=NO_PROXY=%s",
+			clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy,
+			clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy)
+		Expect(rootfsServiceConfigContent).To(Equal(rootfsServiceConfig))
 	})
 })
 

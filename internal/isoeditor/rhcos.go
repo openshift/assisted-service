@@ -204,6 +204,9 @@ func addIgnitionArchive(clusterISOPath, ignition string, ignitionOffset uint64) 
 }
 
 func RamdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo) ([]byte, error) {
+	if len(netFiles) == 0 && clusterProxyInfo.Empty() {
+		return nil, nil
+	}
 	buffer := new(bytes.Buffer)
 	w := cpio.NewWriter(buffer)
 	if len(netFiles) > 0 {

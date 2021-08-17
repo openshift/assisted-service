@@ -3538,7 +3538,7 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 	return installer.NewGetPresignedForClusterFilesOK().WithPayload(&models.Presigned{URL: &url})
 }
 
-func (b *bareMetalInventory) GetMinimalInitrd(ctx context.Context, params installer.GetMinimalInitrdParams) middleware.Responder {
+func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params installer.DownloadMinimalInitrdParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
 	if err != nil {
@@ -3546,6 +3546,9 @@ func (b *bareMetalInventory) GetMinimalInitrd(ctx context.Context, params instal
 	}
 
 	if infraEnv.Type != models.ImageTypeMinimalIso {
+		err = fmt.Errorf("Only %v image type supported but %v specified.", models.ImageTypeMinimalIso, infraEnv.Type)
+		log.WithError(err)
+		return common.NewApiError(http.StatusConflict, err)
 	}
 
 	var netFiles []staticnetworkconfig.StaticNetworkConfigData
@@ -3570,7 +3573,11 @@ func (b *bareMetalInventory) GetMinimalInitrd(ctx context.Context, params instal
 		return common.GenerateErrorResponder(err)
 	}
 
-	return installer.NewGetMinimalInitrdOK().WithPayload(ioutil.NopCloser(bytes.NewReader(minimalInitrd)))
+	if len(minimalInitrd) == 0 {
+		return installer.NewDownloadMinimalInitrdNoContent()
+	}
+
+	return installer.NewDownloadMinimalInitrdOK().WithPayload(ioutil.NopCloser(bytes.NewReader(minimalInitrd)))
 }
 
 func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
