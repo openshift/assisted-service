@@ -139,6 +139,7 @@ type InstallerInternals interface {
 	V2UpdateHostIgnitionInternal(ctx context.Context, params installer.V2UpdateHostIgnitionParams) (*models.Host, error)
 	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
 	DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error)
+	V2DownloadClusterFilesInternal(ctx context.Context, params installer.V2DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams, v1Flag bool) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.UpdateClusterInstallConfigParams) (*common.Cluster, error)
@@ -5650,4 +5651,27 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	} else {
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
 	}
+}
+
+func (b *bareMetalInventory) V2DownloadClusterFiles(ctx context.Context, params installer.V2DownloadClusterFilesParams) middleware.Responder {
+	respBody, contentLength, err := b.V2DownloadClusterFilesInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return filemiddleware.NewResponder(installer.NewV2DownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
+}
+
+func (b *bareMetalInventory) V2DownloadClusterFilesInternal(ctx context.Context, params installer.V2DownloadClusterFilesParams) (io.ReadCloser, int64, error) {
+	log := logutil.FromContext(ctx, b.log)
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
+		return nil, 0, err
+	}
+
+	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName))
+	if err != nil {
+		log.WithError(err).Errorf("failed to download file %s from cluster: %s", params.FileName, params.ClusterID.String())
+		return nil, 0, common.NewApiError(http.StatusConflict, err)
+	}
+
+	return respBody, contentLength, nil
 }

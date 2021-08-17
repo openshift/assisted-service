@@ -192,6 +192,9 @@ type API interface {
 	   UploadLogs Agent API to upload logs.*/
 	UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error)
 	/*
+	   V2DownloadClusterFiles Downloads files relating to the installed/installing cluster.*/
+	V2DownloadClusterFiles(ctx context.Context, params *V2DownloadClusterFilesParams, writer io.Writer) (*V2DownloadClusterFilesOK, error)
+	/*
 	   V2DeregisterHost Deregisters an OpenShift host.*/
 	V2DeregisterHost(ctx context.Context, params *V2DeregisterHostParams) (*V2DeregisterHostNoContent, error)
 	/*
@@ -1651,6 +1654,31 @@ func (a *Client) UploadLogs(ctx context.Context, params *UploadLogsParams) (*Upl
 		return nil, err
 	}
 	return result.(*UploadLogsNoContent), nil
+
+}
+
+/*
+V2DownloadClusterFiles Downloads files relating to the installed/installing cluster.
+*/
+func (a *Client) V2DownloadClusterFiles(ctx context.Context, params *V2DownloadClusterFilesParams, writer io.Writer) (*V2DownloadClusterFilesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2DownloadClusterFiles",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/downloads/files",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2DownloadClusterFilesReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2DownloadClusterFilesOK), nil
 
 }
 
