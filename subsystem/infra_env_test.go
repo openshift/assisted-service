@@ -65,4 +65,11 @@ var _ = Describe("Infra_Env", func() {
 		Expect(err).Should(HaveOccurred())
 
 	})
+
+	It("can list infra-envs", func() {
+		resp, err := userBMClient.Installer.ListInfraEnvs(ctx, installer.NewListInfraEnvsParams())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(resp.Payload)).To(Equal(1))
+		Expect(resp.Payload[0]).To(Equal(infraEnv))
+	})
 })
