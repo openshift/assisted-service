@@ -295,6 +295,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2RegisterHostHandler: installer.V2RegisterHostHandlerFunc(func(params installer.V2RegisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2RegisterHost has not yet been implemented")
 		}),
+		InstallerV2ResetHostHandler: installer.V2ResetHostHandlerFunc(func(params installer.V2ResetHostParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2ResetHost has not yet been implemented")
+		}),
 		InstallerV2ResetHostValidationHandler: installer.V2ResetHostValidationHandlerFunc(func(params installer.V2ResetHostValidationParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2ResetHostValidation has not yet been implemented")
 		}),
@@ -542,6 +545,8 @@ type AssistedInstallAPI struct {
 	InstallerV2PostStepReplyHandler installer.V2PostStepReplyHandler
 	// InstallerV2RegisterHostHandler sets the operation handler for the v2 register host operation
 	InstallerV2RegisterHostHandler installer.V2RegisterHostHandler
+	// InstallerV2ResetHostHandler sets the operation handler for the v2 reset host operation
+	InstallerV2ResetHostHandler installer.V2ResetHostHandler
 	// InstallerV2ResetHostValidationHandler sets the operation handler for the v2 reset host validation operation
 	InstallerV2ResetHostValidationHandler installer.V2ResetHostValidationHandler
 	// InstallerV2UpdateHostIgnitionHandler sets the operation handler for the v2 update host ignition operation
@@ -886,6 +891,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2RegisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2RegisterHostHandler")
+	}
+	if o.InstallerV2ResetHostHandler == nil {
+		unregistered = append(unregistered, "installer.V2ResetHostHandler")
 	}
 	if o.InstallerV2ResetHostValidationHandler == nil {
 		unregistered = append(unregistered, "installer.V2ResetHostValidationHandler")
@@ -1335,6 +1343,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts"] = installer.NewV2RegisterHost(o.context, o.InstallerV2RegisterHostHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset"] = installer.NewV2ResetHost(o.context, o.InstallerV2ResetHostHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}

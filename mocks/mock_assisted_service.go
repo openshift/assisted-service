@@ -959,6 +959,20 @@ func (mr *MockInstallerAPIMockRecorder) V2RegisterHost(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2RegisterHost", reflect.TypeOf((*MockInstallerAPI)(nil).V2RegisterHost), arg0, arg1)
 }
 
+// V2ResetHost mocks base method
+func (m *MockInstallerAPI) V2ResetHost(arg0 context.Context, arg1 installer.V2ResetHostParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2ResetHost", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2ResetHost indicates an expected call of V2ResetHost
+func (mr *MockInstallerAPIMockRecorder) V2ResetHost(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ResetHost", reflect.TypeOf((*MockInstallerAPI)(nil).V2ResetHost), arg0, arg1)
+}
+
 // V2ResetHostValidation mocks base method
 func (m *MockInstallerAPI) V2ResetHostValidation(arg0 context.Context, arg1 installer.V2ResetHostValidationParams) middleware.Responder {
 	m.ctrl.T.Helper()
