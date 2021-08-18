@@ -4262,6 +4262,58 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+        - urlAuth: []
+      description: |
+        Get the initial ramdisk for minimal ISO based installations.
+      operationId: DownloadMinimalInitrd
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The infra env of the host that should be retrieved.
+          type: string
+          format: uuid
+          required: true
+      produces:
+        - application/octet-stream
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: string
+            format: binary
+        "204":
+          description: Empty Success.
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Conflict.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   vsphere_platform:
     type: object

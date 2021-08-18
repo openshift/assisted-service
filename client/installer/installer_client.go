@@ -67,6 +67,10 @@ type API interface {
 	   DownloadInfraEnvDiscoveryImageHeaders Downloads the discovery image Headers only.*/
 	DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, params *DownloadInfraEnvDiscoveryImageHeadersParams) (*DownloadInfraEnvDiscoveryImageHeadersOK, error)
 	/*
+	   DownloadMinimalInitrd Get the initial ramdisk for minimal ISO based installations.
+	*/
+	DownloadMinimalInitrd(ctx context.Context, params *DownloadMinimalInitrdParams, writer io.Writer) (*DownloadMinimalInitrdOK, *DownloadMinimalInitrdNoContent, error)
+	/*
 	   EnableHost Enables a host for inclusion in the cluster.*/
 	EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostOK, error)
 	/*
@@ -652,6 +656,38 @@ func (a *Client) DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, para
 		return nil, err
 	}
 	return result.(*DownloadInfraEnvDiscoveryImageHeadersOK), nil
+
+}
+
+/*
+DownloadMinimalInitrd Get the initial ramdisk for minimal ISO based installations.
+
+*/
+func (a *Client) DownloadMinimalInitrd(ctx context.Context, params *DownloadMinimalInitrdParams, writer io.Writer) (*DownloadMinimalInitrdOK, *DownloadMinimalInitrdNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadMinimalInitrd",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/downloads/minimal-initrd",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DownloadMinimalInitrdReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	switch value := result.(type) {
+	case *DownloadMinimalInitrdOK:
+		return value, nil, nil
+	case *DownloadMinimalInitrdNoContent:
+		return nil, value, nil
+	}
+	return nil, nil, nil
 
 }
 

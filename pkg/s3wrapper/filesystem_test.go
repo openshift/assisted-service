@@ -41,7 +41,7 @@ var _ = Describe("s3filesystem", func() {
 
 		ctrl = gomock.NewController(GinkgoT())
 		mockVersions = versions.NewMockHandler(ctrl)
-		editorFactory := isoeditor.NewFactory(isoeditor.Config{ConcurrentEdits: 10}, nil)
+		editorFactory := isoeditor.NewFactory(isoeditor.Config{ConcurrentEdits: 10})
 		mockMetricsAPI = metrics.NewMockAPI(ctrl)
 		client = &FSClient{basedir: baseDir, log: log, versionsHandler: mockVersions, isoEditorFactory: editorFactory}
 		deleteTime, _ = time.ParseDuration("60m")

@@ -46,6 +46,10 @@ type ClusterProxyInfo struct {
 	NoProxy    string
 }
 
+func (i *ClusterProxyInfo) Empty() bool {
+	return i == nil || (i.HTTPProxy == "" && i.HTTPSProxy == "" && i.NoProxy == "")
+}
+
 type OffsetInfo struct {
 	Key    [8]byte
 	Offset uint64
@@ -55,14 +59,13 @@ type OffsetInfo struct {
 //go:generate mockgen -package=isoeditor -destination=mock_editor.go -self_package=github.com/openshift/assisted-service/internal/isoeditor . Editor
 type Editor interface {
 	CreateMinimalISOTemplate(rootFSURL string) (string, error)
-	CreateClusterMinimalISO(ignition string, staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo) (string, error)
+	CreateClusterMinimalISO(ignition string, netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo) (string, error)
 }
 
 type rhcosEditor struct {
-	isoHandler          isoutil.Handler
-	log                 logrus.FieldLogger
-	workDir             string
-	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig
+	isoHandler isoutil.Handler
+	log        logrus.FieldLogger
+	workDir    string
 }
 
 // Creates the template minimal iso by removing the rootfs and adding the url
@@ -93,7 +96,7 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(rootFSURL string) (string, error)
 		return "", err
 	}
 
-	if err := e.embedOffsetsInSystemArea(isoPath); err != nil {
+	if err := embedOffsetsInSystemArea(isoPath); err != nil {
 		e.log.WithError(err).Errorf("Failed to embed offsets in ISO system area")
 		return "", err
 	}
@@ -101,7 +104,7 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(rootFSURL string) (string, error)
 	return isoPath, nil
 }
 
-func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo) (string, error) {
+func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo) (string, error) {
 	clusterISOPath, err := tempFileName(e.workDir)
 	if err != nil {
 		return "", err
@@ -116,12 +119,12 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticNetworkConf
 		return "", err
 	}
 
-	if err := e.addIgnitionArchive(clusterISOPath, ignition, ignitionOffsetInfo.Offset); err != nil {
+	if err := addIgnitionArchive(clusterISOPath, ignition, ignitionOffsetInfo.Offset); err != nil {
 		return "", errors.Wrap(err, "failed to add ignition archive")
 	}
 
-	if staticNetworkConfig != "" || clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
-		if err := e.addCustomRAMDisk(clusterISOPath, staticNetworkConfig, clusterProxyInfo, ramDiskOffsetInfo); err != nil {
+	if len(netFiles) > 0 || !clusterProxyInfo.Empty() {
+		if err := addCustomRAMDisk(clusterISOPath, netFiles, clusterProxyInfo, ramDiskOffsetInfo); err != nil {
 			return "", errors.Wrap(err, "failed to add additional ramdisk")
 		}
 	}
@@ -142,7 +145,7 @@ func (e *rhcosEditor) embedInitrdPlaceholders() error {
 	return nil
 }
 
-func (e *rhcosEditor) embedOffsetsInSystemArea(isoPath string) error {
+func embedOffsetsInSystemArea(isoPath string) error {
 	ignitionOffset, err := isoutil.GetFileLocation(ignitionImagePath, isoPath)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get ignition image offset")
@@ -191,7 +194,7 @@ func (e *rhcosEditor) createImagePlaceholder(imagePath string, paddingLength uin
 	return nil
 }
 
-func (e *rhcosEditor) addIgnitionArchive(clusterISOPath, ignition string, ignitionOffset uint64) error {
+func addIgnitionArchive(clusterISOPath, ignition string, ignitionOffset uint64) error {
 	archiveBytes, err := IgnitionImageArchive(ignition)
 	if err != nil {
 		return err
@@ -200,43 +203,45 @@ func (e *rhcosEditor) addIgnitionArchive(clusterISOPath, ignition string, igniti
 	return writeAt(archiveBytes, int64(ignitionOffset), clusterISOPath)
 }
 
-func (e *rhcosEditor) addCustomRAMDisk(clusterISOPath, staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo, ramdiskOffsetInfo *OffsetInfo) error {
+func RamdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo) ([]byte, error) {
+	if len(netFiles) == 0 && clusterProxyInfo.Empty() {
+		return nil, nil
+	}
 	buffer := new(bytes.Buffer)
 	w := cpio.NewWriter(buffer)
-	if staticNetworkConfig != "" {
-		filesList, newErr := e.staticNetworkConfig.GenerateStaticNetworkConfigData(staticNetworkConfig)
-		if newErr != nil {
-			return newErr
-		}
-		for _, file := range filesList {
+	if len(netFiles) > 0 {
+		for _, file := range netFiles {
 			err := addFileToArchive(w, filepath.Join("/etc/assisted/network", file.FilePath), file.FileContents, 0o600)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 		scriptPath := "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-pre-static-network-config.sh"
 		scriptContent := constants.PreNetworkConfigScript
 
 		if err := addFileToArchive(w, scriptPath, scriptContent, 0o755); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	if clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
+	if !clusterProxyInfo.Empty() {
 		rootfsServiceConfigPath := "/etc/systemd/system/coreos-livepxe-rootfs.service.d/10-proxy.conf"
-		rootfsServiceConfig, err := e.formatRootfsServiceConfigFile(clusterProxyInfo)
+		rootfsServiceConfig, err := formatRootfsServiceConfigFile(clusterProxyInfo)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if err := addFileToArchive(w, rootfsServiceConfigPath, rootfsServiceConfig, 0o664); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if err := w.Close(); err != nil {
-		return err
+		return nil, err
 	}
 
-	// Compress custom RAM disk
-	compressedArchive, err := getCompressedArchive(buffer)
+	return getCompressedArchive(buffer)
+}
+
+func addCustomRAMDisk(clusterISOPath string, netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo, ramdiskOffsetInfo *OffsetInfo) error {
+	compressedArchive, err := RamdiskImageArchive(netFiles, clusterProxyInfo)
 	if err != nil {
 		return err
 	}
@@ -250,7 +255,7 @@ func (e *rhcosEditor) addCustomRAMDisk(clusterISOPath, staticNetworkConfig strin
 	return writeAt(compressedArchive, int64(ramdiskOffsetInfo.Offset), clusterISOPath)
 }
 
-func (e *rhcosEditor) formatRootfsServiceConfigFile(clusterProxyInfo *ClusterProxyInfo) (string, error) {
+func formatRootfsServiceConfigFile(clusterProxyInfo *ClusterProxyInfo) (string, error) {
 	var rootfsServicConfigParams = map[string]string{
 		"HTTP_PROXY":  clusterProxyInfo.HTTPProxy,
 		"HTTPS_PROXY": clusterProxyInfo.HTTPSProxy,
