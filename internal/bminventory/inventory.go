@@ -4894,17 +4894,27 @@ func (b *bareMetalInventory) GetInfraEnvInternal(ctx context.Context, params ins
 func (b *bareMetalInventory) ListInfraEnvs(ctx context.Context, params installer.ListInfraEnvsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	db := b.db
-	var infraEnvs []*models.InfraEnv
-	var dbInfraEnvs []*common.InfraEnv
 
-	clusterFilter := identity.AddUserFilter(ctx, "")
-	dbClusters, err := common.GetClustersFromDBWhere(db, common.SkipEagerLoading, common.SkipDeletedRecords, clusterFilter)
-	if err != nil {
-		log.WithError(err).Error("Failed to list clusters in db")
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
+	var (
+		infraEnvs   []*models.InfraEnv
+		dbInfraEnvs []*common.InfraEnv
+		err         error
+	)
 
-	if len(dbClusters) > 0 {
+	// Only filter by cluster ownership when using RHSSO auth
+	if b.authHandler.AuthType() == auth.TypeRHSSO {
+		clusterFilter := identity.AddUserFilter(ctx, "")
+		dbClusters, err := common.GetClustersFromDBWhere(db, common.SkipEagerLoading, common.SkipDeletedRecords, clusterFilter)
+		if err != nil {
+			log.WithError(err).Error("Failed to list clusters in db")
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+
+		// Return the empty list of infraenvs if we didn't match any clusters
+		if len(dbClusters) == 0 {
+			return installer.NewListInfraEnvsOK().WithPayload(infraEnvs)
+		}
+
 		ownedClusterIDs := []string{}
 		for _, cluster := range dbClusters {
 			ownedClusterIDs = append(ownedClusterIDs, cluster.ID.String())
@@ -4912,12 +4922,16 @@ func (b *bareMetalInventory) ListInfraEnvs(ctx context.Context, params installer
 
 		infraEnvFilter := fmt.Sprintf("id IN (%s)", strings.Join(ownedClusterIDs, ","))
 		dbInfraEnvs, err = common.GetInfraEnvsFromDBWhere(db, infraEnvFilter)
+		if err != nil {
+			log.WithError(err).Error("Failed to list infraEnvs in db")
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
 	} else {
 		dbInfraEnvs, err = common.GetInfraEnvsFromDBWhere(db)
-	}
-	if err != nil {
-		log.WithError(err).Error("Failed to list infraEnvs in db")
-		return common.NewApiError(http.StatusInternalServerError, err)
+		if err != nil {
+			log.WithError(err).Error("Failed to list infraEnvs in db")
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
 	}
 
 	for _, i := range dbInfraEnvs {
