@@ -448,7 +448,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 	}
 
-	openshiftVersion, err := b.versionsHandler.GetVersion(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+	openshiftVersion, err := b.versionsHandler.GetOpenshiftVersion(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
 	if err != nil {
 		err = errors.Errorf("Openshift version %s is not supported",
 			swag.StringValue(params.NewClusterParams.OpenshiftVersion))
@@ -646,7 +646,7 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
 	}
 
-	openshiftVersion, err := b.versionsHandler.GetVersion(inputOpenshiftVersion)
+	openshiftVersion, err := b.versionsHandler.GetOpenshiftVersion(inputOpenshiftVersion)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion)
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
@@ -1750,14 +1750,14 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
 	}
 
-	releaseImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
-
+	ocpVersion, err := b.versionsHandler.GetOpenshiftVersion(cluster.OpenshiftVersion)
 	if err != nil {
-		log.WithError(err).Errorf("failed to get release image for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
-		return errors.Wrapf(err, "failed to get release image for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
+		msg := fmt.Sprintf("failed to get OpenshiftVersion for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
+		log.WithError(err).Errorf(msg)
+		return errors.Wrapf(err, msg)
 	}
 
-	if err := b.generator.GenerateInstallConfig(ctx, cluster, cfg, releaseImage); err != nil {
+	if err := b.generator.GenerateInstallConfig(ctx, cluster, cfg, *ocpVersion.ReleaseImage); err != nil {
 		msg := fmt.Sprintf("failed generating install config for cluster %s", cluster.ID)
 		log.WithError(err).Error(msg)
 		return errors.Wrap(err, msg)
@@ -4969,7 +4969,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		}
 	}
 
-	openshiftVersion, err := b.versionsHandler.GetVersion(swag.StringValue(params.InfraenvCreateParams.OpenshiftVersion))
+	openshiftVersion, err := b.versionsHandler.GetOpenshiftVersion(swag.StringValue(params.InfraenvCreateParams.OpenshiftVersion))
 	if err != nil {
 		err = errors.Errorf("Openshift version %s is not supported",
 			swag.StringValue(params.InfraenvCreateParams.OpenshiftVersion))

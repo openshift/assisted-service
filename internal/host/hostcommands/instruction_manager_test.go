@@ -334,7 +334,7 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 	h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
 	ExpectWithOffset(1, swag.StringValue(h.Status)).Should(Equal(state))
 	if funk.Contains(expectedStepTypes, models.StepTypeInstall) {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/disk/by-id/wwn-sda").Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
 		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(1)
@@ -352,7 +352,7 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 	}
 
 	if funk.Contains(expectedStepTypes, models.StepTypeContainerImageAvailability) {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(1)
 	}
 

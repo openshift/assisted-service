@@ -30,11 +30,9 @@ type Versions struct {
 type Handler interface {
 	restapi.VersionsAPI
 	GetMustGatherImages(openshiftVersion string, pullSecret string) (MustGatherVersion, error)
-	GetReleaseImage(openshiftVersion string) (string, error)
-	GetReleaseVersion(openshiftVersion string) (string, error)
-	GetKey(openshiftVersion string) (string, error)
-	GetVersion(openshiftVersion string) (*models.OpenshiftVersion, error)
+	GetOpenshiftVersion(openshiftVersion string) (*models.OpenshiftVersion, error)
 	GetOsImage(openshiftVersion string) (*models.OsImage, error)
+	GetKey(openshiftVersion string) (string, error)
 	IsOpenshiftVersionSupported(versionKey string) bool
 	AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
 }
@@ -89,22 +87,6 @@ func (h *handler) ListSupportedOpenshiftVersions(ctx context.Context, params ope
 	return operations.NewListSupportedOpenshiftVersionsOK().WithPayload(h.openshiftVersions)
 }
 
-func (h *handler) GetReleaseImage(openshiftVersion string) (pullSpec string, err error) {
-	versionKey, err := h.GetKey(openshiftVersion)
-	if err != nil {
-		return "", err
-	}
-	if !h.IsOpenshiftVersionSupported(versionKey) {
-		return "", errors.Errorf("No release image for unsupported openshift version %s", versionKey)
-	}
-
-	if h.openshiftVersions[versionKey].ReleaseImage == nil {
-		return "", errors.Errorf("Release image was missing for openshift version %s", versionKey)
-	}
-
-	return *h.openshiftVersions[versionKey].ReleaseImage, nil
-}
-
 func (h *handler) GetMustGatherImages(openshiftVersion string, pullSecret string) (MustGatherVersion, error) {
 	versionKey, err := h.GetKey(openshiftVersion)
 	if err != nil {
@@ -126,11 +108,11 @@ func (h *handler) GetMustGatherImages(openshiftVersion string, pullSecret string
 		return versions, nil
 	}
 	//if not, fetch it from the release image and add it to the cache
-	releaseImage, err := h.GetReleaseImage(openshiftVersion)
+	ocpVersion, err := h.GetOpenshiftVersion(openshiftVersion)
 	if err != nil {
 		return nil, err
 	}
-	ocpMustGatherImage, err := h.releaseHandler.GetMustGatherImage(h.log, releaseImage, h.releaseImageMirror, pullSecret)
+	ocpMustGatherImage, err := h.releaseHandler.GetMustGatherImage(h.log, *ocpVersion.ReleaseImage, h.releaseImageMirror, pullSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -148,25 +130,8 @@ func (h *handler) IsOpenshiftVersionSupported(versionKey string) bool {
 	return true
 }
 
-// Should return release version (as fetched from 'oc adm release info')
-func (h *handler) GetReleaseVersion(openshiftVersion string) (string, error) {
-	versionKey, err := h.GetKey(openshiftVersion)
-	if err != nil {
-		return "", err
-	}
-	if !h.IsOpenshiftVersionSupported(versionKey) {
-		return "", errors.Errorf("No release version for unsupported openshift version %s", versionKey)
-	}
-
-	if h.openshiftVersions[versionKey].ReleaseVersion == nil {
-		return "", errors.Errorf("Release version was missing for openshift version %s", versionKey)
-	}
-
-	return *h.openshiftVersions[versionKey].ReleaseVersion, nil
-}
-
 // Returns the OpenshiftVersion entity
-func (h *handler) GetVersion(openshiftVersion string) (*models.OpenshiftVersion, error) {
+func (h *handler) GetOpenshiftVersion(openshiftVersion string) (*models.OpenshiftVersion, error) {
 	versionKey, err := h.GetKey(openshiftVersion)
 	if err != nil {
 		return nil, err
@@ -175,13 +140,21 @@ func (h *handler) GetVersion(openshiftVersion string) (*models.OpenshiftVersion,
 		return nil, errors.Errorf("No release version for unsupported openshift version %s", versionKey)
 	}
 
-	releaseVersion, err := h.GetReleaseVersion(openshiftVersion)
-	if err != nil {
-		return nil, err
+	missingValueTemplate := "Missing value in OpenshiftVersion for '%s' field"
+	ocpVersion := h.openshiftVersions[versionKey]
+	if ocpVersion.DisplayName == nil {
+		return nil, errors.Errorf(fmt.Sprintf(missingValueTemplate, "DisplayName"))
 	}
-	version := h.openshiftVersions[versionKey]
-	version.ReleaseVersion = &releaseVersion
-	return &version, nil
+	if ocpVersion.ReleaseImage == nil {
+		return nil, errors.Errorf(fmt.Sprintf(missingValueTemplate, "ReleaseImage"))
+	}
+	if ocpVersion.ReleaseVersion == nil {
+		return nil, errors.Errorf(fmt.Sprintf(missingValueTemplate, "ReleaseVersion"))
+	}
+	if ocpVersion.SupportLevel == nil {
+		return nil, errors.Errorf(fmt.Sprintf(missingValueTemplate, "SupportLevel"))
+	}
+	return &ocpVersion, nil
 }
 
 // Returns the OsImage entity
@@ -274,14 +247,16 @@ func (h *handler) AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*mode
 }
 
 // Ensures no missing values in OS images.
+// No need to validate OpenshiftVersion fields here,
+// e.g. since release is not available in AddOpenshiftVersion flow.
 func (h *handler) validateVersions() error {
+	missingValueTemplate := "Missing value in OsImage for '%s' field"
 	for key := range h.openshiftVersions {
 		osImage, err := h.GetOsImage(key)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("Failed to get OSImage for openshift version: %s", key))
 		}
 
-		missingValueTemplate := "Missing value for '%s' field"
 		if osImage.URL == nil {
 			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "URL"))
 		}

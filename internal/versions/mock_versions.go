@@ -81,6 +81,21 @@ func (mr *MockHandlerMockRecorder) GetMustGatherImages(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMustGatherImages", reflect.TypeOf((*MockHandler)(nil).GetMustGatherImages), arg0, arg1)
 }
 
+// GetOpenshiftVersion mocks base method
+func (m *MockHandler) GetOpenshiftVersion(arg0 string) (*models.OpenshiftVersion, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOpenshiftVersion", arg0)
+	ret0, _ := ret[0].(*models.OpenshiftVersion)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOpenshiftVersion indicates an expected call of GetOpenshiftVersion
+func (mr *MockHandlerMockRecorder) GetOpenshiftVersion(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOpenshiftVersion", reflect.TypeOf((*MockHandler)(nil).GetOpenshiftVersion), arg0)
+}
+
 // GetOsImage mocks base method
 func (m *MockHandler) GetOsImage(arg0 string) (*models.OsImage, error) {
 	m.ctrl.T.Helper()
@@ -94,51 +109,6 @@ func (m *MockHandler) GetOsImage(arg0 string) (*models.OsImage, error) {
 func (mr *MockHandlerMockRecorder) GetOsImage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImage", reflect.TypeOf((*MockHandler)(nil).GetOsImage), arg0)
-}
-
-// GetReleaseImage mocks base method
-func (m *MockHandler) GetReleaseImage(arg0 string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetReleaseImage", arg0)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetReleaseImage indicates an expected call of GetReleaseImage
-func (mr *MockHandlerMockRecorder) GetReleaseImage(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseImage", reflect.TypeOf((*MockHandler)(nil).GetReleaseImage), arg0)
-}
-
-// GetReleaseVersion mocks base method
-func (m *MockHandler) GetReleaseVersion(arg0 string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetReleaseVersion", arg0)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetReleaseVersion indicates an expected call of GetReleaseVersion
-func (mr *MockHandlerMockRecorder) GetReleaseVersion(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseVersion", reflect.TypeOf((*MockHandler)(nil).GetReleaseVersion), arg0)
-}
-
-// GetVersion mocks base method
-func (m *MockHandler) GetVersion(arg0 string) (*models.OpenshiftVersion, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVersion", arg0)
-	ret0, _ := ret[0].(*models.OpenshiftVersion)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetVersion indicates an expected call of GetVersion
-func (mr *MockHandlerMockRecorder) GetVersion(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVersion", reflect.TypeOf((*MockHandler)(nil).GetVersion), arg0)
 }
 
 // IsOpenshiftVersionSupported mocks base method
