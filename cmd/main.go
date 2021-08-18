@@ -104,7 +104,8 @@ var Options struct {
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
 	OpenshiftVersions           string        `envconfig:"OPENSHIFT_VERSIONS"`
-	OsImages                    string        `envconfig:"OS_IMAGES"`
+	OsImages                    string        `envconfig:"OS_IMAGES" default:""`
+	ReleaseImages               string        `envconfig:"RELEASE_IMAGES" default:""`
 	MustGatherImages            string        `envconfig:"MUST_GATHER_IMAGES" default:""`
 	ReleaseImageMirror          string        `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	CreateS3Bucket              bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
@@ -214,6 +215,15 @@ func main() {
 			"Failed to parse supported OS images JSON %s", Options.OsImages)
 	}
 
+	var releaseImagesArray models.ReleaseImages
+	if Options.ReleaseImages == "" {
+		// ReleaseImages is optional for now (to support additional CPU architectures)
+		releaseImagesArray = models.ReleaseImages{}
+	} else {
+		failOnError(json.Unmarshal([]byte(Options.ReleaseImages), &releaseImagesArray),
+			"Failed to parse supported Release images JSON %s", Options.ReleaseImages)
+	}
+
 	log.Println(fmt.Sprintf("Started service with OCP versions %v, OS images %v",
 		Options.OpenshiftVersions, Options.OsImages))
 
@@ -261,7 +271,7 @@ func main() {
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 	versionHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
-		Options.Versions, openshiftVersionsMap, osImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror)
+		Options.Versions, openshiftVersionsMap, osImagesArray, releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror)
 	failOnError(err, "failed to create Versions handler")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
