@@ -4894,11 +4894,27 @@ func (b *bareMetalInventory) GetInfraEnvInternal(ctx context.Context, params ins
 func (b *bareMetalInventory) ListInfraEnvs(ctx context.Context, params installer.ListInfraEnvsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	db := b.db
-	var dbInfraEnvs []*common.InfraEnv
 	var infraEnvs []*models.InfraEnv
-	whereCondition := identity.AddUserFilter(ctx, "")
+	var dbInfraEnvs []*common.InfraEnv
 
-	dbInfraEnvs, err := common.GetInfraEnvsFromDBWhere(db, whereCondition)
+	clusterFilter := identity.AddUserFilter(ctx, "")
+	dbClusters, err := common.GetClustersFromDBWhere(db, common.SkipEagerLoading, common.SkipDeletedRecords, clusterFilter)
+	if err != nil {
+		log.WithError(err).Error("Failed to list clusters in db")
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	if len(dbClusters) > 0 {
+		ownedClusterIDs := []string{}
+		for _, cluster := range dbClusters {
+			ownedClusterIDs = append(ownedClusterIDs, cluster.ID.String())
+		}
+
+		infraEnvFilter := fmt.Sprintf("id IN (%s)", strings.Join(ownedClusterIDs, ","))
+		dbInfraEnvs, err = common.GetInfraEnvsFromDBWhere(db, infraEnvFilter)
+	} else {
+		dbInfraEnvs, err = common.GetInfraEnvsFromDBWhere(db)
+	}
 	if err != nil {
 		log.WithError(err).Error("Failed to list infraEnvs in db")
 		return common.NewApiError(http.StatusInternalServerError, err)
