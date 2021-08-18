@@ -9734,6 +9734,39 @@ func init() {
         }
       }
     },
+    "release-image": {
+      "type": "object",
+      "required": [
+        "openshift_version",
+        "cpu_architecture",
+        "url",
+        "version"
+      ],
+      "properties": {
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
+        "url": {
+          "description": "The installation image of the OpenShift cluster.",
+          "type": "string"
+        },
+        "version": {
+          "description": "OCP version from the release metadata.",
+          "type": "string"
+        }
+      }
+    },
+    "release-images": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/release-image"
+      }
+    },
     "route": {
       "type": "object",
       "properties": {
@@ -19820,6 +19853,39 @@ func init() {
           "type": "string",
           "x-nullable": true
         }
+      }
+    },
+    "release-image": {
+      "type": "object",
+      "required": [
+        "openshift_version",
+        "cpu_architecture",
+        "url",
+        "version"
+      ],
+      "properties": {
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
+        "url": {
+          "description": "The installation image of the OpenShift cluster.",
+          "type": "string"
+        },
+        "version": {
+          "description": "OCP version from the release metadata.",
+          "type": "string"
+        }
+      }
+    },
+    "release-images": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/release-image"
       }
     },
     "route": {
