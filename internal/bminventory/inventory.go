@@ -3140,7 +3140,7 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 			msg := fmt.Sprintf("Host's disk %s is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: %d ms)",
 				diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 			log.Warnf(msg)
-			b.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityWarning, msg, time.Now())
+			b.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityWarning, msg, time.Now())
 		}
 	}
 

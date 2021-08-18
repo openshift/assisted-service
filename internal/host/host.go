@@ -562,7 +562,7 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}
-		m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityInfo,
+		m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityInfo,
 			fmt.Sprintf("Host %s: set as bootstrap", hostutil.GetHostnameForMsg(h)), time.Now())
 	}
 	return nil
@@ -694,7 +694,7 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 				newImageStatus.Time, newImageStatus.SizeBytes, newImageStatus.DownloadRate)
 		}
 
-		m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityInfo, eventInfo, time.Now())
+		m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityInfo, eventInfo, time.Now())
 	}
 	marshalledStatuses, err := common.MarshalImageStatuses(hostImageStatuses)
 	if err != nil {
@@ -763,7 +763,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason
 	shouldAddEvent := true
 	defer func() {
 		if shouldAddEvent {
-			m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
+			m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, eventSeverity, eventInfo, time.Now())
 		}
 	}()
 
@@ -805,7 +805,7 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 	shouldAddEvent := true
 	defer func() {
 		if shouldAddEvent {
-			m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
+			m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, eventSeverity, eventInfo, time.Now())
 		}
 	}()
 
@@ -843,7 +843,7 @@ func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db
 	shouldAddEvent := true
 	defer func() {
 		if shouldAddEvent {
-			m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
+			m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, eventSeverity, eventInfo, time.Now())
 		}
 	}()
 
@@ -930,11 +930,11 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
 					m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
 					eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
-					m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
+					m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
 				}
 				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
 					eventMsg := fmt.Sprintf("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
-					m.eventsHandler.AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
+					m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
 				}
 			}
 		}

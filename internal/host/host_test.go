@@ -525,7 +525,7 @@ var _ = Describe("update progress special cases", func() {
 		infraEnvId = strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHostByKind(id, infraEnvId, &clusterId, models.HostStatusInstalling, models.HostKindHost, models.HostRoleMaster)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, host.ID, models.EventSeverityInfo,
+		mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvId, host.ID, models.EventSeverityInfo,
 			fmt.Sprintf("Host %s: set as bootstrap", host.ID.String()),
 			gomock.Any())
 		Expect(state.SetBootstrap(ctx, &host, true, db)).ShouldNot(HaveOccurred())
@@ -629,7 +629,7 @@ var _ = Describe("cancel installation", func() {
 			h.Status = swag.String(models.HostStatusInstalling)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.GetEvents(h.InfraEnvID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -642,7 +642,7 @@ var _ = Describe("cancel installation", func() {
 			h.Status = swag.String(models.HostStatusError)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.GetEvents(h.InfraEnvID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -660,7 +660,7 @@ var _ = Describe("cancel installation", func() {
 	Context("invalid cancel installation", func() {
 		It("nothing to cancel", func() {
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).Should(HaveOccurred())
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.GetEvents(h.InfraEnvID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -676,7 +676,7 @@ var _ = Describe("cancel installation", func() {
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.GetEvents(h.InfraEnvID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).Should(Equal(0))
 		})
@@ -717,7 +717,7 @@ var _ = Describe("reset host", func() {
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResetting))
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.GetEvents(h.InfraEnvID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -750,7 +750,7 @@ var _ = Describe("reset host", func() {
 			Expect(state.ResetPendingUserAction(ctx, &h, db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.GetEvents(h.InfraEnvID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -770,7 +770,7 @@ var _ = Describe("reset host", func() {
 			Expect(state.ResetPendingUserAction(ctx, &h, db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.GetEvents(h.InfraEnvID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -802,7 +802,7 @@ var _ = Describe("reset host", func() {
 			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDiscovering)
 			reply := state.ResetHost(ctx, &h, "some reason", db)
 			Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.GetEvents(h.InfraEnvID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -1877,7 +1877,7 @@ var _ = Describe("SetBootstrap", func() {
 		t := tests[i]
 		It(fmt.Sprintf("Boostrap %s", strconv.FormatBool(t.IsBootstrap)), func() {
 			if t.IsBootstrap {
-				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo,
+				mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvId, &hostId, models.EventSeverityInfo,
 					fmt.Sprintf("Host %s: set as bootstrap", host.ID.String()),
 					gomock.Any())
 
@@ -2227,7 +2227,7 @@ var _ = Describe("UpdateImageStatus", func() {
 						expectedImage.Time, expectedImage.SizeBytes, expectedImage.DownloadRate)
 				}
 
-				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo, eventMsg, gomock.Any()).Times(1)
+				mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvId, &hostId, models.EventSeverityInfo, eventMsg, gomock.Any()).Times(1)
 				mockMetric.EXPECT().ImagePullStatus(hostId, expectedImage.Name, string(expectedImage.Result), expectedImage.DownloadRate).Times(1)
 			} else {
 				expectedImage.DownloadRate = t.originalImageStatuses[common.TestDefaultConfig.ImageName].DownloadRate
@@ -2676,7 +2676,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 	It("Test reportValidationStatusChanged", func() {
 
-		mockEvents.EXPECT().AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+		mockEvents.EXPECT().AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
 
 		vc := generateValidationCtx()
 		newValidationRes := generateTestValidationResult(ValidationSuccess)
@@ -2686,7 +2686,7 @@ var _ = Describe("Validation metrics and events", func() {
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
 
 		mockMetric.EXPECT().HostValidationChanged(openshiftVersion, emailDomain, models.HostValidationIDHasMinCPUCores)
-		mockEvents.EXPECT().AddEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityWarning, gomock.Any(), gomock.Any())
+		mockEvents.EXPECT().AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityWarning, gomock.Any(), gomock.Any())
 
 		currentValidationRes = newValidationRes
 		newValidationRes = generateTestValidationResult(ValidationFailure)
