@@ -12,6 +12,173 @@ import (
 )
 
 //
+// Event generic_cluster
+//
+type GenericClusterEvent struct {
+    ClusterId strfmt.UUID
+    Message string
+    Severity string
+}
+
+var GenericClusterEventName string = "generic_cluster"
+
+func NewGenericClusterEvent(
+    clusterId strfmt.UUID,
+    message string,
+    severity string,
+) *GenericClusterEvent {
+    return &GenericClusterEvent{
+        ClusterId: clusterId,
+        Message: message,
+        Severity: severity,
+    }
+}
+
+func SendGenericClusterEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    message string,
+    severity string,) {
+    ev := NewGenericClusterEvent(
+        clusterId,
+        message,
+        severity,
+    )
+    eventsHandler.SendClusterEvent(ctx, ev)
+}
+
+func SendGenericClusterEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    message string,
+    severity string,
+    eventTime time.Time) {
+    ev := NewGenericClusterEvent(
+        clusterId,
+        message,
+        severity,
+    )
+    eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *GenericClusterEvent) GetName() string {
+    return "generic_cluster"
+}
+
+func (e *GenericClusterEvent) GetSeverity() string {
+    return e.Severity
+}
+
+func (e *GenericClusterEvent) GetClusterId() *strfmt.UUID {
+    return &e.ClusterId
+}
+
+func (e *GenericClusterEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{message}", fmt.Sprint(e.Message),
+        "{severity}", fmt.Sprint(e.Severity),
+    )
+    return r.Replace(*message)
+}
+
+func (e *GenericClusterEvent) FormatMessage() string {
+    s := "{message}"
+    return e.format(&s)
+}
+
+//
+// Event generic_host
+//
+type GenericHostEvent struct {
+    ClusterId strfmt.UUID
+    HostId strfmt.UUID
+    Message string
+    Severity string
+}
+
+var GenericHostEventName string = "generic_host"
+
+func NewGenericHostEvent(
+    clusterId strfmt.UUID,
+    hostId strfmt.UUID,
+    message string,
+    severity string,
+) *GenericHostEvent {
+    return &GenericHostEvent{
+        ClusterId: clusterId,
+        HostId: hostId,
+        Message: message,
+        Severity: severity,
+    }
+}
+
+func SendGenericHostEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    hostId strfmt.UUID,
+    message string,
+    severity string,) {
+    ev := NewGenericHostEvent(
+        clusterId,
+        hostId,
+        message,
+        severity,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendGenericHostEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    hostId strfmt.UUID,
+    message string,
+    severity string,
+    eventTime time.Time) {
+    ev := NewGenericHostEvent(
+        clusterId,
+        hostId,
+        message,
+        severity,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *GenericHostEvent) GetName() string {
+    return "generic_host"
+}
+
+func (e *GenericHostEvent) GetSeverity() string {
+    return e.Severity
+}
+
+func (e *GenericHostEvent) GetClusterId() *strfmt.UUID {
+    return &e.ClusterId
+}
+func (e *GenericHostEvent) GetHostId() *strfmt.UUID {
+    return &e.HostId
+}
+
+func (e *GenericHostEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{message}", fmt.Sprint(e.Message),
+        "{severity}", fmt.Sprint(e.Severity),
+    )
+    return r.Replace(*message)
+}
+
+func (e *GenericHostEvent) FormatMessage() string {
+    s := "{message}"
+    return e.format(&s)
+}
+
+//
 // Event cancel_install_failed_start
 //
 type CancelInstallFailedStartEvent struct {

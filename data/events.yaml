@@ -1,4 +1,23 @@
 x-events:
+- name: generic_cluster
+  message: "{message}"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    message: string
+    severity: string
+
+- name: generic_host
+  message: "{message}"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    message: string
+    severity: string
+
 - name: cancel_install_failed_start
   message: "Failed to cancel installation: error starting DB transaction"
   event_type: cluster
