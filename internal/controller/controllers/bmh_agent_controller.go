@@ -226,6 +226,19 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	// with the BMH being reconciled. We will call both, reconcileAgentSpec and
 	// reconcileAgentInventory, every time. The logic to decide whether there's
 	// any action to take is implemented in each function respectively.
+	result = r.reconcileAgentSpec(log, bmh, agent)
+	if result.Dirty() {
+		err := r.Client.Update(ctx, agent)
+		if err != nil {
+			log.WithError(err).Errorf("Error updating agent")
+			return reconcileError{err}.Result()
+		}
+	}
+
+	if result.Stop(ctx) {
+		return result.Result()
+	}
+
 	result = r.reconcileAgentInventory(bmh, agent)
 	if result.Dirty() {
 		err := r.Client.Update(ctx, bmh)
@@ -244,19 +257,6 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
 			log.WithError(err).Errorf("Error adding MCS cert of spoke cluster into BMH")
-			return reconcileError{err}.Result()
-		}
-	}
-
-	if result.Stop(ctx) {
-		return result.Result()
-	}
-
-	result = r.reconcileAgentSpec(log, bmh, agent)
-	if result.Dirty() {
-		err := r.Client.Update(ctx, agent)
-		if err != nil {
-			log.WithError(err).Errorf("Error updating agent")
 			return reconcileError{err}.Result()
 		}
 	}
@@ -471,12 +471,7 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 	}
 
 	// Add hostname
-	annotations := bmh.ObjectMeta.GetAnnotations()
-	if val, ok := annotations[BMH_AGENT_HOSTNAME]; ok {
-		hardwareDetails.Hostname = val
-	} else {
-		hardwareDetails.Hostname = agent.Status.Inventory.Hostname
-	}
+	hardwareDetails.Hostname = agent.Spec.Hostname
 
 	bytes, err := json.Marshal(hardwareDetails)
 	if err != nil {
