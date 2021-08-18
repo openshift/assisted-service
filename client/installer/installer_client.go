@@ -196,6 +196,9 @@ type API interface {
 	   UploadLogs Agent API to upload logs.*/
 	UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error)
 	/*
+	   V2DownloadClusterCredentials Downloads credentials relating to the installed/installing cluster.*/
+	V2DownloadClusterCredentials(ctx context.Context, params *V2DownloadClusterCredentialsParams, writer io.Writer) (*V2DownloadClusterCredentialsOK, error)
+	/*
 	   V2DownloadClusterFiles Downloads files relating to the installed/installing cluster.*/
 	V2DownloadClusterFiles(ctx context.Context, params *V2DownloadClusterFilesParams, writer io.Writer) (*V2DownloadClusterFilesOK, error)
 	/*
@@ -1699,6 +1702,31 @@ func (a *Client) UploadLogs(ctx context.Context, params *UploadLogsParams) (*Upl
 		return nil, err
 	}
 	return result.(*UploadLogsNoContent), nil
+
+}
+
+/*
+V2DownloadClusterCredentials Downloads credentials relating to the installed/installing cluster.
+*/
+func (a *Client) V2DownloadClusterCredentials(ctx context.Context, params *V2DownloadClusterCredentialsParams, writer io.Writer) (*V2DownloadClusterCredentialsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2DownloadClusterCredentials",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/downloads/credentials",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2DownloadClusterCredentialsReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2DownloadClusterCredentialsOK), nil
 
 }
 

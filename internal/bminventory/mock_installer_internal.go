@@ -395,6 +395,22 @@ func (mr *MockInstallerInternalsMockRecorder) V2DeregisterHostInternal(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DeregisterHostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).V2DeregisterHostInternal), arg0, arg1)
 }
 
+// V2DownloadClusterCredentialsInternal mocks base method.
+func (m *MockInstallerInternals) V2DownloadClusterCredentialsInternal(arg0 context.Context, arg1 installer.V2DownloadClusterCredentialsParams) (io.ReadCloser, int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2DownloadClusterCredentialsInternal", arg0, arg1)
+	ret0, _ := ret[0].(io.ReadCloser)
+	ret1, _ := ret[1].(int64)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// V2DownloadClusterCredentialsInternal indicates an expected call of V2DownloadClusterCredentialsInternal.
+func (mr *MockInstallerInternalsMockRecorder) V2DownloadClusterCredentialsInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DownloadClusterCredentialsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).V2DownloadClusterCredentialsInternal), arg0, arg1)
+}
+
 // V2DownloadClusterFilesInternal mocks base method.
 func (m *MockInstallerInternals) V2DownloadClusterFilesInternal(arg0 context.Context, arg1 installer.V2DownloadClusterFilesParams) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()

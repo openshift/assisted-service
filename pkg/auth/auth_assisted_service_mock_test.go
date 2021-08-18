@@ -388,6 +388,10 @@ func (f fakeInventory) V2InstallHost(ctx context.Context, params installer.V2Ins
 	return installer.NewV2InstallHostAccepted()
 }
 
+func (f fakeInventory) V2DownloadClusterCredentials(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) middleware.Responder {
+	return installer.NewV2DownloadClusterCredentialsOK()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

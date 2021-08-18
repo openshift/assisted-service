@@ -229,6 +229,9 @@ type InstallerAPI interface {
 	/* UploadLogs Agent API to upload logs. */
 	UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder
 
+	/* V2DownloadClusterCredentials Downloads credentials relating to the installed/installing cluster. */
+	V2DownloadClusterCredentials(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) middleware.Responder
+
 	/* V2DownloadClusterFiles Downloads files relating to the installed/installing cluster. */
 	V2DownloadClusterFiles(ctx context.Context, params installer.V2DownloadClusterFilesParams) middleware.Responder
 
@@ -780,6 +783,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UploadLogs(ctx, params)
+	})
+	api.InstallerV2DownloadClusterCredentialsHandler = installer.V2DownloadClusterCredentialsHandlerFunc(func(params installer.V2DownloadClusterCredentialsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2DownloadClusterCredentials(ctx, params)
 	})
 	api.InstallerV2DownloadClusterFilesHandler = installer.V2DownloadClusterFilesHandlerFunc(func(params installer.V2DownloadClusterFilesParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
