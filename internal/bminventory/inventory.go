@@ -396,6 +396,54 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	return params
 }
 
+func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *installer.V2RegisterClusterParams, log logrus.FieldLogger) error {
+	var err error
+
+	if err = validateProxySettings(params.NewClusterParams.HTTPProxy,
+		params.NewClusterParams.HTTPSProxy,
+		params.NewClusterParams.NoProxy, params.NewClusterParams.OpenshiftVersion); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = validations.ValidateDiskEncryptionParams(params.NewClusterParams.DiskEncryption); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if swag.StringValue(params.NewClusterParams.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		// verify minimal OCP version
+		err = verifyMinimalOpenShiftVersionForSingleNode(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		log.Infof("HA mode is None, setting UserManagedNetworking to true and VipDhcpAllocation to false")
+		params.NewClusterParams.UserManagedNetworking = swag.Bool(true)
+		// in case of single node VipDhcpAllocation should be always false
+		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
+	}
+
+	if swag.BoolValue(params.NewClusterParams.UserManagedNetworking) {
+		if swag.BoolValue(params.NewClusterParams.VipDhcpAllocation) {
+			err = errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		if params.NewClusterParams.IngressVip != "" {
+			err = errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	if params.NewClusterParams.AdditionalNtpSource != nil {
+		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
+
+		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
+			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	return nil
+}
+
 func (b *bareMetalInventory) RegisterClusterInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
@@ -431,46 +479,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	params = b.setDefaultRegisterClusterParams(ctx, params)
 
-	if err = validateProxySettings(params.NewClusterParams.HTTPProxy,
-		params.NewClusterParams.HTTPSProxy,
-		params.NewClusterParams.NoProxy, params.NewClusterParams.OpenshiftVersion); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if err = validations.ValidateDiskEncryptionParams(params.NewClusterParams.DiskEncryption); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if swag.StringValue(params.NewClusterParams.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-		// verify minimal OCP version
-		err = verifyMinimalOpenShiftVersionForSingleNode(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
-		if err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-		log.Infof("HA mode is None, setting UserManagedNetworking to true and VipDhcpAllocation to false")
-		params.NewClusterParams.UserManagedNetworking = swag.Bool(true)
-		// in case of single node VipDhcpAllocation should be always false
-		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
-	}
-
-	if swag.BoolValue(params.NewClusterParams.UserManagedNetworking) {
-		if swag.BoolValue(params.NewClusterParams.VipDhcpAllocation) {
-			err = errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-		if params.NewClusterParams.IngressVip != "" {
-			err = errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
-
-	if params.NewClusterParams.AdditionalNtpSource != nil {
-		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
-
-		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
-			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
+	if err = b.validateRegisterClusterInternalParams(&params, log); err != nil {
+		return nil, err
 	}
 
 	cpuArchitecture, err := b.getNewClusterCPUArchitecture(params.NewClusterParams)
@@ -583,7 +593,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	if err = b.setDefaultUsage(&cluster.Cluster); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
-
 
 	err = b.clusterApi.RegisterCluster(ctx, &cluster, v1Flag, models.ImageType(b.Config.ISOImageType))
 	if err != nil {

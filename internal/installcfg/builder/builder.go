@@ -3,6 +3,8 @@ package builder
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -14,10 +16,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v2"
-	"strings"
 )
 
-//go:generate mockgen -source=builder.go -package=installcfg -destination=mock_installcfg.go
+//go:generate mockgen -source=builder.go -package=builder -destination=mock_installcfg.go
 type InstallConfigBuilder interface {
 	GetInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error)
 	ValidateInstallConfigPatch(cluster *common.Cluster, patch string) error

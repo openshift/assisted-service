@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
