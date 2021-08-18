@@ -48,6 +48,7 @@ endif
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
 OS_IMAGES := $(or ${OS_IMAGES}, $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_os_images.json)))
+RELEASE_IMAGES := $(or ${RELEASE_IMAGES}, $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_release_images.json)))
 MUST_GATHER_IMAGES := $(or ${MUST_GATHER_IMAGES}, $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_must_gather_versions.json)))
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
@@ -278,7 +279,7 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --os-images '$(subst ",\",$(OS_IMAGES))' \
-		--must-gather-images '$(subst ",\",$(MUST_GATHER_IMAGES))' \
+		--release-images '$(subst ",\",$(RELEASE_IMAGES))' --must-gather-images '$(subst ",\",$(MUST_GATHER_IMAGES))' \
 		--public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
@@ -323,6 +324,7 @@ create-ocp-manifests:
 	export ENABLE_KUBE_API=true && export TARGET=ocp && \
 	export OPENSHIFT_VERSIONS="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_ocp_versions.json | tr -d "\n\t "))" && \
 	export OS_IMAGES="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_os_images.json | tr -d "\n\t "))" && \
+	export RELEASE_IMAGES="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_release_images.json | tr -d "\n\t "))" && \
 	export MUST_GATHER_IMAGES="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_must_gather_versions.json | tr -d "\n\t "))" && \
 	export HW_REQUIREMENTS="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_hw_requirements.json | tr -d "\n\t "))" && \
 	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
