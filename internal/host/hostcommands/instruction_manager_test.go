@@ -68,7 +68,14 @@ var _ = Describe("instruction_manager", func() {
 
 	Context("No DHCP", func() {
 		BeforeEach(func() {
-			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(false), MachineNetworkCidr: "1.2.3.0/24", Name: "example", BaseDNSDomain: "test.com"}}
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                &clusterId,
+					VipDhcpAllocation: swag.Bool(false),
+					MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
+					Name:              "example",
+					BaseDNSDomain:     "test.com",
+				}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		})
 		Context("get_next_steps", func() {
@@ -140,7 +147,13 @@ var _ = Describe("instruction_manager", func() {
 
 	Context("With DHCP", func() {
 		BeforeEach(func() {
-			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(true), MachineNetworkCidr: "1.2.3.0/24", Name: "example", BaseDNSDomain: "test.com"}}
+			cluster := common.Cluster{Cluster: models.Cluster{
+				ID:                &clusterId,
+				VipDhcpAllocation: swag.Bool(true),
+				MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				Name:              "example",
+				BaseDNSDomain:     "test.com",
+			}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		})
 		Context("get_next_steps", func() {
@@ -274,7 +287,11 @@ var _ = Describe("instruction_manager", func() {
 		})
 		Context("InstructionManager.GetNextSteps should be filtered according to disabled steps", func() {
 			BeforeEach(func() {
-				cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(true), MachineNetworkCidr: "1.2.3.0/24"}}
+				cluster := common.Cluster{Cluster: models.Cluster{
+					ID:                &clusterId,
+					VipDhcpAllocation: swag.Bool(true),
+					MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				}}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			})
 			It("Should not filter out any step when: HostState=installing DisabledSteps=execute.", func() {

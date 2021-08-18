@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
@@ -472,11 +473,18 @@ func waitForMachineNetworkCIDR(
 		rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		c := rep.GetPayload()
-		currentMachineNetworkCIDR = c.MachineNetworkCidr
 
-		if currentMachineNetworkCIDR == machineNetworkCIDR {
-			log.Infof("cluster=%s has machineNetworkCIDR=%s", clusterID, machineNetworkCIDR)
+		if machineNetworkCIDR == "" && !network.IsMachineCidrAvailable(&common.Cluster{Cluster: *c}) {
 			return nil
+		}
+
+		if network.IsMachineCidrAvailable(&common.Cluster{Cluster: *c}) {
+			currentMachineNetworkCIDR = string(c.MachineNetworks[0].Cidr)
+
+			if currentMachineNetworkCIDR == machineNetworkCIDR {
+				log.Infof("cluster=%s has machineNetworkCIDR=%s", clusterID, machineNetworkCIDR)
+				return nil
+			}
 		}
 
 		time.Sleep(time.Second)
@@ -764,14 +772,13 @@ var _ = Describe("cluster install - DHCP", func() {
 
 		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:            "example.com",
-				ClusterNetworkCidr:       &clusterCIDR,
-				ClusterNetworkHostPrefix: 23,
-				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(openshiftVersion),
-				PullSecret:               swag.String(pullSecret),
-				ServiceNetworkCidr:       &serviceCIDR,
-				SSHPublicKey:             sshPublicKey,
+				BaseDNSDomain:    "example.com",
+				ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+				ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHPublicKey:     sshPublicKey,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -848,8 +855,8 @@ var _ = Describe("cluster install - DHCP", func() {
 		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusReady))
 		reply, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
-				VipDhcpAllocation:  swag.Bool(true),
-				MachineNetworkCidr: swag.String("1.2.3.0/24"),
+				VipDhcpAllocation: swag.Bool(true),
+				MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
 			},
 			ClusterID: clusterID,
 		})
@@ -892,14 +899,13 @@ var _ = Describe("Validate BaseDNSDomain when creating a cluster", func() {
 	createClusterWithBaseDNS := func(baseDNS string) (*installer.RegisterClusterCreated, error) {
 		return userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:            baseDNS,
-				ClusterNetworkCidr:       &clusterCIDR,
-				ClusterNetworkHostPrefix: 23,
-				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(openshiftVersion),
-				PullSecret:               swag.String(pullSecret),
-				ServiceNetworkCidr:       &serviceCIDR,
-				SSHPublicKey:             sshPublicKey,
+				BaseDNSDomain:    baseDNS,
+				ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+				ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHPublicKey:     sshPublicKey,
 			},
 		})
 	}
@@ -966,14 +972,13 @@ var _ = Describe("cluster update - BaseDNS", func() {
 		var registerClusterReply *installer.RegisterClusterCreated
 		registerClusterReply, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:            "example.com",
-				ClusterNetworkCidr:       &clusterCIDR,
-				ClusterNetworkHostPrefix: 23,
-				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(openshiftVersion),
-				PullSecret:               swag.String(pullSecret),
-				ServiceNetworkCidr:       &serviceCIDR,
-				SSHPublicKey:             sshPublicKey,
+				BaseDNSDomain:    "example.com",
+				ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+				ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHPublicKey:     sshPublicKey,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -1036,15 +1041,14 @@ var _ = Describe("cluster install", func() {
 	BeforeEach(func() {
 		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:            "example.com",
-				ClusterNetworkCidr:       &clusterCIDR,
-				ClusterNetworkHostPrefix: 23,
-				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(openshiftVersion),
-				PullSecret:               swag.String(pullSecret),
-				ServiceNetworkCidr:       &serviceCIDR,
-				SSHPublicKey:             sshPublicKey,
-				VipDhcpAllocation:        swag.Bool(true),
+				BaseDNSDomain:     "example.com",
+				ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+				ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+				Name:              swag.String("test-cluster"),
+				OpenshiftVersion:  swag.String(openshiftVersion),
+				PullSecret:        swag.String(pullSecret),
+				SSHPublicKey:      sshPublicKey,
+				VipDhcpAllocation: swag.Bool(true),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -1169,16 +1173,15 @@ var _ = Describe("cluster install", func() {
 		It("report usage on default features with SNO", func() {
 			registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					BaseDNSDomain:            "example.com",
-					ClusterNetworkCidr:       &clusterCIDR,
-					ClusterNetworkHostPrefix: 23,
-					Name:                     swag.String("sno-cluster"),
-					OpenshiftVersion:         swag.String(snoVersion),
-					PullSecret:               swag.String(pullSecret),
-					ServiceNetworkCidr:       &serviceCIDR,
-					SSHPublicKey:             sshPublicKey,
-					VipDhcpAllocation:        swag.Bool(true),
-					HighAvailabilityMode:     swag.String(models.ClusterHighAvailabilityModeNone),
+					BaseDNSDomain:        "example.com",
+					ClusterNetworks:      []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:      []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:                 swag.String("sno-cluster"),
+					OpenshiftVersion:     swag.String(snoVersion),
+					PullSecret:           swag.String(pullSecret),
+					SSHPublicKey:         sshPublicKey,
+					VipDhcpAllocation:    swag.Bool(true),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -1255,7 +1258,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(c.GetPayload().Hosts)).Should(Equal(1))
 			Expect(c.Payload.APIVip).Should(Equal(apiVip))
-			Expect(c.Payload.MachineNetworkCidr).Should(Equal("1.2.3.0/24"))
+			Expect(string(c.Payload.MachineNetworks[0].Cidr)).Should(Equal("1.2.3.0/24"))
 		})
 
 		It("MachineNetworkCIDR successful deallocating ", func() {
@@ -1294,13 +1297,13 @@ var _ = Describe("cluster install", func() {
 			Expect(len(c.GetPayload().Hosts)).Should(Equal(0))
 			Expect(c.Payload.APIVip).Should(Equal(""))
 			Expect(c.Payload.IngressVip).Should(Equal(""))
-			Expect(c.Payload.MachineNetworkCidr).Should(Equal(""))
+			Expect(c.Payload.MachineNetworks).Should(BeEmpty())
 			_ = registerNode(ctx, clusterID, "test-host", defaultCIDRv4)
 			Expect(waitForMachineNetworkCIDR(
 				ctx, clusterID, "1.2.3.0/24", defaultWaitForMachineNetworkCIDRTimeout)).Should(HaveOccurred())
 			c1, err1 := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err1).NotTo(HaveOccurred())
-			Expect(c1.Payload.MachineNetworkCidr).Should(Equal(""))
+			Expect(c1.Payload.MachineNetworks).Should(BeEmpty())
 		})
 
 		It("MachineNetworkCIDR no hosts - no allocation", func() {
@@ -1318,7 +1321,7 @@ var _ = Describe("cluster install", func() {
 				ctx, clusterID, "1.2.3.0/24", defaultWaitForMachineNetworkCIDRTimeout)).Should(HaveOccurred())
 			c1, err1 := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err1).NotTo(HaveOccurred())
-			Expect(c1.Payload.MachineNetworkCidr).Should(Equal(""))
+			Expect(c1.Payload.MachineNetworks).Should(BeEmpty())
 		})
 	})
 
@@ -2667,7 +2670,7 @@ spec:
 		Expect(getErr).ToNot(HaveOccurred())
 
 		Expect(clusterReply.Payload.APIVip).To(Equal(apiVip))
-		Expect(clusterReply.Payload.MachineNetworkCidr).To(Equal("1.2.3.0/24"))
+		Expect(string(clusterReply.Payload.MachineNetworks[0].Cidr)).To(Equal("1.2.3.0/24"))
 		Expect(len(clusterReply.Payload.HostNetworks)).To(Equal(1))
 		Expect(clusterReply.Payload.HostNetworks[0].Cidr).To(Equal("1.2.3.0/24"))
 
@@ -3444,7 +3447,7 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 	generateFullMeshConnectivity(ctx, ips[0], hosts...)
 	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 		ClusterUpdateParams: &models.ClusterUpdateParams{
-			MachineNetworkCidr: swag.String("1.2.3.0/24"),
+			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
 		},
 		ClusterID: clusterID,
 	})
@@ -3580,14 +3583,13 @@ var _ = Describe("Installation progress", func() {
 
 			registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					BaseDNSDomain:            "example.com",
-					ClusterNetworkCidr:       &clusterCIDR,
-					ClusterNetworkHostPrefix: 23,
-					Name:                     swag.String("test-cluster"),
-					OpenshiftVersion:         swag.String(openshiftVersion),
-					PullSecret:               swag.String(pullSecret),
-					ServiceNetworkCidr:       &serviceCIDR,
-					SSHPublicKey:             sshPublicKey,
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())

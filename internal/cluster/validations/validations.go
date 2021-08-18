@@ -373,7 +373,7 @@ func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCID
 		return nil
 	}
 	if network.IsIPv6CIDR(machineNetworkCIDR) {
-		return errors.Errorf("VIP DHCP allocation is unsupported with IPv6 network")
+		return errors.Errorf("VIP DHCP allocation is unsupported with IPv6 network %s", machineNetworkCIDR)
 	}
 	return nil
 }

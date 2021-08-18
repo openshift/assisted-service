@@ -208,7 +208,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	}
 
 	// check for updates from user, compare spec and update if needed
-	err = r.updateIfNeeded(ctx, log, clusterDeployment, clusterInstall, cluster)
+	cluster, err = r.updateIfNeeded(ctx, log, clusterDeployment, clusterInstall, cluster)
 	if err != nil {
 		log.WithError(err).Error("failed to update cluster")
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
@@ -620,7 +620,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	log logrus.FieldLogger,
 	clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall,
-	cluster *common.Cluster) error {
+	cluster *common.Cluster) (*common.Cluster, error) {
 
 	update := false
 	notifyInfraEnv := false
@@ -640,19 +640,52 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	updateString(spec.BaseDomain, cluster.BaseDNSDomain, &params.BaseDNSDomain)
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
-		updateString(clusterInstall.Spec.Networking.ClusterNetwork[0].CIDR, cluster.ClusterNetworkCidr, &params.ClusterNetworkCidr)
-		hostPrefix := int64(clusterInstall.Spec.Networking.ClusterNetwork[0].HostPrefix)
-		if hostPrefix > 0 && hostPrefix != cluster.ClusterNetworkHostPrefix {
-			params.ClusterNetworkHostPrefix = swag.Int64(hostPrefix)
+		newClusterNetworks := clusterNetworksEntriesToArray(clusterInstall.Spec.Networking.ClusterNetwork)
+		if len(newClusterNetworks) != len(cluster.ClusterNetworks) {
+			params.ClusterNetworks = newClusterNetworks
 			update = true
+		} else {
+			for index := range newClusterNetworks {
+				if newClusterNetworks[index].Cidr != cluster.ClusterNetworks[index].Cidr ||
+					newClusterNetworks[index].HostPrefix != cluster.ClusterNetworks[index].HostPrefix {
+					params.ClusterNetworks = newClusterNetworks
+					update = true
+					break
+				}
+			}
 		}
 	}
 	if len(clusterInstall.Spec.Networking.ServiceNetwork) > 0 {
-		updateString(clusterInstall.Spec.Networking.ServiceNetwork[0], cluster.ServiceNetworkCidr, &params.ServiceNetworkCidr)
+		newServiceNetworks := serviceNetworksEntriesToArray(clusterInstall.Spec.Networking.ServiceNetwork)
+		if len(newServiceNetworks) != len(cluster.ServiceNetworks) {
+			params.ServiceNetworks = newServiceNetworks
+			update = true
+		} else {
+			for index := range newServiceNetworks {
+				if newServiceNetworks[index].Cidr != cluster.ServiceNetworks[index].Cidr {
+					params.ServiceNetworks = newServiceNetworks
+					update = true
+					break
+				}
+			}
+		}
 	}
 	if len(clusterInstall.Spec.Networking.MachineNetwork) > 0 {
-		updateString(clusterInstall.Spec.Networking.MachineNetwork[0].CIDR, cluster.MachineNetworkCidr, &params.MachineNetworkCidr)
+		newMachineNetworks := machineNetworksEntriesToArray(clusterInstall.Spec.Networking.MachineNetwork)
+		if len(newMachineNetworks) != len(cluster.MachineNetworks) {
+			params.MachineNetworks = newMachineNetworks
+			update = true
+		} else {
+			for index := range newMachineNetworks {
+				if newMachineNetworks[index].Cidr != cluster.MachineNetworks[index].Cidr {
+					params.MachineNetworks = newMachineNetworks
+					update = true
+					break
+				}
+			}
+		}
 	}
+
 	if clusterInstall.Spec.Networking.NetworkType != "" {
 		updateString(clusterInstall.Spec.Networking.NetworkType, swag.StringValue(cluster.NetworkType), &params.NetworkType)
 	} else {
@@ -678,7 +711,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	}
 	pullSecretData, err := getPullSecretData(ctx, r.Client, r.APIReader, spec.PullSecretRef, clusterDeployment.Namespace)
 	if err != nil {
-		return errors.Wrap(err, "failed to get pull secret for update")
+		return cluster, errors.Wrap(err, "failed to get pull secret for update")
 	}
 	// TODO: change isInfraEnvUpdate to false, once clusterDeployment pull-secret can differ from infraEnv
 	if pullSecretData != cluster.PullSecret {
@@ -695,20 +728,21 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	}
 
 	if !update {
-		return nil
+		return cluster, nil
 	}
 
-	_, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.UpdateClusterParams{
+	var clusterAfterUpdate *common.Cluster
+	clusterAfterUpdate, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.UpdateClusterParams{
 		ClusterUpdateParams: params,
 		ClusterID:           *cluster.ID,
 	})
 	if err != nil {
-		return err
+		return cluster, err
 	}
 
 	infraEnv, err = getInfraEnvByClusterDeployment(ctx, log, r.Client, clusterDeployment.Name, clusterDeployment.Namespace)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to search for infraEnv for clusterDeployment %s", clusterDeployment.Name))
+		return cluster, errors.Wrap(err, fmt.Sprintf("failed to search for infraEnv for clusterDeployment %s", clusterDeployment.Name))
 	}
 
 	log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
@@ -716,32 +750,34 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		log.Infof("Notify that infraEnv %s should re-generate the image for clusterDeployment %s", infraEnv.Name, clusterDeployment.ClusterName)
 		r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
 	}
-	return nil
+	return clusterAfterUpdate, nil
 }
 
 func selectClusterNetworkType(params *models.ClusterUpdateParams, cluster *common.Cluster) string {
-	clusterNetworkCidr := ""
-	if params.ClusterNetworkCidr != nil {
-		clusterNetworkCidr = swag.StringValue(params.ClusterNetworkCidr)
-	} else {
-		clusterNetworkCidr = cluster.ClusterNetworkCidr
+	clusterWithNewNetworks := &common.Cluster{
+		Cluster: models.Cluster{
+			ClusterNetworks: cluster.ClusterNetworks,
+			ServiceNetworks: cluster.ServiceNetworks,
+			MachineNetworks: cluster.MachineNetworks,
+		},
 	}
 
-	serviceNetworkCidr := ""
-	if params.ServiceNetworkCidr != nil {
-		serviceNetworkCidr = swag.StringValue(params.ServiceNetworkCidr)
-	} else {
-		serviceNetworkCidr = cluster.ServiceNetworkCidr
+	if len(params.ClusterNetworks) > 0 {
+		clusterWithNewNetworks.ClusterNetworks = params.ClusterNetworks
+	}
+	if len(params.ServiceNetworks) > 0 {
+		clusterWithNewNetworks.ServiceNetworks = params.ServiceNetworks
+	}
+	if len(params.MachineNetworks) > 0 {
+		clusterWithNewNetworks.MachineNetworks = params.MachineNetworks
 	}
 
-	machineNetworkCidr := ""
-	if params.MachineNetworkCidr != nil {
-		machineNetworkCidr = swag.StringValue(params.MachineNetworkCidr)
-	} else {
-		machineNetworkCidr = cluster.MachineNetworkCidr
-	}
-
-	if network.IsIPv6CIDR(clusterNetworkCidr) || network.IsIPv6CIDR(serviceNetworkCidr) || network.IsIPv6CIDR(machineNetworkCidr) {
+	if funk.Any(funk.Filter(common.GetNetworksCidrs(clusterWithNewNetworks), func(ip *string) bool {
+		if ip == nil {
+			return false
+		}
+		return network.IsIPv6CIDR(*ip)
+	})) {
 		return models.ClusterNetworkTypeOVNKubernetes
 	} else {
 		return models.ClusterNetworkTypeOpenShiftSDN
@@ -899,12 +935,19 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	}
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
-		clusterParams.ClusterNetworkCidr = swag.String(clusterInstall.Spec.Networking.ClusterNetwork[0].CIDR)
-		clusterParams.ClusterNetworkHostPrefix = int64(clusterInstall.Spec.Networking.ClusterNetwork[0].HostPrefix)
+		for _, net := range clusterInstall.Spec.Networking.ClusterNetwork {
+			clusterParams.ClusterNetworks = append(clusterParams.ClusterNetworks, &models.ClusterNetwork{
+				Cidr:       models.Subnet(net.CIDR),
+				HostPrefix: int64(net.HostPrefix)})
+		}
 	}
 
 	if len(clusterInstall.Spec.Networking.ServiceNetwork) > 0 {
-		clusterParams.ServiceNetworkCidr = swag.String(clusterInstall.Spec.Networking.ServiceNetwork[0])
+		for _, cidr := range clusterInstall.Spec.Networking.ServiceNetwork {
+			clusterParams.ServiceNetworks = append(clusterParams.ServiceNetworks, &models.ServiceNetwork{
+				Cidr: models.Subnet(cidr),
+			})
+		}
 	}
 
 	if clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
@@ -1170,7 +1213,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 	clusterSpecSynced(clusterInstall, syncErr)
 	if c != nil {
 		clusterInstall.Status.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
-		clusterInstall.Status.MachineNetwork = []hiveext.MachineNetworkEntry{{CIDR: c.MachineNetworkCidr}}
+		clusterInstall.Status.MachineNetwork = machineNetworksArrayToEntries(c.MachineNetworks)
 
 		if c.Status != nil {
 			clusterInstall.Status.DebugInfo.State = swag.StringValue(c.Status)

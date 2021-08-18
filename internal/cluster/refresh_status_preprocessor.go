@@ -174,7 +174,7 @@ func newValidations(v *clusterValidator) []validation {
 		},
 		{
 			id:        isServiceCidrDefined,
-			condition: v.isServiceCidr,
+			condition: v.isServiceCidrDefined,
 			formatter: v.printIsServiceCidrDefined,
 		},
 		{

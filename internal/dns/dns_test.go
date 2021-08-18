@@ -122,11 +122,11 @@ var _ = Describe("DNS record set update tests", func() {
 	BeforeEach(func() {
 		cluster = &common.Cluster{
 			Cluster: models.Cluster{
-				Name:               "ut-cluster",
-				BaseDNSDomain:      "dns-test.com",
-				APIVip:             "10.56.20.50",
-				IngressVip:         "2001:db8:3c4d:15::2b",
-				MachineNetworkCidr: "10.56.20.0/24",
+				Name:            "ut-cluster",
+				BaseDNSDomain:   "dns-test.com",
+				APIVip:          "10.56.20.50",
+				IngressVip:      "2001:db8:3c4d:15::2b",
+				MachineNetworks: []*models.MachineNetwork{{Cidr: "10.56.20.0/24"}},
 			},
 		}
 		ctx = context.Background()

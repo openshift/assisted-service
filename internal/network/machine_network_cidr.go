@@ -167,12 +167,20 @@ func getMachineCIDRObj(host *models.Host, machineNetworkCidr string, obj string)
 	return "", errors.Errorf("No matching interface found for host %s", host.ID.String())
 }
 
-func GetMachineCIDRInterface(host *models.Host, cluster *common.Cluster) (string, error) {
-	return getMachineCIDRObj(host, cluster.MachineNetworkCidr, "interface")
+func GetPrimaryMachineCIDRInterface(host *models.Host, cluster *common.Cluster) (string, error) {
+	primaryMachineCidr := ""
+	if IsMachineCidrAvailable(cluster) {
+		primaryMachineCidr = string(cluster.MachineNetworks[0].Cidr)
+	}
+	return getMachineCIDRObj(host, primaryMachineCidr, "interface")
 }
 
-func GetMachineCIDRIP(host *models.Host, cluster *common.Cluster) (string, error) {
-	return getMachineCIDRObj(host, cluster.MachineNetworkCidr, "ip")
+func GetPrimaryMachineCIDRIP(host *models.Host, cluster *common.Cluster) (string, error) {
+	primaryMachineCidr := ""
+	if IsMachineCidrAvailable(cluster) {
+		primaryMachineCidr = string(cluster.MachineNetworks[0].Cidr)
+	}
+	return getMachineCIDRObj(host, primaryMachineCidr, "ip")
 }
 
 func IpInCidr(ipAddr, cidr string) (bool, error) {
@@ -203,11 +211,11 @@ func belongsToNetwork(log logrus.FieldLogger, h *models.Host, machineIpnet *net.
 	return false
 }
 
-func GetMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster) ([]*models.Host, error) {
-	if cluster.MachineNetworkCidr == "" {
+func GetPrimaryMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster) ([]*models.Host, error) {
+	if !IsMachineCidrAvailable(cluster) {
 		return nil, errors.New("Machine network CIDR was not set in cluster")
 	}
-	_, machineIpnet, err := net.ParseCIDR(cluster.MachineNetworkCidr)
+	_, machineIpnet, err := net.ParseCIDR(string(cluster.MachineNetworks[0].Cidr))
 	if err != nil {
 		return nil, err
 	}
@@ -220,10 +228,10 @@ func GetMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster) ([]*mo
 	return ret, nil
 }
 
-// GetMachineCidrForUserManagedNetwork used to get machine cidr in case of none platform and sno
-func GetMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.FieldLogger) string {
-	if cluster.MachineNetworkCidr != "" {
-		return cluster.MachineNetworkCidr
+// GetPrimaryMachineCidrForUserManagedNetwork used to get the primary machine cidr in case of none platform and sno
+func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.FieldLogger) string {
+	if IsMachineCidrAvailable(cluster) {
+		return string(cluster.MachineNetworks[0].Cidr)
 	}
 
 	bootstrap := common.GetBootstrapHost(cluster)
@@ -250,7 +258,7 @@ func GetIpForSingleNodeInstallation(cluster *common.Cluster, log logrus.FieldLog
 	if bootstrap == nil {
 		return "", errors.Errorf("no bootstrap host were found in cluster")
 	}
-	cidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+	cidr := GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
 	hostIp, err := getMachineCIDRObj(bootstrap, cidr, "ip")
 	if hostIp == "" || err != nil {
 		msg := "failed to get ip for single node installation"
@@ -303,8 +311,11 @@ func GetClusterNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {
 	return ret
 }
 
-func IsHostInMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
-	_, machineIpnet, err := net.ParseCIDR(cluster.MachineNetworkCidr)
+func IsHostInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
+	if !IsMachineCidrAvailable(cluster) {
+		return false
+	}
+	_, machineIpnet, err := net.ParseCIDR(string(cluster.MachineNetworks[0].Cidr))
 	if err != nil {
 		return false
 	}
@@ -400,4 +411,11 @@ func CreateIpWithCidr(ip, cidr string) (string, error) {
 	}
 	ipNet.IP = net.ParseIP(ip)
 	return ipNet.String(), nil
+}
+
+func CreateMachineNetworksArray(machineCidr string) []*models.MachineNetwork {
+	if machineCidr == "" {
+		return []*models.MachineNetwork{}
+	}
+	return []*models.MachineNetwork{{Cidr: models.Subnet(machineCidr)}}
 }

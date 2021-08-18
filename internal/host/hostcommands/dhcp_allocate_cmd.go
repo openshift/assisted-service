@@ -33,7 +33,7 @@ func asMAC(macStr string) *strfmt.MAC {
 }
 
 func (f *dhcpAllocateCmd) prepareParam(host *models.Host, cluster *common.Cluster) (string, error) {
-	nic, err := network.GetMachineCIDRInterface(host, cluster)
+	nic, err := network.GetPrimaryMachineCIDRInterface(host, cluster)
 	if err != nil {
 		return "", err
 	}
@@ -55,8 +55,8 @@ func (f *dhcpAllocateCmd) prepareParam(host *models.Host, cluster *common.Cluste
 }
 
 func (f *dhcpAllocateCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	var cluster common.Cluster
-	if err := f.db.Take(&cluster, "id = ?", host.ClusterID.String()).Error; err != nil {
+	cluster, err := common.GetClusterFromDB(f.db, *host.ClusterID, common.UseEagerLoading)
+	if err != nil {
 		return nil, err
 	}
 	/*
@@ -64,13 +64,13 @@ func (f *dhcpAllocateCmd) GetSteps(ctx context.Context, host *models.Host) ([]*m
 	 * filtering is done here to remove all valid (not errored) cases that the command should not be invoked.
 	 * These cases are:
 	 * - VipDhcpAllocation is false: DHCP mode is not enabled
-	 * - MachineNetworkCidr is empty: MachineNetworkCidr has not be set by the user
+	 * - MachineNetworks is empty: Machine Network Cidr has not been set by the user
 	 * - Inventory is empty: Inventory has not been received yet from the host
 	 */
-	if !swag.BoolValue(cluster.VipDhcpAllocation) || cluster.MachineNetworkCidr == "" || host.Inventory == "" {
+	if !swag.BoolValue(cluster.VipDhcpAllocation) || !network.IsMachineCidrAvailable(cluster) || host.Inventory == "" {
 		return nil, nil
 	}
-	param, err := f.prepareParam(host, &cluster)
+	param, err := f.prepareParam(host, cluster)
 	if err != nil {
 		return nil, err
 	}
