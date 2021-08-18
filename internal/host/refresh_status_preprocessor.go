@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -37,12 +38,14 @@ type refreshPreprocessor struct {
 	disabledHostValidations DisabledHostValidations
 }
 
-func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator, operatorsApi operators.API, disabledHostValidations DisabledHostValidations) *refreshPreprocessor {
+func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator,
+	operatorsApi operators.API, disabledHostValidations DisabledHostValidations, providerRegistry registry.ProviderRegistry) *refreshPreprocessor {
 	v := &validator{
-		log:            log,
-		hwValidatorCfg: hwValidatorCfg,
-		hwValidator:    hwValidator,
-		operatorsAPI:   operatorsApi,
+		log:              log,
+		hwValidatorCfg:   hwValidatorCfg,
+		hwValidator:      hwValidator,
+		operatorsAPI:     operatorsApi,
+		providerRegistry: providerRegistry,
 	}
 	return &refreshPreprocessor{
 		log:                     log,
