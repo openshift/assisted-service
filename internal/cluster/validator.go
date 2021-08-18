@@ -162,7 +162,7 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 	c.calculateCidr = cidr
 	return boolToValidationStatus(err == nil &&
 		network.IsMachineCidrAvailable(c.cluster) &&
-		string(c.cluster.MachineNetworks[0].Cidr) == cidr)
+		network.GetMachineCidrById(c.cluster, 0) == cidr)
 }
 
 func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clusterPreprocessContext, status ValidationStatus) string {
@@ -180,7 +180,7 @@ func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clu
 	case ValidationFailure:
 		clusterMachineCidr := ""
 		if network.IsMachineCidrAvailable(context.cluster) {
-			clusterMachineCidr = string(context.cluster.MachineNetworks[0].Cidr)
+			clusterMachineCidr = network.GetMachineCidrById(context.cluster, 0)
 		}
 		return fmt.Sprintf("The Cluster Machine CIDR %s is different than the calculated CIDR %s.", clusterMachineCidr, context.calculateCidr)
 	default:
@@ -229,7 +229,7 @@ func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) Validation
 	if c.cluster.APIVip == "" || !c.hasHostsWithInventories || !validationStatusToBool(v.isMachineCidrDefined(c)) {
 		return ValidationPending
 	}
-	err := network.VerifyVip(c.cluster.Hosts, string(c.cluster.MachineNetworks[0].Cidr), c.cluster.APIVip, ApiVipName,
+	err := network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, 0), c.cluster.APIVip, ApiVipName,
 		true, v.log)
 	return boolToValidationStatus(err == nil)
 }
@@ -333,7 +333,7 @@ func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) Valida
 	if c.cluster.IngressVip == "" || !c.hasHostsWithInventories || !validationStatusToBool(v.isMachineCidrDefined(c)) {
 		return ValidationPending
 	}
-	err := network.VerifyVip(c.cluster.Hosts, string(c.cluster.MachineNetworks[0].Cidr), c.cluster.IngressVip, IngressVipName,
+	err := network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, 0), c.cluster.IngressVip, IngressVipName,
 		true, v.log)
 	return boolToValidationStatus(err == nil)
 }

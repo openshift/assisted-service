@@ -1145,7 +1145,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				Expect(cluster.MachineNetworks).To(BeEmpty())
 			} else {
 				Expect(cluster.MachineNetworks).NotTo(BeEmpty())
-				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal(t.expectedMachineCIDR))
+				Expect(network.GetMachineCidrById(&cluster, 0)).To(Equal(t.expectedMachineCIDR))
 			}
 			ctrl.Finish()
 		})
