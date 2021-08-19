@@ -1161,7 +1161,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: params.ClusterID})
 }
 
-func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, infraEnv *common.InfraEnv) error {
+func (b *bareMetalInventory) generateInfraEnvISOInternal(ctx context.Context, infraEnv *common.InfraEnv, imageType models.ImageType) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("prepare image for infraEnv %s", infraEnv.ID)
 
@@ -1220,7 +1220,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 	}
 
 	if imageExists {
-		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnv.ProxyHash, infraEnv.Type, false, true); err != nil {
+		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnv.ProxyHash, imageType, false, true); err != nil {
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 
@@ -1228,7 +1228,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 		return nil
 	}
 
-	err = b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, infraEnv, infraEnv.Type, true)
+	err = b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, infraEnv, imageType, true)
 	if err != nil {
 		return err
 	}
@@ -5311,7 +5311,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if err = b.GenerateInfraEnvISOInternal(ctx, &infraEnv); err != nil {
+	if err = b.generateInfraEnvISOInternal(ctx, &infraEnv, infraEnv.Type); err != nil {
 		return nil, err
 	}
 
@@ -5390,7 +5390,7 @@ func (b *bareMetalInventory) updateInfraEnvInternal(ctx context.Context, params 
 		}
 	}
 
-	err = b.updateInfraEnvData(ctx, infraEnv, params, b.db, log)
+	err = b.updateInfraEnvData(infraEnv, params, b.db, log)
 	if err != nil {
 		log.WithError(err).Error("updateInfraEnvData")
 		return nil, err
@@ -5403,14 +5403,14 @@ func (b *bareMetalInventory) updateInfraEnvInternal(ctx context.Context, params 
 		return nil, err
 	}
 
-	if err = b.GenerateInfraEnvISOInternal(ctx, infraEnv); err != nil {
+	if err = b.generateInfraEnvISOInternal(ctx, infraEnv, params.InfraEnvUpdateParams.ImageType); err != nil {
 		return nil, err
 	}
 
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnv.ID})
 }
 
-func (b *bareMetalInventory) updateInfraEnvData(_ context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger) error {
 	var err error
 	updates := map[string]interface{}{}
 	if params.InfraEnvUpdateParams.Proxy != nil {
