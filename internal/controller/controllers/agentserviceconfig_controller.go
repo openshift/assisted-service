@@ -322,8 +322,8 @@ func (r *AgentServiceConfigReconciler) newServiceMonitor(ctx context.Context, lo
 	}
 
 	endpoints := make([]monitoringv1.Endpoint, len(service.Spec.Ports))
-	for _, port := range service.Spec.Ports {
-		endpoints = append(endpoints, monitoringv1.Endpoint{Port: port.Name})
+	for i := range service.Spec.Ports {
+		endpoints[i].Port = service.Spec.Ports[i].Name
 	}
 
 	labels := make(map[string]string)
