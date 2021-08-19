@@ -165,7 +165,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 				Type:    aiv1beta1.ConditionReconcileCompleted,
 				Status:  corev1.ConditionFalse,
-				Reason:  aiv1beta1.ReasonStorageFailure,
+				Reason:  component.reason,
 				Message: msg,
 			})
 			if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
