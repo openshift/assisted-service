@@ -49,7 +49,7 @@ func clearDB() {
 		&models.ServiceNetwork{},
 		&models.MachineNetwork{},
 	} {
-		db.Delete(model)
+		db.Unscoped().Delete(model)
 	}
 }
 
