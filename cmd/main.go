@@ -120,7 +120,6 @@ var Options struct {
 	AssistedServiceISOConfig    assistedserviceiso.Config
 	ManifestsGeneratorConfig    network.Config
 	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
-	EnableKubeAPIDay2Cluster    bool `envconfig:"ENABLE_KUBE_API_DAY2" default:"false"`
 	InfraEnvConfig              controllers.InfraEnvConfig
 	ISOEditorConfig             isoeditor.Config
 	CheckClusterVersion         bool          `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
@@ -495,18 +494,17 @@ func main() {
 			}).SetupWithManager(ctrlMgr), "unable to create controller InfraEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
-				Client:            ctrlMgr.GetClient(),
-				APIReader:         ctrlMgr.GetAPIReader(),
-				Log:               log,
-				Scheme:            ctrlMgr.GetScheme(),
-				Installer:         bm,
-				ClusterApi:        clusterApi,
-				HostApi:           hostApi,
-				CRDEventsHandler:  crdEventsHandler,
-				Manifests:         manifestsApi,
-				ServiceBaseURL:    Options.BMConfig.ServiceBaseURL,
-				AuthType:          Options.Auth.AuthType,
-				EnableDay2Cluster: Options.EnableKubeAPIDay2Cluster,
+				Client:           ctrlMgr.GetClient(),
+				APIReader:        ctrlMgr.GetAPIReader(),
+				Log:              log,
+				Scheme:           ctrlMgr.GetScheme(),
+				Installer:        bm,
+				ClusterApi:       clusterApi,
+				HostApi:          hostApi,
+				CRDEventsHandler: crdEventsHandler,
+				Manifests:        manifestsApi,
+				ServiceBaseURL:   Options.BMConfig.ServiceBaseURL,
+				AuthType:         Options.Auth.AuthType,
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{

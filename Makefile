@@ -282,7 +282,7 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
-		--hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' --kubeapi-day2 "$(ENABLE_KUBE_API_DAY2)" \
+		--hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' \
 		--disabled-host-validations "$(DISABLED_HOST_VALIDATIONS)" --disabled-steps "$(DISABLED_STEPS)"
 ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
 	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
@@ -396,7 +396,7 @@ _run_subsystem_test:
 	$(MAKE) _test TEST_SCENARIO=subsystem TIMEOUT=120m TEST="$(or $(TEST),./subsystem/...)"
 
 enable-kube-api-for-subsystem: $(BUILD_FOLDER)
-	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true ENABLE_KUBE_API_DAY2=true
+	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true
 	$(call restart_service_pods)
 	$(MAKE) wait-for-service
 
