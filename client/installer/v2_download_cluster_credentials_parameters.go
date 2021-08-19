@@ -65,11 +65,6 @@ type V2DownloadClusterCredentialsParams struct {
 
 	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is downloading the file.
-
-	*/
-	DiscoveryAgentVersion *string
 	/*FileName
 	  The credential file to be downloaded.
 
@@ -125,17 +120,6 @@ func (o *V2DownloadClusterCredentialsParams) SetClusterID(clusterID strfmt.UUID)
 	o.ClusterID = clusterID
 }
 
-// WithDiscoveryAgentVersion adds the discoveryAgentVersion to the v2 download cluster credentials params
-func (o *V2DownloadClusterCredentialsParams) WithDiscoveryAgentVersion(discoveryAgentVersion *string) *V2DownloadClusterCredentialsParams {
-	o.SetDiscoveryAgentVersion(discoveryAgentVersion)
-	return o
-}
-
-// SetDiscoveryAgentVersion adds the discoveryAgentVersion to the v2 download cluster credentials params
-func (o *V2DownloadClusterCredentialsParams) SetDiscoveryAgentVersion(discoveryAgentVersion *string) {
-	o.DiscoveryAgentVersion = discoveryAgentVersion
-}
-
 // WithFileName adds the fileName to the v2 download cluster credentials params
 func (o *V2DownloadClusterCredentialsParams) WithFileName(fileName string) *V2DownloadClusterCredentialsParams {
 	o.SetFileName(fileName)
@@ -158,15 +142,6 @@ func (o *V2DownloadClusterCredentialsParams) WriteToRequest(r runtime.ClientRequ
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
-	}
-
-	if o.DiscoveryAgentVersion != nil {
-
-		// header param discovery_agent_version
-		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
-			return err
-		}
-
 	}
 
 	// query param file_name

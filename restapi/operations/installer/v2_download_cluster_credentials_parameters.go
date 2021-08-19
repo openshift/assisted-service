@@ -36,10 +36,6 @@ type V2DownloadClusterCredentialsParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*The software version of the discovery agent that is downloading the file.
-	  In: header
-	*/
-	DiscoveryAgentVersion *string
 	/*The credential file to be downloaded.
 	  Required: true
 	  In: query
@@ -60,10 +56,6 @@ func (o *V2DownloadClusterCredentialsParams) BindRequest(r *http.Request, route 
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := o.bindDiscoveryAgentVersion(r.Header[http.CanonicalHeaderKey("discovery_agent_version")], true, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -108,24 +100,6 @@ func (o *V2DownloadClusterCredentialsParams) validateClusterID(formats strfmt.Re
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err
 	}
-	return nil
-}
-
-// bindDiscoveryAgentVersion binds and validates parameter DiscoveryAgentVersion from header.
-func (o *V2DownloadClusterCredentialsParams) bindDiscoveryAgentVersion(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: false
-
-	if raw == "" { // empty values pass all other validations
-		return nil
-	}
-
-	o.DiscoveryAgentVersion = &raw
-
 	return nil
 }
 

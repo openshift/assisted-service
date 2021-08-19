@@ -4441,13 +4441,8 @@ func init() {
         "security": [
           {
             "userAuth": [
-              "admin",
-              "read-only-admin",
               "user"
             ]
-          },
-          {
-            "agentAuth": []
           },
           {
             "urlAuth": []
@@ -4481,12 +4476,6 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
-          },
-          {
-            "type": "string",
-            "description": "The software version of the discovery agent that is downloading the file.",
-            "name": "discovery_agent_version",
-            "in": "header"
           }
         ],
         "responses": {
@@ -14617,13 +14606,8 @@ func init() {
         "security": [
           {
             "userAuth": [
-              "admin",
-              "read-only-admin",
               "user"
             ]
-          },
-          {
-            "agentAuth": []
           },
           {
             "urlAuth": []
@@ -14657,12 +14641,6 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
-          },
-          {
-            "type": "string",
-            "description": "The software version of the discovery agent that is downloading the file.",
-            "name": "discovery_agent_version",
-            "in": "header"
           }
         ],
         "responses": {

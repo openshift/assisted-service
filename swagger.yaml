@@ -4357,8 +4357,7 @@ paths:
       tags:
         - installer
       security:
-        - userAuth: [admin, read-only-admin, user]
-        - agentAuth: []
+        - userAuth: [user]
         - urlAuth: []
       description: Downloads credentials relating to the installed/installing cluster.
       operationId: V2DownloadClusterCredentials
