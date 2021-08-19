@@ -128,7 +128,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 			// Return and don't requeue
 			return reconcile.Result{}, nil
 		}
-		log.Error(err, "Failed to get resource", req.NamespacedName)
+		log.WithError(err).Error("Failed to get resource", req.NamespacedName)
 		return ctrl.Result{}, err
 	}
 
@@ -160,8 +160,8 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	} {
 		obj, mutateFn, err := component.fn(ctx, log, instance)
 		if err != nil {
-			msg := "Failed to generate definition for " + component.name + ": " + err.Error()
-			log.Error(err, msg)
+			msg := "Failed to generate definition for " + component.name
+			log.WithError(err).Error(msg)
 			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 				Type:    aiv1beta1.ConditionReconcileCompleted,
 				Status:  corev1.ConditionFalse,
@@ -169,15 +169,15 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 				Message: msg,
 			})
 			if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
-				log.Error(err, "Failed to update status")
+				log.WithError(err).Error("Failed to update status")
 				return ctrl.Result{Requeue: true}, statusErr
 			}
 			return ctrl.Result{Requeue: true}, err
 		}
 
 		if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, obj, mutateFn); err != nil {
-			msg := "Failed to ensure " + component.name + ": " + err.Error()
-			log.Error(err, msg)
+			msg := "Failed to ensure " + component.name
+			log.WithError(err).Error(msg)
 			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 				Type:    aiv1beta1.ConditionReconcileCompleted,
 				Status:  corev1.ConditionFalse,
@@ -185,7 +185,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 				Message: msg,
 			})
 			if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
-				log.Error(err, "Failed to update status")
+				log.WithError(err).Error("Failed to update status")
 				return ctrl.Result{Requeue: true}, statusErr
 			}
 		} else if result != controllerutil.OperationResultNone {
@@ -432,7 +432,6 @@ func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(ctx context.Conte
 }
 
 func (r *AgentServiceConfigReconciler) newPostgresSecret(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
-
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      databaseName,
@@ -454,14 +453,14 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(ctx context.Context, lo
 			if err != nil {
 				return err
 			}
-		}
 
-		secret.StringData = map[string]string{
-			"db.host":     "localhost",
-			"db.user":     "admin",
-			"db.password": pass,
-			"db.name":     "installer",
-			"db.port":     strconv.Itoa(int(databasePort)),
+			secret.StringData = map[string]string{
+				"db.host":     "localhost",
+				"db.user":     "admin",
+				"db.password": pass,
+				"db.name":     "installer",
+				"db.port":     strconv.Itoa(int(databasePort)),
+			}
 		}
 		return nil
 	}
@@ -473,7 +472,7 @@ func (r *AgentServiceConfigReconciler) newIngressCertCM(ctx context.Context, log
 	sourceCM := &corev1.ConfigMap{}
 
 	if err := r.Get(ctx, types.NamespacedName{Name: defaultIngressCertCMName, Namespace: defaultIngressCertCMNamespace}, sourceCM); err != nil {
-		log.Error(err, "Failed to get default ingress cert config map")
+		log.WithError(err).Error("Failed to get default ingress cert config map")
 		return nil, nil, err
 	}
 
@@ -891,7 +890,7 @@ func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogge
 	for _, specImage := range instance.Spec.MustGatherImages {
 		versionKey, err := getVersionKey(specImage.OpenshiftVersion)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", specImage.OpenshiftVersion))
+			log.WithError(err).Error(fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", specImage.OpenshiftVersion))
 			continue
 		}
 		if mustGatherVersions[versionKey] == nil {
@@ -905,7 +904,7 @@ func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogge
 	}
 	encodedVersions, err := json.Marshal(mustGatherVersions)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Problem marshaling must gather images (%v) to string, returning default %v", mustGatherVersions, MustGatherImages()))
+		log.WithError(err).Error(fmt.Sprintf("Problem marshaling must gather images (%v) to string, returning default %v", mustGatherVersions, MustGatherImages()))
 		return MustGatherImages()
 	}
 
@@ -935,7 +934,7 @@ func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogg
 	for i, image := range instance.Spec.OSImages {
 		key, err := getVersionKey(image.OpenshiftVersion)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", image.OpenshiftVersion))
+			log.WithError(err).Error(fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", image.OpenshiftVersion))
 			continue
 		}
 
@@ -957,7 +956,7 @@ func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogg
 
 	encodedVersions, err := json.Marshal(openshiftVersions)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Problem marshaling versions (%v) to string, returning default %v", openshiftVersions, OpenshiftVersions()))
+		log.WithError(err).Error(fmt.Sprintf("Problem marshaling versions (%v) to string, returning default %v", openshiftVersions, OpenshiftVersions()))
 		return OpenshiftVersions()
 	}
 
@@ -967,7 +966,6 @@ func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogg
 func (r *AgentServiceConfigReconciler) getCMHash(ctx context.Context, namespacedName types.NamespacedName) (string, error) {
 	cm := &corev1.ConfigMap{}
 	if err := r.Get(ctx, namespacedName, cm); err != nil {
-		r.Log.Error(err, "Failed to get configmap", "NamespacedName", namespacedName)
 		return "", err
 	}
 	return checksumMap(cm.Data)
