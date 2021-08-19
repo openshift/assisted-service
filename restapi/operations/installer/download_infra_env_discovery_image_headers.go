@@ -29,7 +29,7 @@ func NewDownloadInfraEnvDiscoveryImageHeaders(ctx *middleware.Context, handler D
 	return &DownloadInfraEnvDiscoveryImageHeaders{Context: ctx, Handler: handler}
 }
 
-/*DownloadInfraEnvDiscoveryImageHeaders swagger:route HEAD /v2/infra-envs/{infra_env_id}/image installer downloadInfraEnvDiscoveryImageHeaders
+/*DownloadInfraEnvDiscoveryImageHeaders swagger:route HEAD /v2/infra-envs/{infra_env_id}/downloads/image installer downloadInfraEnvDiscoveryImageHeaders
 
 Downloads the discovery image Headers only.
 

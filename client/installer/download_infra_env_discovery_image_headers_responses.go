@@ -101,7 +101,7 @@ type DownloadInfraEnvDiscoveryImageHeadersOK struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersOK) Error() string {
-	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageHeadersOK ", 200)
+	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageHeadersOK ", 200)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -130,7 +130,7 @@ type DownloadInfraEnvDiscoveryImageHeadersBadRequest struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersBadRequest) Error() string {
-	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageHeadersBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageHeadersBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersBadRequest) GetPayload() *models.Error {
@@ -163,7 +163,7 @@ type DownloadInfraEnvDiscoveryImageHeadersUnauthorized struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersUnauthorized) Error() string {
-	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageHeadersUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageHeadersUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersUnauthorized) GetPayload() *models.InfraError {
@@ -196,7 +196,7 @@ type DownloadInfraEnvDiscoveryImageHeadersForbidden struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersForbidden) Error() string {
-	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageHeadersForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageHeadersForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersForbidden) GetPayload() *models.InfraError {
@@ -229,7 +229,7 @@ type DownloadInfraEnvDiscoveryImageHeadersNotFound struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersNotFound) Error() string {
-	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageHeadersNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageHeadersNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersNotFound) GetPayload() *models.Error {
@@ -261,7 +261,7 @@ type DownloadInfraEnvDiscoveryImageHeadersMethodNotAllowed struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageHeadersMethodNotAllowed ", 405)
+	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageHeadersMethodNotAllowed ", 405)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -283,7 +283,7 @@ type DownloadInfraEnvDiscoveryImageHeadersConflict struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersConflict) Error() string {
-	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageHeadersConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageHeadersConflict  %+v", 409, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersConflict) GetPayload() *models.Error {
@@ -316,7 +316,7 @@ type DownloadInfraEnvDiscoveryImageHeadersInternalServerError struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersInternalServerError) Error() string {
-	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageHeadersInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageHeadersInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersInternalServerError) GetPayload() *models.Error {
@@ -349,7 +349,7 @@ type DownloadInfraEnvDiscoveryImageHeadersNotImplemented struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersNotImplemented) Error() string {
-	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageHeadersNotImplemented  %+v", 501, o.Payload)
+	return fmt.Sprintf("[HEAD /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageHeadersNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageHeadersNotImplemented) GetPayload() *models.Error {

@@ -100,7 +100,7 @@ type DownloadInfraEnvDiscoveryImageOK struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageOK) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageOK  %+v", 200, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageOK) GetPayload() io.Writer {
@@ -131,7 +131,7 @@ type DownloadInfraEnvDiscoveryImageBadRequest struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageBadRequest) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageBadRequest) GetPayload() *models.Error {
@@ -164,7 +164,7 @@ type DownloadInfraEnvDiscoveryImageUnauthorized struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageUnauthorized) GetPayload() *models.InfraError {
@@ -197,7 +197,7 @@ type DownloadInfraEnvDiscoveryImageForbidden struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageForbidden) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageForbidden) GetPayload() *models.InfraError {
@@ -230,7 +230,7 @@ type DownloadInfraEnvDiscoveryImageNotFound struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageNotFound) GetPayload() *models.Error {
@@ -262,7 +262,7 @@ type DownloadInfraEnvDiscoveryImageMethodNotAllowed struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageMethodNotAllowed ", 405)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageMethodNotAllowed ", 405)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -284,7 +284,7 @@ type DownloadInfraEnvDiscoveryImageConflict struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageConflict) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageConflict  %+v", 409, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageConflict) GetPayload() *models.Error {
@@ -317,7 +317,7 @@ type DownloadInfraEnvDiscoveryImageInternalServerError struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageInternalServerError) GetPayload() *models.Error {
@@ -350,7 +350,7 @@ type DownloadInfraEnvDiscoveryImageNotImplemented struct {
 }
 
 func (o *DownloadInfraEnvDiscoveryImageNotImplemented) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/image][%d] downloadInfraEnvDiscoveryImageNotImplemented  %+v", 501, o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *DownloadInfraEnvDiscoveryImageNotImplemented) GetPayload() *models.Error {

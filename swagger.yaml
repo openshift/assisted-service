@@ -3218,7 +3218,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /v2/infra-envs/{infra_env_id}/image:
+  /v2/infra-envs/{infra_env_id}/downloads/image:
     get:
       tags:
         - installer

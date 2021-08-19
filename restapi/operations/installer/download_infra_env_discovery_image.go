@@ -29,7 +29,7 @@ func NewDownloadInfraEnvDiscoveryImage(ctx *middleware.Context, handler Download
 	return &DownloadInfraEnvDiscoveryImage{Context: ctx, Handler: handler}
 }
 
-/*DownloadInfraEnvDiscoveryImage swagger:route GET /v2/infra-envs/{infra_env_id}/image installer downloadInfraEnvDiscoveryImage
+/*DownloadInfraEnvDiscoveryImage swagger:route GET /v2/infra-envs/{infra_env_id}/downloads/image installer downloadInfraEnvDiscoveryImage
 
 Downloads the discovery image.
 

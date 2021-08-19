@@ -5071,6 +5071,179 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/downloads/image": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Downloads the discovery image.",
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DownloadInfraEnvDiscoveryImage",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv whose image should be downloaded.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "head": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Downloads the discovery image Headers only.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DownloadInfraEnvDiscoveryImageHeaders",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv whose image headers should be retrieved.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "Content-Length": {
+                "type": "integer",
+                "description": "Size of the ISO in bytes"
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/downloads/minimal-initrd": {
       "get": {
         "security": [
@@ -6412,179 +6585,6 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/v2/infra-envs/{infra_env_id}/image": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          },
-          {
-            "urlAuth": []
-          }
-        ],
-        "description": "Downloads the discovery image.",
-        "produces": [
-          "application/octet-stream"
-        ],
-        "tags": [
-          "installer"
-        ],
-        "operationId": "DownloadInfraEnvDiscoveryImage",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The InfraEnv whose image should be downloaded.",
-            "name": "infra_env_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "string",
-              "format": "binary"
-            }
-          },
-          "400": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed."
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "501": {
-            "description": "Not implemented.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "head": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          },
-          {
-            "urlAuth": []
-          }
-        ],
-        "description": "Downloads the discovery image Headers only.",
-        "tags": [
-          "installer"
-        ],
-        "operationId": "DownloadInfraEnvDiscoveryImageHeaders",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The InfraEnv whose image headers should be retrieved.",
-            "name": "infra_env_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "headers": {
-              "Content-Length": {
-                "type": "integer",
-                "description": "Size of the ISO in bytes"
-              }
-            }
-          },
-          "400": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed."
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "501": {
-            "description": "Not implemented.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -15035,6 +15035,179 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/downloads/image": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Downloads the discovery image.",
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DownloadInfraEnvDiscoveryImage",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv whose image should be downloaded.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "head": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Downloads the discovery image Headers only.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DownloadInfraEnvDiscoveryImageHeaders",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv whose image headers should be retrieved.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "Content-Length": {
+                "type": "integer",
+                "description": "Size of the ISO in bytes"
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/downloads/minimal-initrd": {
       "get": {
         "security": [
@@ -16376,179 +16549,6 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/v2/infra-envs/{infra_env_id}/image": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          },
-          {
-            "urlAuth": []
-          }
-        ],
-        "description": "Downloads the discovery image.",
-        "produces": [
-          "application/octet-stream"
-        ],
-        "tags": [
-          "installer"
-        ],
-        "operationId": "DownloadInfraEnvDiscoveryImage",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The InfraEnv whose image should be downloaded.",
-            "name": "infra_env_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "string",
-              "format": "binary"
-            }
-          },
-          "400": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed."
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "501": {
-            "description": "Not implemented.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "head": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          },
-          {
-            "urlAuth": []
-          }
-        ],
-        "description": "Downloads the discovery image Headers only.",
-        "tags": [
-          "installer"
-        ],
-        "operationId": "DownloadInfraEnvDiscoveryImageHeaders",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The InfraEnv whose image headers should be retrieved.",
-            "name": "infra_env_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "headers": {
-              "Content-Length": {
-                "type": "integer",
-                "description": "Size of the ISO in bytes"
-              }
-            }
-          },
-          "400": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed."
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "501": {
-            "description": "Not implemented.",
             "schema": {
               "$ref": "#/definitions/error"
             }

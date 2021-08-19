@@ -1098,11 +1098,11 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/image"] = installer.NewDownloadInfraEnvDiscoveryImage(o.context, o.InstallerDownloadInfraEnvDiscoveryImageHandler)
+	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/image"] = installer.NewDownloadInfraEnvDiscoveryImage(o.context, o.InstallerDownloadInfraEnvDiscoveryImageHandler)
 	if o.handlers["HEAD"] == nil {
 		o.handlers["HEAD"] = make(map[string]http.Handler)
 	}
-	o.handlers["HEAD"]["/v2/infra-envs/{infra_env_id}/image"] = installer.NewDownloadInfraEnvDiscoveryImageHeaders(o.context, o.InstallerDownloadInfraEnvDiscoveryImageHeadersHandler)
+	o.handlers["HEAD"]["/v2/infra-envs/{infra_env_id}/downloads/image"] = installer.NewDownloadInfraEnvDiscoveryImageHeaders(o.context, o.InstallerDownloadInfraEnvDiscoveryImageHeadersHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
