@@ -118,7 +118,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			},
 		}
 		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log, mockOperatorManager).(*installerGenerator)
-		err = g.updateBootstrap(examplePath)
+		err = g.updateBootstrap(context.Background(), examplePath)
 
 		bootstrapBytes, _ := ioutil.ReadFile(examplePath)
 		config, _, err1 = config_32.Parse(bootstrapBytes)

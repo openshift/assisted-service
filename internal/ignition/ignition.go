@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
@@ -389,9 +390,11 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 
 // Generate generates ignition files and applies modifications.
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte) error {
-	installerPath, err := installercache.Get(g.releaseImage, g.releaseImageMirror, g.installerDir, g.cluster.PullSecret, g.log)
+	log := logutil.FromContext(ctx, g.log)
+	installerPath, err := installercache.Get(g.releaseImage, g.releaseImageMirror, g.installerDir,
+		g.cluster.PullSecret, log)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get installer path")
 	}
 	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")
 
@@ -403,7 +406,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	g.encodedDhcpFileContents, err = network.GetEncodedDhcpParamFileContents(g.cluster)
 	if err != nil {
 		wrapped := errors.Wrapf(err, "Could not create DHCP encoded file")
-		g.log.WithError(wrapped).Errorf("GenerateInstallConfig")
+		log.WithError(wrapped).Errorf("GenerateInstallConfig")
 		return wrapped
 	}
 	envVars := append(os.Environ(),
@@ -414,61 +417,61 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	// write installConfig to install-config.yaml so openshift-install can read it
 	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
 	if err != nil {
-		g.log.Errorf("Failed to write file %s", installConfigPath)
+		log.Errorf("Failed to write file %s", installConfigPath)
 		return err
 	}
 
 	manifestFiles, err := manifests.GetClusterManifests(ctx, g.cluster.ID, g.s3Client)
 	if err != nil {
-		g.log.WithError(err).Errorf("Failed to check if cluster %s has manifests", g.cluster.ID)
+		log.WithError(err).Errorf("Failed to check if cluster %s has manifests", g.cluster.ID)
 		return err
 	}
 
 	// invoke 'create manifests' command and download cluster manifests to manifests folder
 	if len(manifestFiles) > 0 {
-		err = g.runCreateCommand(installerPath, "manifests", envVars)
+		err = g.runCreateCommand(ctx, installerPath, "manifests", envVars)
 		if err != nil {
 			return err
 		}
 		// download manifests files to working directory
 		for _, manifest := range manifestFiles {
-			g.log.Infof("Adding manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
+			log.Infof("Adding manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
 			err = g.downloadManifest(ctx, manifest)
 			if err != nil {
 				_ = os.Remove(filepath.Join(g.workDir, "manifests"))
 				_ = os.Remove(filepath.Join(g.workDir, "openshift"))
-				g.log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
+				log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
 				return err
 			}
 		}
 
 	}
 	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-		err = g.bootstrapInPlaceIgnitionsCreate(installerPath, envVars)
+		err = g.bootstrapInPlaceIgnitionsCreate(ctx, installerPath, envVars)
 	} else {
-		err = g.runCreateCommand(installerPath, "ignition-configs", envVars)
+		err = g.runCreateCommand(ctx, installerPath, "ignition-configs", envVars)
 	}
 	if err != nil {
-		g.log.Error(err)
+		log.Error(err)
 		return err
 	}
 
 	// parse ignition and update BareMetalHosts
 	bootstrapPath := filepath.Join(g.workDir, "bootstrap.ign")
-	err = g.updateBootstrap(bootstrapPath)
+	err = g.updateBootstrap(ctx, bootstrapPath)
 	if err != nil {
 		return err
 	}
 
 	err = g.updateIgnitions()
 	if err != nil {
-		g.log.Error(err)
+		log.Error(err)
 		return err
 	}
 
 	err = g.createHostIgnitions()
 	if err != nil {
-		g.log.Error(err)
+		log.Error(err)
 		return err
 	}
 
@@ -487,7 +490,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	// Installer deletes it so we need to write it one more time
 	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
 	if err != nil {
-		g.log.Errorf("Failed to write file %s", installConfigPath)
+		log.Errorf("Failed to write file %s", installConfigPath)
 		return err
 	}
 
@@ -498,8 +501,8 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	return nil
 }
 
-func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(installerPath string, envVars []string) error {
-	err := g.runCreateCommand(installerPath, "single-node-ignition-config", envVars)
+func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(ctx context.Context, installerPath string, envVars []string) error {
+	err := g.runCreateCommand(ctx, installerPath, "single-node-ignition-config", envVars)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create single node ignitions")
 	}
@@ -513,7 +516,6 @@ func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(installerPath strin
 
 	bootstrapConfig, err := parseIgnitionFile(bootstrapPath)
 	if err != nil {
-		g.log.Error(err)
 		return err
 	}
 	//Although BIP works with 4.8 and above we want to support early 4.8 CI images
@@ -604,7 +606,8 @@ func ExtractClusterID(reader io.ReadCloser) (string, error) {
 
 // updateBootstrap adds a status annotation to each BareMetalHost defined in the
 // bootstrap ignition file
-func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
+func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath string) error {
+	log := logutil.FromContext(ctx, g.log)
 	config, err := parseIgnitionFile(bootstrapPath)
 	if err != nil {
 		g.log.Error(err)
@@ -628,7 +631,7 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 			// extract bmh
 			bmh, err := fileToBMH(&config.Storage.Files[i]) //nolint,shadow
 			if err != nil {
-				g.log.Errorf("error parsing File contents to BareMetalHost: %v", err)
+				log.Errorf("error parsing File contents to BareMetalHost: %v", err)
 				return err
 			}
 
@@ -652,7 +655,7 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 			}
 
 			// modify bmh
-			g.log.Infof("modifying BareMetalHost ignition file %s", file.Node.Path)
+			log.Infof("modifying BareMetalHost ignition file %s", file.Node.Path)
 			err = g.modifyBMHFile(&config.Storage.Files[i], bmh, host)
 			if err != nil {
 				return err
@@ -671,10 +674,10 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 
 	err = writeIgnitionFile(bootstrapPath, config)
 	if err != nil {
-		g.log.Error(err)
+		log.Error(err)
 		return err
 	}
-	g.log.Infof("Updated file %s", bootstrapPath)
+	log.Infof("Updated file %s", bootstrapPath)
 
 	return nil
 }
@@ -1234,7 +1237,15 @@ func GetServiceIPHostnames(serviceIPs string) string {
 	return content
 }
 
-func (g *installerGenerator) runCreateCommand(installerPath, command string, envVars []string) error {
+func firstN(s string, n int) string {
+	if len(s) > n {
+		return s[:n]
+	}
+	return s
+}
+
+func (g *installerGenerator) runCreateCommand(ctx context.Context, installerPath, command string, envVars []string) error {
+	log := logutil.FromContext(ctx, g.log)
 	cmd := exec.Command(installerPath, "create", command, "--dir", g.workDir)
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -1242,9 +1253,9 @@ func (g *installerGenerator) runCreateCommand(installerPath, command string, env
 	cmd.Env = envVars
 	err := cmd.Run()
 	if err != nil {
-		g.log.Errorf("error running openshift-install create %s", command)
-		g.log.Error(out.String())
-		return err
+		log.WithError(err).
+			Errorf("error running openshift-install create %s, stdout: %s", command, out.String())
+		return errors.Wrapf(err, "error running openshift-install %s,  %s", command, firstN(out.String(), 140))
 	}
 	return nil
 }
