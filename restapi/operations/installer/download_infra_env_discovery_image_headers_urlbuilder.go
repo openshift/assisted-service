@@ -42,7 +42,7 @@ func (o *DownloadInfraEnvDiscoveryImageHeadersURL) SetBasePath(bp string) {
 func (o *DownloadInfraEnvDiscoveryImageHeadersURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/v2/infra-envs/{infra_env_id}/image"
+	var _path = "/v2/infra-envs/{infra_env_id}/downloads/image"
 
 	infraEnvID := o.InfraEnvID.String()
 	if infraEnvID != "" {

@@ -620,7 +620,7 @@ func (a *Client) DownloadInfraEnvDiscoveryImage(ctx context.Context, params *Dow
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DownloadInfraEnvDiscoveryImage",
 		Method:             "GET",
-		PathPattern:        "/v2/infra-envs/{infra_env_id}/image",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/downloads/image",
 		ProducesMediaTypes: []string{"application/octet-stream"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -645,7 +645,7 @@ func (a *Client) DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, para
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DownloadInfraEnvDiscoveryImageHeaders",
 		Method:             "HEAD",
-		PathPattern:        "/v2/infra-envs/{infra_env_id}/image",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/downloads/image",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
