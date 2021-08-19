@@ -384,6 +384,10 @@ func (f fakeInventory) V2ResetHost(ctx context.Context, params installer.V2Reset
 	return installer.NewV2ResetHostOK()
 }
 
+func (f fakeInventory) V2InstallHost(ctx context.Context, params installer.V2InstallHostParams) middleware.Responder {
+	return installer.NewV2InstallHostAccepted()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

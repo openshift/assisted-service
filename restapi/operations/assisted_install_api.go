@@ -286,6 +286,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2GetNextStepsHandler: installer.V2GetNextStepsHandlerFunc(func(params installer.V2GetNextStepsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetNextSteps has not yet been implemented")
 		}),
+		InstallerV2InstallHostHandler: installer.V2InstallHostHandlerFunc(func(params installer.V2InstallHostParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2InstallHost has not yet been implemented")
+		}),
 		InstallerV2ListHostsHandler: installer.V2ListHostsHandlerFunc(func(params installer.V2ListHostsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2ListHosts has not yet been implemented")
 		}),
@@ -539,6 +542,8 @@ type AssistedInstallAPI struct {
 	InstallerV2GetHostIgnitionHandler installer.V2GetHostIgnitionHandler
 	// InstallerV2GetNextStepsHandler sets the operation handler for the v2 get next steps operation
 	InstallerV2GetNextStepsHandler installer.V2GetNextStepsHandler
+	// InstallerV2InstallHostHandler sets the operation handler for the v2 install host operation
+	InstallerV2InstallHostHandler installer.V2InstallHostHandler
 	// InstallerV2ListHostsHandler sets the operation handler for the v2 list hosts operation
 	InstallerV2ListHostsHandler installer.V2ListHostsHandler
 	// InstallerV2PostStepReplyHandler sets the operation handler for the v2 post step reply operation
@@ -882,6 +887,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2GetNextStepsHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetNextStepsHandler")
+	}
+	if o.InstallerV2InstallHostHandler == nil {
+		unregistered = append(unregistered, "installer.V2InstallHostHandler")
 	}
 	if o.InstallerV2ListHostsHandler == nil {
 		unregistered = append(unregistered, "installer.V2ListHostsHandler")
@@ -1331,6 +1339,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions"] = installer.NewV2GetNextSteps(o.context, o.InstallerV2GetNextStepsHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install"] = installer.NewV2InstallHost(o.context, o.InstallerV2InstallHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
