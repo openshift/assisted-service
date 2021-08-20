@@ -170,7 +170,7 @@ func getMachineCIDRObj(host *models.Host, machineNetworkCidr string, obj string)
 func GetPrimaryMachineCIDRInterface(host *models.Host, cluster *common.Cluster) (string, error) {
 	primaryMachineCidr := ""
 	if IsMachineCidrAvailable(cluster) {
-		primaryMachineCidr = string(cluster.MachineNetworks[0].Cidr)
+		primaryMachineCidr = GetMachineCidrById(cluster, 0)
 	}
 	return getMachineCIDRObj(host, primaryMachineCidr, "interface")
 }
@@ -178,7 +178,7 @@ func GetPrimaryMachineCIDRInterface(host *models.Host, cluster *common.Cluster) 
 func GetPrimaryMachineCIDRIP(host *models.Host, cluster *common.Cluster) (string, error) {
 	primaryMachineCidr := ""
 	if IsMachineCidrAvailable(cluster) {
-		primaryMachineCidr = string(cluster.MachineNetworks[0].Cidr)
+		primaryMachineCidr = GetMachineCidrById(cluster, 0)
 	}
 	return getMachineCIDRObj(host, primaryMachineCidr, "ip")
 }
@@ -215,7 +215,7 @@ func GetPrimaryMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster)
 	if !IsMachineCidrAvailable(cluster) {
 		return nil, errors.New("Machine network CIDR was not set in cluster")
 	}
-	_, machineIpnet, err := net.ParseCIDR(string(cluster.MachineNetworks[0].Cidr))
+	_, machineIpnet, err := net.ParseCIDR(GetMachineCidrById(cluster, 0))
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +231,7 @@ func GetPrimaryMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster)
 // GetPrimaryMachineCidrForUserManagedNetwork used to get the primary machine cidr in case of none platform and sno
 func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.FieldLogger) string {
 	if IsMachineCidrAvailable(cluster) {
-		return string(cluster.MachineNetworks[0].Cidr)
+		return GetMachineCidrById(cluster, 0)
 	}
 
 	bootstrap := common.GetBootstrapHost(cluster)

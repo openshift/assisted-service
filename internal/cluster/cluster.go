@@ -428,7 +428,7 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 
 	if err != nil {
 		return err
-	} else if network.IsMachineCidrAvailable(cluster) && machineCidr == string(cluster.MachineNetworks[0].Cidr) {
+	} else if network.IsMachineCidrAvailable(cluster) && machineCidr == network.GetMachineCidrById(cluster, 0) {
 		return nil
 	}
 

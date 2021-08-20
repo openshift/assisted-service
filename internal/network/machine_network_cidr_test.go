@@ -362,7 +362,7 @@ var _ = Describe("inventory", func() {
 				createInventory(createInterface("127.0.0.1/17")))
 			cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "1.2.5.0/23"}}
 			machineCidr := GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
-			Expect(machineCidr).To(Equal(string(cluster.MachineNetworks[0].Cidr)))
+			Expect(machineCidr).To(Equal(GetMachineCidrById(cluster, 0)))
 		})
 
 	})

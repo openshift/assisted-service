@@ -497,14 +497,14 @@ func (v *validator) printBelongsToMachineCidr(c *validationContext, status Valid
 			return "No machine network CIDR validation needed: User Managed Networking"
 		}
 		if network.IsMachineCidrAvailable(c.cluster) {
-			return fmt.Sprintf("Host belongs to machine network CIDR %s", c.cluster.MachineNetworks[0].Cidr)
+			return fmt.Sprintf("Host belongs to machine network CIDR %s", network.GetMachineCidrById(c.cluster, 0))
 		}
 
 		// TODO MGMT-7566: Fix day2 message
 		return "Host belongs to machine network CIDR"
 	case ValidationFailure:
 		if network.IsMachineCidrAvailable(c.cluster) {
-			return fmt.Sprintf("Host does not belong to machine network CIDR %s", c.cluster.MachineNetworks[0].Cidr)
+			return fmt.Sprintf("Host does not belong to machine network CIDR %s", network.GetMachineCidrById(c.cluster, 0))
 		}
 		return "Host does not belong to machine network CIDR"
 	case ValidationPending:
@@ -626,7 +626,7 @@ func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroup
 	}
 
 	// TODO: Handle multple machine networks
-	return boolValue(funk.Contains(majorityGroups[string(c.cluster.MachineNetworks[0].Cidr)], *c.host.ID))
+	return boolValue(funk.Contains(majorityGroups[network.GetMachineCidrById(c.cluster, 0)], *c.host.ID))
 }
 
 func (v *validator) belongsToL3MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
