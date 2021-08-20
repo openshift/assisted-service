@@ -4070,52 +4070,70 @@ func (b *bareMetalInventory) refreshClusterStatus(
 	return updatedCluster, nil
 }
 
+func (b *bareMetalInventory) V2GetPresignedForClusterFiles(ctx context.Context, params installer.V2GetPresignedForClusterFilesParams) middleware.Responder {
+	presigned, err := b.getPresignedForClusterFiles(ctx, &params.ClusterID, params.FileName, params.AdditionalName, params.HostID, params.LogsType)
+	if err != nil {
+		return err
+	}
+
+	return installer.NewV2GetPresignedForClusterFilesOK().WithPayload(presigned)
+}
+
 func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, params installer.GetPresignedForClusterFilesParams) middleware.Responder {
+	presigned, err := b.getPresignedForClusterFiles(ctx, &params.ClusterID, params.FileName, params.AdditionalName, params.HostID, params.LogsType)
+	if err != nil {
+		return err
+	}
+
+	return installer.NewGetPresignedForClusterFilesOK().WithPayload(presigned)
+}
+
+func (b *bareMetalInventory) getPresignedForClusterFiles(ctx context.Context, clusterId *strfmt.UUID, fileName string, additionalName *string, hostID *strfmt.UUID, logsType *string) (*models.Presigned, middleware.Responder) {
 	log := logutil.FromContext(ctx, b.log)
 
-	if err := b.checkFileDownloadAccess(ctx, params.FileName); err != nil {
+	if err := b.checkFileDownloadAccess(ctx, fileName); err != nil {
 		payload := common.GenerateInfraError(http.StatusForbidden, err)
-		return installer.NewGetPresignedForClusterFilesForbidden().WithPayload(payload)
+		return nil, installer.NewGetPresignedForClusterFilesForbidden().WithPayload(payload)
 	}
 
 	// Presigned URL only works with AWS S3 because Scality is not exposed
 	if !b.objectHandler.IsAwsS3() {
-		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
+		return nil, common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
 	}
 	var err error
-	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID, params.FileName)
-	downloadFilename := params.FileName
-	if params.FileName == manifests.ManifestFolder {
-		if params.AdditionalName != nil {
-			additionalName := *params.AdditionalName
-			fullFileName = manifests.GetManifestObjectName(params.ClusterID, additionalName)
+	fullFileName := fmt.Sprintf("%s/%s", clusterId, fileName)
+	downloadFilename := fileName
+	if fileName == manifests.ManifestFolder {
+		if additionalName != nil {
+			additionalName := *additionalName
+			fullFileName = manifests.GetManifestObjectName(*clusterId, additionalName)
 			downloadFilename = additionalName[strings.LastIndex(additionalName, "/")+1:]
 		} else {
 			err = errors.New("Additional name must be provided for 'manifests' file name, prefaced with folder name, e.g.: openshift/99-openshift-xyz.yaml")
-			return common.GenerateErrorResponder(err)
+			return nil, common.GenerateErrorResponder(err)
 		}
 	}
 
-	if params.FileName == "logs" {
-		if params.HostID != nil && swag.StringValue(params.LogsType) == "" {
-			logsType := string(models.LogsTypeHost)
-			params.LogsType = &logsType
+	if fileName == "logs" {
+		if hostID != nil && swag.StringValue(logsType) == "" {
+			logsType = swag.String(string(models.LogsTypeHost))
 		}
-		fullFileName, downloadFilename, err = b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID, swag.StringValue(params.LogsType))
+		fullFileName, downloadFilename, err = b.getLogFileForDownload(ctx, clusterId, hostID, swag.StringValue(logsType))
 		if err != nil {
-			return common.GenerateErrorResponder(err)
+			return nil, common.GenerateErrorResponder(err)
 		}
-	} else if err = b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
-		return common.GenerateErrorResponder(err)
+	} else if err = b.checkFileForDownload(ctx, clusterId.String(), fileName); err != nil {
+		return nil, common.GenerateErrorResponder(err)
 	}
 
 	duration, _ := time.ParseDuration("10m")
 	url, err := b.objectHandler.GeneratePresignedDownloadURL(ctx, fullFileName, downloadFilename, duration)
 	if err != nil {
-		log.WithError(err).Errorf("failed to generate presigned URL: %s from cluster: %s", params.FileName, params.ClusterID.String())
-		return common.NewApiError(http.StatusInternalServerError, err)
+		log.WithError(err).Errorf("failed to generate presigned URL: %s from cluster: %s", fileName, clusterId.String())
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
-	return installer.NewGetPresignedForClusterFilesOK().WithPayload(&models.Presigned{URL: &url})
+
+	return &models.Presigned{URL: &url}, nil
 }
 
 func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params installer.DownloadMinimalInitrdParams) middleware.Responder {
@@ -4231,7 +4249,7 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 		}
 
 		var hostObject *common.Host
-		hostObject, err = b.getHost(ctx, clusterId.String(), hostId.String())
+		hostObject, err = common.GetClusterHostFromDB(b.db, clusterId.String(), hostId.String())
 		if err != nil {
 			return "", "", err
 		}

@@ -205,6 +205,9 @@ type API interface {
 	   V2DownloadClusterFiles Downloads files relating to the installed/installing cluster.*/
 	V2DownloadClusterFiles(ctx context.Context, params *V2DownloadClusterFilesParams, writer io.Writer) (*V2DownloadClusterFilesOK, error)
 	/*
+	   V2GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files.*/
+	V2GetPresignedForClusterFiles(ctx context.Context, params *V2GetPresignedForClusterFilesParams) (*V2GetPresignedForClusterFilesOK, error)
+	/*
 	   V2UpdateCluster Updates an OpenShift cluster definition.*/
 	V2UpdateCluster(ctx context.Context, params *V2UpdateClusterParams) (*V2UpdateClusterCreated, error)
 	/*
@@ -1822,6 +1825,31 @@ func (a *Client) V2DownloadClusterFiles(ctx context.Context, params *V2DownloadC
 		return nil, err
 	}
 	return result.(*V2DownloadClusterFilesOK), nil
+
+}
+
+/*
+V2GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files.
+*/
+func (a *Client) V2GetPresignedForClusterFiles(ctx context.Context, params *V2GetPresignedForClusterFilesParams) (*V2GetPresignedForClusterFilesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2GetPresignedForClusterFiles",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/downloads/files-presigned",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetPresignedForClusterFilesReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetPresignedForClusterFilesOK), nil
 
 }
 

@@ -4712,6 +4712,78 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}/downloads/files-presigned:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      description: Retrieves a pre-signed S3 URL for downloading cluster files.
+      operationId: V2GetPresignedForClusterFiles
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster that owns the file that should be downloaded.
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: file_name
+          description: The file to be downloaded.
+          type: string
+          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, install-config.yaml, logs, manifests]
+          required: true
+        - in: query
+          name: logs_type
+          description: If downloading logs, the type of logs to download.
+          type: string
+          enum: ["host", "controller", "all"]
+          required: false
+        - in: query
+          name: host_id
+          description: If downloading a file related to a host, the relevant host.
+          type: string
+          format: uuid
+          required: false
+        - in: query
+          name: additional_name
+          description: If downloading a manifest, the file name, prefaced with folder name, for example, openshift/99-openshift-xyz.yaml.
+          type: string
+          required: false
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/presigned'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd:
     get:
       tags:
