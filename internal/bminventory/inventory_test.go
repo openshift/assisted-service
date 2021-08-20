@@ -4805,7 +4805,11 @@ var _ = Describe("cluster", func() {
 					machineNetworks = []*models.MachineNetwork{{Cidr: "5.5.0.0/24"}, {Cidr: "6.6.0.0/24"}}
 				)
 
-				BeforeEach(func() {
+				setNetworksClusterID := func(clusterID strfmt.UUID,
+					clusterNetworks []*models.ClusterNetwork,
+					serviceNetworks []*models.ServiceNetwork,
+					machineNetworks []*models.MachineNetwork,
+				) {
 					for _, network := range clusterNetworks {
 						network.ClusterID = clusterID
 						Expect(db.Model(&models.ClusterNetwork{}).Save(network).Error).ShouldNot(HaveOccurred())
@@ -4818,6 +4822,14 @@ var _ = Describe("cluster", func() {
 						network.ClusterID = clusterID
 						Expect(db.Model(&models.MachineNetwork{}).Save(network).Error).ShouldNot(HaveOccurred())
 					}
+
+					cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+					Expect(err).ToNot(HaveOccurred())
+					validateNetworkConfiguration(&cluster.Cluster, &clusterNetworks, &serviceNetworks, &machineNetworks)
+				}
+
+				BeforeEach(func() {
+					setNetworksClusterID(clusterID, clusterNetworks, serviceNetworks, machineNetworks)
 				})
 
 				It("No new networks data", func() {
@@ -4829,9 +4841,7 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 					actual := reply.(*installer.UpdateClusterCreated)
 
-					Expect(actual.Payload.ClusterNetworks).To(HaveLen(len(clusterNetworks)))
-					Expect(actual.Payload.ServiceNetworks).To(HaveLen(len(serviceNetworks)))
-					Expect(actual.Payload.MachineNetworks).To(HaveLen(len(machineNetworks)))
+					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
 				})
 
 				It("Empty networks", func() {
@@ -4870,24 +4880,35 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 					actual := reply.(*installer.UpdateClusterCreated)
 
-					Expect(actual.Payload.ClusterNetworks).To(HaveLen(len(clusterNetworks)))
-					for index := range clusterNetworks {
-						Expect(actual.Payload.ClusterNetworks[index].Cidr).To(Equal(clusterNetworks[index].Cidr))
-						Expect(actual.Payload.ClusterNetworks[index].HostPrefix).To(Equal(clusterNetworks[index].HostPrefix))
-						Expect(actual.Payload.ClusterNetworks[index].ClusterID).To(Equal(*actual.Payload.ID))
-					}
+					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
+				})
 
-					Expect(actual.Payload.ServiceNetworks).To(HaveLen(len(serviceNetworks)))
-					for index := range serviceNetworks {
-						Expect(actual.Payload.ServiceNetworks[index].Cidr).To(Equal(serviceNetworks[index].Cidr))
-						Expect(actual.Payload.ServiceNetworks[index].ClusterID).To(Equal(*actual.Payload.ID))
-					}
+				It("Multiple clusters", func() {
+					secondClusterID := strfmt.UUID(uuid.New().String())
+					Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &secondClusterID}}).Error).ShouldNot(HaveOccurred())
+					setNetworksClusterID(secondClusterID, clusterNetworks, serviceNetworks, machineNetworks)
 
-					Expect(actual.Payload.MachineNetworks).To(HaveLen(len(machineNetworks)))
-					for index := range machineNetworks {
-						Expect(actual.Payload.MachineNetworks[index].Cidr).To(Equal(machineNetworks[index].Cidr))
-						Expect(actual.Payload.MachineNetworks[index].ClusterID).To(Equal(*actual.Payload.ID))
-					}
+					mockSuccess(1)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworks:   clusterNetworks,
+							ServiceNetworks:   serviceNetworks,
+							MachineNetworks:   machineNetworks,
+							VipDhcpAllocation: swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
+
+					cluster, err := common.GetClusterFromDB(db, secondClusterID, common.UseEagerLoading)
+					Expect(err).ToNot(HaveOccurred())
+					validateNetworkConfiguration(&cluster.Cluster, &clusterNetworks, &serviceNetworks, &machineNetworks)
+
+					var dbMachineNetworks []*models.MachineNetwork
+					Expect(db.Find(&dbMachineNetworks).Error).ShouldNot(HaveOccurred())
+					Expect(dbMachineNetworks).To(HaveLen(len(machineNetworks) * 2))
 				})
 			})
 		})
@@ -8038,6 +8059,29 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	Context("Networking", func() {
+		var (
+			clusterNetworks = []*models.ClusterNetwork{{Cidr: "1.1.1.0/24", HostPrefix: 24}, {Cidr: "2.2.2.0/24", HostPrefix: 24}}
+			serviceNetworks = []*models.ServiceNetwork{{Cidr: "3.3.3.0/24"}, {Cidr: "4.4.4.0/24"}}
+			machineNetworks = []*models.MachineNetwork{{Cidr: "5.5.5.0/24"}, {Cidr: "6.6.6.0/24"}}
+		)
+
+		registerCluster := func() *models.Cluster {
+			mockClusterRegisterSuccess(bm, true)
+			mockAMSSubscription(ctx)
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+					ClusterNetworks:  clusterNetworks,
+					ServiceNetworks:  serviceNetworks,
+					MachineNetworks:  machineNetworks,
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+			return reply.(*installer.RegisterClusterCreated).Payload
+		}
+
 		It("Networking defaults", func() {
 			defaultClusterNetwork := "1.2.3.4/14"
 			bm.Config.DefaultClusterNetworkCidr = defaultClusterNetwork
@@ -8061,43 +8105,26 @@ var _ = Describe("TestRegisterCluster", func() {
 			Expect(string(actual.Payload.ServiceNetworks[0].Cidr)).To(Equal(defultServiceNetwork))
 		})
 
-		It("Multiple Networks", func() {
-			clusterNetworks := []*models.ClusterNetwork{{Cidr: "1.1.1.0/24", HostPrefix: 24}, {Cidr: "2.2.2.0/24", HostPrefix: 24}}
-			serviceNetworks := []*models.ServiceNetwork{{Cidr: "3.3.3.0/24"}, {Cidr: "4.4.4.0/24"}}
-			machineNetworks := []*models.MachineNetwork{{Cidr: "5.5.5.0/24"}, {Cidr: "6.6.6.0/24"}}
-			mockClusterRegisterSuccess(bm, true)
-			mockAMSSubscription(ctx)
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("some-cluster-name"),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					ClusterNetworks:  clusterNetworks,
-					ServiceNetworks:  serviceNetworks,
-					MachineNetworks:  machineNetworks,
-				},
-			})
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-			actual := reply.(*installer.RegisterClusterCreated)
+		It("Multiple networks single cluster", func() {
+			c := registerCluster()
+			validateNetworkConfiguration(c, &clusterNetworks, &serviceNetworks, &machineNetworks)
+		})
 
-			Expect(actual.Payload.ClusterNetworks).To(HaveLen(len(clusterNetworks)))
-			for index := range clusterNetworks {
-				Expect(actual.Payload.ClusterNetworks[index].Cidr).To(Equal(clusterNetworks[index].Cidr))
-				Expect(actual.Payload.ClusterNetworks[index].HostPrefix).To(Equal(clusterNetworks[index].HostPrefix))
-				Expect(actual.Payload.ClusterNetworks[index].ClusterID).To(Equal(*actual.Payload.ID))
-			}
+		It("Multiple networks multiple clusters", func() {
+			By("Register")
+			c1 := registerCluster()
+			c2 := registerCluster()
+			validateNetworkConfiguration(c1, &clusterNetworks, &serviceNetworks, &machineNetworks)
+			validateNetworkConfiguration(c2, &clusterNetworks, &serviceNetworks, &machineNetworks)
 
-			Expect(actual.Payload.ServiceNetworks).To(HaveLen(len(serviceNetworks)))
-			for index := range serviceNetworks {
-				Expect(actual.Payload.ServiceNetworks[index].Cidr).To(Equal(serviceNetworks[index].Cidr))
-				Expect(actual.Payload.ServiceNetworks[index].ClusterID).To(Equal(*actual.Payload.ID))
-			}
+			By("Check DB")
+			cluster, err := common.GetClusterFromDB(db, *c1.ID, common.UseEagerLoading)
+			Expect(err).ToNot(HaveOccurred())
+			validateNetworkConfiguration(&cluster.Cluster, &clusterNetworks, &serviceNetworks, &machineNetworks)
 
-			Expect(actual.Payload.MachineNetworks).To(HaveLen(len(machineNetworks)))
-			for index := range machineNetworks {
-				Expect(actual.Payload.MachineNetworks[index].Cidr).To(Equal(machineNetworks[index].Cidr))
-				Expect(actual.Payload.MachineNetworks[index].ClusterID).To(Equal(*actual.Payload.ID))
-			}
+			cluster, err = common.GetClusterFromDB(db, *c2.ID, common.UseEagerLoading)
+			Expect(err).ToNot(HaveOccurred())
+			validateNetworkConfiguration(&cluster.Cluster, &clusterNetworks, &serviceNetworks, &machineNetworks)
 		})
 	})
 })
@@ -9834,6 +9861,7 @@ func validateNetworkConfiguration(cluster *models.Cluster, clusterNetworks *[]*m
 	if clusterNetworks != nil {
 		Expect(cluster.ClusterNetworks).To(HaveLen(len(*clusterNetworks)))
 		for index := range *clusterNetworks {
+			Expect(cluster.ClusterNetworks[index].ClusterID).To(Equal(*cluster.ID))
 			Expect(cluster.ClusterNetworks[index].Cidr).To(Equal((*clusterNetworks)[index].Cidr))
 			Expect(cluster.ClusterNetworks[index].HostPrefix).To(Equal((*clusterNetworks)[index].HostPrefix))
 		}
@@ -9841,12 +9869,14 @@ func validateNetworkConfiguration(cluster *models.Cluster, clusterNetworks *[]*m
 	if serviceNetworks != nil {
 		Expect(cluster.ServiceNetworks).To(HaveLen(len(*serviceNetworks)))
 		for index := range *serviceNetworks {
+			Expect(cluster.ServiceNetworks[index].ClusterID).To(Equal(*cluster.ID))
 			Expect(cluster.ServiceNetworks[index].Cidr).To(Equal((*serviceNetworks)[index].Cidr))
 		}
 	}
 	if machineNetworks != nil {
 		Expect(cluster.MachineNetworks).To(HaveLen(len(*machineNetworks)))
 		for index := range *machineNetworks {
+			Expect(cluster.MachineNetworks[index].ClusterID).To(Equal(*cluster.ID))
 			Expect(cluster.MachineNetworks[index].Cidr).To(Equal((*machineNetworks)[index].Cidr))
 		}
 	}

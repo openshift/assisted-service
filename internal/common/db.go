@@ -279,8 +279,14 @@ func GetInfraEnvsFromDBWhere(db *gorm.DB, where ...interface{}) ([]*InfraEnv, er
 	return infraEnvs, nil
 }
 
-func DeleteRecordsByClusterID(db *gorm.DB, clusterID strfmt.UUID, value interface{}, where ...interface{}) error {
-	return db.Where("cluster_id = ?", clusterID).Delete(value, where...).Error
+func DeleteRecordsByClusterID(db *gorm.DB, clusterID strfmt.UUID, values []interface{}, where ...interface{}) error {
+	for _, value := range values {
+		if err := db.Where("cluster_id = ?", clusterID).Delete(value, where...).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func ToModelsHosts(hosts []*Host) []*models.Host {

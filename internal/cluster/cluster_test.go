@@ -2530,9 +2530,43 @@ var _ = Describe("Permanently delete clusters", func() {
 		c := common.Cluster{Cluster: models.Cluster{
 			ID:                 &id,
 			MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
+			ClusterNetworks:    common.TestIPv4Networking.ClusterNetworks,
+			ServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
+			MachineNetworks:    common.TestIPv4Networking.MachineNetworks,
 		}}
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+
+		c = getClusterFromDB(*c.ID, db)
+		Expect(c.MonitoredOperators).ToNot(BeEmpty())
+		Expect(c.ClusterNetworks).ToNot(BeEmpty())
+		Expect(c.ServiceNetworks).ToNot(BeEmpty())
+		Expect(c.MachineNetworks).ToNot(BeEmpty())
+
 		return c
+	}
+
+	verifyClusterSubComponentsDeletion := func(clusterID strfmt.UUID, isDeleted bool) {
+		Expect(db.Unscoped().Where("id = ?", clusterID).Find(&common.Cluster{}).RowsAffected == 0).Should(Equal(isDeleted))
+
+		clusterEvents, err := eventsHandler.GetEvents(clusterID, &clusterID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(clusterEvents) == 0).Should(Equal(isDeleted))
+
+		var operators []*models.MonitoredOperator
+		Expect(db.Unscoped().Find(&operators, "cluster_id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(len(operators) == 0).Should(Equal(isDeleted))
+
+		var clusterNetworks []*models.ClusterNetwork
+		Expect(db.Unscoped().Find(&clusterNetworks, "cluster_id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(len(clusterNetworks) == 0).Should(Equal(isDeleted))
+
+		var serviceNetworks []*models.ServiceNetwork
+		Expect(db.Unscoped().Find(&serviceNetworks, "cluster_id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(len(serviceNetworks) == 0).Should(Equal(isDeleted))
+
+		var machineNetworks []*models.MachineNetwork
+		Expect(db.Unscoped().Find(&machineNetworks, "cluster_id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(len(machineNetworks) == 0).Should(Equal(isDeleted))
 	}
 
 	BeforeEach(func() {
@@ -2564,46 +2598,18 @@ var _ = Describe("Permanently delete clusters", func() {
 
 		Expect(state.PermanentClustersDeletion(ctx, strfmt.DateTime(time.Now()), mockS3Api)).ShouldNot(HaveOccurred())
 
-		Expect(db.Unscoped().Where("id = ?", c1.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(0)))
-		Expect(db.Unscoped().Where("id = ?", c2.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(0)))
-		Expect(db.Unscoped().Where("id = ?", c3.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(1)))
-
-		c1Events, err1 := eventsHandler.GetEvents(*c1.ID, c1.ID)
-		Expect(err1).ShouldNot(HaveOccurred())
-		Expect(len(c1Events)).Should(Equal(0))
-		c2Events, err2 := eventsHandler.GetEvents(*c2.ID, c2.ID)
-		Expect(err2).ShouldNot(HaveOccurred())
-		Expect(len(c2Events)).Should(Equal(0))
-		c3Events, err3 := eventsHandler.GetEvents(*c3.ID, c3.ID)
-		Expect(err3).ShouldNot(HaveOccurred())
-		Expect(len(c3Events)).ShouldNot(Equal(0))
-
-		var operators []*models.MonitoredOperator
-		Expect(db.Find(&operators, "cluster_id = ?", *c1.ID).Error).ShouldNot(HaveOccurred())
-		Expect(operators).Should(HaveLen(0))
+		verifyClusterSubComponentsDeletion(*c1.ID, true)
+		verifyClusterSubComponentsDeletion(*c2.ID, true)
+		verifyClusterSubComponentsDeletion(*c3.ID, false)
 	})
 
 	It("permanently delete clusters - nothing to delete", func() {
 		deletedAt := strfmt.DateTime(time.Now().Add(-time.Hour))
 		Expect(state.PermanentClustersDeletion(ctx, deletedAt, mockS3Api)).ShouldNot(HaveOccurred())
 
-		Expect(db.Where("id = ?", c1.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(1)))
-		Expect(db.Where("id = ?", c2.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(1)))
-		Expect(db.Where("id = ?", c3.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(1)))
-
-		c1Events, err1 := eventsHandler.GetEvents(*c1.ID, c1.ID)
-		Expect(err1).ShouldNot(HaveOccurred())
-		Expect(len(c1Events)).ShouldNot(Equal(0))
-		c2Events, err2 := eventsHandler.GetEvents(*c2.ID, c2.ID)
-		Expect(err2).ShouldNot(HaveOccurred())
-		Expect(len(c2Events)).ShouldNot(Equal(0))
-		c3Events, err3 := eventsHandler.GetEvents(*c3.ID, c3.ID)
-		Expect(err3).ShouldNot(HaveOccurred())
-		Expect(len(c3Events)).ShouldNot(Equal(0))
-
-		var operators []*models.MonitoredOperator
-		Expect(db.Find(&operators, "cluster_id = ?", *c1.ID).Error).ShouldNot(HaveOccurred())
-		Expect(operators).ShouldNot(HaveLen(0))
+		verifyClusterSubComponentsDeletion(*c1.ID, false)
+		verifyClusterSubComponentsDeletion(*c2.ID, false)
+		verifyClusterSubComponentsDeletion(*c3.ID, false)
 	})
 
 	AfterEach(func() {

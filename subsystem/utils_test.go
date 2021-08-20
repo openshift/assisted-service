@@ -40,8 +40,17 @@ func clearDB() {
 	}
 
 	// Clean the DB to make sure we start tests from scratch
-	db.Delete(&models.Host{})
-	db.Delete(&models.Cluster{})
+	for _, model := range []interface{}{
+		&models.Host{},
+		&models.Cluster{},
+		&models.Event{},
+		&models.MonitoredOperator{},
+		&models.ClusterNetwork{},
+		&models.ServiceNetwork{},
+		&models.MachineNetwork{},
+	} {
+		db.Unscoped().Delete(model)
+	}
 }
 
 func strToUUID(s string) *strfmt.UUID {
