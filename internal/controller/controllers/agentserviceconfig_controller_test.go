@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"net/url"
 	"os"
 
 	. "github.com/onsi/ginkgo"
@@ -22,7 +21,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -54,6 +55,18 @@ func newAgentServiceConfigRequest(asc *aiv1beta1.AgentServiceConfig) ctrl.Reques
 		Name:      asc.ObjectMeta.Name,
 	}
 	return ctrl.Request{NamespacedName: namespacedName}
+}
+
+func newComponentFn(ctx context.Context, log logrus.FieldLogger, client client.Client, instance *aiv1beta1.AgentServiceConfig, fn NewComponentFn) {
+	obj, mutateFn, err := fn(ctx, log, instance)
+	Expect(err).To(BeNil())
+	_, err = controllerutil.CreateOrUpdate(ctx, client, obj, mutateFn)
+	Expect(err).To(BeNil())
+}
+
+func newComponentFnFail(ctx context.Context, log logrus.FieldLogger, client client.Client, instance *aiv1beta1.AgentServiceConfig, fn NewComponentFn) {
+	_, _, err := fn(ctx, log, instance)
+	Expect(err).ToNot(BeNil())
 }
 
 var _ = Describe("agentserviceconfig_controller reconcile", func() {
@@ -109,8 +122,7 @@ var _ = Describe("ensureAgentRoute", func() {
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName,
 				Namespace: testNamespace}, found)).ToNot(Succeed())
 
-			Expect(ascr.ensureAgentRoute(ctx, log, asc)).To(Succeed())
-
+			newComponentFn(ctx, log, ascr.Client, asc, ascr.newAgentRoute)
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName,
 				Namespace: testNamespace}, found)).To(Succeed())
 		})
@@ -124,7 +136,7 @@ var _ = Describe("ensureAgentRoute", func() {
 			route.Spec.Host = routeHost
 			Expect(ascr.Client.Create(ctx, route)).To(Succeed())
 
-			Expect(ascr.ensureAgentRoute(ctx, log, asc)).To(Succeed())
+			newComponentFn(ctx, log, ascr.Client, asc, ascr.newAgentRoute)
 
 			found := &routev1.Route{}
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName,
@@ -164,11 +176,10 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 			}
 			Expect(ascr.Client.Create(ctx, localAuthSecret)).To(Succeed())
 
-			err := ascr.ensureAgentLocalAuthSecret(ctx, log, asc)
-			Expect(err).To(BeNil())
+			newComponentFn(ctx, log, ascr.Client, asc, ascr.newAgentLocalAuthSecret)
 
 			found := &corev1.Secret{}
-			err = ascr.Client.Get(ctx, types.NamespacedName{Name: agentLocalAuthSecretName, Namespace: testNamespace}, found)
+			err := ascr.Client.Get(ctx, types.NamespacedName{Name: agentLocalAuthSecretName, Namespace: testNamespace}, found)
 			Expect(err).To(BeNil())
 
 			Expect(found.StringData["ec-private-key.pem"]).To(Equal(privateKey))
@@ -178,11 +189,10 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 
 	Context("with no existing local auth secret", func() {
 		It("should create new keys and not overwrite them in subsequent reconciles", func() {
-			err := ascr.ensureAgentLocalAuthSecret(ctx, log, asc)
-			Expect(err).To(BeNil())
+			newComponentFn(ctx, log, ascr.Client, asc, ascr.newAgentLocalAuthSecret)
 
 			found := &corev1.Secret{}
-			err = ascr.Client.Get(ctx, types.NamespacedName{Name: agentLocalAuthSecretName,
+			err := ascr.Client.Get(ctx, types.NamespacedName{Name: agentLocalAuthSecretName,
 				Namespace: testNamespace}, found)
 			Expect(err).To(BeNil())
 
@@ -193,7 +203,7 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 			Expect(foundPublicKey).ToNot(Equal(publicKey))
 			Expect(foundPublicKey).ToNot(BeNil())
 
-			err = ascr.ensureAgentLocalAuthSecret(ctx, log, asc)
+			newComponentFn(ctx, log, ascr.Client, asc, ascr.newAgentLocalAuthSecret)
 			Expect(err).To(BeNil())
 
 			foundAfterNextEnsure := &corev1.Secret{}
@@ -238,7 +248,8 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 			It("should not modify assisted-service deployment", func() {
 				asc = newASCDefault()
 				ascr = newTestReconciler(asc, route, assistedCM)
-				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+
+				newComponentFn(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
@@ -267,7 +278,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 					},
 				}
 				ascr = newTestReconciler(asc, route, userCM, assistedCM)
-				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+				newComponentFn(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
 
@@ -312,7 +323,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 				}
 
 				ascr = newTestReconciler(asc, route, mirrorCM, assistedCM)
-				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+				newComponentFn(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
@@ -348,7 +359,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 				}
 
 				ascr = newTestReconciler(asc, route, mirrorCM, assistedCM)
-				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+				newComponentFn(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
@@ -383,7 +394,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 				}
 
 				ascr = newTestReconciler(asc, route, mirrorCM, assistedCM)
-				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).ToNot(Succeed())
+				newComponentFnFail(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 			})
 		})
 	})
@@ -393,13 +404,13 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 			It("should fail if assisted configMap not found", func() {
 				asc = newASCDefault()
 				ascr = newTestReconciler(asc, route)
-				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Not(Succeed()))
+				newComponentFnFail(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 			})
 
 			It("should only add assisted config hash annotation", func() {
 				asc = newASCDefault()
 				ascr = newTestReconciler(asc, route, assistedCM)
-				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+				newComponentFn(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
@@ -414,7 +425,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 			It("should fail if mirror configMap specified but not found", func() {
 				asc = newASCWithMirrorRegistryConfig()
 				ascr = newTestReconciler(asc, route, assistedCM)
-				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Not(Succeed()))
+				newComponentFnFail(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 			})
 
 			It("should add assisted and mirror config hash annotations", func() {
@@ -429,7 +440,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 					},
 				}
 				ascr = newTestReconciler(asc, route, mirrorCM, assistedCM)
-				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+				newComponentFn(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
@@ -444,7 +455,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 			It("should fail if not found", func() {
 				asc = newASCWithCMAnnotation()
 				ascr = newTestReconciler(asc, route, assistedCM)
-				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Not(Succeed()))
+				newComponentFnFail(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 			})
 
 			It("should add user config hash annotation by default", func() {
@@ -459,7 +470,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 					},
 				}
 				ascr = newTestReconciler(asc, route, userCM, assistedCM)
-				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+				newComponentFn(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
@@ -471,6 +482,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		})
 	})
 })
+
 var _ = Describe("getMustGatherImages", func() {
 	const MUST_GATHER_IMAGES_ENVVAR string = "MUST_GATHER_IMAGES"
 	var defaultSpecMustGatherImages = []aiv1beta1.MustGatherImage{
@@ -639,12 +651,22 @@ var _ = Describe("Default ConfigMap values", func() {
 	var (
 		configMap *corev1.ConfigMap
 		log       = logrus.New()
+		ctx       = context.Background()
+		route     = &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: testHost,
+			},
+		}
 	)
 
 	BeforeEach(func() {
 		asc := newASCDefault()
-		r := newTestReconciler(asc)
-		cm, mutateFn, _ := r.newAssistedCM(log, asc, &url.URL{Scheme: "https", Host: "localhost"})
+		r := newTestReconciler(asc, route)
+		cm, mutateFn, _ := r.newAssistedCM(ctx, log, asc)
 		Expect(mutateFn()).ShouldNot(HaveOccurred())
 		configMap = cm.(*corev1.ConfigMap)
 	})
