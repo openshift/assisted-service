@@ -101,5 +101,5 @@ export ASSISTED_AGENT_CLUSTER_INSTALL_NAME=assisted-agent-cluster-install
 export ASSISTED_INFRAENV_NAME=assisted-infra-env
 export ASSISTED_PULLSECRET_NAME=assisted-pull-secret
 export ASSISTED_PRIVATEKEY_NAME=assisted-ssh-private-key
-export CONTROL_PLANE_COUNT=1  # currently only single-node is supported
+export SPOKE_CONTROLPLANE_AGENTS=1  # currently only single-node is supported
 ```
