@@ -119,7 +119,8 @@ var _ = Describe("ensureAgentRoute", func() {
 	Context("with existing route", func() {
 		It("should not change route Host", func() {
 			routeHost := "route.example.com"
-			route, _ := ascr.newAgentRoute(asc)
+			r, _, _ := ascr.newAgentRoute(ctx, log, asc)
+			route := r.(*routev1.Route)
 			route.Spec.Host = routeHost
 			Expect(ascr.Client.Create(ctx, route)).To(Succeed())
 
@@ -643,9 +644,9 @@ var _ = Describe("Default ConfigMap values", func() {
 	BeforeEach(func() {
 		asc := newASCDefault()
 		r := newTestReconciler(asc)
-		cm, mutateFn := r.newAssistedCM(log, asc, &url.URL{Scheme: "https", Host: "localhost"})
+		cm, mutateFn, _ := r.newAssistedCM(log, asc, &url.URL{Scheme: "https", Host: "localhost"})
 		Expect(mutateFn()).ShouldNot(HaveOccurred())
-		configMap = cm
+		configMap = cm.(*corev1.ConfigMap)
 	})
 
 	It("INSTALL_INVOKER", func() {

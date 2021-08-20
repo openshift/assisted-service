@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 
 	"github.com/go-openapi/swag"
@@ -38,20 +39,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *AgentServiceConfigReconciler) newPVC(instance *aiv1beta1.AgentServiceConfig, name string, spec corev1.PersistentVolumeClaimSpec) (*corev1.PersistentVolumeClaim, controllerutil.MutateFn) {
+const (
+	serviceName  string = "assisted-service"
+	databaseName string = "postgres"
+)
+
+func (r *AgentServiceConfigReconciler) newFilesystemPVC(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      serviceName,
 			Namespace: r.Namespace,
 		},
-		Spec: spec,
+		Spec: instance.Spec.FileSystemStorage,
 	}
 
 	requests := map[corev1.ResourceName]resource.Quantity{}
-	for key, value := range spec.Resources.Requests {
+	for key, value := range instance.Spec.FileSystemStorage.Resources.Requests {
 		requests[key] = value
 	}
 
@@ -64,10 +71,36 @@ func (r *AgentServiceConfigReconciler) newPVC(instance *aiv1beta1.AgentServiceCo
 		return nil
 	}
 
-	return pvc, mutateFn
+	return pvc, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAgentService(instance *aiv1beta1.AgentServiceConfig) (*corev1.Service, controllerutil.MutateFn) {
+func (r *AgentServiceConfigReconciler) newDatabasePVC(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      databaseName,
+			Namespace: r.Namespace,
+		},
+		Spec: instance.Spec.DatabaseStorage,
+	}
+
+	requests := map[corev1.ResourceName]resource.Quantity{}
+	for key, value := range instance.Spec.DatabaseStorage.Resources.Requests {
+		requests[key] = value
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, pvc, r.Scheme); err != nil {
+			return err
+		}
+		// Everything else is immutable once bound.
+		pvc.Spec.Resources.Requests = requests
+		return nil
+	}
+
+	return pvc, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newAgentService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
@@ -97,49 +130,15 @@ func (r *AgentServiceConfigReconciler) newAgentService(instance *aiv1beta1.Agent
 		return nil
 	}
 
-	return svc, mutateFn
+	return svc, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentServiceConfig) (*routev1.Route, controllerutil.MutateFn) {
-	weight := int32(100)
-	route := &routev1.Route{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
-			Namespace: r.Namespace,
-		},
-	}
-	routeSpec := routev1.RouteSpec{
-		To: routev1.RouteTargetReference{
-			Kind:   "Service",
-			Name:   serviceName,
-			Weight: &weight,
-		},
-		Port: &routev1.RoutePort{
-			TargetPort: intstr.FromString(serviceName),
-		},
-		WildcardPolicy: routev1.WildcardPolicyNone,
-		TLS:            &routev1.TLSConfig{Termination: routev1.TLSTerminationReencrypt},
+func (r *AgentServiceConfigReconciler) newServiceMonitor(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	service := &corev1.Service{}
+	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, service); err != nil {
+		return nil, nil, err
 	}
 
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
-			return err
-		}
-		// Only update what is specified above in routeSpec.
-		// If we update the entire route.Spec with
-		// route.Spec = routeSpec
-		// it would overwrite any existing values for route.Spec.Host
-		route.Spec.To = routeSpec.To
-		route.Spec.Port = routeSpec.Port
-		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
-		route.Spec.TLS = routeSpec.TLS
-		return nil
-	}
-
-	return route, mutateFn
-}
-
-func (r *AgentServiceConfigReconciler) newServiceMonitor(instance *aiv1beta1.AgentServiceConfig, service *corev1.Service) (*monitoringv1.ServiceMonitor, controllerutil.MutateFn) {
 	endpoints := make([]monitoringv1.Endpoint, len(service.Spec.Ports))
 	for _, port := range service.Spec.Ports {
 		endpoints = append(endpoints, monitoringv1.Endpoint{Port: port.Name})
@@ -176,10 +175,49 @@ func (r *AgentServiceConfigReconciler) newServiceMonitor(instance *aiv1beta1.Age
 		return nil
 	}
 
-	return sm, mutateFn
+	return sm, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(instance *aiv1beta1.AgentServiceConfig) (*corev1.Secret, controllerutil.MutateFn, error) {
+func (r *AgentServiceConfigReconciler) newAgentRoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	weight := int32(100)
+	route := &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: r.Namespace,
+		},
+	}
+	routeSpec := routev1.RouteSpec{
+		To: routev1.RouteTargetReference{
+			Kind:   "Service",
+			Name:   serviceName,
+			Weight: &weight,
+		},
+		Port: &routev1.RoutePort{
+			TargetPort: intstr.FromString(serviceName),
+		},
+		WildcardPolicy: routev1.WildcardPolicyNone,
+		TLS:            &routev1.TLSConfig{Termination: routev1.TLSTerminationReencrypt},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
+			return err
+		}
+		// Only update what is specified above in routeSpec.
+		// If we update the entire route.Spec with
+		// route.Spec = routeSpec
+		// it would overwrite any existing values for route.Spec.Host
+		route.Spec.To = routeSpec.To
+		route.Spec.Port = routeSpec.Port
+		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
+		route.Spec.TLS = routeSpec.TLS
+		return nil
+	}
+
+	return route, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      agentLocalAuthSecretName,
@@ -211,31 +249,37 @@ func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(instance *aiv1bet
 	return secret, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *aiv1beta1.AgentServiceConfig) (*corev1.Secret, controllerutil.MutateFn, error) {
-	pass, err := generatePassword(databasePasswordLength)
-	if err != nil {
-		return nil, nil, err
-	}
+func (r *AgentServiceConfigReconciler) newPostgresSecret(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      databaseName,
 			Namespace: r.Namespace,
 		},
-		StringData: map[string]string{
+		Type: corev1.SecretTypeOpaque,
+	}
+
+	mutateFn := func() error {
+		err := controllerutil.SetControllerReference(instance, secret, r.Scheme)
+		if err != nil {
+			return err
+		}
+
+		// the password should not change so only calculate it if a new object is going to be created
+		var pass string
+		if secret.ObjectMeta.CreationTimestamp.IsZero() {
+			pass, err = generatePassword(databasePasswordLength)
+			if err != nil {
+				return err
+			}
+		}
+
+		secret.StringData = map[string]string{
 			"db.host":     "localhost",
 			"db.user":     "admin",
 			"db.password": pass,
 			"db.name":     "installer",
 			"db.port":     strconv.Itoa(int(databasePort)),
-		},
-		Type: corev1.SecretTypeOpaque,
-	}
-
-	// Only setting the owner reference to prevent clobbering the generated password.
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, secret, r.Scheme); err != nil {
-			return err
 		}
 		return nil
 	}
@@ -243,7 +287,14 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *aiv1beta1.Age
 	return secret, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newIngressCertCM(instance *aiv1beta1.AgentServiceConfig, sourceCM *corev1.ConfigMap) (*corev1.ConfigMap, controllerutil.MutateFn) {
+func (r *AgentServiceConfigReconciler) newIngressCertCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	sourceCM := &corev1.ConfigMap{}
+
+	if err := r.Get(ctx, types.NamespacedName{Name: defaultIngressCertCMName, Namespace: defaultIngressCertCMNamespace}, sourceCM); err != nil {
+		log.Error(err, "Failed to get default ingress cert config map")
+		return nil, nil, err
+	}
+
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaultIngressCertCMName,
@@ -262,10 +313,76 @@ func (r *AgentServiceConfigReconciler) newIngressCertCM(instance *aiv1beta1.Agen
 		return nil
 	}
 
-	return cm, mutateFn
+	return cm, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (*appsv1.Deployment, controllerutil.MutateFn, error) {
+func (r *AgentServiceConfigReconciler) newAssistedCM(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig, serviceURL *url.URL) (client.Object, controllerutil.MutateFn, error) {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: r.Namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
+			return err
+		}
+
+		cm.Data = map[string]string{
+			"SERVICE_BASE_URL": serviceURL.String(),
+
+			// image overrides
+			"AGENT_DOCKER_IMAGE":     AgentImage(),
+			"CONTROLLER_IMAGE":       ControllerImage(),
+			"INSTALLER_IMAGE":        InstallerImage(),
+			"SELF_VERSION":           ServiceImage(),
+			"OPENSHIFT_VERSIONS":     r.getOpenshiftVersions(log, instance),
+			"MUST_GATHER_IMAGES":     r.getMustGatherImages(log, instance),
+			"ISO_IMAGE_TYPE":         "minimal-iso",
+			"S3_USE_SSL":             "false",
+			"LOG_LEVEL":              "info",
+			"LOG_FORMAT":             "text",
+			"INSTALL_RH_CA":          "false",
+			"REGISTRY_CREDS":         "",
+			"DEPLOY_TARGET":          "k8s",
+			"STORAGE":                "filesystem",
+			"ISO_WORKSPACE_BASE_DIR": "/data",
+			"ISO_CACHE_DIR":          "/data/cache",
+
+			// from configmap
+			"AUTH_TYPE":                   "local",
+			"BASE_DNS_DOMAINS":            "",
+			"CHECK_CLUSTER_VERSION":       "True",
+			"CREATE_S3_BUCKET":            "False",
+			"ENABLE_KUBE_API":             "True",
+			"ENABLE_SINGLE_NODE_DNSMASQ":  "True",
+			"IPV6_SUPPORT":                "True",
+			"JWKS_URL":                    "https://api.openshift.com/.well-known/jwks.json",
+			"PUBLIC_CONTAINER_REGISTRIES": "quay.io,registry.svc.ci.openshift.org",
+			"HW_VALIDATOR_REQUIREMENTS":   `[{"version":"default","master":{"cpu_cores":4,"ram_mib":16384,"disk_size_gb":120,"installation_disk_speed_threshold_ms":10,"network_latency_threshold_ms":100,"packet_loss_percentage":0},"worker":{"cpu_cores":2,"ram_mib":8192,"disk_size_gb":120,"installation_disk_speed_threshold_ms":10,"network_latency_threshold_ms":1000,"packet_loss_percentage":10},"sno":{"cpu_cores":8,"ram_mib":32768,"disk_size_gb":120,"installation_disk_speed_threshold_ms":10}}]`,
+
+			"NAMESPACE":       r.Namespace,
+			"INSTALL_INVOKER": "assisted-installer-operator",
+
+			// enable https
+			"SERVE_HTTPS":            "True",
+			"HTTPS_CERT_FILE":        "/etc/assisted-tls-config/tls.crt",
+			"HTTPS_KEY_FILE":         "/etc/assisted-tls-config/tls.key",
+			"SERVICE_CA_CERT_PATH":   "/etc/assisted-ingress-cert/ca-bundle.crt",
+			"SKIP_CERT_VERIFICATION": "False",
+		}
+
+		copyEnv(cm.Data, "HTTP_PROXY")
+		copyEnv(cm.Data, "HTTPS_PROXY")
+		copyEnv(cm.Data, "NO_PROXY")
+		return nil
+	}
+
+	return cm, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	var assistedConfigHash, mirrorConfigHash, userConfigHash string
 
 	// Get hash of generated assisted config

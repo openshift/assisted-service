@@ -51,12 +51,10 @@ const (
 	// supported in the cluster. Any others will be ignored.
 	agentServiceConfigName = "agent"
 
-	serviceName              string = "assisted-service"
-	databaseName             string = "postgres"
-	databasePasswordLength   int    = 16
-	servicePort              int32  = 8090
-	databasePort             int32  = 5432
-	agentLocalAuthSecretName        = serviceName + "local-auth" // #nosec
+	databasePasswordLength   int   = 16
+	servicePort              int32 = 8090
+	databasePort             int32 = 5432
+	agentLocalAuthSecretName       = serviceName + "local-auth" // #nosec
 
 	defaultIngressCertCMName      string = "default-ingress-cert"
 	defaultIngressCertCMNamespace string = "openshift-config-managed"
@@ -163,30 +161,17 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	return ctrl.Result{}, r.Status().Update(ctx, instance)
 }
 
-func (r *AgentServiceConfigReconciler) ensureServiceMonitor(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	service := &corev1.Service{}
-	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, service); err != nil {
-		return err
-	}
-
-	sm, mutateFn := r.newServiceMonitor(instance, service)
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, sm, mutateFn); err != nil {
+func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
+	pvc, mutateFn, err := r.newFilesystemPVC(ctx, log, instance)
+	if err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonStorageFailure,
-			Message: "Failed to ensure Service Monitor: " + err.Error(),
+			Message: "Failed to generate PVC: " + err.Error(),
 		})
 		return err
-	} else if result != controllerutil.OperationResultNone {
-		log.Info("ServiceMonitor created")
 	}
-
-	return nil
-}
-
-func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	pvc, mutateFn := r.newPVC(instance, serviceName, instance.Spec.FileSystemStorage)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, mutateFn); err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
@@ -203,7 +188,16 @@ func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Conte
 }
 
 func (r *AgentServiceConfigReconciler) ensureDatabaseStorage(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	pvc, mutateFn := r.newPVC(instance, databaseName, instance.Spec.DatabaseStorage)
+	pvc, mutateFn, err := r.newDatabasePVC(ctx, log, instance)
+	if err != nil {
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonStorageFailure,
+			Message: "Failed to generate PVC: " + err.Error(),
+		})
+		return err
+	}
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, mutateFn); err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
@@ -220,7 +214,16 @@ func (r *AgentServiceConfigReconciler) ensureDatabaseStorage(ctx context.Context
 }
 
 func (r *AgentServiceConfigReconciler) ensureAgentService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	svc, mutateFn := r.newAgentService(instance)
+	svc, mutateFn, err := r.newAgentService(ctx, log, instance)
+	if err != nil {
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonAgentServiceFailure,
+			Message: "Failed to generate service: " + err.Error(),
+		})
+		return err
+	}
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, svc, mutateFn); err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
@@ -236,8 +239,44 @@ func (r *AgentServiceConfigReconciler) ensureAgentService(ctx context.Context, l
 	return nil
 }
 
+func (r *AgentServiceConfigReconciler) ensureServiceMonitor(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
+	sm, mutateFn, err := r.newServiceMonitor(ctx, log, instance)
+	if err != nil {
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonAgentServiceMonitorFailure,
+			Message: "Failed to generate route: " + err.Error(),
+		})
+		return err
+	}
+
+	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, sm, mutateFn); err != nil {
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonAgentServiceMonitorFailure,
+			Message: "Failed to ensure Service Monitor: " + err.Error(),
+		})
+		return err
+	} else if result != controllerutil.OperationResultNone {
+		log.Info("ServiceMonitor created")
+	}
+
+	return nil
+}
+
 func (r *AgentServiceConfigReconciler) ensureAgentRoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	route, mutateFn := r.newAgentRoute(instance)
+	route, mutateFn, err := r.newAgentRoute(ctx, log, instance)
+	if err != nil {
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonAgentRouteFailure,
+			Message: "Failed to generate route: " + err.Error(),
+		})
+		return err
+	}
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, route, mutateFn); err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
@@ -254,7 +293,7 @@ func (r *AgentServiceConfigReconciler) ensureAgentRoute(ctx context.Context, log
 }
 
 func (r *AgentServiceConfigReconciler) ensureAgentLocalAuthSecret(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	secret, mutateFn, err := r.newAgentLocalAuthSecret(instance)
+	secret, mutateFn, err := r.newAgentLocalAuthSecret(ctx, log, instance)
 	if err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
@@ -288,7 +327,7 @@ func (r *AgentServiceConfigReconciler) ensurePostgresSecret(ctx context.Context,
 	// TODO(djzager): using controllerutil.CreateOrUpdate is convenient but we may
 	// want to consider simply creating the secret if we can't find instead of
 	// generating a secret every reconcile.
-	secret, mutateFn, err := r.newPostgresSecret(instance)
+	secret, mutateFn, err := r.newPostgresSecret(ctx, log, instance)
 	if err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
@@ -340,20 +379,15 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 }
 
 func (r *AgentServiceConfigReconciler) ensureIngressCertCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	sourceCM := &corev1.ConfigMap{}
-
-	if err := r.Get(ctx, types.NamespacedName{Name: defaultIngressCertCMName, Namespace: defaultIngressCertCMNamespace}, sourceCM); err != nil {
-		log.Error(err, "Failed to get default ingress cert config map")
+	cm, mutateFn, err := r.newIngressCertCM(ctx, log, instance)
+	if err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonDeploymentFailure,
-			Message: "Failed to get default ingress cert config map: " + err.Error(),
+			Message: "Failed to create Ingress Cert ConfigMap: " + err.Error(),
 		})
-		return err
 	}
-
-	cm, mutateFn := r.newIngressCertCM(instance, sourceCM)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, cm, mutateFn); err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
@@ -367,72 +401,6 @@ func (r *AgentServiceConfigReconciler) ensureIngressCertCM(ctx context.Context, 
 		log.Info("Ingress config map created")
 	}
 	return nil
-}
-
-func (r *AgentServiceConfigReconciler) newAssistedCM(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig, serviceURL *url.URL) (*corev1.ConfigMap, controllerutil.MutateFn) {
-	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
-			Namespace: r.Namespace,
-		},
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
-			return err
-		}
-
-		cm.Data = map[string]string{
-			"SERVICE_BASE_URL": serviceURL.String(),
-
-			// image overrides
-			"AGENT_DOCKER_IMAGE":     AgentImage(),
-			"CONTROLLER_IMAGE":       ControllerImage(),
-			"INSTALLER_IMAGE":        InstallerImage(),
-			"SELF_VERSION":           ServiceImage(),
-			"OPENSHIFT_VERSIONS":     r.getOpenshiftVersions(log, instance),
-			"MUST_GATHER_IMAGES":     r.getMustGatherImages(log, instance),
-			"ISO_IMAGE_TYPE":         "minimal-iso",
-			"S3_USE_SSL":             "false",
-			"LOG_LEVEL":              "info",
-			"LOG_FORMAT":             "text",
-			"INSTALL_RH_CA":          "false",
-			"REGISTRY_CREDS":         "",
-			"DEPLOY_TARGET":          "k8s",
-			"STORAGE":                "filesystem",
-			"ISO_WORKSPACE_BASE_DIR": "/data",
-			"ISO_CACHE_DIR":          "/data/cache",
-
-			// from configmap
-			"AUTH_TYPE":                   "local",
-			"BASE_DNS_DOMAINS":            "",
-			"CHECK_CLUSTER_VERSION":       "True",
-			"CREATE_S3_BUCKET":            "False",
-			"ENABLE_KUBE_API":             "True",
-			"ENABLE_SINGLE_NODE_DNSMASQ":  "True",
-			"IPV6_SUPPORT":                "True",
-			"JWKS_URL":                    "https://api.openshift.com/.well-known/jwks.json",
-			"PUBLIC_CONTAINER_REGISTRIES": "quay.io,registry.svc.ci.openshift.org",
-			"HW_VALIDATOR_REQUIREMENTS":   `[{"version":"default","master":{"cpu_cores":4,"ram_mib":16384,"disk_size_gb":120,"installation_disk_speed_threshold_ms":10,"network_latency_threshold_ms":100,"packet_loss_percentage":0},"worker":{"cpu_cores":2,"ram_mib":8192,"disk_size_gb":120,"installation_disk_speed_threshold_ms":10,"network_latency_threshold_ms":1000,"packet_loss_percentage":10},"sno":{"cpu_cores":8,"ram_mib":32768,"disk_size_gb":120,"installation_disk_speed_threshold_ms":10}}]`,
-
-			"NAMESPACE":       r.Namespace,
-			"INSTALL_INVOKER": "assisted-installer-operator",
-
-			// enable https
-			"SERVE_HTTPS":            "True",
-			"HTTPS_CERT_FILE":        "/etc/assisted-tls-config/tls.crt",
-			"HTTPS_KEY_FILE":         "/etc/assisted-tls-config/tls.key",
-			"SERVICE_CA_CERT_PATH":   "/etc/assisted-ingress-cert/ca-bundle.crt",
-			"SKIP_CERT_VERIFICATION": "False",
-		}
-
-		copyEnv(cm.Data, "HTTP_PROXY")
-		copyEnv(cm.Data, "HTTPS_PROXY")
-		copyEnv(cm.Data, "NO_PROXY")
-		return nil
-	}
-
-	return cm, mutateFn
 }
 
 func copyEnv(config map[string]string, key string) {
@@ -460,7 +428,15 @@ func (r *AgentServiceConfigReconciler) ensureAssistedCM(ctx context.Context, log
 	}
 
 	serviceURL := &url.URL{Scheme: "https", Host: route.Spec.Host}
-	cm, mutateFn := r.newAssistedCM(log, instance, serviceURL)
+	cm, mutateFn, err := r.newAssistedCM(log, instance, serviceURL)
+	if err != nil {
+		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonDeploymentFailure,
+			Message: "Failed to generate assisted settings config map: " + err.Error(),
+		})
+	}
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, cm, mutateFn); err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{

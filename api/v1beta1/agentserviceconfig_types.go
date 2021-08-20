@@ -96,6 +96,8 @@ const (
 	ReasonStorageFailure string = "StorageFailure"
 	// ReasonAgentServiceFailure when there was a failure related to the assisted-service's service.
 	ReasonAgentServiceFailure string = "AgentServiceFailure"
+	// ReasonAgentServiceFailure when there was a failure related to the assisted-service's service.
+	ReasonAgentServiceMonitorFailure string = "AgentServiceMonitorFailure"
 	// ReasonAgentRouteFailure when there was a failure configuring/deploying the assisted-service's route.
 	ReasonAgentRouteFailure string = "AgentRouteFailure"
 	// ReasonAgentLocalAuthSecretFailure when there was a failure generating/deploying the local auth key pair secret.
