@@ -48,12 +48,13 @@ var _ = Describe("installcfg", func() {
 			NetworkType:            swag.String("OpenShiftSDN"),
 		}}
 		id := strfmt.UUID(uuid.New().String())
+		// By default all the hosts in the cluster are IPv4-only
 		host1 = models.Host{
 			ID:        &id,
 			ClusterID: &clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "master",
-			Inventory: getInventoryStr("hostname0", "bootMode", false),
+			Inventory: getInventoryStr("hostname0", "bootMode", true, false),
 		}
 		id = strfmt.UUID(uuid.New().String())
 		host2 = models.Host{
@@ -61,7 +62,7 @@ var _ = Describe("installcfg", func() {
 			ClusterID: &clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "worker",
-			Inventory: getInventoryStr("hostname1", "bootMode", false),
+			Inventory: getInventoryStr("hostname1", "bootMode", true, false),
 		}
 
 		host3 = models.Host{
@@ -69,7 +70,7 @@ var _ = Describe("installcfg", func() {
 			ClusterID: &clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "worker",
-			Inventory: getInventoryStr("hostname2", "bootMode", false),
+			Inventory: getInventoryStr("hostname2", "bootMode", true, false),
 		}
 
 		cluster.Hosts = []*models.Host{&host1, &host2, &host3}
@@ -323,7 +324,7 @@ var _ = Describe("installcfg", func() {
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.MachineNetworks = []*models.MachineNetwork{}
 		host1.Bootstrap = true
-		host1.Inventory = getInventoryStr("hostname0", "bootMode", true)
+		host1.Inventory = getInventoryStr("hostname0", "bootMode", false, true)
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -332,7 +333,28 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = platformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
+		Expect(len(result.Networking.MachineNetwork)).Should(Equal(1))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("fe80::/64"))
+	})
+
+	It("UserManagedNetworking None Platform Machine network dual-stack", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		cluster.UserManagedNetworking = swag.Bool(true)
+		cluster.MachineNetworks = []*models.MachineNetwork{}
+		host1.Bootstrap = true
+		host1.Inventory = getInventoryStr("hostname0", "bootMode", true, true)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform.Baremetal).Should(BeNil())
+		var none = platformNone{}
+		Expect(*result.Platform.None).Should(Equal(none))
+		Expect(len(result.Networking.MachineNetwork)).Should(Equal(2))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("10.35.20.0/24"))
+		Expect(result.Networking.MachineNetwork[1].Cidr).Should(Equal("fe80::/64"))
 	})
 
 	It("UserManagedNetworking BareMetal", func() {
@@ -366,6 +388,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		Expect(*result.Platform.None).Should(Equal(platformNone{}))
 		Expect(result.BootstrapInPlace.InstallationDisk).Should(Equal("/dev/test"))
+		Expect(len(result.Networking.MachineNetwork)).Should(Equal(1))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(network.GetMachineCidrById(&cluster, 0)))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
@@ -376,7 +399,7 @@ var _ = Describe("installcfg", func() {
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "fe80::/64"}}
 		host1.Bootstrap = true
-		host1.Inventory = getInventoryStr("hostname0", "bootMode", true)
+		host1.Inventory = getInventoryStr("hostname0", "bootMode", false, true)
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -385,7 +408,28 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = platformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
+		Expect(len(result.Networking.MachineNetwork)).Should(Equal(1))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(network.GetMachineCidrById(&cluster, 0)))
+	})
+
+	It("Single node dual-stack", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		cluster.UserManagedNetworking = swag.Bool(true)
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "1001:db8::/120"}}
+		host1.Bootstrap = true
+		host1.Inventory = getInventoryStr("hostname0", "bootMode", true, true)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform.Baremetal).Should(BeNil())
+		var none = platformNone{}
+		Expect(*result.Platform.None).Should(Equal(none))
+		Expect(len(result.Networking.MachineNetwork)).Should(Equal(2))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(network.GetMachineCidrById(&cluster, 0)))
+		Expect(result.Networking.MachineNetwork[1].Cidr).Should(Equal(network.GetMachineCidrById(&cluster, 1)))
 	})
 
 	It("Hyperthreading config", func() {
@@ -528,20 +572,23 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 	})
 })
 
-func getInventoryStr(hostname, bootMode string, ipv6only bool) string {
+func getInventoryStr(hostname, bootMode string, ipv4 bool, ipv6 bool) string {
 	inventory := models.Inventory{
 		Hostname: hostname,
 		Boot:     &models.Boot{CurrentBootMode: bootMode},
 		Interfaces: []*models.Interface{
 			{
-				IPV4Addresses: append(make([]string, 0), "10.35.20.10/24"),
-				IPV6Addresses: append(make([]string, 0), "fe80::1/64"),
+				IPV4Addresses: []string{},
+				IPV6Addresses: []string{},
 				MacAddress:    "some MAC address",
 			},
 		},
 	}
-	if ipv6only {
-		inventory.Interfaces[0].IPV4Addresses = nil
+	if ipv4 {
+		inventory.Interfaces[0].IPV4Addresses = []string{"10.35.20.10/24"}
+	}
+	if ipv6 {
+		inventory.Interfaces[0].IPV6Addresses = []string{"fe80::1/64"}
 	}
 	ret, _ := json.Marshal(&inventory)
 	return string(ret)
