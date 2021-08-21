@@ -6752,6 +6752,12 @@ definitions:
       name:
         type: string
         description: Name of the InfraEnv.
+      user_name:
+        type: string
+      org_id:
+        type: string
+      email_domain:
+        type: string
       proxy:
         $ref: "#/definitions/proxy"
         x-go-custom-tag: gorm:"embedded;embedded_prefix:proxy_"
