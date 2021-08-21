@@ -5,35 +5,36 @@
 package isoutil
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	io "io"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockHandler is a mock of Handler interface
+// MockHandler is a mock of Handler interface.
 type MockHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockHandlerMockRecorder
 }
 
-// MockHandlerMockRecorder is the mock recorder for MockHandler
+// MockHandlerMockRecorder is the mock recorder for MockHandler.
 type MockHandlerMockRecorder struct {
 	mock *MockHandler
 }
 
-// NewMockHandler creates a new mock instance
+// NewMockHandler creates a new mock instance.
 func NewMockHandler(ctrl *gomock.Controller) *MockHandler {
 	mock := &MockHandler{ctrl: ctrl}
 	mock.recorder = &MockHandlerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 	return m.recorder
 }
 
-// CleanWorkDir mocks base method
+// CleanWorkDir mocks base method.
 func (m *MockHandler) CleanWorkDir() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CleanWorkDir")
@@ -41,13 +42,13 @@ func (m *MockHandler) CleanWorkDir() error {
 	return ret0
 }
 
-// CleanWorkDir indicates an expected call of CleanWorkDir
+// CleanWorkDir indicates an expected call of CleanWorkDir.
 func (mr *MockHandlerMockRecorder) CleanWorkDir() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanWorkDir", reflect.TypeOf((*MockHandler)(nil).CleanWorkDir))
 }
 
-// Copy mocks base method
+// Copy mocks base method.
 func (m *MockHandler) Copy(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Copy", arg0)
@@ -55,13 +56,13 @@ func (m *MockHandler) Copy(arg0 string) error {
 	return ret0
 }
 
-// Copy indicates an expected call of Copy
+// Copy indicates an expected call of Copy.
 func (mr *MockHandlerMockRecorder) Copy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Copy", reflect.TypeOf((*MockHandler)(nil).Copy), arg0)
 }
 
-// Create mocks base method
+// Create mocks base method.
 func (m *MockHandler) Create(arg0, arg1 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0, arg1)
@@ -69,13 +70,13 @@ func (m *MockHandler) Create(arg0, arg1 string) error {
 	return ret0
 }
 
-// Create indicates an expected call of Create
+// Create indicates an expected call of Create.
 func (mr *MockHandlerMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockHandler)(nil).Create), arg0, arg1)
 }
 
-// Extract mocks base method
+// Extract mocks base method.
 func (m *MockHandler) Extract() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Extract")
@@ -83,13 +84,13 @@ func (m *MockHandler) Extract() error {
 	return ret0
 }
 
-// Extract indicates an expected call of Extract
+// Extract indicates an expected call of Extract.
 func (mr *MockHandlerMockRecorder) Extract() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockHandler)(nil).Extract))
 }
 
-// ExtractedPath mocks base method
+// ExtractedPath mocks base method.
 func (m *MockHandler) ExtractedPath(arg0 string) string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ExtractedPath", arg0)
@@ -97,13 +98,13 @@ func (m *MockHandler) ExtractedPath(arg0 string) string {
 	return ret0
 }
 
-// ExtractedPath indicates an expected call of ExtractedPath
+// ExtractedPath indicates an expected call of ExtractedPath.
 func (mr *MockHandlerMockRecorder) ExtractedPath(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractedPath", reflect.TypeOf((*MockHandler)(nil).ExtractedPath), arg0)
 }
 
-// ReadFile mocks base method
+// ReadFile mocks base method.
 func (m *MockHandler) ReadFile(arg0 string) (io.ReadWriteSeeker, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReadFile", arg0)
@@ -112,13 +113,13 @@ func (m *MockHandler) ReadFile(arg0 string) (io.ReadWriteSeeker, error) {
 	return ret0, ret1
 }
 
-// ReadFile indicates an expected call of ReadFile
+// ReadFile indicates an expected call of ReadFile.
 func (mr *MockHandlerMockRecorder) ReadFile(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadFile", reflect.TypeOf((*MockHandler)(nil).ReadFile), arg0)
 }
 
-// VolumeIdentifier mocks base method
+// VolumeIdentifier mocks base method.
 func (m *MockHandler) VolumeIdentifier() (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VolumeIdentifier")
@@ -127,7 +128,7 @@ func (m *MockHandler) VolumeIdentifier() (string, error) {
 	return ret0, ret1
 }
 
-// VolumeIdentifier indicates an expected call of VolumeIdentifier
+// VolumeIdentifier indicates an expected call of VolumeIdentifier.
 func (mr *MockHandlerMockRecorder) VolumeIdentifier() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VolumeIdentifier", reflect.TypeOf((*MockHandler)(nil).VolumeIdentifier))

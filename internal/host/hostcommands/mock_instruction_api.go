@@ -6,35 +6,36 @@ package hostcommands
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
-	reflect "reflect"
 )
 
-// MockInstructionApi is a mock of InstructionApi interface
+// MockInstructionApi is a mock of InstructionApi interface.
 type MockInstructionApi struct {
 	ctrl     *gomock.Controller
 	recorder *MockInstructionApiMockRecorder
 }
 
-// MockInstructionApiMockRecorder is the mock recorder for MockInstructionApi
+// MockInstructionApiMockRecorder is the mock recorder for MockInstructionApi.
 type MockInstructionApiMockRecorder struct {
 	mock *MockInstructionApi
 }
 
-// NewMockInstructionApi creates a new mock instance
+// NewMockInstructionApi creates a new mock instance.
 func NewMockInstructionApi(ctrl *gomock.Controller) *MockInstructionApi {
 	mock := &MockInstructionApi{ctrl: ctrl}
 	mock.recorder = &MockInstructionApiMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockInstructionApi) EXPECT() *MockInstructionApiMockRecorder {
 	return m.recorder
 }
 
-// GetNextSteps mocks base method
+// GetNextSteps mocks base method.
 func (m *MockInstructionApi) GetNextSteps(arg0 context.Context, arg1 *models.Host) (models.Steps, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNextSteps", arg0, arg1)
@@ -43,7 +44,7 @@ func (m *MockInstructionApi) GetNextSteps(arg0 context.Context, arg1 *models.Hos
 	return ret0, ret1
 }
 
-// GetNextSteps indicates an expected call of GetNextSteps
+// GetNextSteps indicates an expected call of GetNextSteps.
 func (mr *MockInstructionApiMockRecorder) GetNextSteps(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextSteps", reflect.TypeOf((*MockInstructionApi)(nil).GetNextSteps), arg0, arg1)

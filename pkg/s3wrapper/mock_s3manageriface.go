@@ -6,35 +6,36 @@ package s3wrapper
 
 import (
 	context "context"
+	reflect "reflect"
+
 	s3manager "github.com/aws/aws-sdk-go/service/s3/s3manager"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
-// MockUploaderAPI is a mock of UploaderAPI interface
+// MockUploaderAPI is a mock of UploaderAPI interface.
 type MockUploaderAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockUploaderAPIMockRecorder
 }
 
-// MockUploaderAPIMockRecorder is the mock recorder for MockUploaderAPI
+// MockUploaderAPIMockRecorder is the mock recorder for MockUploaderAPI.
 type MockUploaderAPIMockRecorder struct {
 	mock *MockUploaderAPI
 }
 
-// NewMockUploaderAPI creates a new mock instance
+// NewMockUploaderAPI creates a new mock instance.
 func NewMockUploaderAPI(ctrl *gomock.Controller) *MockUploaderAPI {
 	mock := &MockUploaderAPI{ctrl: ctrl}
 	mock.recorder = &MockUploaderAPIMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockUploaderAPI) EXPECT() *MockUploaderAPIMockRecorder {
 	return m.recorder
 }
 
-// Upload mocks base method
+// Upload mocks base method.
 func (m *MockUploaderAPI) Upload(arg0 *s3manager.UploadInput, arg1 ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
@@ -47,14 +48,14 @@ func (m *MockUploaderAPI) Upload(arg0 *s3manager.UploadInput, arg1 ...func(*s3ma
 	return ret0, ret1
 }
 
-// Upload indicates an expected call of Upload
+// Upload indicates an expected call of Upload.
 func (mr *MockUploaderAPIMockRecorder) Upload(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*MockUploaderAPI)(nil).Upload), varargs...)
 }
 
-// UploadWithContext mocks base method
+// UploadWithContext mocks base method.
 func (m *MockUploaderAPI) UploadWithContext(arg0 context.Context, arg1 *s3manager.UploadInput, arg2 ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -67,7 +68,7 @@ func (m *MockUploaderAPI) UploadWithContext(arg0 context.Context, arg1 *s3manage
 	return ret0, ret1
 }
 
-// UploadWithContext indicates an expected call of UploadWithContext
+// UploadWithContext indicates an expected call of UploadWithContext.
 func (mr *MockUploaderAPIMockRecorder) UploadWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)

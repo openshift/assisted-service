@@ -6,37 +6,38 @@ package versions
 
 import (
 	context "context"
+	reflect "reflect"
+
 	middleware "github.com/go-openapi/runtime/middleware"
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
 	versions0 "github.com/openshift/assisted-service/restapi/operations/versions"
-	reflect "reflect"
 )
 
-// MockHandler is a mock of Handler interface
+// MockHandler is a mock of Handler interface.
 type MockHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockHandlerMockRecorder
 }
 
-// MockHandlerMockRecorder is the mock recorder for MockHandler
+// MockHandlerMockRecorder is the mock recorder for MockHandler.
 type MockHandlerMockRecorder struct {
 	mock *MockHandler
 }
 
-// NewMockHandler creates a new mock instance
+// NewMockHandler creates a new mock instance.
 func NewMockHandler(ctrl *gomock.Controller) *MockHandler {
 	mock := &MockHandler{ctrl: ctrl}
 	mock.recorder = &MockHandlerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 	return m.recorder
 }
 
-// AddOpenshiftVersion mocks base method
+// AddOpenshiftVersion mocks base method.
 func (m *MockHandler) AddOpenshiftVersion(arg0, arg1 string) (*models.OpenshiftVersion, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddOpenshiftVersion", arg0, arg1)
@@ -45,13 +46,13 @@ func (m *MockHandler) AddOpenshiftVersion(arg0, arg1 string) (*models.OpenshiftV
 	return ret0, ret1
 }
 
-// AddOpenshiftVersion indicates an expected call of AddOpenshiftVersion
+// AddOpenshiftVersion indicates an expected call of AddOpenshiftVersion.
 func (mr *MockHandlerMockRecorder) AddOpenshiftVersion(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddOpenshiftVersion", reflect.TypeOf((*MockHandler)(nil).AddOpenshiftVersion), arg0, arg1)
 }
 
-// GetKey mocks base method
+// GetKey mocks base method.
 func (m *MockHandler) GetKey(arg0 string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetKey", arg0)
@@ -60,13 +61,13 @@ func (m *MockHandler) GetKey(arg0 string) (string, error) {
 	return ret0, ret1
 }
 
-// GetKey indicates an expected call of GetKey
+// GetKey indicates an expected call of GetKey.
 func (mr *MockHandlerMockRecorder) GetKey(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKey", reflect.TypeOf((*MockHandler)(nil).GetKey), arg0)
 }
 
-// GetMustGatherImages mocks base method
+// GetMustGatherImages mocks base method.
 func (m *MockHandler) GetMustGatherImages(arg0, arg1 string) (MustGatherVersion, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMustGatherImages", arg0, arg1)
@@ -75,13 +76,13 @@ func (m *MockHandler) GetMustGatherImages(arg0, arg1 string) (MustGatherVersion,
 	return ret0, ret1
 }
 
-// GetMustGatherImages indicates an expected call of GetMustGatherImages
+// GetMustGatherImages indicates an expected call of GetMustGatherImages.
 func (mr *MockHandlerMockRecorder) GetMustGatherImages(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMustGatherImages", reflect.TypeOf((*MockHandler)(nil).GetMustGatherImages), arg0, arg1)
 }
 
-// GetOpenshiftVersion mocks base method
+// GetOpenshiftVersion mocks base method.
 func (m *MockHandler) GetOpenshiftVersion(arg0 string) (*models.OpenshiftVersion, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOpenshiftVersion", arg0)
@@ -90,13 +91,13 @@ func (m *MockHandler) GetOpenshiftVersion(arg0 string) (*models.OpenshiftVersion
 	return ret0, ret1
 }
 
-// GetOpenshiftVersion indicates an expected call of GetOpenshiftVersion
+// GetOpenshiftVersion indicates an expected call of GetOpenshiftVersion.
 func (mr *MockHandlerMockRecorder) GetOpenshiftVersion(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOpenshiftVersion", reflect.TypeOf((*MockHandler)(nil).GetOpenshiftVersion), arg0)
 }
 
-// GetOsImage mocks base method
+// GetOsImage mocks base method.
 func (m *MockHandler) GetOsImage(arg0 string) (*models.OsImage, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOsImage", arg0)
@@ -105,13 +106,13 @@ func (m *MockHandler) GetOsImage(arg0 string) (*models.OsImage, error) {
 	return ret0, ret1
 }
 
-// GetOsImage indicates an expected call of GetOsImage
+// GetOsImage indicates an expected call of GetOsImage.
 func (mr *MockHandlerMockRecorder) GetOsImage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImage", reflect.TypeOf((*MockHandler)(nil).GetOsImage), arg0)
 }
 
-// IsOpenshiftVersionSupported mocks base method
+// IsOpenshiftVersionSupported mocks base method.
 func (m *MockHandler) IsOpenshiftVersionSupported(arg0 string) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsOpenshiftVersionSupported", arg0)
@@ -119,13 +120,13 @@ func (m *MockHandler) IsOpenshiftVersionSupported(arg0 string) bool {
 	return ret0
 }
 
-// IsOpenshiftVersionSupported indicates an expected call of IsOpenshiftVersionSupported
+// IsOpenshiftVersionSupported indicates an expected call of IsOpenshiftVersionSupported.
 func (mr *MockHandlerMockRecorder) IsOpenshiftVersionSupported(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOpenshiftVersionSupported", reflect.TypeOf((*MockHandler)(nil).IsOpenshiftVersionSupported), arg0)
 }
 
-// ListComponentVersions mocks base method
+// ListComponentVersions mocks base method.
 func (m *MockHandler) ListComponentVersions(arg0 context.Context, arg1 versions0.ListComponentVersionsParams) middleware.Responder {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListComponentVersions", arg0, arg1)
@@ -133,13 +134,13 @@ func (m *MockHandler) ListComponentVersions(arg0 context.Context, arg1 versions0
 	return ret0
 }
 
-// ListComponentVersions indicates an expected call of ListComponentVersions
+// ListComponentVersions indicates an expected call of ListComponentVersions.
 func (mr *MockHandlerMockRecorder) ListComponentVersions(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListComponentVersions", reflect.TypeOf((*MockHandler)(nil).ListComponentVersions), arg0, arg1)
 }
 
-// ListSupportedOpenshiftVersions mocks base method
+// ListSupportedOpenshiftVersions mocks base method.
 func (m *MockHandler) ListSupportedOpenshiftVersions(arg0 context.Context, arg1 versions0.ListSupportedOpenshiftVersionsParams) middleware.Responder {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListSupportedOpenshiftVersions", arg0, arg1)
@@ -147,7 +148,7 @@ func (m *MockHandler) ListSupportedOpenshiftVersions(arg0 context.Context, arg1 
 	return ret0
 }
 
-// ListSupportedOpenshiftVersions indicates an expected call of ListSupportedOpenshiftVersions
+// ListSupportedOpenshiftVersions indicates an expected call of ListSupportedOpenshiftVersions.
 func (mr *MockHandlerMockRecorder) ListSupportedOpenshiftVersions(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSupportedOpenshiftVersions", reflect.TypeOf((*MockHandler)(nil).ListSupportedOpenshiftVersions), arg0, arg1)

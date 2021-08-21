@@ -5,35 +5,36 @@
 package isoeditor
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	staticnetworkconfig "github.com/openshift/assisted-service/pkg/staticnetworkconfig"
-	reflect "reflect"
 )
 
-// MockEditor is a mock of Editor interface
+// MockEditor is a mock of Editor interface.
 type MockEditor struct {
 	ctrl     *gomock.Controller
 	recorder *MockEditorMockRecorder
 }
 
-// MockEditorMockRecorder is the mock recorder for MockEditor
+// MockEditorMockRecorder is the mock recorder for MockEditor.
 type MockEditorMockRecorder struct {
 	mock *MockEditor
 }
 
-// NewMockEditor creates a new mock instance
+// NewMockEditor creates a new mock instance.
 func NewMockEditor(ctrl *gomock.Controller) *MockEditor {
 	mock := &MockEditor{ctrl: ctrl}
 	mock.recorder = &MockEditorMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockEditor) EXPECT() *MockEditorMockRecorder {
 	return m.recorder
 }
 
-// CreateClusterMinimalISO mocks base method
+// CreateClusterMinimalISO mocks base method.
 func (m *MockEditor) CreateClusterMinimalISO(arg0 string, arg1 []staticnetworkconfig.StaticNetworkConfigData, arg2 *ClusterProxyInfo) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateClusterMinimalISO", arg0, arg1, arg2)
@@ -42,13 +43,13 @@ func (m *MockEditor) CreateClusterMinimalISO(arg0 string, arg1 []staticnetworkco
 	return ret0, ret1
 }
 
-// CreateClusterMinimalISO indicates an expected call of CreateClusterMinimalISO
+// CreateClusterMinimalISO indicates an expected call of CreateClusterMinimalISO.
 func (mr *MockEditorMockRecorder) CreateClusterMinimalISO(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClusterMinimalISO", reflect.TypeOf((*MockEditor)(nil).CreateClusterMinimalISO), arg0, arg1, arg2)
 }
 
-// CreateMinimalISOTemplate mocks base method
+// CreateMinimalISOTemplate mocks base method.
 func (m *MockEditor) CreateMinimalISOTemplate(arg0 string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateMinimalISOTemplate", arg0)
@@ -57,7 +58,7 @@ func (m *MockEditor) CreateMinimalISOTemplate(arg0 string) (string, error) {
 	return ret0, ret1
 }
 
-// CreateMinimalISOTemplate indicates an expected call of CreateMinimalISOTemplate
+// CreateMinimalISOTemplate indicates an expected call of CreateMinimalISOTemplate.
 func (mr *MockEditorMockRecorder) CreateMinimalISOTemplate(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMinimalISOTemplate", reflect.TypeOf((*MockEditor)(nil).CreateMinimalISOTemplate), arg0)
