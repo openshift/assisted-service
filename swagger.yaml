@@ -4224,7 +4224,7 @@ paths:
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
-  
+
   /v2/infra-envs/{infra_env_id}/hosts/{host_id}/logs-progress:
     put:
       tags:
@@ -5604,7 +5604,7 @@ definitions:
         x-go-custom-tag: gorm:"type:text"
         type: string
         description: JSON-formatted string containing the user overrides for the install-config.yaml file.
-        example: '{"networking":{"networkType": "OVN-Kubernetes"},"fips":true}'
+        example: '{"networking":{"networkType": "OVNKubernetes"},"fips":true}'
       ignition_config_overrides:
         x-go-custom-tag: gorm:"type:text"
         type: string
