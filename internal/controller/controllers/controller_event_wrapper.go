@@ -28,21 +28,9 @@ func NewControllerEventsWrapper(crdEventsHandler CRDEventsHandler, events *event
 func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	c.events.AddEvent(ctx, clusterID, hostID, severity, msg, eventTime, props)
 
-	cluster, err := common.GetClusterFromDB(c.db, clusterID, common.SkipEagerLoading)
-	if err != nil {
-		return
-	}
-
-	c.log.Debugf("Pushing cluster event %s %s", cluster.KubeKeyName, cluster.KubeKeyNamespace)
-	c.crdEventsHandler.NotifyClusterDeploymentUpdates(cluster.KubeKeyName, cluster.KubeKeyNamespace)
+	c.NotifyKubeApiClusterEvent(clusterID)
 	if hostID != nil {
-		host, err := common.GetHostFromDB(c.db, clusterID.String(), hostID.String())
-		if err != nil {
-			return
-		}
-
-		c.log.Debugf("Pushing event for host %q %s", hostID, host.KubeKeyNamespace)
-		c.crdEventsHandler.NotifyAgentUpdates(hostID.String(), host.KubeKeyNamespace)
+		c.NotifyKubeApiHostEvent(clusterID, *hostID)
 	}
 }
 
@@ -56,16 +44,46 @@ func (c *controllerEventsWrapper) GetEvents(clusterID strfmt.UUID, hostID *strfm
 
 func (c *controllerEventsWrapper) SendClusterEvent(ctx context.Context, event events.ClusterEvent) {
 	c.events.SendClusterEvent(ctx, event)
+
+	c.NotifyKubeApiClusterEvent(*event.GetClusterId())
 }
 
 func (c *controllerEventsWrapper) SendClusterEventAtTime(ctx context.Context, event events.ClusterEvent, eventTime time.Time) {
 	c.events.SendClusterEventAtTime(ctx, event, eventTime)
+
+	c.NotifyKubeApiClusterEvent(*event.GetClusterId())
 }
 
 func (c *controllerEventsWrapper) SendHostEvent(ctx context.Context, event events.HostEvent) {
 	c.events.SendHostEvent(ctx, event)
+
+	c.NotifyKubeApiClusterEvent(*event.GetClusterId())
+	c.NotifyKubeApiHostEvent(*event.GetClusterId(), *event.GetHostId())
 }
 
 func (c *controllerEventsWrapper) SendHostEventAtTime(ctx context.Context, event events.HostEvent, eventTime time.Time) {
 	c.events.SendHostEventAtTime(ctx, event, eventTime)
+
+	c.NotifyKubeApiClusterEvent(*event.GetClusterId())
+	c.NotifyKubeApiHostEvent(*event.GetClusterId(), *event.GetHostId())
+}
+
+func (c *controllerEventsWrapper) NotifyKubeApiClusterEvent(clusterID strfmt.UUID) {
+	cluster, err := common.GetClusterFromDB(c.db, clusterID, common.SkipEagerLoading)
+	if err != nil {
+		return
+	}
+
+	c.log.Debugf("Pushing cluster event %s %s", cluster.KubeKeyName, cluster.KubeKeyNamespace)
+	c.crdEventsHandler.NotifyClusterDeploymentUpdates(cluster.KubeKeyName, cluster.KubeKeyNamespace)
+}
+
+func (c *controllerEventsWrapper) NotifyKubeApiHostEvent(clusterID strfmt.UUID, hostID strfmt.UUID) {
+	host, err := common.GetHostFromDB(c.db, clusterID.String(), hostID.String())
+	if err != nil {
+		return
+	}
+
+	c.log.Debugf("Pushing event for host %q %s", hostID, host.KubeKeyNamespace)
+	c.crdEventsHandler.NotifyAgentUpdates(hostID.String(), host.KubeKeyNamespace)
 }

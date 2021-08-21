@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -113,6 +114,90 @@ var _ = Describe("Controller events wrapper", func() {
 			mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
 			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
 			cEventsWrapper.AddEvent(context.TODO(), *cluster1.ID, host1.ID, models.EventSeverityInfo, "event2", time.Now())
+			Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(1))
+			Expect(numOfEvents(*cluster1.ID, host1.ID)).Should(Equal(1))
+		})
+
+		It("Sending a cluster event", func() {
+			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
+			cEventsWrapper.SendClusterEvent(context.TODO(),
+				eventgen.NewGenericClusterEvent(*cluster1.ID, "event1", models.EventSeverityInfo))
+			Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(1))
+			Expect(numOfEvents(*cluster2.ID, nil)).Should(Equal(0))
+
+			evs, err := cEventsWrapper.GetEvents(*cluster1.ID, nil)
+			Expect(err).Should(BeNil())
+			Expect(evs[0]).Should(WithMessage(swag.String("event1")))
+			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
+
+			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster2.KubeKeyName, cluster2.KubeKeyNamespace).Times(1)
+			cEventsWrapper.SendClusterEvent(context.TODO(),
+				eventgen.NewGenericClusterEvent(*cluster2.ID, "event2", models.EventSeverityInfo))
+			Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(1))
+			Expect(numOfEvents(*cluster2.ID, nil)).Should(Equal(1))
+		})
+
+		It("Sending a cluster event with time", func() {
+			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
+			cEventsWrapper.SendClusterEventAtTime(context.TODO(),
+				eventgen.NewGenericClusterEvent(*cluster1.ID, "event1", models.EventSeverityInfo), time.Now())
+			Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(1))
+			Expect(numOfEvents(*cluster2.ID, nil)).Should(Equal(0))
+
+			evs, err := cEventsWrapper.GetEvents(*cluster1.ID, nil)
+			Expect(err).Should(BeNil())
+			Expect(evs[0]).Should(WithMessage(swag.String("event1")))
+			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
+
+			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster2.KubeKeyName, cluster2.KubeKeyNamespace).Times(1)
+			cEventsWrapper.SendClusterEventAtTime(context.TODO(),
+				eventgen.NewGenericClusterEvent(*cluster2.ID, "event2", models.EventSeverityInfo), time.Now())
+			Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(1))
+			Expect(numOfEvents(*cluster2.ID, nil)).Should(Equal(1))
+		})
+
+		It("Sending a host event", func() {
+			hostID1 := strfmt.UUID(uuid.New().String())
+			host1 := common.Host{
+				Host: models.Host{
+					ID:         &hostID1,
+					InfraEnvID: *cluster1.ID,
+					ClusterID:  cluster1.ID,
+					Status:     swag.String(models.HostStatusKnown),
+					Kind:       swag.String(models.HostKindHost),
+				},
+				KubeKeyNamespace: "hostNm",
+			}
+			err := db.Create(&host1).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
+			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
+			cEventsWrapper.SendHostEvent(context.TODO(),
+				eventgen.NewGenericHostEvent(*cluster1.ID, *host1.ID, "event1", models.EventSeverityInfo))
+			Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(1))
+			Expect(numOfEvents(*cluster1.ID, host1.ID)).Should(Equal(1))
+		})
+
+		It("Sending a host event with time", func() {
+			hostID1 := strfmt.UUID(uuid.New().String())
+			host1 := common.Host{
+				Host: models.Host{
+					ID:         &hostID1,
+					InfraEnvID: *cluster1.ID,
+					ClusterID:  cluster1.ID,
+					Status:     swag.String(models.HostStatusKnown),
+					Kind:       swag.String(models.HostKindHost),
+				},
+				KubeKeyNamespace: "hostNm",
+			}
+			err := db.Create(&host1).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
+			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
+			cEventsWrapper.SendHostEventAtTime(context.TODO(),
+				eventgen.NewGenericHostEvent(*cluster1.ID, *host1.ID, "event1", models.EventSeverityInfo), time.Now())
 			Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(1))
 			Expect(numOfEvents(*cluster1.ID, host1.ID)).Should(Equal(1))
 		})
