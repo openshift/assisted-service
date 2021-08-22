@@ -26,6 +26,9 @@ type InfraEnvCreateParams struct {
 	// Format: uuid
 	ClusterID *strfmt.UUID `json:"cluster_id,omitempty"`
 
+	// The CPU architecture of the image (x86_64/arm64/etc).
+	CPUArchitecture string `json:"cpu_architecture,omitempty"`
+
 	// JSON formatted string containing the user overrides for the initial ignition config.
 	IgnitionConfigOverride string `json:"ignition_config_override,omitempty"`
 

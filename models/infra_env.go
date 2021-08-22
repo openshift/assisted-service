@@ -26,6 +26,9 @@ type InfraEnv struct {
 	// Format: uuid
 	ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
 
+	// The CPU architecture of the image (x86_64/arm64/etc).
+	CPUArchitecture string `json:"cpu_architecture,omitempty"`
+
 	// created at
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
