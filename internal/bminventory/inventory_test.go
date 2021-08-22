@@ -5329,6 +5329,7 @@ var _ = Describe("infraEnvs", func() {
 		Context("List InfraEnvs", func() {
 			It("success", func() {
 				resp := bm.ListInfraEnvs(ctx, installer.ListInfraEnvsParams{})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewListInfraEnvsOK()))
 				payload := resp.(*installer.ListInfraEnvsOK).Payload
 				Expect(len(payload)).Should(Equal(2))
 				Expect(payload[1].ID.String()).Should(Equal(infraEnvID.String()))

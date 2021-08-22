@@ -8857,6 +8857,9 @@ func init() {
         "download_url": {
           "type": "string"
         },
+        "email_domain": {
+          "type": "string"
+        },
         "expires_at": {
           "type": "string",
           "format": "date-time",
@@ -8895,6 +8898,9 @@ func init() {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
         },
+        "org_id": {
+          "type": "string"
+        },
         "proxy": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:proxy_\"",
           "$ref": "#/definitions/proxy"
@@ -8922,6 +8928,9 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "user_name": {
+          "type": "string"
         }
       }
     },
@@ -18988,6 +18997,9 @@ func init() {
         "download_url": {
           "type": "string"
         },
+        "email_domain": {
+          "type": "string"
+        },
         "expires_at": {
           "type": "string",
           "format": "date-time",
@@ -19026,6 +19038,9 @@ func init() {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
         },
+        "org_id": {
+          "type": "string"
+        },
         "proxy": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:proxy_\"",
           "$ref": "#/definitions/proxy"
@@ -19054,6 +19069,9 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "user_name": {
+          "type": "string"
         }
       }
     },
