@@ -25,6 +25,21 @@ var _ = Describe("test AMS subscriptions", func() {
 	})
 
 	AfterEach(func() {
+
+		err := wiremock.createStubsForCreatingAMSSubscription(http.StatusOK)
+		Expect(err).ToNot(HaveOccurred())
+		err = wiremock.createStubsForDeletingAMSSubscription(http.StatusOK)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = wiremock.createStubsForGettingAMSSubscription(http.StatusOK, ocm.SubscriptionStatusReserved)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateDisplayName)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateOpenshiftClusterID)
+		Expect(err).ToNot(HaveOccurred())
+
 		clearDB()
 	})
 
@@ -32,7 +47,7 @@ var _ = Describe("test AMS subscriptions", func() {
 
 		It("happy flow", func() {
 
-			clusterID, err := registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+			clusterID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 			Expect(err).ToNot(HaveOccurred())
 			log.Infof("Register cluster %s", clusterID)
 			cc := getCommonCluster(ctx, clusterID)
@@ -48,7 +63,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("register cluster", func() {
-				_, err := registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+				_, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 				Expect(err).To(HaveOccurred())
 			})
 
@@ -58,13 +73,8 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("register cluster", func() {
-				_, err := registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+				_, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 				Expect(err).To(HaveOccurred())
-			})
-
-			By("override back to keep other tests consistent tests", func() {
-				err := wiremock.createStubsForCreatingAMSSubscription(http.StatusOK)
-				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 	})
@@ -78,7 +88,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription (in 'reserved' status)", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -95,11 +105,6 @@ var _ = Describe("test AMS subscriptions", func() {
 				_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
-
-			By("override back to keep other tests consistent tests", func() {
-				err = wiremock.createStubsForDeletingAMSSubscription(http.StatusOK)
-				Expect(err).ToNot(HaveOccurred())
-			})
 		})
 
 		// ATTENTION: this test override a wiremock stub - DO NOT RUN IN PARALLEL
@@ -109,7 +114,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -133,11 +138,6 @@ var _ = Describe("test AMS subscriptions", func() {
 				_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).ToNot(HaveOccurred())
 			})
-
-			By("override back to keep other tests consistent tests", func() {
-				err = wiremock.createStubsForDeletingAMSSubscription(http.StatusOK)
-				Expect(err).ToNot(HaveOccurred())
-			})
 		})
 
 		// ATTENTION: this test override a wiremock stub - DO NOT RUN IN PARALLEL
@@ -147,7 +147,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -171,11 +171,6 @@ var _ = Describe("test AMS subscriptions", func() {
 				_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
-
-			By("override back to keep other tests consistent tests", func() {
-				err = wiremock.createStubsForGettingAMSSubscription(http.StatusOK, ocm.SubscriptionStatusReserved)
-				Expect(err).ToNot(HaveOccurred())
-			})
 		})
 
 		// ATTENTION: this test override a wiremock stub - DO NOT RUN IN PARALLEL
@@ -185,7 +180,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -209,11 +204,6 @@ var _ = Describe("test AMS subscriptions", func() {
 				_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
-
-			By("override back to keep other tests consistent tests", func() {
-				err = wiremock.createStubsForDeletingAMSSubscription(http.StatusOK)
-				Expect(err).ToNot(HaveOccurred())
-			})
 		})
 	})
 
@@ -225,7 +215,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -249,7 +239,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -268,11 +258,6 @@ var _ = Describe("test AMS subscriptions", func() {
 					},
 				})
 				Expect(err).To(HaveOccurred())
-			})
-
-			By("override back to keep other tests consistent tests", func() {
-				err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateDisplayName)
-				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 	})
@@ -295,7 +280,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -303,7 +288,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			By("update subscription with openshfit (external) cluster ID", func() {
 				// in order to simulate infra env generation
 				generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-				registerHostsAndSetRoles(clusterID, minHosts, "test-ams-subscriptions-cluster", "example.com")
+				registerHostsAndSetRoles(clusterID, minHosts, "test-cluster", "example.com")
 				setClusterAsInstalling(ctx, clusterID)
 			})
 
@@ -330,7 +315,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -343,24 +328,13 @@ var _ = Describe("test AMS subscriptions", func() {
 			By("update subscription with openshfit (external) cluster ID", func() {
 				// in order to simulate infra env generation
 				generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-				registerHostsAndSetRoles(clusterID, minHosts, "test-ams-subscriptions-cluster", "example.com")
+				registerHostsAndSetRoles(clusterID, minHosts, "test-cluster", "example.com")
 				reply, err = userBMClient.Installer.InstallCluster(context.Background(), &installer.InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c := reply.GetPayload()
 				Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
 				generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-				for _, h := range c.Hosts {
-					generateDomain(ctx, h, "test-ams-subscriptions-cluster", "example.com")
-				}
-				for _, host := range c.Hosts {
-					updateProgress(*host.ID, clusterID, models.HostStageDone)
-				}
 				waitForInstallationPreparationCompletionStatus(clusterID, common.InstallationPreparationFailed)
-			})
-
-			By("override back to keep other tests consistent tests", func() {
-				err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateOpenshiftClusterID)
-				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 	})

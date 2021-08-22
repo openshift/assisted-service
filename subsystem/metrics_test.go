@@ -345,11 +345,8 @@ var _ = Describe("Metrics tests", func() {
 
 		BeforeEach(func() {
 			//start host installation process
-			c = installCluster(clusterID)
 			registerHostsAndSetRoles(clusterID, 3, "test-cluster", "example.com")
-			for _, h := range c.Hosts {
-				generateDomain(ctx, h, "test-cluster", "example.com")
-			}
+			c = installCluster(clusterID)
 			for _, host := range c.Hosts {
 				waitForHostState(ctx, clusterID, "installing", defaultWaitForHostStateTimeout, host)
 				if host.Bootstrap {
