@@ -33,6 +33,9 @@ type InfraEnv struct {
 	// download url
 	DownloadURL string `json:"download_url,omitempty"`
 
+	// email domain
+	EmailDomain string `json:"email_domain,omitempty"`
+
 	// expires at
 	// Format: date-time
 	ExpiresAt strfmt.DateTime `json:"expires_at,omitempty" gorm:"type:timestamp with time zone"`
@@ -60,6 +63,9 @@ type InfraEnv struct {
 	// Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
+	// org id
+	OrgID string `json:"org_id,omitempty"`
+
 	// proxy
 	Proxy *Proxy `json:"proxy,omitempty" gorm:"embedded;embedded_prefix:proxy_"`
 
@@ -82,6 +88,9 @@ type InfraEnv struct {
 	// The last time that this infraenv was updated.
 	// Format: date-time
 	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
+
+	// user name
+	UserName string `json:"user_name,omitempty"`
 }
 
 // Validate validates this infra env
