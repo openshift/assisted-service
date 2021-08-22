@@ -6689,6 +6689,32 @@ definitions:
     items:
       $ref: '#/definitions/os-image'
 
+  release-image:
+    type: object
+    required:
+      - openshift_version
+      - cpu_architecture
+      - url
+      - version
+    properties:
+      openshift_version:
+        type: string
+        description: Version of the OpenShift cluster.
+      cpu_architecture:
+        type: string
+        description: The CPU architecture of the image (x86_64/arm64/etc).
+      url:
+        type: string
+        description: The installation image of the OpenShift cluster.
+      version:
+        type: string
+        description: OCP version from the release metadata.
+
+  release-images:
+    type: array
+    items:
+      $ref: '#/definitions/release-image'
+
   operator-property:
     type: object
     properties:

@@ -39,13 +39,15 @@ type Handler interface {
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 	versions Versions, openshiftVersions models.OpenshiftVersions,
-	osImages models.OsImages, mustGatherVersions MustGatherVersions,
+	osImages models.OsImages, releaseImages models.ReleaseImages,
+	mustGatherVersions MustGatherVersions,
 	releaseImageMirror string) (*handler, error) {
 	h := &handler{
 		versions:           versions,
 		openshiftVersions:  openshiftVersions,
 		mustGatherVersions: mustGatherVersions,
 		osImages:           osImages,
+		releaseImages:      releaseImages,
 		releaseHandler:     releaseHandler,
 		releaseImageMirror: releaseImageMirror,
 		log:                log,
@@ -65,6 +67,7 @@ type handler struct {
 	openshiftVersions  models.OpenshiftVersions
 	mustGatherVersions MustGatherVersions
 	osImages           models.OsImages
+	releaseImages      models.ReleaseImages
 	releaseHandler     oc.Release
 	releaseImageMirror string
 	log                logrus.FieldLogger
@@ -258,13 +261,25 @@ func (h *handler) validateVersions() error {
 		}
 
 		if osImage.URL == nil {
-			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "URL"))
+			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url"))
 		}
 		if osImage.RootfsURL == nil {
-			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "RootfsURL"))
+			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "rootfs_url"))
 		}
 		if osImage.Version == nil {
-			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "Version"))
+			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version"))
+		}
+	}
+	missingValueTemplate = "Missing value in ReleaseImage for '%s' field"
+	for _, release := range h.releaseImages {
+		if release.URL == nil {
+			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url"))
+		}
+		if release.Version == nil {
+			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version"))
+		}
+		if release.CPUArchitecture == nil {
+			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "cpu_architecture"))
 		}
 	}
 	return nil
