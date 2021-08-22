@@ -71,8 +71,8 @@ func (e *GenericClusterEvent) GetSeverity() string {
     return e.Severity
 }
 
-func (e *GenericClusterEvent) GetClusterId() *strfmt.UUID {
-    return &e.ClusterId
+func (e *GenericClusterEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
 }
 
 func (e *GenericClusterEvent) format(message *string) string {
@@ -156,11 +156,11 @@ func (e *GenericHostEvent) GetSeverity() string {
     return e.Severity
 }
 
-func (e *GenericHostEvent) GetClusterId() *strfmt.UUID {
-    return &e.ClusterId
+func (e *GenericHostEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
 }
-func (e *GenericHostEvent) GetHostId() *strfmt.UUID {
-    return &e.HostId
+func (e *GenericHostEvent) GetHostId() strfmt.UUID {
+    return e.HostId
 }
 
 func (e *GenericHostEvent) format(message *string) string {
@@ -224,8 +224,8 @@ func (e *CancelInstallFailedStartEvent) GetSeverity() string {
     return "error"
 }
 
-func (e *CancelInstallFailedStartEvent) GetClusterId() *strfmt.UUID {
-    return &e.ClusterId
+func (e *CancelInstallFailedStartEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
 }
 
 func (e *CancelInstallFailedStartEvent) format(message *string) string {
@@ -286,8 +286,8 @@ func (e *CancelInstallFailedCommitEvent) GetSeverity() string {
     return "error"
 }
 
-func (e *CancelInstallFailedCommitEvent) GetClusterId() *strfmt.UUID {
-    return &e.ClusterId
+func (e *CancelInstallFailedCommitEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
 }
 
 func (e *CancelInstallFailedCommitEvent) format(message *string) string {
@@ -355,11 +355,11 @@ func (e *HostRegistrationFailedSettingPropertiesEvent) GetSeverity() string {
     return "error"
 }
 
-func (e *HostRegistrationFailedSettingPropertiesEvent) GetClusterId() *strfmt.UUID {
-    return &e.ClusterId
+func (e *HostRegistrationFailedSettingPropertiesEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
 }
-func (e *HostRegistrationFailedSettingPropertiesEvent) GetHostId() *strfmt.UUID {
-    return &e.HostId
+func (e *HostRegistrationFailedSettingPropertiesEvent) GetHostId() strfmt.UUID {
+    return e.HostId
 }
 
 func (e *HostRegistrationFailedSettingPropertiesEvent) format(message *string) string {

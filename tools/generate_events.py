@@ -90,13 +90,13 @@ func (e *{{eventName}}) GetSeverity() string {
     {%- endif %}
 }
 
-func (e *{{eventName}}) GetClusterId() *strfmt.UUID {
-    return &e.ClusterId
+func (e *{{eventName}}) GetClusterId() strfmt.UUID {
+    return e.ClusterId
 }
 
 {%- if event.type != "cluster" %}
-func (e *{{eventName}}) GetHostId() *strfmt.UUID {
-    return &e.HostId
+func (e *{{eventName}}) GetHostId() strfmt.UUID {
+    return e.HostId
 }
 {%- endif %}
 

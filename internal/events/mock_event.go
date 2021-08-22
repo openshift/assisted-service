@@ -347,10 +347,10 @@ func (mr *MockClusterEventMockRecorder) FormatMessage() *gomock.Call {
 }
 
 // GetClusterId mocks base method.
-func (m *MockClusterEvent) GetClusterId() *strfmt.UUID {
+func (m *MockClusterEvent) GetClusterId() strfmt.UUID {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterId")
-	ret0, _ := ret[0].(*strfmt.UUID)
+	ret0, _ := ret[0].(strfmt.UUID)
 	return ret0
 }
 
@@ -426,10 +426,10 @@ func (mr *MockHostEventMockRecorder) FormatMessage() *gomock.Call {
 }
 
 // GetClusterId mocks base method.
-func (m *MockHostEvent) GetClusterId() *strfmt.UUID {
+func (m *MockHostEvent) GetClusterId() strfmt.UUID {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterId")
-	ret0, _ := ret[0].(*strfmt.UUID)
+	ret0, _ := ret[0].(strfmt.UUID)
 	return ret0
 }
 
@@ -440,10 +440,10 @@ func (mr *MockHostEventMockRecorder) GetClusterId() *gomock.Call {
 }
 
 // GetHostId mocks base method.
-func (m *MockHostEvent) GetHostId() *strfmt.UUID {
+func (m *MockHostEvent) GetHostId() strfmt.UUID {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostId")
-	ret0, _ := ret[0].(*strfmt.UUID)
+	ret0, _ := ret[0].(strfmt.UUID)
 	return ret0
 }
 
