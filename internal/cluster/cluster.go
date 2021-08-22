@@ -20,6 +20,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/kennygrant/sanitize"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
@@ -187,11 +188,10 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag bool) error {
 	err := m.registrationAPI.RegisterCluster(ctx, c, v1Flag)
 	if err != nil {
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
-			fmt.Sprintf("Failed to register cluster with name \"%s\". Error: %s", c.Name, err.Error()), time.Now())
+		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, c.Name, err.Error(), models.ClusterKindCluster)
+
 	} else {
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
-			fmt.Sprintf("Registered cluster \"%s\"", c.Name), time.Now())
+		eventgen.SendRegisteredClusterEvent(ctx, m.eventsHandler, *c.ID, c.Name, models.ClusterKindCluster)
 	}
 	return err
 }
@@ -199,11 +199,9 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag
 func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag bool) error {
 	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c, v1Flag)
 	if err != nil {
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
-			fmt.Sprintf("Failed to register add-hosts cluster with name \"%s\". Error: %s", c.Name, err.Error()), time.Now())
+		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, c.Name, err.Error(), models.ClusterKindAddHostsCluster)
 	} else {
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
-			fmt.Sprintf("Registered add-hosts cluster \"%s\"", c.Name), time.Now())
+		eventgen.SendRegisteredClusterEvent(ctx, m.eventsHandler, *c.ID, c.Name, models.ClusterKindAddHostsCluster)
 	}
 	return err
 }
@@ -246,11 +244,9 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 
 	err = m.registrationAPI.DeregisterCluster(ctx, c)
 	if err != nil {
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
-			fmt.Sprintf("Failed to deregister cluster. Error: %s", err.Error()), time.Now())
+		eventgen.SendClusterDeregisterFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error())
 	} else {
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
-			fmt.Sprintf("Deregistered cluster: %s", c.ID.String()), time.Now())
+		eventgen.SendDeregisteredClusterEvent(ctx, m.eventsHandler, *c.ID)
 	}
 	return err
 }
@@ -283,12 +279,10 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.C
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
 				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
 					m.metricAPI.ClusterValidationChanged(c.OpenshiftVersion, c.EmailDomain, models.ClusterValidationID(v.ID))
-					eventMsg := fmt.Sprintf("Cluster validation '%s' that used to succeed is now failing", v.ID)
-					m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, eventMsg, time.Now())
+					eventgen.SendClusterValidationFallingEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
 				}
 				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
-					eventMsg := fmt.Sprintf("Cluster validation '%s' is now fixed", v.ID)
-					m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, eventMsg, time.Now())
+					eventgen.SendClusterValidationFixedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
 				}
 			}
 		}
@@ -1049,8 +1043,7 @@ func (m Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPer
 		return err
 	}
 	for _, c := range clusters {
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
-			"Cluster is deregistered due to inactivity", time.Now())
+		eventgen.SendClusterDeregisteredAfterInactivityEvent(ctx, m.eventsHandler, *c.ID)
 		log.Infof("Cluster %s is deregistered due to inactivity since %s", c.ID, c.UpdatedAt)
 		if err := m.DeregisterCluster(ctx, c); err != nil {
 			log.WithError(err).Errorf("failed to deregister inactive cluster %s ", c.ID)

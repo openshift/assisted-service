@@ -39,3 +39,62 @@ x-events:
   properties:
     cluster_id: UUID
     host_id: UUID
+
+- name: cluster_registration_failed
+  message: "Failed to register cluster with name '{cluster_name}'. Error: {error}"
+  event_type: cluster
+  severity: "error"
+  properties:
+    cluster_id: UUID
+    cluster_name: string
+    error: string
+    cluster_kind: string
+
+- name: registered_cluster
+  message: "Registered cluster {cluster_name}"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    cluster_name: string
+    cluster_kind: string
+
+- name: cluster_deregister_failed
+  message: "Failed to deregister cluster. Error: {error}"
+  event_type: cluster
+  severity: "error"
+  properties:
+    cluster_id: UUID
+    error: string
+
+- name: deregistered_cluster
+  message: "Deregistered cluster"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+
+- name: cluster_validation_falling
+  message: "Cluster validation '{validation_id}' that used to succeed is now failing"
+  event_type: cluster
+  severity: "warning"
+  properties:
+    cluster_id: UUID
+    validation_id: string
+    validation_msg: string
+
+- name: cluster_validation_fixed
+  message: "Cluster validation '{validation_id}' is now fixed"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    validation_id: string
+    validation_msg: string
+
+- name: cluster_deregistered_after_inactivity
+  message: "Cluster is deregistered due to inactivity"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
