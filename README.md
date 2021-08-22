@@ -26,6 +26,10 @@ Below are some recent demos and blog posts:
 * Blog and demo, Dec 2020: [Making OpenShift on Bare Metal easy](https://www.openshift.com/blog/making-openshift-on-bare-metal-easy)
 * Blog and demo, Oct 2020: [It's Inside your House! Assisted Installer on Bare Metal Demonstration](https://www.openshift.com/blog/its-inside-the-house-assisted-installer-demonstration)
 
+## User documentation
+
+By continuing to read this document you will learn how to build and deploy Assisted Service. If you are interested in using Assisted Service to deploy an OCP cluster, please refer to the [User Documentation](docs/user-guide/README.md).
+
 ## Prerequisites
 
 1. Docker

@@ -15,3 +15,7 @@ Here we will look for the best way to help you deploying Openshift 4 in the prov
 The assisted-service exposes a RESTFul API which is described in [swagger.yaml](../../swagger.yaml).
 
 A guide of using the RESTFul API is available on [restful-api-guide.yaml](./restful-api-guide.md).
+
+### Using Assisted Service On-Premise
+
+Please refer to the [Hive Integration readme](../hive-integration/README.md) to learn how to install OCP cluster using Assisted Service on-premise with [Hive](https://github.com/openshift/hive/) and [RHACM](https://github.com/open-cluster-management) (Red Hat Advanced Cluster Management).
