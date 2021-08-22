@@ -15,13 +15,13 @@ import (
 var _ = Describe("JWT creation", func() {
 	It("LocalJWT fails when EC_PRIVATE_KEY_PEM is unset", func() {
 		os.Unsetenv("EC_PRIVATE_KEY_PEM")
-		_, err := LocalJWT(uuid.New().String())
+		_, err := LocalJWT(uuid.New().String(), InfraEnvKey)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("LocalJWT fails when EC_PRIVATE_KEY_PEM is empty", func() {
 		os.Setenv("EC_PRIVATE_KEY_PEM", "")
-		_, err := LocalJWT(uuid.New().String())
+		_, err := LocalJWT(uuid.New().String(), InfraEnvKey)
 		Expect(err).To(HaveOccurred())
 		os.Unsetenv("EC_PRIVATE_KEY_PEM")
 	})
@@ -51,7 +51,7 @@ var _ = Describe("JWT creation", func() {
 			claims, ok := parsed.Claims.(jwt.MapClaims)
 			Expect(ok).To(BeTrue())
 
-			clusterID, ok := claims["cluster_id"].(string)
+			clusterID, ok := claims["infra_env_id"].(string)
 			Expect(ok).To(BeTrue())
 			Expect(clusterID).To(Equal(id))
 		}
@@ -67,7 +67,7 @@ var _ = Describe("JWT creation", func() {
 
 			It("LocalJWT creates a valid token", func() {
 				id := uuid.New().String()
-				tokenString, err := LocalJWT(id)
+				tokenString, err := LocalJWT(id, InfraEnvKey)
 				Expect(err).ToNot(HaveOccurred())
 
 				validateToken(tokenString, publicKey, id)
@@ -77,7 +77,7 @@ var _ = Describe("JWT creation", func() {
 				id := "2dc9400e-1b5e-4e41-bdb5-39b76b006f97"
 				u := fmt.Sprintf("https://ai.example.com/api/assisted-install/v1/clusters/%s/downloads/image", id)
 
-				signed, err := SignURL(u, id)
+				signed, err := SignURL(u, id, InfraEnvKey)
 				Expect(err).NotTo(HaveOccurred())
 				parsedURL, err := url.Parse(signed)
 				Expect(err).NotTo(HaveOccurred())
@@ -89,7 +89,7 @@ var _ = Describe("JWT creation", func() {
 
 		It("LocalJWTForKey creates a valid token", func() {
 			id := uuid.New().String()
-			tokenString, err := LocalJWTForKey(id, privateKeyPEM)
+			tokenString, err := LocalJWTForKey(id, privateKeyPEM, InfraEnvKey)
 			Expect(err).ToNot(HaveOccurred())
 
 			validateToken(tokenString, publicKey, id)

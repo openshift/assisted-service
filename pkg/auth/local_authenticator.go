@@ -7,8 +7,10 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
+	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
@@ -61,25 +63,40 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 		return nil, common.NewInfraError(401, err)
 	}
 
-	clusterID, ok := claims["cluster_id"].(string)
-	if !ok {
+	infraEnvID, infraEnvOk := claims[string(gencrypto.InfraEnvKey)].(string)
+	clusterID, clusterOk := claims[string(gencrypto.ClusterKey)].(string)
+	if !infraEnvOk && !clusterOk {
 		err := errors.Errorf("claims are incorrectly formatted")
 		a.log.Error(err)
 		return nil, common.NewInfraError(401, err)
 	}
 
-	_, exists := a.cache.Get(clusterID)
-	if !exists {
-		if clusterExists(a.db, clusterID) {
-			a.cache.Set(clusterID, "", cache.DefaultExpiration)
-		} else {
-			err := errors.Errorf("cluster %s does not exist", clusterID)
-			a.log.Error(err)
-			return nil, common.NewInfraError(401, err)
+	if infraEnvOk {
+		_, exists := a.cache.Get(infraEnvID)
+		if !exists {
+			if infraEnvExists(a.db, infraEnvID) {
+				a.cache.Set(infraEnvID, "", cache.DefaultExpiration)
+			} else {
+				err := errors.Errorf("infraEnv %s does not exist", infraEnvID)
+				a.log.Error(err)
+				return nil, common.NewInfraError(401, err)
+			}
 		}
+		a.log.Debugf("Authenticating infraEnv %s JWT", infraEnvID)
+	} else if clusterOk {
+		_, exists := a.cache.Get(clusterID)
+		if !exists {
+			if clusterExists(a.db, clusterID) {
+				a.cache.Set(clusterID, "", cache.DefaultExpiration)
+			} else {
+				err := errors.Errorf("Cluster %s does not exist", clusterID)
+				a.log.Error(err)
+				return nil, common.NewInfraError(401, err)
+			}
+		}
+		a.log.Debugf("Authenticating Cluster %s JWT", clusterID)
 	}
 
-	a.log.Debugf("Authenticating cluster %s JWT", clusterID)
 	return ocm.AdminPayload(), nil
 }
 
@@ -110,6 +127,11 @@ func validateToken(token string, pub crypto.PublicKey) (*jwt.Token, error) {
 }
 
 func clusterExists(db *gorm.DB, clusterID string) bool {
-	var c common.Cluster
-	return db.Select("id").Take(&c, map[string]interface{}{"id": clusterID}).Error == nil
+	_, err := common.GetClusterFromDB(db, strfmt.UUID(clusterID), common.SkipEagerLoading)
+	return err == nil
+}
+
+func infraEnvExists(db *gorm.DB, infraEnvID string) bool {
+	_, err := common.GetInfraEnvFromDB(db, strfmt.UUID(infraEnvID))
+	return err == nil
 }

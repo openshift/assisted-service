@@ -883,7 +883,7 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infr
 			}
 			downloadURL = fmt.Sprintf("%s%s", b.Config.ServiceBaseURL, clusterISOURL.RequestURI())
 			if b.authHandler.AuthType() == auth.TypeLocal {
-				downloadURL, err = gencrypto.SignURL(downloadURL, infraEnv.ID.String())
+				downloadURL, err = gencrypto.SignURL(downloadURL, infraEnv.ID.String(), gencrypto.InfraEnvKey)
 				if err != nil {
 					return errors.Wrap(err, "Failed to sign cluster ISO URL")
 				}

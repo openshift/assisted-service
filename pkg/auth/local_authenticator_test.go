@@ -18,25 +18,25 @@ import (
 
 var _ = Describe("AuthAgentAuth", func() {
 	var (
-		a       *LocalAuthenticator
-		cluster *common.Cluster
-		db      *gorm.DB
-		dbName  string
-		token   string
+		a        *LocalAuthenticator
+		infraEnv *common.InfraEnv
+		db       *gorm.DB
+		dbName   string
+		token    string
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		clusterID := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		infraEnv = &common.InfraEnv{InfraEnv: models.InfraEnv{ID: infraEnvID}}
+		Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
 
 		pubKey, privKey, err := gencrypto.ECDSAKeyPairPEM()
 		Expect(err).ToNot(HaveOccurred())
 
 		cfg := &Config{ECPublicKeyPEM: pubKey}
 
-		token, err = gencrypto.LocalJWTForKey(clusterID.String(), privKey)
+		token, err = gencrypto.LocalJWTForKey(infraEnvID.String(), privKey, gencrypto.InfraEnvKey)
 		Expect(err).ToNot(HaveOccurred())
 
 		a, err = NewLocalAuthenticator(cfg, logrus.New(), db)
@@ -83,7 +83,7 @@ var _ = Describe("AuthAgentAuth", func() {
 		_, err := a.AuthAgentAuth(token)
 		Expect(err).ToNot(HaveOccurred())
 
-		resp := db.Delete(cluster)
+		resp := db.Delete(infraEnv)
 		Expect(resp.Error).ToNot(HaveOccurred())
 
 		_, err = a.AuthAgentAuth(token)
@@ -116,8 +116,8 @@ var _ = Describe("AuthAgentAuth", func() {
 		validateErrorResponse(err)
 	})
 
-	It("Fails for a deleted cluster", func() {
-		resp := db.Delete(cluster)
+	It("Fails for a deleted infraEnv", func() {
+		resp := db.Delete(infraEnv)
 		Expect(resp.Error).ToNot(HaveOccurred())
 
 		_, err := a.AuthAgentAuth(token)

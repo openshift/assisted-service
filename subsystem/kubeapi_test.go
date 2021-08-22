@@ -338,7 +338,7 @@ func getSecret(ctx context.Context, client k8sclient.Client, key types.Namespace
 }
 
 // configureLoclAgentClient reassigns the global agentBMClient variable to a client instance using local token auth
-func configureLocalAgentClient(clusterID string) {
+func configureLocalAgentClient(infraEnvID string) {
 	if Options.AuthType != auth.TypeLocal {
 		Fail(fmt.Sprintf("Agent client shouldn't be configured for local auth when auth type is %s", Options.AuthType))
 	}
@@ -349,7 +349,7 @@ func configureLocalAgentClient(clusterID string) {
 	}
 	secret := getSecret(context.Background(), kubeClient, key)
 	privKeyPEM := secret.Data["ec-private-key.pem"]
-	tok, err := gencrypto.LocalJWTForKey(clusterID, string(privKeyPEM))
+	tok, err := gencrypto.LocalJWTForKey(infraEnvID, string(privKeyPEM), gencrypto.InfraEnvKey)
 	Expect(err).To(BeNil())
 
 	agentBMClient = client.New(clientcfg(auth.AgentAuthHeaderWriter(tok)))
@@ -682,7 +682,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		By("register hosts")
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
 		ips := hostutil.GenerateIPv6Addresses(3, defaultCIDRv6)
 		for i := 0; i < 3; i++ {
@@ -724,7 +725,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
 		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
@@ -900,7 +902,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
 		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
@@ -948,7 +951,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -989,7 +993,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1055,7 +1060,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1094,7 +1100,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1157,7 +1164,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1216,7 +1224,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1299,7 +1308,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		Expect(cluster.NoProxy).Should(Equal(""))
 		Expect(cluster.HTTPProxy).Should(Equal(""))
 		Expect(cluster.HTTPSProxy).Should(Equal(""))
@@ -1320,7 +1330,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		infraEnv = getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
 		Expect(infraEnv.Generated).Should(Equal(true))
 		By("Validate proxy settings.", func() {
 			Expect(cluster.NoProxy).Should(Equal("192.168.1.1"))
@@ -1392,7 +1402,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: "default",
@@ -1466,11 +1477,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		infraEnv = getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
 		Expect(infraEnv.Generated).Should(Equal(true))
 	})
 
@@ -1508,11 +1520,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		infraEnv = getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
 		Expect(infraEnv.Generated).Should(Equal(true))
 	})
 
@@ -1529,7 +1542,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
 
 		infraEnvSpec.IgnitionConfigOverride = badIgnitionConfigOverride
@@ -1739,7 +1753,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1909,7 +1924,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
 		host := registerNode(ctx, *cluster.ID, "hostname1", ips[0])
 		key := types.NamespacedName{
@@ -1939,7 +1955,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec2.ClusterName,
 		}
 		cluster2 := getClusterFromDB(ctx, kubeClient, db, clusterKey2, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster2.ID.String())
+		infraEnv2 := getInfraEnvFromDB(ctx, db, *cluster2.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv2.ID.String())
 		h := &registerHostByUUID(*cluster2.ID, *host.ID).Host
 		generateEssentialHostSteps(ctx, h, "hostname2", ips[1])
 		generateEssentialPrepareForInstallationSteps(ctx, h)
@@ -1979,7 +1996,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -2028,7 +2046,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
 		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
@@ -2136,7 +2155,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
 		ips := hostutil.GenerateIPv4Addresses(5, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
@@ -2243,7 +2263,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "2s").Should(Equal(3))
 
 		By("Add Day 2 host")
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv = getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		day2Host1 := registerNode(ctx, *cluster.ID, "firsthostnameday2", ips[3])
 		generateApiVipPostStepReply(ctx, day2Host1, true)
 
@@ -2388,7 +2409,8 @@ spec:
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -2453,7 +2475,8 @@ spec:
 		}, "2m", "2s").Should(Equal(0))
 
 		By("Register a Host and validate that an agent CR was created")
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		Eventually(func() int {
 			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
@@ -2586,7 +2609,8 @@ var _ = Describe("bmac reconcile flow", func() {
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		agentNsName = types.NamespacedName{
 			Namespace: Options.Namespace,
