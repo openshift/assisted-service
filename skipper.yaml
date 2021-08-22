@@ -7,6 +7,7 @@ volumes:
   # programs
   - /usr/bin/minikube:/usr/bin/minikube
   - /usr/local/bin/minikube:/usr/local/bin/minikube
+  - /usr/local/bin/k3d:/usr/local/bin/k3d
 
   # config
   - $HOME/.minikube:$HOME/.minikube
