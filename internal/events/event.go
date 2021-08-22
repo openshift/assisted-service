@@ -103,7 +103,7 @@ func (e *Events) SendClusterEvent(ctx context.Context, event ClusterEvent) {
 }
 
 func (e *Events) SendClusterEventAtTime(ctx context.Context, event ClusterEvent, eventTime time.Time) {
-	e.AddEvent(ctx, *event.GetClusterId(), nil, event.GetSeverity(), event.FormatMessage(), eventTime)
+	e.AddEvent(ctx, event.GetClusterId(), nil, event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
 func (e *Events) SendHostEvent(ctx context.Context, event HostEvent) {
@@ -111,7 +111,8 @@ func (e *Events) SendHostEvent(ctx context.Context, event HostEvent) {
 }
 
 func (e *Events) SendHostEventAtTime(ctx context.Context, event HostEvent, eventTime time.Time) {
-	e.AddEvent(ctx, *event.GetClusterId(), event.GetHostId(), event.GetSeverity(), event.FormatMessage(), eventTime)
+	hostID := event.GetHostId()
+	e.AddEvent(ctx, event.GetClusterId(), &hostID, event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
 func (e *Events) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
@@ -188,11 +189,11 @@ type BaseEvent interface {
 
 type ClusterEvent interface {
 	BaseEvent
-	GetClusterId() *strfmt.UUID
+	GetClusterId() strfmt.UUID
 }
 
 type HostEvent interface {
 	BaseEvent
-	GetClusterId() *strfmt.UUID
-	GetHostId() *strfmt.UUID
+	GetClusterId() strfmt.UUID
+	GetHostId() strfmt.UUID
 }
