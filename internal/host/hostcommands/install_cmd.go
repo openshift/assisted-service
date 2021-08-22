@@ -104,7 +104,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		haMode = *cluster.HighAvailabilityMode
 	}
 
-	ocpVersion, err := i.versionsHandler.GetOpenshiftVersion(cluster.OpenshiftVersion)
+	ocpVersion, err := i.versionsHandler.GetOpenshiftVersion(cluster.OpenshiftVersion, cluster.CPUArchitecture)
 	if err != nil {
 		return "", err
 	}
@@ -114,7 +114,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		return "", err
 	}
 
-	mustGatherMap, err := i.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.PullSecret)
+	mustGatherMap, err := i.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
 	if err != nil {
 		return "", err
 	}

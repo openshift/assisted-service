@@ -31,6 +31,7 @@ type TestConfiguration struct {
 	RhcosImage       string
 	RhcosVersion     string
 	SupportLevel     string
+	CPUArchitecture  string
 	Version          *models.OpenshiftVersion
 
 	Status            string
@@ -55,6 +56,7 @@ var (
 	RhcosImage              = "rhcos_4.6.0"
 	RhcosVersion            = "version-46.123-0"
 	SupportLevel            = "beta"
+	CPUArchitecture         = DefaultCPUArchitecture
 )
 
 // Defaults to be used by all testing modules
@@ -62,6 +64,7 @@ var TestDefaultConfig = &TestConfiguration{
 	OpenShiftVersion: OpenShiftVersion,
 	ReleaseVersion:   ReleaseVersion,
 	ReleaseImage:     ReleaseImage,
+	CPUArchitecture:  CPUArchitecture,
 	Version: &models.OpenshiftVersion{
 		DisplayName:    &OpenShiftVersion,
 		ReleaseImage:   &ReleaseImage,
