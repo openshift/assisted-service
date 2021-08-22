@@ -6927,7 +6927,7 @@ func init() {
           "description": "JSON-formatted string containing the user overrides for the install-config.yaml file.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\"",
-          "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
+          "example": "{\"networking\":{\"networkType\": \"OVNKubernetes\"},\"fips\":true}"
         },
         "install_started_at": {
           "description": "The time that this cluster started installation.",
@@ -17100,7 +17100,7 @@ func init() {
           "description": "JSON-formatted string containing the user overrides for the install-config.yaml file.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\"",
-          "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
+          "example": "{\"networking\":{\"networkType\": \"OVNKubernetes\"},\"fips\":true}"
         },
         "install_started_at": {
           "description": "The time that this cluster started installation.",
