@@ -194,19 +194,9 @@ def clone_assisted_service(github_user, github_password):
 
 def commit_and_push_version_update_changes(message_prefix, title):
     def git_cmd(*args: str, stdout=None):
-        return cmd(("git", "-C", ASSISTED_SERVICE_CLONE_DIR) + args, stdout=stdout)
-
-    git_cmd("commit", "-a", "-m", f"{title}")
-
+        return subprocess.check_output("git " +  " ".join(args), cwd=ASSISTED_SERVICE_CLONE_DIR, shell=True)
+    git_cmd("commit", "-a", "-m", f"\"{title}\"")
     branch = BRANCH_NAME.format(prefix=message_prefix)
-
-    status_stdout, _ = git_cmd("status", "--porcelain", stdout=subprocess.PIPE)
-    if len(status_stdout) != 0:
-        for line in status_stdout.splitlines():
-            logging.info(f"Found on-prem change in file {line}")
-
-        git_cmd("commit", "-a", "-m", f"{title}")
-
     git_cmd("push", "origin", f"HEAD:{branch}")
     return branch
 
@@ -409,10 +399,10 @@ def main(args):
     dry_run = args.dry_run
     if dry_run:
         logger.info("Running dry-run")
-    # if not dry_run:
-    #     if is_open_update_version_ticket(args) and not dry_run:
-    #         logger.info("No updates today since there is a update waiting to be merged")
-    #         return
+    if not dry_run:
+        if is_open_update_version_ticket(args) and not dry_run:
+            logger.info("No updates today since there is a update waiting to be merged")
+            return
 
     default_version_json = get_default_release_json()
     updated_version_json = copy.deepcopy(default_version_json)
@@ -487,12 +477,6 @@ def main(args):
         if dry_run:
             return
 
-        clone_app_interface(args.gitlab_key_file)
-        with open(ASSISTED_SERVICE_OPENSHIFT_TEMPLATE_YAML) as f:
-            openshift_versions_json = next(
-                param["value"] for param in yaml.safe_load(f)["parameters"] if param["name"] == "OPENSHIFT_VERSIONS"
-            )
-
         body = get_pr_body(updates_made)
 
         commit_message = title + '\n\n' + get_release_notes(updates_made)
@@ -503,18 +487,6 @@ def main(args):
 
         github_pr.create_issue_comment(f"Running all tests")
         github_pr.create_issue_comment(f"/test all")
-
-        try:
-            change_version_in_files_app_interface(openshift_versions_json)
-        except NoChangesNeeded:
-            pass
-        else:
-            app_interface_fork = create_app_interface_fork(args)
-            app_interface_branch = commit_and_push_version_update_changes_app_interface(args.gitlab_key_file, app_interface_fork, title, task)
-            gitlab_pr = open_app_interface_pr(app_interface_fork, app_interface_branch, task, title)
-
-            jira_client.add_comment(task, f"Created a PR in app-interface GitLab {gitlab_pr.web_url}")
-            github_pr.create_issue_comment(f"Created a PR in app-interface GitLab {gitlab_pr.web_url}")
 
         unhold_pr(github_pr)
 
