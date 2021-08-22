@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -856,7 +857,11 @@ func (b *bareMetalInventory) DownloadISOHeadersInternal(ctx context.Context, inf
 	return installer.NewDownloadClusterISOHeadersOK().WithContentLength(imgSize)
 }
 
-func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType, generated bool) error {
+type uriBuilder interface {
+	Build() (*url.URL, error)
+}
+
+func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType, generated bool, v2 bool) error {
 	updates := map[string]interface{}{}
 	imgName := getImageName(infraEnv.ID)
 	imgSize, err := b.objectHandler.GetObjectSizeBytes(ctx, imgName)
@@ -876,8 +881,13 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infr
 			}
 		} else {
 			// TODO(djzager): Needs to be updated with image-service work, MGMT-3934
-			var downloadClusterISOURL = &installer.DownloadClusterISOURL{ClusterID: infraEnv.ID}
-			clusterISOURL, err := downloadClusterISOURL.Build()
+			var builder uriBuilder
+			if v2 {
+				builder = &installer.DownloadInfraEnvDiscoveryImageURL{InfraEnvID: infraEnv.ID}
+			} else {
+				builder = &installer.DownloadClusterISOURL{ClusterID: infraEnv.ID}
+			}
+			clusterISOURL, err := builder.Build()
 			if err != nil {
 				return errors.New("Failed to generate image: error generating cluster ISO URL")
 			}
@@ -1081,7 +1091,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	}
 
 	if imageExists {
-		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, params.ImageCreateParams.ImageType, false); err != nil {
+		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, params.ImageCreateParams.ImageType, false, false); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 
@@ -1093,7 +1103,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: params.ClusterID})
 	}
 
-	err = b.createAndUploadNewImage(ctx, log, infraEnvProxyHash, infraEnv, params.ImageCreateParams.ImageType)
+	err = b.createAndUploadNewImage(ctx, log, infraEnvProxyHash, infraEnv, params.ImageCreateParams.ImageType, false)
 	if err != nil {
 		return nil, err
 	}
@@ -1160,7 +1170,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 	}
 
 	if imageExists {
-		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnv.ProxyHash, infraEnv.Type, false); err != nil {
+		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnv.ProxyHash, infraEnv.Type, false, true); err != nil {
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 
@@ -1168,7 +1178,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 		return nil
 	}
 
-	err = b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, infraEnv, infraEnv.Type)
+	err = b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, infraEnv, infraEnv.Type, true)
 	if err != nil {
 		return err
 	}
@@ -1177,7 +1187,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 }
 
 func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log logrus.FieldLogger, infraEnvProxyHash string,
-	infraEnv *common.InfraEnv, imageType models.ImageType) error {
+	infraEnv *common.InfraEnv, imageType models.ImageType, v2 bool) error {
 	// Setting ImageInfo.Type at this point in order to pass it to FormatDiscoveryIgnitionFile without saving it to the DB.
 	// Saving it to the DB will be done after a successful image generation by updateImageInfoPostUpload
 	infraEnv.Type = imageType
@@ -1211,7 +1221,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 		}
 	}
 
-	if err := b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, imageType, true); err != nil {
+	if err := b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, imageType, true, v2); err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	msg := b.getIgnitionConfigForLogging(infraEnv, log, imageType)
