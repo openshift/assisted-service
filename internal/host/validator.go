@@ -391,6 +391,9 @@ func (v *validator) printIsMachineCidrDefined(context *validationContext, status
 		if swag.BoolValue(context.cluster.UserManagedNetworking) {
 			return "No Machine Network CIDR needed: User Managed Networking"
 		}
+		if swag.StringValue(context.cluster.Kind) == models.ClusterKindAddHostsCluster {
+			return "No Machine Network CIDR needed: Day2 cluster"
+		}
 		return "Machine Network CIDR is defined"
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
@@ -496,12 +499,10 @@ func (v *validator) printBelongsToMachineCidr(c *validationContext, status Valid
 		if swag.BoolValue(c.cluster.UserManagedNetworking) {
 			return "No machine network CIDR validation needed: User Managed Networking"
 		}
-		if network.IsMachineCidrAvailable(c.cluster) {
-			return fmt.Sprintf("Host belongs to machine network CIDR %s", network.GetMachineCidrById(c.cluster, 0))
+		if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster {
+			return "No machine network CIDR validation needed: Day2 cluster"
 		}
-
-		// TODO MGMT-7566: Fix day2 message
-		return "Host belongs to machine network CIDR"
+		return fmt.Sprintf("Host belongs to machine network CIDR %s", network.GetMachineCidrById(c.cluster, 0))
 	case ValidationFailure:
 		if network.IsMachineCidrAvailable(c.cluster) {
 			return fmt.Sprintf("Host does not belong to machine network CIDR %s", network.GetMachineCidrById(c.cluster, 0))
