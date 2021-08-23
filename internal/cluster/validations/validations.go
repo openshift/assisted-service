@@ -13,12 +13,14 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/pkg/errors"
+	"github.com/thoas/go-funk"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -379,19 +381,79 @@ func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCID
 	return nil
 }
 
-//ValidateIPAddressFamily returns an error if the argument contains an IP address
-// or CIDR of IPv6 family, and IPv6 support is turned off
+func DerefString(obj interface{}) *string {
+	switch v := obj.(type) {
+	case string:
+		return swag.String(v)
+	case *string:
+		return v
+	default:
+		return nil
+	}
+}
+
+func ValidateIPAddresses(ipV6Supported bool, obj interface{}) error {
+	var allAddresses []*string
+
+	ingressVip := funk.Get(obj, "IngressVip")
+	apiVip := funk.Get(obj, "APIVip")
+	allAddresses = append(allAddresses, DerefString(ingressVip), DerefString(apiVip))
+	allAddresses = append(allAddresses, common.GetNetworksCidrs(obj)...)
+
+	err := ValidateIPAddressFamily(ipV6Supported, allAddresses...)
+	if err != nil {
+		return err
+	}
+	networkTypes := []string{"ClusterNetworks", "ServiceNetworks", "MachineNetworks"}
+	for _, net := range networkTypes {
+		networks := common.GetNetworkCidrAttr(obj, net)
+		err = ValidateDualStackIPNetworksOrder(networks...)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//ValidateIPAddressFamily returns an error if the argument contains only IPv6 networks and IPv6
+//support is turned off. Dual-stack setup is supported even if IPv6 support is turned off.
 func ValidateIPAddressFamily(ipV6Supported bool, elements ...*string) error {
 	if ipV6Supported {
 		return nil
 	}
+	ipv4 := false
+	ipv6 := false
 	for _, e := range elements {
-		if e == nil {
+		if e == nil || *e == "" {
 			continue
 		}
-		if strings.Contains(*e, ":") {
-			return errors.Errorf("IPv6 is not supported in this setup")
+		currRecordIPv6Stack := strings.Contains(*e, ":")
+		ipv4 = ipv4 || !currRecordIPv6Stack
+		ipv6 = ipv6 || currRecordIPv6Stack
+	}
+	if ipv6 && !ipv4 {
+		return errors.Errorf("IPv6 is not supported in this setup")
+	}
+	return nil
+}
+
+// ValidateDualStackIPNetworksOrder returns an error if for the dual-stack cluster the first
+// network is not IPv4
+func ValidateDualStackIPNetworksOrder(elements ...*string) error {
+	ipv4 := false
+	ipv6 := false
+	ipv6BeforeV4 := false
+	for _, e := range elements {
+		if e == nil || *e == "" {
+			continue
 		}
+		currRecordIPv6Stack := strings.Contains(*e, ":")
+		ipv4 = ipv4 || !currRecordIPv6Stack
+		ipv6 = ipv6 || currRecordIPv6Stack
+		ipv6BeforeV4 = ipv6BeforeV4 || (strings.Contains(*e, ":") && !ipv4)
+	}
+	if ipv4 && ipv6BeforeV4 {
+		return errors.Errorf("IPv6 network provided before IPv4")
 	}
 	return nil
 }

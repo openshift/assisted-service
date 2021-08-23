@@ -10520,7 +10520,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		var (
 			clusterNetworks = []*models.ClusterNetwork{{Cidr: "1.1.1.0/24", HostPrefix: 24}, {Cidr: "2.2.2.0/24", HostPrefix: 24}}
 			serviceNetworks = []*models.ServiceNetwork{{Cidr: "3.3.3.0/24"}, {Cidr: "4.4.4.0/24"}}
-			machineNetworks = []*models.MachineNetwork{{Cidr: "5.5.5.0/24"}, {Cidr: "6.6.6.0/24"}}
+			machineNetworks = []*models.MachineNetwork{{Cidr: "5.5.5.0/24"}, {Cidr: "6.6.6.0/24"}, {Cidr: "7.7.7.0/24"}}
 		)
 
 		registerCluster := func() *models.Cluster {
@@ -12233,6 +12233,140 @@ var _ = Describe("[V2UpdateCluster] IPv6 support disabled", func() {
 			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 		})
 	})
+})
+
+var _ = Describe("Dual-stack cluster", func() {
+
+	var (
+		bm  *bareMetalInventory
+		cfg Config
+		db  *gorm.DB
+		ctx = context.Background()
+	)
+
+	clusterNetworksWrongOrder := common.TestDualStackNetworking.ClusterNetworks
+	clusterNetworksWrongOrder[0], clusterNetworksWrongOrder[1] = clusterNetworksWrongOrder[1], clusterNetworksWrongOrder[0]
+
+	serviceNetworksWrongOrder := common.TestDualStackNetworking.ServiceNetworks
+	serviceNetworksWrongOrder[0], serviceNetworksWrongOrder[1] = serviceNetworksWrongOrder[1], serviceNetworksWrongOrder[0]
+
+	machineNetworksWrongOrder := common.TestDualStackNetworking.MachineNetworks
+	machineNetworksWrongOrder[0], machineNetworksWrongOrder[1] = machineNetworksWrongOrder[1], machineNetworksWrongOrder[0]
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		Expect(cfg.IPv6Support).Should(BeTrue())
+		bm = createInventory(db, cfg)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	Context("Register cluster", func() {
+
+		var params installer.RegisterClusterParams
+
+		BeforeEach(func() {
+			params = installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{},
+			}
+		})
+
+		Context("Cluster with wrong network order", func() {
+
+			const errorMsg = "IPv6 network provided before IPv4"
+
+			It("v6-first in cluster networks rejected", func() {
+				params.NewClusterParams.ClusterNetworks = clusterNetworksWrongOrder
+				reply := bm.RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("v6-first in service networks rejected", func() {
+				params.NewClusterParams.ServiceNetworks = serviceNetworksWrongOrder
+				reply := bm.RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("v6-first in machine networks rejected", func() {
+				params.NewClusterParams.MachineNetworks = machineNetworksWrongOrder
+				reply := bm.RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+		})
+	})
+
+	Context("Update cluster", func() {
+
+		var params installer.UpdateClusterParams
+
+		BeforeEach(func() {
+			mockUsageReports()
+			params = installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{},
+			}
+		})
+
+		Context("Cluster with wrong network order", func() {
+
+			const errorMsg = "IPv6 network provided before IPv4"
+
+			It("v6-first in cluster networks rejected", func() {
+				params.ClusterUpdateParams.ClusterNetworks = clusterNetworksWrongOrder
+				reply := bm.UpdateCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("v6-first in service networks rejected", func() {
+				params.ClusterUpdateParams.ServiceNetworks = serviceNetworksWrongOrder
+				reply := bm.UpdateCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("v6-first in machine networks rejected", func() {
+				params.ClusterUpdateParams.MachineNetworks = machineNetworksWrongOrder
+				reply := bm.UpdateCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+		})
+	})
+
+	Context("[V2] Update cluster", func() {
+
+		var params installer.V2UpdateClusterParams
+
+		BeforeEach(func() {
+			mockUsageReports()
+			params = installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{},
+			}
+		})
+
+		Context("Cluster with wrong network order", func() {
+
+			const errorMsg = "IPv6 network provided before IPv4"
+
+			It("v6-first in cluster networks rejected", func() {
+				params.ClusterUpdateParams.ClusterNetworks = clusterNetworksWrongOrder
+				reply := bm.V2UpdateCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("v6-first in service networks rejected", func() {
+				params.ClusterUpdateParams.ServiceNetworks = serviceNetworksWrongOrder
+				reply := bm.V2UpdateCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("v6-first in machine networks rejected", func() {
+				params.ClusterUpdateParams.MachineNetworks = machineNetworksWrongOrder
+				reply := bm.V2UpdateCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+		})
+	})
+
 })
 
 var _ = Describe("GetCredentials", func() {

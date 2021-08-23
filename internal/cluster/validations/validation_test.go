@@ -644,16 +644,26 @@ var _ = Describe("IPv6 support", func() {
 		{
 			ipV6Supported: false,
 			element:       []*string{swag.String("10.56.20.70"), swag.String("1001:db8::1")},
-			valid:         false,
+			valid:         true,
 		},
 		{
 			ipV6Supported: false,
 			element:       []*string{swag.String("1001:db8::/64"), swag.String("10.56.20.0/24")},
-			valid:         false,
+			valid:         true,
 		},
 		{
 			ipV6Supported: false,
 			element:       []*string{swag.String("10.56.20.70"), swag.String("10.56.20.0/24")},
+			valid:         true,
+		},
+		{
+			ipV6Supported: true,
+			element:       []*string{swag.String("10.56.20.70"), swag.String("1001:db8::1")},
+			valid:         true,
+		},
+		{
+			ipV6Supported: true,
+			element:       []*string{swag.String("1001:db8::1"), swag.String("10.56.20.70")},
 			valid:         true,
 		},
 	}
@@ -664,6 +674,40 @@ var _ = Describe("IPv6 support", func() {
 				Expect(ValidateIPAddressFamily(t.ipV6Supported, t.element...)).ToNot(HaveOccurred())
 			} else {
 				Expect(ValidateIPAddressFamily(t.ipV6Supported, t.element...)).To(HaveOccurred())
+			}
+		})
+	}
+})
+
+var _ = Describe("Network amount and order", func() {
+	tests := []struct {
+		element []*string
+		valid   bool
+	}{
+		{
+			element: []*string{swag.String("1.2.5.0/24"), swag.String("1002:db8::/119")},
+			valid:   true,
+		},
+		{
+			element: []*string{swag.String("1002:db8::/119"), swag.String("1.2.5.0/24")},
+			valid:   false,
+		},
+		{
+			element: []*string{swag.String("1.2.5.0/24"), swag.String("1002:db8::/119"), swag.String("1.2.6.0/24"), swag.String("1.2.7.0/24")},
+			valid:   true,
+		},
+		{
+			element: []*string{swag.String("1002:db8::/119"), swag.String("1.2.5.0/24"), swag.String("1.2.6.0/24"), swag.String("1.2.7.0/24")},
+			valid:   false,
+		},
+	}
+	for _, t := range tests {
+		t := t
+		It(fmt.Sprintf("Dual-stack network order validation. IP addresses/CIDRs: %v", t.element), func() {
+			if t.valid {
+				Expect(ValidateDualStackIPNetworksOrder(t.element...)).ToNot(HaveOccurred())
+			} else {
+				Expect(ValidateDualStackIPNetworksOrder(t.element...)).To(HaveOccurred())
 			}
 		})
 	}
