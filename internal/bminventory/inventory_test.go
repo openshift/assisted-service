@@ -250,6 +250,13 @@ var _ = Describe("GenerateClusterISO", func() {
 			fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())).Return(returnValue).Times(1)
 	}
 
+	mockUploadIsoInfraEnv := func(infraEnv *common.InfraEnv, returnValue error) {
+		srcIso := "rhcos"
+		mockS3Client.EXPECT().GetBaseIsoObject(infraEnv.OpenshiftVersion).Return(srcIso, nil).Times(1)
+		mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), srcIso,
+			fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, infraEnv.ID.String())).Return(returnValue).Times(1)
+	}
+
 	rollbackClusterImageCreationDate := func(clusterID *strfmt.UUID) {
 		updatedTime := time.Now().Add(-11 * time.Second)
 		updates := map[string]interface{}{}
@@ -276,6 +283,22 @@ var _ = Describe("GenerateClusterISO", func() {
 		Expect(getReply.Payload.ID).To(Equal(clusterId))
 		Expect(generateReply.(*installer.GenerateClusterISOCreated).Payload.HostNetworks).ToNot(BeNil())
 		Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
+	})
+
+	It("success - infra-env", func() {
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		infraEnv := createInfraEnvWithPullSecret(db, infraEnvID)
+		mockS3Client.EXPECT().IsAwsS3().Return(false)
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockUploadIsoInfraEnv(infraEnv, nil)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvID, nil, models.EventSeverityInfo, "Generated image (Image type is \"\", SSH public key is not set)", gomock.Any())
+		err := bm.GenerateInfraEnvISOInternal(ctx, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
+		getReply := bm.GetInfraEnv(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID}).(*installer.GetInfraEnvOK)
+		Expect(getReply.Payload.ID).To(Equal(infraEnvID))
+		Expect(getReply.Payload.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v2/infra-envs/" + infraEnvID.String() + "/downloads/image"))
 	})
 
 	It("success with proxy", func() {
@@ -835,6 +858,19 @@ func createInfraEnv(db *gorm.DB, id strfmt.UUID) *common.InfraEnv {
 			ID:        id,
 			ClusterID: id,
 		},
+	}
+	Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
+	return infraEnv
+}
+
+func createInfraEnvWithPullSecret(db *gorm.DB, id strfmt.UUID) *common.InfraEnv {
+	infraEnv := &common.InfraEnv{
+		InfraEnv: models.InfraEnv{
+			ID:            id,
+			ClusterID:     id,
+			PullSecretSet: true,
+		},
+		PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 	}
 	Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
 	return infraEnv
