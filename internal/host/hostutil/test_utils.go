@@ -188,6 +188,10 @@ func GenerateMasterInventoryWithHostnameAndCpuFlags(hostname string, cpuflags []
 			{
 				SizeBytes: 128849018880,
 				DriveType: "HDD",
+				ID:        "/dev/disk/by-id/test-disk-id",
+				Name:      "test-disk",
+				Serial:    "test-serial",
+				Path:      "/dev/test-disk",
 			},
 		},
 		Interfaces: []*models.Interface{

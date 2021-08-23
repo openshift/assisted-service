@@ -38,7 +38,7 @@ const (
 	statusInfoError                           = "cluster has hosts in error"
 	statusInfoTimeout                         = "cluster installation timed out while pending user action (a manual booting from installation disk)"
 	statusInfoAddingHosts                     = "cluster is adding hosts to existing OCP cluster"
-	statusInfoInstallingPendingUserAction     = "Cluster has hosts with wrong boot order"
+	statusInfoInstallingPendingUserAction     = "Cluster has hosts pending user action"
 	statusInfoUnpreparingHostExists           = "At least one host has stopped preparing for installation"
 	statusInfoClusterFailedToPrepare          = "Cluster failed to prepare for installation"
 )

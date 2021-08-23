@@ -1746,7 +1746,6 @@ var _ = Describe("Refresh Host", func() {
 			"under_timeout": 5 * time.Minute,
 			"over_timeout":  90 * time.Minute,
 		}
-
 		for j := range installationStages {
 			stage := installationStages[j]
 			for passedTimeKey, passedTimeValue := range timePassedTypes {
@@ -1758,17 +1757,15 @@ var _ = Describe("Refresh Host", func() {
 					srcState = models.HostStatusInstallingInProgress
 					host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
 					host.Inventory = hostutil.GenerateMasterInventory()
+					host.InstallationDiskPath = common.TestDiskId
 					host.Role = models.HostRoleMaster
 					host.CheckedInAt = hostCheckInAt
-
 					progress := models.HostProgressInfo{
 						CurrentStage:   stage,
 						StageStartedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
 						StageUpdatedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
 					}
-
 					host.Progress = &progress
-
 					Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 					cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.PrimaryMachineNetworkCidr)
 					Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
@@ -1793,7 +1790,8 @@ var _ = Describe("Refresh Host", func() {
 					} else {
 						if stage == models.HostStageRebooting {
 							Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
-							Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(statusRebootTimeout))
+							statusInfo := strings.Replace(statusRebootTimeout, "$INSTALLATION_DISK", fmt.Sprintf("(test-disk, %s)", common.TestDiskId), 1)
+							Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(statusInfo))
 						} else {
 							Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
 							info := formatProgressTimedOutInfo(stage)

@@ -562,7 +562,17 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 		}
 		template = strings.Replace(template, "$STAGE", string(sHost.host.Progress.CurrentStage), 1)
 		template = strings.Replace(template, "$MAX_TIME", InstallationProgressTimeout[sHost.host.Progress.CurrentStage].String(), 1)
+		if strings.Contains(template, "$INSTALLATION_DISK") {
+			var installationDisk *models.Disk
+			installationDisk, err = hostutil.GetHostInstallationDisk(sHost.host)
+			if err != nil {
+				// in case we fail to parse the inventory replace $INSTALLATION_DISK with nothing
+				template = strings.Replace(template, "$INSTALLATION_DISK", "", 1)
+			} else {
+				template = strings.Replace(template, "$INSTALLATION_DISK", fmt.Sprintf("(%s, %s)", installationDisk.Name, hostutil.GetDeviceIdentifier(installationDisk)), 1)
 
+			}
+		}
 		if strings.Contains(template, "$FAILING_VALIDATIONS") {
 			failedValidations := getFailedValidations(params)
 			sort.Strings(failedValidations)
