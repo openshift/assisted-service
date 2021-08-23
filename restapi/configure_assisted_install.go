@@ -250,6 +250,9 @@ type InstallerAPI interface {
 	/* V2UpdateCluster Updates an OpenShift cluster definition. */
 	V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder
 
+	/* V2UploadLogs Agent API to upload logs. */
+	V2UploadLogs(ctx context.Context, params installer.V2UploadLogsParams) middleware.Responder
+
 	/* V2CompleteInstallation Agent API to mark a finalizing installation as complete. */
 	V2CompleteInstallation(ctx context.Context, params installer.V2CompleteInstallationParams) middleware.Responder
 
@@ -900,6 +903,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2UpdateCluster(ctx, params)
+	})
+	api.InstallerV2UploadLogsHandler = installer.V2UploadLogsHandlerFunc(func(params installer.V2UploadLogsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2UploadLogs(ctx, params)
 	})
 	api.InstallerV2CompleteInstallationHandler = installer.V2CompleteInstallationHandlerFunc(func(params installer.V2CompleteInstallationParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

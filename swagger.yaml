@@ -5460,6 +5460,78 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+    post:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      description: Agent API to upload logs.
+      operationId: V2UploadLogs
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose logs should be uploaded.
+          type: string
+          format: uuid
+          required: true
+        - in: formData
+          name: upfile
+          description: The log file to be uploaded.
+          type: file
+          required: false
+          maxLength: 104857600  #100MB
+          x-mimetype: application/zip
+        - in: query
+          name: logs_type
+          description: The type of log file to be uploaded.
+          type: string
+          enum: ['host', 'controller']
+          required: true
+        - in: query
+          name: infra_env_id
+          description: The infra_env_id of the host.
+          type: string
+          format: uuid
+          required: false
+        - in: query
+          name: host_id
+          description: The host whose logs should be uploaded.
+          type: string
+          format: uuid
+          required: false
+      responses:
+        "204":
+          description: Success.
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
 
   /v2/clusters/{cluster_id}/monitored-operators:
     get:
