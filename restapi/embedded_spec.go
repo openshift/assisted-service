@@ -5644,6 +5644,90 @@ func init() {
             }
           }
         }
+      },
+      "patch": {
+        "description": "Update an Openshift host",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra_env_id of the host to be updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that should be updated.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The properties to update.",
+            "name": "host-update-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-update-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind": {
@@ -8694,6 +8778,35 @@ func init() {
         "worker": {
           "description": "Requirements towards a worker node",
           "$ref": "#/definitions/host-type-hardware-requirements"
+        }
+      }
+    },
+    "host-update-params": {
+      "type": "object",
+      "properties": {
+        "disks_selected_config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/disk-config-params"
+          },
+          "x-nullable": true
+        },
+        "host_name": {
+          "type": "string",
+          "x-nullable": true
+        },
+        "host_role": {
+          "type": "string",
+          "enum": [
+            "auto-assign",
+            "master",
+            "worker"
+          ],
+          "x-nullable": true
+        },
+        "machine_config_pool_name": {
+          "type": "string",
+          "x-nullable": true
         }
       }
     },
@@ -15740,6 +15853,90 @@ func init() {
             }
           }
         }
+      },
+      "patch": {
+        "description": "Update an Openshift host",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra_env_id of the host to be updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that should be updated.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The properties to update.",
+            "name": "host-update-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-update-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind": {
@@ -18858,6 +19055,35 @@ func init() {
         "worker": {
           "description": "Requirements towards a worker node",
           "$ref": "#/definitions/host-type-hardware-requirements"
+        }
+      }
+    },
+    "host-update-params": {
+      "type": "object",
+      "properties": {
+        "disks_selected_config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/disk-config-params"
+          },
+          "x-nullable": true
+        },
+        "host_name": {
+          "type": "string",
+          "x-nullable": true
+        },
+        "host_role": {
+          "type": "string",
+          "enum": [
+            "auto-assign",
+            "master",
+            "worker"
+          ],
+          "x-nullable": true
+        },
+        "machine_config_pool_name": {
+          "type": "string",
+          "x-nullable": true
         }
       }
     },

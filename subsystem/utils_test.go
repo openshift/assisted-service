@@ -67,14 +67,14 @@ func strToUUID(s string) *strfmt.UUID {
 	return &u
 }
 
-func registerHost(clusterID strfmt.UUID) *models.HostRegistrationResponse {
+func registerHost(infraEnvID strfmt.UUID) *models.HostRegistrationResponse {
 	uuid := strToUUID(uuid.New().String())
-	return registerHostByUUID(clusterID, *uuid)
+	return registerHostByUUID(infraEnvID, *uuid)
 }
 
-func registerHostByUUID(clusterID, hostID strfmt.UUID) *models.HostRegistrationResponse {
+func registerHostByUUID(infraEnvID, hostID strfmt.UUID) *models.HostRegistrationResponse {
 	host, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
-		InfraEnvID: clusterID,
+		InfraEnvID: infraEnvID,
 		NewHostParams: &models.HostCreateParams{
 			HostID: &hostID,
 		},
@@ -87,6 +87,15 @@ func getHost(clusterID, hostID strfmt.UUID) *models.Host {
 	host, err := userBMClient.Installer.GetHost(context.Background(), &installer.GetHostParams{
 		ClusterID: clusterID,
 		HostID:    hostID,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	return host.GetPayload()
+}
+
+func getHostV2(infraEnvID, hostID strfmt.UUID) *models.Host {
+	host, err := userBMClient.Installer.V2GetHost(context.Background(), &installer.V2GetHostParams{
+		InfraEnvID: infraEnvID,
+		HostID:     hostID,
 	})
 	Expect(err).NotTo(HaveOccurred())
 	return host.GetPayload()

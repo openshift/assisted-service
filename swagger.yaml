@@ -3490,6 +3490,63 @@ paths:
           description: Not implemented.
           schema:
             $ref: '#/definitions/error'
+    patch:
+      tags:
+        - installer
+      description: Update an Openshift host
+      operationId: v2UpdateHost
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The infra_env_id of the host to be updated.
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          description: The host that should be updated.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: host-update-params
+          description: The properties to update.
+          required: true
+          schema:
+            $ref: '#/definitions/host-update-params'
+      responses:
+        "201":
+          description: Success.
+          schema:
+            $ref: '#/definitions/host'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
     delete:
       tags:
         - installer
@@ -5203,6 +5260,25 @@ definitions:
         x-nullable: false
         default: 'x86_64'
         description: The CPU architecture of the image (x86_64/arm64/etc).
+
+  host-update-params:
+    type: object
+    properties:
+      host_role:
+        type: string
+        x-nullable: true
+        enum: ['auto-assign', 'master', 'worker']
+      host_name:
+        type: string
+        x-nullable: true
+      disks_selected_config:
+        type: array
+        x-nullable: true
+        items:
+          $ref: '#/definitions/disk-config-params'
+      machine_config_pool_name:
+        type: string
+        x-nullable: true
 
   cluster-update-params:
     type: object

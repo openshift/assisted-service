@@ -726,9 +726,9 @@ var _ = Describe("Host tests", func() {
 	})
 })
 
-func updateInventory(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID, inventory string) *models.Host {
+func updateInventory(ctx context.Context, infraEnvId strfmt.UUID, hostId strfmt.UUID, inventory string) *models.Host {
 	_, err := agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
-		InfraEnvID: clusterId,
+		InfraEnvID: infraEnvId,
 		HostID:     hostId,
 		Reply: &models.StepReply{
 			ExitCode: 0,
@@ -738,7 +738,7 @@ func updateInventory(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.U
 		},
 	})
 	Expect(err).ShouldNot(HaveOccurred())
-	host := getHost(clusterId, hostId)
+	host := getHostV2(infraEnvId, hostId)
 	Expect(host).NotTo(BeNil())
 	Expect(host.Inventory).NotTo(BeEmpty())
 	return host
