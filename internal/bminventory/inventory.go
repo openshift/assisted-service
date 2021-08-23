@@ -4925,14 +4925,14 @@ func (b *bareMetalInventory) UpdateHostLogsProgress(ctx context.Context, params 
 }
 
 func (b *bareMetalInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
-	err := b.uploadLogs(ctx, params)
+	err := b.v1uploadLogs(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewUploadLogsNoContent()
 }
 
-func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.UploadLogsParams) error {
+func (b *bareMetalInventory) v1uploadLogs(ctx context.Context, params installer.UploadLogsParams) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Uploading logs from cluster %s", params.ClusterID)
 
@@ -4947,12 +4947,12 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 	}()
 
 	if params.LogsType == string(models.LogsTypeHost) {
-		err := b.uploadHostLogs(ctx, params.ClusterID.String(), params.HostID.String(), params.Upfile)
+		dbHost, err := b.GetCommonHostInternal(ctx, params.ClusterID.String(), params.HostID.String())
 		if err != nil {
 			return err
 		}
 
-		dbHost, err := b.GetCommonHostInternal(ctx, params.ClusterID.String(), params.HostID.String())
+		err = b.uploadHostLogs(ctx, dbHost, params.Upfile)
 		if err != nil {
 			return err
 		}
@@ -5000,30 +5000,32 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 	return nil
 }
 
-func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, clusterId string, hostId string, upFile io.ReadCloser) error {
+func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Host, upFile io.ReadCloser) error {
 	log := logutil.FromContext(ctx, b.log)
-	currentHost, err := b.getHost(ctx, clusterId, hostId)
-	if err != nil {
-		return err
-	}
 
-	fileName := b.getLogsFullName(clusterId, hostId)
+	var logPrefix string
+	if host.ClusterID != nil {
+		logPrefix = host.ClusterID.String()
+	} else {
+		logPrefix = host.InfraEnvID.String()
+	}
+	fileName := b.getLogsFullName(logPrefix, host.ID.String())
 
 	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
-	err = b.objectHandler.UploadStream(ctx, upFile, fileName)
+	err := b.objectHandler.UploadStream(ctx, upFile, fileName)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to upload %s to s3 for host %s", fileName, hostId)
+		log.WithError(err).Errorf("Failed to upload %s to s3 for host %s", fileName, host.ID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	err = b.hostApi.SetUploadLogsAt(ctx, &currentHost.Host, b.db)
+	err = b.hostApi.SetUploadLogsAt(ctx, &host.Host, b.db)
 	if err != nil {
-		log.WithError(err).Errorf("Failed update host %s logs_collected_at flag", hostId)
+		log.WithError(err).Errorf("Failed update host %s logs_collected_at flag", host.ID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	err = b.hostApi.UpdateLogsProgress(ctx, &currentHost.Host, string(models.LogsStateCollecting))
+	err = b.hostApi.UpdateLogsProgress(ctx, &host.Host, string(models.LogsStateCollecting))
 	if err != nil {
-		log.WithError(err).Errorf("Failed update host %s log progress %s", hostId, string(models.LogsStateCollecting))
+		log.WithError(err).Errorf("Failed update host %s log progress %s", host.ID.String(), string(models.LogsStateCollecting))
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return nil
@@ -5050,7 +5052,7 @@ func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params ins
 }
 
 func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
-	err := b.uploadLogs(ctx, installer.UploadLogsParams{ClusterID: params.ClusterID, HostID: &params.HostID, HTTPRequest: params.HTTPRequest,
+	err := b.v1uploadLogs(ctx, installer.UploadLogsParams{ClusterID: params.ClusterID, HostID: &params.HostID, HTTPRequest: params.HTTPRequest,
 		LogsType: string(models.LogsTypeHost), Upfile: params.Upfile})
 	if err != nil {
 		return common.GenerateErrorResponder(err)
