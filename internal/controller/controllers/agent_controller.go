@@ -94,10 +94,6 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if agent.Spec.ClusterDeploymentName == nil {
-		log.Debugf("ClusterDeploymentName not set in Agent %s. Skipping Reconcile", agent.Name)
-		return ctrl.Result{Requeue: false}, nil
-	}
 
 	if agent.ObjectMeta.DeletionTimestamp.IsZero() { // agent not being deleted
 		// Register a finalizer if it is absent.
@@ -127,68 +123,98 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	kubeKey := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
-		Name:      agent.Spec.ClusterDeploymentName.Name,
-	}
-	clusterDeployment := &hivev1.ClusterDeployment{}
-
-	// Retrieve clusterDeployment
-	if err = r.Get(ctx, kubeKey, clusterDeployment); err != nil {
-		if k8serrors.IsNotFound(err) {
-			// Delete the agent, using a finalizer with pre-delete to deregister the host.
-			log.Infof("Cluster Deployment name: %s namespace: %s not found, deleting Agent",
-				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
-			return r.deleteAgent(ctx, log, req.NamespacedName)
-		}
-
-		errMsg := fmt.Sprintf("failed to get clusterDeployment with name %s in namespace %s",
-			agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
-		log.WithError(err).Error(errMsg)
-		// Update that we failed to retrieve the clusterDeployment
-		return r.updateStatus(ctx, log, agent, nil, nil, errors.Wrapf(err, errMsg), !k8serrors.IsNotFound(err))
-	}
-
-	// Retrieve cluster by ClusterDeploymentName from the database
-	cluster, err := r.Installer.GetClusterByKubeKey(kubeKey)
+	h, err := r.Installer.GetHostByKubeKey(req.NamespacedName)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Delete the agent, using a finalizer with pre-delete to deregister the host.
-			log.Infof("Cluster name: %s namespace: %s not found in backend, deleting Agent",
-				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 			return r.deleteAgent(ctx, log, req.NamespacedName)
+		} else {
+			log.WithError(err).Errorf("failed to retrieve Host %s from backend", agent.Name)
+			return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 		}
-		// Update that we failed to retrieve the cluster from the database
-		return r.updateStatus(ctx, log, agent, nil, nil, err, !errors.Is(err, gorm.ErrRecordNotFound))
 	}
 
-	//Retrieve host from cluster
-	clusterId := cluster.ID.String()
-	host := getHostFromCluster(cluster, agent.Name)
-	if host == nil {
-		// Host is not a part of the cluster, which may happen with newly created day2 clusters.
-		// Delete the agent, using a finalizer with pre-delete to deregister the host.
-		log.Infof("Host not found in Cluster ID :%s deleting Agent", string(*cluster.ID))
-		return r.deleteAgent(ctx, log, req.NamespacedName)
+	if agent.Spec.ClusterDeploymentName == nil && h.ClusterID != nil {
+		log.Debugf("ClusterDeploymentName is unset in Agent %s. unbind", agent.Name)
+		host, err2 := r.Installer.UnbindHostInternal(ctx, installer.UnbindHostParams{
+			HostID:     *h.ID,
+			InfraEnvID: h.InfraEnvID,
+		})
+		if err2 != nil {
+			return r.updateStatus(ctx, log, agent, nil, nil, err2, !IsUserError(err2))
+		}
+		return r.updateStatus(ctx, log, agent, &host.Host, h.ClusterID, nil, true)
+	}
+
+	if agent.Spec.ClusterDeploymentName != nil {
+		kubeKey := types.NamespacedName{
+			Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+			Name:      agent.Spec.ClusterDeploymentName.Name,
+		}
+		clusterDeployment := &hivev1.ClusterDeployment{}
+
+		// Retrieve clusterDeployment
+		if err = r.Get(ctx, kubeKey, clusterDeployment); err != nil {
+			if k8serrors.IsNotFound(err) {
+				// Delete the agent, using a finalizer with pre-delete to deregister the host.
+				log.Infof("Cluster Deployment name: %s namespace: %s not found, deleting Agent",
+					agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+				return r.deleteAgent(ctx, log, req.NamespacedName)
+			}
+
+			errMsg := fmt.Sprintf("failed to get clusterDeployment with name %s in namespace %s",
+				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+			log.WithError(err).Error(errMsg)
+			// Update that we failed to retrieve the clusterDeployment
+			return r.updateStatus(ctx, log, agent, nil, nil, errors.Wrapf(err, errMsg), !k8serrors.IsNotFound(err))
+		}
+
+		if h.ClusterID == nil {
+			log.Debugf("ClusterDeploymentName is set in Agent %s. bind", agent.Name)
+
+			// Retrieve cluster by ClusterDeploymentName from the database
+			cluster, err2 := r.Installer.GetClusterByKubeKey(kubeKey)
+			if err2 != nil {
+				if errors.Is(err2, gorm.ErrRecordNotFound) {
+					// Delete the agent, using a finalizer with pre-delete to deregister the host.
+					log.Infof("Cluster name: %s namespace: %s not found in backend, deleting Agent",
+						agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+					return r.deleteAgent(ctx, log, req.NamespacedName)
+				}
+				// Update that we failed to retrieve the cluster from the database
+				return r.updateStatus(ctx, log, agent, nil, nil, err2, !errors.Is(err2, gorm.ErrRecordNotFound))
+			}
+
+			host, err2 := r.Installer.BindHostInternal(ctx, installer.BindHostParams{
+				HostID:     *h.ID,
+				InfraEnvID: h.InfraEnvID,
+				BindHostParams: &models.BindHostParams{
+					ClusterID: cluster.ID,
+				},
+			})
+			if err2 != nil {
+				return r.updateStatus(ctx, log, agent, nil, nil, err2, !IsUserError(err2))
+			}
+			return r.updateStatus(ctx, log, agent, &host.Host, cluster.ID, nil, true)
+		}
 	}
 
 	// check for updates from user, compare spec and update if needed
-	err = r.updateIfNeeded(ctx, log, agent, cluster)
+	err = r.updateIfNeeded(ctx, log, agent, h)
 	if err != nil {
-		return r.updateStatus(ctx, log, agent, host, &clusterId, err, !IsUserError(err))
+		return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, err, !IsUserError(err))
 	}
 
-	err = r.updateInventory(log, host, agent)
+	err = r.updateInventory(log, &h.Host, agent)
 	if err != nil {
-		return r.updateStatus(ctx, log, agent, host, &clusterId, err, true)
+		return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, err, true)
 	}
 
-	err = r.updateNtpSources(log, host, agent)
+	err = r.updateNtpSources(log, &h.Host, agent)
 	if err != nil {
-		return r.updateStatus(ctx, log, agent, host, &clusterId, err, true)
+		return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, err, true)
 	}
 
-	return r.updateStatus(ctx, log, agent, host, &clusterId, nil, false)
+	return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, nil, false)
 }
 
 func (r *AgentReconciler) deleteAgent(ctx context.Context, log logrus.FieldLogger, agent types.NamespacedName) (ctrl.Result, error) {
@@ -251,7 +277,7 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 // updateStatus is updating all the Agent Conditions.
 // In case that an error has occured when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
-func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *models.Host, clusterId *string, syncErr error, internal bool) (ctrl.Result, error) {
+func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *models.Host, clusterId *strfmt.UUID, syncErr error, internal bool) (ctrl.Result, error) {
 
 	specSynced(agent, syncErr, internal)
 
@@ -270,7 +296,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		}
 		status := *h.Status
 		if clusterId != nil {
-			err := r.populateEventsURL(log, agent, *clusterId, h.InfraEnvID.String())
+			err := r.populateEventsURL(log, agent, (*clusterId).String(), h.InfraEnvID.String())
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
@@ -286,7 +312,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		log.WithError(updateErr).Error("failed to update agent Status")
 		return ctrl.Result{Requeue: true}, nil
 	}
-	if internal {
+	if syncErr != nil && internal {
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 	}
 	return ctrl.Result{}, nil
@@ -714,22 +740,9 @@ func (r *AgentReconciler) updateHostIgnition(ctx context.Context, log logrus.Fie
 	return err
 }
 
-func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, c *common.Cluster) error {
+func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, internalHost *common.Host) error {
 	spec := agent.Spec
-	host := getHostFromCluster(c, agent.Name)
-	if host == nil {
-		log.Errorf("Host %s not found in cluster %s", agent.Name, c.Name)
-		return errors.New("Host not found in cluster")
-	}
-
-	internalHost, err := r.Installer.GetCommonHostInternal(ctx, host.InfraEnvID.String(), agent.Name)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = common.NewApiError(http.StatusNotFound, err)
-		}
-		log.WithError(err).Errorf("Failed to get common host from cluster %s", string(*c.ID))
-		return err
-	}
+	var err error
 
 	if internalHost.Approved != spec.Approved {
 		err = r.Installer.UpdateHostApprovedInternal(ctx, internalHost.InfraEnvID.String(), agent.Name, spec.Approved)
@@ -763,27 +776,27 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 
 	hostUpdate := false
 	params := &installer.V2UpdateHostParams{
-		HostID:           *host.ID,
-		InfraEnvID:       host.InfraEnvID,
+		HostID:           *internalHost.ID,
+		InfraEnvID:       internalHost.InfraEnvID,
 		HostUpdateParams: &models.HostUpdateParams{},
 	}
-	if spec.Hostname != "" && spec.Hostname != host.RequestedHostname {
+	if spec.Hostname != "" && spec.Hostname != internalHost.RequestedHostname {
 		hostUpdate = true
 		params.HostUpdateParams.HostName = &spec.Hostname
 	}
 
-	if spec.MachineConfigPool != "" && spec.MachineConfigPool != host.MachineConfigPoolName {
+	if spec.MachineConfigPool != "" && spec.MachineConfigPool != internalHost.MachineConfigPoolName {
 		hostUpdate = true
 		params.HostUpdateParams.MachineConfigPoolName = &spec.MachineConfigPool
 	}
 
-	if spec.Role != "" && spec.Role != host.Role {
+	if spec.Role != "" && spec.Role != internalHost.Role {
 		hostUpdate = true
 		role := string(spec.Role)
 		params.HostUpdateParams.HostRole = &role
 	}
 
-	if spec.InstallationDiskID != "" && spec.InstallationDiskID != host.InstallationDiskID {
+	if spec.InstallationDiskID != "" && spec.InstallationDiskID != internalHost.InstallationDiskID {
 		hostUpdate = true
 		params.HostUpdateParams.DisksSelectedConfig = []*models.DiskConfigParams{
 			{ID: &spec.InstallationDiskID, Role: models.DiskRoleInstall},
@@ -804,17 +817,6 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 	log.Infof("Updated Agent spec %s %s", agent.Name, agent.Namespace)
 
 	return nil
-}
-
-func getHostFromCluster(c *common.Cluster, agentId string) *models.Host {
-	var host *models.Host
-	for _, h := range c.Hosts {
-		if (*h.ID).String() == agentId {
-			host = h
-			break
-		}
-	}
-	return host
 }
 
 func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
