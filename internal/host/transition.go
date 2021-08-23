@@ -533,7 +533,7 @@ func (th *transitionHandler) HasInstallationInProgressTimedOut(sw stateswitch.St
 	if sHost.host.Progress.CurrentStage == models.HostStageRebooting {
 		if hostutil.IsSingleNode(th.log, th.db, sHost.host) {
 			// use extended reboot timeout for SNO
-			maxDuration += singleNodeRebootTimeout
+			maxDuration = singleNodeRebootTimeout
 		}
 	}
 
