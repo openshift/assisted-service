@@ -11,19 +11,22 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
 	logrus "github.com/sirupsen/logrus"
 )
 
 var (
-	log                = logrus.New()
-	releaseImage       = "release_image"
-	releaseImageMirror = "release_image_mirror"
-	cacheDir           = "/tmp"
-	pullSecret         = "pull secret"
-	fullVersion        = "4.6.0-0.nightly-2020-08-31-220837"
-	mcoImage           = "mco_image"
-	mustGatherImage    = "must_gather_image"
+	log                    = logrus.New()
+	releaseImage           = "release_image"
+	releaseImageMirror     = "release_image_mirror"
+	cacheDir               = "/tmp"
+	pullSecret             = "pull secret"
+	fullVersion            = "4.6.0-0.nightly-2020-08-31-220837"
+	mcoImage               = "mco_image"
+	mustGatherImage        = "must_gather_image"
+	baremetalInstallBinary = "openshift-baremetal-install"
+	installBinary          = "openshift-install"
 )
 
 var _ = Describe("oc", func() {
@@ -257,55 +260,67 @@ var _ = Describe("oc", func() {
 	Context("Extract", func() {
 		It("extract baremetal-install from release image", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
+				baremetalInstallBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
 
-			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret)
-			filePath := filepath.Join(cacheDir+"/"+releaseImage, "openshift-baremetal-install")
+			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret, models.PlatformTypeBaremetal)
+			filePath := filepath.Join(cacheDir+"/"+releaseImage, baremetalInstallBinary)
 			Expect(path).To(Equal(filePath))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("extract baremetal-install from release image mirror", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				filepath.Join(cacheDir, releaseImageMirror), true, releaseImageMirror, tempFilePath)
+				baremetalInstallBinary, filepath.Join(cacheDir, releaseImageMirror), true, releaseImageMirror, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
 
-			path, err := oc.Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret)
-			filePath := filepath.Join(cacheDir+"/"+releaseImageMirror, "openshift-baremetal-install")
+			path, err := oc.Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret, models.PlatformTypeBaremetal)
+			filePath := filepath.Join(cacheDir+"/"+releaseImageMirror, baremetalInstallBinary)
 			Expect(path).To(Equal(filePath))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("extract baremetal-install with no release image or mirror", func() {
-			path, err := oc.Extract(log, "", "", cacheDir, pullSecret)
+			path, err := oc.Extract(log, "", "", cacheDir, pullSecret, models.PlatformTypeBaremetal)
 			Expect(path).Should(BeEmpty())
 			Expect(err).Should(HaveOccurred())
 		})
 		It("extract baremetal-install from release image with retry", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
+				baremetalInstallBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "Failed to extract the installer", 1).Times(1)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
 
-			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret)
-			filePath := filepath.Join(cacheDir+"/"+releaseImage, "openshift-baremetal-install")
+			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret, models.PlatformTypeBaremetal)
+			filePath := filepath.Join(cacheDir+"/"+releaseImage, baremetalInstallBinary)
 			Expect(path).To(Equal(filePath))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("extract baremetal-install from release image retry exhausted", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
+				baremetalInstallBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "Failed to extract the installer", 1).Times(5)
 
-			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret)
+			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret, models.PlatformTypeBaremetal)
 			Expect(path).To(Equal(""))
 			Expect(err).Should(HaveOccurred())
+		})
+
+		It("extract openshift-install from release image", func() {
+			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
+				installBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
+
+			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret, models.PlatformTypeNone)
+			filePath := filepath.Join(cacheDir+"/"+releaseImage, installBinary)
+			Expect(path).To(Equal(filePath))
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 })

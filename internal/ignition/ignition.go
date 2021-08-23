@@ -311,7 +311,7 @@ var fileNames = [...]string{
 
 // Generator can generate ignition files and upload them to an S3-like service
 type Generator interface {
-	Generate(ctx context.Context, installConfig []byte) error
+	Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error
 	UploadToS3(ctx context.Context) error
 	UpdateEtcHosts(string) error
 }
@@ -389,10 +389,10 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 }
 
 // Generate generates ignition files and applies modifications.
-func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte) error {
+func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error {
 	log := logutil.FromContext(ctx, g.log)
 	installerPath, err := installercache.Get(g.releaseImage, g.releaseImageMirror, g.installerDir,
-		g.cluster.PullSecret, log)
+		g.cluster.PullSecret, platformType, log)
 	if err != nil {
 		return errors.Wrap(err, "failed to get installer path")
 	}

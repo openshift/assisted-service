@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	models "github.com/openshift/assisted-service/models"
 	logrus "github.com/sirupsen/logrus"
 )
 
@@ -35,18 +36,18 @@ func (m *MockRelease) EXPECT() *MockReleaseMockRecorder {
 }
 
 // Extract mocks base method.
-func (m *MockRelease) Extract(log logrus.FieldLogger, releaseImage, releaseImageMirror, cacheDir, pullSecret string) (string, error) {
+func (m *MockRelease) Extract(log logrus.FieldLogger, releaseImage, releaseImageMirror, cacheDir, pullSecret string, platformType models.PlatformType) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Extract", log, releaseImage, releaseImageMirror, cacheDir, pullSecret)
+	ret := m.ctrl.Call(m, "Extract", log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Extract indicates an expected call of Extract.
-func (mr *MockReleaseMockRecorder) Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret interface{}) *gomock.Call {
+func (mr *MockReleaseMockRecorder) Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockRelease)(nil).Extract), log, releaseImage, releaseImageMirror, cacheDir, pullSecret)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockRelease)(nil).Extract), log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType)
 }
 
 // GetMCOImage mocks base method.

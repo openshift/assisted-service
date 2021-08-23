@@ -6498,6 +6498,7 @@ definitions:
     enum:
       - baremetal
       - vsphere
+      - none
 
   memory_method:
     type: string

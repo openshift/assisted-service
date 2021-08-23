@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/openshift/assisted-service/internal/oc"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/sirupsen/logrus"
 )
@@ -38,7 +39,7 @@ func (i *installers) Get(releaseID string) *release {
 // Get returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image. Tries the mirror release image first if it's set. It is safe for concurrent use. A cache of
 // binaries is maintained to reduce re-downloading of the same release.
-func Get(releaseID, releaseIDMirror, cacheDir, pullSecret string, log logrus.FieldLogger) (string, error) {
+func Get(releaseID, releaseIDMirror, cacheDir, pullSecret string, platformType models.PlatformType, log logrus.FieldLogger) (string, error) {
 	r := cache.Get(releaseID)
 	r.Lock()
 	defer r.Unlock()
@@ -48,7 +49,7 @@ func Get(releaseID, releaseIDMirror, cacheDir, pullSecret string, log logrus.Fie
 	//cache miss
 	if r.path == "" {
 		path, err = oc.NewRelease(&executer.CommonExecuter{}, oc.Config{
-			MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}).Extract(log, releaseID, releaseIDMirror, cacheDir, pullSecret)
+			MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}).Extract(log, releaseID, releaseIDMirror, cacheDir, pullSecret, platformType)
 		if err != nil {
 			return "", err
 		}

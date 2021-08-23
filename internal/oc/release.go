@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/sirupsen/logrus"
 	"github.com/thedevsaddam/retry"
@@ -32,7 +33,7 @@ type Release interface {
 	GetMustGatherImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
-	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string) (string, error)
+	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error)
 }
 
 type release struct {
@@ -50,7 +51,7 @@ func NewRelease(executer executer.Executer, config Config) Release {
 const (
 	templateGetImage   = "oc adm release info --image-for=%s --insecure=%t %s"
 	templateGetVersion = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s"
-	templateExtract    = "oc adm release extract --command=openshift-baremetal-install --to=%s --insecure=%t %s"
+	templateExtract    = "oc adm release extract --command=%s --to=%s --insecure=%t %s"
 )
 
 // GetMCOImage gets mcoImage url from the releaseImageMirror if provided.
@@ -158,7 +159,7 @@ func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, release
 
 // Extract openshift-baremetal-install binary from releaseImageMirror if provided.
 // Else extract from the source releaseImage
-func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string) (string, error) {
+func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error) {
 	var path string
 	var err error
 	if releaseImage == "" && releaseImageMirror == "" {
@@ -166,13 +167,13 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 	}
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config
-		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true)
+		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true, platformType)
 		if err != nil {
 			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from mirror release image %s", releaseImageMirror)
 			return "", err
 		}
 	} else {
-		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false)
+		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, platformType)
 		if err != nil {
 			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from release image %s", releaseImageMirror)
 			return "", err
@@ -183,22 +184,29 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 
 // extractFromRelease returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image.
-func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool) (string, error) {
+func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool, platformType models.PlatformType) (string, error) {
+	var binary string
+	if platformType == models.PlatformTypeNone {
+		binary = "openshift-install"
+	} else {
+		binary = "openshift-baremetal-install"
+	}
+
 	workdir := filepath.Join(cacheDir, releaseImage)
-	log.Infof("extracting openshift-baremetal-install binary to %s", workdir)
+	log.Infof("extracting %s binary to %s", binary, workdir)
 	err := os.MkdirAll(workdir, 0755)
 	if err != nil {
 		return "", err
 	}
 
-	cmd := fmt.Sprintf(templateExtract, workdir, insecure, releaseImage)
+	cmd := fmt.Sprintf(templateExtract, binary, workdir, insecure, releaseImage)
 	_, err = retry.Do(r.config.MaxTries, r.config.RetryDelay, execute, log, r.executer, pullSecret, cmd)
 	if err != nil {
 		return "", err
 	}
 	// set path
-	path := filepath.Join(workdir, "openshift-baremetal-install")
-	log.Info("Successfully extracted openshift-baremetal-install binary from the release to: $s", path)
+	path := filepath.Join(workdir, binary)
+	log.Info("Successfully extracted $s binary from the release to: $s", binary, path)
 	return path, nil
 }
 
