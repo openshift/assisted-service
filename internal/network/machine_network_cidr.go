@@ -253,6 +253,43 @@ func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log log
 	return ""
 }
 
+// GetMachineNetworksFromBoostrapHost used to collect machine networks from the cluster's bootstrap host.
+// The function will get at most one IPv4 and one IPv6 network.
+func GetMachineNetworksFromBoostrapHost(cluster *common.Cluster, log logrus.FieldLogger) []*models.MachineNetwork {
+	if IsMachineCidrAvailable(cluster) {
+		return cluster.MachineNetworks
+	}
+
+	bootstrap := common.GetBootstrapHost(cluster)
+	if bootstrap == nil {
+		log.Warnf("No bootstrap found in cluster %s", cluster.ID)
+		return []*models.MachineNetwork{}
+	}
+
+	networks := GetClusterNetworks([]*models.Host{bootstrap}, log)
+	var v4net, v6net string
+	res := []*models.MachineNetwork{}
+	if len(networks) > 0 {
+		for _, network := range networks {
+			if IsIPV4CIDR(network) && v4net == "" {
+				v4net = network
+			}
+			if IsIPv6CIDR(network) && v6net == "" {
+				v6net = network
+			}
+		}
+	}
+
+	if v4net != "" {
+		res = append(res, &models.MachineNetwork{Cidr: models.Subnet(v4net)})
+	}
+	if v6net != "" {
+		res = append(res, &models.MachineNetwork{Cidr: models.Subnet(v6net)})
+	}
+
+	return res
+}
+
 func GetIpForSingleNodeInstallation(cluster *common.Cluster, log logrus.FieldLogger) (string, error) {
 	bootstrap := common.GetBootstrapHost(cluster)
 	if bootstrap == nil {
