@@ -5640,7 +5640,22 @@ func (b *bareMetalInventory) V2PostStepReply(ctx context.Context, params install
 }
 
 func (b *bareMetalInventory) V2GetHost(ctx context.Context, params installer.V2GetHostParams) middleware.Responder {
-	return installer.NewV2GetHostNotImplemented()
+	host, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return installer.NewV2GetHostNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+		} else {
+			return common.GenerateErrorResponder(err)
+		}
+	}
+
+	if err := b.customizeHost(&host.Host); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	// Clear this field as it is not needed to be sent via API
+	host.FreeAddresses = ""
+	return installer.NewV2GetHostOK().WithPayload(&host.Host)
 }
 
 func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) middleware.Responder {
