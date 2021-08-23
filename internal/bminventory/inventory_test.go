@@ -950,6 +950,78 @@ var _ = Describe("GetHost", func() {
 	})
 })
 
+var _ = Describe("V2GetHost", func() {
+	var (
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		hostID     strfmt.UUID
+		infraEnvId strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		hostID = strfmt.UUID(uuid.New().String())
+		db, _ = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+
+		hostObj := models.Host{
+			ID:         &hostID,
+			InfraEnvID: infraEnvId,
+			ClusterID:  nil,
+			Status:     swag.String("discovering"),
+		}
+		Expect(db.Create(&hostObj).Error).ShouldNot(HaveOccurred())
+	})
+
+	It("V2 Get host failed", func() {
+		ctx := context.Background()
+		params := installer.V2GetHostParams{
+			InfraEnvID: infraEnvId,
+			HostID:     "no-such-host",
+		}
+
+		response := bm.V2GetHost(ctx, params)
+		Expect(response).Should(BeAssignableToTypeOf(&installer.V2GetHostNotFound{}))
+	})
+
+	It("V2 Get host succeed", func() {
+		ctx := context.Background()
+		params := installer.V2GetHostParams{
+			InfraEnvID: infraEnvId,
+			HostID:     hostID,
+		}
+
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		response := bm.V2GetHost(ctx, params)
+		Expect(response).Should(BeAssignableToTypeOf(&installer.V2GetHostOK{}))
+	})
+
+	It("V2 Validate customization have occurred", func() {
+		ctx := context.Background()
+
+		hostObj := models.Host{
+			ID:         &hostID,
+			InfraEnvID: infraEnvId,
+			ClusterID:  &infraEnvId,
+			Status:     swag.String("discovering"),
+			Bootstrap:  true,
+		}
+		Expect(db.Model(&hostObj).Update("Bootstrap", true).Error).ShouldNot(HaveOccurred())
+		objectAfterUpdating, _ := common.GetHostFromDB(db, infraEnvId.String(), hostID.String())
+		Expect(objectAfterUpdating.Bootstrap).To(BeTrue())
+		Expect(objectAfterUpdating.ProgressStages).To(BeEmpty())
+		params := installer.V2GetHostParams{
+			InfraEnvID: infraEnvId,
+			HostID:     hostID,
+		}
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(host.BootstrapStages[:]).Times(1)
+		response := bm.V2GetHost(ctx, params)
+		Expect(response).Should(BeAssignableToTypeOf(&installer.V2GetHostOK{}))
+		Expect(response.(*installer.V2GetHostOK).Payload.ProgressStages).To(ConsistOf(host.BootstrapStages[:]))
+	})
+})
+
 var _ = Describe("RegisterHost", func() {
 	var (
 		bm     *bareMetalInventory
