@@ -2,7 +2,7 @@ NAMESPACE := $(or ${NAMESPACE},assisted-installer)
 PWD = $(shell pwd)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-CONTAINER_COMMAND := $(or ${CONTAINER_COMMAND},docker)
+CONTAINER_COMMAND := $(shell hack/utils.sh get_container_runtime_command)
 TARGET := $(or ${TARGET},local)
 KUBECTL=kubectl -n $(NAMESPACE)
 
@@ -15,7 +15,7 @@ ifdef E2E_TESTS_MODE
 E2E_TESTS_CONFIG = --img-expr-time=5m --img-expr-interval=5m
 endif
 
-ifeq ($(CONTAINER_COMMAND), podman)
+ifneq (,$(findstring podman,$(CONTAINER_COMMAND)))
 	PUSH_FLAGS = --tls-verify=false
 endif
 
@@ -125,13 +125,12 @@ init:
 	./hack/setup_env.sh assisted_service
 
 ci-lint:
-ifdef SKIPPER_USERNAME
+ifeq ($(shell hack/utils.sh running_from_skipper && echo 1 || echo 0),1)
 	$(error Running this target using skipper is not supported, try `make ci-lint` instead)
 endif
-
 	${ROOT_DIR}/hack/check-commits.sh
 	${ROOT_DIR}/tools/handle_ocp_versions.py
-	skipper $(MAKE) generate-all
+	skipper -v $(MAKE) generate-all
 	git diff --exit-code  # this will fail if generate-all caused any diff
 
 lint:
@@ -199,10 +198,10 @@ update-local-image: $(UPDATE_LOCAL_SERVICE)
 build-image: validate update-minimal
 
 update-service: build-in-docker
-	docker push $(SERVICE)
+	$(CONTAINER_COMMAND) push $(SERVICE)
 
 update: build-all
-	docker push $(SERVICE)
+	$(CONTAINER_COMMAND) push $(SERVICE)
 
 define publish_image
 	${1} tag ${2} ${3}
@@ -432,12 +431,12 @@ ifeq ($(CI), true)
 endif
 
 unit-test:
-	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
-	docker run -d  --rm --tmpfs /var/lib/postgresql/data --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 \
+	$(CONTAINER_COMMAND) ps -q --filter "name=postgres" | xargs -r $(CONTAINER_COMMAND) kill && sleep 3
+	$(CONTAINER_COMMAND) run -d  --rm --tmpfs /var/lib/postgresql/data --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 \
 		quay.io/ocpmetal/postgres:12.3-alpine -c 'max_connections=10000'
 	timeout 5m ./hack/wait_for_postgres.sh
-	SKIP_UT_DB=1 $(MAKE) _test TEST_SCENARIO=unit TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem))" || (docker kill postgres && /bin/false)
-	docker kill postgres
+	SKIP_UT_DB=1 $(MAKE) _test TEST_SCENARIO=unit TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem))" || ($(CONTAINER_COMMAND) kill postgres && /bin/false)
+	$(CONTAINER_COMMAND) kill postgres
 
 $(REPORTS):
 	-mkdir -p $(REPORTS)
@@ -471,8 +470,8 @@ clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --target "$(TARGET)" || true
 
 clear-images:
-	-docker rmi -f $(SERVICE)
-	-docker rmi -f $(ISO_CREATION)
+	-$(CONTAINER_COMMAND) rmi -f $(SERVICE)
+	-$(CONTAINER_COMMAND) rmi -f $(ISO_CREATION)
 
 clean-onprem:
 	podman pod rm -f assisted-installer || true
@@ -486,10 +485,10 @@ operator-bundle: generate-bundle
 # Build the bundle and index images.
 .PHONY: operator-bundle-build operator-bundle-update
 operator-bundle-build: generate-bundle
-	docker build $(CONTAINER_BUILD_PARAMS) -f deploy/olm-catalog/bundle.Dockerfile -t $(BUNDLE_IMAGE) .
+	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) -f deploy/olm-catalog/bundle.Dockerfile -t $(BUNDLE_IMAGE) .
 
 operator-bundle-update:
-	docker push $(BUNDLE_IMAGE)
+	$(CONTAINER_COMMAND) push $(BUNDLE_IMAGE)
 
 operator-index-build:
-	opm index add --bundles $(BUNDLE_IMAGE) --tag $(INDEX_IMAGE) --container-tool docker
+	opm index add --bundles $(BUNDLE_IMAGE) --tag $(INDEX_IMAGE) --container-tool $(CONTAINER_COMMAND)

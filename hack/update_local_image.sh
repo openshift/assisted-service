@@ -4,6 +4,8 @@ set -o nounset
 set -o pipefail
 set -o errexit
 set -o xtrace
+source hack/utils.sh
+
 
 CLUSTER_CONTEXT=$(${KUBECTL} config current-context | cut -d'-' -f1)
 
@@ -21,9 +23,8 @@ case "${CLUSTER_CONTEXT}" in
     # skipper container expects a binary compiled for Linux).
     if ! command -v minikube &> /dev/null
     then
-      # The SKIPPER_UID environment variable is an indication that we are running on a skipper container.
       # We don't want to change the user's host but to ask the user to install.
-      if [[ ! -n SKIPPER_UID ]]; then
+      if ! running_from_skipper; then
         echo "ERROR: minikube command is not installed or not in your PATH"
         exit 1
       fi
@@ -37,7 +38,7 @@ case "${CLUSTER_CONTEXT}" in
       rpm -ivh minikube-latest.x86_64.rpm
     fi
 
-    eval $(SHELL=${SHELL:-/bin/sh} minikube docker-env) && \
+    eval $(SHELL=${SHELL:-/bin/sh} minikube "$(get_container_runtime_command)-env") && \
         make update-${DEBUG_SERVICE:+debug-}minimal
     ;;
 
