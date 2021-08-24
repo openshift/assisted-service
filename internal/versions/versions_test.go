@@ -576,6 +576,68 @@ var _ = Describe("list versions", func() {
 		})
 	})
 
+	Context("getLatestVersion", func() {
+
+		It("No versions", func() {
+			osImages = &defaultOsImages
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = h.GetLatestOpenshiftVersion("x86_64")
+			Expect(err).Should(HaveOccurred())
+		})
+
+		It("only one OpenShift version", func() {
+			var version *models.OpenshiftVersion
+			openshiftVersions = &models.OpenshiftVersions{
+				"4.8": models.OpenshiftVersion{
+					DisplayName:  swag.String("4.8-candidate"),
+					ReleaseImage: swag.String("release_4.8"), ReleaseVersion: swag.String("4.8-candidate"),
+					RhcosImage: swag.String("rhcos_4.8"), RhcosRootfs: swag.String("rhcos_rootfs_4.8"),
+					RhcosVersion: swag.String("version-48.123-0"),
+					SupportLevel: swag.String("newbie"),
+				},
+			}
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			version, err = h.GetLatestOpenshiftVersion("x86_64")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*version).Should(Equal((*openshiftVersions)["4.8"]))
+		})
+
+		It("Multiple OpenShift versions", func() {
+			var version *models.OpenshiftVersion
+			openshiftVersions = &models.OpenshiftVersions{
+				"4.8": models.OpenshiftVersion{
+					DisplayName:  swag.String("4.8-candidate"),
+					ReleaseImage: swag.String("release_4.8"), ReleaseVersion: swag.String("4.8-candidate"),
+					RhcosImage: swag.String("rhcos_4.8"), RhcosRootfs: swag.String("rhcos_rootfs_4.8"),
+					RhcosVersion: swag.String("version-48.123-0"),
+					SupportLevel: swag.String("newbie"),
+				},
+				"4.9": models.OpenshiftVersion{
+					DisplayName:  swag.String("4.9-candidate"),
+					ReleaseImage: swag.String("release_4.9"), ReleaseVersion: swag.String("4.9-candidate"),
+					RhcosImage: swag.String("rhcos_4.9"), RhcosRootfs: swag.String("rhcos_rootfs_4.9"),
+					RhcosVersion: swag.String("version-49.123-0"),
+					SupportLevel: swag.String("newbie"),
+				},
+				"4.6": models.OpenshiftVersion{
+					DisplayName:  swag.String("4.6-candidate"),
+					ReleaseImage: swag.String("release_4.6"), ReleaseVersion: swag.String("4.6-candidate"),
+					RhcosImage: swag.String("rhcos_4.6"), RhcosRootfs: swag.String("rhcos_rootfs_4.6"),
+					RhcosVersion: swag.String("version-46.123-0"),
+					SupportLevel: swag.String("newbie"),
+				},
+			}
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			version, err = h.GetLatestOpenshiftVersion("x86_64")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*version).Should(Equal((*openshiftVersions)["4.9"]))
+		})
+
+	})
+
 	Context("validateVersions", func() {
 		var (
 			versionKey        = "4.8"
