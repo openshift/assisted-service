@@ -25,6 +25,7 @@ var _ = Describe("Controller events wrapper", func() {
 		db                   *gorm.DB
 		cluster1             *common.Cluster
 		cluster2             *common.Cluster
+		infraEnv1            *common.InfraEnv
 		theEvents            *events.Events
 		cEventsWrapper       *controllerEventsWrapper
 		mockCtrl             *gomock.Controller
@@ -58,6 +59,17 @@ var _ = Describe("Controller events wrapper", func() {
 			KubeKeyNamespace: "cluster2Nm",
 		}
 		err = db.Create(&cluster2).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnv1 = &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:   infraEnvId,
+				Name: "infraEnv1",
+			},
+			KubeKeyNamespace: "infraEnv1Nm",
+		}
+		err = db.Create(&infraEnv1).Error
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 	numOfEvents := func(clusterID strfmt.UUID, hostID *strfmt.UUID) int {
@@ -201,6 +213,48 @@ var _ = Describe("Controller events wrapper", func() {
 			Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(1))
 			Expect(numOfEvents(*cluster1.ID, host1.ID)).Should(Equal(1))
 		})
+
+		It("Sending a host event - unbound", func() {
+			hostID1 := strfmt.UUID(uuid.New().String())
+			host1 := common.Host{
+				Host: models.Host{
+					ID:         &hostID1,
+					InfraEnvID: infraEnv1.ID,
+					Status:     swag.String(models.HostStatusKnown),
+					Kind:       swag.String(models.HostKindHost),
+				},
+				KubeKeyNamespace: "hostNm",
+			}
+			err := db.Create(&host1).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
+			cEventsWrapper.SendHostEvent(context.TODO(),
+				eventgen.NewGenericHostEvent(infraEnv1.ID, *host1.ID, "event1", models.EventSeverityInfo))
+			Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(0))
+			Expect(numOfEvents(infraEnv1.ID, host1.ID)).Should(Equal(1))
+		})
+	})
+
+	It("Sending a host event with time - unbound", func() {
+		hostID1 := strfmt.UUID(uuid.New().String())
+		host1 := common.Host{
+			Host: models.Host{
+				ID:         &hostID1,
+				InfraEnvID: infraEnv1.ID,
+				Status:     swag.String(models.HostStatusKnown),
+				Kind:       swag.String(models.HostKindHost),
+			},
+			KubeKeyNamespace: "hostNm",
+		}
+		err := db.Create(&host1).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
+		cEventsWrapper.SendHostEventAtTime(context.TODO(),
+			eventgen.NewGenericHostEvent(infraEnv1.ID, *host1.ID, "event1", models.EventSeverityInfo), time.Now())
+		Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(0))
+		Expect(numOfEvents(infraEnv1.ID, host1.ID)).Should(Equal(1))
 	})
 
 	AfterEach(func() {
