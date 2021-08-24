@@ -398,6 +398,7 @@ _run_subsystem_test:
 	DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
 	OCM_HOST=$(shell $(call get_service,wiremock) | sed 's/http:\/\///g') \
 	TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
+	TEST_TOKEN_2="$(shell cat $(BUILD_FOLDER)/auth-tokenString2)" \
 	TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
 	TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
 	$(MAKE) _test TEST_SCENARIO=subsystem TIMEOUT=120m TEST="$(or $(TEST),./subsystem/...)"

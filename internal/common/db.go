@@ -331,6 +331,9 @@ func CreateInfraEnvForCluster(db *gorm.DB, cluster *Cluster) error {
 		PullSecretSet:    true,
 		Proxy:            &proxy,
 		CPUArchitecture:  cluster.CPUArchitecture,
+		EmailDomain:      cluster.EmailDomain,
+		OrgID:            cluster.OrgID,
+		UserName:         cluster.UserName,
 	},
 		PullSecret: cluster.PullSecret,
 	}
