@@ -222,7 +222,9 @@ func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr string)
 		}
 	}
 
-	return db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(&common.Cluster{
-		MachineNetworkCidrUpdatedAt: time.Now(),
-	}).Error
+	// TODO MGMT-7365: Deprecate single network
+	return db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(
+		"machine_network_cidr", machineCidr,
+		"machine_network_cidr_updated_at", time.Now(),
+	).Error
 }
