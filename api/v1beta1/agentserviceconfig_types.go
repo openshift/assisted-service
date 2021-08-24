@@ -96,12 +96,18 @@ const (
 	ReasonStorageFailure string = "StorageFailure"
 	// ReasonAgentServiceFailure when there was a failure related to the assisted-service's service.
 	ReasonAgentServiceFailure string = "AgentServiceFailure"
+	// ReasonAgentServiceFailure when there was a failure related to generating/deploying the service monitor.
+	ReasonAgentServiceMonitorFailure string = "AgentServiceMonitorFailure"
 	// ReasonAgentRouteFailure when there was a failure configuring/deploying the assisted-service's route.
 	ReasonAgentRouteFailure string = "AgentRouteFailure"
 	// ReasonAgentLocalAuthSecretFailure when there was a failure generating/deploying the local auth key pair secret.
 	ReasonAgentLocalAuthSecretFailure string = "AgentLocalAuthSecretFailure" // #nosec
 	// ReasonPostgresSecretFailure when there was a failure generating/deploying the database secret.
 	ReasonPostgresSecretFailure string = "PostgresSecretFailure"
+	// ReasonIngressCertFailure when there was a failure generating/deploying the ingress cert configmap.
+	ReasonIngressCertFailure string = "IngressCertFailure"
+	// ReasonConfigFailure when there was a failure configuring/deploying the assisted-service configmap.
+	ReasonConfigFailure string = "ConfigFailure"
 	// ReasonDeploymentFailure when there was a failure configuring/deploying the assisted-service deployment.
 	ReasonDeploymentFailure string = "DeploymentFailure"
 )

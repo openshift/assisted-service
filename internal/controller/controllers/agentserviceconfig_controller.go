@@ -59,14 +59,14 @@ import (
 const (
 	// agentServiceConfigName is the one and only name for an AgentServiceConfig
 	// supported in the cluster. Any others will be ignored.
-	agentServiceConfigName = "agent"
+	agentServiceConfigName        = "agent"
+	serviceName            string = "assisted-service"
+	databaseName           string = "postgres"
 
-	serviceName              string = "assisted-service"
-	databaseName             string = "postgres"
-	databasePasswordLength   int    = 16
-	servicePort              int32  = 8090
-	databasePort             int32  = 5432
-	agentLocalAuthSecretName        = serviceName + "local-auth" // #nosec
+	databasePasswordLength   int   = 16
+	servicePort              int32 = 8090
+	databasePort             int32 = 5432
+	agentLocalAuthSecretName       = serviceName + "local-auth" // #nosec
 
 	defaultIngressCertCMName      string = "default-ingress-cert"
 	defaultIngressCertCMNamespace string = "openshift-config-managed"
@@ -88,6 +88,8 @@ type AgentServiceConfigReconciler struct {
 	// Namespace the operator is running in
 	Namespace string
 }
+
+type NewComponentFn func(context.Context, logrus.FieldLogger, *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error)
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs/status,verbs=get;update;patch
@@ -126,7 +128,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 			// Return and don't requeue
 			return reconcile.Result{}, nil
 		}
-		log.Error(err, "Failed to get resource", req.NamespacedName)
+		log.WithError(err).Error("Failed to get resource", req.NamespacedName)
 		return ctrl.Result{}, err
 	}
 
@@ -140,26 +142,54 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		return reconcile.Result{}, nil
 	}
 
-	for _, f := range []func(context.Context, logrus.FieldLogger, *aiv1beta1.AgentServiceConfig) error{
-		r.ensureFilesystemStorage,
-		r.ensureDatabaseStorage,
-		r.ensureAgentService,
-		r.ensureServiceMonitor,
-		r.ensureAgentRoute,
-		r.ensureAgentLocalAuthSecret,
-		r.ensurePostgresSecret,
-		r.ensureIngressCertCM,
-		r.ensureAssistedCM,
-		r.ensureAssistedServiceDeployment,
+	for _, component := range []struct {
+		name   string
+		reason string
+		fn     NewComponentFn
+	}{
+		{"FilesystemStorage", aiv1beta1.ReasonStorageFailure, r.newFilesystemPVC},
+		{"DatabaseStorage", aiv1beta1.ReasonStorageFailure, r.newDatabasePVC},
+		{"AgentService", aiv1beta1.ReasonAgentServiceFailure, r.newAgentService},
+		{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, r.newServiceMonitor},
+		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, r.newAgentRoute},
+		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, r.newAgentLocalAuthSecret},
+		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, r.newPostgresSecret},
+		{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, r.newIngressCertCM},
+		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, r.newAssistedCM},
+		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, r.newAssistedServiceDeployment},
 	} {
-		err := f(ctx, log, instance)
+		obj, mutateFn, err := component.fn(ctx, log, instance)
 		if err != nil {
-			log.Error(err, "Failed reconcile")
+			msg := "Failed to generate definition for " + component.name
+			log.WithError(err).Error(msg)
+			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+				Type:    aiv1beta1.ConditionReconcileCompleted,
+				Status:  corev1.ConditionFalse,
+				Reason:  component.reason,
+				Message: msg,
+			})
 			if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
-				log.Error(err, "Failed to update status")
+				log.WithError(err).Error("Failed to update status")
 				return ctrl.Result{Requeue: true}, statusErr
 			}
 			return ctrl.Result{Requeue: true}, err
+		}
+
+		if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, obj, mutateFn); err != nil {
+			msg := "Failed to ensure " + component.name
+			log.WithError(err).Error(msg)
+			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+				Type:    aiv1beta1.ConditionReconcileCompleted,
+				Status:  corev1.ConditionFalse,
+				Reason:  component.reason,
+				Message: msg,
+			})
+			if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
+				log.WithError(err).Error("Failed to update status")
+				return ctrl.Result{Requeue: true}, statusErr
+			}
+		} else if result != controllerutil.OperationResultNone {
+			log.Info(component.name + " created")
 		}
 	}
 
@@ -173,213 +203,313 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	return ctrl.Result{}, r.Status().Update(ctx, instance)
 }
 
-func (r *AgentServiceConfigReconciler) ensureServiceMonitor(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
+// SetupWithManager sets up the controller with the Manager.
+func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	ingressCMPredicates := builder.WithPredicates(predicate.Funcs{
+		CreateFunc:  func(e event.CreateEvent) bool { return checkIngressCMName(e.Object) },
+		UpdateFunc:  func(e event.UpdateEvent) bool { return checkIngressCMName(e.ObjectNew) },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return checkIngressCMName(e.Object) },
+		GenericFunc: func(e event.GenericEvent) bool { return checkIngressCMName(e.Object) },
+	})
+	ingressCMHandler := handler.EnqueueRequestsFromMapFunc(
+		func(_ client.Object) []reconcile.Request {
+			return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: agentServiceConfigName}}}
+		},
+	)
+
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&aiv1beta1.AgentServiceConfig{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
+		Owns(&monitoringv1.ServiceMonitor{}).
+		Owns(&corev1.Service{}).
+		Owns(&corev1.Secret{}).
+		Owns(&routev1.Route{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.ConfigMap{}).
+		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, ingressCMHandler, ingressCMPredicates).
+		Complete(r)
+}
+
+func (r *AgentServiceConfigReconciler) newFilesystemPVC(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: r.Namespace,
+		},
+		Spec: instance.Spec.FileSystemStorage,
+	}
+
+	requests := map[corev1.ResourceName]resource.Quantity{}
+	for key, value := range instance.Spec.FileSystemStorage.Resources.Requests {
+		requests[key] = value
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, pvc, r.Scheme); err != nil {
+			return err
+		}
+		// Everything else is immutable once bound.
+		pvc.Spec.Resources.Requests = requests
+		return nil
+	}
+
+	return pvc, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newDatabasePVC(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      databaseName,
+			Namespace: r.Namespace,
+		},
+		Spec: instance.Spec.DatabaseStorage,
+	}
+
+	requests := map[corev1.ResourceName]resource.Quantity{}
+	for key, value := range instance.Spec.DatabaseStorage.Resources.Requests {
+		requests[key] = value
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, pvc, r.Scheme); err != nil {
+			return err
+		}
+		// Everything else is immutable once bound.
+		pvc.Spec.Resources.Requests = requests
+		return nil
+	}
+
+	return pvc, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newAgentService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: r.Namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, svc, r.Scheme); err != nil {
+			return err
+		}
+		addAppLabel(serviceName, &svc.ObjectMeta)
+		if svc.ObjectMeta.Annotations == nil {
+			svc.ObjectMeta.Annotations = make(map[string]string)
+		}
+		svc.ObjectMeta.Annotations["service.beta.openshift.io/serving-cert-secret-name"] = serviceName
+		if len(svc.Spec.Ports) == 0 {
+			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
+		}
+		svc.Spec.Ports[0].Name = serviceName
+		svc.Spec.Ports[0].Port = servicePort
+		// since intstr.FromInt() doesn't take an int32, just use what FromInt() would return
+		svc.Spec.Ports[0].TargetPort = intstr.IntOrString{Type: intstr.Int, IntVal: servicePort}
+		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
+		svc.Spec.Selector = map[string]string{"app": serviceName}
+		svc.Spec.Type = corev1.ServiceTypeClusterIP
+		return nil
+	}
+
+	return svc, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newServiceMonitor(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	service := &corev1.Service{}
 	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, service); err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	sm, mutateFn := r.newServiceMonitor(instance, service)
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, sm, mutateFn); err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonStorageFailure,
-			Message: "Failed to ensure Service Monitor: " + err.Error(),
-		})
-		return err
-	} else if result != controllerutil.OperationResultNone {
-		log.Info("ServiceMonitor created")
+	endpoints := make([]monitoringv1.Endpoint, len(service.Spec.Ports))
+	for i := range service.Spec.Ports {
+		endpoints[i].Port = service.Spec.Ports[i].Name
 	}
 
-	return nil
-}
-
-func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	pvc, mutateFn := r.newPVC(instance, serviceName, instance.Spec.FileSystemStorage)
-
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, mutateFn); err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonStorageFailure,
-			Message: "Failed to ensure filesystem storage: " + err.Error(),
-		})
-		return err
-	} else if result != controllerutil.OperationResultNone {
-		log.Info("Filesystem storage created")
-	}
-	return nil
-}
-
-func (r *AgentServiceConfigReconciler) ensureDatabaseStorage(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	pvc, mutateFn := r.newPVC(instance, databaseName, instance.Spec.DatabaseStorage)
-
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, mutateFn); err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonStorageFailure,
-			Message: "Failed to ensure database storage: " + err.Error(),
-		})
-		return err
-	} else if result != controllerutil.OperationResultNone {
-		log.Info("Database storage created")
-	}
-	return nil
-}
-
-func (r *AgentServiceConfigReconciler) ensureAgentService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	svc, mutateFn := r.newAgentService(instance)
-
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, svc, mutateFn); err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonAgentServiceFailure,
-			Message: "Failed to ensure agent service: " + err.Error(),
-		})
-		return err
-	} else if result != controllerutil.OperationResultNone {
-		log.Info("Agent service created")
-	}
-	return nil
-}
-
-func (r *AgentServiceConfigReconciler) ensureAgentRoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	route, mutateFn := r.newAgentRoute(instance)
-
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, route, mutateFn); err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonAgentRouteFailure,
-			Message: "Failed to ensure agent route: " + err.Error(),
-		})
-		return err
-	} else if result != controllerutil.OperationResultNone {
-		log.Info("Agent route created")
-	}
-	return nil
-}
-
-func (r *AgentServiceConfigReconciler) ensureAgentLocalAuthSecret(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	secret, mutateFn, err := r.newAgentLocalAuthSecret(instance)
-	if err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonAgentLocalAuthSecretFailure,
-			Message: "Failed to generate agent local auth secret: " + err.Error(),
-		})
-		return err
+	labels := make(map[string]string)
+	for k, v := range service.ObjectMeta.Labels {
+		labels[k] = v
 	}
 
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, mutateFn); err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonAgentLocalAuthSecretFailure,
-			Message: "Failed to ensure agent local auth secret: " + err.Error(),
-		})
-		return err
-	} else {
-		switch result {
-		case controllerutil.OperationResultCreated:
-			log.Info("Agent local auth secret created")
-		case controllerutil.OperationResultUpdated:
-			log.Info("Agent local auth secret updated")
+	smSpec := monitoringv1.ServiceMonitorSpec{
+		Selector: metav1.LabelSelector{
+			MatchLabels: labels,
+		},
+		Endpoints: endpoints,
+	}
+
+	sm := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      service.ObjectMeta.Name,
+			Namespace: r.Namespace,
+			Labels:    labels,
+		},
+		Spec: smSpec,
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, sm, r.Scheme); err != nil {
+			return err
 		}
+
+		sm.Spec = smSpec
+		sm.ObjectMeta.Labels = labels
+		return nil
 	}
-	return nil
+
+	return sm, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) ensurePostgresSecret(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	// TODO(djzager): using controllerutil.CreateOrUpdate is convenient but we may
-	// want to consider simply creating the secret if we can't find instead of
-	// generating a secret every reconcile.
-	secret, mutateFn, err := r.newPostgresSecret(instance)
-	if err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonPostgresSecretFailure,
-			Message: "Failed to generate database secret: " + err.Error(),
-		})
-		return err
+func (r *AgentServiceConfigReconciler) newAgentRoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	weight := int32(100)
+	route := &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: r.Namespace,
+		},
+	}
+	routeSpec := routev1.RouteSpec{
+		To: routev1.RouteTargetReference{
+			Kind:   "Service",
+			Name:   serviceName,
+			Weight: &weight,
+		},
+		Port: &routev1.RoutePort{
+			TargetPort: intstr.FromString(serviceName),
+		},
+		WildcardPolicy: routev1.WildcardPolicyNone,
+		TLS:            &routev1.TLSConfig{Termination: routev1.TLSTerminationReencrypt},
 	}
 
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, mutateFn); err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonPostgresSecretFailure,
-			Message: "Failed to ensure database secret: " + err.Error(),
-		})
-		return err
-	} else if result != controllerutil.OperationResultNone {
-		log.Info("Database secret created")
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
+			return err
+		}
+		// Only update what is specified above in routeSpec.
+		// If we update the entire route.Spec with
+		// route.Spec = routeSpec
+		// it would overwrite any existing values for route.Spec.Host
+		route.Spec.To = routeSpec.To
+		route.Spec.Port = routeSpec.Port
+		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
+		route.Spec.TLS = routeSpec.TLS
+		return nil
 	}
-	return nil
+
+	return route, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	deployment, mutateFn, err := r.newAssistedServiceDeployment(ctx, log, instance)
-	if err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonDeploymentFailure,
-			Message: "Failed to generate assisted service deployment: " + err.Error(),
-		})
-		return err
+func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      agentLocalAuthSecretName,
+			Namespace: r.Namespace,
+		},
+		Type: corev1.SecretTypeOpaque,
 	}
 
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, mutateFn); err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonDeploymentFailure,
-			Message: "Failed to ensure assisted service deployment: " + err.Error(),
-		})
-		return err
-	} else if result != controllerutil.OperationResultNone {
-		log.Info("Assisted service deployment created")
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, secret, r.Scheme); err != nil {
+			return err
+		}
+		_, privateKeyPresent := secret.Data["ec-private-key.pem"]
+		_, publicKeyPresent := secret.Data["ec-public-key.pem"]
+		if !privateKeyPresent && !publicKeyPresent {
+			publicKey, privateKey, err := gencrypto.ECDSAKeyPairPEM()
+			if err != nil {
+				return err
+			}
+			if secret.Data == nil {
+				secret.Data = map[string][]byte{}
+			}
+			secret.Data["ec-private-key.pem"] = []byte(privateKey)
+			secret.Data["ec-public-key.pem"] = []byte(publicKey)
+		}
+		return nil
 	}
-	return nil
+
+	return secret, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) ensureIngressCertCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
+func (r *AgentServiceConfigReconciler) newPostgresSecret(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      databaseName,
+			Namespace: r.Namespace,
+		},
+		Type: corev1.SecretTypeOpaque,
+	}
+
+	mutateFn := func() error {
+		err := controllerutil.SetControllerReference(instance, secret, r.Scheme)
+		if err != nil {
+			return err
+		}
+
+		// the password should not change so only calculate it if a new object is going to be created
+		var pass string
+		if secret.ObjectMeta.CreationTimestamp.IsZero() {
+			pass, err = generatePassword(databasePasswordLength)
+			if err != nil {
+				return err
+			}
+
+			secret.StringData = map[string]string{
+				"db.host":     "localhost",
+				"db.user":     "admin",
+				"db.password": pass,
+				"db.name":     "installer",
+				"db.port":     strconv.Itoa(int(databasePort)),
+			}
+		}
+		return nil
+	}
+
+	return secret, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newIngressCertCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	sourceCM := &corev1.ConfigMap{}
 
 	if err := r.Get(ctx, types.NamespacedName{Name: defaultIngressCertCMName, Namespace: defaultIngressCertCMNamespace}, sourceCM); err != nil {
-		log.Error(err, "Failed to get default ingress cert config map")
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonDeploymentFailure,
-			Message: "Failed to get default ingress cert config map: " + err.Error(),
-		})
-		return err
+		log.WithError(err).Error("Failed to get default ingress cert config map")
+		return nil, nil, err
 	}
 
-	cm, mutateFn := r.newIngressCertCM(instance, sourceCM)
-
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, cm, mutateFn); err != nil {
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonDeploymentFailure,
-			Message: "Failed to ensure ingress cert config map: " + err.Error(),
-		})
-		return err
-	} else if result != controllerutil.OperationResultNone {
-		log.Info("Ingress config map created")
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      defaultIngressCertCMName,
+			Namespace: r.Namespace,
+		},
 	}
-	return nil
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
+			return err
+		}
+		cm.Data = make(map[string]string)
+		for k, v := range sourceCM.Data {
+			cm.Data[k] = v
+		}
+		return nil
+	}
+
+	return cm, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAssistedCM(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig, serviceURL *url.URL) (*corev1.ConfigMap, controllerutil.MutateFn) {
+func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	// must have the route in order to populate SERVICE_BASE_URL for the service
+	route := &routev1.Route{}
+	err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, route)
+	if err != nil || route.Spec.Host == "" {
+		if err == nil {
+			err = fmt.Errorf("Route's host is empty")
+		}
+		log.Info("Failed to get route or route's host is empty")
+		return nil, nil, err
+	}
+
+	serviceURL := &url.URL{Scheme: "https", Host: route.Spec.Host}
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
@@ -419,6 +549,7 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(log logrus.FieldLogger, ins
 			"CHECK_CLUSTER_VERSION":       "True",
 			"CREATE_S3_BUCKET":            "False",
 			"ENABLE_KUBE_API":             "True",
+			"ENABLE_KUBE_API_DAY2":        "True",
 			"ENABLE_SINGLE_NODE_DNSMASQ":  "True",
 			"IPV6_SUPPORT":                "True",
 			"JWKS_URL":                    "https://api.openshift.com/.well-known/jwks.json",
@@ -442,306 +573,10 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(log logrus.FieldLogger, ins
 		return nil
 	}
 
-	return cm, mutateFn
+	return cm, mutateFn, nil
 }
 
-func copyEnv(config map[string]string, key string) {
-	if value, ok := os.LookupEnv(key); ok {
-		config[key] = value
-	}
-}
-
-func (r *AgentServiceConfigReconciler) ensureAssistedCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
-	// must have the route in order to populate SERVICE_BASE_URL for the service
-	route := &routev1.Route{}
-	err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, route)
-	if err != nil || route.Spec.Host == "" {
-		if err == nil {
-			err = fmt.Errorf("Route's host is empty")
-		}
-		log.Info("Failed to get route or route's host is empty")
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonDeploymentFailure,
-			Message: "Failed to get route for assisted service: " + err.Error(),
-		})
-		return err
-	}
-
-	serviceURL := &url.URL{Scheme: "https", Host: route.Spec.Host}
-	cm, mutateFn := r.newAssistedCM(log, instance, serviceURL)
-
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, cm, mutateFn); err != nil {
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonDeploymentFailure,
-			Message: "Failed to ensure assisted settings config map: " + err.Error(),
-		})
-		return err
-	} else if result != controllerutil.OperationResultNone {
-		log.Info("Assisted settings config map created")
-	}
-	return nil
-}
-
-func checkIngressCMName(obj metav1.Object) bool {
-	return obj.GetNamespace() == defaultIngressCertCMNamespace && obj.GetName() == defaultIngressCertCMName
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	ingressCMPredicates := builder.WithPredicates(predicate.Funcs{
-		CreateFunc:  func(e event.CreateEvent) bool { return checkIngressCMName(e.Object) },
-		UpdateFunc:  func(e event.UpdateEvent) bool { return checkIngressCMName(e.ObjectNew) },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return checkIngressCMName(e.Object) },
-		GenericFunc: func(e event.GenericEvent) bool { return checkIngressCMName(e.Object) },
-	})
-	ingressCMHandler := handler.EnqueueRequestsFromMapFunc(
-		func(_ client.Object) []reconcile.Request {
-			return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: agentServiceConfigName}}}
-		},
-	)
-
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&aiv1beta1.AgentServiceConfig{}).
-		Owns(&corev1.PersistentVolumeClaim{}).
-		Owns(&monitoringv1.ServiceMonitor{}).
-		Owns(&corev1.Service{}).
-		Owns(&corev1.Secret{}).
-		Owns(&routev1.Route{}).
-		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.ConfigMap{}).
-		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, ingressCMHandler, ingressCMPredicates).
-		Complete(r)
-}
-
-func (r *AgentServiceConfigReconciler) newPVC(instance *aiv1beta1.AgentServiceConfig, name string, spec corev1.PersistentVolumeClaimSpec) (*corev1.PersistentVolumeClaim, controllerutil.MutateFn) {
-	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: r.Namespace,
-		},
-		Spec: spec,
-	}
-
-	requests := map[corev1.ResourceName]resource.Quantity{}
-	for key, value := range spec.Resources.Requests {
-		requests[key] = value
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, pvc, r.Scheme); err != nil {
-			return err
-		}
-		// Everything else is immutable once bound.
-		pvc.Spec.Resources.Requests = requests
-		return nil
-	}
-
-	return pvc, mutateFn
-}
-
-func (r *AgentServiceConfigReconciler) newAgentService(instance *aiv1beta1.AgentServiceConfig) (*corev1.Service, controllerutil.MutateFn) {
-	svc := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
-			Namespace: r.Namespace,
-		},
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, svc, r.Scheme); err != nil {
-			return err
-		}
-		addAppLabel(serviceName, &svc.ObjectMeta)
-		if svc.ObjectMeta.Annotations == nil {
-			svc.ObjectMeta.Annotations = make(map[string]string)
-		}
-		svc.ObjectMeta.Annotations["service.beta.openshift.io/serving-cert-secret-name"] = serviceName
-		if len(svc.Spec.Ports) == 0 {
-			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
-		}
-		svc.Spec.Ports[0].Name = serviceName
-		svc.Spec.Ports[0].Port = servicePort
-		// since intstr.FromInt() doesn't take an int32, just use what FromInt() would return
-		svc.Spec.Ports[0].TargetPort = intstr.IntOrString{Type: intstr.Int, IntVal: servicePort}
-		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
-		svc.Spec.Selector = map[string]string{"app": serviceName}
-		svc.Spec.Type = corev1.ServiceTypeClusterIP
-		return nil
-	}
-
-	return svc, mutateFn
-}
-
-func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentServiceConfig) (*routev1.Route, controllerutil.MutateFn) {
-	weight := int32(100)
-	route := &routev1.Route{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
-			Namespace: r.Namespace,
-		},
-	}
-	routeSpec := routev1.RouteSpec{
-		To: routev1.RouteTargetReference{
-			Kind:   "Service",
-			Name:   serviceName,
-			Weight: &weight,
-		},
-		Port: &routev1.RoutePort{
-			TargetPort: intstr.FromString(serviceName),
-		},
-		WildcardPolicy: routev1.WildcardPolicyNone,
-		TLS:            &routev1.TLSConfig{Termination: routev1.TLSTerminationReencrypt},
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
-			return err
-		}
-		// Only update what is specified above in routeSpec.
-		// If we update the entire route.Spec with
-		// route.Spec = routeSpec
-		// it would overwrite any existing values for route.Spec.Host
-		route.Spec.To = routeSpec.To
-		route.Spec.Port = routeSpec.Port
-		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
-		route.Spec.TLS = routeSpec.TLS
-		return nil
-	}
-
-	return route, mutateFn
-}
-
-func (r *AgentServiceConfigReconciler) newServiceMonitor(instance *aiv1beta1.AgentServiceConfig, service *corev1.Service) (*monitoringv1.ServiceMonitor, controllerutil.MutateFn) {
-	endpoints := make([]monitoringv1.Endpoint, len(service.Spec.Ports))
-	for _, port := range service.Spec.Ports {
-		endpoints = append(endpoints, monitoringv1.Endpoint{Port: port.Name})
-	}
-
-	labels := make(map[string]string)
-	for k, v := range service.ObjectMeta.Labels {
-		labels[k] = v
-	}
-
-	smSpec := monitoringv1.ServiceMonitorSpec{
-		Selector: metav1.LabelSelector{
-			MatchLabels: labels,
-		},
-		Endpoints: endpoints,
-	}
-
-	sm := &monitoringv1.ServiceMonitor{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      service.ObjectMeta.Name,
-			Namespace: r.Namespace,
-			Labels:    labels,
-		},
-		Spec: smSpec,
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, sm, r.Scheme); err != nil {
-			return err
-		}
-
-		sm.Spec = smSpec
-		sm.ObjectMeta.Labels = labels
-		return nil
-	}
-
-	return sm, mutateFn
-}
-
-func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(instance *aiv1beta1.AgentServiceConfig) (*corev1.Secret, controllerutil.MutateFn, error) {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      agentLocalAuthSecretName,
-			Namespace: r.Namespace,
-		},
-		Type: corev1.SecretTypeOpaque,
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, secret, r.Scheme); err != nil {
-			return err
-		}
-		_, privateKeyPresent := secret.Data["ec-private-key.pem"]
-		_, publicKeyPresent := secret.Data["ec-public-key.pem"]
-		if !privateKeyPresent && !publicKeyPresent {
-			publicKey, privateKey, err := gencrypto.ECDSAKeyPairPEM()
-			if err != nil {
-				return err
-			}
-			if secret.Data == nil {
-				secret.Data = map[string][]byte{}
-			}
-			secret.Data["ec-private-key.pem"] = []byte(privateKey)
-			secret.Data["ec-public-key.pem"] = []byte(publicKey)
-		}
-		return nil
-	}
-
-	return secret, mutateFn, nil
-}
-
-func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *aiv1beta1.AgentServiceConfig) (*corev1.Secret, controllerutil.MutateFn, error) {
-	pass, err := generatePassword(databasePasswordLength)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      databaseName,
-			Namespace: r.Namespace,
-		},
-		StringData: map[string]string{
-			"db.host":     "localhost",
-			"db.user":     "admin",
-			"db.password": pass,
-			"db.name":     "installer",
-			"db.port":     strconv.Itoa(int(databasePort)),
-		},
-		Type: corev1.SecretTypeOpaque,
-	}
-
-	// Only setting the owner reference to prevent clobbering the generated password.
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, secret, r.Scheme); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	return secret, mutateFn, nil
-}
-
-func (r *AgentServiceConfigReconciler) newIngressCertCM(instance *aiv1beta1.AgentServiceConfig, sourceCM *corev1.ConfigMap) (*corev1.ConfigMap, controllerutil.MutateFn) {
-	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      defaultIngressCertCMName,
-			Namespace: r.Namespace,
-		},
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
-			return err
-		}
-		cm.Data = make(map[string]string)
-		for k, v := range sourceCM.Data {
-			cm.Data[k] = v
-		}
-		return nil
-	}
-
-	return cm, mutateFn
-}
-
-func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (*appsv1.Deployment, controllerutil.MutateFn, error) {
+func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	var assistedConfigHash, mirrorConfigHash, userConfigHash string
 
 	// Get hash of generated assisted config
@@ -1024,6 +859,16 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	return deployment, mutateFn, nil
 }
 
+func copyEnv(config map[string]string, key string) {
+	if value, ok := os.LookupEnv(key); ok {
+		config[key] = value
+	}
+}
+
+func checkIngressCMName(obj metav1.Object) bool {
+	return obj.GetNamespace() == defaultIngressCertCMNamespace && obj.GetName() == defaultIngressCertCMName
+}
+
 // getMustGatherImages returns the value of MUST_GATHER_IMAGES variable
 // to be stored in the service's ConfigMap
 //
@@ -1045,7 +890,7 @@ func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogge
 	for _, specImage := range instance.Spec.MustGatherImages {
 		versionKey, err := getVersionKey(specImage.OpenshiftVersion)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", specImage.OpenshiftVersion))
+			log.WithError(err).Error(fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", specImage.OpenshiftVersion))
 			continue
 		}
 		if mustGatherVersions[versionKey] == nil {
@@ -1059,7 +904,7 @@ func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogge
 	}
 	encodedVersions, err := json.Marshal(mustGatherVersions)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Problem marshaling must gather images (%v) to string, returning default %v", mustGatherVersions, MustGatherImages()))
+		log.WithError(err).Error(fmt.Sprintf("Problem marshaling must gather images (%v) to string, returning default %v", mustGatherVersions, MustGatherImages()))
 		return MustGatherImages()
 	}
 
@@ -1089,7 +934,7 @@ func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogg
 	for i, image := range instance.Spec.OSImages {
 		key, err := getVersionKey(image.OpenshiftVersion)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", image.OpenshiftVersion))
+			log.WithError(err).Error(fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", image.OpenshiftVersion))
 			continue
 		}
 
@@ -1111,7 +956,7 @@ func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogg
 
 	encodedVersions, err := json.Marshal(openshiftVersions)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Problem marshaling versions (%v) to string, returning default %v", openshiftVersions, OpenshiftVersions()))
+		log.WithError(err).Error(fmt.Sprintf("Problem marshaling versions (%v) to string, returning default %v", openshiftVersions, OpenshiftVersions()))
 		return OpenshiftVersions()
 	}
 
@@ -1121,7 +966,6 @@ func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogg
 func (r *AgentServiceConfigReconciler) getCMHash(ctx context.Context, namespacedName types.NamespacedName) (string, error) {
 	cm := &corev1.ConfigMap{}
 	if err := r.Get(ctx, namespacedName, cm); err != nil {
-		r.Log.Error(err, "Failed to get configmap", "NamespacedName", namespacedName)
 		return "", err
 	}
 	return checksumMap(cm.Data)
