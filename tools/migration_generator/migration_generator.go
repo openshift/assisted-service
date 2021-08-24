@@ -132,7 +132,7 @@ var _ = Describe("{{.FuncName}}", func() {
 
 		// setup
 
-		err = gormigrate.New(db, gormigrate.DefaultOptions, all()).RollbackMigration({{.FuncName}}())
+		err = gormigrate.New(db, gormigrate.DefaultOptions, post()).RollbackMigration({{.FuncName}}())
 		Expect(err).NotTo(HaveOccurred())
 
 		// test
