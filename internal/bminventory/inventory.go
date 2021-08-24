@@ -5494,7 +5494,6 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		ID:                    params.NewHostParams.HostID,
 		Href:                  swag.String(url.String()),
 		Kind:                  kind,
-		ClusterID:             &infraEnv.ClusterID,
 		CheckedInAt:           strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
 		UserName:              ocm.UserNameFromContext(ctx),
@@ -5504,6 +5503,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 	var cluster *common.Cluster
 	if infraEnv.ClusterID != "" {
+		host.ClusterID = &infraEnv.ClusterID
 		cluster, err = common.GetClusterFromDB(tx, infraEnv.ClusterID, common.SkipEagerLoading)
 		if err != nil {
 			log.WithError(err).Errorf("Cluster get")
@@ -5525,7 +5525,6 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 			host.Kind = swag.String(models.HostKindAddToExistingClusterHost)
 		}
-		host.ClusterID = &infraEnv.ClusterID
 	}
 
 	if err = b.hostApi.RegisterHost(ctx, host, tx); err != nil {
