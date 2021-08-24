@@ -5198,6 +5198,11 @@ definitions:
         type: object
         $ref: '#/definitions/platform'
         x-nullable: true
+      cpu_architecture:
+        type: string
+        x-nullable: false
+        default: 'x86_64'
+        description: The CPU architecture of the image (x86_64/arm64/etc).
 
   cluster-update-params:
     type: object
@@ -5680,6 +5685,11 @@ definitions:
         items:
           type: object
           $ref: '#/definitions/machine_network'
+      cpu_architecture:
+        type: string
+        x-nullable: false
+        default: 'x86_64'
+        description: The CPU architecture of the image (x86_64/arm64/etc).
 
   platform:
     type: object
@@ -6830,6 +6840,11 @@ definitions:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
+      cpu_architecture:
+        type: string
+        x-nullable: false
+        default: 'x86_64'
+        description: The CPU architecture of the image (x86_64/arm64/etc).
 
   proxy:
     type: object
@@ -6896,6 +6911,11 @@ definitions:
       openshift_version:
         type: string
         description: Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
+      cpu_architecture:
+        type: string
+        x-nullable: false
+        default: 'x86_64'
+        description: The CPU architecture of the image (x86_64/arm64/etc).
 
   infra-env-update-params:
     type: object

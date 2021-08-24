@@ -60,6 +60,9 @@ type Cluster struct {
 	// Format: date-time
 	ControllerLogsStartedAt strfmt.DateTime `json:"controller_logs_started_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// The CPU architecture of the image (x86_64/arm64/etc).
+	CPUArchitecture string `json:"cpu_architecture,omitempty"`
+
 	// The time that this cluster was created.
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`

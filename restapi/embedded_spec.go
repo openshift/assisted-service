@@ -6820,6 +6820,12 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string",
+          "default": "x86_64",
+          "x-nullable": false
+        },
         "created_at": {
           "description": "The time that this cluster was created.",
           "type": "string",
@@ -7144,6 +7150,12 @@ func init() {
             "$ref": "#/definitions/cluster_network"
           },
           "x-nullable": true
+        },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string",
+          "default": "x86_64",
+          "x-nullable": false
         },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
@@ -8850,6 +8862,12 @@ func init() {
           "type": "string",
           "format": "uuid"
         },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string",
+          "default": "x86_64",
+          "x-nullable": false
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -8953,6 +8971,12 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-nullable": true
+        },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string",
+          "default": "x86_64",
+          "x-nullable": false
         },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
@@ -17036,6 +17060,12 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string",
+          "default": "x86_64",
+          "x-nullable": false
+        },
         "created_at": {
           "description": "The time that this cluster was created.",
           "type": "string",
@@ -17360,6 +17390,12 @@ func init() {
             "$ref": "#/definitions/cluster_network"
           },
           "x-nullable": true
+        },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string",
+          "default": "x86_64",
+          "x-nullable": false
         },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
@@ -18991,6 +19027,12 @@ func init() {
           "type": "string",
           "format": "uuid"
         },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string",
+          "default": "x86_64",
+          "x-nullable": false
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -19095,6 +19137,12 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-nullable": true
+        },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "type": "string",
+          "default": "x86_64",
+          "x-nullable": false
         },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",

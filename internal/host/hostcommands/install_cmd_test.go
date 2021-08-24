@@ -77,12 +77,12 @@ var _ = Describe("installcmd", func() {
 	})
 
 	mockGetReleaseImage := func(times int) {
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(times)
+		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(times)
 	}
 
 	mockImages := func(times int) {
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(times)
-		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(times)
+		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(times)
 	}
 
 	Context("negative", func() {
@@ -275,7 +275,7 @@ var _ = Describe("installcmd arguments", func() {
 
 	mockImages := func() {
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).AnyTimes()
-		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
+		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
 	}
 
 	BeforeSuite(func() {
@@ -289,7 +289,7 @@ var _ = Describe("installcmd arguments", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).AnyTimes()
+		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).AnyTimes()
 		mockImages()
 	})
 
@@ -383,7 +383,7 @@ var _ = Describe("installcmd arguments", func() {
 		It("verify empty value", func() {
 			mockRelease = oc.NewMockRelease(ctrl)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
-			mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
+			mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
 
 			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
@@ -396,7 +396,7 @@ var _ = Describe("installcmd arguments", func() {
 			value := "\nescaped_\n\t_value\n"
 			mockRelease = oc.NewMockRelease(ctrl)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(value, nil).AnyTimes()
-			mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
+			mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
 
 			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions)
 			stepReply, err := installCmd.GetSteps(ctx, &host)

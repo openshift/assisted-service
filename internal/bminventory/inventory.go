@@ -455,10 +455,16 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 	}
 
-	openshiftVersion, err := b.versionsHandler.GetOpenshiftVersion(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+	cpuArchitecture, err := b.getNewClusterCPUArchitecture(params.NewClusterParams)
 	if err != nil {
-		err = errors.Errorf("Openshift version %s is not supported",
-			swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	openshiftVersion, err := b.versionsHandler.GetOpenshiftVersion(
+		swag.StringValue(params.NewClusterParams.OpenshiftVersion), cpuArchitecture)
+	if err != nil {
+		err = errors.Wrapf(err, "Openshift version %s for CPU architecture %s is not supported",
+			swag.StringValue(params.NewClusterParams.OpenshiftVersion), cpuArchitecture)
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -508,6 +514,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			ClusterNetworks:       params.NewClusterParams.ClusterNetworks,
 			ServiceNetworks:       params.NewClusterParams.ServiceNetworks,
 			MachineNetworks:       params.NewClusterParams.MachineNetworks,
+			CPUArchitecture:       cpuArchitecture,
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
@@ -642,6 +649,29 @@ func verifyMinimalOpenShiftVersionForSingleNode(requestedOpenshiftVersion string
 	}
 	return nil
 }
+
+func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *models.ClusterCreateParams) (string, error) {
+	if newClusterParams.CPUArchitecture == "" || newClusterParams.CPUArchitecture == common.DefaultCPUArchitecture {
+		// Empty value implies x86_64 (default architecture),
+		// which is supported for now regardless of the release images list.
+		// TODO: remove once release images list is exclusively used.
+		return common.DefaultCPUArchitecture, nil
+	}
+
+	cpuArchitectures, err := b.versionsHandler.GetCPUArchitectures(*newClusterParams.OpenshiftVersion)
+	if err != nil {
+		return "", err
+	}
+	for _, cpuArchitecture := range cpuArchitectures {
+		if cpuArchitecture == newClusterParams.CPUArchitecture {
+			return cpuArchitecture, nil
+		}
+	}
+
+	// Didn't find requested architecture in the release images list
+	return "", errors.Errorf("Requested CPU architecture %s is not available", newClusterParams.CPUArchitecture)
+}
+
 func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
 	c, err := b.RegisterAddHostsClusterInternal(ctx, nil, params, true)
 	if err != nil {
@@ -665,7 +695,8 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
 	}
 
-	openshiftVersion, err := b.versionsHandler.GetOpenshiftVersion(inputOpenshiftVersion)
+	// Day2 supports only x86_64 for now
+	openshiftVersion, err := b.versionsHandler.GetOpenshiftVersion(inputOpenshiftVersion, common.DefaultCPUArchitecture)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion)
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
@@ -1844,7 +1875,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
 	}
 
-	ocpVersion, err := b.versionsHandler.GetOpenshiftVersion(cluster.OpenshiftVersion)
+	ocpVersion, err := b.versionsHandler.GetOpenshiftVersion(cluster.OpenshiftVersion, cluster.CPUArchitecture)
 	if err != nil {
 		msg := fmt.Sprintf("failed to get OpenshiftVersion for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
 		log.WithError(err).Errorf(msg)
@@ -5156,7 +5187,8 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		}
 	}
 
-	openshiftVersion, err := b.versionsHandler.GetOpenshiftVersion(swag.StringValue(params.InfraenvCreateParams.OpenshiftVersion))
+	openshiftVersion, err := b.versionsHandler.GetOpenshiftVersion(
+		swag.StringValue(params.InfraenvCreateParams.OpenshiftVersion), params.InfraenvCreateParams.CPUArchitecture)
 	if err != nil {
 		err = errors.Errorf("Openshift version %s is not supported",
 			swag.StringValue(params.InfraenvCreateParams.OpenshiftVersion))
@@ -5182,9 +5214,17 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	}
 
 	if params.InfraenvCreateParams.ClusterID != nil {
-		if _, err = common.GetClusterFromDB(b.db, *params.InfraenvCreateParams.ClusterID, common.SkipEagerLoading); err != nil {
+		var cluster *common.Cluster
+		cluster, err = common.GetClusterFromDB(b.db, *params.InfraenvCreateParams.ClusterID, common.SkipEagerLoading)
+		if err != nil {
 			err = errors.Errorf("Cluster ID %s does not exists",
 				params.InfraenvCreateParams.ClusterID.String())
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		if cluster.CPUArchitecture != params.InfraenvCreateParams.CPUArchitecture {
+			err = errors.Errorf("Specified CPU architecture doesn't match the cluster (%s)",
+				cluster.CPUArchitecture)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -5210,6 +5250,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			UpdatedAt:              strfmt.DateTime{},
 			AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
 			SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
+			CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
 		},
 		KubeKeyNamespace: kubeKey.Namespace,
 	}
@@ -5761,6 +5802,18 @@ func (b *bareMetalInventory) BindHost(ctx context.Context, params installer.Bind
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Failed to find cluster %s", params.BindHostParams.ClusterID))
 	}
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
+	if err != nil {
+		b.log.WithError(err).Errorf("Failed to get infra env %s", params.InfraEnvID)
+		return common.GenerateErrorResponder(err)
+	}
+
+	if cluster.CPUArchitecture != infraEnv.CPUArchitecture {
+		err = errors.Errorf("InfraEnv's CPU architecture (%s) doesn't match the cluster (%s)",
+			infraEnv.CPUArchitecture, cluster.CPUArchitecture)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	if err = b.clusterApi.AcceptRegistration(cluster); err != nil {
 		log.WithError(err).Errorf("failed to bind host <%s> to cluster %s due to: %s",
 			params.HostID.String(), *params.BindHostParams.ClusterID, err.Error())

@@ -114,7 +114,7 @@ var (
 
 func mockClusterRegisterSteps() {
 	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+	mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 }
 
@@ -128,7 +128,7 @@ func mockClusterRegisterSuccess(bm *bareMetalInventory, withEvents bool) {
 }
 
 func mockInfraEnvRegisterSuccess() {
-	mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+	mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 	mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(2)
@@ -180,7 +180,7 @@ func strToUUID(s string) *strfmt.UUID {
 
 func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallConfigGenerator, mockVersions *versions.MockHandler) {
 	if mockGenerator != nil {
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 }
@@ -3596,7 +3596,7 @@ var _ = Describe("cluster", func() {
 				It("OLM invalid name", func() {
 					newOperatorName := "invalid-name"
 
-					mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+					mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 					mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 					mockOperatorManager.EXPECT().GetOperatorByName(newOperatorName).Return(nil, errors.Errorf("error")).Times(1)
 
@@ -5571,6 +5571,58 @@ var _ = Describe("infraEnvs", func() {
 			actual := reply.(*installer.RegisterInfraEnvCreated)
 			Expect(actual.Payload.Name).To(Equal("some-infra-env-name"))
 		})
+
+		It("Create with ClusterID - CPU architecture match", func() {
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+
+			clusterID := strfmt.UUID(uuid.New().String())
+			cluster := common.Cluster{Cluster: models.Cluster{
+				ID:               &clusterID,
+				OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+				CPUArchitecture:  "x86_64",
+			}}
+			err := db.Create(&cluster).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mockInfraEnvRegisterSuccess()
+			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("some-infra-env-name"),
+					OpenshiftVersion: swag.String(MinimalOpenShiftVersionForNoneHA),
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					ClusterID:        &clusterID,
+					CPUArchitecture:  "x86_64",
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
+			actual := reply.(*installer.RegisterInfraEnvCreated)
+			Expect(actual.Payload.Name).To(Equal("some-infra-env-name"))
+		})
+
+		It("Create with ClusterID - CPU architecture mismatch", func() {
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+
+			clusterID := strfmt.UUID(uuid.New().String())
+			cluster := common.Cluster{Cluster: models.Cluster{
+				ID:               &clusterID,
+				OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+				CPUArchitecture:  "x86_64",
+			}}
+			err := db.Create(&cluster).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("some-infra-env-name"),
+					OpenshiftVersion: swag.String(MinimalOpenShiftVersionForNoneHA),
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					ClusterID:        &clusterID,
+					CPUArchitecture:  "arm64",
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "CPU architecture doesn't match")
+		})
 	})
 
 	Context("Update", func() {
@@ -7411,7 +7463,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		}
 		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), true).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, clusterID, "Unknown").Times(1)
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		actual := res.(*installer.RegisterAddHostsClusterCreated)
 
@@ -8135,7 +8187,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(errors.New("error")).Times(1)
 		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -8148,7 +8200,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("openshift version not supported", func() {
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any()).Return(nil, errors.Errorf("OpenShift VVersion is not supported")).Times(1)
+		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("OpenShift VVersion is not supported")).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -8174,6 +8226,58 @@ var _ = Describe("TestRegisterCluster", func() {
 		actual := reply.(*installer.RegisterClusterCreated)
 		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
 		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImage))
+	})
+
+	It("Register cluster with default CPU architecture", func() {
+		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
+
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				CPUArchitecture:  common.TestDefaultConfig.CPUArchitecture,
+				PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(actual.Payload.CPUArchitecture).To(Equal(common.TestDefaultConfig.CPUArchitecture))
+	})
+
+	It("Register cluster with arm64 CPU architecture", func() {
+		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
+		mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
+			[]string{common.TestDefaultConfig.OpenShiftVersion, "arm64"}, nil).Times(1)
+
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				CPUArchitecture:  "arm64",
+				PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(actual.Payload.CPUArchitecture).To(Equal("arm64"))
+	})
+
+	It("Register cluster without specified CPU architecture", func() {
+		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
+
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(actual.Payload.CPUArchitecture).To(Equal(common.TestDefaultConfig.CPUArchitecture))
 	})
 
 	Context("Networking", func() {
@@ -9167,6 +9271,29 @@ var _ = Describe("BindHost", func() {
 		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any()).Return(err).Times(1)
 		response := bm.BindHost(ctx, params)
 		verifyApiError(response, http.StatusInternalServerError)
+	})
+
+	It("CPU architecture mismatch", func() {
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+			ID:              infraEnvID,
+			CPUArchitecture: "arm64",
+		}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		hostID = strfmt.UUID(uuid.New().String())
+		err = db.Create(&common.Host{Host: models.Host{ID: &hostID, InfraEnvID: infraEnvID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvID, &params.HostID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
+		response := bm.BindHost(ctx, params)
+		verifyApiErrorString(response, http.StatusBadRequest, "doesn't match")
 	})
 
 })
