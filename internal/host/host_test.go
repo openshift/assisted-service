@@ -1104,6 +1104,32 @@ var _ = Describe("UpdateInventory", func() {
 		}
 	})
 
+	Context("Update inventory - no cluster", func() {
+		const (
+			diskName = "FirstDisk"
+			diskId   = "/dev/disk/by-id/FirstDisk"
+			diskPath = "/dev/FirstDisk"
+		)
+
+		BeforeEach(func() {
+			host = hostutil.GenerateTestHost(hostId, infraEnvId, "", models.HostStatusDiscovering)
+			host.Inventory = common.GenerateTestDefaultInventory()
+			host.InstallationDiskPath = ""
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		})
+		It("Happy flow", func() {
+			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
+				[]*models.Disk{{ID: diskId, Name: diskName}},
+			)
+			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).ToNot(HaveOccurred())
+
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+			Expect(h.Inventory).ToNot(BeEmpty())
+			Expect(h.InstallationDiskPath).To(Equal(diskPath))
+			Expect(h.InstallationDiskID).To(Equal(diskId))
+		})
+	})
+
 	Context("Test update default installation disk", func() {
 		const (
 			diskName = "FirstDisk"

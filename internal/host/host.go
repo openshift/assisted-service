@@ -300,13 +300,7 @@ func (m *Manager) RefreshInventory(ctx context.Context, cluster *common.Cluster,
 }
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventoryStr string) error {
-	log := logutil.FromContext(ctx, m.log)
-	cluster, err := common.GetClusterFromDB(m.db, *h.ClusterID, common.UseEagerLoading)
-	if err != nil {
-		log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID)
-		return common.NewApiError(http.StatusNotFound, err)
-	}
-	return m.updateInventory(ctx, cluster, h, inventoryStr, m.db)
+	return m.updateInventory(ctx, nil, h, inventoryStr, m.db)
 }
 
 func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, inventoryStr string, db *gorm.DB) error {
@@ -320,24 +314,31 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 			errors.Errorf("Host is in %s state, host can be updated only in one of %s states",
 				hostStatus, allowedStatuses))
 	}
-
 	inventory, err := common.UnmarshalInventory(inventoryStr)
 	if err != nil {
 		return err
 	}
+	if h.ClusterID != nil && h.ClusterID.String() != "" {
+		if cluster == nil {
+			cluster, err = common.GetClusterFromDB(m.db, *h.ClusterID, common.UseEagerLoading)
+			if err != nil {
+				log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID.String())
+				return common.NewApiError(http.StatusNotFound, err)
+			}
+		}
 
-	err = m.populateDisksEligibility(ctx, inventory, cluster, h)
-	if err != nil {
-		log.WithError(err).Errorf("not updating inventory - failed to check disks eligibility for host %s", h.ID)
-		return common.NewApiError(http.StatusInternalServerError, err)
+		err = m.populateDisksEligibility(ctx, inventory, cluster, h)
+		if err != nil {
+			log.WithError(err).Errorf("not updating inventory - failed to check disks eligibility for host %s", h.ID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		m.populateDisksId(inventory)
+
+		inventoryStr, err = common.MarshalInventory(inventory)
+		if err != nil {
+			return err
+		}
 	}
-	m.populateDisksId(inventory)
-
-	marshalledInventory, err := common.MarshalInventory(inventory)
-	if err != nil {
-		return err
-	}
-
 	validDisks := m.hwValidator.ListEligibleDisks(inventory)
 	installationDisk := hostutil.DetermineInstallationDisk(validDisks, hostutil.GetHostInstallationPath(h))
 
@@ -357,7 +358,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	// or one of the validations to change, then the updated_at field has to be modified.  Otherwise, we just
 	// perform update with touching the updated_at field
 	return db.Model(h).Update(map[string]interface{}{
-		"inventory":              marshalledInventory,
+		"inventory":              inventoryStr,
 		"installation_disk_path": installationDiskPath,
 		"installation_disk_id":   installationDiskID,
 	}).Error
