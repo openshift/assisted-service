@@ -109,6 +109,7 @@ var (
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
 		Timestamp:    1601853088,
 		Routes:       common.TestDefaultRouteConfiguration,
+		TpmVersion:   models.InventoryTpmVersionNr20,
 	}
 
 	validFreeAddresses = models.FreeNetworksAddresses{
@@ -3675,5 +3676,60 @@ var _ = Describe("Installation progress", func() {
 			c = getCluster(*c.ID)
 			expectProgressToBe(c, 100, 100, 100)
 		})
+	})
+})
+
+var _ = Describe("disk encryption", func() {
+
+	var (
+		ctx = context.Background()
+		c   *models.Cluster
+	)
+
+	BeforeEach(func() {
+
+		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHPublicKey:     sshPublicKey,
+				BaseDNSDomain:    "example.com",
+				DiskEncryption: &models.DiskEncryption{
+					EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+					Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+				},
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		c = registerClusterReply.GetPayload()
+		generateClusterISO(*c.ID, models.ImageTypeMinimalIso)
+	})
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	It("happy flow", func() {
+
+		registerHostsAndSetRolesDHCP(*c.ID, 3, "test-cluster", "example.com")
+
+		reply, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: *c.ID})
+		Expect(err).NotTo(HaveOccurred())
+		c = reply.GetPayload()
+		generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
+		waitForInstallationPreparationCompletionStatus(*c.ID, common.InstallationPreparationSucceeded)
+	})
+
+	It("host doesn't have minimal requirementes for disk-encryption, TPM mode", func() {
+
+		h := &registerHost(*c.ID).Host
+		hwInfo := validHwInfo
+		hwInfo.TpmVersion = models.InventoryTpmVersionNr12
+		generateEssentialHostStepsWithInventory(ctx, h, "test-host", hwInfo)
+		waitForHostState(ctx, *c.ID, models.HostStatusInsufficient, 60*time.Second, h)
+
+		h = getHost(*c.ID, *h.ID)
+		Expect(*h.StatusInfo).Should(ContainSubstring("The host's TPM version is not supported"))
 	})
 })

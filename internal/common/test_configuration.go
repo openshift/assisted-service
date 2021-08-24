@@ -315,6 +315,19 @@ func GenerateTestInventoryWithSetNetwork() string {
 	return string(b)
 }
 
+func GenerateTestInventoryWithTpmVersion(tpmVersion string) string {
+	inventory := &models.Inventory{
+		Disks:        []*models.Disk{{SizeBytes: conversions.GibToBytes(120), DriveType: "HDD"}},
+		CPU:          &models.CPU{Count: 16},
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		TpmVersion:   tpmVersion,
+	}
+	b, err := json.Marshal(inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 func GetTestLog() logrus.FieldLogger {
 	l := logrus.New()
 	l.SetOutput(ioutil.Discard)

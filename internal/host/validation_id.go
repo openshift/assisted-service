@@ -39,18 +39,42 @@ const (
 	IsAppsDomainNameResolvedCorrectly              = validationID(models.HostValidationIDAppsDomainNameResolvedCorrectly)
 	CompatibleWithClusterPlatform                  = validationID(models.HostValidationIDCompatibleWithClusterPlatform)
 	IsDNSWildcardNotConfigured                     = validationID(models.HostValidationIDDNSWildcardNotConfigured)
+	DiskEncryptionRequirementsSatisfied            = validationID(models.HostValidationIDDiskEncryptionRequirementsSatisfied)
 )
 
 func (v validationID) category() (string, error) {
 	switch v {
-	case IsConnected, IsMachineCidrDefined, BelongsToMachineCidr,
-		IsAPIVipConnected, BelongsToMajorityGroup, IsNTPSynced, SucessfullOrUnknownContainerImagesAvailability, HasSufficientNetworkLatencyRequirementForRole, HasSufficientPacketLossRequirementForRole, HasDefaultRoute,
-		IsAPIDomainNameResolvedCorrectly, IsAPIInternalDomainNameResolvedCorrectly, IsAppsDomainNameResolvedCorrectly, IsDNSWildcardNotConfigured:
+	case IsConnected,
+		IsMachineCidrDefined,
+		BelongsToMachineCidr,
+		IsAPIVipConnected,
+		BelongsToMajorityGroup,
+		IsNTPSynced,
+		SucessfullOrUnknownContainerImagesAvailability,
+		HasSufficientNetworkLatencyRequirementForRole,
+		HasSufficientPacketLossRequirementForRole,
+		HasDefaultRoute,
+		IsAPIDomainNameResolvedCorrectly,
+		IsAPIInternalDomainNameResolvedCorrectly,
+		IsAppsDomainNameResolvedCorrectly,
+		IsDNSWildcardNotConfigured:
 		return "network", nil
-	case HasInventory, HasMinCPUCores, HasMinValidDisks, HasMinMemory, SufficientOrUnknownInstallationDiskSpeed,
-		HasCPUCoresForRole, HasMemoryForRole, IsHostnameUnique, IsHostnameValid, IsPlatformValid, CompatibleWithClusterPlatform:
+	case HasInventory,
+		HasMinCPUCores,
+		HasMinValidDisks,
+		HasMinMemory,
+		SufficientOrUnknownInstallationDiskSpeed,
+		HasCPUCoresForRole,
+		HasMemoryForRole,
+		IsHostnameUnique,
+		IsHostnameValid,
+		IsPlatformValid,
+		CompatibleWithClusterPlatform,
+		DiskEncryptionRequirementsSatisfied:
 		return "hardware", nil
-	case AreLsoRequirementsSatisfied, AreOcsRequirementsSatisfied, AreCnvRequirementsSatisfied:
+	case AreLsoRequirementsSatisfied,
+		AreOcsRequirementsSatisfied,
+		AreCnvRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected validation id %s", string(v)))

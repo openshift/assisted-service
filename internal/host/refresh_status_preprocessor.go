@@ -260,6 +260,11 @@ func newValidations(v *validator) []validation {
 			condition: v.isDNSWildcardNotConfigured,
 			formatter: v.printIsDNSWildcardNotConfigured,
 		},
+		{
+			id:        DiskEncryptionRequirementsSatisfied,
+			condition: v.diskEncryptionRequirementsSatisfied,
+			formatter: v.printDiskEncryptionRequirementsSatisfied,
+		},
 	}
 }
 

@@ -6650,6 +6650,9 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/route'
+      tpm_version:
+        type: string
+        enum: ['none', '1.2', '2.0']
 
 
   free_network_addresses:
@@ -6865,6 +6868,7 @@ definitions:
       - 'apps-domain-name-resolved-correctly'
       - 'compatible-with-cluster-platform'
       - 'dns-wildcard-not-configured'
+      - 'disk-encryption-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
