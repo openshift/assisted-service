@@ -3727,18 +3727,16 @@ var _ = Describe("Refresh Host", func() {
 	})
 	Context("Unique hostname", func() {
 		var (
-			srcState              string
-			otherHostID           strfmt.UUID
-			ntpSources            []*models.NtpSource
-			imageStatuses         map[string]*models.ContainerImageAvailability
-			domainNameResolutions *models.DomainResolutionResponse
+			srcState      string
+			otherHostID   strfmt.UUID
+			ntpSources    []*models.NtpSource
+			imageStatuses map[string]*models.ContainerImageAvailability
 		)
 
 		BeforeEach(func() {
 			otherHostID = strfmt.UUID(uuid.New().String())
 			ntpSources = defaultNTPSources
 			imageStatuses = map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess}
-			domainNameResolutions = common.TestDomainNameResolutionSuccess
 			mockDefaultClusterHostRequirements(mockHwValidator)
 		})
 
@@ -4132,6 +4130,7 @@ var _ = Describe("Refresh Host", func() {
 				bytes, err = json.Marshal(imageStatuses)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.ImagesStatus = string(bytes)
+				domainNameResolutions := common.TestDomainNameResolutionSuccess
 				bytes, err = json.Marshal(domainNameResolutions)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(bytes)
@@ -4147,6 +4146,8 @@ var _ = Describe("Refresh Host", func() {
 				// Test setup - Cluster creation
 				cluster = hostutil.GenerateTestCluster(clusterId, t.primaryMachineNetworkCidr)
 				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", t.primaryMachineNetworkCidr, hostId.String())
+				cluster.Name = common.TestDefaultConfig.ClusterName
+				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 				// Test definition
@@ -4252,6 +4253,8 @@ var _ = Describe("Refresh Host", func() {
 			Expect(err).NotTo(HaveOccurred())
 			domainNameResolutions := common.TestDomainNameResolutionSuccess
 			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.PrimaryMachineNetworkCidr)
+			cluster.Name = common.TestDefaultConfig.ClusterName
+			cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusDiscovering)
 			host.Inventory = hostutil.GenerateInventoryWithResourcesWithBytes(4, conversions.GibToBytes(16), conversions.GibToBytes(16), "master")
@@ -4348,6 +4351,10 @@ var _ = Describe("Refresh Host", func() {
 				defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.NtpSources = string(defaultNTPSourcesInBytes)
+				defaultDomainNameResolutions := common.TestDomainNameResolutionSuccess
+				domainNameResolutions, err := json.Marshal(defaultDomainNameResolutions)
+				Expect(err).ShouldNot(HaveOccurred())
+				host.DomainNameResolutions = string(domainNameResolutions)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.PrimaryMachineNetworkCidr)
 				cluster.UserManagedNetworking = swag.Bool(t.userManagedNetworking)

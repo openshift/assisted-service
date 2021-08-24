@@ -8714,7 +8714,8 @@ func init() {
         "api-domain-name-resolved-correctly",
         "api-int-domain-name-resolved-correctly",
         "apps-domain-name-resolved-correctly",
-        "compatible-with-cluster-platform"
+        "compatible-with-cluster-platform",
+        "dns-wildcard-not-configured"
       ]
     },
     "host_network": {
@@ -18853,7 +18854,8 @@ func init() {
         "api-domain-name-resolved-correctly",
         "api-int-domain-name-resolved-correctly",
         "apps-domain-name-resolved-correctly",
-        "compatible-with-cluster-platform"
+        "compatible-with-cluster-platform",
+        "dns-wildcard-not-configured"
       ]
     },
     "host_network": {

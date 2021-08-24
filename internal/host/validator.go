@@ -1114,3 +1114,34 @@ func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationS
 		return "Unexpected status"
 	}
 }
+
+func (v *validator) isDNSWildcardNotConfigured(c *validationContext) ValidationStatus {
+	var response *models.DomainResolutionResponse
+	if err := json.Unmarshal([]byte(c.host.DomainNameResolutions), &response); err != nil {
+		return ValidationError
+	}
+	dnsWildcardName := domainNameToResolve(c, constants.DNSWildcardFalseDomainName)
+
+	// Note that we're validating that the wildcard DNS *.<cluster_name>.<base_domain> is NOT configured, since this causes known problems for OpenShift
+	for _, domain := range response.Resolutions {
+		if domain.DomainName != nil && *domain.DomainName == dnsWildcardName {
+			if len(domain.IPV4Addresses) == 0 && len(domain.IPV6Addresses) == 0 {
+				return ValidationSuccess
+			}
+		}
+	}
+	return ValidationFailure
+}
+
+func (v *validator) printIsDNSWildcardNotConfigured(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "DNS wildcard check was succesful"
+	case ValidationFailure:
+		return fmt.Sprintf("DNS wildcard configuration was detected for domain *.%s.%s The installation will not be able to complete while the entry exists. Please remove it to proceed.", c.cluster.Name, c.cluster.BaseDNSDomain)
+	case ValidationError:
+		return "Parse error for domain name resolutions result"
+	default:
+		return "Unexpected status"
+	}
+}

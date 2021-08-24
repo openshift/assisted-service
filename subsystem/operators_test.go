@@ -230,7 +230,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			clusterID = cID
 			// in order to simulate infra env generation
 			generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-			registerHostsAndSetRoles(clusterID, minHosts)
+			registerHostsAndSetRoles(clusterID, minHosts, "test-cluster", "example.com")
 		})
 
 		It("All OLM operators available", func() {

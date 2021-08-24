@@ -656,7 +656,7 @@ var _ = Describe("ListClusters", func() {
 		BeforeEach(func() {
 			// in order to simulate infra env generation
 			generateClusterISO(*cluster.ID, models.ImageTypeMinimalIso)
-			registerHostsAndSetRolesDHCP(*cluster.ID, 5)
+			registerHostsAndSetRolesDHCP(*cluster.ID, 5, "test-cluster", "example.com")
 			_ = installCluster(*cluster.ID)
 		})
 
@@ -791,7 +791,7 @@ var _ = Describe("cluster install - DHCP", func() {
 			clusterID = *cluster.ID
 			// in order to simulate infra env generation
 			generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-			registerHostsAndSetRolesDHCP(clusterID, 5)
+			registerHostsAndSetRolesDHCP(clusterID, 5, "test-cluster", "example.com")
 		})
 
 		It("Install with DHCP", func() {
@@ -825,7 +825,7 @@ var _ = Describe("cluster install - DHCP", func() {
 		clusterID := *cluster.ID
 		// in order to simulate infra env generation
 		generateClusterISO(*cluster.ID, models.ImageTypeMinimalIso)
-		registerHostsAndSetRolesDHCP(clusterID, 5)
+		registerHostsAndSetRolesDHCP(clusterID, 5, "test-cluster", "example.com")
 		reply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
@@ -1135,6 +1135,9 @@ var _ = Describe("cluster install", func() {
 		clusterID := *cluster.ID
 		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
 		h1, h2, h3 := hosts[0], hosts[1], hosts[2]
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, "test-cluster", "example.com")
+		}
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 
@@ -1144,6 +1147,8 @@ var _ = Describe("cluster install", func() {
 		newIPs := hostutil.GenerateIPv4Addresses(2, ips[2])
 		generateEssentialHostStepsWithInventory(ctx, h4, "h4", getValidWorkerHwInfoWithCIDR(newIPs[0]))
 		generateEssentialHostStepsWithInventory(ctx, h5, "h5", getValidWorkerHwInfoWithCIDR(newIPs[1]))
+		generateDomainResolution(ctx, h4, "test-cluster", "example.com")
+		generateDomainResolution(ctx, h5, "test-cluster", "example.com")
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, h4, h5)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
@@ -1329,7 +1334,7 @@ var _ = Describe("cluster install", func() {
 		var clusterID strfmt.UUID
 		BeforeEach(func() {
 			clusterID = *cluster.ID
-			registerHostsAndSetRoles(clusterID, 5)
+			registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 		})
 
 		Context("NTP cases", func() {
@@ -1367,6 +1372,8 @@ var _ = Describe("cluster install", func() {
 					requestStr := step.Args[len(step.Args)-1]
 					var ntpRequest models.NtpSynchronizationRequest
 
+					generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionSuccess)
+
 					Expect(json.Unmarshal([]byte(requestStr), &ntpRequest)).ShouldNot(HaveOccurred())
 					Expect(*ntpRequest.NtpSource).Should(Equal(newSource))
 				})
@@ -1383,6 +1390,7 @@ var _ = Describe("cluster install", func() {
 					generateNTPPostStepReply(ctx, hosts[0], []*models.NtpSource{
 						{SourceName: common.TestNTPSourceSynced.SourceName, SourceState: models.SourceStateUnreachable},
 					})
+					generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionSuccess)
 					waitForHostState(ctx, clusterID, models.HostStatusInsufficient, defaultWaitForHostStateTimeout, hosts[0])
 				})
 
@@ -1402,6 +1410,7 @@ var _ = Describe("cluster install", func() {
 						{SourceName: newSource, SourceState: models.SourceStateSynced},
 					})
 				})
+				generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionSuccess)
 
 				waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, hosts[0])
 			})
@@ -2956,7 +2965,7 @@ spec:
 
 	It("different_roles_stages", func() {
 		clusterID := *cluster.ID
-		registerHostsAndSetRoles(clusterID, 5)
+		registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 		c := installCluster(clusterID)
 		Expect(len(c.Hosts)).Should(Equal(5))
 
@@ -3225,7 +3234,7 @@ var _ = Describe("cluster install, with default network params", func() {
 
 	It("install cluster", func() {
 		clusterID := *cluster.ID
-		registerHostsAndSetRoles(clusterID, 5)
+		registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 		rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		c := rep.GetPayload()
@@ -3256,7 +3265,7 @@ var _ = Describe("cluster install, with default network params", func() {
 	Context("fail disk speed", func() {
 		It("first host", func() {
 			clusterID := *cluster.ID
-			registerHostsAndSetRoles(clusterID, 5)
+			registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := rep.GetPayload()
@@ -3268,7 +3277,7 @@ var _ = Describe("cluster install, with default network params", func() {
 		})
 		It("all hosts", func() {
 			clusterID := *cluster.ID
-			registerHostsAndSetRoles(clusterID, 5)
+			registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := rep.GetPayload()
@@ -3280,7 +3289,7 @@ var _ = Describe("cluster install, with default network params", func() {
 		})
 		It("last host", func() {
 			clusterID := *cluster.ID
-			registerHostsAndSetRoles(clusterID, 5)
+			registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := rep.GetPayload()
@@ -3345,7 +3354,7 @@ var _ = Describe("Verify ISO is deleted on cluster de-registration", func() {
 	})
 })
 
-func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Host {
+func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int, clusterName string, baseDNSDomain string) []*models.Host {
 	ctx := context.Background()
 	hosts := make([]*models.Host, 0)
 
@@ -3367,6 +3376,9 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 		})
 		Expect(err).NotTo(HaveOccurred())
 		hosts = append(hosts, host)
+	}
+	for _, host := range hosts {
+		generateDomainResolution(ctx, host, clusterName, baseDNSDomain)
 	}
 	generateFullMeshConnectivity(ctx, ips[0], hosts...)
 	apiVip := ""
@@ -3398,7 +3410,7 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 	return hosts
 }
 
-func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models.Host {
+func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int, clusterName string, baseDNSDomain string) []*models.Host {
 	ctx := context.Background()
 	hosts := make([]*models.Host, 0)
 	apiVip := "1.2.3.8"
@@ -3454,6 +3466,7 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 	Expect(err).ToNot(HaveOccurred())
 	for _, h := range hosts {
 		generateDhcpStepReply(h, apiVip, ingressVip)
+		generateDomainResolution(ctx, h, clusterName, baseDNSDomain)
 	}
 	waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
 
@@ -3598,7 +3611,7 @@ var _ = Describe("Installation progress", func() {
 			// add hosts
 
 			generateClusterISO(*c.ID, models.ImageTypeMinimalIso)
-			registerHostsAndSetRolesDHCP(*c.ID, 6)
+			registerHostsAndSetRolesDHCP(*c.ID, 6, "test-cluster", "example.com")
 
 			// add OLM operators
 

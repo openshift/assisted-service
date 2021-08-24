@@ -38,12 +38,14 @@ const (
 	IsAPIInternalDomainNameResolvedCorrectly       = validationID(models.HostValidationIDAPIIntDomainNameResolvedCorrectly)
 	IsAppsDomainNameResolvedCorrectly              = validationID(models.HostValidationIDAppsDomainNameResolvedCorrectly)
 	CompatibleWithClusterPlatform                  = validationID(models.HostValidationIDCompatibleWithClusterPlatform)
+	IsDNSWildcardNotConfigured                     = validationID(models.HostValidationIDDNSWildcardNotConfigured)
 )
 
 func (v validationID) category() (string, error) {
 	switch v {
 	case IsConnected, IsMachineCidrDefined, BelongsToMachineCidr,
-		IsAPIVipConnected, BelongsToMajorityGroup, IsNTPSynced, SucessfullOrUnknownContainerImagesAvailability, HasSufficientNetworkLatencyRequirementForRole, HasSufficientPacketLossRequirementForRole, HasDefaultRoute, IsAPIDomainNameResolvedCorrectly, IsAPIInternalDomainNameResolvedCorrectly, IsAppsDomainNameResolvedCorrectly:
+		IsAPIVipConnected, BelongsToMajorityGroup, IsNTPSynced, SucessfullOrUnknownContainerImagesAvailability, HasSufficientNetworkLatencyRequirementForRole, HasSufficientPacketLossRequirementForRole, HasDefaultRoute,
+		IsAPIDomainNameResolvedCorrectly, IsAPIInternalDomainNameResolvedCorrectly, IsAppsDomainNameResolvedCorrectly, IsDNSWildcardNotConfigured:
 		return "network", nil
 	case HasInventory, HasMinCPUCores, HasMinValidDisks, HasMinMemory, SufficientOrUnknownInstallationDiskSpeed,
 		HasCPUCoresForRole, HasMemoryForRole, IsHostnameUnique, IsHostnameValid, IsPlatformValid, CompatibleWithClusterPlatform:

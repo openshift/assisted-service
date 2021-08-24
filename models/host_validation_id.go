@@ -100,6 +100,9 @@ const (
 
 	// HostValidationIDCompatibleWithClusterPlatform captures enum value "compatible-with-cluster-platform"
 	HostValidationIDCompatibleWithClusterPlatform HostValidationID = "compatible-with-cluster-platform"
+
+	// HostValidationIDDNSWildcardNotConfigured captures enum value "dns-wildcard-not-configured"
+	HostValidationIDDNSWildcardNotConfigured HostValidationID = "dns-wildcard-not-configured"
 )
 
 // for schema
@@ -107,7 +110,7 @@ var hostValidationIdEnum []interface{}
 
 func init() {
 	var res []HostValidationID
-	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","api-vip-connected","belongs-to-majority-group","valid-platform","ntp-synced","container-images-available","lso-requirements-satisfied","ocs-requirements-satisfied","sufficient-installation-disk-speed","cnv-requirements-satisfied","sufficient-network-latency-requirement-for-role","sufficient-packet-loss-requirement-for-role","has-default-route","api-domain-name-resolved-correctly","api-int-domain-name-resolved-correctly","apps-domain-name-resolved-correctly","compatible-with-cluster-platform"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","api-vip-connected","belongs-to-majority-group","valid-platform","ntp-synced","container-images-available","lso-requirements-satisfied","ocs-requirements-satisfied","sufficient-installation-disk-speed","cnv-requirements-satisfied","sufficient-network-latency-requirement-for-role","sufficient-packet-loss-requirement-for-role","has-default-route","api-domain-name-resolved-correctly","api-int-domain-name-resolved-correctly","apps-domain-name-resolved-correctly","compatible-with-cluster-platform","dns-wildcard-not-configured"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

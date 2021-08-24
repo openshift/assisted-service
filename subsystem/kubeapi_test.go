@@ -692,6 +692,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		}
 
 		By("verify validations are successfull")
 		installkey := types.NamespacedName{
@@ -738,6 +741,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		}
+
 		By("Approve Agents")
 		for _, host := range hosts {
 			hostkey := types.NamespacedName{
@@ -915,6 +922,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		}
+
 		By("Approve Agents")
 		for _, host := range hosts {
 			hostkey := types.NamespacedName{
@@ -1413,6 +1424,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
+		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Approve Agent")
 		Eventually(func() error {
@@ -1764,6 +1776,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
+		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		By("Check ACI Event URL exists")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
@@ -2007,6 +2020,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
+		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		By("Approve Agent")
 		Eventually(func() error {
 			agent := getAgentCRD(ctx, kubeClient, key)
@@ -2049,6 +2063,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsPassingReason)
+		}
 		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
@@ -2060,7 +2077,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, host := range hosts {
-			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsPassingReason)
+			generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 
 		By("Approve Agents")
@@ -2165,6 +2182,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		}
 		By("Check ACI Logs URL is empty")
 		// Should not show the URL since no logs yet to be collected
 		installkey := types.NamespacedName{
@@ -2267,10 +2287,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configureLocalAgentClient(infraEnv.ID.String())
 		day2Host1 := registerNode(ctx, *cluster.ID, "firsthostnameday2", ips[3])
 		generateApiVipPostStepReply(ctx, day2Host1, true)
+		generateDomainResolution(ctx, day2Host1, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Add a second Day 2 host")
 		day2Host2 := registerNode(ctx, *cluster.ID, "secondhostnameday2", ips[4])
 		generateApiVipPostStepReply(ctx, day2Host2, true)
+		generateDomainResolution(ctx, day2Host2, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Approve Day 2 agents")
 		k1 := types.NamespacedName{
@@ -2416,6 +2438,7 @@ spec:
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
+		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		By("Approve Agent")
 		Eventually(func() error {
 			agent := getAgentCRD(ctx, kubeClient, key)

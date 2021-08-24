@@ -86,7 +86,7 @@ var TestDefaultConfig = &TestConfiguration{
 
 	ImageName: "image",
 
-	ClusterName: "test",
+	ClusterName: "test-cluster",
 
 	BaseDNSDomain: "example.com",
 
@@ -110,9 +110,10 @@ var TestImageStatusesFailure = &models.ContainerImageAvailability{
 	Result: models.ContainerImageAvailabilityResultFailure,
 }
 
-var DomainAPI = "api.test.example.com"
-var DomainAPIInternal = "api-int.test.example.com"
-var DomainApps = fmt.Sprintf("%s.apps.test.example.com", constants.AppsSubDomainNameHostDNSValidation)
+var DomainAPI = "api.test-cluster.example.com"
+var DomainAPIInternal = "api-int.test-cluster.example.com"
+var DomainApps = fmt.Sprintf("%s.apps.test-cluster.example.com", constants.AppsSubDomainNameHostDNSValidation)
+var WildcardDomain = fmt.Sprintf("%s.test-cluster.example.com", constants.DNSWildcardFalseDomainName)
 
 var DomainResolution = []*models.DomainResolutionResponseDomain{
 	{
@@ -129,6 +130,11 @@ var DomainResolution = []*models.DomainResolutionResponseDomain{
 		DomainName:    &DomainApps,
 		IPV4Addresses: []strfmt.IPv4{"7.8.9.10/24"},
 		IPV6Addresses: []strfmt.IPv6{"1003:db8::10/120"},
+	},
+	{
+		DomainName:    &WildcardDomain,
+		IPV4Addresses: []strfmt.IPv4{},
+		IPV6Addresses: []strfmt.IPv6{},
 	}}
 
 var TestDomainNameResolutionSuccess = &models.DomainResolutionResponse{
@@ -231,6 +237,23 @@ func GenerateTestDefaultVmwareInventory() string {
 	b, err := json.Marshal(inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
+}
+
+func CreateWildcardDomainNameResolutionReply(name string, baseDomain string) *models.DomainResolutionResponse {
+
+	domain := fmt.Sprintf("%s.%s.%s", constants.DNSWildcardFalseDomainName, name, baseDomain)
+
+	var domainNameWildcardConfig = []*models.DomainResolutionResponseDomain{
+		{
+			DomainName:    &domain,
+			IPV4Addresses: []strfmt.IPv4{},
+			IPV6Addresses: []strfmt.IPv6{},
+		}}
+
+	var testDomainNameResolutionWildcard = &models.DomainResolutionResponse{
+		Resolutions: domainNameWildcardConfig}
+
+	return testDomainNameResolutionWildcard
 }
 
 type NetAddress struct {
