@@ -335,6 +335,11 @@ ci-deploy-for-subsystem: _verify_cluster generate-keys
 	$(MAKE) deploy-wiremock deploy-all
 
 patch-service: _verify_cluster update-local-image
+ifdef DEBUG_SERVICE
+	$(KUBECTL) patch deployment assisted-service --type json -p='[{"op": "add", "path": "/spec/template/spec/containers/0/ports/-", "value": {"containerPort": 40000}}]'
+	$(KUBECTL) patch service assisted-service --type json -p='[{"op": "add", "path": "/spec/ports/-", value: {"name": "assisted-service-debug", "port": 40000, "protocol": "TCP", "targetPort": 40000}}]'
+	$(KUBECTL) patch deployment assisted-service --type json -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}]'
+endif
 	$(call restart_service_pods)
 
 deploy-test: _verify_cluster generate-keys update-local-image
