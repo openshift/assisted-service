@@ -28,9 +28,10 @@ func NewControllerEventsWrapper(crdEventsHandler CRDEventsHandler, events *event
 func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	c.events.AddEvent(ctx, clusterID, hostID, severity, msg, eventTime, props)
 
-	c.NotifyKubeApiClusterEvent(clusterID)
 	if hostID != nil {
 		c.NotifyKubeApiHostEvent(clusterID, *hostID)
+	} else {
+		c.NotifyKubeApiClusterEvent(clusterID)
 	}
 }
 
@@ -57,14 +58,12 @@ func (c *controllerEventsWrapper) SendClusterEventAtTime(ctx context.Context, ev
 func (c *controllerEventsWrapper) SendHostEvent(ctx context.Context, event events.HostEvent) {
 	c.events.SendHostEvent(ctx, event)
 
-	c.NotifyKubeApiClusterEvent(event.GetClusterId())
 	c.NotifyKubeApiHostEvent(event.GetClusterId(), event.GetHostId())
 }
 
 func (c *controllerEventsWrapper) SendHostEventAtTime(ctx context.Context, event events.HostEvent, eventTime time.Time) {
 	c.events.SendHostEventAtTime(ctx, event, eventTime)
 
-	c.NotifyKubeApiClusterEvent(event.GetClusterId())
 	c.NotifyKubeApiHostEvent(event.GetClusterId(), event.GetHostId())
 }
 
@@ -86,4 +85,8 @@ func (c *controllerEventsWrapper) NotifyKubeApiHostEvent(clusterID strfmt.UUID, 
 
 	c.log.Debugf("Pushing event for host %q %s", hostID, host.KubeKeyNamespace)
 	c.crdEventsHandler.NotifyAgentUpdates(hostID.String(), host.KubeKeyNamespace)
+
+	if host.ClusterID != nil {
+		c.NotifyKubeApiClusterEvent(*host.ClusterID)
+	}
 }
