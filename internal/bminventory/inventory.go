@@ -1178,7 +1178,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 
 	if infraEnv, err = common.GetInfraEnvFromDB(b.db, infraEnv.ID); err != nil {
 		log.WithError(err).Errorf("failed to get infra env %s after update", infraEnv.ID)
-		return err
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if imageExists {
@@ -5256,7 +5256,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	}
 
 	if err = b.GenerateInfraEnvISOInternal(ctx, &infraEnv); err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
 	success = true
@@ -5322,10 +5322,10 @@ func (b *bareMetalInventory) updateInfraEnvInternal(ctx context.Context, params 
 	}
 
 	if err = b.GenerateInfraEnvISOInternal(ctx, infraEnv); err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
-	return infraEnv, nil
+	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnv.ID})
 }
 
 func (b *bareMetalInventory) updateInfraEnvData(_ context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger) error {
