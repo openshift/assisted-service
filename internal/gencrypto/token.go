@@ -8,22 +8,29 @@ import (
 	"github.com/pkg/errors"
 )
 
-func LocalJWT(cluster_id string) (string, error) {
+type LocalJWTKeyType string
+
+const (
+	InfraEnvKey LocalJWTKeyType = "infra_env_id"
+	ClusterKey  LocalJWTKeyType = "cluster_id"
+)
+
+func LocalJWT(id string, keyType LocalJWTKeyType) (string, error) {
 	key, ok := os.LookupEnv("EC_PRIVATE_KEY_PEM")
 	if !ok || key == "" {
 		return "", errors.Errorf("EC_PRIVATE_KEY_PEM not found")
 	}
-	return LocalJWTForKey(cluster_id, key)
+	return LocalJWTForKey(id, key, keyType)
 }
 
-func LocalJWTForKey(cluster_id string, private_key_pem string) (string, error) {
+func LocalJWTForKey(id string, private_key_pem string, keyType LocalJWTKeyType) (string, error) {
 	priv, err := jwt.ParseECPrivateKeyFromPEM([]byte(private_key_pem))
 	if err != nil {
 		return "", err
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
-		"cluster_id": cluster_id,
+		string(keyType): id,
 	})
 
 	tokenString, err := token.SignedString(priv)
@@ -34,13 +41,13 @@ func LocalJWTForKey(cluster_id string, private_key_pem string) (string, error) {
 	return tokenString, nil
 }
 
-func SignURL(urlString string, cluster_id string) (string, error) {
+func SignURL(urlString string, id string, keyType LocalJWTKeyType) (string, error) {
 	u, err := url.Parse(urlString)
 	if err != nil {
 		return "", err
 	}
 
-	tok, err := LocalJWT(cluster_id)
+	tok, err := LocalJWT(id, keyType)
 	if err != nil {
 		return "", err
 	}

@@ -1284,7 +1284,7 @@ func (r *ClusterDeploymentsReconciler) eventsURL(log logrus.FieldLogger, cluster
 	if r.AuthType != auth.TypeLocal {
 		return eventsURL, nil
 	}
-	eventsURL, err := gencrypto.SignURL(eventsURL, clusterId)
+	eventsURL, err := gencrypto.SignURL(eventsURL, clusterId, gencrypto.ClusterKey)
 	if err != nil {
 		log.WithError(err).Error("failed to get Events URL")
 		return "", err
@@ -1680,7 +1680,7 @@ func (r *ClusterDeploymentsReconciler) generateControllerLogsDownloadURL(cluster
 	}
 
 	var err error
-	downloadURL, err = gencrypto.SignURL(downloadURL, cluster.ID.String())
+	downloadURL, err = gencrypto.SignURL(downloadURL, cluster.ID.String(), gencrypto.ClusterKey)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to sign cluster controller logs URL")
 	}

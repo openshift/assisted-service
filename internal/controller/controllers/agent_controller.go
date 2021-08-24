@@ -270,7 +270,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		}
 		status := *h.Status
 		if clusterId != nil {
-			err := r.populateEventsURL(log, agent, *clusterId)
+			err := r.populateEventsURL(log, agent, *clusterId, h.InfraEnvID.String())
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
@@ -292,9 +292,9 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	return ctrl.Result{}, nil
 }
 
-func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, clusterId string) error {
+func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, clusterId, infraEnvId string) error {
 	if agent.Status.DebugInfo.EventsURL == "" || !strings.Contains(agent.Status.DebugInfo.EventsURL, clusterId) {
-		eventUrl, err := r.eventsURL(log, clusterId, agent.Name)
+		eventUrl, err := r.eventsURL(log, clusterId, infraEnvId, agent.Name)
 		if err != nil {
 			log.WithError(err).Error("failed to generate Events URL")
 			return err
@@ -304,12 +304,12 @@ func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1b
 	return nil
 }
 
-func (r *AgentReconciler) eventsURL(log logrus.FieldLogger, clusterId, agentId string) (string, error) {
+func (r *AgentReconciler) eventsURL(log logrus.FieldLogger, clusterId, infraEnvId, agentId string) (string, error) {
 	eventsURL := fmt.Sprintf("%s%s/v1/clusters/%s/events?host_id=%s", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId, agentId)
 	if r.AuthType != auth.TypeLocal {
 		return eventsURL, nil
 	}
-	eventsURL, err := gencrypto.SignURL(eventsURL, clusterId)
+	eventsURL, err := gencrypto.SignURL(eventsURL, infraEnvId, gencrypto.InfraEnvKey)
 	if err != nil {
 		log.WithError(err).Error("failed to get Events URL")
 		return "", err

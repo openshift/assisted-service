@@ -13,7 +13,7 @@ func AgentToken(infraEnv *common.InfraEnv, authType auth.AuthType) (token string
 	case auth.TypeRHSSO:
 		token, err = cloudPullSecretToken(infraEnv.PullSecret)
 	case auth.TypeLocal:
-		token, err = gencrypto.LocalJWT(infraEnv.ID.String())
+		token, err = gencrypto.LocalJWT(infraEnv.ID.String(), gencrypto.InfraEnvKey)
 	case auth.TypeNone:
 		token = ""
 	default:
