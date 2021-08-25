@@ -226,7 +226,20 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	// with the BMH being reconciled. We will call both, reconcileAgentSpec and
 	// reconcileAgentInventory, every time. The logic to decide whether there's
 	// any action to take is implemented in each function respectively.
-	result = r.reconcileAgentInventory(bmh, agent)
+	result = r.reconcileAgentSpec(log, bmh, agent)
+	if result.Dirty() {
+		err := r.Client.Update(ctx, agent)
+		if err != nil {
+			log.WithError(err).Errorf("Error updating agent")
+			return reconcileError{err}.Result()
+		}
+	}
+
+	if result.Stop(ctx) {
+		return result.Result()
+	}
+
+	result = r.reconcileAgentInventory(log, bmh, agent)
 	if result.Dirty() {
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
@@ -244,19 +257,6 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
 			log.WithError(err).Errorf("Error adding MCS cert of spoke cluster into BMH")
-			return reconcileError{err}.Result()
-		}
-	}
-
-	if result.Stop(ctx) {
-		return result.Result()
-	}
-
-	result = r.reconcileAgentSpec(log, bmh, agent)
-	if result.Dirty() {
-		err := r.Client.Update(ctx, agent)
-		if err != nil {
-			log.WithError(err).Errorf("Error updating agent")
 			return reconcileError{err}.Result()
 		}
 	}
@@ -395,7 +395,9 @@ func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(c
 // on every BMAC reconcile will trigger an infinite loop of reconciles between
 // BMAC and the BMH reconcile as the former will update the hardwaredetails annotation
 // while the latter will continue to update the status.
-func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	log.Debugf("Started Agent Inventory reconcile for agent %s/%s and bmh %s/%s", agent.Namespace, agent.Name, bmh.Namespace, bmh.Name)
+
 	// This check should be updated. We should check the
 	// agent status instead.
 	if len(agent.Status.Inventory.Interfaces) == 0 {
@@ -423,7 +425,7 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 		// reference: https://github.com/metal3-io/baremetal-operator/pull/758
 		for _, ip := range append(iface.IPV6Addresses, iface.IPV4Addresses...) {
 			hardwareDetails.NIC = append(hardwareDetails.NIC, bmh_v1alpha1.NIC{
-				IP:        ip,
+				IP:        strings.SplitN(ip, "/", 2)[0],
 				Name:      iface.Name,
 				Model:     iface.Vendor,
 				MAC:       iface.MacAddress,
@@ -471,12 +473,7 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 	}
 
 	// Add hostname
-	annotations := bmh.ObjectMeta.GetAnnotations()
-	if val, ok := annotations[BMH_AGENT_HOSTNAME]; ok {
-		hardwareDetails.Hostname = val
-	} else {
-		hardwareDetails.Hostname = agent.Status.Inventory.Hostname
-	}
+	hardwareDetails.Hostname = agent.Spec.Hostname
 
 	bytes, err := json.Marshal(hardwareDetails)
 	if err != nil {
@@ -488,6 +485,7 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 	}
 
 	bmh.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION] = string(bytes)
+	log.Debugf("Agent Inventory reconciled to BMH \n %v \n %v", agent, bmh)
 	return reconcileComplete{dirty: true}
 
 }
@@ -957,7 +955,7 @@ func (r *BMACReconciler) findBMHByInfraEnv(ctx context.Context, infraEnv *aiv1be
 }
 
 func (r *BMACReconciler) ensureSpokeBMH(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, machine *machinev1beta1.Machine, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
-	bmhSpoke, mutateFn := r.newSpokeBMH(bmh, machine, agent)
+	bmhSpoke, mutateFn := r.newSpokeBMH(log, bmh, machine, agent)
 	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, bmhSpoke, mutateFn); err != nil {
 		return nil, err
 	} else if result != controllerutil.OperationResultNone {
@@ -1107,7 +1105,7 @@ func (r *BMACReconciler) ensureSpokeBMHSecret(ctx context.Context, log logrus.Fi
 	return secretSpoke, nil
 }
 
-func (r *BMACReconciler) newSpokeBMH(bmh *bmh_v1alpha1.BareMetalHost, machine *machinev1beta1.Machine, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, controllerutil.MutateFn) {
+func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, machine *machinev1beta1.Machine, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, controllerutil.MutateFn) {
 	bmhSpoke := &bmh_v1alpha1.BareMetalHost{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      bmh.Name,
@@ -1121,8 +1119,10 @@ func (r *BMACReconciler) newSpokeBMH(bmh *bmh_v1alpha1.BareMetalHost, machine *m
 		bmhSpoke.Spec.ExternallyProvisioned = true
 		bmhSpoke.Spec.Image = bmh.Spec.Image
 		bmhSpoke.Spec.ConsumerRef = &corev1.ObjectReference{
-			Name:      machine.Name,
-			Namespace: machine.Namespace,
+			APIVersion: machine.APIVersion,
+			Kind:       machine.Kind,
+			Name:       machine.Name,
+			Namespace:  machine.Namespace,
 		}
 		// copy annotations. hardwaredetails annotations is needed for automatic csr approval
 		// We don't copy all annotations because there are some annotations that should not be
@@ -1130,11 +1130,11 @@ func (r *BMACReconciler) newSpokeBMH(bmh *bmh_v1alpha1.BareMetalHost, machine *m
 		if bmhSpoke.ObjectMeta.Annotations == nil {
 			bmhSpoke.ObjectMeta.Annotations = make(map[string]string)
 		}
-		bmhSpoke.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION] = bmh.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]
+
 		// HardwareDetails annotation needs a special case. The annotation gets removed once it's consumed by the baremetal operator
 		// and data is copied to the bmh status. So we are reconciling the annotation from the agent status inventory.
 		// If HardwareDetails annotation is already copied from hub bmh.annotation above, this won't overwrite it.
-		if _, err := r.reconcileAgentInventory(bmhSpoke, agent).Result(); err != nil {
+		if _, err := r.reconcileAgentInventory(log, bmhSpoke, agent).Result(); err != nil {
 			return err
 		}
 		return nil
