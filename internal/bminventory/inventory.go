@@ -5364,6 +5364,12 @@ func (b *bareMetalInventory) updateInfraEnvInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
+	if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraEnvUpdateParams.StaticNetworkConfig); err != nil {
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	err = b.updateInfraEnvData(ctx, infraEnv, params, b.db, log)
 	if err != nil {
 		log.WithError(err).Error("updateInfraEnvData")
@@ -5400,6 +5406,11 @@ func (b *bareMetalInventory) updateInfraEnvData(_ context.Context, infraEnv *com
 
 	if params.InfraEnvUpdateParams.IgnitionConfigOverride != "" {
 		updates["ignition_config_override"] = params.InfraEnvUpdateParams.IgnitionConfigOverride
+	}
+
+	if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
+		staticNetworkConfig := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraEnvUpdateParams.StaticNetworkConfig)
+		updates["static_network_config"] = staticNetworkConfig
 	}
 
 	if params.InfraEnvUpdateParams.PullSecret != "" {
