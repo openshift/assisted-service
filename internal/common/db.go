@@ -276,6 +276,9 @@ func CreateInfraEnvForCluster(db *gorm.DB, cluster *Cluster) error {
 		OpenshiftVersion: cluster.OpenshiftVersion,
 		PullSecretSet:    true,
 		Proxy:            &proxy,
+		EmailDomain:      cluster.EmailDomain,
+		OrgID:            cluster.OrgID,
+		UserName:         cluster.UserName,
 	},
 		PullSecret: cluster.PullSecret,
 	}

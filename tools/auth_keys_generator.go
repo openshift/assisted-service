@@ -26,17 +26,22 @@ func main() {
 	//Generate keys in JWK format
 	pubJSJWKS, privJSJWKS, kid, _ := keygen_tools.GenJSJWKS(priv, pub)
 
-	tokenString, err := getTokenString(getUserToken(), kid, priv)
+	tokenString, err := getTokenString(createTokenWithClaims("jdoe123@example.com"), kid, priv)
 	if err != nil {
 		fmt.Printf("Token Signing error: %v\n", err)
 	}
 
-	tokenAdminString, err := getTokenString(getAdminToken(), kid, priv)
+	tokenString2, err := getTokenString(createTokenWithClaims("bob@example.com"), kid, priv)
 	if err != nil {
 		fmt.Printf("Token Signing error: %v\n", err)
 	}
 
-	tokenUnallowedString, err := getTokenString(getUnallowedUserToken(), kid, priv)
+	tokenAdminString, err := getTokenString(createTokenWithClaims("admin@example.com"), kid, priv)
+	if err != nil {
+		fmt.Printf("Token Signing error: %v\n", err)
+	}
+
+	tokenUnallowedString, err := getTokenString(createTokenWithClaims("unallowed@example.com"), kid, priv)
 	if err != nil {
 		fmt.Printf("Token Signing error: %v\n", err)
 	}
@@ -53,6 +58,10 @@ func main() {
 	err = newFile(keysDir+"/auth-tokenString", []byte(tokenString), 0400)
 	if err != nil {
 		fmt.Printf("Failed to write file auth-tokenString: %v\n", err)
+	}
+	err = newFile(keysDir+"/auth-tokenString2", []byte(tokenString2), 0400)
+	if err != nil {
+		fmt.Printf("Failed to write file auth-tokenString2: %v\n", err)
 	}
 	err = newFile(keysDir+"/auth-tokenAdminString", []byte(tokenAdminString), 0400)
 	if err != nil {
@@ -92,7 +101,7 @@ func getTokenString(token *jwt.Token, kid string, priv crypto.PrivateKey) (strin
 	return token.SignedString(priv)
 }
 
-func createTokenWithClaims(email, username string) *jwt.Token {
+func createTokenWithClaims(email string) *jwt.Token {
 	return jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"account_number": "1234567",
 		"is_internal":    false,
@@ -104,20 +113,8 @@ func createTokenWithClaims(email, username string) *jwt.Token {
 		"locale":         "en_US",
 		"first_name":     "John",
 		"email":          email,
-		"username":       username,
+		"username":       email,
 		"is_org_admin":   false,
 		"clientId":       "1234",
 	})
-}
-
-func getUserToken() *jwt.Token {
-	return createTokenWithClaims("jdoe123@example.com", "jdoe123@example.com")
-}
-
-func getAdminToken() *jwt.Token {
-	return createTokenWithClaims("admin@example.com", "admin@example.com")
-}
-
-func getUnallowedUserToken() *jwt.Token {
-	return createTokenWithClaims("unallowed@example.com", "unallowed@example.com")
 }

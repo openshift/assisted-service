@@ -27,7 +27,7 @@ import (
 )
 
 var db *gorm.DB
-var agentBMClient, badAgentBMClient, userBMClient, readOnlyAdminUserBMClient, unallowedUserBMClient *client.AssistedInstall
+var agentBMClient, agentBMClient2, badAgentBMClient, userBMClient, user2BMClient, readOnlyAdminUserBMClient, unallowedUserBMClient *client.AssistedInstall
 var log *logrus.Logger
 var wiremock *WireMock
 var kubeClient k8sclient.Client
@@ -45,6 +45,7 @@ var Options struct {
 	AuthType                auth.AuthType `envconfig:"AUTH_TYPE"`
 	InventoryHost           string        `envconfig:"INVENTORY"`
 	TestToken               string        `envconfig:"TEST_TOKEN"`
+	TestToken2              string        `envconfig:"TEST_TOKEN_2"`
 	TestTokenAdmin          string        `envconfig:"TEST_TOKEN_ADMIN"`
 	TestTokenUnallowed      string        `envconfig:"TEST_TOKEN_UNALLOWED"`
 	OCMHost                 string        `envconfig:"OCM_HOST"`
@@ -100,14 +101,18 @@ func init() {
 		log.Fatal(err.Error())
 	}
 	userClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestToken))
+	userClientCfg2 := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestToken2))
 	adminUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenAdmin))
 	unallowedUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenUnallowed))
 	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(FakePS))
+	agentClientCfg2 := clientcfg(auth.AgentAuthHeaderWriter(FakePS2))
 	badAgentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(WrongPullSecret))
 	userBMClient = client.New(userClientCfg)
+	user2BMClient = client.New(userClientCfg2)
 	readOnlyAdminUserBMClient = client.New(adminUserClientCfg)
 	unallowedUserBMClient = client.New(unallowedUserClientCfg)
 	agentBMClient = client.New(agentClientCfg)
+	agentBMClient2 = client.New(agentClientCfg2)
 	badAgentBMClient = client.New(badAgentClientCfg)
 
 	db, err = gorm.Open("postgres",
