@@ -206,45 +206,36 @@ func GetCluster(ctx context.Context, logger logrus.FieldLogger, db *gorm.DB, clu
 }
 
 func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr string) error {
-	txSuccess := false
-	tx := db.Begin()
-	defer func() {
-		if !txSuccess {
-			tx.Rollback()
-		}
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
+	// TODO MGMT-7678: Support dual-stack. It requires to indicate primary by a new flag field / ordinal numbering
 
-	// Delete previous primary machine CIDR
+	previousPrimaryMachineCidr := ""
 	if network.IsMachineCidrAvailable(cluster) {
-		if err := common.DeleteRecordsByClusterID(tx, *cluster.ID, []interface{}{&models.MachineNetwork{}}, "cidr = ?", network.GetMachineCidrById(cluster, 0)); err != nil {
-			return err
+		previousPrimaryMachineCidr = network.GetMachineCidrById(cluster, 0)
+	}
+
+	if machineCidr != previousPrimaryMachineCidr {
+		if machineCidr != "" {
+			if err := db.Model(&models.MachineNetwork{}).Save(&models.MachineNetwork{
+				ClusterID: *cluster.ID,
+				Cidr:      models.Subnet(machineCidr),
+			}).Error; err != nil {
+				return err
+			}
 		}
-	}
 
-	if machineCidr != "" {
-		if err := tx.Model(&models.MachineNetwork{}).Save(&models.MachineNetwork{
-			ClusterID: *cluster.ID,
-			Cidr:      models.Subnet(machineCidr),
-		}).Error; err != nil {
-			return err
+		// Delete previous primary machine CIDR
+		if network.IsMachineCidrAvailable(cluster) {
+			if err := common.DeleteRecordsByClusterID(db, *cluster.ID, []interface{}{&models.MachineNetwork{}}, "cidr = ?", network.GetMachineCidrById(cluster, 0)); err != nil {
+				return err
+			}
 		}
+
+		// TODO MGMT-7365: Deprecate single network
+		return db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(map[string]interface{}{
+			"machine_network_cidr":            machineCidr,
+			"machine_network_cidr_updated_at": time.Now(),
+		}).Error
 	}
 
-	// TODO MGMT-7365: Deprecate single network
-	if err := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(
-		"machine_network_cidr", machineCidr,
-		"machine_network_cidr_updated_at", time.Now(),
-	).Error; err != nil {
-		return err
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return err
-	}
-
-	txSuccess = true
 	return nil
 }
