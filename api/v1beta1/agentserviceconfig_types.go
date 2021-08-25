@@ -97,20 +97,28 @@ const (
 	ReasonReconcileSucceeded string = "ReconcileSucceeded"
 	// ReasonStorageFailure when there was a failure configuring/deploying storage.
 	ReasonStorageFailure string = "StorageFailure"
+	// ReasonImageHandlerServiceFailure when there was a failure related to the assisted-image-service's service.
+	ReasonImageHandlerServiceFailure string = "ImageHandlerServiceFailure"
 	// ReasonAgentServiceFailure when there was a failure related to the assisted-service's service.
 	ReasonAgentServiceFailure string = "AgentServiceFailure"
 	// ReasonAgentServiceFailure when there was a failure related to generating/deploying the service monitor.
 	ReasonAgentServiceMonitorFailure string = "AgentServiceMonitorFailure"
+	// ReasonImageHandlerRouteFailure when there was a failure configuring/deploying the assisted-image-service's route.
+	ReasonImageHandlerRouteFailure string = "ImageHandlerRouteFailure"
 	// ReasonAgentRouteFailure when there was a failure configuring/deploying the assisted-service's route.
 	ReasonAgentRouteFailure string = "AgentRouteFailure"
 	// ReasonAgentLocalAuthSecretFailure when there was a failure generating/deploying the local auth key pair secret.
 	ReasonAgentLocalAuthSecretFailure string = "AgentLocalAuthSecretFailure" // #nosec
 	// ReasonPostgresSecretFailure when there was a failure generating/deploying the database secret.
 	ReasonPostgresSecretFailure string = "PostgresSecretFailure"
+	// ReasonImageHandlerServiceAccountFailure when there was a failure related to the assisted-image-service's service account.
+	ReasonImageHandlerServiceAccountFailure string = "ImageHandlerServiceAccountFailure"
 	// ReasonIngressCertFailure when there was a failure generating/deploying the ingress cert configmap.
 	ReasonIngressCertFailure string = "IngressCertFailure"
 	// ReasonConfigFailure when there was a failure configuring/deploying the assisted-service configmap.
 	ReasonConfigFailure string = "ConfigFailure"
+	// ReasonImageHandlerDeploymentFailure when there was a failure configuring/deploying the assisted-image-service deployment.
+	ReasonImageHandlerDeploymentFailure string = "ImageHandlerDeploymentFailure"
 	// ReasonDeploymentFailure when there was a failure configuring/deploying the assisted-service deployment.
 	ReasonDeploymentFailure string = "DeploymentFailure"
 )

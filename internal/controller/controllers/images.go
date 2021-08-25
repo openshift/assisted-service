@@ -28,6 +28,10 @@ func ServiceImage() string {
 	return getEnvVar("SERVICE_IMAGE", "quay.io/ocpmetal/assisted-service:latest")
 }
 
+func ImageServiceImage() string {
+	return getEnvVar("IMAGE_SERVICE_IMAGE", "quay.io/app-sre/assisted-image-service:latest")
+}
+
 func DatabaseImage() string {
 	return getEnvVar("DATABASE_IMAGE", "quay.io/ocpmetal/postgresql-12-centos7:latest")
 }

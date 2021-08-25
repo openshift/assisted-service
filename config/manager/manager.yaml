@@ -32,6 +32,8 @@ spec:
         env:
           - name: SERVICE_IMAGE
             value: quay.io/ocpmetal/assisted-service:latest
+          - name: IMAGE_SERVICE_IMAGE
+            value: quay.io/app-sre/assisted-image-service:latest
           - name: DATABASE_IMAGE
             value: quay.io/ocpmetal/postgresql-12-centos7:latest
           - name: AGENT_IMAGE

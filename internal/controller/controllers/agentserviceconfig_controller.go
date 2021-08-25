@@ -61,11 +61,13 @@ const (
 	// supported in the cluster. Any others will be ignored.
 	agentServiceConfigName        = "agent"
 	serviceName            string = "assisted-service"
+	imageHandlerName       string = "assisted-image-service"
 	databaseName           string = "postgres"
 
 	databasePasswordLength   int   = 16
 	servicePort              int32 = 8090
 	databasePort             int32 = 5432
+	imageHandlerPort         int32 = 8090
 	agentLocalAuthSecretName       = serviceName + "local-auth" // #nosec
 
 	defaultIngressCertCMName      string = "default-ingress-cert"
@@ -99,6 +101,7 @@ type NewComponentFn func(context.Context, logrus.FieldLogger, *aiv1beta1.AgentSe
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
@@ -149,13 +152,17 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	}{
 		{"FilesystemStorage", aiv1beta1.ReasonStorageFailure, r.newFilesystemPVC},
 		{"DatabaseStorage", aiv1beta1.ReasonStorageFailure, r.newDatabasePVC},
+		{"ImageHandlerService", aiv1beta1.ReasonImageHandlerServiceFailure, r.newImageHandlerService},
 		{"AgentService", aiv1beta1.ReasonAgentServiceFailure, r.newAgentService},
 		{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, r.newServiceMonitor},
+		{"ImageHandlerRoute", aiv1beta1.ReasonImageHandlerRouteFailure, r.newImageHandlerRoute},
 		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, r.newAgentRoute},
 		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, r.newAgentLocalAuthSecret},
 		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, r.newPostgresSecret},
+		{"ImageHandlerServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, r.newImageHandlerServiceAccount},
 		{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, r.newIngressCertCM},
 		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, r.newAssistedCM},
+		{"ImageHandlerDeployment", aiv1beta1.ReasonImageHandlerDeploymentFailure, r.newImageHandlerDeployment},
 		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, r.newAssistedServiceDeployment},
 	} {
 		obj, mutateFn, err := component.fn(ctx, log, instance)
@@ -222,6 +229,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&monitoringv1.ServiceMonitor{}).
 		Owns(&corev1.Service{}).
+		Owns(&corev1.ServiceAccount{}).
 		Owns(&corev1.Secret{}).
 		Owns(&routev1.Route{}).
 		Owns(&appsv1.Deployment{}).
@@ -315,6 +323,39 @@ func (r *AgentServiceConfigReconciler) newAgentService(ctx context.Context, log 
 	return svc, mutateFn, nil
 }
 
+func (r *AgentServiceConfigReconciler) newImageHandlerService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      imageHandlerName,
+			Namespace: r.Namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, svc, r.Scheme); err != nil {
+			return err
+		}
+		addAppLabel(serviceName, &svc.ObjectMeta)
+		if svc.ObjectMeta.Annotations == nil {
+			svc.ObjectMeta.Annotations = make(map[string]string)
+		}
+		svc.ObjectMeta.Annotations["service.beta.openshift.io/serving-cert-secret-name"] = imageHandlerName
+		if len(svc.Spec.Ports) == 0 {
+			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
+		}
+		svc.Spec.Ports[0].Name = imageHandlerName
+		svc.Spec.Ports[0].Port = imageHandlerPort
+		// since intstr.FromInt() doesn't take an int32, just use what FromInt() would return
+		svc.Spec.Ports[0].TargetPort = intstr.IntOrString{Type: intstr.Int, IntVal: imageHandlerPort}
+		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
+		svc.Spec.Selector = map[string]string{"app": imageHandlerName}
+		svc.Spec.Type = corev1.ServiceTypeClusterIP
+		return nil
+	}
+
+	return svc, mutateFn, nil
+}
+
 func (r *AgentServiceConfigReconciler) newServiceMonitor(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	service := &corev1.Service{}
 	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, service); err != nil {
@@ -376,6 +417,45 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(ctx context.Context, log lo
 		},
 		Port: &routev1.RoutePort{
 			TargetPort: intstr.FromString(serviceName),
+		},
+		WildcardPolicy: routev1.WildcardPolicyNone,
+		TLS:            &routev1.TLSConfig{Termination: routev1.TLSTerminationReencrypt},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
+			return err
+		}
+		// Only update what is specified above in routeSpec.
+		// If we update the entire route.Spec with
+		// route.Spec = routeSpec
+		// it would overwrite any existing values for route.Spec.Host
+		route.Spec.To = routeSpec.To
+		route.Spec.Port = routeSpec.Port
+		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
+		route.Spec.TLS = routeSpec.TLS
+		return nil
+	}
+
+	return route, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newImageHandlerRoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	weight := int32(100)
+	route := &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      imageHandlerName,
+			Namespace: r.Namespace,
+		},
+	}
+	routeSpec := routev1.RouteSpec{
+		To: routev1.RouteTargetReference{
+			Kind:   "Service",
+			Name:   imageHandlerName,
+			Weight: &weight,
+		},
+		Port: &routev1.RoutePort{
+			TargetPort: intstr.FromString(imageHandlerName),
 		},
 		WildcardPolicy: routev1.WildcardPolicyNone,
 		TLS:            &routev1.TLSConfig{Termination: routev1.TLSTerminationReencrypt},
@@ -466,6 +546,26 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(ctx context.Context, lo
 	}
 
 	return secret, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newImageHandlerServiceAccount(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      imageHandlerName,
+			Namespace: r.Namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		err := controllerutil.SetControllerReference(instance, sa, r.Scheme)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return sa, mutateFn, nil
 }
 
 func (r *AgentServiceConfigReconciler) newIngressCertCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
@@ -574,6 +674,100 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 	}
 
 	return cm, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newImageHandlerDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+
+	deploymentLabels := map[string]string{
+		"app": imageHandlerName,
+	}
+
+	deploymentStrategy := appsv1.DeploymentStrategy{
+		Type: appsv1.RollingUpdateDeploymentStrategyType,
+	}
+
+	container := corev1.Container{
+		Name:            imageHandlerName,
+		Image:           ImageServiceImage(),
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Ports: []corev1.ContainerPort{
+			{
+				ContainerPort: imageHandlerPort,
+				Protocol:      corev1.ProtocolTCP,
+			},
+		},
+		Env: []corev1.EnvVar{
+			{Name: "LISTEN_PORT", Value: string(imageHandlerPort)},
+			{Name: "HTTPS_CERT_FILE", Value: "/etc/tls/tls.crt"},
+			{Name: "HTTPS_KEY_FILE", Value: "/etc/tls/tls.key"},
+			{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
+			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + ":" + string(servicePort)},
+			{Name: "REQUEST_AUTH_TYPE", Value: "header"},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: "tls-certs", MountPath: "/etc/tls"},
+		},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("100m"),
+				corev1.ResourceMemory: resource.MustParse("400Mi"),
+			},
+		},
+		ReadinessProbe: &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path:   "/health",
+					Port:   intstr.FromInt(int(imageHandlerPort)),
+					Scheme: corev1.URISchemeHTTPS,
+				},
+			},
+		},
+	}
+
+	volumes := []corev1.Volume{
+		{
+			Name: "tls-certs",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: imageHandlerName,
+				},
+			},
+		},
+	}
+
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      imageHandlerName,
+			Namespace: r.Namespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: deploymentLabels,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: deploymentLabels,
+					Name:   imageHandlerName,
+				},
+			},
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, deployment, r.Scheme); err != nil {
+			return err
+		}
+		var replicas int32 = 1
+		deployment.Spec.Replicas = &replicas
+		deployment.Spec.Strategy = deploymentStrategy
+
+		deployment.Spec.Template.Spec.Containers = []corev1.Container{container}
+		deployment.Spec.Template.Spec.Volumes = volumes
+		deployment.Spec.Template.Spec.ServiceAccountName = imageHandlerName
+		return nil
+	}
+
+	return deployment, mutateFn, nil
 }
 
 func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
