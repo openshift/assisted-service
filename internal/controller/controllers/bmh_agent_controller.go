@@ -425,7 +425,7 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 		// reference: https://github.com/metal3-io/baremetal-operator/pull/758
 		for _, ip := range append(iface.IPV6Addresses, iface.IPV4Addresses...) {
 			hardwareDetails.NIC = append(hardwareDetails.NIC, bmh_v1alpha1.NIC{
-				IP:        ip,
+				IP:        strings.SplitN(ip, "/", 2)[0],
 				Name:      iface.Name,
 				Model:     iface.Vendor,
 				MAC:       iface.MacAddress,
