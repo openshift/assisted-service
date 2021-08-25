@@ -83,7 +83,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 	// Register host after reboot
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRegisterHost,
-		Condition:      th.IsHostInReboot,
+		Condition:      stateswitch.Or(th.IsHostInReboot, stateswitch.And(th.IsDay2Host, th.IsHostInDone)),
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstallingPendingUserAction),
