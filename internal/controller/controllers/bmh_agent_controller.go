@@ -1130,7 +1130,7 @@ func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.B
 		if bmhSpoke.ObjectMeta.Annotations == nil {
 			bmhSpoke.ObjectMeta.Annotations = make(map[string]string)
 		}
-		bmhSpoke.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION] = bmh.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]
+
 		// HardwareDetails annotation needs a special case. The annotation gets removed once it's consumed by the baremetal operator
 		// and data is copied to the bmh status. So we are reconciling the annotation from the agent status inventory.
 		// If HardwareDetails annotation is already copied from hub bmh.annotation above, this won't overwrite it.
