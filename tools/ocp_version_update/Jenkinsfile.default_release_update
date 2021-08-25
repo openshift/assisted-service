@@ -4,10 +4,6 @@ pipeline {
         SLACK_TOKEN = credentials('slack-token')
         JIRA_CREDS = credentials('Ronnie-jira')
         GITHUB_CREDS = credentials('oshercc_github_cred')
-        GITLAB_PRIVKEY = credentials('42f405bb-779e-418d-8219-b1807ec332ad')
-        GITLAB_TOKEN = credentials('ca661806-6ca4-4841-9937-3ab4bf723a05')
-
-        JENKINS_CRED = credentials('bot-user-jenkins')
     }
 
     triggers { cron('0 0 * * *') }
@@ -22,9 +18,7 @@ pipeline {
                 sh '''git clean -fdx'''
                 sh '''skipper run python3 tools/ocp_version_update/update_default_release_versions_to_latest.py\
                  --jira-user-password "${JIRA_CREDS}"\
-                 --github-user-password "${GITHUB_CREDS}"\
-                 --gitlab-key-file "${GITLAB_PRIVKEY}"\
-                 --gitlab-token "${GITLAB_TOKEN}"'''
+                 --github-user-password "${GITHUB_CREDS}"'''
             }
         }
     }
