@@ -1747,60 +1747,64 @@ var _ = Describe("Refresh Host", func() {
 			"over_timeout":  90 * time.Minute,
 		}
 
-		for j := range installationStages {
-			stage := installationStages[j]
-			for passedTimeKey, passedTimeValue := range timePassedTypes {
-				name := fmt.Sprintf("installationInProgress stage %s %s", stage, passedTimeKey)
-				passedTimeKind := passedTimeKey
-				passedTime := passedTimeValue
-				It(name, func() {
-					hostCheckInAt := strfmt.DateTime(time.Now())
-					srcState = models.HostStatusInstallingInProgress
-					host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
-					host.Inventory = hostutil.GenerateMasterInventory()
-					host.Role = models.HostRoleMaster
-					host.CheckedInAt = hostCheckInAt
-
-					progress := models.HostProgressInfo{
-						CurrentStage:   stage,
-						StageStartedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
-						StageUpdatedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
-					}
-
-					host.Progress = &progress
-
-					Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-					cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.PrimaryMachineNetworkCidr)
-					Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-
-					if passedTimeKind == "over_timeout" {
-						if stage == models.HostStageRebooting {
-							mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusInstallingPendingUserAction),
-								gomock.Any(), gomock.Any())
-						} else {
-							mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
-								gomock.Any(), gomock.Any())
+		ClusterHighAvailabilityModes := []string{models.ClusterHighAvailabilityModeNone, models.ClusterHighAvailabilityModeFull}
+		for i := range ClusterHighAvailabilityModes {
+			highAvailabilityMode := ClusterHighAvailabilityModes[i]
+			for j := range installationStages {
+				stage := installationStages[j]
+				for passedTimeKey, passedTimeValue := range timePassedTypes {
+					name := fmt.Sprintf("installationInProgress stage %s %s", stage, passedTimeKey)
+					passedTimeKind := passedTimeKey
+					passedTime := passedTimeValue
+					It(name, func() {
+						hostCheckInAt := strfmt.DateTime(time.Now())
+						srcState = models.HostStatusInstallingInProgress
+						host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
+						host.Inventory = hostutil.GenerateMasterInventory()
+						host.InstallationDiskPath = common.TestDiskId
+						host.Role = models.HostRoleMaster
+						host.CheckedInAt = hostCheckInAt
+						progress := models.HostProgressInfo{
+							CurrentStage:   stage,
+							StageStartedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+							StageUpdatedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
 						}
-					}
-					err := hapi.RefreshStatus(ctx, &host, db)
+						host.Progress = &progress
+						Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+						cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.PrimaryMachineNetworkCidr)
+						cluster.HighAvailabilityMode = &highAvailabilityMode
+						Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
-					Expect(err).ToNot(HaveOccurred())
-					var resultHost models.Host
-					Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
-
-					if passedTimeKind == "under_timeout" {
-						Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingInProgress))
-					} else {
-						if stage == models.HostStageRebooting {
-							Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
-							Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(statusRebootTimeout))
-						} else {
-							Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
-							info := formatProgressTimedOutInfo(stage)
-							Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
+						if passedTimeKind == "over_timeout" {
+							if stage == models.HostStageRebooting {
+								mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusInstallingPendingUserAction),
+									gomock.Any(), gomock.Any())
+							} else {
+								mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
+									gomock.Any(), gomock.Any())
+							}
 						}
-					}
-				})
+						err := hapi.RefreshStatus(ctx, &host, db)
+
+						Expect(err).ToNot(HaveOccurred())
+						var resultHost models.Host
+						Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+						if passedTimeKind == "under_timeout" {
+							Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingInProgress))
+						} else {
+							if stage == models.HostStageRebooting {
+								Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
+								statusInfo := strings.Replace(statusRebootTimeout, "$INSTALLATION_DISK", fmt.Sprintf("(test-disk, %s)", common.TestDiskId), 1)
+								Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(statusInfo))
+							} else {
+								Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
+								info := formatProgressTimedOutInfo(stage)
+								Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
+							}
+						}
+					})
+				}
 			}
 		}
 		It("state info progress when failed", func() {
