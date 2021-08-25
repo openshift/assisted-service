@@ -1119,8 +1119,10 @@ func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.B
 		bmhSpoke.Spec.ExternallyProvisioned = true
 		bmhSpoke.Spec.Image = bmh.Spec.Image
 		bmhSpoke.Spec.ConsumerRef = &corev1.ObjectReference{
-			Name:      machine.Name,
-			Namespace: machine.Namespace,
+			APIVersion: machine.APIVersion,
+			Kind:       machine.Kind,
+			Name:       machine.Name,
+			Namespace:  machine.Namespace,
 		}
 		// copy annotations. hardwaredetails annotations is needed for automatic csr approval
 		// We don't copy all annotations because there are some annotations that should not be
