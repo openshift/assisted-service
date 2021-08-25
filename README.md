@@ -87,28 +87,43 @@ The e2e tests are divided into u/s (upstream) basic workflows on [assisted-test-
 
 ### Subsystem tests pre-configuration
 
-* Run minikube on your system
-* Enable [registry addon](https://minikube.sigs.k8s.io/docs/handbook/registry/) on your minikube
+* Run [minikube](https://minikube.sigs.k8s.io/docs/start/) on your system
+* Enable [registry addon](https://minikube.sigs.k8s.io/docs/handbook/registry/) on your minikube:
+```bash
+minikube addons enable registry
+```
 * Set `LOCAL_ASSISTED_ORG` to point to your local registry address
-
 ```bash
 export LOCAL_ASSISTED_ORG=localhost:5000
 ```
-
-* Deploy services `skipper make deploy-test`
+* Redirect the local registry to the minikube registry:
+```bash
+nohup kubectl port-forward svc/registry 5000:80 -n kube-system &>/dev/null &
+```
+* Make a tunnel to make minikube services reachable (the command will ask for root password):
+```bash
+nohup minikube tunnel &>/dev/null &
+```
+* Deploy services:
+```bash
+skipper make deploy-test
+```
 
 ### Run tests
+```shell
+skipper make [test|unit-test] [environment variables]
+```
 
-* `make test` - Runs subsystem tests.
-* `make unit-test` - Runs unit tests.
+* `test` - Runs subsystem tests.
+* `unit-test` - Runs unit tests.
+
+Environment variables:
+
 * `FOCUS="install_cluster"` - An optional flag used for [focused specs](https://onsi.github.io/ginkgo/#focused-specs) with regular expression.
 * `SKIP="install_cluster"` - An optional flag to skip scopes with regular expressions.
-* `Test="./internal/host"` -  An optional flag used for testing a specific package.
+* `TEST="./internal/host"` -  An optional flag used for testing a specific package.
 * `VERBOSE=true` - An optional flag to print verbosed data.
 
-```shell
-skipper make [test|unit-test]
-```
 
 ### Update service for the subsystem tests
 
