@@ -268,6 +268,9 @@ type InstallerAPI interface {
 	/* V2ResetHostValidation Reset failed host validation. */
 	V2ResetHostValidation(ctx context.Context, params installer.V2ResetHostValidationParams) middleware.Responder
 
+	/* V2UpdateHost Update an Openshift host */
+	V2UpdateHost(ctx context.Context, params installer.V2UpdateHostParams) middleware.Responder
+
 	/* V2UpdateHostIgnition Patch the ignition file for this host */
 	V2UpdateHostIgnition(ctx context.Context, params installer.V2UpdateHostIgnitionParams) middleware.Responder
 
@@ -848,6 +851,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2ResetHostValidation(ctx, params)
+	})
+	api.InstallerV2UpdateHostHandler = installer.V2UpdateHostHandlerFunc(func(params installer.V2UpdateHostParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2UpdateHost(ctx, params)
 	})
 	api.InstallerV2UpdateHostIgnitionHandler = installer.V2UpdateHostIgnitionHandlerFunc(func(params installer.V2UpdateHostIgnitionParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

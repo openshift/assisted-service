@@ -1,0 +1,224 @@
+package subsystem
+
+import (
+	"context"
+	"encoding/json"
+	"time"
+
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/models"
+)
+
+var _ = Describe("Host tests v2", func() {
+	ctx := context.Background()
+	var infraEnv *installer.RegisterInfraEnvCreated
+	var infraEnvID strfmt.UUID
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	BeforeEach(func() {
+		var err error
+		infraEnv, err = userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
+			InfraenvCreateParams: &models.InfraEnvCreateParams{
+				Name:             swag.String("test-infra-env"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHAuthorizedKey: swag.String(sshPublicKey),
+				ImageType:        models.ImageTypeFullIso,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		infraEnvID = infraEnv.GetPayload().ID
+	})
+
+	It("host infra env CRUD", func() {
+		host := &registerHost(infraEnvID).Host
+		host = getHostV2(infraEnvID, *host.ID)
+		Expect(*host.Status).Should(Equal("discovering-unbound"))
+		Expect(host.StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
+
+		list, err := userBMClient.Installer.V2ListHosts(ctx, &installer.V2ListHostsParams{InfraEnvID: infraEnvID})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(list.GetPayload())).Should(Equal(1))
+
+		_, err = userBMClient.Installer.V2DeregisterHost(ctx, &installer.V2DeregisterHostParams{
+			InfraEnvID: infraEnvID,
+			HostID:     *host.ID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		list, err = userBMClient.Installer.V2ListHosts(ctx, &installer.V2ListHostsParams{InfraEnvID: infraEnvID})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(list.GetPayload())).Should(Equal(0))
+
+		_, err = userBMClient.Installer.V2GetHost(ctx, &installer.V2GetHostParams{
+			InfraEnvID: infraEnvID,
+			HostID:     *host.ID,
+		})
+		Expect(err).Should(HaveOccurred())
+	})
+
+	var defaultInventory = func() string {
+		inventory := models.Inventory{
+			Interfaces: []*models.Interface{
+				{
+					Name: "eth0",
+					IPV4Addresses: []string{
+						"1.2.3.4/24",
+					},
+					SpeedMbps: 20,
+				},
+				{
+					Name: "eth1",
+					IPV4Addresses: []string{
+						"1.2.5.4/24",
+					},
+					SpeedMbps: 40,
+				},
+			},
+
+			// CPU, Disks, and Memory were added here to prevent the case that assisted-service crashes in case the monitor starts
+			// working in the middle of the test and this inventory is in the database.
+			CPU: &models.CPU{
+				Count: 4,
+			},
+			Disks: []*models.Disk{
+				{
+					ID:        "wwn-0x1111111111111111111111",
+					ByID:      "wwn-0x1111111111111111111111",
+					DriveType: "HDD",
+					Name:      "sda1",
+					SizeBytes: int64(120) * (int64(1) << 30),
+					Bootable:  true,
+				},
+			},
+			Memory: &models.Memory{
+				PhysicalBytes: int64(16) * (int64(1) << 30),
+				UsableBytes:   int64(16) * (int64(1) << 30),
+			},
+			SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+			Timestamp:    1601845851,
+		}
+		b, err := json.Marshal(&inventory)
+		Expect(err).To(Not(HaveOccurred()))
+		return string(b)
+	}
+
+	It("update_hostname_successfully", func() {
+		host := &registerHost(infraEnvID).Host
+		host = getHostV2(infraEnvID, *host.ID)
+		Expect(host).NotTo(BeNil())
+		host = updateInventory(ctx, infraEnvID, *host.ID, defaultInventory())
+
+		hostnameRequest := &installer.V2UpdateHostParams{
+			InfraEnvID: infraEnvID,
+			HostID:     *host.ID,
+			HostUpdateParams: &models.HostUpdateParams{
+				HostName: swag.String("new-host-name"),
+			},
+		}
+		updatedHost := updateHostV2(ctx, hostnameRequest)
+		Expect(updatedHost.RequestedHostname).To(Equal("new-host-name"))
+	})
+
+	It("update infra-env host installation disk id failure", func() {
+		host := &registerHost(infraEnvID).Host
+		host = getHostV2(infraEnvID, *host.ID)
+		Expect(host).NotTo(BeNil())
+		inventory, error := common.UnmarshalInventory(defaultInventory())
+		Expect(error).ToNot(HaveOccurred())
+		inventory.Disks = []*models.Disk{
+			{
+				ID:        "wwn-0x1111111111111111111111",
+				ByID:      "wwn-0x1111111111111111111111",
+				DriveType: "HDD",
+				Name:      "sda",
+				SizeBytes: int64(120) * (int64(1) << 30),
+				Bootable:  true,
+			},
+			{
+				ID:        "wwn-0x2222222222222222222222",
+				ByID:      "wwn-0x2222222222222222222222",
+				DriveType: "HDD",
+				Name:      "sdb",
+				SizeBytes: int64(120) * (int64(1) << 30),
+				Bootable:  true,
+			},
+		}
+
+		inventoryStr, err := common.MarshalInventory(inventory)
+		Expect(err).ToNot(HaveOccurred())
+		host = updateInventory(ctx, infraEnvID, *host.ID, inventoryStr)
+
+		Expect(host.InstallationDiskID).To(Equal(""))
+		Expect(host.InstallationDiskPath).To(Equal(""))
+
+		diskSelectionRequest := &installer.V2UpdateHostParams{
+			InfraEnvID: infraEnvID,
+			HostID:     *host.ID,
+			HostUpdateParams: &models.HostUpdateParams{
+				DisksSelectedConfig: []*models.DiskConfigParams{
+					{ID: &inventory.Disks[1].ID, Role: models.DiskRoleInstall},
+					{ID: &inventory.Disks[0].ID, Role: models.DiskRoleNone},
+				},
+			},
+		}
+
+		_, error = userBMClient.Installer.V2UpdateHost(ctx, diskSelectionRequest)
+		Expect(error).Should(HaveOccurred())
+	})
+
+	It("register_same_host_id", func() {
+		// register to infra-env 1
+		host := &registerHost(infraEnvID).Host
+		hostID := *host.ID
+
+		infraEnv2, err := userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
+			InfraenvCreateParams: &models.InfraEnvCreateParams{
+				Name:             swag.String("another test-infra-env"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHAuthorizedKey: swag.String(sshPublicKey),
+				ImageType:        models.ImageTypeFullIso,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		infraEnvID2 := infraEnv2.GetPayload().ID
+
+		// register to infra env2
+		_ = registerHostByUUID(infraEnvID2, hostID)
+
+		// successfully get from both clusters
+		_ = getHostV2(infraEnvID, hostID)
+		_ = getHostV2(infraEnvID2, hostID)
+
+		_, err = userBMClient.Installer.V2DeregisterHost(ctx, &installer.V2DeregisterHostParams{
+			InfraEnvID: infraEnvID,
+			HostID:     hostID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		h := getHostV2(infraEnvID2, hostID)
+
+		// register again to cluster 2 and expect it to be in discovery status
+		Expect(db.Model(h).Update("status", "known-unbound").Error).NotTo(HaveOccurred())
+		h = getHostV2(infraEnvID2, hostID)
+		Expect(swag.StringValue(h.Status)).Should(Equal("known-unbound"))
+		_ = registerHostByUUID(infraEnvID2, hostID)
+		h = getHostV2(infraEnvID2, hostID)
+		Expect(swag.StringValue(h.Status)).Should(Equal("discovering-unbound"))
+	})
+})
+
+func updateHostV2(ctx context.Context, request *installer.V2UpdateHostParams) *models.Host {
+	response, error := userBMClient.Installer.V2UpdateHost(ctx, request)
+	Expect(error).ShouldNot(HaveOccurred())
+	Expect(response).NotTo(BeNil())
+	Expect(response.Payload).NotTo(BeNil())
+	return response.Payload
+}

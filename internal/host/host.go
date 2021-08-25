@@ -308,6 +308,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 
 	hostStatus := swag.StringValue(h.Status)
 	allowedStatuses := append(hostStatusesBeforeInstallation[:], models.HostStatusInstallingInProgress)
+	allowedStatuses = append(allowedStatuses, hostStatusesInInfraEnv[:]...)
 
 	if !funk.ContainsString(allowedStatuses, hostStatus) {
 		return common.NewApiError(http.StatusConflict,
@@ -707,7 +708,8 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 
 func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {
 	hostStatus := swag.StringValue(h.Status)
-	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
+	allowedStatuses := append(hostStatusesBeforeInstallation[:], hostStatusesInInfraEnv[:]...)
+	if !funk.ContainsString(allowedStatuses, hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Host is in %s state, host name can be set only in one of %s states",
 				hostStatus, hostStatusesBeforeInstallation[:]))
@@ -723,7 +725,8 @@ func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 
 func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error {
 	hostStatus := swag.StringValue(h.Status)
-	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
+	allowedStatuses := append(hostStatusesBeforeInstallation[:], hostStatusesInInfraEnv[:]...)
+	if !funk.ContainsString(allowedStatuses, hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Host is in %s state, host name can be set only in one of %s states",
 				hostStatus, hostStatusesBeforeInstallation[:]))

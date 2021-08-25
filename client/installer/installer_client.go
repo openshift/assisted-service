@@ -237,6 +237,9 @@ type API interface {
 	   Reset failed host validation. It may be performed on any host validation with persistent validation result.*/
 	V2ResetHostValidation(ctx context.Context, params *V2ResetHostValidationParams) (*V2ResetHostValidationOK, error)
 	/*
+	   V2UpdateHost Update an Openshift host*/
+	V2UpdateHost(ctx context.Context, params *V2UpdateHostParams) (*V2UpdateHostCreated, error)
+	/*
 	   V2UpdateHostIgnition Patch the ignition file for this host*/
 	V2UpdateHostIgnition(ctx context.Context, params *V2UpdateHostIgnitionParams) (*V2UpdateHostIgnitionCreated, error)
 	/*
@@ -2029,6 +2032,31 @@ func (a *Client) V2ResetHostValidation(ctx context.Context, params *V2ResetHostV
 		return nil, err
 	}
 	return result.(*V2ResetHostValidationOK), nil
+
+}
+
+/*
+V2UpdateHost Update an Openshift host
+*/
+func (a *Client) V2UpdateHost(ctx context.Context, params *V2UpdateHostParams) (*V2UpdateHostCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2UpdateHost",
+		Method:             "PATCH",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2UpdateHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2UpdateHostCreated), nil
 
 }
 

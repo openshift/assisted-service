@@ -150,6 +150,7 @@ type InstallerInternals interface {
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
 	AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
+	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams) (*common.Host, error)
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -5074,8 +5075,9 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 		return err
 	}
 	if len(hosts) > 0 {
-		log.WithError(err).Errorf("failed to deregister infraEnv %s, hosts are still associated", params.InfraEnvID)
-		return common.NewApiError(http.StatusBadRequest, err)
+		msg := fmt.Sprintf("failed to deregister infraEnv %s, hosts are still associated", params.InfraEnvID)
+		log.Error(msg)
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
 	}
 
 	// Delete discovery image for deregistered infraEnv
@@ -5579,7 +5581,6 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		ID:                    params.NewHostParams.HostID,
 		Href:                  swag.String(url.String()),
 		Kind:                  kind,
-		ClusterID:             &infraEnv.ClusterID,
 		CheckedInAt:           strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
 		UserName:              ocm.UserNameFromContext(ctx),
@@ -6080,4 +6081,186 @@ func (b *bareMetalInventory) V2UpdateHostLogsProgress(ctx context.Context, param
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2UpdateHostLogsProgressNoContent()
+}
+
+func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams) (*common.Host, error) {
+	log := logutil.FromContext(ctx, b.log)
+
+	host, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to find host <%s>, infra env <%s>", params.HostID, params.InfraEnvID)
+		return nil, common.NewApiError(http.StatusNotFound, err)
+	}
+
+	txSuccess := false
+	tx := b.db.Begin()
+	tx = transaction.AddForUpdateQueryOption(tx)
+
+	defer func() {
+		if !txSuccess {
+			log.Error("update host failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("update host failed")
+			tx.Rollback()
+		}
+	}()
+
+	err = b.updateHostRole(ctx, host, params.HostUpdateParams.HostRole, tx)
+	if err != nil {
+		return nil, err
+	}
+	err = b.updateHostName(ctx, host, params.HostUpdateParams.HostName, tx)
+	if err != nil {
+		return nil, err
+	}
+	err = b.updateHostDisksSelectionConfig(ctx, host, params.HostUpdateParams.DisksSelectedConfig, tx)
+	if err != nil {
+		return nil, err
+	}
+	err = b.updateHostMachineConfigPoolName(ctx, host, params.HostUpdateParams.MachineConfigPoolName, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.refreshAfterUpdate(ctx, host, tx)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to refresh host %s, infra env %s during update", host.ID, host.InfraEnvID)
+		return nil, err
+	}
+
+	if err = tx.Commit().Error; err != nil {
+		log.Error(err)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+	txSuccess = true
+
+	// get host after update
+	host, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to get host <%s>, infra env <%s> after update", params.HostID, params.InfraEnvID)
+		return nil, common.NewApiError(http.StatusNotFound, err)
+	}
+
+	err = b.customizeHost(&host.Host)
+	if err != nil {
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return host, nil
+}
+
+func (b *bareMetalInventory) updateHostRole(ctx context.Context, host *common.Host, hostRole *string, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if hostRole == nil {
+		log.Infof("No request for role update for host %s", host.ID)
+		return nil
+	}
+	if host.ClusterID == nil {
+		msg := fmt.Sprintf("Update role of the host %s is not allowed, does not belongs to a cluster ", host.ID)
+		log.Errorf(msg)
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
+	}
+	err := b.hostApi.UpdateRole(ctx, &host.Host, models.HostRole(*hostRole), db)
+	if err != nil {
+		log.WithError(err).Errorf("failed to set role <%s> host <%s>, infra env <%s>",
+			*hostRole, host.ID, host.InfraEnvID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostName(ctx context.Context, host *common.Host, hostname *string, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if hostname == nil {
+		log.Infof("No request for hostname update for host %s", host.ID)
+		return nil
+	}
+	err := hostutil.ValidateHostname(*hostname)
+	if err != nil {
+		log.WithError(err).Errorf("invalid hostname format: %s", err)
+		return err
+	}
+	err = b.hostApi.UpdateHostname(ctx, &host.Host, *hostname, db)
+	if err != nil {
+		log.WithError(err).Errorf("failed to set hostname <%s> host <%s> infra-env <%s>",
+			*hostname, host.ID, host.InfraEnvID)
+		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostDisksSelectionConfig(ctx context.Context, host *common.Host, disksSelectedConfig []*models.DiskConfigParams, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if disksSelectedConfig == nil {
+		log.Infof("No request for dick selection config update for host %s", host.ID)
+		return nil
+	}
+	if host.ClusterID == nil {
+		msg := fmt.Sprintf("Update disks selection config of the host %s is not allowed, does not belongs to a cluster ", host.ID)
+		log.Errorf(msg)
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
+	}
+	disksToInstallOn := funk.Filter(disksSelectedConfig, func(diskConfigParams *models.DiskConfigParams) bool {
+		return models.DiskRoleInstall == diskConfigParams.Role
+	}).([]*models.DiskConfigParams)
+
+	installationDiskId := ""
+
+	if len(disksToInstallOn) > 1 {
+		return common.NewApiError(http.StatusConflict, errors.New("duplicate setting of installation path by the user"))
+	} else if len(disksToInstallOn) == 1 {
+		installationDiskId = *disksToInstallOn[0].ID
+	}
+
+	log.Infof("Update host %s to install from disk id %s", host.ID, installationDiskId)
+	err := b.hostApi.UpdateInstallationDisk(ctx, db, &host.Host, installationDiskId)
+	if err != nil {
+		log.WithError(err).Errorf("failed to set installation disk path <%s> host <%s> ubfra env <%s>",
+			installationDiskId,
+			host.ID,
+			host.InfraEnvID)
+		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostMachineConfigPoolName(ctx context.Context, host *common.Host, machineConfigPoolName *string, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if machineConfigPoolName == nil {
+		log.Infof("No request for machine config pool name update for host %s", host.ID)
+		return nil
+	}
+	if host.ClusterID == nil {
+		msg := fmt.Sprintf("Update machine config pool of the host %s is not allowed, does not belongs to a cluster ", host.ID)
+		log.Errorf(msg)
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
+	}
+	err := b.hostApi.UpdateMachineConfigPoolName(ctx, db, &host.Host, *machineConfigPoolName)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to set machine config pool name <%s> host <%s> infra env <%s>",
+			*machineConfigPoolName, host.ID,
+			host.InfraEnvID)
+		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) refreshAfterUpdate(ctx context.Context, host *common.Host, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if host.ClusterID != nil {
+		if host.Inventory != "" {
+			err := b.hostApi.RefreshInventory(ctx, nil, &host.Host, db)
+			if err != nil {
+				log.WithError(err).Errorf("failed to update inventory of host %s cluster %s", host.ID, host.ClusterID)
+				return err
+			}
+		}
+	}
+	err := b.hostApi.RefreshStatus(ctx, &host.Host, db)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to refresh host %s, infra env %s during update", host.ID, host.InfraEnvID)
+	}
+	return err
 }
