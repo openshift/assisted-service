@@ -50,6 +50,20 @@ func (mr *MockManifestsGeneratorAPIMockRecorder) AddChronyManifest(ctx, log, c i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddChronyManifest", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddChronyManifest), ctx, log, c)
 }
 
+// AddDiskEncryptionManifest mocks base method.
+func (m *MockManifestsGeneratorAPI) AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddDiskEncryptionManifest", ctx, log, c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddDiskEncryptionManifest indicates an expected call of AddDiskEncryptionManifest.
+func (mr *MockManifestsGeneratorAPIMockRecorder) AddDiskEncryptionManifest(ctx, log, c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDiskEncryptionManifest", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddDiskEncryptionManifest), ctx, log, c)
+}
+
 // AddDnsmasqForSingleNode mocks base method.
 func (m *MockManifestsGeneratorAPI) AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
 	m.ctrl.T.Helper()

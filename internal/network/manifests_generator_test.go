@@ -175,7 +175,7 @@ var _ = Describe("dnsmasq manifest", func() {
 			cluster.Cluster.BaseDNSDomain = "test.com"
 			cluster.Cluster.Name = "test"
 
-			var manifestParams = map[string]string{
+			var manifestParams = map[string]interface{}{
 				"CLUSTER_NAME": cluster.Cluster.Name,
 				"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
 				"HOST_IP":      "3.3.3.3",
@@ -202,7 +202,7 @@ var _ = Describe("dnsmasq manifest", func() {
 			cluster.Cluster.BaseDNSDomain = "test.com"
 			cluster.Cluster.Name = "test"
 
-			var manifestParams = map[string]string{
+			var manifestParams = map[string]interface{}{
 				"CLUSTER_NAME": cluster.Cluster.Name,
 				"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
 				"HOST_IP":      "1001:db8::1",
@@ -228,7 +228,7 @@ var _ = Describe("dnsmasq manifest", func() {
 			cluster.Hosts[0].Bootstrap = true
 			cluster.Cluster.BaseDNSDomain = "test.com"
 			cluster.Cluster.Name = "test"
-			var manifestParams = map[string]string{
+			var manifestParams = map[string]interface{}{
 				"CLUSTER_NAME": cluster.Cluster.Name,
 				"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
 				"HOST_IP":      "1001:db8::1",
@@ -254,7 +254,7 @@ var _ = Describe("dnsmasq manifest", func() {
 			cluster.Hosts[0].Bootstrap = true
 			cluster.Cluster.BaseDNSDomain = "test.com"
 			cluster.Cluster.Name = "test"
-			var manifestParams = map[string]string{
+			var manifestParams = map[string]interface{}{
 				"CLUSTER_NAME": cluster.Cluster.Name,
 				"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
 				"HOST_IP":      "3.3.3.3",
@@ -280,7 +280,7 @@ var _ = Describe("dnsmasq manifest", func() {
 			cluster.Hosts[0].Bootstrap = true
 			cluster.Cluster.BaseDNSDomain = "test.com"
 			cluster.Cluster.Name = "test"
-			var manifestParams = map[string]string{
+			var manifestParams = map[string]interface{}{
 				"CLUSTER_NAME": cluster.Cluster.Name,
 				"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
 				"HOST_IP":      "3.3.3.3",
@@ -434,4 +434,131 @@ var _ = Describe("schedulable masters manifest", func() {
 			Expect(manifestsGeneratorApi.AddSchedulableMastersManifest(ctx, log, &cluster)).Should(HaveOccurred())
 		})
 	})
+})
+
+var _ = Describe("disk encryption manifest", func() {
+
+	var (
+		ctx                   = context.Background()
+		log                   *logrus.Logger
+		ctrl                  *gomock.Controller
+		mockManifestsApi      *mocks.MockManifestsAPI
+		manifestsGeneratorApi ManifestsGeneratorAPI
+		db                    *gorm.DB
+		dbName                string
+		clusterId             strfmt.UUID
+		c                     common.Cluster
+	)
+
+	BeforeEach(func() {
+
+		log = logrus.New()
+		ctrl = gomock.NewController(GinkgoT())
+		mockManifestsApi = mocks.NewMockManifestsAPI(ctrl)
+		manifestsGeneratorApi = NewManifestsGenerator(mockManifestsApi, Config{})
+		db, dbName = common.PrepareTestDB()
+		clusterId = strfmt.UUID(uuid.New().String())
+		c = common.Cluster{
+			Cluster: models.Cluster{
+				ID: &clusterId,
+			},
+		}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	for _, t := range []struct {
+		name           string
+		diskEncryption *models.DiskEncryption
+		numOfManifests int
+		shouldErr      bool
+	}{
+		{
+			name: "masters and workers, tpmv2",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: models.DiskEncryptionEnableOnAll,
+				Mode:     models.DiskEncryptionModeTpmv2,
+			},
+			numOfManifests: 2,
+		},
+		{
+			name: "masters and workers, tang",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    models.DiskEncryptionEnableOnAll,
+				Mode:        models.DiskEncryptionModeTang,
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 2,
+		},
+		{
+			name: "masters only, tpmv2",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: models.DiskEncryptionEnableOnMasters,
+				Mode:     models.DiskEncryptionModeTpmv2,
+			},
+			numOfManifests: 1,
+		},
+		{
+			name: "masters only, tang",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    models.DiskEncryptionEnableOnMasters,
+				Mode:        models.DiskEncryptionModeTang,
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 1,
+		},
+		{
+			name: "workers only, tpmv2",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: models.DiskEncryptionEnableOnWorkers,
+				Mode:     models.DiskEncryptionModeTpmv2,
+			},
+			numOfManifests: 1,
+		},
+		{
+			name: "workers only, tang",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    models.DiskEncryptionEnableOnWorkers,
+				Mode:        models.DiskEncryptionModeTang,
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 1,
+		},
+		{
+			name: "disks encryption not set",
+		},
+		{
+			name: "non of the roles were specified",
+			diskEncryption: &models.DiskEncryption{
+				Mode: models.DiskEncryptionModeTpmv2,
+			},
+			shouldErr: true,
+		},
+		{
+			name: "non of the encryption modes were specified",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: models.DiskEncryptionEnableOnAll,
+			},
+			shouldErr: true,
+		},
+	} {
+		t := t
+
+		It(t.name, func() {
+
+			c.DiskEncryption = t.diskEncryption
+			Expect(db.Create(&c).Error).NotTo(HaveOccurred())
+
+			mockManifestsApi.EXPECT().CreateClusterManifest(ctx, gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(t.numOfManifests)
+			err := manifestsGeneratorApi.AddDiskEncryptionManifest(ctx, log, &c)
+			if t.shouldErr == false {
+				Expect(err).ToNot(HaveOccurred())
+			} else {
+				Expect(err).To(HaveOccurred())
+			}
+		})
+	}
 })

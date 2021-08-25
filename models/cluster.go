@@ -71,6 +71,9 @@ type Cluster struct {
 	// Format: date-time
 	DeletedAt *strfmt.DateTime `json:"deleted_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// Information regarding hosts' installation disks encryption.
+	DiskEncryption *DiskEncryption `json:"disk_encryption,omitempty" gorm:"embedded;embedded_prefix:disk_encryption_"`
+
 	// email domain
 	EmailDomain string `json:"email_domain,omitempty"`
 
@@ -275,6 +278,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateDeletedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateDiskEncryption(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -512,6 +519,24 @@ func (m *Cluster) validateDeletedAt(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("deleted_at", "body", "date-time", m.DeletedAt.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateDiskEncryption(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.DiskEncryption) { // not required
+		return nil
+	}
+
+	if m.DiskEncryption != nil {
+		if err := m.DiskEncryption.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("disk_encryption")
+			}
+			return err
+		}
 	}
 
 	return nil

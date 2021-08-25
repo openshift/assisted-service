@@ -8111,6 +8111,64 @@ var _ = Describe("TestRegisterCluster", func() {
 		verifyApiError(reply, http.StatusBadRequest)
 	})
 
+	Context("Disk encryption", func() {
+
+		It("Using tang mode without tang_servers", func() {
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					DiskEncryption: &models.DiskEncryption{
+						EnableOn: models.DiskEncryptionEnableOnAll,
+						Mode:     models.DiskEncryptionModeTang,
+					},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Setting Tang mode but tang_servers isn't set")
+		})
+
+		It("Invalid Tang server URL", func() {
+
+			By("URL not set", func() {
+				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn:    models.DiskEncryptionEnableOnAll,
+							Mode:        models.DiskEncryptionModeTang,
+							TangServers: `[{"URL":"","Thumbprint":""}]`,
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "empty url")
+			})
+
+			By("URL not valid", func() {
+				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn:    models.DiskEncryptionEnableOnAll,
+							Mode:        models.DiskEncryptionModeTang,
+							TangServers: `[{"URL":"invalidUrl","Thumbprint":""}]`,
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "invalid URI for reques")
+			})
+		})
+
+		It("Tang thumbprint not set", func() {
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					DiskEncryption: &models.DiskEncryption{
+						EnableOn:    models.DiskEncryptionEnableOnAll,
+						Mode:        models.DiskEncryptionModeTang,
+						TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
+					},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Tang thumbprint isn't set")
+		})
+
+	})
+
 	Context("NTPSource", func() {
 		It("NTPSource default value", func() {
 			defaultNtpSource := "clock.redhat.com"

@@ -423,6 +423,10 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
+	if err = validations.ValidateDiskEncryptionParams(params.NewClusterParams.DiskEncryption); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	if swag.StringValue(params.NewClusterParams.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		// verify minimal OCP version
 		err = verifyMinimalOpenShiftVersionForSingleNode(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
@@ -515,6 +519,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			ServiceNetworks:       params.NewClusterParams.ServiceNetworks,
 			MachineNetworks:       params.NewClusterParams.MachineNetworks,
 			CPUArchitecture:       cpuArchitecture,
+			DiskEncryption:        params.NewClusterParams.DiskEncryption,
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
@@ -2090,6 +2095,10 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
+	if err = validations.ValidateDiskEncryptionParams(params.ClusterUpdateParams.DiskEncryption); err != nil {
+		return nil, err
+	}
+
 	usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)
 	if err != nil {
 		log.WithError(err).Errorf("failed to read feature usage from cluster %s", params.ClusterID)
@@ -2326,6 +2335,12 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		updates["schedulable_masters"] = value
 		b.setUsage(value, usage.SchedulableMasters, nil, usages)
 	}
+
+	if params.ClusterUpdateParams.DiskEncryption != nil {
+		updates["disk_encryption_enable_on"] = params.ClusterUpdateParams.DiskEncryption.EnableOn
+		updates["disk_encryption_mode"] = params.ClusterUpdateParams.DiskEncryption.Mode
+	}
+
 	if len(updates) > 0 {
 		updates["trigger_monitor_timestamp"] = time.Now()
 		dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	reflect "reflect"
 	"text/template"
 
 	"github.com/go-openapi/swag"
@@ -25,6 +26,7 @@ type ManifestsGeneratorAPI interface {
 	AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
+	AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 }
 
 type Config struct {
@@ -202,7 +204,7 @@ func createChronyManifestContent(c *common.Cluster, role models.HostRole, log lo
 		content += fmt.Sprintf("\nserver %s iburst", source)
 	}
 
-	var manifestParams = map[string]string{
+	var manifestParams = map[string]interface{}{
 		"CHRONY_CONTENT": base64.StdEncoding.EncodeToString([]byte(content)),
 		"ROLE":           string(role),
 	}
@@ -235,6 +237,132 @@ func (m *ManifestsGenerator) AddSchedulableMastersManifest(ctx context.Context, 
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+const diskEncryptionManifest = `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  name: {{ .ROLE }}-{{ .MODE }}
+  labels:
+    machineconfiguration.openshift.io/role: {{ .ROLE }}
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      luks:
+        - name: root
+          device: /dev/disk/by-partlabel/root
+          clevis:
+		  {{- if eq .MODE "tpm" }}
+            tpm2: true
+		  {{- else if eq .MODE "tang" }}
+            tang:
+            {{- range .TANG_SERVERS }}
+              - url: {{ .Url }}
+                thumbprint: {{ .Thumbprint }}
+            {{- end }}
+		  {{- end }}
+          options: [--cipher, aes-cbc-essiv:sha256]
+          wipeVolume: true
+      filesystems:
+        - device: /dev/mapper/root
+          format: xfs
+          wipeFilesystem: true
+          label: root
+{{- if eq .MODE "tang" }}
+  kernelArguments:
+    - rd.neednet=1
+{{- end }}`
+
+func (m *ManifestsGenerator) createDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster,
+	manifestParams map[string]interface{}) error {
+
+	log.Infof("Creating manifest to encrypt installation disk on %s nodes using %s encryption", manifestParams["ROLE"], manifestParams["ROLE"])
+
+	content, err := fillTemplate(manifestParams, diskEncryptionManifest, log)
+	if err != nil {
+		log.WithError(err).Error("Failed to parse disk encryption manifest's template")
+		return err
+	}
+
+	filename := fmt.Sprintf("99-openshift-%s-%s-encryption.yaml", manifestParams["ROLE"], manifestParams["MODE"])
+	if err := m.createManifests(ctx, c, filename, content); err != nil {
+		log.WithError(err).Errorf("Failed to create manifest to encrypt installation disk")
+		return err
+	}
+
+	return nil
+}
+
+func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+
+	if reflect.DeepEqual(c.DiskEncryption, &models.DiskEncryption{}) {
+		return nil
+	}
+
+	manifestParams := map[string]interface{}{}
+
+	switch c.DiskEncryption.Mode {
+
+	case models.DiskEncryptionModeTpmv2:
+
+		manifestParams["MODE"] = "tpm"
+
+	case models.DiskEncryptionModeTang:
+
+		tangServers, err := common.UnmarshalTangServers(c.DiskEncryption.TangServers)
+		if err != nil {
+			log.WithError(err).Error("faild to unmarshal tang_server from cluster object")
+			return err
+		}
+
+		manifestParams["MODE"] = "tang"
+		manifestParams["TANG_SERVERS"] = tangServers
+
+	default:
+
+		return errors.New("None of the encryption modes were specified")
+	}
+
+	switch c.DiskEncryption.EnableOn {
+
+	case models.DiskEncryptionEnableOnAll:
+
+		manifestParams["ROLE"] = "master"
+		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
+			return err
+		}
+
+		manifestParams["ROLE"] = "worker"
+		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
+			return err
+		}
+
+	case models.DiskEncryptionEnableOnMasters:
+
+		manifestParams["ROLE"] = "master"
+		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
+			return err
+		}
+
+	case models.DiskEncryptionEnableOnWorkers:
+
+		manifestParams["ROLE"] = "worker"
+		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
+			return err
+		}
+
+	case models.DiskEncryptionEnableOnNone:
+
+		return nil
+
+	default:
+
+		return errors.New("Not specified to which role encryption should be applied")
+	}
+
 	return nil
 }
 
@@ -276,7 +404,7 @@ func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster)
 		return nil, err
 	}
 
-	var manifestParams = map[string]string{
+	var manifestParams = map[string]interface{}{
 		"CLUSTER_NAME": cluster.Cluster.Name,
 		"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
 		"HOST_IP":      hostIp,
@@ -297,7 +425,7 @@ func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster)
 	}
 	forceDnsDispatcherScriptContent := base64.StdEncoding.EncodeToString(content)
 
-	manifestParams = map[string]string{
+	manifestParams = map[string]interface{}{
 		"DNSMASQ_CONTENT":       dnsmasqContent,
 		"FORCE_DNS_SCRIPT":      forceDnsDispatcherScriptContent,
 		"UNMANAGED_RESOLV_CONF": base64.StdEncoding.EncodeToString([]byte(unmanagedResolvConf)),
@@ -311,7 +439,7 @@ func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster)
 	return content, nil
 }
 
-func fillTemplate(manifestParams map[string]string, templateData string, log logrus.FieldLogger) ([]byte, error) {
+func fillTemplate(manifestParams map[string]interface{}, templateData string, log logrus.FieldLogger) ([]byte, error) {
 	tmpl, err := template.New("template").Parse(templateData)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to create template")
@@ -348,7 +476,7 @@ data:
 // Note: There is no Telemeter-integraion so in this and any other cases we will redirect the metrics to a dummy URL
 func (m *ManifestsGenerator) AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
 
-	manifestParams := map[string]string{}
+	manifestParams := map[string]interface{}{}
 
 	switch m.Config.ServiceBaseURL {
 
