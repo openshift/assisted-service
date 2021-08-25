@@ -1951,6 +1951,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetClusterHostRequirements",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -12091,6 +12092,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetClusterHostRequirements",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",

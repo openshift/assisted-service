@@ -2661,6 +2661,7 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
       description: Get host requirements of a cluster.
+      deprecated: true
       operationId: GetClusterHostRequirements
       parameters:
         - in: path
