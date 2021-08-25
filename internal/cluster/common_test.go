@@ -1,6 +1,8 @@
 package cluster
 
 import (
+	"time"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
@@ -299,4 +301,125 @@ var _ = Describe("host count with 2 cluster", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
+})
+
+var _ = Describe("UpdateMachineCidr", func() {
+	var (
+		db *gorm.DB
+	)
+
+	tests := []struct {
+		name                           string
+		clusterMachineNetworks         []*models.MachineNetwork
+		newMachineCidr                 string
+		expectedClusterMachineNetworks []*models.MachineNetwork
+		update                         bool
+	}{
+		{
+			name:   "empty cluster with an empty new value",
+			update: false,
+		},
+		{
+			name:                           "empty cluster with non-empty new value",
+			newMachineCidr:                 string(common.TestIPv4Networking.MachineNetworks[0].Cidr),
+			expectedClusterMachineNetworks: common.TestIPv4Networking.MachineNetworks,
+			update:                         true,
+		},
+		{
+			name:                   "cluster with single machine network with an empty new value",
+			clusterMachineNetworks: common.TestIPv4Networking.MachineNetworks,
+			update:                 true,
+		},
+		{
+			name:                           "cluster with single machine network with existing new value",
+			clusterMachineNetworks:         common.TestIPv4Networking.MachineNetworks,
+			newMachineCidr:                 string(common.TestIPv4Networking.MachineNetworks[0].Cidr),
+			expectedClusterMachineNetworks: common.TestIPv4Networking.MachineNetworks,
+			update:                         false,
+		},
+		{
+			name:                           "cluster with single machine network with different new value",
+			clusterMachineNetworks:         common.TestIPv4Networking.MachineNetworks,
+			newMachineCidr:                 "5.6.7.0/24",
+			expectedClusterMachineNetworks: []*models.MachineNetwork{{Cidr: "5.6.7.0/24"}},
+			update:                         true,
+		},
+		// TODO MGMT-7678: Support dual-stack. It requires to indicate primary by a new flag field / ordinal numbering
+		// {
+		// 	name:                           "cluster with multiple machine networks with an empty new value",
+		// 	clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
+		// 	expectedClusterMachineNetworks: common.TestIPv6Networking.MachineNetworks,
+		// 	update:                         true,
+		// },
+		// {
+		// 	name:                           "cluster with multiple machine networks with existing primary new value",
+		// 	clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
+		// 	newMachineCidr:                 string(common.TestIPv4Networking.MachineNetworks[0].Cidr),
+		// 	expectedClusterMachineNetworks: append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
+		// 	update:                         false,
+		// },
+		// {
+		// 	name:                           "cluster with multiple machine networks with existing secondary new value",
+		// 	clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
+		// 	newMachineCidr:                 string(common.TestIPv6Networking.MachineNetworks[0].Cidr),
+		// 	expectedClusterMachineNetworks: common.TestIPv6Networking.MachineNetworks,
+		// 	update:                         true,
+		// },
+		// {
+		// 	name:                           "cluster with multiple machine networks with different new value",
+		// 	clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
+		// 	newMachineCidr:                 "5.6.7.0/24",
+		// 	expectedClusterMachineNetworks: append([]*models.MachineNetwork{{Cidr: "5.6.7.0/24"}}, common.TestIPv6Networking.MachineNetworks...),
+		// 	update:                         true,
+		// },
+	}
+
+	BeforeEach(func() {
+		db, _ = common.PrepareTestDB()
+
+	})
+
+	for i := range tests {
+		test := tests[i]
+		It(test.name, func() {
+			// TODO MGMT-7365: Deprecate single network
+			primaryMachineCidr := ""
+			if len(test.clusterMachineNetworks) > 0 {
+				primaryMachineCidr = string(test.clusterMachineNetworks[0].Cidr)
+			}
+
+			id := strfmt.UUID(uuid.New().String())
+			cluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 &id,
+					MachineNetworks:    test.clusterMachineNetworks,
+					MachineNetworkCidr: primaryMachineCidr,
+				},
+				MachineNetworkCidrUpdatedAt: time.Now().Add(-2 * time.Minute),
+			}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			cluster, err := common.GetClusterFromDB(common.LoadTableFromDB(db, common.MachineNetworksTable), id, common.SkipEagerLoading)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(UpdateMachineCidr(db, cluster, test.newMachineCidr)).ShouldNot(HaveOccurred())
+
+			var clusterFromDb *common.Cluster
+			clusterFromDb, err = common.GetClusterFromDB(common.LoadTableFromDB(db, common.MachineNetworksTable), id, common.SkipEagerLoading)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(clusterFromDb.MachineNetworks).To(HaveLen(len(test.expectedClusterMachineNetworks)))
+			for idx := range clusterFromDb.MachineNetworks {
+				Expect(clusterFromDb.MachineNetworks[idx].Cidr).To(Equal(test.expectedClusterMachineNetworks[idx].Cidr))
+			}
+
+			// TODO MGMT-7365: Deprecate single network
+			Expect(clusterFromDb.MachineNetworkCidr).To(Equal(test.newMachineCidr))
+
+			if test.update {
+				Expect(clusterFromDb.MachineNetworkCidrUpdatedAt).NotTo(Equal(cluster.MachineNetworkCidrUpdatedAt))
+			} else {
+				Expect(clusterFromDb.MachineNetworkCidrUpdatedAt).To(Equal(cluster.MachineNetworkCidrUpdatedAt))
+			}
+		})
+	}
 })
