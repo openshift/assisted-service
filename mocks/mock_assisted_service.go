@@ -848,6 +848,20 @@ func (mr *MockInstallerAPIMockRecorder) V2DeregisterHost(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DeregisterHost", reflect.TypeOf((*MockInstallerAPI)(nil).V2DeregisterHost), arg0, arg1)
 }
 
+// V2DownloadClusterCredentials mocks base method.
+func (m *MockInstallerAPI) V2DownloadClusterCredentials(arg0 context.Context, arg1 installer.V2DownloadClusterCredentialsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2DownloadClusterCredentials", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2DownloadClusterCredentials indicates an expected call of V2DownloadClusterCredentials.
+func (mr *MockInstallerAPIMockRecorder) V2DownloadClusterCredentials(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DownloadClusterCredentials", reflect.TypeOf((*MockInstallerAPI)(nil).V2DownloadClusterCredentials), arg0, arg1)
+}
+
 // V2DownloadClusterFiles mocks base method.
 func (m *MockInstallerAPI) V2DownloadClusterFiles(arg0 context.Context, arg1 installer.V2DownloadClusterFilesParams) middleware.Responder {
 	m.ctrl.T.Helper()

@@ -10194,6 +10194,53 @@ var _ = Describe("DownloadClusterFiles", func() {
 	})
 })
 
+var _ = Describe("[V2] V2DownloadClusterCredentials", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		clusterID = strfmt.UUID(uuid.New().String())
+		ctx       = context.Background()
+		db        *gorm.DB
+		dbName    string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB(dbName)
+		bm = createInventory(db, cfg)
+
+		cluster := common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			PullSecretSet:    true,
+			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+			Status:           swag.String(models.ClusterStatusInstalled),
+		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		Expect(common.CreateInfraEnvForCluster(db, &cluster)).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("v2 allows downloading cluster credentials files", func() {
+		for _, fileName := range cluster.ClusterOwnerFileNames {
+			By(fmt.Sprintf("downloading %s", fileName))
+
+			params := installer.V2DownloadClusterCredentialsParams{
+				ClusterID: clusterID,
+				FileName:  fileName,
+			}
+
+			r := io.NopCloser(bytes.NewReader([]byte("testfile")))
+			expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(r), fileName, int64(8))
+			mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", clusterID, fileName)).Return(r, int64(8), nil)
+			resp := bm.V2DownloadClusterCredentials(ctx, params)
+			Expect(resp).Should(Equal(expected))
+		}
+	})
+})
+
 func validateNetworkConfiguration(cluster *models.Cluster, clusterNetworks *[]*models.ClusterNetwork,
 	serviceNetworks *[]*models.ServiceNetwork, machineNetworks *[]*models.MachineNetwork) {
 	if clusterNetworks != nil {

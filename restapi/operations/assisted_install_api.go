@@ -268,6 +268,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerUploadLogsHandler: installer.UploadLogsHandlerFunc(func(params installer.UploadLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UploadLogs has not yet been implemented")
 		}),
+		InstallerV2DownloadClusterCredentialsHandler: installer.V2DownloadClusterCredentialsHandlerFunc(func(params installer.V2DownloadClusterCredentialsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2DownloadClusterCredentials has not yet been implemented")
+		}),
 		InstallerV2DownloadClusterFilesHandler: installer.V2DownloadClusterFilesHandlerFunc(func(params installer.V2DownloadClusterFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DownloadClusterFiles has not yet been implemented")
 		}),
@@ -530,6 +533,8 @@ type AssistedInstallAPI struct {
 	InstallerUploadHostLogsHandler installer.UploadHostLogsHandler
 	// InstallerUploadLogsHandler sets the operation handler for the upload logs operation
 	InstallerUploadLogsHandler installer.UploadLogsHandler
+	// InstallerV2DownloadClusterCredentialsHandler sets the operation handler for the v2 download cluster credentials operation
+	InstallerV2DownloadClusterCredentialsHandler installer.V2DownloadClusterCredentialsHandler
 	// InstallerV2DownloadClusterFilesHandler sets the operation handler for the v2 download cluster files operation
 	InstallerV2DownloadClusterFilesHandler installer.V2DownloadClusterFilesHandler
 	// InstallerV2DeregisterHostHandler sets the operation handler for the v2 deregister host operation
@@ -869,6 +874,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerUploadLogsHandler == nil {
 		unregistered = append(unregistered, "installer.UploadLogsHandler")
+	}
+	if o.InstallerV2DownloadClusterCredentialsHandler == nil {
+		unregistered = append(unregistered, "installer.V2DownloadClusterCredentialsHandler")
 	}
 	if o.InstallerV2DownloadClusterFilesHandler == nil {
 		unregistered = append(unregistered, "installer.V2DownloadClusterFilesHandler")
@@ -1315,6 +1323,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v1/clusters/{cluster_id}/logs"] = installer.NewUploadLogs(o.context, o.InstallerUploadLogsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/clusters/{cluster_id}/downloads/credentials"] = installer.NewV2DownloadClusterCredentials(o.context, o.InstallerV2DownloadClusterCredentialsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

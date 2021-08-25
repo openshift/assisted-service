@@ -4352,6 +4352,64 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}/downloads/credentials:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [user]
+        - urlAuth: []
+      description: Downloads credentials relating to the installed/installing cluster.
+      operationId: V2DownloadClusterCredentials
+      produces:
+        - application/octet-stream
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster that owns the credential file that should be downloaded.
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: file_name
+          description: The credential file to be downloaded.
+          type: string
+          enum: [kubeadmin-password, kubeconfig, kubeconfig-noingress]
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: file
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
   /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd:
     get:
       tags:
