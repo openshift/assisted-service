@@ -5853,6 +5853,46 @@ var _ = Describe("infraEnvs", func() {
 			})
 		})
 
+		Context("GenerateInfraEnvISOInternal", func() {
+			It("GenerateInfraEnvISOInternal Fail - too fast", func() {
+				infraEnvID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.InfraEnv{
+					GeneratedAt: strfmt.DateTime(time.Now()),
+					PullSecret:  "PULL_SECRET",
+					InfraEnv: models.InfraEnv{
+						ID:            infraEnvID,
+						PullSecretSet: true,
+					}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID:           infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+			})
+
+			It("UpdateInternal GeneratedAt updated in response", func() {
+				mockInfraEnvUpdateSuccess()
+				infraEnvID = strfmt.UUID(uuid.New().String())
+				generatedAt := strfmt.NewDateTime()
+				err := db.Create(&common.InfraEnv{
+					GeneratedAt: generatedAt,
+					PullSecret:  "PULL_SECRET",
+					InfraEnv: models.InfraEnv{
+						ID:            infraEnvID,
+						PullSecretSet: true,
+					}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				reponse, err := bm.updateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID:           infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{},
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(reponse.GeneratedAt).ShouldNot(Equal(generatedAt))
+			})
+		})
+
 		Context("Update Network", func() {
 			BeforeEach(func() {
 				infraEnvID = strfmt.UUID(uuid.New().String())
