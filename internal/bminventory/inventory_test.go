@@ -5626,7 +5626,7 @@ var _ = Describe("infraEnvs", func() {
 	})
 
 	Context("Update", func() {
-		Context("Update cluster", func() {
+		Context("Update infraEnv", func() {
 			infraEnvName := "some-infra-env"
 			var (
 				i *common.InfraEnv
@@ -5678,6 +5678,41 @@ var _ = Describe("infraEnvs", func() {
 				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.IgnitionConfigOverride).To(Equal(override))
+			})
+
+			It("Update StaticNetwork", func() {
+				mockInfraEnvUpdateSuccess()
+				staticNetworkFormatRes := "static network format result"
+				map1 := models.MacInterfaceMap{
+					&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+					&models.MacInterfaceMapItems0{MacAddress: "mac11", LogicalNicName: "nic11"},
+				}
+				map2 := models.MacInterfaceMap{
+					&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
+					&models.MacInterfaceMapItems0{MacAddress: "mac21", LogicalNicName: "nic21"},
+				}
+				map3 := models.MacInterfaceMap{
+					&models.MacInterfaceMapItems0{MacAddress: "mac30", LogicalNicName: "nic30"},
+					&models.MacInterfaceMapItems0{MacAddress: "mac31", LogicalNicName: "nic31"},
+				}
+				staticNetworkConfig := []*models.HostStaticNetworkConfig{
+					common.FormatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
+					common.FormatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.40", "192.168.141.40", "192.168.126.1", map2),
+					common.FormatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.42", "192.168.141.42", "192.168.126.1", map3),
+				}
+				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(staticNetworkConfig).Return(nil).Times(1)
+				mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes).Times(1)
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						StaticNetworkConfig: staticNetworkConfig,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				var err error
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.StaticNetworkConfig).To(Equal(staticNetworkFormatRes))
 			})
 		})
 
