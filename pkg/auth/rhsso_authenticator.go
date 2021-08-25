@@ -256,20 +256,16 @@ func (a *RHSSOAuthenticator) isReadOnlyAdmin(username string) (bool, error) {
 	return isAllowed, err
 }
 
-func (a *RHSSOAuthenticator) isClusterOwnedByUser(clusterID string, payload *ocm.AuthPayload) (bool, error) {
-	roll, _ := a.getRole(payload)
-	if roll != ocm.UserRole {
-		return true, nil //admins has always access to the cluster
-	}
-
-	if clusterID == "" {
-		return true, nil //not an API of clusters, so grant permission to access
+func (a *RHSSOAuthenticator) isObjectOwnedByUser(id string, obj interface{}, payload *ocm.AuthPayload) (bool, error) {
+	role, _ := a.getRole(payload)
+	if role != ocm.UserRole {
+		return true, nil //admins always have access
 	}
 
 	if a.db != nil {
-		err := a.db.First(&common.Cluster{}, "id = ? and user_name = ?", clusterID, payload.Username).Error
+		err := a.db.First(obj, "id = ? and user_name = ?", id, payload.Username).Error
 		if err != nil {
-			//if user is not the owner of the cluster return false
+			//if user is not the owner of the object return false
 			if err == gorm.ErrRecordNotFound {
 				return false, nil
 			}
@@ -305,14 +301,18 @@ func (a *RHSSOAuthenticator) CreateAuthenticator() func(name, in string, authent
 			}
 			//this code is part of the authorization process and should move to authz_handler
 			//after https://github.com/go-openapi/runtime/issues/158 is resolved
-			clusterID := params.GetParam(r.Context(), params.ClusterId)
-			ownedBy, err := a.isClusterOwnedByUser(clusterID, p.(*ocm.AuthPayload))
+			ownedBy := true
+			if clusterID := params.GetParam(r.Context(), params.ClusterId); clusterID != "" {
+				ownedBy, err = a.isObjectOwnedByUser(clusterID, &common.Cluster{}, p.(*ocm.AuthPayload))
+			} else if infraEnvID := params.GetParam(r.Context(), params.InfraEnvId); infraEnvID != "" {
+				ownedBy, err = a.isObjectOwnedByUser(infraEnvID, &common.InfraEnv{}, p.(*ocm.AuthPayload))
+			}
 			if err != nil {
-				log.Errorf("Fail to verify access to cluster. Error %v", err)
+				log.Errorf("Faied to verify access to object. Error %v", err)
 				return true, nil, common.NewApiError(http.StatusInternalServerError, err)
 			}
 			if !ownedBy {
-				return true, nil, common.NewApiError(http.StatusNotFound, errors.New("Cluster Not Found"))
+				return true, nil, common.NewApiError(http.StatusNotFound, errors.New("Object Not Found"))
 			}
 
 			return true, p, nil

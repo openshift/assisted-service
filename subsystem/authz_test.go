@@ -8,7 +8,6 @@ import (
 	"reflect"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
@@ -22,9 +21,7 @@ const psTemplate = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"%s\",\"email
 var _ = Describe("test authorization", func() {
 	ctx := context.Background()
 
-	var err error
-
-	var userClusterID strfmt.UUID
+	var userClusterID, userClusterID2 strfmt.UUID
 
 	var accessReviewUnallowedUserStubID string
 	var accessReviewAdminStubID string
@@ -33,6 +30,7 @@ var _ = Describe("test authorization", func() {
 	var capabilityReviewAdminStubID string
 
 	BeforeSuite(func() {
+		var err error
 		if Options.AuthType != auth.TypeRHSSO {
 			return
 		}
@@ -55,7 +53,7 @@ var _ = Describe("test authorization", func() {
 			return
 		}
 
-		err = wiremock.DeleteStub(accessReviewUnallowedUserStubID)
+		err := wiremock.DeleteStub(accessReviewUnallowedUserStubID)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		err = wiremock.DeleteStub(accessReviewAdminStubID)
@@ -69,11 +67,14 @@ var _ = Describe("test authorization", func() {
 	})
 
 	BeforeEach(func() {
+		var err error
 		if Options.AuthType == auth.TypeNone {
 			Skip("auth is disabled")
 		}
 
 		userClusterID, err = registerCluster(ctx, userBMClient, "user-cluster", fmt.Sprintf(psTemplate, FakePS))
+		Expect(err).ShouldNot(HaveOccurred())
+		userClusterID2, err = registerCluster(ctx, user2BMClient, "user2-cluster", fmt.Sprintf(psTemplate, FakePS2))
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -83,41 +84,77 @@ var _ = Describe("test authorization", func() {
 
 	Context("unallowed user", func() {
 		It("can't list clusters", func() {
-			_, err = unallowedUserBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+			_, err := unallowedUserBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
 			Expect(err).Should(HaveOccurred())
 		})
 	})
 
 	Context("admin user", func() {
 		It("can get all clusters", func() {
-			_, err = readOnlyAdminUserBMClient.Installer.GetCluster(
+			resp, err := readOnlyAdminUserBMClient.Installer.ListClusters(
 				ctx,
-				&installer.GetClusterParams{ClusterID: userClusterID})
+				&installer.ListClustersParams{})
 			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(resp.Payload)).To(Equal(2))
+		})
+
+		It("can't register/delete with read only admin", func() {
+			_, err := readOnlyAdminUserBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
+			Expect(err).Should(HaveOccurred())
+			Expect(err).To(BeAssignableToTypeOf(installer.NewDeregisterClusterForbidden()))
 		})
 	})
 
 	Context("regular user", func() {
 		It("can get owned cluster", func() {
-			_, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID})
+			_, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can't get not owned cluster", func() {
-			_, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: strfmt.UUID(uuid.New().String())})
+			_, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID2})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewGetClusterNotFound()))
 		})
 
 		It("can delete owned cluster", func() {
-			_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
+			_, err := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		It("can't register/delete with read only admin", func() {
-			_, err = readOnlyAdminUserBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
+		It("can get owned infra-env", func() {
+			_, err := userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: userClusterID})
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("can't get not owned infra-env", func() {
+			_, err := userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: userClusterID2})
 			Expect(err).Should(HaveOccurred())
-			Expect(err).To(BeAssignableToTypeOf(installer.NewDeregisterClusterForbidden()))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewGetInfraEnvNotFound()))
+		})
+	})
+
+	Context("agent", func() {
+		It("can get owned cluster", func() {
+			_, err := agentBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID})
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("can't get not owned cluster", func() {
+			_, err := agentBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID2})
+			Expect(err).Should(HaveOccurred())
+			Expect(err).To(BeAssignableToTypeOf(installer.NewGetClusterNotFound()))
+		})
+
+		It("can get owned infra-env", func() {
+			_, err := agentBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: userClusterID})
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("can't get not owned infra-env", func() {
+			_, err := agentBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: userClusterID2})
+			Expect(err).Should(HaveOccurred())
+			Expect(err).To(BeAssignableToTypeOf(installer.NewGetInfraEnvNotFound()))
 		})
 	})
 })

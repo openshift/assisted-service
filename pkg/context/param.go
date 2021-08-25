@@ -11,8 +11,9 @@ type contextKey string
 
 //path parameters that are saved on the context
 const (
-	ClusterId = "cluster_id"
-	HostId    = "host_id"
+	ClusterId  = "cluster_id"
+	HostId     = "host_id"
+	InfraEnvId = "infra_env_id"
 )
 
 func GetParam(ctx context.Context, key string) string {
