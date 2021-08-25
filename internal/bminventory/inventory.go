@@ -5203,12 +5203,9 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		}
 	}
 
-	openshiftVersion, err := b.versionsHandler.GetOpenshiftVersion(
-		swag.StringValue(params.InfraenvCreateParams.OpenshiftVersion), params.InfraenvCreateParams.CPUArchitecture)
+	openshiftVersion, err := b.getOpenshiftVersionOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
 	if err != nil {
-		err = errors.Errorf("Openshift version %s is not supported",
-			swag.StringValue(params.InfraenvCreateParams.OpenshiftVersion))
-		return nil, common.NewApiError(http.StatusBadRequest, err)
+		return nil, err
 	}
 
 	if params.InfraenvCreateParams.SSHAuthorizedKey != nil && *params.InfraenvCreateParams.SSHAuthorizedKey != "" {
@@ -5318,6 +5315,26 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 
 	success = true
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnv.ID})
+}
+
+func (b *bareMetalInventory) getOpenshiftVersionOrLatest(version *string, cpuArch string) (*models.OpenshiftVersion, error) {
+	var openshiftVersion *models.OpenshiftVersion
+	var err error
+	if swag.StringValue(version) != "" {
+		openshiftVersion, err = b.versionsHandler.GetOpenshiftVersion(swag.StringValue(version), cpuArch)
+		if err != nil {
+			err = errors.Errorf("Openshift version %s is not supported",
+				swag.StringValue(version))
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	} else {
+		openshiftVersion, err = b.versionsHandler.GetLatestOpenshiftVersion(cpuArch)
+		if err != nil {
+			err = errors.Errorf("Fail to get latest Openshift version")
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+	return openshiftVersion, nil
 }
 
 func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder {

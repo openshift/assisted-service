@@ -5599,6 +5599,28 @@ var _ = Describe("infraEnvs", func() {
 			Expect(actual.Payload.Name).To(Equal("some-infra-env-name"))
 		})
 
+		It("No version specified", func() {
+			mockVersions.EXPECT().GetLatestOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(2)
+			mockS3Client.EXPECT().GetBaseIsoObject(gomock.Any()).Return("rhcos", nil).Times(1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), "rhcos", gomock.Any()).Return(nil).Times(1)
+			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().IsAwsS3().Return(false)
+			mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).AnyTimes()
+
+			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:       swag.String("some-infra-env-name"),
+					PullSecret: swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
+			actual := reply.(*installer.RegisterInfraEnvCreated)
+			Expect(actual.Payload.Name).To(Equal("some-infra-env-name"))
+		})
+
 		It("Create with ClusterID - CPU architecture mismatch", func() {
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 

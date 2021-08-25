@@ -32,6 +32,7 @@ type Handler interface {
 	restapi.VersionsAPI
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
 	GetOpenshiftVersion(openshiftVersion, cpuArchitecture string) (*models.OpenshiftVersion, error)
+	GetLatestOpenshiftVersion(cpuArchitecture string) (*models.OpenshiftVersion, error)
 	GetOsImage(openshiftVersion string) (*models.OsImage, error)
 	GetKey(openshiftVersion string) (string, error)
 	IsOpenshiftVersionSupported(versionKey string) bool
@@ -133,6 +134,31 @@ func (h *handler) IsOpenshiftVersionSupported(versionKey string) bool {
 	}
 
 	return true
+}
+
+// Returns the highest OpenshiftVersion entity
+func (h *handler) GetLatestOpenshiftVersion(cpuArchitecture string) (*models.OpenshiftVersion, error) {
+	var latest *models.OpenshiftVersion
+	var latestKey string
+	for k := range h.openshiftVersions {
+		if latest == nil || k > latestKey {
+			archs, err := h.GetCPUArchitectures(k)
+			if err != nil {
+				continue
+			}
+			for _, arch := range archs {
+				if arch == cpuArchitecture {
+					version := h.openshiftVersions[k]
+					latest = &version
+					latestKey = k
+				}
+			}
+		}
+	}
+	if latest == nil {
+		return nil, errors.Errorf("No latest OpenshiftVersion found")
+	}
+	return latest, nil
 }
 
 // Returns the OpenshiftVersion entity
