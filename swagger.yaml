@@ -6100,6 +6100,9 @@ definitions:
         type: integer
       usable_bytes:
         type: integer
+      physical_bytes_method:
+        description: The method by which the physical memory was set
+        $ref: '#/definitions/memory_method'
 
   cpu:
     type: object
@@ -6322,6 +6325,13 @@ definitions:
     enum:
       - baremetal
       - vsphere
+
+  memory_method:
+    type: string
+    enum:
+      - dmidecode
+      - ghw
+      - meminfo
 
   credentials:
     type: object

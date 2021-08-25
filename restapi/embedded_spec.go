@@ -9359,10 +9359,22 @@ func init() {
         "physical_bytes": {
           "type": "integer"
         },
+        "physical_bytes_method": {
+          "description": "The method by which the physical memory was set",
+          "$ref": "#/definitions/memory_method"
+        },
         "usable_bytes": {
           "type": "integer"
         }
       }
+    },
+    "memory_method": {
+      "type": "string",
+      "enum": [
+        "dmidecode",
+        "ghw",
+        "meminfo"
+      ]
     },
     "monitored-operator": {
       "type": "object",
@@ -19489,10 +19501,22 @@ func init() {
         "physical_bytes": {
           "type": "integer"
         },
+        "physical_bytes_method": {
+          "description": "The method by which the physical memory was set",
+          "$ref": "#/definitions/memory_method"
+        },
         "usable_bytes": {
           "type": "integer"
         }
       }
+    },
+    "memory_method": {
+      "type": "string",
+      "enum": [
+        "dmidecode",
+        "ghw",
+        "meminfo"
+      ]
     },
     "monitored-operator": {
       "type": "object",
