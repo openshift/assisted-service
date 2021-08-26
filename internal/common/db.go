@@ -318,7 +318,7 @@ func ToSqlList(strs []string) string {
 	return res
 }
 
-func CreateInfraEnvForCluster(db *gorm.DB, cluster *Cluster) error {
+func CreateInfraEnvForCluster(db *gorm.DB, cluster *Cluster, imageType models.ImageType) error {
 	proxy := models.Proxy{
 		HTTPProxy:  swag.String(cluster.HTTPProxy),
 		HTTPSProxy: swag.String(cluster.HTTPSProxy),
@@ -334,8 +334,10 @@ func CreateInfraEnvForCluster(db *gorm.DB, cluster *Cluster) error {
 		EmailDomain:      cluster.EmailDomain,
 		OrgID:            cluster.OrgID,
 		UserName:         cluster.UserName,
+		Type:             imageType,
 	},
 		PullSecret: cluster.PullSecret,
+		Generated:  false,
 	}
 	err := db.Create(infraEnv).Error
 	return err

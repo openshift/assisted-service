@@ -150,6 +150,11 @@ func mockInfraEnvUpdateSuccess() {
 	mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).AnyTimes()
 }
 
+func mockInfraEnvUpdateSuccessNoImageGeneration() {
+	mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+	mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+}
+
 func mockInfraEnvDeRegisterSuccess() {
 	mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
 }
@@ -237,7 +242,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		Expect(common.CreateInfraEnvForCluster(db, &cluster)).ShouldNot(HaveOccurred())
+		Expect(common.CreateInfraEnvForCluster(db, &cluster, models.ImageTypeFullIso)).ShouldNot(HaveOccurred())
 		return &cluster
 	}
 
@@ -5703,6 +5708,24 @@ var _ = Describe("infraEnvs", func() {
 				Expect(i.AdditionalNtpSources).ToNot(Equal(nil))
 				Expect(i.AdditionalNtpSources).To(Equal("1.1.1.1"))
 			})
+			It("Update AdditionalNtpSources same", func() {
+				var err error
+				mockInfraEnvUpdateSuccessNoImageGeneration()
+				additionalNtpSources := "1.1.1.1"
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("additional_ntp_sources", additionalNtpSources).Error
+				Expect(err).ToNot(HaveOccurred())
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						AdditionalNtpSources: swag.String("1.1.1.1"),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.AdditionalNtpSources).ToNot(Equal(nil))
+				Expect(i.AdditionalNtpSources).To(Equal("1.1.1.1"))
+			})
 			It("Update Ignition", func() {
 				mockInfraEnvUpdateSuccess()
 				override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
@@ -5717,6 +5740,54 @@ var _ = Describe("infraEnvs", func() {
 				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.IgnitionConfigOverride).To(Equal(override))
+			})
+			It("Update Ignition - same ", func() {
+				var err error
+				mockInfraEnvUpdateSuccessNoImageGeneration()
+				override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("ignition_config_override", override).Error
+				Expect(err).ToNot(HaveOccurred())
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						IgnitionConfigOverride: override,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.IgnitionConfigOverride).To(Equal(override))
+			})
+			It("Update Image type", func() {
+				var err error
+				mockInfraEnvUpdateSuccess()
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("type", models.ImageTypeMinimalIso).Error
+				Expect(err).ToNot(HaveOccurred())
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						ImageType: models.ImageTypeFullIso,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.Type).To(Equal(models.ImageTypeFullIso))
+			})
+
+			It("Update Image type same", func() {
+				var err error
+				mockInfraEnvUpdateSuccessNoImageGeneration()
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						ImageType: models.ImageTypeFullIso,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.Type).To(Equal(models.ImageTypeFullIso))
 			})
 
 			It("Update StaticNetwork", func() {
@@ -5749,6 +5820,42 @@ var _ = Describe("infraEnvs", func() {
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
 				var err error
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.StaticNetworkConfig).To(Equal(staticNetworkFormatRes))
+			})
+			It("Update StaticNetwork same", func() {
+				mockInfraEnvUpdateSuccessNoImageGeneration()
+				var err error
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("static_network_config", "static network format result").Error
+				Expect(err).ToNot(HaveOccurred())
+				staticNetworkFormatRes := "static network format result"
+				map1 := models.MacInterfaceMap{
+					&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+					&models.MacInterfaceMapItems0{MacAddress: "mac11", LogicalNicName: "nic11"},
+				}
+				map2 := models.MacInterfaceMap{
+					&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
+					&models.MacInterfaceMapItems0{MacAddress: "mac21", LogicalNicName: "nic21"},
+				}
+				map3 := models.MacInterfaceMap{
+					&models.MacInterfaceMapItems0{MacAddress: "mac30", LogicalNicName: "nic30"},
+					&models.MacInterfaceMapItems0{MacAddress: "mac31", LogicalNicName: "nic31"},
+				}
+				staticNetworkConfig := []*models.HostStaticNetworkConfig{
+					common.FormatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
+					common.FormatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.40", "192.168.141.40", "192.168.126.1", map2),
+					common.FormatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.42", "192.168.141.42", "192.168.126.1", map3),
+				}
+				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(staticNetworkConfig).Return(nil).Times(1)
+				mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes).Times(1)
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						StaticNetworkConfig: staticNetworkConfig,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
 				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.StaticNetworkConfig).To(Equal(staticNetworkFormatRes))
@@ -7794,7 +7901,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 			},
 		}
-		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), true).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), true, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, clusterID, "Unknown").Times(1)
 		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
@@ -8544,7 +8651,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("cluster api failed to register", func() {
 		bm.clusterApi = mockClusterApi
-		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true).Return(errors.Errorf("error")).Times(1)
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true, gomock.Any()).Return(errors.Errorf("error")).Times(1)
 		mockClusterRegisterSteps()
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -8809,7 +8916,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("register cluster - deregister if we failed to create AMS subscription", func() {
 			bm.clusterApi = mockClusterApi
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true).Return(nil)
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true, gomock.Any()).Return(nil)
 			mockClusterRegisterSteps()
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any(), clusterName).Return(nil, errors.New("dummy"))
 			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
@@ -8826,7 +8933,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("register cluster - delete AMS subscription if we failed to patch DB with ams_subscription_id", func() {
 			bm.clusterApi = mockClusterApi
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true).Return(nil)
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true, gomock.Any()).Return(nil)
 			mockClusterRegisterSteps()
 			mockAMSSubscription(ctx)
 			mockClusterApi.EXPECT().UpdateAmsSubscriptionID(ctx, gomock.Any(), strfmt.UUID("")).Return(common.NewApiError(http.StatusInternalServerError, errors.New("dummy")))
@@ -10468,7 +10575,7 @@ var _ = Describe("DownloadClusterFiles", func() {
 			Status:           swag.String(models.ClusterStatusInstalled),
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		Expect(common.CreateInfraEnvForCluster(db, &cluster)).ShouldNot(HaveOccurred())
+		Expect(common.CreateInfraEnvForCluster(db, &cluster, models.ImageTypeFullIso)).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -10515,7 +10622,7 @@ var _ = Describe("[V2] V2DownloadClusterCredentials", func() {
 			Status:           swag.String(models.ClusterStatusInstalled),
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		Expect(common.CreateInfraEnvForCluster(db, &cluster)).ShouldNot(HaveOccurred())
+		Expect(common.CreateInfraEnvForCluster(db, &cluster, models.ImageTypeFullIso)).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
