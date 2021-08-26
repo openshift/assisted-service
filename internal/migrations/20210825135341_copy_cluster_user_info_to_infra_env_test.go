@@ -26,7 +26,7 @@ var _ = Describe("copyClusterUserInfoToInfraEnv", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	createClusterAndInfraEnv := func(num int) strfmt.UUID {
+	createClusterAndInfraEnv := func(num int) (strfmt.UUID, strfmt.UUID) {
 		clusterID := strfmt.UUID(uuid.New().String())
 		cluster := common.Cluster{Cluster: models.Cluster{
 			ID:          &clusterID,
@@ -46,21 +46,21 @@ var _ = Describe("copyClusterUserInfoToInfraEnv", func() {
 		err = db.Create(&infraEnv).Error
 		Expect(err).NotTo(HaveOccurred())
 
-		return infraEnvID
+		return infraEnvID, clusterID
 	}
 
 	It("sets the user info in the infra env", func() {
 		err := migrateToBefore(db, "20210825135341")
 		Expect(err).ToNot(HaveOccurred())
 
-		id1 := createClusterAndInfraEnv(1)
-		id2 := createClusterAndInfraEnv(2)
+		infraEnvID1, _ := createClusterAndInfraEnv(1)
+		infraEnvID2, _ := createClusterAndInfraEnv(2)
 
 		err = migrateTo(db, "20210825135341")
 		Expect(err).NotTo(HaveOccurred())
 
 		var infraEnv1 common.InfraEnv
-		err = db.First(&infraEnv1, "id = ?", id1).Error
+		err = db.First(&infraEnv1, "id = ?", infraEnvID1).Error
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(infraEnv1.UserName).To(Equal("user1@example.com"))
@@ -68,7 +68,7 @@ var _ = Describe("copyClusterUserInfoToInfraEnv", func() {
 		Expect(infraEnv1.OrgID).To(Equal("1231"))
 
 		var infraEnv2 common.InfraEnv
-		err = db.First(&infraEnv2, "id = ?", id2).Error
+		err = db.First(&infraEnv2, "id = ?", infraEnvID2).Error
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(infraEnv2.UserName).To(Equal("user2@example.com"))
@@ -80,25 +80,73 @@ var _ = Describe("copyClusterUserInfoToInfraEnv", func() {
 		err := migrateToBefore(db, "20210825135341")
 		Expect(err).ToNot(HaveOccurred())
 
-		id := createClusterAndInfraEnv(1)
+		infraEnvID, _ := createClusterAndInfraEnv(1)
 		updates := map[string]interface{}{
 			"user_name":    "other@test.example.com",
 			"email_domain": "test.example.com",
 			"org_id":       "456",
 		}
-		err = db.Model(&common.InfraEnv{}).Where("id = ?", id).Updates(updates).Error
+		err = db.Model(&common.InfraEnv{}).Where("id = ?", infraEnvID).Updates(updates).Error
 		Expect(err).ToNot(HaveOccurred())
 
 		err = migrateTo(db, "20210825135341")
 		Expect(err).NotTo(HaveOccurred())
 
 		var infraEnv common.InfraEnv
-		err = db.First(&infraEnv, "id = ?", id).Error
+		err = db.First(&infraEnv, "id = ?", infraEnvID).Error
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(infraEnv.UserName).To(Equal("other@test.example.com"))
 		Expect(infraEnv.EmailDomain).To(Equal("test.example.com"))
 		Expect(infraEnv.OrgID).To(Equal("456"))
+	})
+
+	It("handles NULL infra env columns", func() {
+		err := migrateToBefore(db, "20210825135341")
+		Expect(err).ToNot(HaveOccurred())
+
+		infraEnvID, _ := createClusterAndInfraEnv(1)
+		err = db.Model(&common.InfraEnv{}).Where("id = ?", infraEnvID).Update("user_name", gorm.Expr("NULL")).Error
+		Expect(err).ToNot(HaveOccurred())
+		err = db.Model(&common.InfraEnv{}).Where("id = ?", infraEnvID).Update("email_domain", gorm.Expr("NULL")).Error
+		Expect(err).ToNot(HaveOccurred())
+		err = db.Model(&common.InfraEnv{}).Where("id = ?", infraEnvID).Update("org_id", gorm.Expr("NULL")).Error
+		Expect(err).ToNot(HaveOccurred())
+
+		err = migrateTo(db, "20210825135341")
+		Expect(err).NotTo(HaveOccurred())
+
+		var infraEnv common.InfraEnv
+		err = db.First(&infraEnv, "id = ?", infraEnvID).Error
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(infraEnv.UserName).To(Equal("user1@example.com"))
+		Expect(infraEnv.EmailDomain).To(Equal("example.com"))
+		Expect(infraEnv.OrgID).To(Equal("1231"))
+	})
+
+	It("handles NULL cluster columns", func() {
+		err := migrateToBefore(db, "20210825135341")
+		Expect(err).ToNot(HaveOccurred())
+
+		infraEnvID, clusterID := createClusterAndInfraEnv(1)
+		err = db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("user_name", gorm.Expr("NULL")).Error
+		Expect(err).ToNot(HaveOccurred())
+		err = db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("email_domain", gorm.Expr("NULL")).Error
+		Expect(err).ToNot(HaveOccurred())
+		err = db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("org_id", gorm.Expr("NULL")).Error
+		Expect(err).ToNot(HaveOccurred())
+
+		err = migrateTo(db, "20210825135341")
+		Expect(err).NotTo(HaveOccurred())
+
+		var infraEnv common.InfraEnv
+		err = db.First(&infraEnv, "id = ?", infraEnvID).Error
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(infraEnv.UserName).To(Equal(""))
+		Expect(infraEnv.EmailDomain).To(Equal(""))
+		Expect(infraEnv.OrgID).To(Equal(""))
 	})
 
 	It("ignores infraenvs without cluster ids", func() {

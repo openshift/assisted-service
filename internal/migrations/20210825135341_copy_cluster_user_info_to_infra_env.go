@@ -1,6 +1,7 @@
 package migrations
 
 import (
+	"database/sql"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -28,12 +29,12 @@ func copyClusterUserInfoToInfraEnv() *gormigrate.Migration {
 		for rows.Next() {
 			var (
 				infraEnvID          strfmt.UUID
-				infraEnvUserName    string
-				infraEnvEmailDomain string
-				infraEnvOrgID       string
-				clusterUserName     string
-				clusterEmailDomain  string
-				clusterOrgID        string
+				infraEnvUserName    sql.NullString
+				infraEnvEmailDomain sql.NullString
+				infraEnvOrgID       sql.NullString
+				clusterUserName     sql.NullString
+				clusterEmailDomain  sql.NullString
+				clusterOrgID        sql.NullString
 			)
 
 			if err = rows.Scan(&infraEnvID, &infraEnvUserName, &infraEnvEmailDomain, &infraEnvOrgID, &clusterUserName, &clusterEmailDomain, &clusterOrgID); err != nil {
@@ -46,18 +47,18 @@ func copyClusterUserInfoToInfraEnv() *gormigrate.Migration {
 			updates := make(map[string]interface{})
 			var changed bool
 
-			if infraEnvUserName == "" && clusterUserName != "" {
-				updates["user_name"] = clusterUserName
+			if infraEnvUserName.String == "" && clusterUserName.Valid {
+				updates["user_name"] = clusterUserName.String
 				changed = true
 			}
 
-			if infraEnvEmailDomain == "" && clusterEmailDomain != "" {
-				updates["email_domain"] = clusterEmailDomain
+			if infraEnvEmailDomain.String == "" && clusterEmailDomain.Valid {
+				updates["email_domain"] = clusterEmailDomain.String
 				changed = true
 			}
 
-			if infraEnvOrgID == "" && clusterOrgID != "" {
-				updates["org_id"] = clusterOrgID
+			if infraEnvOrgID.String == "" && clusterOrgID.Valid {
+				updates["org_id"] = clusterOrgID.String
 				changed = true
 			}
 
