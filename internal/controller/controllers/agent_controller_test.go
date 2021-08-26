@@ -424,7 +424,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 
 		By("Reconcile add update ignition override, validate UpdateHostIgnitionInternal run once")
-		mockInstallerInternal.EXPECT().UpdateHostIgnitionInternal(gomock.Any(), gomock.Any()).Return(nil, nil)
+		mockInstallerInternal.EXPECT().V2UpdateHostIgnitionInternal(gomock.Any(), gomock.Any()).Return(nil, nil)
 
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
@@ -466,7 +466,7 @@ var _ = Describe("agent reconcile", func() {
 		ignitionConfigOverrides := `{"ignition": "version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
 		errString := "update internal error"
-		mockInstallerInternal.EXPECT().UpdateHostIgnitionInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf(errString)).Times(1)
+		mockInstallerInternal.EXPECT().V2UpdateHostIgnitionInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf(errString)).Times(1)
 		host.Spec.IgnitionConfigOverrides = ignitionConfigOverrides
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -514,7 +514,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 
 		By("Reconcile add update installer args, validate UpdateHostInstallerArgsInternal run once")
-		mockInstallerInternal.EXPECT().UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil, nil)
+		mockInstallerInternal.EXPECT().V2UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil, nil)
 
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
@@ -586,7 +586,7 @@ var _ = Describe("agent reconcile", func() {
 		installerArgs = `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
 		errString := "update internal error"
-		mockInstallerInternal.EXPECT().UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf(errString)).Times(1)
+		mockInstallerInternal.EXPECT().V2UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf(errString)).Times(1)
 		host.Spec.InstallerArgs = installerArgs
 		Expect(c.Update(ctx, host)).To(BeNil())
 		result, err = hr.Reconcile(ctx, newHostRequest(host))
