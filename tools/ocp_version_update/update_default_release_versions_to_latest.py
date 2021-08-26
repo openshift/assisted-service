@@ -1,8 +1,6 @@
 import os
 import re
 import json
-import yaml
-import time
 import copy
 import logging
 import argparse
@@ -15,9 +13,7 @@ from distutils.version import LooseVersion
 
 import jira
 import github
-import gitlab
 import requests
-import ruamel.yaml
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)-10s %(filename)s:%(lineno)d %(message)s')
 logger = logging.getLogger(__name__)
@@ -42,16 +38,6 @@ RCHOS_VERSION_FROM_ISO_REGEX = re.compile("coreos.liveiso=rhcos-(.*) ")
 DOWNLOAD_LIVE_ISO_CMD = "curl {live_iso_url} -o {out_file}"
 
 DEFAULT_VERSIONS_FILES = os.path.join("data", "default_ocp_versions.json")
-
-# app-interface PR related constants
-APP_INTERFACE_CLONE_DIR = "app-interface"
-APP_INTERFACE_GITLAB_PROJECT = "app-interface"
-APP_INTERFACE_GITLAB_REPO = f"service/{APP_INTERFACE_GITLAB_PROJECT}"
-APP_INTERFACE_GITLAB = "gitlab.cee.redhat.com"
-APP_INTERFACE_GITLAB_API = f'https://{APP_INTERFACE_GITLAB}'
-APP_INTERFACE_SAAS_YAML = f"{APP_INTERFACE_CLONE_DIR}/data/services/assisted-installer/cicd/saas.yaml"
-# For now, all environments are excluded because we don't perform any overrides
-APP_INTERFACE_VERSIONS_OVERRIDE_EXCLUDED_ENVIRONMENTS = {"integration", "staging", "production"}
 
 # assisted-service PR related constants
 ASSISTED_SERVICE_CLONE_DIR = "assisted-service"
@@ -89,8 +75,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-jup",  "--jira-user-password",    help="JIRA Username and password in the format of user:pass", required=True)
     parser.add_argument("-gup",  "--github-user-password",  help="GITHUB Username and password in the format of user:pass", required=True)
-    parser.add_argument("-gkf",  "--gitlab-key-file",       help="GITLAB key file", required=True)
-    parser.add_argument("-gt",   "--gitlab-token",          help="GITLAB user token", required=True)
     parser.add_argument("--dry-run", action='store_true',   help="test run")
     return parser.parse_args()
 
@@ -234,22 +218,6 @@ def unhold_pr(pr):
     pr.create_issue_comment('/unhold')
 
 
-def open_app_interface_pr(fork, branch, task, title):
-    body = " ".join([f"@{user}" for user in PR_MENTION])
-    body = f"{body}\nSee ticket {JIRA_BROWSE_TICKET.format(ticket_id=task)}"
-
-    pr = fork.mergerequests.create({
-        'title': title,
-        'description': body,
-        'source_branch': branch,
-        'target_branch': 'master',
-        'target_project_id': fork.forked_from_project["id"],
-        'source_project_id': fork.id
-    })
-
-    logging.info(f"New PR opened {pr.web_url}")
-    return pr
-
 def get_latest_release_from_minor(minor_release: str):
     release_data = get_release_data(minor_release)
     return release_data['version']
@@ -312,87 +280,8 @@ def is_open_update_version_ticket(args):
     return False
 
 
-def create_app_interface_fork(args):
-    with open(REDHAT_CERT_LOCATION, "w") as f:
-        f.write(requests.get(REDHAT_CERT_URL).text)
-
-    os.environ["REQUESTS_CA_BUNDLE"] = REDHAT_CERT_LOCATION
-
-    gl = gitlab.Gitlab(APP_INTERFACE_GITLAB_API, private_token=args.gitlab_token)
-    gl.auth()
-
-    forks = gl.projects.get(APP_INTERFACE_GITLAB_REPO).forks
-    try:
-        fork = forks.create({})
-    except gitlab.GitlabCreateError as e:
-        if e.error_message['name'] != "has already been taken":
-            fork = gl.projects.get(f'{gl.user.username}/{APP_INTERFACE_GITLAB_PROJECT}')
-        else:
-            raise
-    return fork
-
-
-def clone_app_interface(gitlab_key_file):
-    cmd(["rm", "-rf", APP_INTERFACE_CLONE_DIR])
-
-    cmd_with_git_ssh_key(gitlab_key_file)(
-        ["git", "clone", f"git@{APP_INTERFACE_GITLAB}:{APP_INTERFACE_GITLAB_REPO}.git", "--depth=1",
-         APP_INTERFACE_CLONE_DIR]
-    )
-
-
-def commit_and_push_version_update_changes_app_interface(key_file, fork, message, message_prefix):
-    branch = BRANCH_NAME.format(prefix=message_prefix)
-
-    def git_cmd(*args: str):
-        cmd_with_git_ssh_key(key_file)(("git", "-C", APP_INTERFACE_CLONE_DIR) + args)
-
-    fork_remote_name = "fork"
-
-    git_cmd("fetch", "--unshallow", "origin")
-    git_cmd("remote", "add", fork_remote_name, fork.ssh_url_to_repo)
-    git_cmd("checkout", "-b", branch)
-    git_cmd("commit", "-a", "-m", f"{message} Updating versions to latest releases")
-    git_cmd("push", "--set-upstream", fork_remote_name)
-
-    return branch
-
-
 class NoChangesNeeded(Exception):
     pass
-
-
-def change_version_in_files_app_interface(openshift_versions_json):
-    # Use a round trip loader to preserve the file as much as possible
-    with open(APP_INTERFACE_SAAS_YAML) as f:
-        saas = ruamel.yaml.round_trip_load(f, preserve_quotes=True)
-
-    target_environments = {
-        "integration": "/services/assisted-installer/namespaces/assisted-installer-integration.yml",
-        "staging": "/services/assisted-installer/namespaces/assisted-installer-stage.yml",
-        "production": "/services/assisted-installer/namespaces/assisted-installer-production.yml",
-    }
-
-    # Ref is used to identify the environment inside the JSON
-    changed = False
-    for environment, ref in target_environments.items():
-        if environment in APP_INTERFACE_VERSIONS_OVERRIDE_EXCLUDED_ENVIRONMENTS:
-            continue
-
-        changed = True
-
-        environment_conf = next(target for target in saas["resourceTemplates"][0]["targets"]
-                                if target["namespace"] == {"$ref": ref})
-
-        environment_conf["parameters"]["OPENSHIFT_VERSIONS"] = openshift_versions_json
-
-    if not changed:
-        raise NoChangesNeeded
-
-    with open(APP_INTERFACE_SAAS_YAML, "w") as f:
-        # Dump with a round-trip dumper to preserve the file as much as possible.
-        # Use arbitrarily high width to prevent diff caused by line wrapping
-        ruamel.yaml.round_trip_dump(saas, f, width=2 ** 16)
 
 
 def main(args):
