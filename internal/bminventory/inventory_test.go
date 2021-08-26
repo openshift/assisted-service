@@ -5647,6 +5647,21 @@ var _ = Describe("infraEnvs", func() {
 			})
 			verifyApiErrorString(reply, http.StatusBadRequest, "CPU architecture doesn't match")
 		})
+
+		It("Invalid Ignition", func() {
+			mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			override := `{"ignition": {"wdd": "3.9.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:                   swag.String("some-infra-env-name"),
+					OpenshiftVersion:       swag.String(MinimalOpenShiftVersionForNoneHA),
+					PullSecret:             swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					IgnitionConfigOverride: override,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+		})
 	})
 
 	Context("Update", func() {

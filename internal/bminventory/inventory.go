@@ -5223,25 +5223,18 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		}
 	}
 
+	if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraenvCreateParams.IgnitionConfigOverride); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	// set the default value for REST API case, in case it was not provided in the request
 	if params.InfraenvCreateParams.ImageType == "" {
 		params.InfraenvCreateParams.ImageType = models.ImageType(b.Config.ISOImageType)
 	}
 
-	if params.InfraenvCreateParams.ClusterID != nil {
-		var cluster *common.Cluster
-		cluster, err = common.GetClusterFromDB(b.db, *params.InfraenvCreateParams.ClusterID, common.SkipEagerLoading)
-		if err != nil {
-			err = errors.Errorf("Cluster ID %s does not exists",
-				params.InfraenvCreateParams.ClusterID.String())
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-
-		if cluster.CPUArchitecture != params.InfraenvCreateParams.CPUArchitecture {
-			err = errors.Errorf("Specified CPU architecture doesn't match the cluster (%s)",
-				cluster.CPUArchitecture)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
+	err = b.validateClusterInfraEnvRegister(params.InfraenvCreateParams.ClusterID, params.InfraenvCreateParams.CPUArchitecture)
+	if err != nil {
+		return nil, err
 	}
 
 	if kubeKey == nil {
@@ -5339,6 +5332,23 @@ func (b *bareMetalInventory) getOpenshiftVersionOrLatest(version *string, cpuArc
 	return openshiftVersion, nil
 }
 
+func (b *bareMetalInventory) validateClusterInfraEnvRegister(clusterId *strfmt.UUID, arch string) error {
+	if clusterId != nil {
+		cluster, err := common.GetClusterFromDB(b.db, *clusterId, common.SkipEagerLoading)
+		if err != nil {
+			err = errors.Errorf("Cluster ID %s does not exists", clusterId.String())
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		if cluster.CPUArchitecture != arch {
+			err = errors.Errorf("Specified CPU architecture doesn't match the cluster (%s)",
+				cluster.CPUArchitecture)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+	return nil
+}
+
 func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder {
 	i, err := b.updateInfraEnvInternal(ctx, params)
 	if err != nil {
@@ -5380,7 +5390,7 @@ func (b *bareMetalInventory) updateInfraEnvInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if params, err = b.validateInfraEnvIgnitionParams(ctx, &params); err != nil {
+	if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraEnvUpdateParams.IgnitionConfigOverride); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -5502,19 +5512,19 @@ func (b *bareMetalInventory) validateAndUpdateInfraEnvProxyParams(ctx context.Co
 	return *params, nil
 }
 
-func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context, params *installer.UpdateInfraEnvParams) (installer.UpdateInfraEnvParams, error) {
+func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context, ignitionConfigOverride string) error {
 
 	log := logutil.FromContext(ctx, b.log)
 
-	if params.InfraEnvUpdateParams.IgnitionConfigOverride != "" {
-		_, err := ignition.ParseToLatest([]byte(params.InfraEnvUpdateParams.IgnitionConfigOverride))
+	if ignitionConfigOverride != "" {
+		_, err := ignition.ParseToLatest([]byte(ignitionConfigOverride))
 		if err != nil {
-			log.WithError(err).Errorf("Failed to parse ignition config patch %s", params.InfraEnvUpdateParams.IgnitionConfigOverride)
-			return *params, err
+			log.WithError(err).Errorf("Failed to parse ignition config patch %s", ignitionConfigOverride)
+			return err
 		}
 	}
 
-	return *params, nil
+	return nil
 }
 
 func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInfraEnvParams, updates map[string]interface{}, log logrus.FieldLogger) error {
