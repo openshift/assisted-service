@@ -188,6 +188,7 @@ var _ = Describe("agent reconcile", func() {
 		newRole := "worker"
 		newInstallDiskPath := "/dev/disk/by-id/wwn-0x6141877064533b0020adf3bb03167694"
 		hostId := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
 		backEndCluster = &common.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
@@ -196,16 +197,7 @@ var _ = Describe("agent reconcile", func() {
 					Inventory:  common.GenerateTestDefaultInventory(),
 					Status:     swag.String(models.HostStatusKnown),
 					StatusInfo: swag.String("Some status info"),
-				},
-			}}}
-		updateReply := &common.Cluster{Cluster: models.Cluster{
-			ID: &sId,
-			Hosts: []*models.Host{
-				{
-					ID:                &hostId,
-					RequestedHostname: newHostName,
-					Status:            swag.String(models.HostStatusKnown),
-					StatusInfo:        swag.String("Some status info"),
+					InfraEnvID: infraEnvId,
 				},
 			}}}
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
@@ -216,15 +208,15 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
-		mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).
-			Do(func(ctx context.Context, param installer.UpdateClusterParams) {
-				Expect(param.ClusterUpdateParams.DisksSelectedConfig[0].DisksConfig[0].ID).To(Equal(&newInstallDiskPath))
-				Expect(param.ClusterUpdateParams.DisksSelectedConfig[0].DisksConfig[0].Role).To(Equal(models.DiskRoleInstall))
-				Expect(param.ClusterUpdateParams.DisksSelectedConfig[0].ID).To(Equal(hostId))
-				Expect(param.ClusterUpdateParams.HostsNames[0].Hostname).To(Equal(newHostName))
-				Expect(param.ClusterUpdateParams.HostsNames[0].ID).To(Equal(hostId))
-				Expect(param.ClusterUpdateParams.HostsRoles[0].Role).To(Equal(models.HostRoleUpdateParams(models.HostRole(newRole))))
-			}).Return(updateReply, nil)
+		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, param installer.V2UpdateHostParams) {
+				Expect(param.HostUpdateParams.DisksSelectedConfig[0].ID).To(Equal(&newInstallDiskPath))
+				Expect(param.HostUpdateParams.DisksSelectedConfig[0].Role).To(Equal(models.DiskRoleInstall))
+				Expect(swag.StringValue(param.HostUpdateParams.HostName)).To(Equal(newHostName))
+				Expect(param.HostID).To(Equal(hostId))
+				Expect(param.InfraEnvID).To(Equal(infraEnvId))
+				Expect(param.HostUpdateParams.HostRole).To(Equal(&newRole))
+			}).Return(&common.Host{}, nil)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -262,7 +254,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
-		mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).Return(nil, nil).Times(0)
+		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(0)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -298,7 +290,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
 		errString := "update internal error"
-		mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).Return(nil, common.NewApiError(http.StatusInternalServerError,
+		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(nil, common.NewApiError(http.StatusInternalServerError,
 			errors.New(errString)))
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
