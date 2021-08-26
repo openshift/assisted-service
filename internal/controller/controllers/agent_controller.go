@@ -411,7 +411,7 @@ func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, log logrus.Fi
 		InstallerArgsParams: &agentSpecInstallerArgs,
 	}
 	_, err := r.Installer.UpdateHostInstallerArgsInternal(ctx, params)
-
+	log.Infof("Updated Agent InstallerArgs %s %s", agent.Name, agent.Namespace)
 	return err
 }
 
@@ -704,6 +704,8 @@ func (r *AgentReconciler) updateHostIgnition(ctx context.Context, log logrus.Fie
 	}
 	_, err := r.Installer.UpdateHostIgnitionInternal(ctx, params)
 
+	log.Infof("Updated Agent Ignition %s %s", agent.Name, agent.Namespace)
+
 	return err
 }
 
@@ -733,6 +735,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 			log.WithError(err).Errorf("Failed to approve Agent")
 			return err
 		}
+		log.Infof("Updated Agent Approve %s %s", agent.Name, agent.Namespace)
 	}
 
 	err = r.updateInstallerArgs(ctx, log, c, internalHost, agent)
@@ -753,60 +756,43 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		return err
 	}
 
-	clusterUpdate := false
-	params := &models.ClusterUpdateParams{}
+	hostUpdate := false
+	params := &installer.V2UpdateHostParams{
+		HostID:           *host.ID,
+		InfraEnvID:       host.InfraEnvID,
+		HostUpdateParams: &models.HostUpdateParams{},
+	}
 	if spec.Hostname != "" && spec.Hostname != host.RequestedHostname {
-		clusterUpdate = true
-		params.HostsNames = []*models.ClusterUpdateParamsHostsNamesItems0{
-			{
-				Hostname: spec.Hostname,
-				ID:       strfmt.UUID(agent.Name),
-			},
-		}
+		hostUpdate = true
+		params.HostUpdateParams.HostName = &spec.Hostname
 	}
 
 	if spec.MachineConfigPool != "" && spec.MachineConfigPool != host.MachineConfigPoolName {
-		clusterUpdate = true
-		params.HostsMachineConfigPoolNames = []*models.ClusterUpdateParamsHostsMachineConfigPoolNamesItems0{
-			{
-				MachineConfigPoolName: spec.MachineConfigPool,
-				ID:                    strfmt.UUID(agent.Name),
-			},
-		}
+		hostUpdate = true
+		params.HostUpdateParams.MachineConfigPoolName = &spec.MachineConfigPool
 	}
 
 	if spec.Role != "" && spec.Role != host.Role {
-		clusterUpdate = true
-		params.HostsRoles = []*models.ClusterUpdateParamsHostsRolesItems0{
-			{
-				Role: models.HostRoleUpdateParams(spec.Role),
-				ID:   strfmt.UUID(agent.Name),
-			},
-		}
+		hostUpdate = true
+		role := string(spec.Role)
+		params.HostUpdateParams.HostRole = &role
 	}
 
 	if spec.InstallationDiskID != "" && spec.InstallationDiskID != host.InstallationDiskID {
-		clusterUpdate = true
-		params.DisksSelectedConfig = []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
-			{
-				DisksConfig: []*models.DiskConfigParams{
-					{ID: &spec.InstallationDiskID, Role: models.DiskRoleInstall},
-				},
-				ID: strfmt.UUID(agent.Name),
-			},
+		hostUpdate = true
+		params.HostUpdateParams.DisksSelectedConfig = []*models.DiskConfigParams{
+			{ID: &spec.InstallationDiskID, Role: models.DiskRoleInstall},
 		}
 	}
 
-	if !clusterUpdate {
+	if !hostUpdate {
 		return nil
 	}
 
-	_, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.UpdateClusterParams{
-		ClusterUpdateParams: params,
-		ClusterID:           *c.ID,
-	})
+	_, err = r.Installer.V2UpdateHostInternal(ctx, *params)
+
 	if err != nil {
-		log.WithError(err).Errorf("Failed to update host params in cluster %s", string(*c.ID))
+		log.WithError(err).Errorf("Failed to update host params  %s %s", agent.Name, agent.Namespace)
 		return err
 	}
 
