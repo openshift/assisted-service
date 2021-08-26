@@ -4,7 +4,7 @@ const (
 	//usage of additional ntp source feature
 	AdditionalNtpSourceUsage string = "Additional NTP Source"
 	//usage of setting a user selected hostnames
-	RequestedHostnameUsage string = "Requsted hostname"
+	RequestedHostnameUsage string = "Requested hostname"
 	//usage of proxy
 	ProxyUsage string = "Proxy"
 	//usage of SNO (No High Availability Mode)
