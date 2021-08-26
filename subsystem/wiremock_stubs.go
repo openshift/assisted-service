@@ -58,9 +58,11 @@ const (
 	subscriptionUpdateConsoleUrl         string      = "subscription_update_console_url"
 	tokenPath                            string      = "/token"
 	fakePayloadUsername                  string      = "jdoe123@example.com"
+	fakePayloadUsername2                 string      = "bob@example.com"
 	fakePayloadAdmin                     string      = "admin@example.com"
 	fakePayloadUnallowedUser             string      = "unallowed@example.com"
 	FakePS                               string      = "dXNlcjpwYXNzd29yZAo="
+	FakePS2                              string      = "dXNlcjI6cGFzc3dvcmQK"
 	FakeAdminPS                          string      = "dXNlcjpwYXNzd29yZAy="
 	WrongPullSecret                      string      = "wrong_secret"
 	FakeSubscriptionID                   strfmt.UUID = "1h89fvtqeelulpo0fl5oddngj2ao7tt8"
@@ -80,6 +82,10 @@ func (w *WireMock) CreateWiremockStubsForOCM() error {
 	}
 
 	if _, err := w.createStubTokenAuth(FakePS, fakePayloadUsername); err != nil {
+		return err
+	}
+
+	if _, err := w.createStubTokenAuth(FakePS2, fakePayloadUsername2); err != nil {
 		return err
 	}
 
@@ -126,11 +132,17 @@ func (w *WireMock) createStubsForAccessReview() error {
 	if _, err := w.createStubAccessReview(fakePayloadUsername, true); err != nil {
 		return err
 	}
+	if _, err := w.createStubAccessReview(fakePayloadUsername2, true); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (w *WireMock) createStubsForCapabilityReview() error {
 	if _, err := w.createStubCapabilityReview(fakePayloadUsername, false); err != nil {
+		return err
+	}
+	if _, err := w.createStubCapabilityReview(fakePayloadUsername2, false); err != nil {
 		return err
 	}
 	return nil
