@@ -20,7 +20,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
@@ -2142,7 +2144,9 @@ var _ = Describe("insufficient_state", func() {
 			BaseDNSDomain:   "test.com",
 			PullSecretSet:   true,
 		}}
-		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.RegisteredClusterEventName),
+			eventstest.WithClusterIdMatcher(id.String()))).AnyTimes()
 	})
 
 	AfterEach(func() {
@@ -2889,8 +2893,9 @@ var _ = Describe("Validation metrics and events", func() {
 	registerTestClusterWithValidationsAndHost := func() *common.Cluster {
 
 		clusterID := strfmt.UUID(uuid.New().String())
-		mockEvents.EXPECT().AddEvent(ctx, clusterID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
-
+		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.RegisteredClusterEventName),
+			eventstest.WithClusterIdMatcher(clusterID.String())))
 		c := common.Cluster{
 			Cluster: models.Cluster{
 				ID:               &clusterID,
@@ -2932,8 +2937,9 @@ var _ = Describe("Validation metrics and events", func() {
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Times(0)
 		mockHost.EXPECT().ReportValidationFailedMetrics(ctx, gomock.Any(), openshiftVersion, emailDomain)
 		mockMetric.EXPECT().ClusterValidationFailed(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
-		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
-
+		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.DeregisteredClusterEventName),
+			eventstest.WithClusterIdMatcher(c.ID.String())))
 		err := m.DeregisterCluster(ctx, c)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
@@ -2943,15 +2949,16 @@ var _ = Describe("Validation metrics and events", func() {
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHost.EXPECT().ReportValidationFailedMetrics(ctx, gomock.Any(), openshiftVersion, emailDomain)
 		mockMetric.EXPECT().ClusterValidationFailed(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
-		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
-
+		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.DeregisteredClusterEventName),
+			eventstest.WithClusterIdMatcher(c.ID.String())))
 		err := m.DeregisterCluster(ctx, c)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("Test reportValidationStatusChanged", func() {
-		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
-
+		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithClusterIdMatcher(c.ID.String())))
 		newValidationRes := generateTestValidationResult(ValidationSuccess)
 		var currentValidationRes ValidationsStatus
 		err := json.Unmarshal([]byte(c.ValidationsInfo), &currentValidationRes)
@@ -2959,7 +2966,8 @@ var _ = Describe("Validation metrics and events", func() {
 		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)
 
 		mockMetric.EXPECT().ClusterValidationChanged(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
-		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, gomock.Any(), gomock.Any())
+		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithClusterIdMatcher(c.ID.String())))
 
 		currentValidationRes = newValidationRes
 		newValidationRes = generateTestValidationResult(ValidationFailure)

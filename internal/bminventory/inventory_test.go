@@ -36,9 +36,11 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/garbagecollector"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -123,7 +125,7 @@ func mockClusterRegisterSuccess(bm *bareMetalInventory, withEvents bool) {
 	mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, gomock.Any(), gomock.Any()).Times(1)
 
 	if withEvents {
-		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(2)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(2)
 	}
 }
 
@@ -8845,7 +8847,8 @@ var _ = Describe("AMS subscriptions", func() {
 			clusterID := *reply.(*installer.RegisterClusterCreated).Payload.ID
 
 			mockAccountsMgmt.EXPECT().GetSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
-			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Deregistered cluster"}}, gomock.Any())
+			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.DeregisteredClusterEventName)))
 
 			reply = bm.DeregisterCluster(ctx, installer.DeregisterClusterParams{ClusterID: clusterID})
 			Expect(reply).Should(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
@@ -9050,7 +9053,8 @@ var _ = Describe("AMS subscriptions", func() {
 			clusterID := *reply.(*installer.RegisterClusterCreated).Payload.ID
 
 			// deregister
-			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Deregistered cluster"}}, gomock.Any())
+			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.DeregisteredClusterEventName)))
 
 			reply = bm.DeregisterCluster(ctx, installer.DeregisterClusterParams{ClusterID: clusterID})
 			Expect(reply).Should(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
