@@ -21,9 +21,9 @@ logging.getLogger("__main__").setLevel(logging.INFO)
 
 # Users / branch names / messages
 BRANCH_NAME = "{prefix}_update_assisted_service_versions"
-DEFAULT_ASSIGN = "oscohen"
-DEFAULT_WATCHERS = ["lgamliel", "oscohen", "yuvalgoldberg"]
-PR_MENTION = ["gamli75", "oshercc", "YuviGold"]
+DEFAULT_ASSIGN = "lgamliel"
+DEFAULT_WATCHERS = ["lgamliel", "yuvalgoldberg"]
+PR_MENTION = ["gamli75", "YuviGold"]
 PR_MESSAGE = "{task}: Bump OCP versions {versions_string}"
 
 OCP_INFO_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=stable-{version}\&arch\=amd64 | jq '[.nodes[]] | sort_by(.version | split(".") | map(tonumber))[-1]'"""
@@ -43,8 +43,7 @@ DEFAULT_VERSIONS_FILES = os.path.join("data", "default_ocp_versions.json")
 ASSISTED_SERVICE_CLONE_DIR = "assisted-service"
 ASSISTED_SERVICE_GITHUB_REPO_ORGANIZATION = "openshift"
 ASSISTED_SERVICE_GITHUB_REPO = f"{ASSISTED_SERVICE_GITHUB_REPO_ORGANIZATION}/assisted-service"
-ASSISTED_SERVICE_GITHUB_FORK_REPO = "oshercc/assisted-service"
-ASSISTED_SERVICE_FORKED_URL = f"https://github.com/{ASSISTED_SERVICE_GITHUB_FORK_REPO}"
+ASSISTED_SERVICE_GITHUB_FORK_REPO = "{github_user}/assisted-service"
 ASSISTED_SERVICE_CLONE_URL = "https://{github_user}:{github_password}@github.com/{ASSISTED_SERVICE_GITHUB_FORK_REPO}.git"
 ASSISTED_SERVICE_UPSTREAM_URL = f"https://github.com/{ASSISTED_SERVICE_GITHUB_REPO}.git"
 ASSISTED_SERVICE_MASTER_DEFAULT_OCP_VERSIONS_JSON_URL = \
@@ -166,8 +165,8 @@ def get_jira_client(username, password):
 
 def clone_assisted_service(github_user, github_password):
     cmd(["rm", "-rf", ASSISTED_SERVICE_CLONE_DIR])
-
-    cmd(["git", "clone", ASSISTED_SERVICE_CLONE_URL.format(github_user=github_user, github_password=github_password, ASSISTED_SERVICE_GITHUB_FORK_REPO=ASSISTED_SERVICE_GITHUB_FORK_REPO), ASSISTED_SERVICE_CLONE_DIR])
+    assisted_service_github_fork_repo = ASSISTED_SERVICE_GITHUB_FORK_REPO.format(github_user=github_user)
+    cmd(["git", "clone", ASSISTED_SERVICE_CLONE_URL.format(github_user=github_user, github_password=github_password, ASSISTED_SERVICE_GITHUB_FORK_REPO=assisted_service_github_fork_repo), ASSISTED_SERVICE_CLONE_DIR])
 
     def git_cmd(*args: str):
         return subprocess.check_output("git " +  " ".join(args), cwd=ASSISTED_SERVICE_CLONE_DIR, shell=True)
