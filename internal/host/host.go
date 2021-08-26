@@ -932,7 +932,11 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 		for _, v := range vRes {
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
 				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
-					m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
+					if vc.cluster != nil {
+						m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
+					} else if vc.infraEnv != nil {
+						m.metricApi.HostValidationChanged(vc.infraEnv.OpenshiftVersion, vc.infraEnv.EmailDomain, models.HostValidationID(v.ID))
+					}
 					eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
 					m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
 				}
