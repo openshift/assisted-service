@@ -6,7 +6,7 @@ import requests
 
 import utils
 import deployment_options
-from urllib.parse import urlparse, urlunsplit, urlsplit
+from urllib.parse import urlunsplit, urlsplit
 
 SERVICE = "assisted-service"
 TIMEOUT = 60 * 30
@@ -25,13 +25,10 @@ def wait_for_request(url: str) -> bool:
     return res.status_code == 200
 
 
-def main():
-    deploy_options = handle_arguments()
-    if not deploy_options.apply_manifest:
-        return
-
-    service_url = utils.get_service_url(service=SERVICE, target=deploy_options.target, domain=deploy_options.domain,
-                                        namespace=deploy_options.namespace, disable_tls=deploy_options.disable_tls)
+def is_assisted_service_ready(target, domain, namespace, disable_tls) -> bool:
+    service_url = utils.get_service_url(
+        service=SERVICE, target=target, domain=domain,
+        namespace=namespace, disable_tls=disable_tls)
     health_url = f'{service_url}/ready'
 
     if os.getenv("SKIPPER_PLATFORM") == 'darwin':
@@ -42,10 +39,23 @@ def main():
             health_url = urlunsplit(url)
 
     print(f'Wait for {health_url}')
-    waiting.wait(lambda: wait_for_request(health_url),
-                 timeout_seconds=TIMEOUT,
-                 expected_exceptions=(requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout),
-                 sleep_seconds=SLEEP, waiting_for="assisted-service to be healthy")
+    return wait_for_request(health_url)
+
+
+def main():
+    deploy_options = handle_arguments()
+    if not deploy_options.apply_manifest:
+        return
+
+    waiting.wait(
+        lambda: is_assisted_service_ready(
+            target=deploy_options.target,
+            domain=deploy_options.domain,
+            namespace=deploy_options.namespace,
+            disable_tls=deploy_options.disable_tls),
+        timeout_seconds=TIMEOUT,
+        expected_exceptions=(requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout),
+        sleep_seconds=SLEEP, waiting_for="assisted-service to be healthy")
 
 
 if __name__ == '__main__':
