@@ -567,7 +567,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	b.setDefaultUsage(&cluster.Cluster)
 
-	err = b.clusterApi.RegisterCluster(ctx, &cluster, v1Flag)
+	err = b.clusterApi.RegisterCluster(ctx, &cluster, v1Flag, models.ImageType(b.Config.ISOImageType))
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -738,7 +738,7 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
-	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster, v1Flag)
+	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster, v1Flag, models.ImageType(b.Config.ISOImageType))
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", clusterName)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -5420,44 +5420,56 @@ func (b *bareMetalInventory) updateInfraEnvInternal(ctx context.Context, params 
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnv.ID})
 }
 
-func (b *bareMetalInventory) updateInfraEnvData(_ context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger) error {
-	var err error
+func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger) error {
 	updates := map[string]interface{}{}
 	if params.InfraEnvUpdateParams.Proxy != nil {
-		optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPProxy, "proxy_http_proxy", updates)
-		optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPSProxy, "proxy_https_proxy", updates)
-		optionalParam(params.InfraEnvUpdateParams.Proxy.NoProxy, "proxy_no_proxy", updates)
+		proxyHash, err := computeProxyHash(params.InfraEnvUpdateParams.Proxy)
+		if err != nil {
+			return err
+		}
+		if proxyHash != infraEnv.ProxyHash {
+			optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPProxy, "proxy_http_proxy", updates)
+			optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPSProxy, "proxy_https_proxy", updates)
+			optionalParam(params.InfraEnvUpdateParams.Proxy.NoProxy, "proxy_no_proxy", updates)
+			updates["proxy_hash"] = proxyHash
+		}
 	}
-	optionalParam(params.InfraEnvUpdateParams.SSHAuthorizedKey, "ssh_authorized_key", updates)
 
-	if err = b.updateInfraEnvNtpSources(params, updates, log); err != nil {
+	inputSSHKey := swag.StringValue(params.InfraEnvUpdateParams.SSHAuthorizedKey)
+	if inputSSHKey != "" && inputSSHKey != infraEnv.SSHAuthorizedKey {
+		updates["ssh_authorized_key"] = inputSSHKey
+	}
+
+	if err := b.updateInfraEnvNtpSources(params, infraEnv, updates, log); err != nil {
 		return err
 	}
 
-	if params.InfraEnvUpdateParams.IgnitionConfigOverride != "" {
+	if params.InfraEnvUpdateParams.IgnitionConfigOverride != "" && params.InfraEnvUpdateParams.IgnitionConfigOverride != infraEnv.IgnitionConfigOverride {
 		updates["ignition_config_override"] = params.InfraEnvUpdateParams.IgnitionConfigOverride
+	}
+
+	if params.InfraEnvUpdateParams.ImageType != "" && params.InfraEnvUpdateParams.ImageType != infraEnv.Type {
+		updates["type"] = params.InfraEnvUpdateParams.ImageType
 	}
 
 	if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
 		staticNetworkConfig := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraEnvUpdateParams.StaticNetworkConfig)
-		updates["static_network_config"] = staticNetworkConfig
+		if staticNetworkConfig != infraEnv.StaticNetworkConfig {
+			updates["static_network_config"] = staticNetworkConfig
+		}
 	}
 
-	if params.InfraEnvUpdateParams.PullSecret != "" {
+	if params.InfraEnvUpdateParams.PullSecret != "" && params.InfraEnvUpdateParams.PullSecret != infraEnv.PullSecret {
 		infraEnv.PullSecret = params.InfraEnvUpdateParams.PullSecret
 		updates["pull_secret"] = params.InfraEnvUpdateParams.PullSecret
-		if infraEnv.PullSecret != "" {
-			updates["pull_secret_set"] = true
-		} else {
-			updates["pull_secret_set"] = false
-		}
+		updates["pull_secret_set"] = true
 	}
 
 	if len(updates) > 0 {
 		updates["generated"] = false
 		dbReply := db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates)
 		if dbReply.Error != nil {
-			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update infraEnv: %s", params.InfraEnvID))
+			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(dbReply.Error, "failed to update infraEnv: %s", params.InfraEnvID))
 		}
 	}
 
@@ -5527,7 +5539,7 @@ func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context,
 	return nil
 }
 
-func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInfraEnvParams, updates map[string]interface{}, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInfraEnvParams, infraEnv *common.InfraEnv, updates map[string]interface{}, log logrus.FieldLogger) error {
 	if params.InfraEnvUpdateParams.AdditionalNtpSources != nil {
 		ntpSource := swag.StringValue(params.InfraEnvUpdateParams.AdditionalNtpSources)
 		additionalNtpSourcesDefined := ntpSource != ""
@@ -5537,7 +5549,9 @@ func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInf
 			log.WithError(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
-		updates["additional_ntp_sources"] = ntpSource
+		if ntpSource != infraEnv.AdditionalNtpSources {
+			updates["additional_ntp_sources"] = ntpSource
+		}
 	}
 	return nil
 }

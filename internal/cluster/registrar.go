@@ -25,15 +25,15 @@ type registrar struct {
 	db  *gorm.DB
 }
 
-func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster, v1Flag bool) error {
-	return r.registerCluster(ctx, cluster, models.ClusterStatusInsufficient, StatusInfoInsufficient, time.Now(), v1Flag)
+func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster, v1Flag bool, v1ISOType models.ImageType) error {
+	return r.registerCluster(ctx, cluster, models.ClusterStatusInsufficient, StatusInfoInsufficient, time.Now(), v1Flag, v1ISOType)
 }
 
-func (r *registrar) RegisterAddHostsCluster(ctx context.Context, cluster *common.Cluster, v1Flag bool) error {
-	return r.registerCluster(ctx, cluster, models.ClusterStatusAddingHosts, statusInfoAddingHosts, time.Now(), v1Flag)
+func (r *registrar) RegisterAddHostsCluster(ctx context.Context, cluster *common.Cluster, v1Flag bool, v1ISOType models.ImageType) error {
+	return r.registerCluster(ctx, cluster, models.ClusterStatusAddingHosts, statusInfoAddingHosts, time.Now(), v1Flag, v1ISOType)
 }
 
-func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster, status, statusInfo string, registerTime time.Time, v1Flag bool) error {
+func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster, status, statusInfo string, registerTime time.Time, v1Flag bool, v1ISOType models.ImageType) error {
 	cluster.Status = swag.String(status)
 	cluster.StatusInfo = swag.String(statusInfo)
 	cluster.StatusUpdatedAt = strfmt.DateTime(registerTime)
@@ -75,7 +75,7 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 	}
 
 	if v1Flag {
-		err := common.CreateInfraEnvForCluster(tx, cluster)
+		err := common.CreateInfraEnvForCluster(tx, cluster, v1ISOType)
 		if err != nil {
 			r.log.WithError(err).Errorf("Failed to create Infra Env along the cluster %s", cluster.ID)
 			return err
