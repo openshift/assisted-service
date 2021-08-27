@@ -375,7 +375,7 @@ func specSynced(agent *aiv1beta1.Agent, syncErr error, internal bool) {
 	})
 }
 
-func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, log logrus.FieldLogger, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, log logrus.FieldLogger, host *common.Host, agent *aiv1beta1.Agent) error {
 
 	if agent.Spec.InstallerArgs == host.InstallerArgs {
 		log.Debugf("Nothing to update, installer args were already set")
@@ -391,7 +391,7 @@ func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, log logrus.Fi
 	if agent.Spec.InstallerArgs != "" {
 		err := json.Unmarshal([]byte(agent.Spec.InstallerArgs), &agentSpecInstallerArgs.Args)
 		if err != nil {
-			msg := fmt.Sprintf("Fail to unmarshal installer args for host %s in cluster %s", agent.Name, c.Name)
+			msg := fmt.Sprintf("Fail to unmarshal installer args for host %s in infraEnv %s", agent.Name, host.InfraEnvID)
 			log.WithError(err).Errorf(msg)
 			return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, msg))
 		}
@@ -405,12 +405,12 @@ func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, log logrus.Fi
 		return nil
 	}
 
-	params := installer.UpdateHostInstallerArgsParams{
-		ClusterID:           *c.ID,
+	params := installer.V2UpdateHostInstallerArgsParams{
+		InfraEnvID:          host.InfraEnvID,
 		HostID:              strfmt.UUID(agent.Name),
 		InstallerArgsParams: &agentSpecInstallerArgs,
 	}
-	_, err := r.Installer.UpdateHostInstallerArgsInternal(ctx, params)
+	_, err := r.Installer.V2UpdateHostInstallerArgsInternal(ctx, params)
 	log.Infof("Updated Agent InstallerArgs %s %s", agent.Name, agent.Namespace)
 	return err
 }
@@ -688,7 +688,7 @@ func (r *AgentReconciler) updateInventory(log logrus.FieldLogger, host *models.H
 	return nil
 }
 
-func (r *AgentReconciler) updateHostIgnition(ctx context.Context, log logrus.FieldLogger, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) updateHostIgnition(ctx context.Context, log logrus.FieldLogger, host *common.Host, agent *aiv1beta1.Agent) error {
 	if agent.Spec.IgnitionConfigOverrides == host.IgnitionConfigOverrides {
 		log.Debugf("Nothing to update, ignition config override was already set")
 		return nil
@@ -697,12 +697,12 @@ func (r *AgentReconciler) updateHostIgnition(ctx context.Context, log logrus.Fie
 	if agent.Spec.IgnitionConfigOverrides != "" {
 		agentHostIgnitionParams.Config = agent.Spec.IgnitionConfigOverrides
 	}
-	params := installer.UpdateHostIgnitionParams{
-		ClusterID:          *c.ID,
+	params := installer.V2UpdateHostIgnitionParams{
+		InfraEnvID:         host.InfraEnvID,
 		HostID:             strfmt.UUID(agent.Name),
 		HostIgnitionParams: &agentHostIgnitionParams,
 	}
-	_, err := r.Installer.UpdateHostIgnitionInternal(ctx, params)
+	_, err := r.Installer.V2UpdateHostIgnitionInternal(ctx, params)
 
 	log.Infof("Updated Agent Ignition %s %s", agent.Name, agent.Namespace)
 
@@ -738,7 +738,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		log.Infof("Updated Agent Approve %s %s", agent.Name, agent.Namespace)
 	}
 
-	err = r.updateInstallerArgs(ctx, log, c, internalHost, agent)
+	err = r.updateInstallerArgs(ctx, log, internalHost, agent)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = common.NewApiError(http.StatusNotFound, err)
@@ -747,7 +747,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		return err
 	}
 
-	err = r.updateHostIgnition(ctx, log, c, internalHost, agent)
+	err = r.updateHostIgnition(ctx, log, internalHost, agent)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = common.NewApiError(http.StatusNotFound, err)
