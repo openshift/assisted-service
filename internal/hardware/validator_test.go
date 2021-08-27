@@ -88,7 +88,7 @@ var _ = Describe("Disk eligibility", func() {
 
 		clusterID := strfmt.UUID(uuid.New().String())
 		infraEnvID := strfmt.UUID(uuid.New().String())
-		cluster = hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.PrimaryMachineNetworkCidr)
+		cluster = hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
 		hostID := strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusDiscovering)
 

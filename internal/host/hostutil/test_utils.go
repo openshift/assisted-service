@@ -12,7 +12,6 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
@@ -23,19 +22,19 @@ func GetHostFromDB(hostId, infraEnvId strfmt.UUID, db *gorm.DB) *common.Host {
 	return &host
 }
 
-func GenerateTestCluster(clusterID strfmt.UUID, machineNetworkCidr string) common.Cluster {
+func GenerateTestCluster(clusterID strfmt.UUID, machineNetworks []*models.MachineNetwork) common.Cluster {
 	return common.Cluster{
 		Cluster: models.Cluster{
 			ID:              &clusterID,
-			MachineNetworks: network.CreateMachineNetworksArray(machineNetworkCidr),
+			MachineNetworks: machineNetworks,
 			Platform:        &models.Platform{Type: models.PlatformTypeBaremetal},
 			Kind:            swag.String(models.ClusterKindCluster),
 		},
 	}
 }
 
-func GenerateTestClusterWithPlatform(clusterID strfmt.UUID, machineNetworkCidr string, platform *models.Platform) common.Cluster {
-	cluster := GenerateTestCluster(clusterID, machineNetworkCidr)
+func GenerateTestClusterWithPlatform(clusterID strfmt.UUID, machineNetworks []*models.MachineNetwork, platform *models.Platform) common.Cluster {
+	cluster := GenerateTestCluster(clusterID, machineNetworks)
 	cluster.Platform = platform
 	return cluster
 }
@@ -173,12 +172,20 @@ func GenerateMasterInventoryV6() string {
 	return GenerateMasterInventoryWithHostnameV6("master-hostname")
 }
 
+func GenerateMasterInventoryDualStack() string {
+	return GenerateMasterInventoryWithHostnameDualStack("master-hostname")
+}
+
 func GenerateMasterInventoryWithHostname(hostname string) string {
 	return GenerateMasterInventoryWithHostnameAndCpuFlags(hostname, []string{"vmx"}, "RHEL")
 }
 
 func GenerateMasterInventoryWithHostnameV6(hostname string) string {
 	return GenerateMasterInventoryWithHostnameAndCpuFlagsV6(hostname, []string{"vmx"})
+}
+
+func GenerateMasterInventoryWithHostnameDualStack(hostname string) string {
+	return GenerateMasterInventoryWithHostnameAndCpuFlagsDualStack(hostname, []string{"vmx"})
 }
 
 func GenerateMasterInventoryWithHostnameAndCpuFlags(hostname string, cpuflags []string, systemPlatform string) string {
@@ -225,6 +232,37 @@ func GenerateMasterInventoryWithHostnameAndCpuFlagsV6(hostname string, cpuflags 
 		Interfaces: []*models.Interface{
 			{
 				Name: "eth0",
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
+				},
+			},
+		},
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
+		Hostname:     hostname,
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Timestamp:    1601835002,
+		Routes:       common.TestDefaultRouteConfiguration,
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func GenerateMasterInventoryWithHostnameAndCpuFlagsDualStack(hostname string, cpuflags []string) string {
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: 8, Flags: cpuflags},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 128849018880,
+				DriveType: "HDD",
+			},
+		},
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
 				IPV6Addresses: []string{
 					"1001:db8::10/120",
 				},
