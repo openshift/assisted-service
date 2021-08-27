@@ -47,7 +47,7 @@ var _ = Describe("AssistedServiceISO", func() {
 	uploadIsoSuccess := func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(false).Times(1)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-		mockS3Client.EXPECT().GetBaseIsoObject(common.TestDefaultConfig.OpenShiftVersion).Return(srcIsoName, nil).Times(1)
+		mockS3Client.EXPECT().GetBaseIsoObject(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(srcIsoName, nil).Times(1)
 		mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), srcIsoName, destIsoName).Times(1)
 	}
 

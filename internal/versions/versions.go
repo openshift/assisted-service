@@ -33,7 +33,7 @@ type Handler interface {
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
 	GetOpenshiftVersion(openshiftVersion, cpuArchitecture string) (*models.OpenshiftVersion, error)
 	GetLatestOpenshiftVersion(cpuArchitecture string) (*models.OpenshiftVersion, error)
-	GetOsImage(openshiftVersion string) (*models.OsImage, error)
+	GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error)
 	GetKey(openshiftVersion string) (string, error)
 	IsOpenshiftVersionSupported(versionKey string) bool
 	AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
@@ -206,7 +206,7 @@ func (h *handler) GetOpenshiftVersion(openshiftVersion, cpuArchitecture string) 
 }
 
 // Returns the OsImage entity
-func (h *handler) GetOsImage(openshiftVersion string) (*models.OsImage, error) {
+func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
 	versionKey, err := h.GetKey(openshiftVersion)
 	if err != nil {
 		return nil, err
@@ -216,9 +216,18 @@ func (h *handler) GetOsImage(openshiftVersion string) (*models.OsImage, error) {
 	}
 
 	for _, osImage := range h.osImages {
-		if *osImage.OpenshiftVersion == versionKey {
+		if osImage.OpenshiftVersion == nil {
+			return nil, errors.Errorf("Missing openshift_version in OsImage")
+		}
+		if *osImage.OpenshiftVersion == versionKey && *osImage.CPUArchitecture == cpuArchitecture {
 			return osImage, nil
 		}
+	}
+
+	if cpuArchitecture != "" && cpuArchitecture != common.DefaultCPUArchitecture {
+		// An empty cpuArchitecture implies the default CPU architecture.
+		// TODO: remove this check once release images list is exclusively used.
+		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in OS images list", cpuArchitecture)
 	}
 
 	// Try fetching from OpenshiftVersion struct for backwards compatibility
@@ -307,6 +316,12 @@ func (h *handler) GetCPUArchitectures(openshiftVersion string) ([]string, error)
 	cpuArchitectures := []string{}
 	for _, release := range h.releaseImages {
 		if *release.OpenshiftVersion == openshiftVersion {
+			if release.OpenshiftVersion == nil {
+				return nil, errors.Errorf("Missing openshift_version in ReleaseImage")
+			}
+			if release.CPUArchitecture == nil {
+				return nil, errors.Errorf("Missing cpu_architecture in ReleaseImage")
+			}
 			cpuArchitectures = append(cpuArchitectures, *release.CPUArchitecture)
 		}
 	}
@@ -323,21 +338,33 @@ func (h *handler) GetCPUArchitectures(openshiftVersion string) ([]string, error)
 // No need to validate OpenshiftVersion fields here,
 // e.g. since release is not available in AddOpenshiftVersion flow.
 func (h *handler) validateVersions() error {
-	missingValueTemplate := "Missing value in OsImage for '%s' field"
+	missingValueTemplate := "Missing value in OsImage for '%s' field (openshift_version: %s)"
 	for key := range h.openshiftVersions {
-		osImage, err := h.GetOsImage(key)
+		architectures, err := h.GetCPUArchitectures(key)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Failed to get OSImage for openshift version: %s", key))
+			return err
 		}
 
-		if osImage.URL == nil {
-			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url"))
+		// TODO: remove once release_images is exclusively used
+		if len(architectures) == 0 {
+			architectures = append(architectures, common.DefaultCPUArchitecture)
 		}
-		if osImage.RootfsURL == nil {
-			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "rootfs_url"))
-		}
-		if osImage.Version == nil {
-			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version"))
+
+		for _, architecture := range architectures {
+			osImage, err := h.GetOsImage(key, architecture)
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("Failed to get OSImage for openshift version: %s", key))
+			}
+
+			if osImage.URL == nil {
+				return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url", key))
+			}
+			if osImage.RootfsURL == nil {
+				return errors.Errorf(fmt.Sprintf(missingValueTemplate, "rootfs_url", key))
+			}
+			if osImage.Version == nil {
+				return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version", key))
+			}
 		}
 	}
 	missingValueTemplate = "Missing value in ReleaseImage for '%s' field"
@@ -347,9 +374,6 @@ func (h *handler) validateVersions() error {
 		}
 		if release.Version == nil {
 			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version"))
-		}
-		if release.CPUArchitecture == nil {
-			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "cpu_architecture"))
 		}
 	}
 

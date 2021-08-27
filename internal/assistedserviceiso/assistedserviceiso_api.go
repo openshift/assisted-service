@@ -90,7 +90,7 @@ func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, para
 	ignitionConfig := reIgnition.Replace(ignitionConfigSource)
 
 	username := ocm.UserNameFromContext(ctx)
-	srcISOName, err := a.objectHandler.GetBaseIsoObject(params.AssistedServiceIsoCreateParams.OpenshiftVersion)
+	srcISOName, err := a.objectHandler.GetBaseIsoObject(params.AssistedServiceIsoCreateParams.OpenshiftVersion, common.DefaultCPUArchitecture)
 	if err != nil {
 		err = errors.Wrapf(err, "Failed to get source object name for ocp version %s", params.AssistedServiceIsoCreateParams.OpenshiftVersion)
 		log.Error(err)

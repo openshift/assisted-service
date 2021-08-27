@@ -170,33 +170,33 @@ func (mr *MockAPIMockRecorder) GeneratePresignedDownloadURL(arg0, arg1, arg2, ar
 }
 
 // GetBaseIsoObject mocks base method.
-func (m *MockAPI) GetBaseIsoObject(arg0 string) (string, error) {
+func (m *MockAPI) GetBaseIsoObject(arg0, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBaseIsoObject", arg0)
+	ret := m.ctrl.Call(m, "GetBaseIsoObject", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBaseIsoObject indicates an expected call of GetBaseIsoObject.
-func (mr *MockAPIMockRecorder) GetBaseIsoObject(arg0 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) GetBaseIsoObject(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBaseIsoObject", reflect.TypeOf((*MockAPI)(nil).GetBaseIsoObject), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBaseIsoObject", reflect.TypeOf((*MockAPI)(nil).GetBaseIsoObject), arg0, arg1)
 }
 
 // GetMinimalIsoObjectName mocks base method.
-func (m *MockAPI) GetMinimalIsoObjectName(arg0 string) (string, error) {
+func (m *MockAPI) GetMinimalIsoObjectName(arg0, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMinimalIsoObjectName", arg0)
+	ret := m.ctrl.Call(m, "GetMinimalIsoObjectName", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetMinimalIsoObjectName indicates an expected call of GetMinimalIsoObjectName.
-func (mr *MockAPIMockRecorder) GetMinimalIsoObjectName(arg0 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) GetMinimalIsoObjectName(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMinimalIsoObjectName", reflect.TypeOf((*MockAPI)(nil).GetMinimalIsoObjectName), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMinimalIsoObjectName", reflect.TypeOf((*MockAPI)(nil).GetMinimalIsoObjectName), arg0, arg1)
 }
 
 // GetObjectSizeBytes mocks base method.
@@ -315,17 +315,17 @@ func (mr *MockAPIMockRecorder) UploadISO(arg0, arg1, arg2, arg3 interface{}) *go
 }
 
 // UploadISOs mocks base method.
-func (m *MockAPI) UploadISOs(arg0 context.Context, arg1 string, arg2 bool) error {
+func (m *MockAPI) UploadISOs(arg0 context.Context, arg1, arg2 string, arg3 bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadISOs", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "UploadISOs", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UploadISOs indicates an expected call of UploadISOs.
-func (mr *MockAPIMockRecorder) UploadISOs(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) UploadISOs(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadISOs", reflect.TypeOf((*MockAPI)(nil).UploadISOs), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadISOs", reflect.TypeOf((*MockAPI)(nil).UploadISOs), arg0, arg1, arg2, arg3)
 }
 
 // UploadStream mocks base method.

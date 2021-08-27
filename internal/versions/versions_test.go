@@ -59,6 +59,13 @@ var defaultOsImages = models.OsImages{
 		RootfsURL:        swag.String("rhcos_rootfs_4.9"),
 		Version:          swag.String("version-49.123-0"),
 	},
+	&models.OsImage{
+		CPUArchitecture:  swag.String("arm64"),
+		OpenshiftVersion: swag.String("4.9"),
+		URL:              swag.String("rhcos_4.9_arm64"),
+		RootfsURL:        swag.String("rhcos_rootfs_4.9_arm64"),
+		Version:          swag.String("version-49.123-0_arm64"),
+	},
 }
 
 var defaultReleaseImages = models.ReleaseImages{
@@ -211,7 +218,8 @@ var _ = Describe("list versions", func() {
 
 	Context("GetOsImage", func() {
 		var (
-			osImage *models.OsImage
+			osImage       *models.OsImage
+			architectures []string
 		)
 
 		BeforeEach(func() {
@@ -223,24 +231,36 @@ var _ = Describe("list versions", func() {
 
 		It("default", func() {
 			for key := range *openshiftVersions {
-				currKey := key
-				osImage, err = h.GetOsImage(currKey)
+				architectures, err = h.GetCPUArchitectures(key)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				ocpVersion := (*openshiftVersions)[currKey]
-				Expect(*osImage).Should(Equal(models.OsImage{
-					OpenshiftVersion: &currKey,
-					URL:              ocpVersion.RhcosImage,
-					RootfsURL:        ocpVersion.RhcosRootfs,
-					Version:          ocpVersion.RhcosVersion,
-				}))
+				for _, architecture := range architectures {
+					currKey := key
+					osImage, err = h.GetOsImage(currKey, architecture)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					ocpVersion := (*openshiftVersions)[currKey]
+					Expect(*osImage).Should(Equal(models.OsImage{
+						OpenshiftVersion: &currKey,
+						URL:              ocpVersion.RhcosImage,
+						RootfsURL:        ocpVersion.RhcosRootfs,
+						Version:          ocpVersion.RhcosVersion,
+					}))
+				}
 			}
 		})
 
-		It("unsupported_key", func() {
-			osImage, err = h.GetOsImage("unsupported")
+		It("unsupported openshiftVersion", func() {
+			osImage, err = h.GetOsImage("unsupported", common.TestDefaultConfig.CPUArchitecture)
 			Expect(err).Should(HaveOccurred())
 			Expect(osImage).Should(BeNil())
+		})
+
+		It("unsupported cpuArchitecture", func() {
+			osImage, err = h.GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "unsupported")
+			Expect(err).Should(HaveOccurred())
+			Expect(osImage).Should(BeNil())
+			Expect(err.Error()).To(ContainSubstring("isn't specified in OS images list"))
 		})
 
 		It("get from OsImages", func() {
@@ -249,12 +269,17 @@ var _ = Describe("list versions", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			for key := range *openshiftVersions {
-				osImage, err = h.GetOsImage(key)
+				architectures, err = h.GetCPUArchitectures(key)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				for _, rhcos := range *osImages {
-					if *rhcos.OpenshiftVersion == key {
-						Expect(osImage).Should(Equal(rhcos))
+				for _, architecture := range architectures {
+					osImage, err = h.GetOsImage(key, architecture)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					for _, rhcos := range *osImages {
+						if *rhcos.OpenshiftVersion == key && *rhcos.CPUArchitecture == architecture {
+							Expect(osImage).Should(Equal(rhcos))
+						}
 					}
 				}
 			}
@@ -492,7 +517,7 @@ var _ = Describe("list versions", func() {
 			Expect(*version.SupportLevel).Should(Equal(models.OpenshiftVersionSupportLevelCustom))
 			Expect(*version.ReleaseVersion).Should(Equal(ocpVersion))
 			Expect(*version.ReleaseImage).Should(Equal(releaseImage))
-			Expect(h.GetOsImage(keyVersion)).Should(Equal(&models.OsImage{
+			Expect(h.GetOsImage(keyVersion, common.TestDefaultConfig.CPUArchitecture)).Should(Equal(&models.OsImage{
 				OpenshiftVersion: &versionKey,
 				URL:              versionFromCache.RhcosImage,
 				RootfsURL:        versionFromCache.RhcosRootfs,
@@ -664,6 +689,13 @@ var _ = Describe("list versions", func() {
 					URL:              swag.String("rhcos_4.9"),
 					RootfsURL:        swag.String("rhcos_rootfs_4.9"),
 					Version:          swag.String("version-49.123-0"),
+				},
+				&models.OsImage{
+					CPUArchitecture:  swag.String("arm64"),
+					OpenshiftVersion: swag.String("4.9"),
+					URL:              swag.String("rhcos_4.9_arm64"),
+					RootfsURL:        swag.String("rhcos_rootfs_4.9_arm64"),
+					Version:          swag.String("version-49.123-0_arm64"),
 				},
 			}
 

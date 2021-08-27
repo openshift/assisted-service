@@ -128,18 +128,18 @@ func (mr *MockHandlerMockRecorder) GetOpenshiftVersion(arg0, arg1 interface{}) *
 }
 
 // GetOsImage mocks base method.
-func (m *MockHandler) GetOsImage(arg0 string) (*models.OsImage, error) {
+func (m *MockHandler) GetOsImage(arg0, arg1 string) (*models.OsImage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOsImage", arg0)
+	ret := m.ctrl.Call(m, "GetOsImage", arg0, arg1)
 	ret0, _ := ret[0].(*models.OsImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetOsImage indicates an expected call of GetOsImage.
-func (mr *MockHandlerMockRecorder) GetOsImage(arg0 interface{}) *gomock.Call {
+func (mr *MockHandlerMockRecorder) GetOsImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImage", reflect.TypeOf((*MockHandler)(nil).GetOsImage), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImage", reflect.TypeOf((*MockHandler)(nil).GetOsImage), arg0, arg1)
 }
 
 // IsOpenshiftVersionSupported mocks base method.

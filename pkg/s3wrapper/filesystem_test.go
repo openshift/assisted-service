@@ -12,6 +12,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -187,8 +188,8 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 			err = ioutil.WriteFile(filepath.Join(baseDir, "files/isolinux/isolinux.cfg"), []byte(" append initrd=/images/pxeboot/initrd.img"), 0600)
 			Expect(err).ToNot(HaveOccurred())
-			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion).Return(&defaultOsImage, nil).Times(5)
-			srcObject, err := client.GetBaseIsoObject(defaultTestOpenShiftVersion)
+			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion, gomock.Any()).Return(&defaultOsImage, nil).Times(5)
+			srcObject, err := client.GetBaseIsoObject(defaultTestOpenShiftVersion, common.TestDefaultConfig.CPUArchitecture)
 			Expect(err).ToNot(HaveOccurred())
 			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/assisted_installer_custom.img"), make([]byte, isoeditor.RamDiskPaddingLength), 0600)
 			Expect(err).ToNot(HaveOccurred())
@@ -201,7 +202,7 @@ var _ = Describe("s3filesystem", func() {
 			err = os.RemoveAll(filepath.Join(baseDir, "files"))
 			Expect(err).ToNot(HaveOccurred())
 
-			minimalIso, err := client.GetMinimalIsoObjectName(defaultTestOpenShiftVersion)
+			minimalIso, err := client.GetMinimalIsoObjectName(defaultTestOpenShiftVersion, defaultTestCpuArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = ioutil.WriteFile(filepath.Join(baseDir, minimalIso),
@@ -210,13 +211,19 @@ var _ = Describe("s3filesystem", func() {
 
 			mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(1)
 
-			err = client.UploadISOs(ctx, defaultTestOpenShiftVersion, true)
+			err = client.UploadISOs(ctx, defaultTestOpenShiftVersion, defaultTestCpuArchitecture, true)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("unsupported openshift version", func() {
 			unsupportedVersion := "999"
-			mockVersions.EXPECT().GetOsImage(unsupportedVersion).Return(nil, errors.New("unsupported")).Times(1)
-			err := client.UploadISOs(ctx, unsupportedVersion, false)
+			mockVersions.EXPECT().GetOsImage(unsupportedVersion, gomock.Any()).Return(nil, errors.New("unsupported")).Times(1)
+			err := client.UploadISOs(ctx, unsupportedVersion, defaultTestCpuArchitecture, false)
+			Expect(err).To(HaveOccurred())
+		})
+		It("unsupported CPU architecture", func() {
+			unsupportedArchitecture := "unsupported"
+			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion, unsupportedArchitecture).Return(nil, errors.New("unsupported")).Times(1)
+			err := client.UploadISOs(ctx, defaultTestOpenShiftVersion, unsupportedArchitecture, false)
 			Expect(err).To(HaveOccurred())
 		})
 		It("iso exists", func() {
@@ -236,8 +243,8 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 			err = ioutil.WriteFile(filepath.Join(baseDir, "files/isolinux/isolinux.cfg"), []byte(" append initrd=/images/pxeboot/initrd.img"), 0600)
 			Expect(err).ToNot(HaveOccurred())
-			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion).Return(&defaultOsImage, nil).Times(6)
-			srcObject, err := client.GetBaseIsoObject(defaultTestOpenShiftVersion)
+			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion, gomock.Any()).Return(&defaultOsImage, nil).Times(6)
+			srcObject, err := client.GetBaseIsoObject(defaultTestOpenShiftVersion, common.TestDefaultConfig.CPUArchitecture)
 			Expect(err).ToNot(HaveOccurred())
 			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/assisted_installer_custom.img"), make([]byte, isoeditor.RamDiskPaddingLength), 0600)
 			Expect(err).ToNot(HaveOccurred())
@@ -252,10 +259,10 @@ var _ = Describe("s3filesystem", func() {
 
 			mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).AnyTimes()
 
-			err = client.UploadISOs(ctx, defaultTestOpenShiftVersion, true)
+			err = client.UploadISOs(ctx, defaultTestOpenShiftVersion, defaultTestCpuArchitecture, true)
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = client.GetBaseIsoObject(defaultTestOpenShiftVersion)
+			_, err = client.GetBaseIsoObject(defaultTestOpenShiftVersion, defaultTestCpuArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
