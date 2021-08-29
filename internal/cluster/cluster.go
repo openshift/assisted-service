@@ -188,10 +188,10 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag bool, v1ISOType models.ImageType) error {
 	err := m.registrationAPI.RegisterCluster(ctx, c, v1Flag, v1ISOType)
 	if err != nil {
-		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, c.Name, err.Error(), models.ClusterKindCluster)
+		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error(), models.ClusterKindCluster)
 
 	} else {
-		eventgen.SendRegisteredClusterEvent(ctx, m.eventsHandler, *c.ID, c.Name, models.ClusterKindCluster)
+		eventgen.SendRegisteredClusterEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindCluster)
 	}
 	return err
 }
@@ -199,9 +199,9 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag
 func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag bool, v1ISOType models.ImageType) error {
 	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c, v1Flag, v1ISOType)
 	if err != nil {
-		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, c.Name, err.Error(), models.ClusterKindAddHostsCluster)
+		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error(), models.ClusterKindAddHostsCluster)
 	} else {
-		eventgen.SendRegisteredClusterEvent(ctx, m.eventsHandler, *c.ID, c.Name, models.ClusterKindAddHostsCluster)
+		eventgen.SendRegisteredClusterEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
 	}
 	return err
 }
@@ -464,7 +464,7 @@ func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorIn
 }
 
 func (m *Manager) triggerLeaseTimeoutEvent(ctx context.Context, c *common.Cluster) {
-	m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, "API and Ingress VIPs lease allocation has been timed out", time.Now())
+	eventgen.SendApiIngressVipTimedOutEvent(ctx, m.eventsHandler, *c.ID, DhcpLeaseTimeoutMinutes)
 }
 
 func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
@@ -641,13 +641,17 @@ func (m *Manager) VerifyClusterUpdatability(c *common.Cluster) (err error) {
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
-	eventSeverity := models.EventSeverityInfo
-	eventInfo := "Cancelled cluster installation"
 	lastState := newStateCluster(c)
+	isFailed := false
+	var err error
 	installationStates := []string{
 		models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalling, models.ClusterStatusFinalizing}
 	defer func() {
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, eventSeverity, eventInfo, time.Now())
+		if !isFailed {
+			eventgen.SendClusterCancelInstallationEvent(ctx, m.eventsHandler, *c.ID)
+		} else {
+			eventgen.SendCancelInstallationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error())
+		}
 		//metrics for cancel as final state are calculated only when the transition to cancel was made
 		//from one of the installing states
 		if funk.Contains(installationStates, lastState.srcState) {
@@ -655,14 +659,13 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 		}
 	}()
 
-	err := m.sm.Run(TransitionTypeCancelInstallation, lastState, &TransitionArgsCancelInstallation{
+	err = m.sm.Run(TransitionTypeCancelInstallation, lastState, &TransitionArgsCancelInstallation{
 		ctx:    ctx,
 		reason: reason,
 		db:     db,
 	})
 	if err != nil {
-		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to cancel installation: %s", err.Error())
+		isFailed = true
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
@@ -747,20 +750,24 @@ func (m *Manager) UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSub
 }
 
 func (m *Manager) ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
-	eventSeverity := models.EventSeverityInfo
-	eventInfo := "Reset cluster installation"
+	isFailed := false
+	var err error
 	defer func() {
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, eventSeverity, eventInfo, time.Now())
+		if !isFailed {
+			eventgen.SendClusterResetInstallationEvent(ctx, m.eventsHandler, *c.ID)
+		} else {
+			eventgen.SendResetInstallationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error())
+		}
+
 	}()
 
-	err := m.sm.Run(TransitionTypeResetCluster, newStateCluster(c), &TransitionArgsResetCluster{
+	err = m.sm.Run(TransitionTypeResetCluster, newStateCluster(c), &TransitionArgsResetCluster{
 		ctx:    ctx,
 		reason: reason,
 		db:     db,
 	})
 	if err != nil {
-		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to reset installation. Error: %s", err.Error())
+		isFailed = true
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
@@ -788,7 +795,7 @@ func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, 
 		log.WithError(err).Errorf("Failed to handle pre installation error for cluster %s", c.ID.String())
 	} else {
 		log.Infof("Successfully handled pre-installation error, cluster %s", c.ID.String())
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, "Failed to prepare the installation due to an unexpected error. Please retry later", time.Now())
+		eventgen.SendPrepareInstallationFailedEvent(ctx, m.eventsHandler, *c.ID, installErr.Error())
 	}
 }
 
@@ -801,7 +808,7 @@ func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster
 		log.WithError(err).Errorf("Failed to handle pre installation success for cluster %s", c.ID.String())
 	} else {
 		log.Infof("Successfully handled pre-installation success, cluster %s", c.ID.String())
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, "Cluster was prepared successfully for installation", time.Now())
+		eventgen.SendClusterPrepareInstallationEvent(ctx, m.eventsHandler, *c.ID)
 	}
 }
 
@@ -840,8 +847,7 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 			if c.APIVip != "" || c.IngressVip != "" {
 				log.WithError(vipMismatchError(apiVip, ingressVip, c)).Warn("VIPs changed")
 			}
-			m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
-				fmt.Sprintf("Cluster was updated with api-vip %s, ingress-vip %s", apiVip, ingressVip), time.Now())
+			eventgen.SendApiIngressVipUpdateEvent(ctx, m.eventsHandler, *c.ID, apiVip, ingressVip)
 		}
 
 	case models.ClusterStatusInstalling, models.ClusterStatusPreparingForInstallation, models.ClusterStatusFinalizing:
@@ -1150,8 +1156,6 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 	log := logutil.FromContext(ctx, m.log)
 	destStatus := models.ClusterStatusError
 	result := models.ClusterStatusInstalled
-	severity := models.EventSeverityInfo
-	eventMsg := fmt.Sprintf("Successfully finished installing cluster %s", cluster.Name)
 
 	defer func() {
 		m.metricAPI.ClusterInstallationFinished(ctx, result, models.ClusterStatusFinalizing, cluster.OpenshiftVersion,
@@ -1182,10 +1186,11 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 
 	if !successfullyFinished {
 		result = models.ClusterStatusError
-		severity = models.EventSeverityCritical
-		eventMsg = fmt.Sprintf("Failed installing cluster %s. Reason: %s", cluster.Name, reason)
+		eventgen.SendClusterInstallingFailedEvent(ctx, m.eventsHandler, *cluster.ID, reason)
+	} else {
+		eventgen.SendClusterInstallingFinishedEvent(ctx, m.eventsHandler, *cluster.ID)
 	}
-	m.eventsHandler.AddEvent(ctx, *cluster.ID, nil, severity, eventMsg, time.Now())
+
 	return clusterAfterUpdate, nil
 }
 

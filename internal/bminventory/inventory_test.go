@@ -125,7 +125,8 @@ func mockClusterRegisterSuccess(bm *bareMetalInventory, withEvents bool) {
 	mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, gomock.Any(), gomock.Any()).Times(1)
 
 	if withEvents {
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(2)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.RegisteredClusterEventName))).Times(2)
 	}
 }
 
@@ -8849,27 +8850,6 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 })
 
-type eventMsgMatcher struct {
-	subStrings []string
-}
-
-func (e eventMsgMatcher) Matches(input interface{}) bool {
-	str, ok := input.(string)
-	if !ok {
-		return false
-	}
-	for _, ss := range e.subStrings {
-		if !strings.Contains(str, ss) {
-			return false
-		}
-	}
-	return true
-}
-
-func (e eventMsgMatcher) String() string {
-	return "input contains substrings"
-}
-
 var _ = Describe("AMS subscriptions", func() {
 
 	var (
@@ -8997,9 +8977,8 @@ var _ = Describe("AMS subscriptions", func() {
 
 			newClusterName := "ams-cluster-new-name"
 			mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any())
-			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{
-				subStrings: []string{"Updated status of cluster", newClusterName},
-			}, gomock.Any())
+			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName)))
 			mockAccountsMgmt.EXPECT().UpdateSubscriptionDisplayName(ctx, c.AmsSubscriptionID, newClusterName).Return(nil)
 
 			reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -9031,9 +9010,8 @@ var _ = Describe("AMS subscriptions", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any())
-			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{
-				subStrings: []string{"Updated status of cluster", clusterName},
-			}, gomock.Any())
+			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName)))
 
 			reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 				ClusterID: *c.ID,
@@ -9064,9 +9042,8 @@ var _ = Describe("AMS subscriptions", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any())
-			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{
-				subStrings: []string{"Updated status of cluster", clusterName},
-			}, gomock.Any())
+			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName)))
 
 			dummyDNSDomain := "dummy.test"
 			reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -10522,7 +10499,8 @@ var _ = Describe("Platform tests", func() {
 			var err error
 			c, err = bm.getCluster(ctx, actual.Payload.ID.String())
 			Expect(err).ToNot(HaveOccurred())
-			mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).AnyTimes()
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName))).AnyTimes()
 			Expect(c.Platform).ShouldNot(BeNil())
 			Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
 			Expect(c.Platform.Vsphere.Username).Should(BeNil())

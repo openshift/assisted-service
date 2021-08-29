@@ -12,8 +12,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -242,7 +244,9 @@ var _ = Describe("Progress bar test", func() {
 			mockDnsApi.EXPECT().CreateDNSRecordSets(ctx, gomock.Any()).Return(nil)
 			mockMetric.EXPECT().InstallationStarted(gomock.Any(), clusterId, gomock.Any(), gomock.Any())
 			mockMetric.EXPECT().ClusterHostInstallationCount(gomock.Any(), 3, gomock.Any())
-			mockEvents.EXPECT().AddEvent(ctx, clusterId, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any(), gomock.Any())
+			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+				eventstest.WithClusterIdMatcher(clusterId.String())))
 
 			cAfterRefresh, err := clusterApi.RefreshStatus(ctx, &c, db)
 			Expect(err).NotTo(HaveOccurred())

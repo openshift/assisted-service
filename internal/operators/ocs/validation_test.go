@@ -823,8 +823,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				mockHostAPIIsRequireUserActionResetFalse()
 			}
 			if t.srcState != t.dstState {
-				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
-					gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 			}
 			clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 			if t.errorExpected {

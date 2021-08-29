@@ -533,7 +533,8 @@ var _ = Describe("TestClusterMonitoring", func() {
 			c = getClusterFromDB(id, db)
 			saveUpdatedTime := c.StatusUpdatedAt
 			saveStatusInfo := c.StatusInfo
-			mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithClusterIdMatcher(c.ID.String()))).AnyTimes()
 			mockHostAPIIsRequireUserActionResetFalse()
 			clusterApi.ClusterMonitoring()
 			after := time.Now().Truncate(10 * time.Millisecond)
@@ -565,8 +566,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 	Context("batch", func() {
 
 		monitorKnownToInsufficient := func(nClusters int) {
-			mockEvents.EXPECT().
-				AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 			mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(true, nil).AnyTimes()
@@ -630,7 +630,8 @@ var _ = Describe("TestClusterMonitoring", func() {
 
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 				Expect(err).ShouldNot(HaveOccurred())
-				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName))).Times(0)
 				mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).Times(0)
 				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(0)
 			})
@@ -758,7 +759,8 @@ var _ = Describe("lease timeout event", func() {
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			if t.eventCalllsExpected > 0 {
-				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(t.eventCalllsExpected)
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithClusterIdMatcher(c.ID.String()))).Times(t.eventCalllsExpected)
 			}
 			clusterApi.ClusterMonitoring()
 			ctrl.Finish()
@@ -1134,7 +1136,8 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				Expect(db.Create(h).Error).ShouldNot(HaveOccurred())
 			}
 			if t.eventCallExpected {
-				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithClusterIdMatcher(c.ID.String()))).AnyTimes()
 			}
 			if len(t.hosts) > 0 {
 				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -1597,7 +1600,9 @@ var _ = Describe("PrepareForInstallation", func() {
 
 	// state changes to preparing-for-installation
 	success := func(cluster *common.Cluster) {
-		mockEventsHandler.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+		mockEventsHandler.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+			eventstest.WithClusterIdMatcher(clusterId.String()))).Times(1)
 		Expect(capi.PrepareForInstallation(ctx, cluster, db)).NotTo(HaveOccurred())
 		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.Status)).To(Equal(models.ClusterStatusPreparingForInstallation))
@@ -1695,7 +1700,8 @@ var _ = Describe("HandlePreInstallationChanges", func() {
 	It("HandlePreInstallError", func() {
 		var cluster common.Cluster
 		Expect(db.Take(&cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
-		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityWarning, gomock.Any(), gomock.Any()).Times(1)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithClusterIdMatcher(clusterId.String()))).Times(1)
 		capi.HandlePreInstallError(ctx, &cluster, errors.Errorf("pre-install error"))
 		Expect(db.Take(&cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		Expect(cluster.InstallationPreparationCompletionStatus).Should(Equal(common.InstallationPreparationFailed))
@@ -1704,7 +1710,8 @@ var _ = Describe("HandlePreInstallationChanges", func() {
 	It("HandlePreInstallSuccess", func() {
 		var cluster common.Cluster
 		Expect(db.Take(&cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
-		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithClusterIdMatcher(clusterId.String()))).Times(1)
 		capi.HandlePreInstallSuccess(ctx, &cluster)
 		Expect(db.Take(&cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		Expect(cluster.InstallationPreparationCompletionStatus).Should(Equal(common.InstallationPreparationSucceeded))
@@ -1890,7 +1897,9 @@ var _ = Describe("SetVipsData", func() {
 			cluster.IngressVip = t.clusterIngressVip
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			if t.eventExpected {
-				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ApiIngressVipUpdateEventName),
+					eventstest.WithClusterIdMatcher(clusterId.String()))).Times(1)
 			}
 			err := capi.SetVipsData(ctx, &cluster, t.apiVip, t.ingressVip, t.clusterApiLease, t.clusterIngressLease, db)
 			Expect(err != nil).To(Equal(t.errorExpected))
@@ -2055,7 +2064,9 @@ var _ = Describe("ready_state", func() {
 		cluster = getClusterFromDB(*cluster.ID, db)
 		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusReady))
 		Expect(len(cluster.Hosts)).Should(Equal(3))
-		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+			eventstest.WithClusterIdMatcher(cluster.ID.String()))).AnyTimes()
 
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
@@ -2194,7 +2205,8 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 			},
 		}
 		Expect(db.Create(&cl).Error).NotTo(HaveOccurred())
-		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 	})
 
 	It("no change", func() {
@@ -2258,7 +2270,8 @@ var _ = Describe("Cluster tarred files", func() {
 		tarFile = fmt.Sprintf("%s/logs/cluster_logs.tar", clusterId)
 		Expect(db.Create(&cl).Error).NotTo(HaveOccurred())
 		prefix = fmt.Sprintf("%s/logs/", cl.ID)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 
 	})
 
@@ -2429,7 +2442,7 @@ var _ = Describe("Deregister inactive clusters", func() {
 
 	registerCluster := func() common.Cluster {
 		id := strfmt.UUID(uuid.New().String())
-		eventsHandler.AddEvent(ctx, id, &id, "", "", time.Now())
+		eventgen.SendGenericClusterEvent(ctx, eventsHandler, id, "", "")
 		cl := common.Cluster{Cluster: models.Cluster{
 			ID:                 &id,
 			MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
@@ -2537,7 +2550,7 @@ var _ = Describe("Permanently delete clusters", func() {
 
 	registerCluster := func() common.Cluster {
 		id := strfmt.UUID(uuid.New().String())
-		eventsHandler.AddEvent(ctx, id, &id, models.EventSeverityInfo, "", time.Now())
+		eventgen.SendGenericClusterEvent(ctx, eventsHandler, id, "", models.EventSeverityInfo)
 		c := common.Cluster{Cluster: models.Cluster{
 			ID:                 &id,
 			MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
@@ -2559,7 +2572,7 @@ var _ = Describe("Permanently delete clusters", func() {
 	verifyClusterSubComponentsDeletion := func(clusterID strfmt.UUID, isDeleted bool) {
 		Expect(db.Unscoped().Where("id = ?", clusterID).Find(&common.Cluster{}).RowsAffected == 0).Should(Equal(isDeleted))
 
-		clusterEvents, err := eventsHandler.GetEvents(clusterID, &clusterID)
+		clusterEvents, err := eventsHandler.GetEvents(clusterID, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(clusterEvents) == 0).Should(Equal(isDeleted))
 
