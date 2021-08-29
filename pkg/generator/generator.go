@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
@@ -91,7 +92,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	} else {
 		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror, k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi)
 	}
-	err = generator.Generate(ctx, cfg)
+	err = generator.Generate(ctx, cfg, k.getClusterPlatformType(cluster))
 	if err != nil {
 		return err
 	}
@@ -110,4 +111,13 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	}
 
 	return nil
+}
+
+func (k *installGenerator) getClusterPlatformType(cluster common.Cluster) models.PlatformType {
+	// Using platform type as an indication for which openshift install binary to use.
+	// I.e. None x86_64 clusters should use the openshift-install binary.
+	if cluster.CPUArchitecture != common.DefaultCPUArchitecture {
+		return models.PlatformTypeNone
+	}
+	return cluster.Platform.Type
 }

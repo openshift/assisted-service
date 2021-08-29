@@ -10,6 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	models "github.com/openshift/assisted-service/models"
 	auth "github.com/openshift/assisted-service/pkg/auth"
 )
 
@@ -37,17 +38,17 @@ func (m *MockGenerator) EXPECT() *MockGeneratorMockRecorder {
 }
 
 // Generate mocks base method.
-func (m *MockGenerator) Generate(ctx context.Context, installConfig []byte) error {
+func (m *MockGenerator) Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Generate", ctx, installConfig)
+	ret := m.ctrl.Call(m, "Generate", ctx, installConfig, platformType)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Generate indicates an expected call of Generate.
-func (mr *MockGeneratorMockRecorder) Generate(ctx, installConfig interface{}) *gomock.Call {
+func (mr *MockGeneratorMockRecorder) Generate(ctx, installConfig, platformType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockGenerator)(nil).Generate), ctx, installConfig)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockGenerator)(nil).Generate), ctx, installConfig, platformType)
 }
 
 // UpdateEtcHosts mocks base method.

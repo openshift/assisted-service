@@ -8751,15 +8751,30 @@ var _ = Describe("TestRegisterCluster", func() {
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				CPUArchitecture:  "arm64",
-				PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				Name:                  swag.String("some-cluster-name"),
+				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				CPUArchitecture:       "arm64",
+				UserManagedNetworking: swag.Bool(true),
+				VipDhcpAllocation:     swag.Bool(false),
+				PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 			},
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 		actual := reply.(*installer.RegisterClusterCreated)
 		Expect(actual.Payload.CPUArchitecture).To(Equal("arm64"))
+	})
+
+	It("Register cluster with arm64 CPU architecture - without UserManagedNetworking", func() {
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:                  swag.String("some-cluster-name"),
+				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				CPUArchitecture:       "arm64",
+				UserManagedNetworking: swag.Bool(false),
+				PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+			},
+		})
+		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
 
 	It("Register cluster without specified CPU architecture", func() {

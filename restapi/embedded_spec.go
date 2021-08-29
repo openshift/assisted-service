@@ -9982,7 +9982,8 @@ func init() {
       "type": "string",
       "enum": [
         "baremetal",
-        "vsphere"
+        "vsphere",
+        "none"
       ]
     },
     "preflight-hardware-requirements": {
@@ -20401,7 +20402,8 @@ func init() {
       "type": "string",
       "enum": [
         "baremetal",
-        "vsphere"
+        "vsphere",
+        "none"
       ]
     },
     "preflight-hardware-requirements": {
