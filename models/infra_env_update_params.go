@@ -11,7 +11,6 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
 // InfraEnvUpdateParams infra env update params
@@ -21,10 +20,6 @@ type InfraEnvUpdateParams struct {
 
 	// A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
 	AdditionalNtpSources *string `json:"additional_ntp_sources,omitempty"`
-
-	// If set, all hosts that register will be associated with the specified cluster.
-	// Format: uuid
-	ClusterID *strfmt.UUID `json:"cluster_id,omitempty"`
 
 	// JSON formatted string containing the user overrides for the initial ignition config.
 	IgnitionConfigOverride string `json:"ignition_config_override,omitempty"`
@@ -49,10 +44,6 @@ type InfraEnvUpdateParams struct {
 func (m *InfraEnvUpdateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateClusterID(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateImageType(formats); err != nil {
 		res = append(res, err)
 	}
@@ -68,19 +59,6 @@ func (m *InfraEnvUpdateParams) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *InfraEnvUpdateParams) validateClusterID(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.ClusterID) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
-		return err
-	}
-
 	return nil
 }
 
