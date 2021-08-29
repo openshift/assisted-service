@@ -8715,6 +8715,9 @@ func init() {
         "role": {
           "$ref": "#/definitions/host-role"
         },
+        "role_info": {
+          "$ref": "#/definitions/role-info"
+        },
         "stage_started_at": {
           "description": "Time at which the current progress stage started.",
           "type": "string",
@@ -10063,6 +10066,16 @@ func init() {
       "items": {
         "$ref": "#/definitions/release-image"
       }
+    },
+    "role-info": {
+      "type": "string",
+      "enum": [
+        "user-assigned",
+        "day2",
+        "minimal-master-count",
+        "hw-requirements",
+        "other"
+      ]
     },
     "route": {
       "type": "object",
@@ -19142,6 +19155,9 @@ func init() {
         "role": {
           "$ref": "#/definitions/host-role"
         },
+        "role_info": {
+          "$ref": "#/definitions/role-info"
+        },
         "stage_started_at": {
           "description": "Time at which the current progress stage started.",
           "type": "string",
@@ -20481,6 +20497,16 @@ func init() {
       "items": {
         "$ref": "#/definitions/release-image"
       }
+    },
+    "role-info": {
+      "type": "string",
+      "enum": [
+        "user-assigned",
+        "day2",
+        "minimal-master-count",
+        "hw-requirements",
+        "other"
+      ]
     },
     "route": {
       "type": "object",

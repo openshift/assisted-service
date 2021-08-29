@@ -454,18 +454,18 @@ func reportMonitoredOperatorStatus(ctx context.Context, client *client.AssistedI
 func verifyUsageSet(featureUsage string, candidates ...models.Usage) {
 	usages := make(map[string]models.Usage)
 	err := json.Unmarshal([]byte(featureUsage), &usages)
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	for _, usage := range candidates {
-		Expect(usages[usage.Name]).To(Equal(usage))
+		ExpectWithOffset(1, usages[usage.Name]).To(Equal(usage))
 	}
 }
 
 func verifyUsageNotSet(featureUsage string, features ...string) {
 	usages := make(map[string]*models.Usage)
 	err := json.Unmarshal([]byte(featureUsage), &usages)
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	for _, name := range features {
-		Expect(usages[name]).To(BeNil())
+		ExpectWithOffset(1, usages[name]).To(BeNil())
 	}
 }
 

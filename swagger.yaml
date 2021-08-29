@@ -5011,6 +5011,8 @@ definitions:
         description: Additional information about disks, formatted as JSON.
       role:
         $ref: '#/definitions/host-role'
+      role_info:
+        $ref: '#/definitions/role-info'
       bootstrap:
         type: boolean
       logs_collected_at:
@@ -6546,6 +6548,15 @@ definitions:
       - 'master'
       - 'worker'
       - 'bootstrap'
+
+  role-info:
+    type: string
+    enum:
+      - 'user-assigned'
+      - 'day2'
+      - 'minimal-master-count'
+      - 'hw-requirements'
+      - 'other'
 
   host-validation-id:
     type: string

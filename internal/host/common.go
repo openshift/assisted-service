@@ -76,7 +76,7 @@ func refreshHostStageUpdateTime(
 }
 
 // update host role with an option to update only if the current role is srcRole to prevent races
-func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, db *gorm.DB, srcRole *string) error {
+func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, info models.RoleInfo, db *gorm.DB, srcRole *string) error {
 	hostStatus := swag.StringValue(h.Status)
 	allowedStatuses := append(hostStatusesBeforeInstallation[:], hostStatusesInInfraEnv[:]...)
 	if !funk.ContainsString(allowedStatuses, hostStatus) {
@@ -85,7 +85,7 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, db
 				hostStatus, hostStatusesBeforeInstallation[:]))
 	}
 
-	extras := append(make([]interface{}, 0), "role", role)
+	extras := append(make([]interface{}, 0), "role", role, "role_info", info)
 
 	if hostutil.IsDay2Host(h) && (h.MachineConfigPoolName == "" || h.MachineConfigPoolName == *srcRole) {
 		extras = append(extras, "machine_config_pool_name", role)

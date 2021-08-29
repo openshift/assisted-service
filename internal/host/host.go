@@ -138,7 +138,7 @@ type API interface {
 	PermanentHostsDeletion(olderThan strfmt.DateTime) error
 	ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error
 
-	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
+	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, info models.RoleInfo, db *gorm.DB) error
 	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
 	RefreshInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, db *gorm.DB) error
@@ -611,16 +611,16 @@ func (m *Manager) UpdateApiVipConnectivityReport(ctx context.Context, h *models.
 	return nil
 }
 
-func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error {
+func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, info models.RoleInfo, db *gorm.DB) error {
 	cdb := m.db
 	if db != nil {
 		cdb = db
 	}
 
 	if h.Role == "" {
-		return updateRole(m.log, h, role, cdb, nil)
+		return updateRole(m.log, h, role, info, cdb, nil)
 	} else {
-		return updateRole(m.log, h, role, cdb, swag.String(string(h.Role)))
+		return updateRole(m.log, h, role, info, cdb, swag.String(string(h.Role)))
 	}
 }
 
@@ -984,22 +984,22 @@ func (m *Manager) autoRoleSelection(ctx context.Context, h *models.Host, db *gor
 		return errors.Errorf("host %s from cluster %s don't have hardware info",
 			h.ID.String(), h.ClusterID.String())
 	}
-	role, err := m.selectRole(ctx, h, db)
+	role, info, err := m.selectRole(ctx, h, db)
 	if err != nil {
 		return err
 	}
 	// use sourced role to prevent races with user role setting
-	if err := updateRole(m.log, h, role, db, swag.String(string(models.HostRoleAutoAssign))); err != nil {
+	if err := updateRole(m.log, h, role, info, db, swag.String(string(models.HostRoleAutoAssign))); err != nil {
 		log.WithError(err).Errorf("failed to update role %s for host %s cluster %s",
 			role, h.ID.String(), h.ClusterID.String())
 	}
-	log.Infof("Auto selected role %s for host %s cluster %s", role, h.ID.String(), h.ClusterID.String())
+	log.Infof("Auto selected role %s for host %s cluster %s with reason %s", role, h.ID.String(), h.ClusterID.String(), info)
 	// pointer was changed in selectRole or after the update - need to take the host again
 	return db.Model(&models.Host{}).
 		Take(h, "id = ? and infra_env_id = ?", h.ID.String(), h.InfraEnvID.String()).Error
 }
 
-func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (models.HostRole, error) {
+func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (models.HostRole, models.RoleInfo, error) {
 	var (
 		autoSelectedRole = models.HostRoleWorker
 		log              = logutil.FromContext(ctx, m.log)
@@ -1008,7 +1008,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 	)
 
 	if hostutil.IsDay2Host(h) {
-		return autoSelectedRole, nil
+		return autoSelectedRole, models.RoleInfoDay2, nil
 	}
 
 	// count already existing masters
@@ -1016,7 +1016,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 	if err = db.Model(&models.Host{}).Where("cluster_id = ? and status != ? and role = ?",
 		h.ClusterID, models.HostStatusDisabled, models.HostRoleMaster).Count(&mastersCount).Error; err != nil {
 		log.WithError(err).Errorf("failed to count masters in cluster %s", h.ClusterID.String())
-		return autoSelectedRole, err
+		return autoSelectedRole, models.RoleInfoOther, err
 	}
 
 	if mastersCount < common.MinMasterHostsNeededForInstallation {
@@ -1024,19 +1024,21 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 		vc, err = newValidationContext(h, nil, nil, db, m.hwValidator)
 		if err != nil {
 			log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
-			return autoSelectedRole, err
+			return autoSelectedRole, models.RoleInfoOther, err
 		}
 		conditions, _, err := m.rp.preprocess(vc)
 		if err != nil {
 			log.WithError(err).Errorf("failed to run validations on host %s", h.ID.String())
-			return autoSelectedRole, err
+			return autoSelectedRole, models.RoleInfoOther, err
 		}
 		if m.canBeMaster(conditions) {
-			return models.HostRoleMaster, nil
+			return models.HostRoleMaster, models.RoleInfoHwRequirements, nil
+		} else {
+			return autoSelectedRole, models.RoleInfoHwRequirements, nil
 		}
 	}
 
-	return autoSelectedRole, nil
+	return autoSelectedRole, models.RoleInfoMinimalMasterCount, nil
 }
 
 func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (bool, error) {

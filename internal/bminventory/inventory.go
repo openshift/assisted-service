@@ -1448,6 +1448,21 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		return nil, err
 	}
 
+	//usage for auto role selection is measured only for day1 clusters with more than
+	//3 hosts (which would automatically be assigned as masters if the hw is sufficient)
+	_ = b.db.Transaction(func(tx *gorm.DB) error {
+		if usages, uerr := usage.Unmarshal(cluster.Cluster.FeatureUsage); uerr == nil {
+			if cluster.Cluster.EnabledHostCount > common.MinMasterHostsNeededForInstallation &&
+				len(funk.Filter(cluster.Cluster.Hosts, func(h *models.Host) bool {
+					return h.RoleInfo != models.RoleInfoUserAssigned
+				}).([]*models.Host)) > 0 {
+				b.setUsage(true, usage.AutoAssignRoleUsage, nil, usages)
+				b.usageApi.Save(tx, *cluster.ID, usages)
+			}
+		}
+		return nil
+	})
+
 	if err = b.refreshAllHosts(ctx, cluster); err != nil {
 		return nil, err
 	}
@@ -2693,7 +2708,7 @@ func (b *bareMetalInventory) updateHostRoles(ctx context.Context, params install
 				hostRole.ID, params.ClusterID)
 			return common.NewApiError(http.StatusNotFound, err)
 		}
-		err = b.hostApi.UpdateRole(ctx, &host.Host, models.HostRole(hostRole.Role), db)
+		err = b.hostApi.UpdateRole(ctx, &host.Host, models.HostRole(hostRole.Role), models.RoleInfoUserAssigned, db)
 		if err != nil {
 			log.WithError(err).Errorf("failed to set role <%s> host <%s> in cluster <%s>",
 				hostRole.Role, hostRole.ID,
@@ -5585,6 +5600,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
 		UserName:              ocm.UserNameFromContext(ctx),
 		Role:                  defaultRole,
+		RoleInfo:              models.RoleInfoUserAssigned, //TBD: Should the default info be 'auto-assigned'?
 		InfraEnvID:            infraEnv.ID,
 	}
 
@@ -5607,6 +5623,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		}
 		if common.IsSingleNodeCluster(cluster) {
 			host.Role = models.HostRoleMaster
+			host.RoleInfo = models.RoleInfoMinimalMasterCount
 		}
 		if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 			host.Kind = swag.String(models.HostKindAddToExistingClusterHost)
@@ -6162,7 +6179,7 @@ func (b *bareMetalInventory) updateHostRole(ctx context.Context, host *common.Ho
 		log.Errorf(msg)
 		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
 	}
-	err := b.hostApi.UpdateRole(ctx, &host.Host, models.HostRole(*hostRole), db)
+	err := b.hostApi.UpdateRole(ctx, &host.Host, models.HostRole(*hostRole), models.RoleInfoUserAssigned, db)
 	if err != nil {
 		log.WithError(err).Errorf("failed to set role <%s> host <%s>, infra env <%s>",
 			*hostRole, host.ID, host.InfraEnvID)

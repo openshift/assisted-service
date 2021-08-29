@@ -127,6 +127,9 @@ type Host struct {
 	// role
 	Role HostRole `json:"role,omitempty"`
 
+	// role info
+	RoleInfo RoleInfo `json:"role_info,omitempty"`
+
 	// Time at which the current progress stage started.
 	// Format: date-time
 	StageStartedAt strfmt.DateTime `json:"stage_started_at,omitempty" gorm:"type:timestamp with time zone"`
@@ -216,6 +219,10 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateRole(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRoleInfo(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -468,6 +475,22 @@ func (m *Host) validateRole(formats strfmt.Registry) error {
 	if err := m.Role.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("role")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateRoleInfo(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.RoleInfo) { // not required
+		return nil
+	}
+
+	if err := m.RoleInfo.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("role_info")
 		}
 		return err
 	}

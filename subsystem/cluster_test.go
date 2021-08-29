@@ -1103,17 +1103,26 @@ var _ = Describe("cluster install", func() {
 		generateEssentialPrepareForInstallationSteps(ctx, h1, h2, h3, h4, h5, h6)
 		waitForClusterState(context.Background(), clusterID, models.ClusterStatusInstalling,
 			3*time.Minute, IgnoreStateInfo)
-		getHostRole := func(id strfmt.UUID) models.HostRole {
+		getHost := func(id strfmt.UUID) *models.Host {
 			var reply *installer.GetHostOK
 			reply, err = userBMClient.Installer.GetHost(ctx, &installer.GetHostParams{
 				ClusterID: clusterID,
 				HostID:    id,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
-			return reply.GetPayload().Role
+			return reply.GetPayload()
 		}
-		Expect(getHostRole(*h1.ID)).Should(Equal(models.HostRoleWorker))
-		Expect(getHostRole(*h6.ID)).Should(Equal(models.HostRoleWorker))
+		h := getHost(*h1.ID)
+		Expect(h.Role).Should(Equal(models.HostRoleWorker))
+		Expect(h.RoleInfo).Should(SatisfyAny(
+			Equal(models.RoleInfoHwRequirements),
+			Equal(models.RoleInfoMinimalMasterCount)))
+		h = getHost(*h6.ID)
+		Expect(h.Role).Should(Equal(models.HostRoleWorker))
+		Expect(h.RoleInfo).Should(SatisfyAny(
+			Equal(models.RoleInfoHwRequirements),
+			Equal(models.RoleInfoMinimalMasterCount)))
+
 		getReply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		mastersCount := 0
@@ -1128,6 +1137,10 @@ var _ = Describe("cluster install", func() {
 		}
 		Expect(mastersCount).Should(Equal(3))
 		Expect(workersCount).Should(Equal(3))
+
+		By("check auto-assign usage report")
+		verifyUsageSet(getReply.Payload.FeatureUsage,
+			models.Usage{Name: usage.AutoAssignRoleUsage})
 	})
 
 	It("Schedulable masters", func() {

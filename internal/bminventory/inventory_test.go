@@ -1094,9 +1094,10 @@ var _ = Describe("RegisterHost", func() {
 		for _, test := range []struct {
 			availability string
 			expectedRole models.HostRole
+			expectedInfo models.RoleInfo
 		}{
-			{availability: models.ClusterHighAvailabilityModeFull, expectedRole: models.HostRoleAutoAssign},
-			{availability: models.ClusterHighAvailabilityModeNone, expectedRole: models.HostRoleMaster},
+			{availability: models.ClusterHighAvailabilityModeFull, expectedRole: models.HostRoleAutoAssign, expectedInfo: models.RoleInfoUserAssigned},
+			{availability: models.ClusterHighAvailabilityModeNone, expectedRole: models.HostRoleMaster, expectedInfo: models.RoleInfoMinimalMasterCount},
 		} {
 			test := test
 
@@ -1110,6 +1111,7 @@ var _ = Describe("RegisterHost", func() {
 					DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 						// validate that host is registered with auto-assign role
 						Expect(h.Role).Should(Equal(test.expectedRole))
+						Expect(h.RoleInfo).Should(Equal(test.expectedInfo))
 						Expect(h.InfraEnvID).Should(Equal(infraEnv.ID))
 						return nil
 					}).Times(1)
@@ -6017,7 +6019,7 @@ var _ = Describe("infraEnvs host", func() {
 		})
 
 		It("update host role success", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), models.HostRole("master"), gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), models.HostRole("master"), models.RoleInfoUserAssigned, gomock.Any()).Return(nil).Times(1)
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -6034,7 +6036,7 @@ var _ = Describe("infraEnvs host", func() {
 		})
 
 		It("update host role failure", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), models.HostRole("master"), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
+			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), models.HostRole("master"), models.RoleInfoUserAssigned, gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -6050,7 +6052,7 @@ var _ = Describe("infraEnvs host", func() {
 		})
 
 		It("update host name success", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), models.RoleInfoUserAssigned, gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Return(nil).Times(1)
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -6067,7 +6069,7 @@ var _ = Describe("infraEnvs host", func() {
 		})
 
 		It("update host name failure", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), models.RoleInfoUserAssigned, gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -6083,7 +6085,7 @@ var _ = Describe("infraEnvs host", func() {
 		})
 
 		It("update host name invalid format", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), models.RoleInfoUserAssigned, gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -6099,7 +6101,7 @@ var _ = Describe("infraEnvs host", func() {
 		})
 
 		It("update disks config success", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), models.RoleInfoUserAssigned, gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), diskID1).Return(nil).Times(1)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -6119,7 +6121,7 @@ var _ = Describe("infraEnvs host", func() {
 		})
 
 		It("update disks config invalid config, multiple boot disk", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), models.RoleInfoUserAssigned, gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -6138,7 +6140,7 @@ var _ = Describe("infraEnvs host", func() {
 		})
 
 		It("update machine pool success", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), models.RoleInfoUserAssigned, gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), "machinepool").Return(nil).Times(1)
@@ -6155,7 +6157,7 @@ var _ = Describe("infraEnvs host", func() {
 		})
 
 		It("update machine pool failure", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), models.RoleInfoUserAssigned, gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), "machinepool").Return(fmt.Errorf("some error")).Times(1)
