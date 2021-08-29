@@ -11,7 +11,7 @@ from urllib.parse import urlunsplit, urlsplit
 SERVICE = "assisted-service"
 TIMEOUT = 60 * 30
 REQUEST_TIMEOUT = 2
-SLEEP = 3
+SLEEP = 10
 
 
 def handle_arguments():
