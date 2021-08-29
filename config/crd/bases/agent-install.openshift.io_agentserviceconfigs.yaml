@@ -335,6 +335,9 @@ spec:
                   description: OSImage defines an Operating System image and the OpenShift
                     version it is associated with.
                   properties:
+                    cpuArchitecture:
+                      description: The CPU architecture of the image (x86_64/arm64/etc).
+                      type: string
                     openshiftVersion:
                       description: OpenshiftVersion is the Major.Minor version of
                         OpenShift that this image is to be associated with.

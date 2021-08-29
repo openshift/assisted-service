@@ -531,6 +531,7 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 			"INSTALLER_IMAGE":        InstallerImage(),
 			"SELF_VERSION":           ServiceImage(),
 			"OPENSHIFT_VERSIONS":     r.getOpenshiftVersions(log, instance),
+			"OS_IMAGES":              r.getOSImages(log, instance),
 			"MUST_GATHER_IMAGES":     r.getMustGatherImages(log, instance),
 			"ISO_IMAGE_TYPE":         "minimal-iso",
 			"S3_USE_SSL":             "false",
@@ -908,6 +909,50 @@ func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogge
 	}
 
 	return string(encodedVersions)
+}
+
+// getOSImages returns the value of OS_IMAGES variable
+// to be stored in the service's ConfigMap
+//
+// 1. If osImages field is not present in the AgentServiceConfig's Spec
+//    it returns the value of OS_IMAGES env variable.
+//    This is also the fallback behavior in case of a processing error.
+//
+// 2. If osImages field is present in the AgentServiceConfig's Spec it
+//    converts the structure to the one that can be recognize by the service
+//    and returns it as a JSON string.
+//
+// 3. In case both sources are present, the Spec values overrides the env
+//    values.
+func (r *AgentServiceConfigReconciler) getOSImages(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) string {
+	if instance.Spec.OSImages == nil {
+		return OSImages()
+	}
+
+	osImages := make(models.OsImages, 0)
+	for _, image := range instance.Spec.OSImages {
+		osImage := models.OsImage{
+			OpenshiftVersion: &image.OpenshiftVersion,
+			URL:              &image.Url,
+			RootfsURL:        &image.RootFSUrl,
+			Version:          &image.Version,
+			CPUArchitecture:  &image.CPUArchitecture,
+		}
+		osImages = append(osImages, &osImage)
+	}
+
+	if len(osImages) == 0 {
+		log.Info("No valid OS Image specified, returning default", "OS Images", OSImages())
+		return OSImages()
+	}
+
+	encodedOSImages, err := json.Marshal(osImages)
+	if err != nil {
+		log.WithError(err).Error(fmt.Sprintf("Problem marshaling OSImages (%v) to string, returning default %v", osImages, OSImages()))
+		return OSImages()
+	}
+
+	return string(encodedOSImages)
 }
 
 // getOpenshiftVersions returns the value of OPENSHIFT_VERSIONS variable

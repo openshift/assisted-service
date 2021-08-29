@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	routev1 "github.com/openshift/api/route/v1"
@@ -642,6 +643,110 @@ var _ = Describe("getMustGatherImages", func() {
 		})
 	}
 
+})
+
+var _ = Describe("getOSImages", func() {
+	const OS_IMAGES_ENVVAR string = "OS_IMAGES"
+	var defaultSpecOsImages = []aiv1beta1.OSImage{
+		{
+			OpenshiftVersion: "4.9",
+			Url:              "rhcos_4.9",
+			RootFSUrl:        "rhcos_rootfs_4.9",
+			Version:          "version-49.123-0",
+			CPUArchitecture:  "x86_64",
+		},
+	}
+	var defaultEnvOsImages = models.OsImages{
+		&models.OsImage{
+			CPUArchitecture:  swag.String("x86_64"),
+			OpenshiftVersion: swag.String("4.8"),
+			URL:              swag.String("rhcos_4.8"),
+			RootfsURL:        swag.String("rhcos_rootfs_4.8"),
+			Version:          swag.String("version-48.123-0"),
+		},
+	}
+	var outSpecOsImages = models.OsImages{
+		&models.OsImage{
+			CPUArchitecture:  swag.String("x86_64"),
+			OpenshiftVersion: swag.String("4.9"),
+			RootfsURL:        swag.String("rhcos_rootfs_4.9"),
+			URL:              swag.String("rhcos_4.9"),
+			Version:          swag.String("version-49.123-0"),
+		},
+	}
+	var spec2string = func() string {
+		bytes, err := json.Marshal(outSpecOsImages)
+		Expect(err).NotTo(HaveOccurred())
+		return string(bytes)
+	}
+	var env2string = func() string {
+		bytes, err := json.Marshal(defaultSpecOsImages)
+		Expect(err).NotTo(HaveOccurred())
+		return string(bytes)
+	}
+
+	var (
+		asc  *aiv1beta1.AgentServiceConfig
+		ascr *AgentServiceConfigReconciler
+		log  *logrus.Logger
+	)
+
+	tests := []struct {
+		name     string
+		spec     []aiv1beta1.OSImage
+		env      models.OsImages
+		expected string
+	}{
+		{
+			name:     "spec is empty - return the env configuration",
+			spec:     nil,
+			env:      defaultEnvOsImages,
+			expected: env2string(),
+		},
+		{
+			name:     "images in spec - return the spec configuration",
+			spec:     defaultSpecOsImages,
+			env:      nil,
+			expected: spec2string(),
+		},
+		{
+			name:     "both sources - return the spec configuration",
+			spec:     defaultSpecOsImages,
+			env:      defaultEnvOsImages,
+			expected: spec2string(),
+		},
+		{
+			name:     "both empty - return empty string",
+			spec:     nil,
+			env:      nil,
+			expected: "",
+		},
+	}
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		log = logrus.New()
+	})
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			// setup OS_IMAGES environment variable, if applicable
+			defer os.Unsetenv(OS_IMAGES_ENVVAR)
+			if t.env != nil {
+				os.Setenv(OS_IMAGES_ENVVAR, env2string())
+			}
+			// setup OSImages spec configuration
+			asc.Spec.OSImages = t.spec
+			ascr = newTestReconciler(asc)
+			// verify the result
+			if t.expected != "" {
+				Expect(ascr.getOSImages(log, asc)).To(MatchJSON(t.expected))
+			} else {
+				Expect(ascr.getOSImages(log, asc)).To(Equal(""))
+			}
+		})
+	}
 })
 
 var _ = Describe("getOpenshiftVersions", func() {
