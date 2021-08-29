@@ -202,16 +202,16 @@ var _ = Describe("disk encryption", func() {
 					SSHPublicKey:     sshPublicKey,
 					BaseDNSDomain:    "example.com",
 					DiskEncryption: &models.DiskEncryption{
-						EnableOn: models.DiskEncryptionEnableOnAll,
-						Mode:     models.DiskEncryptionModeTpmv2,
+						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+						Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 					},
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			c := registerClusterReply.GetPayload()
-			Expect(c.DiskEncryption.EnableOn).To(Equal(models.DiskEncryptionEnableOnAll))
-			Expect(c.DiskEncryption.Mode).To(Equal(models.DiskEncryptionModeTpmv2))
+			Expect(*c.DiskEncryption.EnableOn).To(Equal(models.DiskEncryptionEnableOnAll))
+			Expect(*c.DiskEncryption.Mode).To(Equal(models.DiskEncryptionModeTpmv2))
 
 			clusterID = *c.ID
 		})
@@ -221,8 +221,8 @@ var _ = Describe("disk encryption", func() {
 			updateClusterReply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 				ClusterUpdateParams: &models.ClusterUpdateParams{
 					DiskEncryption: &models.DiskEncryption{
-						EnableOn:    models.DiskEncryptionEnableOnMasters,
-						Mode:        models.DiskEncryptionModeTang,
+						EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+						Mode:        swag.String(models.DiskEncryptionModeTang),
 						TangServers: defaultTangServers,
 					},
 				},
@@ -231,8 +231,8 @@ var _ = Describe("disk encryption", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			c := updateClusterReply.GetPayload()
-			Expect(c.DiskEncryption.EnableOn).To(Equal(models.DiskEncryptionEnableOnMasters))
-			Expect(c.DiskEncryption.Mode).To(Equal(models.DiskEncryptionModeTang))
+			Expect(*c.DiskEncryption.EnableOn).To(Equal(models.DiskEncryptionEnableOnMasters))
+			Expect(*c.DiskEncryption.Mode).To(Equal(models.DiskEncryptionModeTang))
 		})
 	})
 
@@ -330,8 +330,8 @@ spec:
 			{
 				name: "all nodes, tpm2",
 				diskEncryption: &models.DiskEncryption{
-					EnableOn: models.DiskEncryptionEnableOnAll,
-					Mode:     models.DiskEncryptionModeTpmv2,
+					EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+					Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 				},
 				expectedManifestsNames: []string{
 					"99-openshift-master-tpm-encryption.yaml",
@@ -345,8 +345,8 @@ spec:
 			{
 				name: "all nodes, tang",
 				diskEncryption: &models.DiskEncryption{
-					EnableOn:    models.DiskEncryptionEnableOnAll,
-					Mode:        models.DiskEncryptionModeTang,
+					EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
+					Mode:        swag.String(models.DiskEncryptionModeTang),
 					TangServers: defaultTangServers,
 				},
 				expectedManifestsNames: []string{
@@ -361,8 +361,8 @@ spec:
 			{
 				name: "masters only, tpmv2",
 				diskEncryption: &models.DiskEncryption{
-					EnableOn: models.DiskEncryptionEnableOnMasters,
-					Mode:     models.DiskEncryptionModeTpmv2,
+					EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+					Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 				},
 				expectedManifestsNames: []string{
 					"99-openshift-master-tpm-encryption.yaml",
@@ -374,8 +374,8 @@ spec:
 			{
 				name: "masters only, tang",
 				diskEncryption: &models.DiskEncryption{
-					EnableOn:    models.DiskEncryptionEnableOnMasters,
-					Mode:        models.DiskEncryptionModeTang,
+					EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+					Mode:        swag.String(models.DiskEncryptionModeTang),
 					TangServers: defaultTangServers,
 				},
 				expectedManifestsNames: []string{
@@ -388,8 +388,8 @@ spec:
 			{
 				name: "workers only, tpmv2",
 				diskEncryption: &models.DiskEncryption{
-					EnableOn: models.DiskEncryptionEnableOnWorkers,
-					Mode:     models.DiskEncryptionModeTpmv2,
+					EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
+					Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 				},
 				expectedManifestsNames: []string{
 					"99-openshift-worker-tpm-encryption.yaml",
@@ -401,8 +401,8 @@ spec:
 			{
 				name: "workers only, tang",
 				diskEncryption: &models.DiskEncryption{
-					EnableOn:    models.DiskEncryptionEnableOnWorkers,
-					Mode:        models.DiskEncryptionModeTang,
+					EnableOn:    swag.String(models.DiskEncryptionEnableOnWorkers),
+					Mode:        swag.String(models.DiskEncryptionModeTang),
 					TangServers: defaultTangServers,
 				},
 				expectedManifestsNames: []string{

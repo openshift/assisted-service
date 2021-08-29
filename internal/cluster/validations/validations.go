@@ -400,7 +400,7 @@ func ValidateDiskEncryptionParams(diskEncryptionParams *models.DiskEncryption) e
 	if diskEncryptionParams == nil {
 		return nil
 	}
-	if diskEncryptionParams.Mode == models.DiskEncryptionModeTang {
+	if *diskEncryptionParams.Mode == models.DiskEncryptionModeTang {
 		if diskEncryptionParams.TangServers == "" {
 			return errors.New("Setting Tang mode but tang_servers isn't set")
 		}

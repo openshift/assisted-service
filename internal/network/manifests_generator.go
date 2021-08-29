@@ -304,7 +304,7 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 
 	manifestParams := map[string]interface{}{}
 
-	switch c.DiskEncryption.Mode {
+	switch *c.DiskEncryption.Mode {
 
 	case models.DiskEncryptionModeTpmv2:
 
@@ -320,13 +320,9 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 
 		manifestParams["MODE"] = "tang"
 		manifestParams["TANG_SERVERS"] = tangServers
-
-	default:
-
-		return errors.New("None of the encryption modes were specified")
 	}
 
-	switch c.DiskEncryption.EnableOn {
+	switch *c.DiskEncryption.EnableOn {
 
 	case models.DiskEncryptionEnableOnAll:
 
@@ -353,14 +349,6 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
 			return err
 		}
-
-	case models.DiskEncryptionEnableOnNone:
-
-		return nil
-
-	default:
-
-		return errors.New("Not specified to which role encryption should be applied")
 	}
 
 	return nil

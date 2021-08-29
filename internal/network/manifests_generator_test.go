@@ -474,21 +474,20 @@ var _ = Describe("disk encryption manifest", func() {
 		name           string
 		diskEncryption *models.DiskEncryption
 		numOfManifests int
-		shouldErr      bool
 	}{
 		{
 			name: "masters and workers, tpmv2",
 			diskEncryption: &models.DiskEncryption{
-				EnableOn: models.DiskEncryptionEnableOnAll,
-				Mode:     models.DiskEncryptionModeTpmv2,
+				EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 			},
 			numOfManifests: 2,
 		},
 		{
 			name: "masters and workers, tang",
 			diskEncryption: &models.DiskEncryption{
-				EnableOn:    models.DiskEncryptionEnableOnAll,
-				Mode:        models.DiskEncryptionModeTang,
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
 				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
 			},
 			numOfManifests: 2,
@@ -496,16 +495,16 @@ var _ = Describe("disk encryption manifest", func() {
 		{
 			name: "masters only, tpmv2",
 			diskEncryption: &models.DiskEncryption{
-				EnableOn: models.DiskEncryptionEnableOnMasters,
-				Mode:     models.DiskEncryptionModeTpmv2,
+				EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 			},
 			numOfManifests: 1,
 		},
 		{
 			name: "masters only, tang",
 			diskEncryption: &models.DiskEncryption{
-				EnableOn:    models.DiskEncryptionEnableOnMasters,
-				Mode:        models.DiskEncryptionModeTang,
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
 				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
 			},
 			numOfManifests: 1,
@@ -513,36 +512,22 @@ var _ = Describe("disk encryption manifest", func() {
 		{
 			name: "workers only, tpmv2",
 			diskEncryption: &models.DiskEncryption{
-				EnableOn: models.DiskEncryptionEnableOnWorkers,
-				Mode:     models.DiskEncryptionModeTpmv2,
+				EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 			},
 			numOfManifests: 1,
 		},
 		{
 			name: "workers only, tang",
 			diskEncryption: &models.DiskEncryption{
-				EnableOn:    models.DiskEncryptionEnableOnWorkers,
-				Mode:        models.DiskEncryptionModeTang,
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnWorkers),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
 				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
 			},
 			numOfManifests: 1,
 		},
 		{
 			name: "disks encryption not set",
-		},
-		{
-			name: "non of the roles were specified",
-			diskEncryption: &models.DiskEncryption{
-				Mode: models.DiskEncryptionModeTpmv2,
-			},
-			shouldErr: true,
-		},
-		{
-			name: "non of the encryption modes were specified",
-			diskEncryption: &models.DiskEncryption{
-				EnableOn: models.DiskEncryptionEnableOnAll,
-			},
-			shouldErr: true,
 		},
 	} {
 		t := t
@@ -554,11 +539,7 @@ var _ = Describe("disk encryption manifest", func() {
 
 			mockManifestsApi.EXPECT().CreateClusterManifest(ctx, gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(t.numOfManifests)
 			err := manifestsGeneratorApi.AddDiskEncryptionManifest(ctx, log, &c)
-			if t.shouldErr == false {
-				Expect(err).ToNot(HaveOccurred())
-			} else {
-				Expect(err).To(HaveOccurred())
-			}
+			Expect(err).ToNot(HaveOccurred())
 		})
 	}
 })

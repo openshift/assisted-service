@@ -21,11 +21,11 @@ type DiskEncryption struct {
 
 	// Enable/disable disk encryption on master nodes, worker nodes, or all nodes.
 	// Enum: [none all masters workers]
-	EnableOn string `json:"enable_on,omitempty"`
+	EnableOn *string `json:"enable_on,omitempty"`
 
 	// The disk encryption mode to use.
 	// Enum: [tpmv2 tang]
-	Mode string `json:"mode,omitempty"`
+	Mode *string `json:"mode,omitempty"`
 
 	// JSON-formatted string containing additional information regarding tang's configuration
 	TangServers string `json:"tang_servers,omitempty" gorm:"type:text"`
@@ -91,7 +91,7 @@ func (m *DiskEncryption) validateEnableOn(formats strfmt.Registry) error {
 	}
 
 	// value enum
-	if err := m.validateEnableOnEnum("enable_on", "body", m.EnableOn); err != nil {
+	if err := m.validateEnableOnEnum("enable_on", "body", *m.EnableOn); err != nil {
 		return err
 	}
 
@@ -134,7 +134,7 @@ func (m *DiskEncryption) validateMode(formats strfmt.Registry) error {
 	}
 
 	// value enum
-	if err := m.validateModeEnum("mode", "body", m.Mode); err != nil {
+	if err := m.validateModeEnum("mode", "body", *m.Mode); err != nil {
 		return err
 	}
 

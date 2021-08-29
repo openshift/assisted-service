@@ -8577,8 +8577,8 @@ var _ = Describe("TestRegisterCluster", func() {
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
-						EnableOn: models.DiskEncryptionEnableOnAll,
-						Mode:     models.DiskEncryptionModeTang,
+						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+						Mode:     swag.String(models.DiskEncryptionModeTang),
 					},
 				},
 			})
@@ -8591,8 +8591,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						DiskEncryption: &models.DiskEncryption{
-							EnableOn:    models.DiskEncryptionEnableOnAll,
-							Mode:        models.DiskEncryptionModeTang,
+							EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
+							Mode:        swag.String(models.DiskEncryptionModeTang),
 							TangServers: `[{"URL":"","Thumbprint":""}]`,
 						},
 					},
@@ -8604,8 +8604,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						DiskEncryption: &models.DiskEncryption{
-							EnableOn:    models.DiskEncryptionEnableOnAll,
-							Mode:        models.DiskEncryptionModeTang,
+							EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
+							Mode:        swag.String(models.DiskEncryptionModeTang),
 							TangServers: `[{"URL":"invalidUrl","Thumbprint":""}]`,
 						},
 					},
@@ -8618,8 +8618,8 @@ var _ = Describe("TestRegisterCluster", func() {
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
-						EnableOn:    models.DiskEncryptionEnableOnAll,
-						Mode:        models.DiskEncryptionModeTang,
+						EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
+						Mode:        swag.String(models.DiskEncryptionModeTang),
 						TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
 					},
 				},
