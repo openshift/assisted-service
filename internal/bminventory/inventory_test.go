@@ -4380,6 +4380,25 @@ var _ = Describe("cluster", func() {
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, "Machine Network CIDR cannot be set with User Managed Networking")
 				})
+
+				It("Fail with non-x86_64 CPU architecture", func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID:                    &clusterID,
+						CPUArchitecture:       "arm64",
+						UserManagedNetworking: swag.Bool(true),
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
+				})
 			})
 
 			It("NetworkType", func() {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -114,9 +115,8 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 }
 
 func (k *installGenerator) getClusterPlatformType(cluster common.Cluster) models.PlatformType {
-	// Using platform type as an indication for which openshift install binary to use.
-	// I.e. None x86_64 clusters should use the openshift-install binary.
-	if cluster.CPUArchitecture != common.DefaultCPUArchitecture {
+	// Enabled UserManagedNetworking implies none platfrom.
+	if swag.BoolValue(cluster.UserManagedNetworking) {
 		return models.PlatformTypeNone
 	}
 	return cluster.Platform.Type
