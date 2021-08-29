@@ -60,7 +60,6 @@ type InfraEnvSpec struct {
 	// +optional
 	SSHAuthorizedKey string `json:"sshAuthorizedKey,omitempty"`
 
-	// This field is currently not used. The Pull Secret from ClusterDeployment will be used for the ISO creation.
 	// PullSecretRef is the reference to the secret to use when pulling images.
 	PullSecretRef *corev1.LocalObjectReference `json:"pullSecretRef"`
 

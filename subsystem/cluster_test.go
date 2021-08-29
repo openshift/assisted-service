@@ -3493,7 +3493,7 @@ func generateConnectivityPostStepReply(ctx context.Context, h *models.Host, conn
 	fa, err := json.Marshal(connectivityReport)
 	Expect(err).NotTo(HaveOccurred())
 	_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
-		InfraEnvID: *h.ClusterID,
+		InfraEnvID: h.InfraEnvID,
 		HostID:     *h.ID,
 		Reply: &models.StepReply{
 			ExitCode: 0,

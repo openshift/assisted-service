@@ -497,6 +497,7 @@ func main() {
 		if Options.EnableKubeAPI {
 			failOnError((&controllers.InfraEnvReconciler{
 				Client:           ctrlMgr.GetClient(),
+				APIReader:        ctrlMgr.GetAPIReader(),
 				Config:           Options.InfraEnvConfig,
 				Log:              log,
 				Installer:        bm,
