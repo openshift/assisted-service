@@ -731,6 +731,7 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		APIVipDNSName:    swag.String(apivipDnsname),
 		HostNetworks:     []*models.HostNetwork{},
 		Hosts:            []*models.Host{},
+		CPUArchitecture:  common.DefaultCPUArchitecture,
 	},
 		KubeKeyName:      kubeKey.Name,
 		KubeKeyNamespace: kubeKey.Namespace,
@@ -1262,7 +1263,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	} else {
-		baseISOName, err := b.objectHandler.GetBaseIsoObject(infraEnv.OpenshiftVersion)
+		baseISOName, err := b.objectHandler.GetBaseIsoObject(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", infraEnv.ID, infraEnv.OpenshiftVersion)
 			return common.NewApiError(http.StatusInternalServerError, err)
@@ -1312,7 +1313,7 @@ func (b *bareMetalInventory) getIgnitionConfigForLogging(infraEnv *common.InfraE
 func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log logrus.FieldLogger,
 	infraEnv *common.InfraEnv, ignitionConfig, objectPrefix string) error {
 
-	baseISOName, err := b.objectHandler.GetMinimalIsoObjectName(infraEnv.OpenshiftVersion)
+	baseISOName, err := b.objectHandler.GetMinimalIsoObjectName(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get source object name for infraEnv %s with ocp version %s", infraEnv.ID, infraEnv.OpenshiftVersion)
 		return err
@@ -5185,12 +5186,9 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		}
 	}()
 
-	if params.InfraenvCreateParams.Proxy != nil {
-		if params.InfraenvCreateParams.Proxy.HTTPProxy != nil &&
-			(params.InfraenvCreateParams.Proxy.HTTPSProxy == nil || *params.InfraenvCreateParams.Proxy.HTTPSProxy == "") {
-			params.InfraenvCreateParams.Proxy.HTTPSProxy = params.InfraenvCreateParams.Proxy.HTTPProxy
-		}
+	params = b.setDefaultRegisterInfraEnvParams(ctx, params)
 
+	if params.InfraenvCreateParams.Proxy != nil {
 		if err = validateProxySettings(params.InfraenvCreateParams.Proxy.HTTPProxy,
 			params.InfraenvCreateParams.Proxy.HTTPSProxy,
 			params.InfraenvCreateParams.Proxy.NoProxy, params.InfraenvCreateParams.OpenshiftVersion); err != nil {
@@ -5198,9 +5196,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		}
 	}
 
-	if params.InfraenvCreateParams.AdditionalNtpSources == nil {
-		params.InfraenvCreateParams.AdditionalNtpSources = &b.Config.DefaultNTPSource
-	} else {
+	if params.InfraenvCreateParams.AdditionalNtpSources != &b.Config.DefaultNTPSource {
 		ntpSource := swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources)
 
 		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
@@ -5229,11 +5225,6 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 
 	if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraenvCreateParams.IgnitionConfigOverride); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	// set the default value for REST API case, in case it was not provided in the request
-	if params.InfraenvCreateParams.ImageType == "" {
-		params.InfraenvCreateParams.ImageType = models.ImageType(b.Config.ISOImageType)
 	}
 
 	err = b.validateClusterInfraEnvRegister(params.InfraenvCreateParams.ClusterID, params.InfraenvCreateParams.CPUArchitecture)
@@ -5314,6 +5305,30 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 
 	success = true
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnv.ID})
+}
+
+func (b *bareMetalInventory) setDefaultRegisterInfraEnvParams(_ context.Context, params installer.RegisterInfraEnvParams) installer.RegisterInfraEnvParams {
+	if params.InfraenvCreateParams.Proxy != nil &&
+		params.InfraenvCreateParams.Proxy.HTTPProxy != nil &&
+		(params.InfraenvCreateParams.Proxy.HTTPSProxy == nil || *params.InfraenvCreateParams.Proxy.HTTPSProxy == "") {
+		params.InfraenvCreateParams.Proxy.HTTPSProxy = params.InfraenvCreateParams.Proxy.HTTPProxy
+	}
+
+	if params.InfraenvCreateParams.AdditionalNtpSources == nil {
+		params.InfraenvCreateParams.AdditionalNtpSources = &b.Config.DefaultNTPSource
+	}
+
+	// set the default value for REST API case, in case it was not provided in the request
+	if params.InfraenvCreateParams.ImageType == "" {
+		params.InfraenvCreateParams.ImageType = models.ImageType(b.Config.ISOImageType)
+	}
+
+	if params.InfraenvCreateParams.CPUArchitecture == "" {
+		// Specifying architecture in params is optional, fallback to default
+		params.InfraenvCreateParams.CPUArchitecture = common.DefaultCPUArchitecture
+	}
+
+	return params
 }
 
 func (b *bareMetalInventory) getOpenshiftVersionOrLatest(version *string, cpuArch string) (*models.OpenshiftVersion, error) {

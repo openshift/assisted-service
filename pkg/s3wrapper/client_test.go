@@ -309,15 +309,21 @@ var _ = Describe("s3client", func() {
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &publicBucket, Key: aws.String(defaultTestRhcosObject)}).
 				Return(&s3.HeadObjectOutput{}, nil)
 
-			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion).Return(&defaultOsImage, nil).Times(3)
+			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion, gomock.Any()).Return(&defaultOsImage, nil).Times(3)
 
-			err := client.UploadISOs(ctx, defaultTestOpenShiftVersion, true)
+			err := client.UploadISOs(ctx, defaultTestOpenShiftVersion, defaultTestCpuArchitecture, true)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("unsupported openshift version", func() {
 			unsupportedVersion := "999"
-			mockVersions.EXPECT().GetOsImage(unsupportedVersion).Return(nil, errors.New("unsupported")).Times(1)
-			err := client.UploadISOs(ctx, unsupportedVersion, false)
+			mockVersions.EXPECT().GetOsImage(unsupportedVersion, gomock.Any()).Return(nil, errors.New("unsupported")).Times(1)
+			err := client.UploadISOs(ctx, unsupportedVersion, defaultTestCpuArchitecture, false)
+			Expect(err).To(HaveOccurred())
+		})
+		It("unsupported CPU architecture", func() {
+			unsupportedArchitecture := "unsupported"
+			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion, unsupportedArchitecture).Return(nil, errors.New("unsupported")).Times(1)
+			err := client.UploadISOs(ctx, defaultTestOpenShiftVersion, unsupportedArchitecture, false)
 			Expect(err).To(HaveOccurred())
 		})
 		It("missing isos", func() {
@@ -360,9 +366,9 @@ var _ = Describe("s3client", func() {
 
 			// Should upload version file
 			uploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(1)
-			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion).Return(&defaultOsImage, nil).Times(1)
+			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion, gomock.Any()).Return(&defaultOsImage, nil).Times(1)
 
-			err := client.uploadISOs(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, defaultTestOpenShiftVersion, false)
+			err := client.uploadISOs(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, defaultTestOpenShiftVersion, defaultTestCpuArchitecture, false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
