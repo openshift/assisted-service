@@ -9278,12 +9278,6 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "cluster_id": {
-          "description": "If set, all hosts that register will be associated with the specified cluster.",
-          "type": "string",
-          "format": "uuid",
-          "x-nullable": true
-        },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
           "type": "string"
@@ -19705,12 +19699,6 @@ func init() {
         "additional_ntp_sources": {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string",
-          "x-nullable": true
-        },
-        "cluster_id": {
-          "description": "If set, all hosts that register will be associated with the specified cluster.",
-          "type": "string",
-          "format": "uuid",
           "x-nullable": true
         },
         "ignition_config_override": {
