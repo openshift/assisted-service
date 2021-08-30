@@ -219,7 +219,7 @@ func (mr *MockInstallerInternalsMockRecorder) GetCommonHostInternal(arg0, arg1, 
 }
 
 // GetCredentialsInternal mocks base method.
-func (m *MockInstallerInternals) GetCredentialsInternal(arg0 context.Context, arg1 installer.GetCredentialsParams) (*models.Credentials, error) {
+func (m *MockInstallerInternals) GetCredentialsInternal(arg0 context.Context, arg1 installer.V2GetCredentialsParams) (*models.Credentials, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCredentialsInternal", arg0, arg1)
 	ret0, _ := ret[0].(*models.Credentials)

@@ -437,7 +437,7 @@ func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Con
 	if getErr == nil || !k8serrors.IsNotFound(getErr) {
 		return s, getErr
 	}
-	cred, err := r.Installer.GetCredentialsInternal(ctx, installer.GetCredentialsParams{
+	cred, err := r.Installer.GetCredentialsInternal(ctx, installer.V2GetCredentialsParams{
 		ClusterID: *c.ID,
 	})
 	if err != nil {

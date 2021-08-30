@@ -277,3 +277,11 @@ func (b *bareMetalInventory) V2UpdateClusterLogsProgress(ctx context.Context, pa
 func (b *bareMetalInventory) V2GetClusterDefaultConfig(_ context.Context, _ installer.V2GetClusterDefaultConfigParams) middleware.Responder {
 	return installer.NewV2GetClusterDefaultConfigOK().WithPayload(b.getClusterDefaultConfig())
 }
+
+func (b *bareMetalInventory) V2GetCredentials(ctx context.Context, params installer.V2GetCredentialsParams) middleware.Responder {
+	c, err := b.GetCredentialsInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2GetCredentialsOK().WithPayload(c)
+}
