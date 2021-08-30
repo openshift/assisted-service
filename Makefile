@@ -258,7 +258,6 @@ deploy-s3-secret:
 
 deploy-s3: deploy-namespace
 	python3 ./tools/deploy_s3.py --namespace "$(NAMESPACE)" --target "$(TARGET)"
-	sleep 5;  # wait for service to get an address
 	make deploy-s3-secret
 
 deploy-route53: deploy-namespace
@@ -271,7 +270,6 @@ deploy-ocm-secret: deploy-namespace
 deploy-inventory-service-file: deploy-namespace
 	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" \
 		--apply-manifest $(APPLY_MANIFEST) $(DEBUG_PORT_OPTIONS)
-	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_local_auth_secret.py --namespace "$(NAMESPACE)" --target "$(TARGET)" --apply-manifest $(APPLY_MANIFEST)
