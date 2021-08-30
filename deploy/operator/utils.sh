@@ -1,6 +1,7 @@
 set -o nounset
 set -o pipefail
 set -o errexit
+set -o xtrace
 
 function wait_for_crd() {
     crd="$1"
