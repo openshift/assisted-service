@@ -661,6 +661,21 @@ var _ = Describe("list versions", func() {
 			Expect(*version).Should(Equal((*openshiftVersions)["4.9"]))
 		})
 
+		It("OpenShift version without ReleaseImage", func() {
+			openshiftVersions = &models.OpenshiftVersions{
+				"4.8": models.OpenshiftVersion{
+					DisplayName: swag.String("4.8-candidate"),
+					RhcosImage:  swag.String("rhcos_4.8"), RhcosRootfs: swag.String("rhcos_rootfs_4.8"),
+					RhcosVersion: swag.String("version-48.123-0"),
+					SupportLevel: swag.String("newbie"),
+				},
+			}
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = h.GetLatestOpenshiftVersion("x86_64")
+			Expect(err).Should(HaveOccurred())
+		})
+
 	})
 
 	Context("validateVersions", func() {
