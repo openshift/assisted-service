@@ -15,9 +15,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -347,7 +349,7 @@ var _ = Describe("Cancel cluster installation", func() {
 	})
 
 	acceptNewEvents := func(times int) {
-		mockEventsHandler.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
+		mockEventsHandler.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(times)
 	}
 
 	acceptClusterInstallationFinished := func() {
@@ -421,7 +423,7 @@ var _ = Describe("Reset cluster", func() {
 	})
 
 	acceptNewEvents := func(times int) {
-		mockEventsHandler.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
+		mockEventsHandler.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(times)
 	}
 
 	tests := []struct {
@@ -1300,8 +1302,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				}
 				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
-						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+						eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 				}
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
@@ -1589,8 +1592,8 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 			}
 			cluster = getClusterFromDB(clusterId, db)
 			if t.dstState != models.ClusterStatusPreparingForInstallation {
-				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
-					gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName))).AnyTimes()
 			}
 			switch t.dstState {
 			case models.ClusterStatusInsufficient:
@@ -2019,8 +2022,9 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				}
 				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
-						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+						eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 				}
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
@@ -2474,8 +2478,9 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				}
 				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
-						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+						eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 				}
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
@@ -2986,8 +2991,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				}
 				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
-						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+						eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 				}
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
@@ -3335,8 +3341,9 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				}
 				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
-						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+						eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 				}
 				if t.srcState == models.ClusterStatusFinalizing && !t.requiresAMSUpdate {
 					mockS3Api.EXPECT().DoesObjectExist(ctx, fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)).Return(false, nil)
@@ -3824,8 +3831,9 @@ var _ = Describe("NTP refresh cluster", func() {
 				}
 				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
-						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+						eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 				}
 				mockHostAPIIsRequireUserActionResetFalse()
 				if t.dstState == models.ClusterStatusInsufficient {
@@ -4137,8 +4145,9 @@ var _ = Describe("Single node", func() {
 				}
 				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
-						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+						eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 
 				}
 				mockHostAPIIsRequireUserActionResetFalse()

@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/internal/network"
@@ -70,8 +70,7 @@ func updateClusterStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.D
 	}
 
 	if newStatus != srcStatus {
-		msg := fmt.Sprintf("Updated status of cluster %s to %s", cluster.Name, *cluster.Status)
-		events.AddEvent(ctx, clusterId, nil, models.EventSeverityInfo, msg, time.Now())
+		eventgen.SendClusterStatusUpdatedEvent(ctx, events, clusterId, *cluster.Status, statusInfo)
 		log.Infof("cluster %s has been updated with the following updates %+v", clusterId, extra)
 	}
 

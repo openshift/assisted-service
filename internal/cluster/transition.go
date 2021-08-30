@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
@@ -160,9 +161,8 @@ func createClusterCompletionStatusInfo(ctx context.Context, log logrus.FieldLogg
 		return statusInfoInstalled
 	}
 
-	msg := fmt.Sprintf("Cluster %s is installed but degraded due to failed OLM operators", cluster.Name)
-	msg += ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
-	eventHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityWarning, msg, time.Now())
+	failedOperators := ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
+	eventgen.SendClusterDegradedFailedOLMOperatorsEvent(ctx, eventHandler, *cluster.ID, failedOperators)
 
 	statusInfo := StatusInfoDegraded
 	statusInfo += ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
@@ -468,8 +468,7 @@ func (th *transitionHandler) PostPreparingTimedOut(sw stateswitch.StateSwitch, a
 		return err
 	}
 
-	msg := fmt.Sprintf("Preparing for installation was timed out for cluster %s", cluster.Name)
-	params.eventHandler.AddEvent(params.ctx, *cluster.ID, nil, models.EventSeverityWarning, msg, time.Now())
+	eventgen.SendInstallationPreparingTimedOutEvent(params.ctx, params.eventHandler, *cluster.ID)
 
 	return nil
 }
