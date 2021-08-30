@@ -1,5 +1,5 @@
 # Generate python client
-FROM quay.io/ocpmetal/swagger-codegen-cli:2.4.15 as swagger_py
+FROM quay.io/ocpmetal/swagger-codegen-cli:2.4.21 as swagger_py
 COPY swagger.yaml .
 COPY tools/generate_python_client.sh .
 RUN chmod +x ./generate_python_client.sh && SWAGGER_FILE=swagger.yaml OUTPUT=/build ./generate_python_client.sh
