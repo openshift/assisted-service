@@ -142,17 +142,12 @@ func (h *handler) GetLatestOpenshiftVersion(cpuArchitecture string) (*models.Ope
 	var latestKey string
 	for k := range h.openshiftVersions {
 		if latest == nil || k > latestKey {
-			archs, err := h.GetCPUArchitectures(k)
+			v, err := h.GetOpenshiftVersion(k, cpuArchitecture)
 			if err != nil {
 				continue
 			}
-			for _, arch := range archs {
-				if arch == cpuArchitecture {
-					version := h.openshiftVersions[k]
-					latest = &version
-					latestKey = k
-				}
-			}
+			latest = v
+			latestKey = k
 		}
 	}
 	if latest == nil {
