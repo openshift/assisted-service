@@ -761,13 +761,13 @@ func selectClusterNetworkType(params *models.ClusterUpdateParams, cluster *commo
 		},
 	}
 
-	if len(params.ClusterNetworks) > 0 {
+	if common.IsSliceNonEmpty(params.ClusterNetworks) {
 		clusterWithNewNetworks.ClusterNetworks = params.ClusterNetworks
 	}
-	if len(params.ServiceNetworks) > 0 {
+	if common.IsSliceNonEmpty(params.ServiceNetworks) {
 		clusterWithNewNetworks.ServiceNetworks = params.ServiceNetworks
 	}
-	if len(params.MachineNetworks) > 0 {
+	if common.IsSliceNonEmpty(params.MachineNetworks) {
 		clusterWithNewNetworks.MachineNetworks = params.MachineNetworks
 	}
 
