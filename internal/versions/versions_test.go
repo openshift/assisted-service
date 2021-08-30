@@ -179,26 +179,8 @@ var _ = Describe("list versions", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
-		readDefaultOsImages := func() {
-			var bytes []byte
-			bytes, err = ioutil.ReadFile("../../data/default_os_images.json")
-			Expect(err).ShouldNot(HaveOccurred())
-			err = json.Unmarshal(bytes, osImages)
-			Expect(err).ShouldNot(HaveOccurred())
-		}
-
-		readDefaultReleaseImages := func() {
-			var bytes []byte
-			bytes, err = ioutil.ReadFile("../../data/default_release_images.json")
-			Expect(err).ShouldNot(HaveOccurred())
-			err = json.Unmarshal(bytes, releaseImages)
-			Expect(err).ShouldNot(HaveOccurred())
-		}
-
 		It("get_defaults", func() {
 			readDefaultOpenshiftVersions()
-			readDefaultOsImages()
-			readDefaultReleaseImages()
 			CURRENT_DEFAULT_VERSION := "4.8" //keep align with default_ocp_versions.json
 
 			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
