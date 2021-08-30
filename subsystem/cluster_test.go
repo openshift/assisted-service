@@ -1124,6 +1124,10 @@ var _ = Describe("cluster install", func() {
 		}
 		Expect(mastersCount).Should(Equal(3))
 		Expect(workersCount).Should(Equal(3))
+
+		By("check auto-assign usage report")
+		verifyUsageSet(getReply.Payload.FeatureUsage,
+			models.Usage{Name: usage.AutoAssignRoleUsage})
 	})
 
 	It("Schedulable masters", func() {

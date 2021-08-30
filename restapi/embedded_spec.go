@@ -8767,6 +8767,9 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "suggested_role": {
+          "$ref": "#/definitions/host-role"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -19189,6 +19192,9 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "suggested_role": {
+          "$ref": "#/definitions/host-role"
         },
         "updated_at": {
           "type": "string",

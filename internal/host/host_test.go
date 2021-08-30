@@ -2425,43 +2425,59 @@ var _ = Describe("AutoAssignRole", func() {
 		ctrl.Finish()
 	})
 
+	verifyAutoAssignRole := func(host *models.Host, success bool, isSelected bool) {
+		selected, err := hapi.AutoAssignRole(ctx, host, db)
+		Expect(selected).To(Equal(isSelected))
+		if success {
+			Expect(err).ShouldNot(HaveOccurred())
+		} else {
+			Expect(err).Should(HaveOccurred())
+		}
+	}
+
 	Context("single host role selection", func() {
 		tests := []struct {
 			name         string
 			srcRole      models.HostRole
 			inventory    string
-			expectError  bool
+			success      bool
+			selected     bool
 			expectedRole models.HostRole
 		}{
 			{
 				name:         "role already set to worker",
 				srcRole:      models.HostRoleWorker,
 				inventory:    hostutil.GenerateMasterInventory(),
-				expectError:  false,
+				success:      true,
+				selected:     false,
 				expectedRole: models.HostRoleWorker,
 			}, {
 				name:         "role already set to master",
 				srcRole:      models.HostRoleMaster,
 				inventory:    hostutil.GenerateMasterInventory(),
-				expectError:  false,
+				success:      true,
+				selected:     false,
 				expectedRole: models.HostRoleMaster,
 			}, {
 				name:         "no inventory",
 				srcRole:      models.HostRoleAutoAssign,
 				inventory:    "",
-				expectError:  true,
+				success:      false,
+				selected:     false,
 				expectedRole: models.HostRoleAutoAssign,
 			}, {
 				name:         "auto-assign master",
 				srcRole:      models.HostRoleAutoAssign,
 				inventory:    hostutil.GenerateMasterInventory(),
-				expectError:  false,
+				success:      true,
+				selected:     true,
 				expectedRole: models.HostRoleMaster,
 			}, {
 				name:         "auto-assign worker",
 				srcRole:      models.HostRoleAutoAssign,
 				inventory:    workerInventory(),
-				expectError:  false,
+				success:      true,
+				selected:     true,
 				expectedRole: models.HostRoleWorker,
 			},
 		}
@@ -2473,12 +2489,7 @@ var _ = Describe("AutoAssignRole", func() {
 				h.Inventory = t.inventory
 				h.Role = t.srcRole
 				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-				err := hapi.AutoAssignRole(ctx, &h, db)
-				if t.expectError {
-					Expect(err).Should(HaveOccurred())
-				} else {
-					Expect(err).ShouldNot(HaveOccurred())
-				}
+				verifyAutoAssignRole(&h, t.success, t.selected)
 				Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(t.expectedRole))
 			})
 		}
@@ -2490,7 +2501,7 @@ var _ = Describe("AutoAssignRole", func() {
 			h.Inventory = hostutil.GenerateMasterInventory()
 			h.Role = models.HostRoleAutoAssign
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-			Expect(hapi.AutoAssignRole(ctx, &h, db)).ShouldNot(HaveOccurred())
+			verifyAutoAssignRole(&h, true, true)
 			Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleMaster))
 		}
 
@@ -2498,7 +2509,7 @@ var _ = Describe("AutoAssignRole", func() {
 		h.Inventory = hostutil.GenerateMasterInventory()
 		h.Role = models.HostRoleAutoAssign
 		Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-		Expect(hapi.AutoAssignRole(ctx, &h, db)).ShouldNot(HaveOccurred())
+		verifyAutoAssignRole(&h, true, true)
 		Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleWorker))
 	})
 })

@@ -148,6 +148,9 @@ type Host struct {
 	// Format: date-time
 	StatusUpdatedAt strfmt.DateTime `json:"status_updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// suggested role
+	SuggestedRole HostRole `json:"suggested_role,omitempty"`
+
 	// updated at
 	// Format: date-time
 	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
@@ -236,6 +239,10 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateStatusUpdatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSuggestedRole(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -626,6 +633,22 @@ func (m *Host) validateStatusUpdatedAt(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("status_updated_at", "body", "date-time", m.StatusUpdatedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateSuggestedRole(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.SuggestedRole) { // not required
+		return nil
+	}
+
+	if err := m.SuggestedRole.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("suggested_role")
+		}
 		return err
 	}
 
