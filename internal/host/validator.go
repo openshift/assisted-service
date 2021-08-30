@@ -502,12 +502,9 @@ func (v *validator) printBelongsToMachineCidr(c *validationContext, status Valid
 		if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster {
 			return "No machine network CIDR validation needed: Day2 cluster"
 		}
-		return fmt.Sprintf("Host belongs to machine network CIDR %s", network.GetMachineCidrById(c.cluster, 0))
+		return "Host belongs to all machine network CIDRs"
 	case ValidationFailure:
-		if network.IsMachineCidrAvailable(c.cluster) {
-			return fmt.Sprintf("Host does not belong to machine network CIDR %s", network.GetMachineCidrById(c.cluster, 0))
-		}
-		return "Host does not belong to machine network CIDR"
+		return "Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks"
 	case ValidationPending:
 		return "Missing inventory or machine network CIDR"
 	default:
