@@ -854,8 +854,8 @@ func (b *bareMetalInventory) DownloadISOInternal(ctx context.Context, infraEnvID
 	exists, err := b.objectHandler.DoesObjectExist(ctx, imgName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get ISO for cluster %s", infraEnv.ID.String())
-		b.eventsHandler.AddEvent(ctx, infraEnvID, nil, models.EventSeverityError,
-			"Failed to download image: error fetching from storage backend", time.Now())
+		eventgen.SendDownloadImageFailedFetchEvent(ctx, b.eventsHandler, infraEnvID)
+
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
@@ -3123,8 +3123,14 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 	}
 
 	// TODO: need to check that host can be deleted from the cluster
-	b.eventsHandler.AddEvent(ctx, params.InfraEnvID, &params.HostID, models.EventSeverityInfo,
-		fmt.Sprintf("Host %s: deregistered from cluster", params.HostID.String()), time.Now())
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
+	var clusterID strfmt.UUID
+	if err != nil {
+		log.WithError(err).Warnf("Get InfraEnv %s", params.InfraEnvID.String())
+		return err
+	}
+	clusterID = infraEnv.ClusterID
+	eventgen.SendHostDeregisteredClusterEvent(ctx, b.eventsHandler, clusterID, params.HostID, params.InfraEnvID)
 	return nil
 }
 
@@ -3190,7 +3196,8 @@ func (b *bareMetalInventory) UpdateHostInstallerArgsInternal(ctx context.Context
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom installer arguments were applied", hostutil.GetHostnameForMsg(&h.Host)), time.Now())
+	// TODO: pass InfraEnvID instead of ClusterID
+	eventgen.SendHostInstallerArgsAppliedEvent(ctx, b.eventsHandler, params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
 	log.Infof("Custom installer arguments were applied to host %s in cluster %s", params.HostID, params.ClusterID)
 
 	h, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
@@ -5682,7 +5689,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 	if err = b.customizeHost(host); err != nil {
 		// TODO Need event for infra-env instead of cluster
-		eventgen.SendHostRegistrationFailedSettingPropertiesEvent(ctx, b.eventsHandler, params.InfraEnvID, *params.NewHostParams.HostID)
+		eventgen.SendHostRegistrationFailedSettingPropertiesEvent(ctx, b.eventsHandler, *host.ClusterID, *params.NewHostParams.HostID, params.InfraEnvID)
 		return common.GenerateErrorResponder(err)
 	}
 

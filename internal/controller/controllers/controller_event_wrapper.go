@@ -58,13 +58,25 @@ func (c *controllerEventsWrapper) SendClusterEventAtTime(ctx context.Context, ev
 func (c *controllerEventsWrapper) SendHostEvent(ctx context.Context, event events.HostEvent) {
 	c.events.SendHostEvent(ctx, event)
 
-	c.NotifyKubeApiHostEvent(event.GetClusterId(), event.GetHostId())
+	c.NotifyKubeApiHostEvent(event.GetInfraEnvId(), event.GetHostId())
 }
 
 func (c *controllerEventsWrapper) SendHostEventAtTime(ctx context.Context, event events.HostEvent, eventTime time.Time) {
 	c.events.SendHostEventAtTime(ctx, event, eventTime)
 
-	c.NotifyKubeApiHostEvent(event.GetClusterId(), event.GetHostId())
+	c.NotifyKubeApiHostEvent(event.GetInfraEnvId(), event.GetHostId())
+}
+
+func (c *controllerEventsWrapper) SendInfraEnvEvent(ctx context.Context, event events.InfraEnvEvent) {
+	c.events.SendInfraEnvEvent(ctx, event)
+
+	c.NotifyKubeApiInfraEnvEvent(event.GetInfraEnvId())
+}
+
+func (c *controllerEventsWrapper) SendInfraEnvEventAtTime(ctx context.Context, event events.InfraEnvEvent, eventTime time.Time) {
+	c.events.SendInfraEnvEventAtTime(ctx, event, eventTime)
+
+	c.NotifyKubeApiInfraEnvEvent(event.GetInfraEnvId())
 }
 
 func (c *controllerEventsWrapper) NotifyKubeApiClusterEvent(clusterID strfmt.UUID) {
@@ -89,4 +101,14 @@ func (c *controllerEventsWrapper) NotifyKubeApiHostEvent(clusterID strfmt.UUID, 
 	if host.ClusterID != nil {
 		c.NotifyKubeApiClusterEvent(*host.ClusterID)
 	}
+}
+
+func (c *controllerEventsWrapper) NotifyKubeApiInfraEnvEvent(infraEnvId strfmt.UUID) {
+	ie, err := common.GetInfraEnvFromDB(c.db, infraEnvId)
+	if err != nil {
+		return
+	}
+
+	c.log.Debugf("Pushing InfraEnv event %s %s", ie.Name, ie.KubeKeyNamespace)
+	c.crdEventsHandler.NotifyInfraEnvUpdates(ie.Name, ie.KubeKeyNamespace)
 }

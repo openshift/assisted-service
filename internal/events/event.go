@@ -29,6 +29,8 @@ type Sender interface {
 	SendClusterEventAtTime(ctx context.Context, event ClusterEvent, eventTime time.Time)
 	SendHostEvent(ctx context.Context, event HostEvent)
 	SendHostEventAtTime(ctx context.Context, event HostEvent, eventTime time.Time)
+	SendInfraEnvEvent(ctx context.Context, event InfraEnvEvent)
+	SendInfraEnvEventAtTime(ctx context.Context, event InfraEnvEvent, eventTime time.Time)
 }
 
 //go:generate mockgen -source=event.go -package=events -destination=mock_event.go
@@ -112,7 +114,19 @@ func (e *Events) SendHostEvent(ctx context.Context, event HostEvent) {
 
 func (e *Events) SendHostEventAtTime(ctx context.Context, event HostEvent, eventTime time.Time) {
 	hostID := event.GetHostId()
-	e.AddEvent(ctx, event.GetClusterId(), &hostID, event.GetSeverity(), event.FormatMessage(), eventTime)
+	if event.GetClusterId() == nil || len(*event.GetClusterId()) == 0 {
+		e.AddEvent(ctx, event.GetInfraEnvId(), &hostID, event.GetSeverity(), event.FormatMessage(), eventTime)
+	} else {
+		e.AddEvent(ctx, *event.GetClusterId(), &hostID, event.GetSeverity(), event.FormatMessage(), eventTime)
+	}
+}
+
+func (e *Events) SendInfraEnvEvent(ctx context.Context, event InfraEnvEvent) {
+	e.SendInfraEnvEventAtTime(ctx, event, time.Now())
+}
+
+func (e *Events) SendInfraEnvEventAtTime(ctx context.Context, event InfraEnvEvent, eventTime time.Time) {
+	e.AddEvent(ctx, event.GetInfraEnvId(), nil, event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
 func (e *Events) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
@@ -194,6 +208,13 @@ type ClusterEvent interface {
 
 type HostEvent interface {
 	BaseEvent
-	GetClusterId() strfmt.UUID
+	GetClusterId() *strfmt.UUID
 	GetHostId() strfmt.UUID
+	GetInfraEnvId() strfmt.UUID
+}
+
+type InfraEnvEvent interface {
+	BaseEvent
+	GetInfraEnvId() strfmt.UUID
+	GetClusterId() *strfmt.UUID
 }

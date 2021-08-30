@@ -90,13 +90,23 @@ func (e *{{eventName}}) GetSeverity() string {
     {%- endif %}
 }
 
+{%- if event.type == "cluster" %}
 func (e *{{eventName}}) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
-
-{%- if event.type != "cluster" %}
+{%- else %}
+func (e *{{eventName}}) GetClusterId() *strfmt.UUID {
+    {% if event.properties.cluster_id -%}     return &e.ClusterId
+    {%- else -%}      return nil
+    {%- endif %}
+}
+{%- if event.type == "host" %}
 func (e *{{eventName}}) GetHostId() strfmt.UUID {
     return e.HostId
+}
+{%- endif %}
+func (e *{{eventName}}) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
 }
 {%- endif %}
 
@@ -212,21 +222,32 @@ def validate_property_types_and_return_extra_imports(e):
 
 def validate_event(e):
     REQUIRED_CLUSTER_PROPERTIES = ["cluster_id"]
-    REQUIRED_HOST_PROPERTIES = ["cluster_id", "host_id"]
-    INVALID_CLUSTER_PROPERTIES = ["host_id"]
+    REQUIRED_HOST_PROPERTIES = ["host_id", "infra_env_id"]
+    REQUIRED_INFRA_ENV_PROPERTIES = ["infra_env_id"]
+    INVALID_CLUSTER_PROPERTIES = ["host_id", "infra_env_id"]
     INVALID_HOST_PROPERTIES = []
+    INVALID_INFRA_ENV_PROPERTIES = ["host_id"]
     VALID_SEVERITY_VALUES = ["info", "warning", "error", "critical"]
 
-    required_props = REQUIRED_HOST_PROPERTIES
     if e['event_type'] == "cluster":
         required_props = REQUIRED_CLUSTER_PROPERTIES
+    elif e['event_type'] == "host":
+        required_props = REQUIRED_HOST_PROPERTIES
+    elif e['event_type'] == "infra_env":
+        required_props = REQUIRED_INFRA_ENV_PROPERTIES
+    else:
+        raise Exception("Unsupported event type")
+
     for p in required_props:
         if p not in e['properties']:
             raise Exception("Missing '{}' in properties of {}".format(p, e['name']))
 
-    invalid_props = INVALID_HOST_PROPERTIES
     if e['event_type'] == "cluster":
         invalid_props = INVALID_CLUSTER_PROPERTIES
+    elif e['event_type'] == "host":
+        invalid_props = INVALID_HOST_PROPERTIES
+    else:
+        invalid_props = INVALID_INFRA_ENV_PROPERTIES
     for p in invalid_props:
         if p in e['properties']:
             raise Exception("Invalid '{}' in properties of {}".format(p, e['name']))

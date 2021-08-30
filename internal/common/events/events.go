@@ -70,7 +70,6 @@ func (e *GenericClusterEvent) GetName() string {
 func (e *GenericClusterEvent) GetSeverity() string {
     return e.Severity
 }
-
 func (e *GenericClusterEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -93,8 +92,8 @@ func (e *GenericClusterEvent) FormatMessage() string {
 // Event generic_host
 //
 type GenericHostEvent struct {
-    ClusterId strfmt.UUID
     HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
     Message string
     Severity string
 }
@@ -102,14 +101,14 @@ type GenericHostEvent struct {
 var GenericHostEventName string = "generic_host"
 
 func NewGenericHostEvent(
-    clusterId strfmt.UUID,
     hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
     message string,
     severity string,
 ) *GenericHostEvent {
     return &GenericHostEvent{
-        ClusterId: clusterId,
         HostId: hostId,
+        InfraEnvId: infraEnvId,
         Message: message,
         Severity: severity,
     }
@@ -118,13 +117,13 @@ func NewGenericHostEvent(
 func SendGenericHostEvent(
     ctx context.Context,
     eventsHandler events.Sender,
-    clusterId strfmt.UUID,
     hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
     message string,
     severity string,) {
     ev := NewGenericHostEvent(
-        clusterId,
         hostId,
+        infraEnvId,
         message,
         severity,
     )
@@ -134,14 +133,14 @@ func SendGenericHostEvent(
 func SendGenericHostEventAtTime(
     ctx context.Context,
     eventsHandler events.Sender,
-    clusterId strfmt.UUID,
     hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
     message string,
     severity string,
     eventTime time.Time) {
     ev := NewGenericHostEvent(
-        clusterId,
         hostId,
+        infraEnvId,
         message,
         severity,
     )
@@ -155,18 +154,20 @@ func (e *GenericHostEvent) GetName() string {
 func (e *GenericHostEvent) GetSeverity() string {
     return e.Severity
 }
-
-func (e *GenericHostEvent) GetClusterId() strfmt.UUID {
-    return e.ClusterId
+func (e *GenericHostEvent) GetClusterId() *strfmt.UUID {
+    return nil
 }
 func (e *GenericHostEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
+func (e *GenericHostEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
 
 func (e *GenericHostEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
         "{message}", fmt.Sprint(e.Message),
         "{severity}", fmt.Sprint(e.Severity),
     )
@@ -223,7 +224,6 @@ func (e *CancelInstallFailedStartEvent) GetName() string {
 func (e *CancelInstallFailedStartEvent) GetSeverity() string {
     return "error"
 }
-
 func (e *CancelInstallFailedStartEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -285,7 +285,6 @@ func (e *CancelInstallFailedCommitEvent) GetName() string {
 func (e *CancelInstallFailedCommitEvent) GetSeverity() string {
     return "error"
 }
-
 func (e *CancelInstallFailedCommitEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -308,6 +307,7 @@ func (e *CancelInstallFailedCommitEvent) FormatMessage() string {
 type HostRegistrationFailedSettingPropertiesEvent struct {
     ClusterId strfmt.UUID
     HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
 }
 
 var HostRegistrationFailedSettingPropertiesEventName string = "host_registration_failed_setting_properties"
@@ -315,10 +315,12 @@ var HostRegistrationFailedSettingPropertiesEventName string = "host_registration
 func NewHostRegistrationFailedSettingPropertiesEvent(
     clusterId strfmt.UUID,
     hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
 ) *HostRegistrationFailedSettingPropertiesEvent {
     return &HostRegistrationFailedSettingPropertiesEvent{
         ClusterId: clusterId,
         HostId: hostId,
+        InfraEnvId: infraEnvId,
     }
 }
 
@@ -326,10 +328,12 @@ func SendHostRegistrationFailedSettingPropertiesEvent(
     ctx context.Context,
     eventsHandler events.Sender,
     clusterId strfmt.UUID,
-    hostId strfmt.UUID,) {
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,) {
     ev := NewHostRegistrationFailedSettingPropertiesEvent(
         clusterId,
         hostId,
+        infraEnvId,
     )
     eventsHandler.SendHostEvent(ctx, ev)
 }
@@ -339,10 +343,12 @@ func SendHostRegistrationFailedSettingPropertiesEventAtTime(
     eventsHandler events.Sender,
     clusterId strfmt.UUID,
     hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
     eventTime time.Time) {
     ev := NewHostRegistrationFailedSettingPropertiesEvent(
         clusterId,
         hostId,
+        infraEnvId,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
@@ -354,18 +360,21 @@ func (e *HostRegistrationFailedSettingPropertiesEvent) GetName() string {
 func (e *HostRegistrationFailedSettingPropertiesEvent) GetSeverity() string {
     return "error"
 }
-
-func (e *HostRegistrationFailedSettingPropertiesEvent) GetClusterId() strfmt.UUID {
-    return e.ClusterId
+func (e *HostRegistrationFailedSettingPropertiesEvent) GetClusterId() *strfmt.UUID {
+    return &e.ClusterId
 }
 func (e *HostRegistrationFailedSettingPropertiesEvent) GetHostId() strfmt.UUID {
     return e.HostId
+}
+func (e *HostRegistrationFailedSettingPropertiesEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
 }
 
 func (e *HostRegistrationFailedSettingPropertiesEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
     )
     return r.Replace(*message)
 }
@@ -434,7 +443,6 @@ func (e *ClusterRegistrationFailedEvent) GetName() string {
 func (e *ClusterRegistrationFailedEvent) GetSeverity() string {
     return "error"
 }
-
 func (e *ClusterRegistrationFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -505,7 +513,6 @@ func (e *RegisteredClusterEvent) GetName() string {
 func (e *RegisteredClusterEvent) GetSeverity() string {
     return "info"
 }
-
 func (e *RegisteredClusterEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -575,7 +582,6 @@ func (e *ClusterDeregisterFailedEvent) GetName() string {
 func (e *ClusterDeregisterFailedEvent) GetSeverity() string {
     return "error"
 }
-
 func (e *ClusterDeregisterFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -638,7 +644,6 @@ func (e *DeregisteredClusterEvent) GetName() string {
 func (e *DeregisteredClusterEvent) GetSeverity() string {
     return "info"
 }
-
 func (e *DeregisteredClusterEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -714,7 +719,6 @@ func (e *ClusterValidationFallingEvent) GetName() string {
 func (e *ClusterValidationFallingEvent) GetSeverity() string {
     return "warning"
 }
-
 func (e *ClusterValidationFallingEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -792,7 +796,6 @@ func (e *ClusterValidationFixedEvent) GetName() string {
 func (e *ClusterValidationFixedEvent) GetSeverity() string {
     return "info"
 }
-
 func (e *ClusterValidationFixedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -856,7 +859,6 @@ func (e *ClusterDeregisteredAfterInactivityEvent) GetName() string {
 func (e *ClusterDeregisteredAfterInactivityEvent) GetSeverity() string {
     return "info"
 }
-
 func (e *ClusterDeregisteredAfterInactivityEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -918,7 +920,6 @@ func (e *ClusterInstallingFinishedEvent) GetName() string {
 func (e *ClusterInstallingFinishedEvent) GetSeverity() string {
     return "info"
 }
-
 func (e *ClusterInstallingFinishedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -987,7 +988,6 @@ func (e *ClusterInstallingFailedEvent) GetName() string {
 func (e *ClusterInstallingFailedEvent) GetSeverity() string {
     return "critical"
 }
-
 func (e *ClusterInstallingFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1050,7 +1050,6 @@ func (e *ClusterCancelInstallationEvent) GetName() string {
 func (e *ClusterCancelInstallationEvent) GetSeverity() string {
     return "info"
 }
-
 func (e *ClusterCancelInstallationEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1119,7 +1118,6 @@ func (e *CancelInstallationFailedEvent) GetName() string {
 func (e *CancelInstallationFailedEvent) GetSeverity() string {
     return "error"
 }
-
 func (e *CancelInstallationFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1196,7 +1194,6 @@ func (e *ClusterStatusUpdatedEvent) GetName() string {
 func (e *ClusterStatusUpdatedEvent) GetSeverity() string {
     return "info"
 }
-
 func (e *ClusterStatusUpdatedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1260,7 +1257,6 @@ func (e *ClusterResetInstallationEvent) GetName() string {
 func (e *ClusterResetInstallationEvent) GetSeverity() string {
     return "info"
 }
-
 func (e *ClusterResetInstallationEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1329,7 +1325,6 @@ func (e *ResetInstallationFailedEvent) GetName() string {
 func (e *ResetInstallationFailedEvent) GetSeverity() string {
     return "error"
 }
-
 func (e *ResetInstallationFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1406,7 +1401,6 @@ func (e *ApiIngressVipUpdateEvent) GetName() string {
 func (e *ApiIngressVipUpdateEvent) GetSeverity() string {
     return "info"
 }
-
 func (e *ApiIngressVipUpdateEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1477,7 +1471,6 @@ func (e *ApiIngressVipTimedOutEvent) GetName() string {
 func (e *ApiIngressVipTimedOutEvent) GetSeverity() string {
     return "warning"
 }
-
 func (e *ApiIngressVipTimedOutEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1547,7 +1540,6 @@ func (e *PrepareInstallationFailedEvent) GetName() string {
 func (e *PrepareInstallationFailedEvent) GetSeverity() string {
     return "warning"
 }
-
 func (e *PrepareInstallationFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1610,7 +1602,6 @@ func (e *ClusterPrepareInstallationEvent) GetName() string {
 func (e *ClusterPrepareInstallationEvent) GetSeverity() string {
     return "info"
 }
-
 func (e *ClusterPrepareInstallationEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1672,7 +1663,6 @@ func (e *InstallationPreparingTimedOutEvent) GetName() string {
 func (e *InstallationPreparingTimedOutEvent) GetSeverity() string {
     return "warning"
 }
-
 func (e *InstallationPreparingTimedOutEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1741,7 +1731,6 @@ func (e *ClusterDegradedFailedOLMOperatorsEvent) GetName() string {
 func (e *ClusterDegradedFailedOLMOperatorsEvent) GetSeverity() string {
     return "warning"
 }
-
 func (e *ClusterDegradedFailedOLMOperatorsEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
@@ -1756,6 +1745,244 @@ func (e *ClusterDegradedFailedOLMOperatorsEvent) format(message *string) string 
 
 func (e *ClusterDegradedFailedOLMOperatorsEvent) FormatMessage() string {
     s := "Cluster is installed but degraded due to failed OLM operators {failed_operators}"
+    return e.format(&s)
+}
+
+//
+// Event download_image_failed_fetch
+//
+type DownloadImageFailedFetchEvent struct {
+    InfraEnvId strfmt.UUID
+}
+
+var DownloadImageFailedFetchEventName string = "download_image_failed_fetch"
+
+func NewDownloadImageFailedFetchEvent(
+    infraEnvId strfmt.UUID,
+) *DownloadImageFailedFetchEvent {
+    return &DownloadImageFailedFetchEvent{
+        InfraEnvId: infraEnvId,
+    }
+}
+
+func SendDownloadImageFailedFetchEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    infraEnvId strfmt.UUID,) {
+    ev := NewDownloadImageFailedFetchEvent(
+        infraEnvId,
+    )
+    eventsHandler.SendInfraEnvEvent(ctx, ev)
+}
+
+func SendDownloadImageFailedFetchEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    infraEnvId strfmt.UUID,
+    eventTime time.Time) {
+    ev := NewDownloadImageFailedFetchEvent(
+        infraEnvId,
+    )
+    eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *DownloadImageFailedFetchEvent) GetName() string {
+    return "download_image_failed_fetch"
+}
+
+func (e *DownloadImageFailedFetchEvent) GetSeverity() string {
+    return "error"
+}
+func (e *DownloadImageFailedFetchEvent) GetClusterId() *strfmt.UUID {
+    return nil
+}
+func (e *DownloadImageFailedFetchEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+func (e *DownloadImageFailedFetchEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+    )
+    return r.Replace(*message)
+}
+
+func (e *DownloadImageFailedFetchEvent) FormatMessage() string {
+    s := "Failed to download image: error fetching from storage backend"
+    return e.format(&s)
+}
+
+//
+// Event host_deregistered_cluster
+//
+type HostDeregisteredClusterEvent struct {
+    ClusterId strfmt.UUID
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+}
+
+var HostDeregisteredClusterEventName string = "host_deregistered_cluster"
+
+func NewHostDeregisteredClusterEvent(
+    clusterId strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+) *HostDeregisteredClusterEvent {
+    return &HostDeregisteredClusterEvent{
+        ClusterId: clusterId,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+    }
+}
+
+func SendHostDeregisteredClusterEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,) {
+    ev := NewHostDeregisteredClusterEvent(
+        clusterId,
+        hostId,
+        infraEnvId,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendHostDeregisteredClusterEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    eventTime time.Time) {
+    ev := NewHostDeregisteredClusterEvent(
+        clusterId,
+        hostId,
+        infraEnvId,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *HostDeregisteredClusterEvent) GetName() string {
+    return "host_deregistered_cluster"
+}
+
+func (e *HostDeregisteredClusterEvent) GetSeverity() string {
+    return "info"
+}
+func (e *HostDeregisteredClusterEvent) GetClusterId() *strfmt.UUID {
+    return &e.ClusterId
+}
+func (e *HostDeregisteredClusterEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *HostDeregisteredClusterEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+func (e *HostDeregisteredClusterEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+    )
+    return r.Replace(*message)
+}
+
+func (e *HostDeregisteredClusterEvent) FormatMessage() string {
+    s := "Host deregistered from cluster"
+    return e.format(&s)
+}
+
+//
+// Event host_installer_args_applied
+//
+type HostInstallerArgsAppliedEvent struct {
+    ClusterId strfmt.UUID
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    HostName string
+}
+
+var HostInstallerArgsAppliedEventName string = "host_installer_args_applied"
+
+func NewHostInstallerArgsAppliedEvent(
+    clusterId strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+) *HostInstallerArgsAppliedEvent {
+    return &HostInstallerArgsAppliedEvent{
+        ClusterId: clusterId,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        HostName: hostName,
+    }
+}
+
+func SendHostInstallerArgsAppliedEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,) {
+    ev := NewHostInstallerArgsAppliedEvent(
+        clusterId,
+        hostId,
+        infraEnvId,
+        hostName,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendHostInstallerArgsAppliedEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+    eventTime time.Time) {
+    ev := NewHostInstallerArgsAppliedEvent(
+        clusterId,
+        hostId,
+        infraEnvId,
+        hostName,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *HostInstallerArgsAppliedEvent) GetName() string {
+    return "host_installer_args_applied"
+}
+
+func (e *HostInstallerArgsAppliedEvent) GetSeverity() string {
+    return "info"
+}
+func (e *HostInstallerArgsAppliedEvent) GetClusterId() *strfmt.UUID {
+    return &e.ClusterId
+}
+func (e *HostInstallerArgsAppliedEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *HostInstallerArgsAppliedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+func (e *HostInstallerArgsAppliedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{host_name}", fmt.Sprint(e.HostName),
+    )
+    return r.Replace(*message)
+}
+
+func (e *HostInstallerArgsAppliedEvent) FormatMessage() string {
+    s := "Host {host_name}: custom installer arguments were applied"
     return e.format(&s)
 }
 
