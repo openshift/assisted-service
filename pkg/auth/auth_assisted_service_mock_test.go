@@ -40,6 +40,10 @@ func (f fakeInventory) DeregisterCluster(ctx context.Context, params installer.D
 	return installer.NewDeregisterClusterNoContent()
 }
 
+func (f fakeInventory) V2DeregisterCluster(ctx context.Context, params installer.V2DeregisterClusterParams) middleware.Responder {
+	return installer.NewV2DeregisterClusterNoContent()
+}
+
 func (f fakeInventory) DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder {
 	return installer.NewDeregisterHostNoContent()
 }
@@ -142,6 +146,10 @@ func (f fakeInventory) GenerateClusterISO(ctx context.Context, params installer.
 
 func (f fakeInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
 	return installer.NewGetClusterOK()
+}
+
+func (f fakeInventory) V2GetCluster(ctx context.Context, params installer.V2GetClusterParams) middleware.Responder {
+	return installer.NewV2GetClusterOK()
 }
 
 func (f fakeInventory) GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder {

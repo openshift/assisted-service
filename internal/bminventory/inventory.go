@@ -123,14 +123,14 @@ type OCPClusterAPI interface {
 //go:generate mockgen -package bminventory -destination mock_installer_internal.go . InstallerInternals
 type InstallerInternals interface {
 	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.V2RegisterClusterParams, v1Flag bool) (*common.Cluster, error)
-	GetClusterInternal(ctx context.Context, params installer.GetClusterParams) (*common.Cluster, error)
+	GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error)
 	UpdateClusterNonInteractive(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
 	UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
-	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
+	DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams) error
 	DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error
 	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams) error
 	GetCommonHostInternal(ctx context.Context, infraEnvId string, hostId string) (*common.Host, error)
@@ -588,7 +588,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	success = true
 	b.metricApi.ClusterRegistered(cluster.OpenshiftVersion, *cluster.ID, cluster.EmailDomain)
-	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
+	return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *cluster.ID})
 }
 
 func updateSSHPublicKey(cluster *common.Cluster) error {
@@ -785,7 +785,8 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 }
 
 func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
-	if err := b.DeregisterClusterInternal(ctx, params); err != nil {
+	v2Params := installer.V2DeregisterClusterParams{ClusterID: params.ClusterID}
+	if err := b.DeregisterClusterInternal(ctx, v2Params); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewDeregisterClusterNoContent()
@@ -811,7 +812,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterDeregistration(ctx context.C
 	return nil
 }
 
-func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error {
+func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams) error {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
 	var err error
@@ -1162,7 +1163,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`,
 				params.ImageCreateParams.ImageType),
 			time.Now())
-		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: params.ClusterID})
+		return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: params.ClusterID})
 	}
 
 	err = b.createAndUploadNewImage(ctx, log, infraEnvProxyHash, infraEnv, params.ImageCreateParams.ImageType, false)
@@ -1170,7 +1171,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, err
 	}
 
-	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: params.ClusterID})
+	return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: params.ClusterID})
 }
 
 func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, infraEnv *common.InfraEnv) error {
@@ -1832,11 +1833,11 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 		return nil, err
 	}
 
-	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: clusterID})
+	return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: clusterID})
 }
 
 func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error) {
-	cluster, err := b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: params.ClusterID})
+	cluster, err := b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: params.ClusterID})
 	if err != nil {
 		return nil, err
 	}
@@ -3011,14 +3012,19 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 }
 
 func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
-	c, err := b.GetClusterInternal(ctx, params)
+	v2Params := installer.V2GetClusterParams{
+		ClusterID:               params.ClusterID,
+		DiscoveryAgentVersion:   params.DiscoveryAgentVersion,
+		GetUnregisteredClusters: params.GetUnregisteredClusters,
+	}
+	c, err := b.GetClusterInternal(ctx, v2Params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewGetClusterOK().WithPayload(&c.Cluster)
 }
 
-func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params installer.GetClusterParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 
 	if swag.BoolValue(params.GetUnregisteredClusters) {
@@ -3617,7 +3623,7 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo,
 		fmt.Sprintf("Host %s disabled by user", hostutil.GetHostnameForMsg(&host.Host)), time.Now())
 
-	c, err = b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *c.ID})
+	c, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *c.ID})
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -3677,7 +3683,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo,
 		fmt.Sprintf("Host %s enabled by user", hostutil.GetHostnameForMsg(&host.Host)), time.Now())
 
-	c, err = b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *c.ID})
+	c, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *c.ID})
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}

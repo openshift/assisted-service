@@ -235,11 +235,17 @@ type InstallerAPI interface {
 	/* V2DownloadClusterFiles Downloads files relating to the installed/installing cluster. */
 	V2DownloadClusterFiles(ctx context.Context, params installer.V2DownloadClusterFilesParams) middleware.Responder
 
+	/* V2DeregisterCluster Deletes an OpenShift cluster definition. */
+	V2DeregisterCluster(ctx context.Context, params installer.V2DeregisterClusterParams) middleware.Responder
+
 	/* V2DeregisterHost Deregisters an OpenShift host. */
 	V2DeregisterHost(ctx context.Context, params installer.V2DeregisterHostParams) middleware.Responder
 
 	/* V2DownloadInfraEnvFiles Downloads the customized ignition file for this host */
 	V2DownloadInfraEnvFiles(ctx context.Context, params installer.V2DownloadInfraEnvFilesParams) middleware.Responder
+
+	/* V2GetCluster Retrieves the details of the OpenShift cluster. */
+	V2GetCluster(ctx context.Context, params installer.V2GetClusterParams) middleware.Responder
 
 	/* V2GetHost Retrieves the details of the OpenShift host. */
 	V2GetHost(ctx context.Context, params installer.V2GetHostParams) middleware.Responder
@@ -803,6 +809,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2DownloadClusterFiles(ctx, params)
 	})
+	api.InstallerV2DeregisterClusterHandler = installer.V2DeregisterClusterHandlerFunc(func(params installer.V2DeregisterClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2DeregisterCluster(ctx, params)
+	})
 	api.InstallerV2DeregisterHostHandler = installer.V2DeregisterHostHandlerFunc(func(params installer.V2DeregisterHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -812,6 +823,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2DownloadInfraEnvFiles(ctx, params)
+	})
+	api.InstallerV2GetClusterHandler = installer.V2GetClusterHandlerFunc(func(params installer.V2GetClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2GetCluster(ctx, params)
 	})
 	api.InstallerV2GetHostHandler = installer.V2GetHostHandlerFunc(func(params installer.V2GetHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

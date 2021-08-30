@@ -71,7 +71,7 @@ func (mr *MockInstallerInternalsMockRecorder) CancelInstallationInternal(arg0, a
 }
 
 // DeregisterClusterInternal mocks base method.
-func (m *MockInstallerInternals) DeregisterClusterInternal(arg0 context.Context, arg1 installer.DeregisterClusterParams) error {
+func (m *MockInstallerInternals) DeregisterClusterInternal(arg0 context.Context, arg1 installer.V2DeregisterClusterParams) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeregisterClusterInternal", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -159,7 +159,7 @@ func (mr *MockInstallerInternalsMockRecorder) GetClusterByKubeKey(arg0 interface
 }
 
 // GetClusterInternal mocks base method.
-func (m *MockInstallerInternals) GetClusterInternal(arg0 context.Context, arg1 installer.GetClusterParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) GetClusterInternal(arg0 context.Context, arg1 installer.V2GetClusterParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterInternal", arg0, arg1)
 	ret0, _ := ret[0].(*common.Cluster)

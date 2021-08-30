@@ -1080,7 +1080,7 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 		return buildReply(err)
 	}
 
-	if err = r.Installer.DeregisterClusterInternal(ctx, installer.DeregisterClusterParams{
+	if err = r.Installer.DeregisterClusterInternal(ctx, installer.V2DeregisterClusterParams{
 		ClusterID: *c.ID,
 	}); err != nil {
 		return buildReply(err)
