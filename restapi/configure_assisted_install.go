@@ -253,11 +253,17 @@ type InstallerAPI interface {
 	/* V2InstallHost install specific host for day2 cluster. */
 	V2InstallHost(ctx context.Context, params installer.V2InstallHostParams) middleware.Responder
 
+	/* V2ListClusters Retrieves the list of OpenShift clusters. */
+	V2ListClusters(ctx context.Context, params installer.V2ListClustersParams) middleware.Responder
+
 	/* V2ListHosts Retrieves the list of OpenShift hosts that belong to infra-env. */
 	V2ListHosts(ctx context.Context, params installer.V2ListHostsParams) middleware.Responder
 
 	/* V2PostStepReply Posts the result of the operations from the host agent. */
 	V2PostStepReply(ctx context.Context, params installer.V2PostStepReplyParams) middleware.Responder
+
+	/* V2RegisterCluster Creates a new OpenShift cluster definition. */
+	V2RegisterCluster(ctx context.Context, params installer.V2RegisterClusterParams) middleware.Responder
 
 	/* V2RegisterHost Registers a new OpenShift agent. */
 	V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder
@@ -827,6 +833,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2InstallHost(ctx, params)
 	})
+	api.InstallerV2ListClustersHandler = installer.V2ListClustersHandlerFunc(func(params installer.V2ListClustersParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2ListClusters(ctx, params)
+	})
 	api.InstallerV2ListHostsHandler = installer.V2ListHostsHandlerFunc(func(params installer.V2ListHostsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -836,6 +847,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2PostStepReply(ctx, params)
+	})
+	api.InstallerV2RegisterClusterHandler = installer.V2RegisterClusterHandlerFunc(func(params installer.V2RegisterClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2RegisterCluster(ctx, params)
 	})
 	api.InstallerV2RegisterHostHandler = installer.V2RegisterHostHandlerFunc(func(params installer.V2RegisterHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

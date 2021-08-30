@@ -946,6 +946,20 @@ func (mr *MockInstallerAPIMockRecorder) V2InstallHost(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2InstallHost", reflect.TypeOf((*MockInstallerAPI)(nil).V2InstallHost), arg0, arg1)
 }
 
+// V2ListClusters mocks base method.
+func (m *MockInstallerAPI) V2ListClusters(arg0 context.Context, arg1 installer.V2ListClustersParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2ListClusters", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2ListClusters indicates an expected call of V2ListClusters.
+func (mr *MockInstallerAPIMockRecorder) V2ListClusters(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ListClusters", reflect.TypeOf((*MockInstallerAPI)(nil).V2ListClusters), arg0, arg1)
+}
+
 // V2ListHosts mocks base method.
 func (m *MockInstallerAPI) V2ListHosts(arg0 context.Context, arg1 installer.V2ListHostsParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -972,6 +986,20 @@ func (m *MockInstallerAPI) V2PostStepReply(arg0 context.Context, arg1 installer.
 func (mr *MockInstallerAPIMockRecorder) V2PostStepReply(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2PostStepReply", reflect.TypeOf((*MockInstallerAPI)(nil).V2PostStepReply), arg0, arg1)
+}
+
+// V2RegisterCluster mocks base method.
+func (m *MockInstallerAPI) V2RegisterCluster(arg0 context.Context, arg1 installer.V2RegisterClusterParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2RegisterCluster", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2RegisterCluster indicates an expected call of V2RegisterCluster.
+func (mr *MockInstallerAPIMockRecorder) V2RegisterCluster(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2RegisterCluster", reflect.TypeOf((*MockInstallerAPI)(nil).V2RegisterCluster), arg0, arg1)
 }
 
 // V2RegisterHost mocks base method.

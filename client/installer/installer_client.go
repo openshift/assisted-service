@@ -220,11 +220,17 @@ type API interface {
 	   V2InstallHost install specific host for day2 cluster.*/
 	V2InstallHost(ctx context.Context, params *V2InstallHostParams) (*V2InstallHostAccepted, error)
 	/*
+	   V2ListClusters Retrieves the list of OpenShift clusters.*/
+	V2ListClusters(ctx context.Context, params *V2ListClustersParams) (*V2ListClustersOK, error)
+	/*
 	   V2ListHosts Retrieves the list of OpenShift hosts that belong to infra-env.*/
 	V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V2ListHostsOK, error)
 	/*
 	   V2PostStepReply Posts the result of the operations from the host agent.*/
 	V2PostStepReply(ctx context.Context, params *V2PostStepReplyParams) (*V2PostStepReplyNoContent, error)
+	/*
+	   V2RegisterCluster Creates a new OpenShift cluster definition.*/
+	V2RegisterCluster(ctx context.Context, params *V2RegisterClusterParams) (*V2RegisterClusterCreated, error)
 	/*
 	   V2RegisterHost Registers a new OpenShift agent.*/
 	V2RegisterHost(ctx context.Context, params *V2RegisterHostParams) (*V2RegisterHostCreated, error)
@@ -1909,6 +1915,31 @@ func (a *Client) V2InstallHost(ctx context.Context, params *V2InstallHostParams)
 }
 
 /*
+V2ListClusters Retrieves the list of OpenShift clusters.
+*/
+func (a *Client) V2ListClusters(ctx context.Context, params *V2ListClustersParams) (*V2ListClustersOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2ListClusters",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ListClustersReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ListClustersOK), nil
+
+}
+
+/*
 V2ListHosts Retrieves the list of OpenShift hosts that belong to infra-env.
 */
 func (a *Client) V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V2ListHostsOK, error) {
@@ -1955,6 +1986,31 @@ func (a *Client) V2PostStepReply(ctx context.Context, params *V2PostStepReplyPar
 		return nil, err
 	}
 	return result.(*V2PostStepReplyNoContent), nil
+
+}
+
+/*
+V2RegisterCluster Creates a new OpenShift cluster definition.
+*/
+func (a *Client) V2RegisterCluster(ctx context.Context, params *V2RegisterClusterParams) (*V2RegisterClusterCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2RegisterCluster",
+		Method:             "POST",
+		PathPattern:        "/v2/clusters",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2RegisterClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2RegisterClusterCreated), nil
 
 }
 

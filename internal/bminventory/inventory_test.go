@@ -6790,7 +6790,7 @@ var _ = Describe("List clusters", func() {
 			Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
 			Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
 			resp := bm.ListClusters(authCtx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
-			Expect(resp).Should(BeAssignableToTypeOf(installer.NewListClustersForbidden()))
+			Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusForbidden, errors.New("only admin users are allowed to get unregistered clusters"))))
 		})
 	})
 
