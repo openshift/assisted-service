@@ -468,6 +468,10 @@ func (f fakeInventory) V2UploadLogs(ctx context.Context, params installer.V2Uplo
 	return installer.NewV2UploadLogsNoContent()
 }
 
+func (f fakeInventory) V2GetCredentials(ctx context.Context, params installer.V2GetCredentialsParams) middleware.Responder {
+	return installer.NewV2GetCredentialsOK()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

@@ -139,7 +139,7 @@ type InstallerInternals interface {
 	V2UpdateHostInstallerArgsInternal(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) (*models.Host, error)
 	UpdateHostIgnitionInternal(ctx context.Context, params installer.UpdateHostIgnitionParams) (*models.Host, error)
 	V2UpdateHostIgnitionInternal(ctx context.Context, params installer.V2UpdateHostIgnitionParams) (*models.Host, error)
-	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
+	GetCredentialsInternal(ctx context.Context, params installer.V2GetCredentialsParams) (*models.Credentials, error)
 	DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	V2DownloadClusterFilesInternal(ctx context.Context, params installer.V2DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	V2DownloadClusterCredentialsInternal(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) (io.ReadCloser, int64, error)
@@ -4463,14 +4463,14 @@ func (b *bareMetalInventory) downloadHostIgnition(ctx context.Context, clusterID
 }
 
 func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder {
-	c, err := b.GetCredentialsInternal(ctx, params)
+	c, err := b.GetCredentialsInternal(ctx, installer.V2GetCredentialsParams(params))
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewGetCredentialsOK().WithPayload(c)
 }
 
-func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error) {
+func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params installer.V2GetCredentialsParams) (*models.Credentials, error) {
 
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster

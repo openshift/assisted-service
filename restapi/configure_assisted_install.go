@@ -244,6 +244,9 @@ type InstallerAPI interface {
 	/* V2GetClusterDefaultConfig Get the default values for various cluster properties. */
 	V2GetClusterDefaultConfig(ctx context.Context, params installer.V2GetClusterDefaultConfigParams) middleware.Responder
 
+	/* V2GetCredentials Get the cluster admin credentials. */
+	V2GetCredentials(ctx context.Context, params installer.V2GetCredentialsParams) middleware.Responder
+
 	/* V2GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files. */
 	V2GetPresignedForClusterFiles(ctx context.Context, params installer.V2GetPresignedForClusterFilesParams) middleware.Responder
 
@@ -889,6 +892,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetClusterDefaultConfig(ctx, params)
+	})
+	api.InstallerV2GetCredentialsHandler = installer.V2GetCredentialsHandlerFunc(func(params installer.V2GetCredentialsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2GetCredentials(ctx, params)
 	})
 	api.InstallerV2GetPresignedForClusterFilesHandler = installer.V2GetPresignedForClusterFilesHandlerFunc(func(params installer.V2GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

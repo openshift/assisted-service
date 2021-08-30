@@ -382,3 +382,11 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 	log.Infof("Done uploading file %s", fileName)
 	return nil
 }
+
+func (b *bareMetalInventory) V2GetCredentials(ctx context.Context, params installer.V2GetCredentialsParams) middleware.Responder {
+	c, err := b.GetCredentialsInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2GetCredentialsOK().WithPayload(c)
+}
