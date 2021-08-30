@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"strconv"
 
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
@@ -64,11 +63,8 @@ const (
 	imageHandlerName       string = "assisted-image-service"
 	databaseName           string = "postgres"
 
-	databasePasswordLength   int   = 16
-	servicePort              int32 = 8090
-	databasePort             int32 = 5432
-	imageHandlerPort         int32 = 8090
-	agentLocalAuthSecretName       = serviceName + "local-auth" // #nosec
+	databasePasswordLength   int = 16
+	agentLocalAuthSecretName     = serviceName + "local-auth" // #nosec
 
 	defaultIngressCertCMName      string = "default-ingress-cert"
 	defaultIngressCertCMNamespace string = "openshift-config-managed"
@@ -78,6 +74,12 @@ const (
 	assistedConfigHashAnnotation = "agent-install.openshift.io/config-hash"
 	mirrorConfigHashAnnotation   = "agent-install.openshift.io/mirror-hash"
 	userConfigHashAnnotation     = "agent-install.openshift.io/user-config-hash"
+)
+
+var (
+	servicePort      = intstr.Parse("8090")
+	databasePort     = intstr.Parse("5432")
+	imageHandlerPort = intstr.Parse("8080")
 )
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
@@ -311,9 +313,8 @@ func (r *AgentServiceConfigReconciler) newAgentService(ctx context.Context, log 
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
 		}
 		svc.Spec.Ports[0].Name = serviceName
-		svc.Spec.Ports[0].Port = servicePort
-		// since intstr.FromInt() doesn't take an int32, just use what FromInt() would return
-		svc.Spec.Ports[0].TargetPort = intstr.IntOrString{Type: intstr.Int, IntVal: servicePort}
+		svc.Spec.Ports[0].Port = int32(servicePort.IntValue())
+		svc.Spec.Ports[0].TargetPort = servicePort
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": serviceName}
 		svc.Spec.Type = corev1.ServiceTypeClusterIP
@@ -344,9 +345,9 @@ func (r *AgentServiceConfigReconciler) newImageHandlerService(ctx context.Contex
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
 		}
 		svc.Spec.Ports[0].Name = imageHandlerName
-		svc.Spec.Ports[0].Port = imageHandlerPort
+		svc.Spec.Ports[0].Port = int32(imageHandlerPort.IntValue())
 		// since intstr.FromInt() doesn't take an int32, just use what FromInt() would return
-		svc.Spec.Ports[0].TargetPort = intstr.IntOrString{Type: intstr.Int, IntVal: imageHandlerPort}
+		svc.Spec.Ports[0].TargetPort = imageHandlerPort
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": imageHandlerName}
 		svc.Spec.Type = corev1.ServiceTypeClusterIP
@@ -539,7 +540,7 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(ctx context.Context, lo
 				"db.user":     "admin",
 				"db.password": pass,
 				"db.name":     "installer",
-				"db.port":     strconv.Itoa(int(databasePort)),
+				"db.port":     databasePort.String(),
 			}
 		}
 		return nil
@@ -682,27 +683,23 @@ func (r *AgentServiceConfigReconciler) newImageHandlerDeployment(ctx context.Con
 		"app": imageHandlerName,
 	}
 
-	deploymentStrategy := appsv1.DeploymentStrategy{
-		Type: appsv1.RollingUpdateDeploymentStrategyType,
-	}
-
 	container := corev1.Container{
 		Name:            imageHandlerName,
 		Image:           ImageServiceImage(),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Ports: []corev1.ContainerPort{
 			{
-				ContainerPort: imageHandlerPort,
+				ContainerPort: int32(imageHandlerPort.IntValue()),
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
 		Env: []corev1.EnvVar{
-			{Name: "LISTEN_PORT", Value: string(imageHandlerPort)},
+			{Name: "LISTEN_PORT", Value: imageHandlerPort.String()},
 			{Name: "HTTPS_CERT_FILE", Value: "/etc/tls/tls.crt"},
 			{Name: "HTTPS_KEY_FILE", Value: "/etc/tls/tls.key"},
 			{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
-			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + ":" + string(servicePort)},
-			{Name: "REQUEST_AUTH_TYPE", Value: "header"},
+			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + ":" + servicePort.String()},
+			{Name: "REQUEST_AUTH_TYPE", Value: "param"},
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "tls-certs", MountPath: "/etc/tls"},
@@ -717,7 +714,7 @@ func (r *AgentServiceConfigReconciler) newImageHandlerDeployment(ctx context.Con
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/health",
-					Port:   intstr.FromInt(int(imageHandlerPort)),
+					Port:   imageHandlerPort,
 					Scheme: corev1.URISchemeHTTPS,
 				},
 			},
@@ -759,7 +756,6 @@ func (r *AgentServiceConfigReconciler) newImageHandlerDeployment(ctx context.Con
 		}
 		var replicas int32 = 1
 		deployment.Spec.Replicas = &replicas
-		deployment.Spec.Strategy = deploymentStrategy
 
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{container}
 		deployment.Spec.Template.Spec.Volumes = volumes
@@ -830,7 +826,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		Image: ServiceImage(),
 		Ports: []corev1.ContainerPort{
 			{
-				ContainerPort: servicePort,
+				ContainerPort: int32(servicePort.IntValue()),
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
@@ -852,7 +848,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/health",
-					Port:   intstr.FromInt(int(servicePort)),
+					Port:   servicePort,
 					Scheme: corev1.URISchemeHTTPS,
 				},
 			},
@@ -861,7 +857,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/ready",
-					Port:   intstr.FromInt(int(servicePort)),
+					Port:   servicePort,
 					Scheme: corev1.URISchemeHTTPS,
 				},
 			},
@@ -875,7 +871,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          databaseName,
-				ContainerPort: databasePort,
+				ContainerPort: int32(databasePort.IntValue()),
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},

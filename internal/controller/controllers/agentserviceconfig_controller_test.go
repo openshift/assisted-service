@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"strconv"
 
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
@@ -246,7 +245,7 @@ var _ = Describe("ensurePostgresSecret", func() {
 					"db.user":     "admin",
 					"db.password": pass,
 					"db.name":     "installer",
-					"db.port":     strconv.Itoa(int(databasePort)),
+					"db.port":     databasePort.String(),
 				},
 				Type: corev1.SecretTypeOpaque,
 			}
@@ -273,7 +272,7 @@ var _ = Describe("ensurePostgresSecret", func() {
 			Expect(found.StringData["db.host"]).To(Equal("localhost"))
 			Expect(found.StringData["db.user"]).To(Equal("admin"))
 			Expect(found.StringData["db.name"]).To(Equal("installer"))
-			Expect(found.StringData["db.port"]).To(Equal(strconv.Itoa(int(databasePort))))
+			Expect(found.StringData["db.port"]).To(Equal(databasePort.String()))
 			// password will be random
 			foundPass := found.StringData["db.password"]
 			Expect(foundPass).ToNot(BeNil())
