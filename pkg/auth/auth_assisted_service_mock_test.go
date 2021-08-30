@@ -456,6 +456,10 @@ func (f fakeInventory) V2GetPresignedForClusterFiles(ctx context.Context, params
 	return installer.NewV2GetPresignedForClusterFilesOK()
 }
 
+func (f fakeInventory) V2GetClusterDefaultConfig(ctx context.Context, params installer.V2GetClusterDefaultConfigParams) middleware.Responder {
+	return installer.NewV2GetClusterDefaultConfigOK()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

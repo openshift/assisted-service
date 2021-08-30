@@ -277,6 +277,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2DownloadClusterFilesHandler: installer.V2DownloadClusterFilesHandlerFunc(func(params installer.V2DownloadClusterFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DownloadClusterFiles has not yet been implemented")
 		}),
+		InstallerV2GetClusterDefaultConfigHandler: installer.V2GetClusterDefaultConfigHandlerFunc(func(params installer.V2GetClusterDefaultConfigParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2GetClusterDefaultConfig has not yet been implemented")
+		}),
 		InstallerV2GetPresignedForClusterFilesHandler: installer.V2GetPresignedForClusterFilesHandlerFunc(func(params installer.V2GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetPresignedForClusterFiles has not yet been implemented")
 		}),
@@ -590,6 +593,8 @@ type AssistedInstallAPI struct {
 	InstallerV2DownloadClusterCredentialsHandler installer.V2DownloadClusterCredentialsHandler
 	// InstallerV2DownloadClusterFilesHandler sets the operation handler for the v2 download cluster files operation
 	InstallerV2DownloadClusterFilesHandler installer.V2DownloadClusterFilesHandler
+	// InstallerV2GetClusterDefaultConfigHandler sets the operation handler for the v2 get cluster default config operation
+	InstallerV2GetClusterDefaultConfigHandler installer.V2GetClusterDefaultConfigHandler
 	// InstallerV2GetPresignedForClusterFilesHandler sets the operation handler for the v2 get presigned for cluster files operation
 	InstallerV2GetPresignedForClusterFilesHandler installer.V2GetPresignedForClusterFilesHandler
 	// ManagedDomainsV2ListManagedDomainsHandler sets the operation handler for the v2 list managed domains operation
@@ -968,6 +973,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2DownloadClusterFilesHandler == nil {
 		unregistered = append(unregistered, "installer.V2DownloadClusterFilesHandler")
+	}
+	if o.InstallerV2GetClusterDefaultConfigHandler == nil {
+		unregistered = append(unregistered, "installer.V2GetClusterDefaultConfigHandler")
 	}
 	if o.InstallerV2GetPresignedForClusterFilesHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetPresignedForClusterFilesHandler")
@@ -1471,6 +1479,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters/{cluster_id}/downloads/files"] = installer.NewV2DownloadClusterFiles(o.context, o.InstallerV2DownloadClusterFilesHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/clusters/default-config"] = installer.NewV2GetClusterDefaultConfig(o.context, o.InstallerV2GetClusterDefaultConfigHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

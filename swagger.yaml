@@ -4590,6 +4590,32 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/default-config:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [ admin, read-only-admin, user ]
+      description: Get the default values for various cluster properties.
+      operationId: V2GetClusterDefaultConfig
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster_default_config'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /v2/clusters/{cluster_id}/downloads/files:
     get:
       tags:

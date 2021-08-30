@@ -946,6 +946,20 @@ func (mr *MockInstallerAPIMockRecorder) V2GetCluster(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetCluster", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetCluster), arg0, arg1)
 }
 
+// V2GetClusterDefaultConfig mocks base method.
+func (m *MockInstallerAPI) V2GetClusterDefaultConfig(arg0 context.Context, arg1 installer.V2GetClusterDefaultConfigParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2GetClusterDefaultConfig", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2GetClusterDefaultConfig indicates an expected call of V2GetClusterDefaultConfig.
+func (mr *MockInstallerAPIMockRecorder) V2GetClusterDefaultConfig(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetClusterDefaultConfig", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetClusterDefaultConfig), arg0, arg1)
+}
+
 // V2GetClusterInstallConfig mocks base method.
 func (m *MockInstallerAPI) V2GetClusterInstallConfig(arg0 context.Context, arg1 installer.V2GetClusterInstallConfigParams) middleware.Responder {
 	m.ctrl.T.Helper()

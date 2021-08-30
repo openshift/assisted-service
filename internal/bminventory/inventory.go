@@ -1811,7 +1811,11 @@ func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params
 }
 
 func (b *bareMetalInventory) GetClusterDefaultConfig(_ context.Context, _ installer.GetClusterDefaultConfigParams) middleware.Responder {
-	body := models.ClusterDefaultConfig{}
+	return installer.NewGetClusterDefaultConfigOK().WithPayload(b.getClusterDefaultConfig())
+}
+
+func (b *bareMetalInventory) getClusterDefaultConfig() *models.ClusterDefaultConfig {
+	body := &models.ClusterDefaultConfig{}
 
 	body.NtpSource = b.Config.DefaultNTPSource
 	body.ClusterNetworkCidr = b.Config.DefaultClusterNetworkCidr
@@ -1819,7 +1823,7 @@ func (b *bareMetalInventory) GetClusterDefaultConfig(_ context.Context, _ instal
 	body.ClusterNetworkHostPrefix = b.Config.DefaultClusterNetworkHostPrefix
 	body.InactiveDeletionHours = int64(b.gcConfig.DeregisterInactiveAfter.Hours())
 
-	return installer.NewGetClusterDefaultConfigOK().WithPayload(&body)
+	return body
 }
 
 func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error) {
