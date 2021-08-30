@@ -172,12 +172,20 @@ func (f fakeInventory) ListClusters(ctx context.Context, params installer.ListCl
 	return installer.NewListClustersOK()
 }
 
+func (f fakeInventory) V2ListClusters(ctx context.Context, params installer.V2ListClustersParams) middleware.Responder {
+	return installer.NewV2ListClustersOK()
+}
+
 func (f fakeInventory) ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder {
 	return installer.NewListHostsOK()
 }
 
 func (f fakeInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
 	return installer.NewRegisterClusterCreated()
+}
+
+func (f fakeInventory) V2RegisterCluster(ctx context.Context, params installer.V2RegisterClusterParams) middleware.Responder {
+	return installer.NewV2RegisterClusterCreated()
 }
 
 func (f fakeInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {

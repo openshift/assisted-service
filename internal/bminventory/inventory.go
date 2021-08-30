@@ -122,7 +122,7 @@ type OCPClusterAPI interface {
 
 //go:generate mockgen -package bminventory -destination mock_installer_internal.go . InstallerInternals
 type InstallerInternals interface {
-	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterClusterParams, v1Flag bool) (*common.Cluster, error)
+	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.V2RegisterClusterParams, v1Flag bool) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.GetClusterParams) (*common.Cluster, error)
 	UpdateClusterNonInteractive(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
@@ -336,14 +336,17 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
-	c, err := b.RegisterClusterInternal(ctx, nil, params, true)
+	v2Params := installer.V2RegisterClusterParams{
+		NewClusterParams: params.NewClusterParams,
+	}
+	c, err := b.RegisterClusterInternal(ctx, nil, v2Params, true)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewRegisterClusterCreated().WithPayload(&c.Cluster)
 }
 
-func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, params installer.RegisterClusterParams) installer.RegisterClusterParams {
+func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, params installer.V2RegisterClusterParams) installer.V2RegisterClusterParams {
 	if params.NewClusterParams.ClusterNetworks == nil {
 		params.NewClusterParams.ClusterNetworks = []*models.ClusterNetwork{
 			{Cidr: models.Subnet(b.Config.DefaultClusterNetworkCidr), HostPrefix: b.Config.DefaultClusterNetworkHostPrefix},
@@ -389,7 +392,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 func (b *bareMetalInventory) RegisterClusterInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
-	params installer.RegisterClusterParams,
+	params installer.V2RegisterClusterParams,
 	v1Flag bool) (*common.Cluster, error) {
 
 	id := strfmt.UUID(uuid.New().String())
@@ -2946,12 +2949,25 @@ func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, clust
 }
 
 func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
+	v2Params := installer.V2ListClustersParams{
+		AmsSubscriptionIds:      params.AmsSubscriptionIds,
+		GetUnregisteredClusters: params.GetUnregisteredClusters,
+		OpenshiftClusterID:      params.OpenshiftClusterID,
+		WithHosts:               params.WithHosts,
+	}
+	clusters, err := b.listClustersInternal(ctx, v2Params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewListClustersOK().WithPayload(clusters)
+}
+
+func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params installer.V2ListClustersParams) ([]*models.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	db := b.db
 	if swag.BoolValue(params.GetUnregisteredClusters) {
 		if !identity.IsAdmin(ctx) {
-			return installer.NewListClustersForbidden().WithPayload(common.GenerateInfraError(
-				http.StatusForbidden, errors.New("only admin users are allowed to get unregistered clusters")))
+			return nil, common.NewApiError(http.StatusForbidden, errors.New("only admin users are allowed to get unregistered clusters"))
 		}
 		db = db.Unscoped()
 	}
@@ -2975,7 +2991,7 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 		common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)), strings.Join(whereCondition, " AND "))
 	if err != nil {
 		log.WithError(err).Error("Failed to list clusters in db")
-		return common.NewApiError(http.StatusInternalServerError, err)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	// we need to fetch Hosts association to allow AfterFind hook to run
@@ -2989,7 +3005,7 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 		}
 		clusters = append(clusters, &c.Cluster)
 	}
-	return installer.NewListClustersOK().WithPayload(clusters)
+	return clusters, nil
 }
 
 func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {

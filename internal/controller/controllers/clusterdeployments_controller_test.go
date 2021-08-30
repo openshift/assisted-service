@@ -271,7 +271,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			It("create new cluster", func() {
 				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), false).
-					Do(func(arg1, arg2 interface{}, params installer.RegisterClusterParams, _ bool) {
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ bool) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*openshiftVersion.ReleaseVersion))
 						Expect(params.NewClusterParams.OcpReleaseImage).To(Equal(*openshiftVersion.ReleaseImage))
 					}).Return(clusterReply, nil)
@@ -286,7 +286,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			It("create sno cluster", func() {
 				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), false).
-					Do(func(arg1, arg2 interface{}, params installer.RegisterClusterParams, _ bool) {
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ bool) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(ocpReleaseVersion))
 					}).Return(clusterReply, nil)
 				mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
@@ -304,7 +304,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			It("create single node cluster", func() {
 				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), false).
-					Do(func(ctx, kubeKey interface{}, params installer.RegisterClusterParams, _ bool) {
+					Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams, _ bool) {
 						Expect(swag.StringValue(params.NewClusterParams.HighAvailabilityMode)).
 							To(Equal(HighAvailabilityModeNone))
 					}).Return(clusterReply, nil)

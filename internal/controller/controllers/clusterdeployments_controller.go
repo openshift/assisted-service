@@ -958,7 +958,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		clusterParams.Hyperthreading = getHyperthreading(clusterInstall)
 	}
 
-	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.RegisterClusterParams{
+	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,
 	}, false)
 	if err == nil { // Cluster registration succeeded

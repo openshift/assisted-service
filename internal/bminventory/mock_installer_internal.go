@@ -293,7 +293,7 @@ func (mr *MockInstallerInternalsMockRecorder) RegisterAddHostsClusterInternal(ar
 }
 
 // RegisterClusterInternal mocks base method.
-func (m *MockInstallerInternals) RegisterClusterInternal(arg0 context.Context, arg1 *types.NamespacedName, arg2 installer.RegisterClusterParams, arg3 bool) (*common.Cluster, error) {
+func (m *MockInstallerInternals) RegisterClusterInternal(arg0 context.Context, arg1 *types.NamespacedName, arg2 installer.V2RegisterClusterParams, arg3 bool) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterClusterInternal", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*common.Cluster)
