@@ -1352,6 +1352,11 @@ func (r *BMACReconciler) validateWorkerForDay2(log logrus.FieldLogger, agent *ai
 }
 
 func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) (*hivev1.ClusterDeployment, bool, error) {
+	if agent.Spec.ClusterDeploymentName == nil {
+		log.Debugf("Agent %s/%s is not bind yet", agent.Namespace, agent.Name)
+		return nil, false, nil
+	}
+
 	clusterDeployment := &hivev1.ClusterDeployment{}
 
 	cdKey := types.NamespacedName{
