@@ -22,7 +22,6 @@ import (
 )
 
 const customManifestFile = "custom_manifests.json"
-const customManifestFileYaml = "custom_manifests.yaml"
 
 // Manifest store the operator manifest used by assisted-installer to create CRs of the OLM.
 type Manifest struct {
@@ -112,7 +111,6 @@ func (mgr *Manager) GetRequirementsBreakdownForHostInCluster(ctx context.Context
 // GenerateManifests generates manifests for all enabled operators.
 // Returns map assigning manifest content to its desired file name
 func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Cluster) error {
-	customManifestYaml := ""
 	var customManifests []Manifest
 	// Generate manifests for all the generic operators
 	for _, clusterOperator := range cluster.MonitoredOperators {
@@ -134,14 +132,7 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 				}
 			}
 
-			customManifestYaml = fmt.Sprintf("%s---\n%s\n", customManifestYaml, manifest)
 			customManifests = append(customManifests, Manifest{Name: clusterOperator.Name, Content: base64.StdEncoding.EncodeToString(manifest)})
-		}
-	}
-
-	if customManifestYaml != "" {
-		if err := mgr.createCustomManifestFile(ctx, cluster, customManifestYaml, customManifestFileYaml); err != nil {
-			return err
 		}
 	}
 
@@ -158,22 +149,15 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 	return nil
 }
 
-// createCustomManifest create a file, which is later obtained by the
-// assisted-installer-controller, which apply this manifest file after the OLM is deployed,
-// so user can provide here even CRs provisioned by the OLM.
-func (mgr *Manager) createCustomManifestFile(ctx context.Context, cluster *common.Cluster, content string, filename string) error {
-	objectFileName := path.Join(string(*cluster.ID), filename)
-	if err := mgr.objectHandler.Upload(ctx, []byte(content), objectFileName); err != nil {
-		return errors.Errorf("Failed to upload custom manifests for cluster %s", cluster.ID)
-	}
-	return nil
-}
-
 // createCustomManifest create a file called custom_manifests.json, which is later obtained by the
 // assisted-installer-controller, which apply this manifest file after the OLM is deployed,
 // so user can provide here even CRs provisioned by the OLM.
 func (mgr *Manager) createCustomManifest(ctx context.Context, cluster *common.Cluster, content string) error {
-	return mgr.createCustomManifestFile(ctx, cluster, content, customManifestFile)
+	objectFileName := path.Join(string(*cluster.ID), customManifestFile)
+	if err := mgr.objectHandler.Upload(ctx, []byte(content), objectFileName); err != nil {
+		return errors.Errorf("Failed to upload custom manifests for cluster %s", cluster.ID)
+	}
+	return nil
 }
 
 func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte, folder string) error {
