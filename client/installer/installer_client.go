@@ -202,11 +202,17 @@ type API interface {
 	   V2DownloadClusterFiles Downloads files relating to the installed/installing cluster.*/
 	V2DownloadClusterFiles(ctx context.Context, params *V2DownloadClusterFilesParams, writer io.Writer) (*V2DownloadClusterFilesOK, error)
 	/*
+	   V2DeregisterCluster Deletes an OpenShift cluster definition.*/
+	V2DeregisterCluster(ctx context.Context, params *V2DeregisterClusterParams) (*V2DeregisterClusterNoContent, error)
+	/*
 	   V2DeregisterHost Deregisters an OpenShift host.*/
 	V2DeregisterHost(ctx context.Context, params *V2DeregisterHostParams) (*V2DeregisterHostNoContent, error)
 	/*
 	   V2DownloadInfraEnvFiles Downloads the customized ignition file for this host*/
 	V2DownloadInfraEnvFiles(ctx context.Context, params *V2DownloadInfraEnvFilesParams, writer io.Writer) (*V2DownloadInfraEnvFilesOK, error)
+	/*
+	   V2GetCluster Retrieves the details of the OpenShift cluster.*/
+	V2GetCluster(ctx context.Context, params *V2GetClusterParams) (*V2GetClusterOK, error)
 	/*
 	   V2GetHost Retrieves the details of the OpenShift host.*/
 	V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2GetHostOK, error)
@@ -1765,6 +1771,31 @@ func (a *Client) V2DownloadClusterFiles(ctx context.Context, params *V2DownloadC
 }
 
 /*
+V2DeregisterCluster Deletes an OpenShift cluster definition.
+*/
+func (a *Client) V2DeregisterCluster(ctx context.Context, params *V2DeregisterClusterParams) (*V2DeregisterClusterNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2DeregisterCluster",
+		Method:             "DELETE",
+		PathPattern:        "/v2/clusters/{cluster_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2DeregisterClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2DeregisterClusterNoContent), nil
+
+}
+
+/*
 V2DeregisterHost Deregisters an OpenShift host.
 */
 func (a *Client) V2DeregisterHost(ctx context.Context, params *V2DeregisterHostParams) (*V2DeregisterHostNoContent, error) {
@@ -1811,6 +1842,31 @@ func (a *Client) V2DownloadInfraEnvFiles(ctx context.Context, params *V2Download
 		return nil, err
 	}
 	return result.(*V2DownloadInfraEnvFilesOK), nil
+
+}
+
+/*
+V2GetCluster Retrieves the details of the OpenShift cluster.
+*/
+func (a *Client) V2GetCluster(ctx context.Context, params *V2GetClusterParams) (*V2GetClusterOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2GetCluster",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetClusterOK), nil
 
 }
 

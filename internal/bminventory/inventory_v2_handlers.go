@@ -31,3 +31,18 @@ func (b *bareMetalInventory) V2ListClusters(ctx context.Context, params installe
 	}
 	return installer.NewV2ListClustersOK().WithPayload(clusters)
 }
+
+func (b *bareMetalInventory) V2GetCluster(ctx context.Context, params installer.V2GetClusterParams) middleware.Responder {
+	c, err := b.GetClusterInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2GetClusterOK().WithPayload(&c.Cluster)
+}
+
+func (b *bareMetalInventory) V2DeregisterCluster(ctx context.Context, params installer.V2DeregisterClusterParams) middleware.Responder {
+	if err := b.DeregisterClusterInternal(ctx, params); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2DeregisterClusterNoContent()
+}

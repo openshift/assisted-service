@@ -397,6 +397,103 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+        - agentAuth: []
+      description: Retrieves the details of the OpenShift cluster.
+      operationId: v2GetCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster to be retrieved.
+          type: string
+          format: uuid
+          required: true
+        - in: header
+          name: discovery_agent_version
+          description: The software version of the discovery agent that is retrieving the cluster details.
+          type: string
+          required: false
+        - in: header
+          name: get_unregistered_clusters
+          description: Whether to return clusters that have been unregistered.
+          type: boolean
+          required: false
+          default: false
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+    delete:
+      tags:
+        - installer
+      description: Deletes an OpenShift cluster definition.
+      operationId: v2DeregisterCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster to be deregistered.
+          format: uuid
+          type: string
+          required: true
+      responses:
+        "204":
+          description: Success.
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /v2/clusters/{cluster_id}/supported-platforms:
     get:
       tags:

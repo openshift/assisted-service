@@ -834,6 +834,20 @@ func (mr *MockInstallerAPIMockRecorder) UploadLogs(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadLogs", reflect.TypeOf((*MockInstallerAPI)(nil).UploadLogs), arg0, arg1)
 }
 
+// V2DeregisterCluster mocks base method.
+func (m *MockInstallerAPI) V2DeregisterCluster(arg0 context.Context, arg1 installer.V2DeregisterClusterParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2DeregisterCluster", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2DeregisterCluster indicates an expected call of V2DeregisterCluster.
+func (mr *MockInstallerAPIMockRecorder) V2DeregisterCluster(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DeregisterCluster", reflect.TypeOf((*MockInstallerAPI)(nil).V2DeregisterCluster), arg0, arg1)
+}
+
 // V2DeregisterHost mocks base method.
 func (m *MockInstallerAPI) V2DeregisterHost(arg0 context.Context, arg1 installer.V2DeregisterHostParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -888,6 +902,20 @@ func (m *MockInstallerAPI) V2DownloadInfraEnvFiles(arg0 context.Context, arg1 in
 func (mr *MockInstallerAPIMockRecorder) V2DownloadInfraEnvFiles(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DownloadInfraEnvFiles", reflect.TypeOf((*MockInstallerAPI)(nil).V2DownloadInfraEnvFiles), arg0, arg1)
+}
+
+// V2GetCluster mocks base method.
+func (m *MockInstallerAPI) V2GetCluster(arg0 context.Context, arg1 installer.V2GetClusterParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2GetCluster", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2GetCluster indicates an expected call of V2GetCluster.
+func (mr *MockInstallerAPIMockRecorder) V2GetCluster(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetCluster", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetCluster), arg0, arg1)
 }
 
 // V2GetHost mocks base method.
