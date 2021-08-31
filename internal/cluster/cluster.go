@@ -570,6 +570,7 @@ func CanDownloadFiles(c *common.Cluster) (err error) {
 		models.ClusterStatusError,
 		models.ClusterStatusAddingHosts,
 		models.ClusterStatusCancelled,
+		models.ClusterStatusInstallingPendingUserAction,
 	}
 	if !funk.Contains(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("cluster %s is in %s state, files can be downloaded only when status is one of: %s",
