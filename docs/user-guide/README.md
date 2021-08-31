@@ -16,6 +16,10 @@ The assisted-service exposes a RESTFul API which is described in [swagger.yaml](
 
 A guide of using the RESTFul API is available on [restful-api-guide.yaml](./restful-api-guide.md).
 
-### Using Assisted Service On-Premise
+### Using Assisted Service On-Premises
 
-Please refer to the [Hive Integration readme](../hive-integration/README.md) to learn how to install OCP cluster using Assisted Service on-premise with [Hive](https://github.com/openshift/hive/) and [RHACM](https://github.com/open-cluster-management) (Red Hat Advanced Cluster Management).
+Please refer to the [Hive Integration readme](../hive-integration/README.md) to learn how to install OCP cluster using Assisted Service on-premises with [Hive](https://github.com/openshift/hive/) and [RHACM](https://github.com/open-cluster-management) (Red Hat Advanced Cluster Management).
+
+### Network Configuration
+
+Please refer to the [Network Configuration introduction](network-configuration.md) for more information about advanced network configuration with the Assisted Service.
