@@ -6160,10 +6160,12 @@ definitions:
         type: string
         description: Enable/disable disk encryption on master nodes, worker nodes, or all nodes.
         enum: ['none', 'all', 'masters', 'workers']
+        default: none
       mode:
         type: string
         description: The disk encryption mode to use.
         enum: ['tpmv2', 'tang']
+        default: tpmv2
       tang_servers:
         type: string
         description: JSON-formatted string containing additional information regarding tang's configuration
