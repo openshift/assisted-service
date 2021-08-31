@@ -17,7 +17,7 @@ function kustomize() {
 
   (cd /usr/bin &&
     curl --retry 5 -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" \
-      | bash -s -- 4.2.0)
+      | bash -s -o xtrace -o pipefail -- 4.2.0)
 }
 
 function golang() {
