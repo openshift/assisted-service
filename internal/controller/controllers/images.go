@@ -55,6 +55,10 @@ func OpenshiftVersions() string {
 	return getEnvVar(OpenshiftVersionsEnvVar, "")
 }
 
+func OSImages() string {
+	return getEnvVar("OS_IMAGES", "")
+}
+
 func MustGatherImages() string {
 	return getEnvVar("MUST_GATHER_IMAGES", "")
 }

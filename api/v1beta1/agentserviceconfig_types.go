@@ -34,6 +34,9 @@ type OSImage struct {
 	Url string `json:"url"`
 	// rootFSUrl specifies the path to the root filesystem.
 	RootFSUrl string `json:"rootFSUrl"`
+	// The CPU architecture of the image (x86_64/arm64/etc).
+	// +optional
+	CPUArchitecture string `json:"cpuArchitecture"`
 }
 
 type MustGatherImage struct {

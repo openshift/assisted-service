@@ -70,6 +70,7 @@ function generate_configuration() {
     RELEASE_IMAGES=$(< ${__root}/data/default_release_images.json tr -d "\n\t ")
     MUST_GATHER_IMAGES=$(< ${__root}/data/default_must_gather_versions.json tr -d "\n\t ")
     OPERATOR_OPENSHIFT_VERSIONS=$(< ${__root}/data/default_ocp_versions.json jq -c 'del (.["4.6", "4.7"])')
+    OPERATOR_OS_IMAGES=$(< ${__root}/data/default_os_images.json jq -c 'del (.[] | select(.openshift_version == "4.6",.openshift_version == "4.7"))')
     PUBLIC_CONTAINER_REGISTRIES=$(< ${__root}/data/default_public_container_registries.txt)
     HW_VALIDATOR_REQUIREMENTS=$(< ${__root}/data/default_hw_requirements.json tr -d "\n\t ")
 
@@ -94,6 +95,7 @@ function generate_configuration() {
 
     # Updated operator manifests with openshift versions
     sed -i "s|value: '.*' # openshift version|value: '${OPERATOR_OPENSHIFT_VERSIONS}' # openshift version|" ${__root}/config/manager/manager.yaml
+    sed -i "s|value: '.*' # os images|value: '${OPERATOR_OS_IMAGES}' # os images|" ${__root}/config/manager/manager.yaml
     # This python is responsible for updating the sample AgentServiceConfig to include the latest + correct osImages
     # When the CSV is built, this is included in the `almExamples` so that when a user goes through the OpenShift console
     # to create the `agent` this will give them the correct defaults.
@@ -106,11 +108,11 @@ with open("'${__root}/config/samples/agent-install.openshift.io_v1beta1_agentser
     doc = yaml.load(f, Loader=yaml.FullLoader)
     doc["spec"]["osImages"] = [
         {
-            "openshiftVersion": k,
-            "version": v["rhcos_version"],
-            "url": v["rhcos_image"],
-            "rootFSUrl": v["rhcos_rootfs"]
-        } for (k,v) in json.loads(r"""'${OPERATOR_OPENSHIFT_VERSIONS}'""").items()
+            "openshiftVersion": v["openshift_version"],
+            "version": v["version"],
+            "url": v["url"],
+            "rootFSUrl": v["rootfs_url"]
+        } for v in json.loads(r"""'${OPERATOR_OS_IMAGES}'""")
     ]
     f.seek(0)
     f.truncate()
