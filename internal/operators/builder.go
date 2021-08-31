@@ -1,6 +1,7 @@
 package operators
 
 import (
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
@@ -8,7 +9,6 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/restapi"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,12 +30,12 @@ type Options struct {
 }
 
 // NewManager creates new instance of an Operator Manager
-func NewManager(log logrus.FieldLogger, manifestAPI restapi.ManifestsAPI, options Options, objectHandler s3wrapper.API, extracter oc.Extracter) *Manager {
+func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, options Options, objectHandler s3wrapper.API, extracter oc.Extracter) *Manager {
 	return NewManagerWithOperators(log, manifestAPI, options, objectHandler, lso.NewLSOperator(), ocs.NewOcsOperator(log, extracter), cnv.NewCNVOperator(log, options.CNVConfig, extracter))
 }
 
 // NewManagerWithOperators creates new instance of an Operator Manager and configures it with given operators
-func NewManagerWithOperators(log logrus.FieldLogger, manifestAPI restapi.ManifestsAPI, options Options, objectHandler s3wrapper.API, olmOperators ...api.Operator) *Manager {
+func NewManagerWithOperators(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, options Options, objectHandler s3wrapper.API, olmOperators ...api.Operator) *Manager {
 	nameToOperator := make(map[string]api.Operator)
 
 	// monitoredOperators includes all the supported operators to be monitored.

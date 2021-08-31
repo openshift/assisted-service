@@ -38,7 +38,7 @@ import (
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
-	"github.com/openshift/assisted-service/internal/manifests"
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
@@ -87,7 +87,7 @@ type ClusterDeploymentsReconciler struct {
 	ClusterApi       cluster.API
 	HostApi          host.API
 	CRDEventsHandler CRDEventsHandler
-	Manifests        manifests.ClusterManifestsInternals
+	Manifests        manifestsapi.ClusterManifestsInternals
 	ServiceBaseURL   string
 	AuthType         auth.AuthType
 }

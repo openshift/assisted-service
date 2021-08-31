@@ -22,7 +22,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
-	"github.com/openshift/assisted-service/internal/manifests"
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -155,7 +155,7 @@ var _ = Describe("cluster reconcile", func() {
 		mockInstallerInternal          *bminventory.MockInstallerInternals
 		mockClusterApi                 *cluster.MockAPI
 		mockHostApi                    *host.MockAPI
-		mockManifestsApi               *manifests.MockClusterManifestsInternals
+		mockManifestsApi               *manifestsapi.MockClusterManifestsInternals
 		mockCRDEventsHandler           *MockCRDEventsHandler
 		defaultClusterSpec             hivev1.ClusterDeploymentSpec
 		clusterName                    = "test-cluster"
@@ -215,7 +215,7 @@ var _ = Describe("cluster reconcile", func() {
 		mockClusterApi = cluster.NewMockAPI(mockCtrl)
 		mockHostApi = host.NewMockAPI(mockCtrl)
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
-		mockManifestsApi = manifests.NewMockClusterManifestsInternals(mockCtrl)
+		mockManifestsApi = manifestsapi.NewMockClusterManifestsInternals(mockCtrl)
 		cr = &ClusterDeploymentsReconciler{
 			Client:           c,
 			APIReader:        c,
@@ -741,7 +741,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockClusterApi = cluster.NewMockAPI(mockCtrl)
 			mockHostApi = host.NewMockAPI(mockCtrl)
 			mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
-			mockManifestsApi = manifests.NewMockClusterManifestsInternals(mockCtrl)
+			mockManifestsApi = manifestsapi.NewMockClusterManifestsInternals(mockCtrl)
 			cr = &ClusterDeploymentsReconciler{
 				Client:           c,
 				APIReader:        c,
