@@ -15,9 +15,9 @@ function kustomize() {
     return
   fi
 
-  (cd /usr/bin &&
-    curl --retry 5 -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" \
-      | bash -s -- 4.2.0)
+  # We tried using "official" install_kustomize.sh script, but it used too much rate-limited APIs of GitHub
+  curl -L --retry 5 "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.3.0/kustomize_v4.3.0_linux_amd64.tar.gz" | \
+    tar -zx -C /usr/bin/
 }
 
 function golang() {
