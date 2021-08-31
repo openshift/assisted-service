@@ -1119,6 +1119,9 @@ func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationS
 }
 
 func (v *validator) isDNSWildcardNotConfigured(c *validationContext) ValidationStatus {
+	if hostutil.IsDay2Host(c.host) {
+		return ValidationSuccess
+	}
 	var response *models.DomainResolutionResponse
 	if err := json.Unmarshal([]byte(c.host.DomainNameResolutions), &response); err != nil {
 		return ValidationError
@@ -1139,7 +1142,10 @@ func (v *validator) isDNSWildcardNotConfigured(c *validationContext) ValidationS
 func (v *validator) printIsDNSWildcardNotConfigured(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "DNS wildcard check was succesful"
+		if hostutil.IsDay2Host(c.host) {
+			return "DNS wildcard check is not required for day2"
+		}
+		return "DNS wildcard check was successful"
 	case ValidationFailure:
 		return fmt.Sprintf("DNS wildcard configuration was detected for domain *.%s.%s The installation will not be able to complete while the entry exists. Please remove it to proceed.", c.cluster.Name, c.cluster.BaseDNSDomain)
 	case ValidationError:
