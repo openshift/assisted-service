@@ -695,6 +695,7 @@ func (r *AgentServiceConfigReconciler) newImageHandlerDeployment(ctx context.Con
 		},
 		Env: []corev1.EnvVar{
 			{Name: "LISTEN_PORT", Value: imageHandlerPort.String()},
+			{Name: "RHCOS_VERSIONS", Value: r.getOSImages(log, instance)},
 			{Name: "HTTPS_CERT_FILE", Value: "/etc/tls/tls.crt"},
 			{Name: "HTTPS_KEY_FILE", Value: "/etc/tls/tls.key"},
 			{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
