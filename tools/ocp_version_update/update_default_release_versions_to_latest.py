@@ -26,8 +26,8 @@ DEFAULT_WATCHERS = ["lgamliel", "yuvalgoldberg"]
 PR_MENTION = ["gamli75", "YuviGold"]
 PR_MESSAGE = "{task}: Bump OCP versions {versions_string}"
 
-OCP_INFO_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=stable-{version}\&arch\=amd64 | jq '[.nodes[]] | sort_by(.version | split(".") | map(tonumber))[-1]'"""
-OCP_INFO_FC_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=candidate-{version}\&arch\=amd64 | jq '[.nodes[]] | max_by(.version)'"""
+OCP_INFO_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=stable-{version}\&arch\={architecture} | jq '[.nodes[]] | sort_by(.version | split(".") | map(tonumber))[-1]'"""
+OCP_INFO_FC_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=candidate-{version}\&arch\={architecture} | jq '[.nodes[]] | max_by(.version)'"""
 
 RHCOS_RELEASES = "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/{minor}"
 
@@ -38,16 +38,24 @@ RCHOS_VERSION_FROM_ISO_REGEX = re.compile("coreos.liveiso=rhcos-(.*) ")
 DOWNLOAD_LIVE_ISO_CMD = "curl {live_iso_url} -o {out_file}"
 
 DEFAULT_VERSIONS_FILES = os.path.join("data", "default_ocp_versions.json")
+DEFAULT_OS_IMAGES_FILE = os.path.join("data", "default_os_images.json")
+DEFAULT_RELEASE_IMAGES_FILE = os.path.join("data", "default_release_images.json")
 
 # assisted-service PR related constants
 ASSISTED_SERVICE_CLONE_DIR = "assisted-service"
 ASSISTED_SERVICE_GITHUB_REPO_ORGANIZATION = "openshift"
 ASSISTED_SERVICE_GITHUB_REPO = f"{ASSISTED_SERVICE_GITHUB_REPO_ORGANIZATION}/assisted-service"
+ASSISTED_SERVICE_GITHUB_REPO_URL_MASTER = f"https://raw.githubusercontent.com/{ASSISTED_SERVICE_GITHUB_REPO}/master"
 ASSISTED_SERVICE_GITHUB_FORK_REPO = "{github_user}/assisted-service"
 ASSISTED_SERVICE_CLONE_URL = "https://{github_user}:{github_password}@github.com/{ASSISTED_SERVICE_GITHUB_FORK_REPO}.git"
 ASSISTED_SERVICE_UPSTREAM_URL = f"https://github.com/{ASSISTED_SERVICE_GITHUB_REPO}.git"
+
 ASSISTED_SERVICE_MASTER_DEFAULT_OCP_VERSIONS_JSON_URL = \
-    f"https://raw.githubusercontent.com/{ASSISTED_SERVICE_GITHUB_REPO}/master/data/default_ocp_versions.json"
+    f"{ASSISTED_SERVICE_GITHUB_REPO_URL_MASTER}/{DEFAULT_VERSIONS_FILES}"
+ASSISTED_SERVICE_MASTER_DEFAULT_OS_IMAGES_JSON_URL = \
+    f"{ASSISTED_SERVICE_GITHUB_REPO_URL_MASTER}/{DEFAULT_OS_IMAGES_FILE}"
+ASSISTED_SERVICE_MASTER_DEFAULT_RELEASE_IMAGES_JSON_URL = \
+    f"{ASSISTED_SERVICE_GITHUB_REPO_URL_MASTER}/{DEFAULT_RELEASE_IMAGES_FILE}"
 ASSISTED_SERVICE_OPENSHIFT_TEMPLATE_YAML = f"{ASSISTED_SERVICE_CLONE_DIR}/openshift/template.yaml"
 
 OCP_REPLACE_CONTEXT = ['"{version}"', "ocp-release:{version}"]
@@ -69,6 +77,9 @@ CUSTOM_OPENSHIFT_IMAGES = os.path.join(script_dir, "custom_openshift_images.json
 TICKET_DESCRIPTION = "Default versions need to be updated"
 
 SKIPPED_MAJOR_RELEASE = ["4.6"]
+
+CPU_ARCHITECTURE_AMD64 = "amd64"
+CPU_ARCHITECTURE_X86_64 = "x86_64"
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -123,11 +134,11 @@ def create_task(args, description: str):
     return jira_client, task
 
 
-def get_default_release_json():
-    res = requests.get(ASSISTED_SERVICE_MASTER_DEFAULT_OCP_VERSIONS_JSON_URL)
+def request_json_file(json_url):
+    res = requests.get(json_url)
     if not res.ok:
         raise RuntimeError(
-            f"GET {ASSISTED_SERVICE_MASTER_DEFAULT_OCP_VERSIONS_JSON_URL} failed status {res.status_code}")
+            f"GET {json_url} failed status {res.status_code}")
     return json.loads(res.text)
 
 
@@ -217,12 +228,12 @@ def unhold_pr(pr):
     pr.create_issue_comment('/unhold')
 
 
-def get_latest_release_from_minor(minor_release: str):
-    release_data = get_release_data(minor_release)
+def get_latest_release_from_minor(minor_release, cpu_architecture: str):
+    release_data = get_release_data(minor_release, cpu_architecture)
     return release_data['version']
 
-def get_release_note_url(minor_release: str):
-    release_data = get_release_data(minor_release)
+def get_release_note_url(minor_release, cpu_architecture: str):
+    release_data = get_release_data(minor_release, cpu_architecture)
     try:
         release_url = release_data['metadata']["url"]
     except KeyError:
@@ -231,11 +242,15 @@ def get_release_note_url(minor_release: str):
     return release_url
 
 
-def get_release_data(minor_release):
-    release_data = subprocess.check_output(OCP_INFO_CALL.format(version=minor_release), shell=True)
+def get_release_data(minor_release, cpu_architecture):
+    # We're using 'x86_64' as a default architecture in the service,
+    # changing to 'amd64' as used for quering the OCP release images.
+    if cpu_architecture == CPU_ARCHITECTURE_X86_64:
+        cpu_architecture = CPU_ARCHITECTURE_AMD64
+    release_data = subprocess.check_output(OCP_INFO_CALL.format(version=minor_release, architecture=cpu_architecture), shell=True)
     release_data = json.loads(release_data)
     if not release_data:
-        release_data = subprocess.check_output(OCP_INFO_FC_CALL.format(version=minor_release), shell=True)
+        release_data = subprocess.check_output(OCP_INFO_FC_CALL.format(version=minor_release, architecture=cpu_architecture), shell=True)
         release_data = json.loads(release_data)
     return release_data
 
@@ -257,15 +272,14 @@ def get_latest_rchos_release_from_minor(minor_release: str, all_releases: list):
 def get_all_releases(path: str):
     res = requests.get(path)
     if not res.ok:
-        raise Exception("can\'t get releses")
+        raise Exception("can\'t get releases")
 
     page = res.text
     soup = BeautifulSoup(page, 'html.parser')
     return [node.get('href').replace("/", "") for node in soup.find_all('a')]
 
-def get_rchos_release_from_default_version_json(ocp_version_minor, release_json):
-    rchos_release_image = release_json[ocp_version_minor]['rhcos_image']
-    result = RHCOS_LIVE_ISO_REGEX.search(rchos_release_image)
+def get_rchos_release_from_default_version_json(rhcos_image_url, rhcos_url_regex):
+    result = rhcos_url_regex.search(rhcos_image_url)
     rhcos_default_version = result.group(1)
     return rhcos_default_version
 
@@ -292,13 +306,29 @@ def main(args):
             logger.info("No updates today since there is a update waiting to be merged")
             return
 
-    default_version_json = get_default_release_json()
-    updated_version_json = copy.deepcopy(default_version_json)
+    default_release_images_json = request_json_file(ASSISTED_SERVICE_MASTER_DEFAULT_RELEASE_IMAGES_JSON_URL)
+    default_os_images_json = request_json_file(ASSISTED_SERVICE_MASTER_DEFAULT_OS_IMAGES_JSON_URL)
+    default_version_json = request_json_file(ASSISTED_SERVICE_MASTER_DEFAULT_OCP_VERSIONS_JSON_URL)
 
     updates_made = set()
     updates_made_str = set()
 
+    update_release_images_json(default_release_images_json, updates_made, updates_made_str, dry_run)
+    update_os_images_json(default_os_images_json, updates_made, updates_made_str, dry_run)
+    update_ocp_versions_json(default_version_json, updates_made, updates_made_str, dry_run)
 
+    if updates_made:
+        verify_latest_config()
+
+        if dry_run:
+            return
+
+        title, task = create_jira_task(updates_made_str, dry_run, args)
+        create_github_pr(updates_made, title, task, args)
+
+
+def update_ocp_versions_json(default_version_json, updates_made, updates_made_str, dry_run):
+    updated_version_json = copy.deepcopy(default_version_json)
 
     for release in default_version_json:
 
@@ -306,7 +336,7 @@ def main(args):
             logger.info(f"Skipping {release} listed in the skip list")
             continue
 
-        latest_ocp_release = get_latest_release_from_minor(release)
+        latest_ocp_release = get_latest_release_from_minor(release, CPU_ARCHITECTURE_AMD64)
         if not latest_ocp_release:
             logger.info(f"No release found for {release}, continuing")
             continue
@@ -319,11 +349,22 @@ def main(args):
             updates_made_str.add(f"{current_default_ocp_release} -> {latest_ocp_release}")
 
             logger.info(f"New latest ocp release available for {release}, {current_default_ocp_release} -> {latest_ocp_release}")
-            updated_version_json[release]["display_name"] = latest_ocp_release
-            updated_version_json[release]["release_version"] = latest_ocp_release
-            updated_version_json[release]["release_image"] = updated_version_json[release]["release_image"].replace(current_default_ocp_release, latest_ocp_release)
+            updated_version_release = updated_version_json[release]
+            updated_version_release["display_name"] = latest_ocp_release
 
-        rhcos_default_release = get_rchos_release_from_default_version_json(release, default_version_json)
+            # 'release_version' and 'release_image' are optional (used as a fallback if missing in default_release_images json)
+            if "release_version" in updated_version_release:
+                updated_version_release["release_version"] = latest_ocp_release
+            if "release_image" in updated_version_release:
+                updated_version_release["release_image"] = updated_version_json[release]["release_image"].replace(current_default_ocp_release, latest_ocp_release)
+
+
+        # rhcos_image/rhcos_rootfs/rhcos_version are optional (used as a fallback if missing in default_os_images json)
+        if not all (k in updated_version_json[release] for k in ("rhcos_image","rhcos_rootfs","rhcos_version")):
+            continue
+
+        rchos_image_url = updated_version_json[release]['rhcos_image']
+        rhcos_default_release = get_rchos_release_from_default_version_json(rchos_image_url, RHCOS_LIVE_ISO_REGEX)
         rhcos_latest_of_releases = get_all_releases(RHCOS_RELEASES.format(minor=release))
         rhcos_latest_release = get_latest_rchos_release_from_minor(release, rhcos_latest_of_releases)
 
@@ -333,50 +374,129 @@ def main(args):
             updates_made_str.add(f"rchos {rhcos_default_release} -> {rhcos_latest_release}")
 
             logger.info(f"New latest rhcos release available, {rhcos_default_release} -> {rhcos_latest_release}")
+
             updated_version_json[release]["rhcos_image"] = updated_version_json[release]["rhcos_image"].replace(rhcos_default_release, rhcos_latest_release)
             updated_version_json[release]["rhcos_rootfs"] = updated_version_json[release]["rhcos_rootfs"].replace(rhcos_default_release, rhcos_latest_release)
 
             if dry_run:
                 rchos_version_from_iso = "8888888"
             else:
-                rchos_version_from_iso = get_rchos_version_from_iso(rhcos_latest_release, RCHOS_LIVE_ISO_URL.format(minor=release, version=rhcos_latest_release))
+                rchos_version_from_iso = get_rchos_version_from_iso(rhcos_latest_release, RCHOS_LIVE_ISO_URL.format(minor=release, version=rhcos_latest_release))            
             updated_version_json[release]["rhcos_version"] = rchos_version_from_iso
 
     if updates_made:
-        logger.info(f"changes were made on the following versions: {updates_made_str}")
-
-        versions_str = ", ".join(updates_made_str)
-
-        if dry_run:
-            jira_client, task = None, "TEST-8888"
-        else:
-            jira_client, task = create_task(args, TICKET_DESCRIPTION + " " + versions_str)
-
-        title = PR_MESSAGE.format(task=task, versions_string=versions_str)
-        logger.info(f"PR title will be {title}")
-
-        user, password = get_login(args.github_user_password)
-        clone_assisted_service(user, password)
-
         with open(os.path.join(ASSISTED_SERVICE_CLONE_DIR, DEFAULT_VERSIONS_FILES), 'w') as outfile:
             json.dump(updated_version_json, outfile, indent=4)
-        verify_latest_config()
 
-        if dry_run:
-            return
+    return updates_made, updates_made_str
 
-        body = get_pr_body(updates_made)
 
-        commit_message = title + '\n\n' + get_release_notes(updates_made)
+def update_release_images_json(default_release_images_json, updates_made, updates_made_str, dry_run):
+    updated_version_json = copy.deepcopy(default_release_images_json)
 
-        branch = commit_and_push_version_update_changes(task, commit_message)
+    for index, release_image in enumerate(default_release_images_json):
+        openshift_version = release_image["openshift_version"]
+        if openshift_version in SKIPPED_MAJOR_RELEASE:
+            logger.info(f"Skipping {openshift_version} listed in the skip list")
+            continue
 
-        github_pr = open_pr(args, task, title, body)
+        cpu_architecture = release_image["cpu_architecture"]
+        latest_ocp_release_version = get_latest_release_from_minor(openshift_version, cpu_architecture)
+        if not latest_ocp_release_version:
+            logger.info(f"No release found for ocp version {openshift_version}, continuing")
+            continue
 
-        github_pr.create_issue_comment(f"Running all tests")
-        github_pr.create_issue_comment(f"/test all")
+        current_default_release_version = release_image["version"]
 
-        unhold_pr(github_pr)
+        if current_default_release_version != latest_ocp_release_version or dry_run:
+
+            updates_made.add(openshift_version)
+            updates_made_str.add(f"{current_default_release_version} -> {latest_ocp_release_version}")
+
+            logger.info(f"New latest ocp release available for {openshift_version}, {current_default_release_version} -> {latest_ocp_release_version}")
+            updated_version_json[index]["version"] = latest_ocp_release_version
+            updated_version_json[index]["url"] = updated_version_json[index]["url"].replace(current_default_release_version, latest_ocp_release_version)
+
+    if updates_made:
+        with open(os.path.join(ASSISTED_SERVICE_CLONE_DIR, DEFAULT_RELEASE_IMAGES_FILE), 'w') as outfile:
+            json.dump(updated_version_json, outfile, indent=4)
+
+    return updates_made, updates_made_str
+
+
+def update_os_images_json(default_os_images_json, updates_made, updates_made_str, dry_run):
+    updated_version_json = copy.deepcopy(default_os_images_json)
+
+    for index, os_image in enumerate(default_os_images_json):
+        openshift_version = os_image["openshift_version"]
+        if openshift_version in SKIPPED_MAJOR_RELEASE:
+            logger.info(f"Skipping {openshift_version} listed in the skip list")
+            continue
+
+        cpu_architecture = os_image["cpu_architecture"]
+        if cpu_architecture != CPU_ARCHITECTURE_X86_64:
+            logger.info(f"Skipping non-x86_64 OS images for now")
+            continue
+
+        rchos_image_url = os_image['url']       
+        rhcos_default_release = get_rchos_release_from_default_version_json(rchos_image_url, RHCOS_LIVE_ISO_REGEX)
+        rhcos_latest_of_releases = get_all_releases(RHCOS_RELEASES.format(minor=openshift_version))
+        rhcos_latest_release = get_latest_rchos_release_from_minor(openshift_version, rhcos_latest_of_releases)
+
+        if (not is_pre_release(rhcos_latest_release) and rhcos_default_release != rhcos_latest_release) or dry_run:
+            updates_made.add(openshift_version)
+            updates_made_str.add(f"rchos {rhcos_default_release} -> {rhcos_latest_release}")
+
+            logger.info(f"New latest rhcos release available, {rhcos_default_release} -> {rhcos_latest_release}")
+            updated_version_json[index]["url"] = updated_version_json[index]["url"].replace(rhcos_default_release, rhcos_latest_release)
+            updated_version_json[index]["rootfs_url"] = updated_version_json[index]["rootfs_url"].replace(rhcos_default_release, rhcos_latest_release)
+
+            if dry_run:
+                rhcos_version_from_iso = "8888888"
+            else:
+                rhcos_version_from_iso = get_rchos_version_from_iso(rhcos_latest_release, RCHOS_LIVE_ISO_URL.format(minor=openshift_version, version=rhcos_latest_release))            
+            
+            updated_version_json[index]["version"] = rhcos_version_from_iso
+
+    if updates_made:
+        with open(os.path.join(ASSISTED_SERVICE_CLONE_DIR, DEFAULT_OS_IMAGES_FILE), 'w') as outfile:
+            json.dump(updated_version_json, outfile, indent=4)
+
+    return updates_made, updates_made_str
+
+
+def create_jira_task(updates_made_str, dry_run, args):
+    logger.info(f"changes were made on the following versions: {updates_made_str}")
+
+    versions_str = ", ".join(updates_made_str)
+
+    if dry_run:
+        _, task = None, "TEST-8888"
+    else:
+        _, task = create_task(args, TICKET_DESCRIPTION + " " + versions_str)
+
+    title = PR_MESSAGE.format(task=task, versions_string=versions_str)
+    logger.info(f"PR title will be {title}")
+
+    user, password = get_login(args.github_user_password)
+    clone_assisted_service(user, password)
+
+    return title, task
+
+
+def create_github_pr(updates_made, title, task, args):
+    body = get_pr_body(updates_made)
+
+    commit_message = title + '\n\n' + get_release_notes(updates_made)
+
+    branch = commit_and_push_version_update_changes(task, commit_message)
+
+    github_pr = open_pr(args, task, title, body)
+
+    github_pr.create_issue_comment(f"Running all tests")
+    github_pr.create_issue_comment(f"/test all")
+
+    unhold_pr(github_pr)
 
 
 def get_pr_body(updates_made):
