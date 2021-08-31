@@ -317,7 +317,7 @@ var _ = Describe("UpdateMachineCidr", func() {
 	}{
 		{
 			name:   "empty cluster with an empty new value",
-			update: false,
+			update: true,
 		},
 		{
 			name:                           "empty cluster with non-empty new value",
@@ -335,7 +335,7 @@ var _ = Describe("UpdateMachineCidr", func() {
 			clusterMachineNetworks:         common.TestIPv4Networking.MachineNetworks,
 			newMachineCidr:                 string(common.TestIPv4Networking.MachineNetworks[0].Cidr),
 			expectedClusterMachineNetworks: common.TestIPv4Networking.MachineNetworks,
-			update:                         false,
+			update:                         true,
 		},
 		{
 			name:                           "cluster with single machine network with different new value",

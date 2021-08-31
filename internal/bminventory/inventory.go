@@ -2546,7 +2546,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 			// VIP DHCP mode has changed
 			vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
 			updates["vip_dhcp_allocation"] = vipDhcpAllocation
-			cluster.MachineNetworks = []*models.MachineNetwork{}
+			// cluster.MachineNetworks = []*models.MachineNetwork{}
 		}
 
 		if vipDhcpAllocation {
