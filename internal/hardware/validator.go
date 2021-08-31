@@ -30,8 +30,8 @@ type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostInstallationPath(host *models.Host) string
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
-	GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv, host *models.Host) (*models.ClusterHostRequirements, error)
-	DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error)
+	GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.ClusterHostRequirements, error)
+	DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host) ([]string, error)
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 	GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error)
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
@@ -90,8 +90,14 @@ func isNvme(name string) bool {
 // it against a list of predicates. Returns all the reasons the disk
 // was found to be not eligible, or an empty slice if it was found to
 // be eligible
-func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error) {
-	requirements, err := v.GetClusterHostRequirements(ctx, cluster, host)
+func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host) ([]string, error) {
+	var requirements *models.ClusterHostRequirements
+	var err error
+	if cluster != nil {
+		requirements, err = v.GetClusterHostRequirements(ctx, cluster, host)
+	} else {
+		requirements, err = v.GetInfraEnvHostRequirements(ctx, infraEnv)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -175,17 +181,26 @@ func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *com
 	}, nil
 }
 
-func (v *validator) GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv, host *models.Host) (*models.ClusterHostRequirements, error) {
-	ocpRequirements, err := v.getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv, host.Role)
+func (v *validator) GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.ClusterHostRequirements, error) {
+	masterOcpRequirements, err := v.getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv, models.HostRoleMaster)
 	if err != nil {
 		return nil, err
 	}
-	total := totalizeRequirements(ocpRequirements, nil)
+	workerOcpRequirements, err := v.getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv, models.HostRoleWorker)
+	if err != nil {
+		return nil, err
+	}
+
+	requirements := &workerOcpRequirements
+	if workerOcpRequirements.DiskSizeGb > masterOcpRequirements.DiskSizeGb {
+		requirements = &masterOcpRequirements
+	}
+
 	return &models.ClusterHostRequirements{
-		HostID:    *host.ID,
-		Ocp:       &ocpRequirements,
+		HostID:    "",
+		Ocp:       requirements,
 		Operators: nil,
-		Total:     &total,
+		Total:     requirements,
 	}, nil
 }
 

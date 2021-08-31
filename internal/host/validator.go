@@ -145,7 +145,7 @@ func (c *validationContext) loadClusterHostRequirements(hwValidator hardware.Val
 }
 
 func (c *validationContext) loadInfraEnvHostRequirements(hwValidator hardware.Validator) error {
-	requirements, err := hwValidator.GetInfraEnvHostRequirements(context.TODO(), c.infraEnv, c.host)
+	requirements, err := hwValidator.GetInfraEnvHostRequirements(context.TODO(), c.infraEnv)
 	c.clusterHostRequirements = requirements
 	return err
 }
