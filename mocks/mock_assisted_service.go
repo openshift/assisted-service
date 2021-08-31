@@ -918,6 +918,20 @@ func (mr *MockInstallerAPIMockRecorder) V2GetCluster(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetCluster", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetCluster), arg0, arg1)
 }
 
+// V2GetClusterInstallConfig mocks base method.
+func (m *MockInstallerAPI) V2GetClusterInstallConfig(arg0 context.Context, arg1 installer.V2GetClusterInstallConfigParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2GetClusterInstallConfig", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2GetClusterInstallConfig indicates an expected call of V2GetClusterInstallConfig.
+func (mr *MockInstallerAPIMockRecorder) V2GetClusterInstallConfig(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetClusterInstallConfig", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetClusterInstallConfig), arg0, arg1)
+}
+
 // V2GetHost mocks base method.
 func (m *MockInstallerAPI) V2GetHost(arg0 context.Context, arg1 installer.V2GetHostParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -1070,6 +1084,20 @@ func (m *MockInstallerAPI) V2ResetHostValidation(arg0 context.Context, arg1 inst
 func (mr *MockInstallerAPIMockRecorder) V2ResetHostValidation(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ResetHostValidation", reflect.TypeOf((*MockInstallerAPI)(nil).V2ResetHostValidation), arg0, arg1)
+}
+
+// V2UpdateClusterInstallConfig mocks base method.
+func (m *MockInstallerAPI) V2UpdateClusterInstallConfig(arg0 context.Context, arg1 installer.V2UpdateClusterInstallConfigParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2UpdateClusterInstallConfig", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2UpdateClusterInstallConfig indicates an expected call of V2UpdateClusterInstallConfig.
+func (mr *MockInstallerAPIMockRecorder) V2UpdateClusterInstallConfig(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateClusterInstallConfig", reflect.TypeOf((*MockInstallerAPI)(nil).V2UpdateClusterInstallConfig), arg0, arg1)
 }
 
 // V2UpdateHost mocks base method.

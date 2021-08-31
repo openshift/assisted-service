@@ -46,3 +46,25 @@ func (b *bareMetalInventory) V2DeregisterCluster(ctx context.Context, params ins
 	}
 	return installer.NewV2DeregisterClusterNoContent()
 }
+
+func (b *bareMetalInventory) V2GetClusterInstallConfig(ctx context.Context, params installer.V2GetClusterInstallConfigParams) middleware.Responder {
+	c, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	cfg, err := b.installConfigBuilder.GetInstallConfig(c, false, "")
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	return installer.NewV2GetClusterInstallConfigOK().WithPayload(string(cfg))
+}
+
+func (b *bareMetalInventory) V2UpdateClusterInstallConfig(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) middleware.Responder {
+	_, err := b.UpdateClusterInstallConfigInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2UpdateClusterInstallConfigCreated()
+}

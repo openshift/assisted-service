@@ -214,6 +214,9 @@ type API interface {
 	   V2GetCluster Retrieves the details of the OpenShift cluster.*/
 	V2GetCluster(ctx context.Context, params *V2GetClusterParams) (*V2GetClusterOK, error)
 	/*
+	   V2GetClusterInstallConfig Get the cluster's install config YAML.*/
+	V2GetClusterInstallConfig(ctx context.Context, params *V2GetClusterInstallConfigParams) (*V2GetClusterInstallConfigOK, error)
+	/*
 	   V2GetHost Retrieves the details of the OpenShift host.*/
 	V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2GetHostOK, error)
 	/*
@@ -248,6 +251,9 @@ type API interface {
 
 	   Reset failed host validation. It may be performed on any host validation with persistent validation result.*/
 	V2ResetHostValidation(ctx context.Context, params *V2ResetHostValidationParams) (*V2ResetHostValidationOK, error)
+	/*
+	   V2UpdateClusterInstallConfig Override values in the install config.*/
+	V2UpdateClusterInstallConfig(ctx context.Context, params *V2UpdateClusterInstallConfigParams) (*V2UpdateClusterInstallConfigCreated, error)
 	/*
 	   V2UpdateHost Update an Openshift host*/
 	V2UpdateHost(ctx context.Context, params *V2UpdateHostParams) (*V2UpdateHostCreated, error)
@@ -1871,6 +1877,31 @@ func (a *Client) V2GetCluster(ctx context.Context, params *V2GetClusterParams) (
 }
 
 /*
+V2GetClusterInstallConfig Get the cluster's install config YAML.
+*/
+func (a *Client) V2GetClusterInstallConfig(ctx context.Context, params *V2GetClusterInstallConfigParams) (*V2GetClusterInstallConfigOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2GetClusterInstallConfig",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/install-config",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetClusterInstallConfigReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetClusterInstallConfigOK), nil
+
+}
+
+/*
 V2GetHost Retrieves the details of the OpenShift host.
 */
 func (a *Client) V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2GetHostOK, error) {
@@ -2144,6 +2175,31 @@ func (a *Client) V2ResetHostValidation(ctx context.Context, params *V2ResetHostV
 		return nil, err
 	}
 	return result.(*V2ResetHostValidationOK), nil
+
+}
+
+/*
+V2UpdateClusterInstallConfig Override values in the install config.
+*/
+func (a *Client) V2UpdateClusterInstallConfig(ctx context.Context, params *V2UpdateClusterInstallConfigParams) (*V2UpdateClusterInstallConfigCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2UpdateClusterInstallConfig",
+		Method:             "PATCH",
+		PathPattern:        "/v2/clusters/{cluster_id}/install-config",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2UpdateClusterInstallConfigReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2UpdateClusterInstallConfigCreated), nil
 
 }
 

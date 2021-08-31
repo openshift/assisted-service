@@ -7473,7 +7473,7 @@ var _ = Describe("GetClusterInstallConfig", func() {
 		params := installer.GetClusterInstallConfigParams{ClusterID: clusterID}
 		mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), false, "").Return([]byte("some string"), nil).Times(1)
 		response := bm.GetClusterInstallConfig(ctx, params)
-		_, ok := response.(*installer.GetClusterInstallConfigOK)
+		_, ok := response.(*installer.V2GetClusterInstallConfigOK)
 		Expect(ok).To(BeTrue())
 	})
 })
@@ -7519,7 +7519,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, nil, models.EventSeverityInfo, "Custom install config was applied to the cluster", gomock.Any())
 		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), params.InstallConfigParams).Return(nil).Times(1)
 		response := bm.UpdateClusterInstallConfig(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigCreated{}))
+		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateClusterInstallConfigCreated{}))
 
 		var updated common.Cluster
 		err := db.First(&updated, "id = ?", clusterID).Error
