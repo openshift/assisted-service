@@ -837,8 +837,40 @@ var _ = Describe("TestConditions", func() {
 			},
 		},
 		{
-			name:           "Unsufficient",
+			name:           "Insufficient",
 			hostStatus:     models.HostStatusInsufficient,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Host check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Host check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Host check3 is not OK\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.RequirementsMetCondition,
+					Message: v1beta1.AgentNotReadyMsg,
+					Reason:  v1beta1.AgentNotReadyReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.InstallationNotStartedMsg,
+					Reason:  v1beta1.InstallationNotStartedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsFailingMsg + " Host check1 is not OK,Host check3 is not OK",
+					Reason:  v1beta1.ValidationsFailingReason,
+					Status:  corev1.ConditionFalse,
+				},
+			},
+		},
+		{
+			name:           "InsufficientUnbound",
+			hostStatus:     models.HostStatusInsufficientUnbound,
 			statusInfo:     "",
 			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Host check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Host check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Host check3 is not OK\"}]}",
 			conditions: []conditionsv1.Condition{
@@ -871,6 +903,39 @@ var _ = Describe("TestConditions", func() {
 		{
 			name:           "Known",
 			hostStatus:     models.HostStatusKnown,
+			hostApproved:   true,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.RequirementsMetCondition,
+					Message: v1beta1.AgentReadyMsg,
+					Reason:  v1beta1.AgentReadyReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.InstallationNotStartedMsg,
+					Reason:  v1beta1.InstallationNotStartedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsPassingMsg,
+					Reason:  v1beta1.ValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+		{
+			name:           "KnownUnbound",
+			hostStatus:     models.HostStatusKnownUnbound,
 			hostApproved:   true,
 			statusInfo:     "",
 			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
@@ -1031,8 +1096,104 @@ var _ = Describe("TestConditions", func() {
 			},
 		},
 		{
+			name:           "Discovering",
+			hostStatus:     models.HostStatusDiscovering,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.RequirementsMetCondition,
+					Message: v1beta1.AgentNotReadyMsg,
+					Reason:  v1beta1.AgentNotReadyReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.InstallationNotStartedMsg,
+					Reason:  v1beta1.InstallationNotStartedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsPassingMsg,
+					Reason:  v1beta1.ValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+		{
+			name:           "DiscoveringUnbound",
+			hostStatus:     models.HostStatusDiscoveringUnbound,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.RequirementsMetCondition,
+					Message: v1beta1.AgentNotReadyMsg,
+					Reason:  v1beta1.AgentNotReadyReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.InstallationNotStartedMsg,
+					Reason:  v1beta1.InstallationNotStartedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsPassingMsg,
+					Reason:  v1beta1.ValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+		{
 			name:           "Disconnected",
 			hostStatus:     models.HostStatusDisconnected,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.RequirementsMetCondition,
+					Message: v1beta1.AgentNotReadyMsg,
+					Reason:  v1beta1.AgentNotReadyReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentDisonnectedMsg,
+					Reason:  v1beta1.AgentDisconnectedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.InstallationNotStartedMsg,
+					Reason:  v1beta1.InstallationNotStartedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsPassingMsg,
+					Reason:  v1beta1.ValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+		{
+			name:           "DisconnectedUnbound",
+			hostStatus:     models.HostStatusDisconnectedUnbound,
 			statusInfo:     "",
 			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
 			conditions: []conditionsv1.Condition{
