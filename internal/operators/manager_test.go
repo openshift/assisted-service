@@ -71,7 +71,7 @@ var _ = Describe("Operators manager", func() {
 		It("Check YAMLs of all supported OLM operators", func() {
 			cluster.MonitoredOperators = manager.GetSupportedOperatorsByType(models.OperatorTypeOlm)
 
-			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).DoAndReturn(
 				func(ctx context.Context, params operations.CreateClusterManifestParams) middleware.Responder {
 					manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
@@ -93,7 +93,7 @@ var _ = Describe("Operators manager", func() {
 				&lso.Operator,
 			}
 
-			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(6)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
@@ -103,7 +103,7 @@ var _ = Describe("Operators manager", func() {
 				&lso.Operator,
 			}
 
-			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(3)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
@@ -114,7 +114,7 @@ var _ = Describe("Operators manager", func() {
 				&lso.Operator,
 			}
 
-			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(6)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
