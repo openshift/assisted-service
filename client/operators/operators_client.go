@@ -30,6 +30,9 @@ type API interface {
 	   ReportMonitoredOperatorStatus Controller API to report of monitored operators.*/
 	ReportMonitoredOperatorStatus(ctx context.Context, params *ReportMonitoredOperatorStatusParams) (*ReportMonitoredOperatorStatusOK, error)
 	/*
+	   V2ListOfClusterOperators Lists operators to be monitored for a cluster.*/
+	V2ListOfClusterOperators(ctx context.Context, params *V2ListOfClusterOperatorsParams) (*V2ListOfClusterOperatorsOK, error)
+	/*
 	   V2ReportMonitoredOperatorStatus Controller API to report of monitored operators.*/
 	V2ReportMonitoredOperatorStatus(ctx context.Context, params *V2ReportMonitoredOperatorStatusParams) (*V2ReportMonitoredOperatorStatusOK, error)
 }
@@ -149,6 +152,31 @@ func (a *Client) ReportMonitoredOperatorStatus(ctx context.Context, params *Repo
 		return nil, err
 	}
 	return result.(*ReportMonitoredOperatorStatusOK), nil
+
+}
+
+/*
+V2ListOfClusterOperators Lists operators to be monitored for a cluster.
+*/
+func (a *Client) V2ListOfClusterOperators(ctx context.Context, params *V2ListOfClusterOperatorsParams) (*V2ListOfClusterOperatorsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2ListOfClusterOperators",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/monitored-operators",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ListOfClusterOperatorsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ListOfClusterOperatorsOK), nil
 
 }
 

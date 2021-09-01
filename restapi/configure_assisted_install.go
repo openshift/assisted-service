@@ -379,6 +379,9 @@ type OperatorsAPI interface {
 	/* ReportMonitoredOperatorStatus Controller API to report of monitored operators. */
 	ReportMonitoredOperatorStatus(ctx context.Context, params operators.ReportMonitoredOperatorStatusParams) middleware.Responder
 
+	/* V2ListOfClusterOperators Lists operators to be monitored for a cluster. */
+	V2ListOfClusterOperators(ctx context.Context, params operators.V2ListOfClusterOperatorsParams) middleware.Responder
+
 	/* V2ReportMonitoredOperatorStatus Controller API to report of monitored operators. */
 	V2ReportMonitoredOperatorStatus(ctx context.Context, params operators.V2ReportMonitoredOperatorStatusParams) middleware.Responder
 }
@@ -879,6 +882,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.ManagedDomainsAPI.V2ListManagedDomains(ctx, params)
+	})
+	api.OperatorsV2ListOfClusterOperatorsHandler = operators.V2ListOfClusterOperatorsHandlerFunc(func(params operators.V2ListOfClusterOperatorsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.OperatorsAPI.V2ListOfClusterOperators(ctx, params)
 	})
 	api.InstallerV2UpdateClusterHandler = installer.V2UpdateClusterHandlerFunc(func(params installer.V2UpdateClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
