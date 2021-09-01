@@ -10600,26 +10600,18 @@ var _ = Describe("Platform tests", func() {
 
 var _ = Describe("DownloadClusterFiles", func() {
 	var (
-		bm        *bareMetalInventory
-		cfg       Config
-		clusterID = strfmt.UUID(uuid.New().String())
-		ctx       = context.Background()
-		db        *gorm.DB
-		dbName    string
+		bm         *bareMetalInventory
+		cfg        Config
+		newCluster *common.Cluster
+		ctx        = context.Background()
+		db         *gorm.DB
+		dbName     string
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB(dbName)
 		bm = createInventory(db, cfg)
 
-		cluster := common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			PullSecretSet:    true,
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Status:           swag.String(models.ClusterStatusInstalled),
-		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		Expect(common.CreateInfraEnvForCluster(db, &cluster, models.ImageTypeFullIso)).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -10630,18 +10622,33 @@ var _ = Describe("DownloadClusterFiles", func() {
 	It("allows downloading cluster owner files when not using auth", func() {
 		for _, fileName := range cluster.ClusterOwnerFileNames {
 			By(fmt.Sprintf("downloading %s", fileName))
-
+			newCluster = createCluster(db, models.ClusterStatusInstalled)
 			params := installer.DownloadClusterFilesParams{
-				ClusterID: clusterID,
+				ClusterID: *newCluster.ID,
 				FileName:  fileName,
 			}
 
 			r := io.NopCloser(bytes.NewReader([]byte("testfile")))
 			expected := filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(r), fileName, int64(8))
-			mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", clusterID, fileName)).Return(r, int64(8), nil)
+			mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", *newCluster.ID, fileName)).Return(r, int64(8), nil)
 			resp := bm.DownloadClusterFiles(ctx, params)
 			Expect(resp).Should(Equal(expected))
 		}
+	})
+	It("allows downloading kubeconfig-noingress when cluster is installing pending user action", func() {
+		fileName := "kubeconfig-noingress"
+		By(fmt.Sprintf("downloading %s", fileName))
+		newCluster = createCluster(db, models.ClusterStatusInstallingPendingUserAction)
+		params := installer.DownloadClusterFilesParams{
+			ClusterID: *newCluster.ID,
+			FileName:  fileName,
+		}
+
+		r := io.NopCloser(bytes.NewReader([]byte("testfile")))
+		expected := filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(r), fileName, int64(8))
+		mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", *newCluster.ID, fileName)).Return(r, int64(8), nil)
+		resp := bm.DownloadClusterFiles(ctx, params)
+		Expect(resp).Should(Equal(expected))
 	})
 })
 
