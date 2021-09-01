@@ -22,11 +22,11 @@ The Agent APIs are not meant to be used by end users.
 
 #### User Authentication
 
-User Authentication is using JWT tokens.
+User Authentication is using JWT tokens. There are two ways to get the token:
 
-In order to get a JWT token, `ocm` CLI is needed:
+##### ocm client
 
-```
+```bash
 sudo dnf copr enable ocm/tools
 sudo dnf install ocm-cli
 ```
@@ -34,21 +34,29 @@ sudo dnf install ocm-cli
 Obtain offline token from https://cloud.redhat.com/openshift/token (This token does not expire)
 
 Login to ocm:
-```
+
+```bash
 ocm login --token (with token from https://cloud.redhat.com/openshift/token)
 ```
 
 Generate JWT token :
+
+```bash
+JWT_TOKEN=$(ocm token)
 ```
-ocm token
+
+##### HTTP request
+
+```bash
+JWT_TOKEN=$(curl https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token -d client_id=cloud-services -d grant_type=refresh_token -d refresh_token=${OFFLINE_TOKEN} | jq -r '.access_token')
 ```
 
 The JWT token is valid for 15 minutes and need to be provided in the header of the HTTP request.
 
 Here an example to get all the user's clusters:
 
-```
-curl https://api.openshift.com/api/assisted-install/v1/clusters -H "Authorization: Bearer $(ocm token)"
+```bash
+curl https://api.openshift.com/api/assisted-install/v1/clusters -H "Authorization: Bearer ${JWT_TOKEN}"
 ```
 
 #### Agent Authentication
@@ -57,7 +65,7 @@ Agent authentication uses a token from the Pull Secret and needs to be provided 
 
 Here an example:
 
-```
+```bash
  curl -X POST https://api.openshift.com/api/assisted-install/v1/clusters/f74fe2e3-1d99-4383-b2f3-8213af03ddeb/hosts -H "X-Secret-Key: <PULL_SECRET_TOKEN>"
  ```
 
