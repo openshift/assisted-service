@@ -794,7 +794,7 @@ func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.
 		update = true
 	}
 	if update {
-		_, err := r.Installer.UpdateClusterInstallConfigInternal(ctx, installer.UpdateClusterInstallConfigParams{
+		_, err := r.Installer.UpdateClusterInstallConfigInternal(ctx, installer.V2UpdateClusterInstallConfigParams{
 			ClusterID:           *cluster.ID,
 			InstallConfigParams: cluster.InstallConfigOverrides,
 		})

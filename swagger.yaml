@@ -4715,6 +4715,92 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}/install-config:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      description: Get the cluster's install config YAML.
+      operationId: v2GetClusterInstallConfig
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose install config is being retrieved.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: string
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+    patch:
+      tags:
+        - installer
+      description: Override values in the install config.
+      operationId: v2UpdateClusterInstallConfig
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose install config is being updated.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: install-config-params
+          description: Install config overrides.
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Success.
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   vsphere_platform:
     type: object

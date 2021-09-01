@@ -286,6 +286,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2GetClusterHandler: installer.V2GetClusterHandlerFunc(func(params installer.V2GetClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetCluster has not yet been implemented")
 		}),
+		InstallerV2GetClusterInstallConfigHandler: installer.V2GetClusterInstallConfigHandlerFunc(func(params installer.V2GetClusterInstallConfigParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2GetClusterInstallConfig has not yet been implemented")
+		}),
 		InstallerV2GetHostHandler: installer.V2GetHostHandlerFunc(func(params installer.V2GetHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetHost has not yet been implemented")
 		}),
@@ -318,6 +321,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerV2ResetHostValidationHandler: installer.V2ResetHostValidationHandlerFunc(func(params installer.V2ResetHostValidationParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2ResetHostValidation has not yet been implemented")
+		}),
+		InstallerV2UpdateClusterInstallConfigHandler: installer.V2UpdateClusterInstallConfigHandlerFunc(func(params installer.V2UpdateClusterInstallConfigParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2UpdateClusterInstallConfig has not yet been implemented")
 		}),
 		InstallerV2UpdateHostHandler: installer.V2UpdateHostHandlerFunc(func(params installer.V2UpdateHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateHost has not yet been implemented")
@@ -560,6 +566,8 @@ type AssistedInstallAPI struct {
 	InstallerV2DownloadInfraEnvFilesHandler installer.V2DownloadInfraEnvFilesHandler
 	// InstallerV2GetClusterHandler sets the operation handler for the v2 get cluster operation
 	InstallerV2GetClusterHandler installer.V2GetClusterHandler
+	// InstallerV2GetClusterInstallConfigHandler sets the operation handler for the v2 get cluster install config operation
+	InstallerV2GetClusterInstallConfigHandler installer.V2GetClusterInstallConfigHandler
 	// InstallerV2GetHostHandler sets the operation handler for the v2 get host operation
 	InstallerV2GetHostHandler installer.V2GetHostHandler
 	// InstallerV2GetHostIgnitionHandler sets the operation handler for the v2 get host ignition operation
@@ -582,6 +590,8 @@ type AssistedInstallAPI struct {
 	InstallerV2ResetHostHandler installer.V2ResetHostHandler
 	// InstallerV2ResetHostValidationHandler sets the operation handler for the v2 reset host validation operation
 	InstallerV2ResetHostValidationHandler installer.V2ResetHostValidationHandler
+	// InstallerV2UpdateClusterInstallConfigHandler sets the operation handler for the v2 update cluster install config operation
+	InstallerV2UpdateClusterInstallConfigHandler installer.V2UpdateClusterInstallConfigHandler
 	// InstallerV2UpdateHostHandler sets the operation handler for the v2 update host operation
 	InstallerV2UpdateHostHandler installer.V2UpdateHostHandler
 	// InstallerV2UpdateHostIgnitionHandler sets the operation handler for the v2 update host ignition operation
@@ -918,6 +928,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerV2GetClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetClusterHandler")
 	}
+	if o.InstallerV2GetClusterInstallConfigHandler == nil {
+		unregistered = append(unregistered, "installer.V2GetClusterInstallConfigHandler")
+	}
 	if o.InstallerV2GetHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetHostHandler")
 	}
@@ -950,6 +963,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2ResetHostValidationHandler == nil {
 		unregistered = append(unregistered, "installer.V2ResetHostValidationHandler")
+	}
+	if o.InstallerV2UpdateClusterInstallConfigHandler == nil {
+		unregistered = append(unregistered, "installer.V2UpdateClusterInstallConfigHandler")
 	}
 	if o.InstallerV2UpdateHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateHostHandler")
@@ -1390,6 +1406,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/v2/clusters/{cluster_id}/install-config"] = installer.NewV2GetClusterInstallConfig(o.context, o.InstallerV2GetClusterInstallConfigHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}"] = installer.NewV2GetHost(o.context, o.InstallerV2GetHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -1431,6 +1451,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}"] = installer.NewV2ResetHostValidation(o.context, o.InstallerV2ResetHostValidationHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/v2/clusters/{cluster_id}/install-config"] = installer.NewV2UpdateClusterInstallConfig(o.context, o.InstallerV2UpdateClusterInstallConfigHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}

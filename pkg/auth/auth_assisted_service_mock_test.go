@@ -220,12 +220,20 @@ func (f fakeInventory) GetClusterInstallConfig(ctx context.Context, params insta
 	return installer.NewGetClusterInstallConfigOK()
 }
 
+func (f fakeInventory) V2GetClusterInstallConfig(ctx context.Context, params installer.V2GetClusterInstallConfigParams) middleware.Responder {
+	return installer.NewV2GetClusterInstallConfigOK()
+}
+
 func (f fakeInventory) GetClusterDefaultConfig(ctx context.Context, params installer.GetClusterDefaultConfigParams) middleware.Responder {
 	return installer.NewGetClusterDefaultConfigOK()
 }
 
 func (f fakeInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {
 	return installer.NewUpdateClusterInstallConfigCreated()
+}
+
+func (f fakeInventory) V2UpdateClusterInstallConfig(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) middleware.Responder {
+	return installer.NewV2UpdateClusterInstallConfigCreated()
 }
 
 func (f fakeInventory) UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder {

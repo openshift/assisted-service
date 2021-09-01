@@ -145,7 +145,7 @@ type InstallerInternals interface {
 	V2DownloadClusterCredentialsInternal(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) (io.ReadCloser, int64, error)
 	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams, v1Flag bool) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, infraEnvId strfmt.UUID, hostId strfmt.UUID) error
-	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.UpdateClusterInstallConfigParams) (*common.Cluster, error)
+	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.CancelInstallationParams) (*common.Cluster, error)
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
 	AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
@@ -1799,17 +1799,7 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 }
 
 func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder {
-	c, err := b.getCluster(ctx, params.ClusterID.String())
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	cfg, err := b.installConfigBuilder.GetInstallConfig(c, false, "")
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	return installer.NewGetClusterInstallConfigOK().WithPayload(string(cfg))
+	return b.V2GetClusterInstallConfig(ctx, installer.V2GetClusterInstallConfigParams(params))
 }
 
 func (b *bareMetalInventory) GetClusterDefaultConfig(_ context.Context, _ installer.GetClusterDefaultConfigParams) middleware.Responder {
@@ -1865,14 +1855,10 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {
-	_, err := b.UpdateClusterInstallConfigInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewUpdateClusterInstallConfigCreated()
+	return b.V2UpdateClusterInstallConfig(ctx, installer.V2UpdateClusterInstallConfigParams(params))
 }
 
-func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.UpdateClusterInstallConfigParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
 	query := "id = ?"

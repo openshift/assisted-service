@@ -247,6 +247,9 @@ type InstallerAPI interface {
 	/* V2GetCluster Retrieves the details of the OpenShift cluster. */
 	V2GetCluster(ctx context.Context, params installer.V2GetClusterParams) middleware.Responder
 
+	/* V2GetClusterInstallConfig Get the cluster's install config YAML. */
+	V2GetClusterInstallConfig(ctx context.Context, params installer.V2GetClusterInstallConfigParams) middleware.Responder
+
 	/* V2GetHost Retrieves the details of the OpenShift host. */
 	V2GetHost(ctx context.Context, params installer.V2GetHostParams) middleware.Responder
 
@@ -279,6 +282,9 @@ type InstallerAPI interface {
 
 	/* V2ResetHostValidation Reset failed host validation. */
 	V2ResetHostValidation(ctx context.Context, params installer.V2ResetHostValidationParams) middleware.Responder
+
+	/* V2UpdateClusterInstallConfig Override values in the install config. */
+	V2UpdateClusterInstallConfig(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) middleware.Responder
 
 	/* V2UpdateHost Update an Openshift host */
 	V2UpdateHost(ctx context.Context, params installer.V2UpdateHostParams) middleware.Responder
@@ -829,6 +835,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetCluster(ctx, params)
 	})
+	api.InstallerV2GetClusterInstallConfigHandler = installer.V2GetClusterInstallConfigHandlerFunc(func(params installer.V2GetClusterInstallConfigParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2GetClusterInstallConfig(ctx, params)
+	})
 	api.InstallerV2GetHostHandler = installer.V2GetHostHandlerFunc(func(params installer.V2GetHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -883,6 +894,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2ResetHostValidation(ctx, params)
+	})
+	api.InstallerV2UpdateClusterInstallConfigHandler = installer.V2UpdateClusterInstallConfigHandlerFunc(func(params installer.V2UpdateClusterInstallConfigParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2UpdateClusterInstallConfig(ctx, params)
 	})
 	api.InstallerV2UpdateHostHandler = installer.V2UpdateHostHandlerFunc(func(params installer.V2UpdateHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

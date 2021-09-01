@@ -2000,7 +2000,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, param installer.UpdateClusterInstallConfigParams) {
+				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams) {
 					Expect(param.ClusterID).To(Equal(sId))
 					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
 				}).Return(updateReply, nil)
@@ -2042,7 +2042,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, param installer.UpdateClusterInstallConfigParams) {
+				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams) {
 					Expect(param.ClusterID).To(Equal(sId))
 					Expect(param.InstallConfigParams).To(Equal(""))
 				}).Return(updateReply, nil)
@@ -2082,7 +2082,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, param installer.UpdateClusterInstallConfigParams) {
+				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams) {
 					Expect(param.ClusterID).To(Equal(sId))
 					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
 				}).Return(updateReply, nil)
@@ -2116,7 +2116,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			installConfigOverrides := `{{{"controlPlane": ""`
 			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, param installer.UpdateClusterInstallConfigParams) {
+				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams) {
 					Expect(param.ClusterID).To(Equal(sId))
 					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
 				}).Return(nil, common.NewApiError(http.StatusBadRequest,

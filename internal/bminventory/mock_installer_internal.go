@@ -338,7 +338,7 @@ func (mr *MockInstallerInternalsMockRecorder) TransformClusterToDay2Internal(arg
 }
 
 // UpdateClusterInstallConfigInternal mocks base method.
-func (m *MockInstallerInternals) UpdateClusterInstallConfigInternal(arg0 context.Context, arg1 installer.UpdateClusterInstallConfigParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) UpdateClusterInstallConfigInternal(arg0 context.Context, arg1 installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateClusterInstallConfigInternal", arg0, arg1)
 	ret0, _ := ret[0].(*common.Cluster)
