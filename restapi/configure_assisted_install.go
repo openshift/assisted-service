@@ -332,6 +332,9 @@ type InstallerAPI interface {
 type ManagedDomainsAPI interface {
 	/* ListManagedDomains List of managed DNS domains. */
 	ListManagedDomains(ctx context.Context, params managed_domains.ListManagedDomainsParams) middleware.Responder
+
+	/* V2ListManagedDomains List of managed DNS domains. */
+	V2ListManagedDomains(ctx context.Context, params managed_domains.V2ListManagedDomainsParams) middleware.Responder
 }
 
 //go:generate mockery -name ManifestsAPI -inpkg
@@ -843,6 +846,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2DownloadClusterFiles(ctx, params)
+	})
+	api.ManagedDomainsV2ListManagedDomainsHandler = managed_domains.V2ListManagedDomainsHandlerFunc(func(params managed_domains.V2ListManagedDomainsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManagedDomainsAPI.V2ListManagedDomains(ctx, params)
 	})
 	api.InstallerV2UpdateClusterHandler = installer.V2UpdateClusterHandlerFunc(func(params installer.V2UpdateClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
