@@ -8540,6 +8540,44 @@ func init() {
         }
       }
     },
+    "/v2/supported-operators": {
+      "get": {
+        "description": "Retrieves the list of supported operators.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "V2ListSupportedOperators",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/supported-operators/{operator_name}": {
       "get": {
         "security": [
@@ -20837,6 +20875,44 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/supported-operators": {
+      "get": {
+        "description": "Retrieves the list of supported operators.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "V2ListSupportedOperators",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }

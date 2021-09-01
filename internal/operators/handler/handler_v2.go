@@ -30,3 +30,9 @@ func (h *Handler) V2ListOperatorProperties(ctx context.Context, params restopera
 	return restoperators.NewV2ListOperatorPropertiesOK().
 		WithPayload(properties)
 }
+
+// V2ListSupportedOperators Retrieves the list of supported operators.
+func (h *Handler) V2ListSupportedOperators(_ context.Context, _ restoperators.V2ListSupportedOperatorsParams) middleware.Responder {
+	return restoperators.NewV2ListSupportedOperatorsOK().
+		WithPayload(h.operatorsAPI.GetSupportedOperators())
+}
