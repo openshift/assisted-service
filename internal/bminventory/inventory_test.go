@@ -91,6 +91,7 @@ var (
 	mockIgnitionBuilder      *ignition.MockIgnitionBuilder
 	mockInstallConfigBuilder *installcfg.MockInstallConfigBuilder
 	mockStaticNetworkConfig  *staticnetworkconfig.MockStaticNetworkConfig
+	mockProviderRegistry     *registry.MockProviderRegistry
 	secondDayWorkerIgnition  = []byte(`{
 		"ignition": {
 		  "version": "3.1.0",
@@ -120,6 +121,7 @@ func mockClusterRegisterSteps() {
 	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
+	mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 }
 
 func mockClusterRegisterSuccess(bm *bareMetalInventory, withEvents bool) {
@@ -188,6 +190,17 @@ func getTestAuthHandler() auth.Authenticator {
 func strToUUID(s string) *strfmt.UUID {
 	u := strfmt.UUID(s)
 	return &u
+}
+
+func getDefaultClusterCreateParams() *models.ClusterCreateParams {
+	return &models.ClusterCreateParams{
+		Name:             swag.String("some-cluster-name"),
+		OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+		PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+		Platform: &models.Platform{
+			Type: models.PlatformTypeBaremetal,
+		},
+	}
 }
 
 func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallConfigGenerator, mockVersions *versions.MockHandler) {
@@ -3281,14 +3294,12 @@ var _ = Describe("cluster", func() {
 			mockClusterRegisterSuccess(bm, true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForNoneHA)
+			clusterParams.HighAvailabilityMode = &noneHaMode
+			clusterParams.VipDhcpAllocation = swag.Bool(true)
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("some-cluster-name"),
-					OpenshiftVersion:     swag.String(MinimalOpenShiftVersionForNoneHA),
-					PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-					HighAvailabilityMode: &noneHaMode,
-					VipDhcpAllocation:    swag.Bool(true),
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 			actual := reply.(*installer.RegisterClusterCreated)
@@ -3302,13 +3313,11 @@ var _ = Describe("cluster", func() {
 				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			insufficientOpenShiftVersionForNoneHA := "4.7"
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
+			clusterParams.HighAvailabilityMode = &noneHaMode
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("some-cluster-name"),
-					OpenshiftVersion:     swag.String(insufficientOpenShiftVersionForNoneHA),
-					PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-					HighAvailabilityMode: &noneHaMode,
-				},
+				NewClusterParams: clusterParams,
 			})
 			verifyApiError(reply, http.StatusBadRequest)
 		})
@@ -3317,13 +3326,11 @@ var _ = Describe("cluster", func() {
 				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			insufficientOpenShiftVersionForNoneHA := "4.7.0-fc.1"
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
+			clusterParams.HighAvailabilityMode = &noneHaMode
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("some-cluster-name"),
-					OpenshiftVersion:     swag.String(insufficientOpenShiftVersionForNoneHA),
-					PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-					HighAvailabilityMode: &noneHaMode,
-				},
+				NewClusterParams: clusterParams,
 			})
 			verifyApiError(reply, http.StatusBadRequest)
 		})
@@ -3334,13 +3341,11 @@ var _ = Describe("cluster", func() {
 			mockClusterRegisterSuccess(bm, true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0"
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
+			clusterParams.HighAvailabilityMode = &noneHaMode
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("some-cluster-name"),
-					OpenshiftVersion:     swag.String(openShiftVersionForNoneHA),
-					PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-					HighAvailabilityMode: &noneHaMode,
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 			actual := reply.(*installer.RegisterClusterCreated)
@@ -3356,14 +3361,12 @@ var _ = Describe("cluster", func() {
 			mockClusterRegisterSuccess(bm, true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
+			clusterParams.HighAvailabilityMode = &noneHaMode
+			clusterParams.VipDhcpAllocation = swag.Bool(true)
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("some-cluster-name"),
-					OpenshiftVersion:     swag.String(openShiftVersionForNoneHA),
-					PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-					HighAvailabilityMode: &noneHaMode,
-					VipDhcpAllocation:    swag.Bool(true),
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 			actual := reply.(*installer.RegisterClusterCreated)
@@ -3380,14 +3383,12 @@ var _ = Describe("cluster", func() {
 		mockClusterRegisterSuccess(bm, true)
 		noneHaMode := models.ClusterHighAvailabilityModeNone
 		openShiftVersionForNoneHA := "4.8.0-0.ci.test-2021-05-20-000749-ci-op-7xrzwgwy-latest"
+		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
+		clusterParams.HighAvailabilityMode = &noneHaMode
+		clusterParams.VipDhcpAllocation = swag.Bool(true)
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:                 swag.String("some-cluster-name"),
-				OpenshiftVersion:     swag.String(openShiftVersionForNoneHA),
-				PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-				HighAvailabilityMode: &noneHaMode,
-				VipDhcpAllocation:    swag.Bool(true),
-			},
+			NewClusterParams: clusterParams,
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 		actual := reply.(*installer.RegisterClusterCreated)
@@ -3486,11 +3487,7 @@ var _ = Describe("cluster", func() {
 			mockClusterRegisterSuccess(bm, true)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("some-cluster-name"),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: getDefaultClusterCreateParams(),
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 			actual := reply.(*installer.RegisterClusterCreated)
@@ -3516,11 +3513,7 @@ var _ = Describe("cluster", func() {
 			mockClusterRegisterSuccess(bm, true)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("some-cluster-name"),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: getDefaultClusterCreateParams(),
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 			actual := reply.(*installer.RegisterClusterCreated)
@@ -3582,11 +3575,7 @@ var _ = Describe("cluster", func() {
 					mockClusterRegisterSuccess(bm, true)
 
 					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-						NewClusterParams: &models.ClusterCreateParams{
-							Name:             swag.String("some-cluster-name"),
-							OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-							PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-						},
+						NewClusterParams: getDefaultClusterCreateParams(),
 					})
 					Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 					actual := reply.(*installer.RegisterClusterCreated)
@@ -3603,16 +3592,12 @@ var _ = Describe("cluster", func() {
 						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return operators, nil
 						}).Times(1)
-
+					clusterParams := getDefaultClusterCreateParams()
+					clusterParams.OlmOperators = []*models.OperatorCreateParams{
+						{Name: newOperatorName, Properties: newProperties},
+					}
 					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-						NewClusterParams: &models.ClusterCreateParams{
-							Name:             swag.String("some-cluster-name"),
-							OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-							PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-							OlmOperators: []*models.OperatorCreateParams{
-								{Name: newOperatorName, Properties: newProperties},
-							},
-						},
+						NewClusterParams: clusterParams,
 					})
 					Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 					actual := reply.(*installer.RegisterClusterCreated)
@@ -3640,16 +3625,12 @@ var _ = Describe("cluster", func() {
 						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return append(operators, testOLMOperators[0]), nil
 						}).Times(1)
-
+					clusterParams := getDefaultClusterCreateParams()
+					clusterParams.OlmOperators = []*models.OperatorCreateParams{
+						{Name: newOperatorName},
+					}
 					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-						NewClusterParams: &models.ClusterCreateParams{
-							Name:             swag.String("some-cluster-name"),
-							OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-							PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-							OlmOperators: []*models.OperatorCreateParams{
-								{Name: newOperatorName},
-							},
-						},
+						NewClusterParams: clusterParams,
 					})
 					Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 					actual := reply.(*installer.RegisterClusterCreated)
@@ -3686,15 +3667,12 @@ var _ = Describe("cluster", func() {
 					mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 					mockOperatorManager.EXPECT().GetOperatorByName(newOperatorName).Return(nil, errors.Errorf("error")).Times(1)
 
+					clusterParams := getDefaultClusterCreateParams()
+					clusterParams.OlmOperators = []*models.OperatorCreateParams{
+						{Name: newOperatorName},
+					}
 					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-						NewClusterParams: &models.ClusterCreateParams{
-							Name:             swag.String("some-cluster-name"),
-							OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-							PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-							OlmOperators: []*models.OperatorCreateParams{
-								{Name: newOperatorName},
-							},
-						},
+						NewClusterParams: clusterParams,
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 				})
@@ -9686,11 +9664,6 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		addHost(clusterId, vsphereInventory, role)
 	}
 
-	addGenericHost := func(clusterId strfmt.UUID, role models.HostRole) {
-		const genericInventory = "{\"system_vendor\": {\"manufacturer\": \"Red Hat\", \"product_name\": \"KVM\", \"serial_number\": \"\", \"virtual\": true}}"
-		addHost(clusterId, genericInventory, role)
-	}
-
 	validateInventory := func(host models.Host, manufacturer string) bool {
 		var inventory models.Inventory
 		if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
@@ -9718,13 +9691,6 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 
 	}
 
-	getClusterPlatforms := func() *[]models.PlatformType {
-		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
-		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
-		return &platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
-
-	}
-
 	It("no hosts", func() {
 		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
 		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
@@ -9742,74 +9708,6 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
 		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
 		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
-		Expect(len(platforms)).Should(Equal(1))
-		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
-	})
-
-	It("single vsphere host", func() {
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		validateHostsInventory(1, 0)
-		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
-		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
-		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
-		Expect(len(platforms)).Should(Equal(2))
-
-		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere}
-		Expect(platforms).Should(ContainElements(supportedPlatforms))
-	})
-
-	It("3 vsphere hosts", func() {
-		supportedPlatforms := []models.PlatformType{models.PlatformTypeVsphere, models.PlatformTypeBaremetal}
-
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		addVsphereHost(clusterID, models.HostRoleMaster)
-
-		validateHostsInventory(3, 0)
-
-		platforms := *getClusterPlatforms()
-		Expect(len(platforms)).Should(Equal(2))
-		Expect(platforms).Should(ContainElements(supportedPlatforms))
-	})
-
-	It("5 vsphere hosts", func() {
-		supportedPlatforms := []models.PlatformType{models.PlatformTypeVsphere, models.PlatformTypeBaremetal}
-
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		addVsphereHost(clusterID, models.HostRoleMaster)
-
-		validateHostsInventory(5, 0)
-
-		platforms := *getClusterPlatforms()
-		Expect(len(platforms)).Should(Equal(2))
-		Expect(platforms).Should(ContainElements(supportedPlatforms))
-	})
-
-	It("2 vsphere hosts 1 generic host", func() {
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		addGenericHost(clusterID, models.HostRoleMaster)
-
-		validateHostsInventory(2, 1)
-
-		platforms := *getClusterPlatforms()
-		Expect(len(platforms)).Should(Equal(1))
-		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
-	})
-
-	It("3 vsphere masters 2 generic workers", func() {
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		addGenericHost(clusterID, models.HostRoleMaster)
-		addGenericHost(clusterID, models.HostRoleMaster)
-
-		validateHostsInventory(3, 2)
-
-		platforms := *getClusterPlatforms()
 		Expect(len(platforms)).Should(Equal(1))
 		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
 	})
@@ -10473,11 +10371,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-			},
+			NewClusterParams: getDefaultClusterCreateParams(),
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 	})
@@ -10487,11 +10381,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-			},
+			NewClusterParams: getDefaultClusterCreateParams(),
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 		actual := reply.(*installer.RegisterClusterCreated)
@@ -10501,14 +10391,10 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("SchedulableMasters non default value", func() {
 		mockClusterRegisterSuccess(bm, true)
 		mockAMSSubscription(ctx)
-
+		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.SchedulableMasters = swag.Bool(true)
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:               swag.String("some-cluster-name"),
-				OpenshiftVersion:   swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:         swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				SchedulableMasters: swag.Bool(true),
-			},
+			NewClusterParams: clusterParams,
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 		actual := reply.(*installer.RegisterClusterCreated)
@@ -10520,11 +10406,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-			},
+			NewClusterParams: getDefaultClusterCreateParams(),
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 		actual := reply.(*installer.RegisterClusterCreated)
@@ -10534,15 +10416,11 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("UserManagedNetworking non default value", func() {
 		mockClusterRegisterSuccess(bm, true)
 		mockAMSSubscription(ctx)
-
+		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.UserManagedNetworking = swag.Bool(true)
+		clusterParams.VipDhcpAllocation = swag.Bool(false)
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:                  swag.String("some-cluster-name"),
-				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:            swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				UserManagedNetworking: swag.Bool(true),
-				VipDhcpAllocation:     swag.Bool(false),
-			},
+			NewClusterParams: clusterParams,
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 		actual := reply.(*installer.RegisterClusterCreated)
@@ -10550,27 +10428,21 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("Fail UserManagedNetworking with VIP DHCP", func() {
+		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.UserManagedNetworking = swag.Bool(true)
+		clusterParams.VipDhcpAllocation = swag.Bool(true)
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:                  swag.String("some-cluster-name"),
-				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:            swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				UserManagedNetworking: swag.Bool(true),
-				VipDhcpAllocation:     swag.Bool(true),
-			},
+			NewClusterParams: clusterParams,
 		})
 		verifyApiError(reply, http.StatusBadRequest)
 	})
 
 	It("Fail UserManagedNetworking with Ingress Vip", func() {
+		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.UserManagedNetworking = swag.Bool(true)
+		clusterParams.IngressVip = "10.35.10.10"
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:                  swag.String("some-cluster-name"),
-				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:            swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				UserManagedNetworking: swag.Bool(true),
-				IngressVip:            "10.35.10.10",
-			},
+			NewClusterParams: clusterParams,
 		})
 		verifyApiError(reply, http.StatusBadRequest)
 	})
@@ -10724,11 +10596,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("some-cluster-name"),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: getDefaultClusterCreateParams(),
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 			actual := reply.(*installer.RegisterClusterCreated)
@@ -10740,14 +10608,11 @@ var _ = Describe("TestRegisterCluster", func() {
 
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.AdditionalNtpSource = &newNtpSource
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:                swag.String("some-cluster-name"),
-					OpenshiftVersion:    swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:          swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-					AdditionalNtpSource: &newNtpSource,
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 			actual := reply.(*installer.RegisterClusterCreated)
@@ -10761,11 +10626,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockClusterRegisterSteps()
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}`),
-			},
+			NewClusterParams: getDefaultClusterCreateParams(),
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusInternalServerError, errors.Errorf("error"))))
 	})
@@ -10776,11 +10637,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-			},
+			NewClusterParams: getDefaultClusterCreateParams(),
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 		actual := reply.(*installer.RegisterClusterCreated)
@@ -10793,12 +10650,10 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 
+		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.PullSecret = swag.String("")
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:       swag.String(""),
-			},
+			NewClusterParams: clusterParams,
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
@@ -10806,12 +10661,11 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("openshift version not supported", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("OpenShift Version is not supported")).Times(1)
 
+		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.OpenshiftVersion = swag.String("999")
+		clusterParams.PullSecret = swag.String("")
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String("999"),
-				PullSecret:       swag.String(""),
-			},
+			NewClusterParams: clusterParams,
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
@@ -10820,11 +10674,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockClusterRegisterSuccess(bm, true)
 		mockAMSSubscription(ctx)
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-			},
+			NewClusterParams: getDefaultClusterCreateParams(),
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 		actual := reply.(*installer.RegisterClusterCreated)
@@ -10999,13 +10849,10 @@ var _ = Describe("AMS subscriptions", func() {
 		It("register cluster happy flow", func() {
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
-
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.Name = swag.String(clusterName)
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String(clusterName),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 			actual := reply.(*installer.RegisterClusterCreated)
@@ -11021,12 +10868,10 @@ var _ = Describe("AMS subscriptions", func() {
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any(), clusterName).Return(nil, errors.New("dummy"))
 			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
 
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.Name = swag.String(clusterName)
 			err := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String(clusterName),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(err).To(HaveOccurred())
 		})
@@ -11040,12 +10885,10 @@ var _ = Describe("AMS subscriptions", func() {
 			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
 			mockAccountsMgmt.EXPECT().DeleteSubscription(ctx, strfmt.UUID("")).Return(nil)
 
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.Name = swag.String("ams-cluster")
 			err := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("ams-cluster"),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(err).To(HaveOccurred())
 		})
@@ -11058,12 +10901,10 @@ var _ = Describe("AMS subscriptions", func() {
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
 
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.Name = swag.String("ams-cluster")
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("ams-cluster"),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 			clusterID := *reply.(*installer.RegisterClusterCreated).Payload.ID
@@ -11083,12 +10924,10 @@ var _ = Describe("AMS subscriptions", func() {
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
 
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.Name = swag.String(clusterName)
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String(clusterName),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 			actual := reply.(*installer.RegisterClusterCreated)
@@ -11118,12 +10957,10 @@ var _ = Describe("AMS subscriptions", func() {
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
 
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.Name = swag.String(clusterName)
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String(clusterName),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 			actual := reply.(*installer.RegisterClusterCreated)
@@ -11150,12 +10987,10 @@ var _ = Describe("AMS subscriptions", func() {
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
 
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.Name = swag.String(clusterName)
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String(clusterName),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 			actual := reply.(*installer.RegisterClusterCreated)
@@ -11262,12 +11097,10 @@ var _ = Describe("AMS subscriptions", func() {
 			bm.ocmClient = nil
 			mockClusterRegisterSuccess(bm, true)
 
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.Name = swag.String("ams-cluster")
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("ams-cluster"),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: clusterParams,
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 			clusterID := *reply.(*installer.RegisterClusterCreated).Payload.ID
@@ -12428,7 +12261,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockCRDUtils = NewMockCRDUtils(ctrl)
 	mockOperatorManager = operators.NewMockAPI(ctrl)
 	mockIgnitionBuilder = ignition.NewMockIgnitionBuilder(ctrl)
-	mockProviderRegistry := registry.NewMockProviderRegistry(ctrl)
+	mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
 	mockInstallConfigBuilder = installcfg.NewMockInstallConfigBuilder(ctrl)
 	mockHwValidator = hardware.NewMockValidator(ctrl)
 	mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
@@ -12469,7 +12302,7 @@ var _ = Describe("IPv6 support disabled", func() {
 
 		BeforeEach(func() {
 			params = installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{},
+				NewClusterParams: getDefaultClusterCreateParams(),
 			}
 		})
 
@@ -12869,13 +12702,10 @@ var _ = Describe("Platform tests", func() {
 		mockOperators := operators.NewMockAPI(ctrl)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
 		bm.ocmClient = nil
-
+		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.Name = swag.String("cluster")
 		registerParams = &installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("cluster"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-			},
+			NewClusterParams: clusterParams,
 		}
 
 		mockClusterRegisterSuccess(bm, true)
@@ -12923,189 +12753,6 @@ var _ = Describe("Platform tests", func() {
 			Expect(cluster.Platform.Vsphere).ShouldNot(BeNil())
 		})
 	})
-
-	Context("Update cluster", func() {
-		var (
-			c                   *common.Cluster
-			updateClusterParams = installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{},
-			}
-			toVSphere = func() {
-				updateClusterParams.ClusterID = *c.ID
-				updateClusterParams.ClusterUpdateParams = &models.ClusterUpdateParams{
-					Platform: getVSpherePlatform(),
-				}
-
-				reply := bm.UpdateCluster(ctx, updateClusterParams)
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				var err error
-				c, err = bm.getCluster(ctx, c.ID.String())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(c.Platform).ShouldNot(BeNil())
-				Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeVsphere))
-				Expect(c.Platform.Vsphere).ShouldNot(BeNil())
-				Expect(c.Platform.Vsphere.Network).Should(BeEquivalentTo(updateClusterParams.ClusterUpdateParams.Platform.Vsphere.Network))
-			}
-		)
-
-		BeforeEach(func() {
-			reply := bm.RegisterCluster(ctx, *registerParams)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
-			var err error
-			c, err = bm.getCluster(ctx, actual.Payload.ID.String())
-			Expect(err).ToNot(HaveOccurred())
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName))).AnyTimes()
-			Expect(c.Platform).ShouldNot(BeNil())
-			Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
-			Expect(c.Platform.Vsphere.Username).Should(BeNil())
-		})
-
-		It("vsphere platform creation", func() {
-			toVSphere()
-		})
-
-		It("switch to bare-metal platform", func() {
-			toVSphere()
-			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-				ClusterID: *c.ID,
-				ClusterUpdateParams: &models.ClusterUpdateParams{
-					Platform: &models.Platform{
-						Type:    models.PlatformTypeBaremetal,
-						Vsphere: nil,
-					},
-				},
-			})
-			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-			var err error
-			c, err = bm.getCluster(ctx, c.ID.String())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(c.Platform).ShouldNot(BeNil())
-			Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
-			Expect(c.Platform.Vsphere.Username).Should(BeNil())
-		})
-	})
-})
-
-var _ = Describe("[V2UpdateCluster] Platform tests", func() {
-
-	var (
-		cfg                Config
-		ctx                = context.Background()
-		bm                 *bareMetalInventory
-		db                 *gorm.DB
-		dbName             string
-		registerParams     *installer.RegisterClusterParams
-		getVSpherePlatform = func() *models.Platform {
-			dummy := "dummy"
-			dummyPassword := strfmt.Password(dummy)
-
-			return &models.Platform{
-				Type: models.PlatformTypeVsphere,
-				Vsphere: &models.VspherePlatform{
-					Cluster:          &dummy,
-					Datacenter:       &dummy,
-					DefaultDatastore: &dummy,
-					Folder:           &dummy,
-					Network:          &dummy,
-					Password:         &dummyPassword,
-					Username:         &dummy,
-					VCenter:          &dummy,
-				},
-			}
-		}
-	)
-
-	BeforeEach(func() {
-		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB(dbName)
-		bm = createInventory(db, cfg)
-		mockOperators := operators.NewMockAPI(ctrl)
-		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
-		bm.ocmClient = nil
-
-		registerParams = &installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("cluster"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-			},
-		}
-
-		mockClusterRegisterSuccess(bm, true)
-		mockUsageReports()
-		mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any()).AnyTimes()
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
-
-	Context("Update cluster", func() {
-		var (
-			c                   *common.Cluster
-			updateClusterParams = installer.V2UpdateClusterParams{
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{},
-			}
-			toVSphere = func() {
-				updateClusterParams.ClusterID = *c.ID
-				updateClusterParams.ClusterUpdateParams = &models.V2ClusterUpdateParams{
-					Platform: getVSpherePlatform(),
-				}
-
-				reply := bm.V2UpdateCluster(ctx, updateClusterParams)
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-				var err error
-				c, err = bm.getCluster(ctx, c.ID.String())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(c.Platform).ShouldNot(BeNil())
-				Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeVsphere))
-				Expect(c.Platform.Vsphere).ShouldNot(BeNil())
-				Expect(c.Platform.Vsphere.Network).Should(BeEquivalentTo(updateClusterParams.ClusterUpdateParams.Platform.Vsphere.Network))
-			}
-		)
-
-		BeforeEach(func() {
-			reply := bm.RegisterCluster(ctx, *registerParams)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
-			var err error
-			c, err = bm.getCluster(ctx, actual.Payload.ID.String())
-			Expect(err).ToNot(HaveOccurred())
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName))).AnyTimes()
-			Expect(c.Platform).ShouldNot(BeNil())
-			Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
-			Expect(c.Platform.Vsphere.Username).Should(BeNil())
-		})
-
-		It("vsphere platform creation", func() {
-			toVSphere()
-		})
-
-		It("switch to bare-metal platform", func() {
-			toVSphere()
-			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-				ClusterID: *c.ID,
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					Platform: &models.Platform{
-						Type:    models.PlatformTypeBaremetal,
-						Vsphere: nil,
-					},
-				},
-			})
-			Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-			var err error
-			c, err = bm.getCluster(ctx, c.ID.String())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(c.Platform).ShouldNot(BeNil())
-			Expect(c.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
-			Expect(c.Platform.Vsphere.Username).Should(BeNil())
-		})
-	})
-
 })
 
 var _ = Describe("DownloadClusterFiles", func() {
