@@ -622,9 +622,6 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	cluster *common.Cluster) (*common.Cluster, error) {
 
 	update := false
-	notifyInfraEnv := false
-	var infraEnv *aiv1beta1.InfraEnv
-
 	params := &models.ClusterUpdateParams{}
 
 	spec := clusterDeployment.Spec
@@ -712,11 +709,10 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	if err != nil {
 		return cluster, errors.Wrap(err, "failed to get pull secret for update")
 	}
-	// TODO: change isInfraEnvUpdate to false, once clusterDeployment pull-secret can differ from infraEnv
+
 	if pullSecretData != cluster.PullSecret {
 		params.PullSecret = swag.String(pullSecretData)
 		update = true
-		notifyInfraEnv = true
 	}
 
 	// update hyperthreading settings
@@ -739,16 +735,8 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		return cluster, err
 	}
 
-	infraEnv, err = getInfraEnvByClusterDeployment(ctx, log, r.Client, clusterDeployment.Name, clusterDeployment.Namespace)
-	if err != nil {
-		return cluster, errors.Wrap(err, fmt.Sprintf("failed to search for infraEnv for clusterDeployment %s", clusterDeployment.Name))
-	}
-
 	log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
-	if notifyInfraEnv && infraEnv != nil {
-		log.Infof("Notify that infraEnv %s should re-generate the image for clusterDeployment %s", infraEnv.Name, clusterDeployment.ClusterName)
-		r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
-	}
+
 	return clusterAfterUpdate, nil
 }
 
@@ -902,8 +890,6 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
 
-	var infraEnv *aiv1beta1.InfraEnv
-
 	log.Infof("Creating a new cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 	spec := clusterDeployment.Spec
 
@@ -961,16 +947,6 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,
 	}, false)
-	if err == nil { // Cluster registration succeeded
-		infraEnv, err = getInfraEnvByClusterDeployment(ctx, log, r.Client, clusterDeployment.Name, clusterDeployment.Namespace)
-		if err != nil {
-			log.Errorf("failed to search for infraEnv to notify, for clusterDeployment %s", clusterDeployment.Name)
-		} else if infraEnv != nil { // infraEnv exists for that clusterDeployment
-			log.Infof("Notify that infraEnv %s should re-generate the image for clusterDeployment %s",
-				infraEnv.Name, clusterDeployment.Name)
-			r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
-		}
-	}
 
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
