@@ -131,7 +131,7 @@ type API interface {
 	IndexOfStage(element models.HostStage, data []models.HostStage) int
 	IsInstallable(h *models.Host) bool
 	// auto assign host role
-	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error
+	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) (bool, error)
 	IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
@@ -617,10 +617,13 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.Ho
 		cdb = db
 	}
 
+	//UpdateRole is always invoked from an API and therefore
+	//the roles are user-selected. In this case suggested roles
+	//takes the user selection
 	if h.Role == "" {
-		return updateRole(m.log, h, role, cdb, nil)
+		return updateRole(m.log, h, role, role, cdb, nil)
 	} else {
-		return updateRole(m.log, h, role, cdb, swag.String(string(h.Role)))
+		return updateRole(m.log, h, role, role, cdb, swag.String(string(h.Role)))
 	}
 }
 
@@ -974,45 +977,60 @@ func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *mod
 	return hostutil.UpdateHost(logutil.FromContext(ctx, m.log), db, h.InfraEnvID, *h.ID, *h.Status, "validations_info", string(b))
 }
 
-func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	// select role if needed
+func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) (bool, error) {
 	if h.Role == models.HostRoleAutoAssign {
-		return m.autoRoleSelection(ctx, h, db)
+		log := logutil.FromContext(ctx, m.log)
+		// If role is auto-assigned calculate the suggested roles
+		// This logic will moved to the monitor soon
+		suggestedRole, err := m.autoRoleSelection(ctx, h, db)
+		if err != nil {
+			return false, err
+		}
+
+		//copy the suggested role into the role and update the host record
+		log.Infof("suggested role %s for host %s cluster %s", suggestedRole, h.ID.String(), h.ClusterID.String())
+		if err := updateRole(m.log, h, suggestedRole, suggestedRole, db, swag.String(string(models.HostRoleAutoAssign))); err != nil {
+			log.WithError(err).Errorf("failed to update role %s for host %s cluster %s",
+				suggestedRole, h.ID.String(), h.ClusterID.String())
+			return true, err
+		}
+
+		// update the host in memory with the recent database state
+		return true, db.Model(&models.Host{}).
+			Take(h, "id = ? and infra_env_id = ?", h.ID.String(), h.InfraEnvID.String()).Error
 	}
-	return nil
+
+	return false, nil
 }
 
-func (m *Manager) autoRoleSelection(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	log := logutil.FromContext(ctx, m.log)
-	if h.Inventory == "" {
-		return errors.Errorf("host %s from cluster %s don't have hardware info",
-			h.ID.String(), h.ClusterID.String())
-	}
-	role, err := m.selectRole(ctx, h, db)
-	if err != nil {
-		return err
-	}
-	// use sourced role to prevent races with user role setting
-	if err := updateRole(m.log, h, role, db, swag.String(string(models.HostRoleAutoAssign))); err != nil {
-		log.WithError(err).Errorf("failed to update role %s for host %s cluster %s",
-			role, h.ID.String(), h.ClusterID.String())
-	}
-	log.Infof("Auto selected role %s for host %s cluster %s", role, h.ID.String(), h.ClusterID.String())
-	// pointer was changed in selectRole or after the update - need to take the host again
-	return db.Model(&models.Host{}).
-		Take(h, "id = ? and infra_env_id = ?", h.ID.String(), h.InfraEnvID.String()).Error
+func (m *Manager) autoRoleSelection(ctx context.Context, host *models.Host, db *gorm.DB) (models.HostRole, error) {
+	h := *host
+
+	suggestedRole, err := m.selectRole(ctx, &h, db)
+	return suggestedRole, err
 }
 
+// This function recommends a role for a given host based on these criteria:
+// 1. if there are not enough masters and the host has enough capabilities to be
+//    a master the function select it to be a master
+// 2. if there are enough masters, or it is a day2 host, or it has not enough capabilities
+//    to be a master the function select it to be a  worker
+// 3. in case of missing inventory or an internal error the function returns auto-assign
 func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (models.HostRole, error) {
 	var (
-		autoSelectedRole = models.HostRoleWorker
+		autoSelectedRole = models.HostRoleAutoAssign
 		log              = logutil.FromContext(ctx, m.log)
 		err              error
 		vc               *validationContext
 	)
 
 	if hostutil.IsDay2Host(h) {
-		return autoSelectedRole, nil
+		return models.HostRoleWorker, nil
+	}
+
+	if h.Inventory == "" {
+		return autoSelectedRole, errors.Errorf("host %s from cluster %s don't have hardware info",
+			h.ID.String(), h.ClusterID.String())
 	}
 
 	// count already existing masters
@@ -1040,7 +1058,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 		}
 	}
 
-	return autoSelectedRole, nil
+	return models.HostRoleWorker, nil
 }
 
 func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (bool, error) {

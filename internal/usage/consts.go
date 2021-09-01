@@ -19,6 +19,8 @@ const (
 	NetworkTypeSelectionUsage string = "NetworkType"
 	//usage of platform provider other than baremetal
 	PlatformSelectionUsage string = "Platform selection"
-	//ussage of schedulable masters
+	//usage of schedulable masters
 	SchedulableMasters string = "Schedulable masters"
+	//usage of auto assign role
+	AutoAssignRoleUsage string = "auto assign role"
 )

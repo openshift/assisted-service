@@ -5207,6 +5207,8 @@ definitions:
         description: Additional information about disks, formatted as JSON.
       role:
         $ref: '#/definitions/host-role'
+      suggested_role:
+        $ref: '#/definitions/host-role'
       bootstrap:
         type: boolean
       logs_collected_at:

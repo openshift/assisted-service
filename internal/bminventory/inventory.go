@@ -1450,10 +1450,21 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	}
 	// auto select hosts roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
+		var autoAssigned bool
+		var selected bool
 		for i := range cluster.Hosts {
-			if err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx); err != nil {
+			if selected, err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx); err != nil {
 				return err
+			} else {
+				autoAssigned = autoAssigned || selected
 			}
+		}
+		//usage for auto role selection is measured only for day1 clusters with more than
+		//3 hosts (which would automatically be assigned as masters if the hw is sufficient)
+		if usages, uerr := usage.Unmarshal(cluster.Cluster.FeatureUsage); uerr == nil {
+			report := cluster.Cluster.EnabledHostCount > common.MinMasterHostsNeededForInstallation && selected
+			b.setUsage(report, usage.AutoAssignRoleUsage, nil, usages)
+			b.usageApi.Save(tx, *cluster.ID, usages)
 		}
 		return nil
 	})
@@ -1558,7 +1569,7 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 	}
 	// auto select host roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
-		if err = b.hostApi.AutoAssignRole(ctx, &h.Host, tx); err != nil {
+		if _, err = b.hostApi.AutoAssignRole(ctx, &h.Host, tx); err != nil {
 			return err
 		}
 		return nil
@@ -1645,7 +1656,7 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 		return common.NewApiError(http.StatusConflict, fmt.Errorf("cannot install host in state %s", swag.StringValue(h.Status)))
 	}
 
-	err = b.hostApi.AutoAssignRole(ctx, h, b.db)
+	_, err = b.hostApi.AutoAssignRole(ctx, h, b.db)
 	if err != nil {
 		log.Errorf("Failed to update role for host %s", params.HostID)
 		return common.GenerateErrorResponder(err)
@@ -1693,7 +1704,7 @@ func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.
 			if swag.StringValue(cluster.Hosts[i].Status) != models.HostStatusKnown {
 				continue
 			}
-			if err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx); err != nil {
+			if _, err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx); err != nil {
 				return err
 			}
 		}
@@ -4485,7 +4496,7 @@ func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.I
 		return common.NewApiError(http.StatusConflict, fmt.Errorf("cannot install host in state %s", swag.StringValue(h.Status)))
 	}
 
-	err = b.hostApi.AutoAssignRole(ctx, h, b.db)
+	_, err = b.hostApi.AutoAssignRole(ctx, h, b.db)
 	if err != nil {
 		log.Errorf("Failed to update role for host %s", params.HostID)
 		return common.GenerateErrorResponder(err)
