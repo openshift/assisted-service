@@ -119,6 +119,30 @@ func (mr *MockSenderMockRecorder) SendHostEventAtTime(ctx, event, eventTime inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendHostEventAtTime", reflect.TypeOf((*MockSender)(nil).SendHostEventAtTime), ctx, event, eventTime)
 }
 
+// SendInfraEnvEvent mocks base method.
+func (m *MockSender) SendInfraEnvEvent(ctx context.Context, event InfraEnvEvent) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SendInfraEnvEvent", ctx, event)
+}
+
+// SendInfraEnvEvent indicates an expected call of SendInfraEnvEvent.
+func (mr *MockSenderMockRecorder) SendInfraEnvEvent(ctx, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendInfraEnvEvent", reflect.TypeOf((*MockSender)(nil).SendInfraEnvEvent), ctx, event)
+}
+
+// SendInfraEnvEventAtTime mocks base method.
+func (m *MockSender) SendInfraEnvEventAtTime(ctx context.Context, event InfraEnvEvent, eventTime time.Time) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SendInfraEnvEventAtTime", ctx, event, eventTime)
+}
+
+// SendInfraEnvEventAtTime indicates an expected call of SendInfraEnvEventAtTime.
+func (mr *MockSenderMockRecorder) SendInfraEnvEventAtTime(ctx, event, eventTime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendInfraEnvEventAtTime", reflect.TypeOf((*MockSender)(nil).SendInfraEnvEventAtTime), ctx, event, eventTime)
+}
+
 // MockHandler is a mock of Handler interface.
 type MockHandler struct {
 	ctrl     *gomock.Controller
@@ -242,6 +266,30 @@ func (m *MockHandler) SendHostEventAtTime(ctx context.Context, event HostEvent, 
 func (mr *MockHandlerMockRecorder) SendHostEventAtTime(ctx, event, eventTime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendHostEventAtTime", reflect.TypeOf((*MockHandler)(nil).SendHostEventAtTime), ctx, event, eventTime)
+}
+
+// SendInfraEnvEvent mocks base method.
+func (m *MockHandler) SendInfraEnvEvent(ctx context.Context, event InfraEnvEvent) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SendInfraEnvEvent", ctx, event)
+}
+
+// SendInfraEnvEvent indicates an expected call of SendInfraEnvEvent.
+func (mr *MockHandlerMockRecorder) SendInfraEnvEvent(ctx, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendInfraEnvEvent", reflect.TypeOf((*MockHandler)(nil).SendInfraEnvEvent), ctx, event)
+}
+
+// SendInfraEnvEventAtTime mocks base method.
+func (m *MockHandler) SendInfraEnvEventAtTime(ctx context.Context, event InfraEnvEvent, eventTime time.Time) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SendInfraEnvEventAtTime", ctx, event, eventTime)
+}
+
+// SendInfraEnvEventAtTime indicates an expected call of SendInfraEnvEventAtTime.
+func (mr *MockHandlerMockRecorder) SendInfraEnvEventAtTime(ctx, event, eventTime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendInfraEnvEventAtTime", reflect.TypeOf((*MockHandler)(nil).SendInfraEnvEventAtTime), ctx, event, eventTime)
 }
 
 // MockBaseEvent is a mock of BaseEvent interface.
@@ -426,10 +474,10 @@ func (mr *MockHostEventMockRecorder) FormatMessage() *gomock.Call {
 }
 
 // GetClusterId mocks base method.
-func (m *MockHostEvent) GetClusterId() strfmt.UUID {
+func (m *MockHostEvent) GetClusterId() *strfmt.UUID {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterId")
-	ret0, _ := ret[0].(strfmt.UUID)
+	ret0, _ := ret[0].(*strfmt.UUID)
 	return ret0
 }
 
@@ -451,6 +499,20 @@ func (m *MockHostEvent) GetHostId() strfmt.UUID {
 func (mr *MockHostEventMockRecorder) GetHostId() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostId", reflect.TypeOf((*MockHostEvent)(nil).GetHostId))
+}
+
+// GetInfraEnvId mocks base method.
+func (m *MockHostEvent) GetInfraEnvId() strfmt.UUID {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInfraEnvId")
+	ret0, _ := ret[0].(strfmt.UUID)
+	return ret0
+}
+
+// GetInfraEnvId indicates an expected call of GetInfraEnvId.
+func (mr *MockHostEventMockRecorder) GetInfraEnvId() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvId", reflect.TypeOf((*MockHostEvent)(nil).GetInfraEnvId))
 }
 
 // GetName mocks base method.
@@ -479,4 +541,97 @@ func (m *MockHostEvent) GetSeverity() string {
 func (mr *MockHostEventMockRecorder) GetSeverity() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSeverity", reflect.TypeOf((*MockHostEvent)(nil).GetSeverity))
+}
+
+// MockInfraEnvEvent is a mock of InfraEnvEvent interface.
+type MockInfraEnvEvent struct {
+	ctrl     *gomock.Controller
+	recorder *MockInfraEnvEventMockRecorder
+}
+
+// MockInfraEnvEventMockRecorder is the mock recorder for MockInfraEnvEvent.
+type MockInfraEnvEventMockRecorder struct {
+	mock *MockInfraEnvEvent
+}
+
+// NewMockInfraEnvEvent creates a new mock instance.
+func NewMockInfraEnvEvent(ctrl *gomock.Controller) *MockInfraEnvEvent {
+	mock := &MockInfraEnvEvent{ctrl: ctrl}
+	mock.recorder = &MockInfraEnvEventMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockInfraEnvEvent) EXPECT() *MockInfraEnvEventMockRecorder {
+	return m.recorder
+}
+
+// FormatMessage mocks base method.
+func (m *MockInfraEnvEvent) FormatMessage() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FormatMessage")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// FormatMessage indicates an expected call of FormatMessage.
+func (mr *MockInfraEnvEventMockRecorder) FormatMessage() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatMessage", reflect.TypeOf((*MockInfraEnvEvent)(nil).FormatMessage))
+}
+
+// GetClusterId mocks base method.
+func (m *MockInfraEnvEvent) GetClusterId() *strfmt.UUID {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClusterId")
+	ret0, _ := ret[0].(*strfmt.UUID)
+	return ret0
+}
+
+// GetClusterId indicates an expected call of GetClusterId.
+func (mr *MockInfraEnvEventMockRecorder) GetClusterId() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterId", reflect.TypeOf((*MockInfraEnvEvent)(nil).GetClusterId))
+}
+
+// GetInfraEnvId mocks base method.
+func (m *MockInfraEnvEvent) GetInfraEnvId() strfmt.UUID {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInfraEnvId")
+	ret0, _ := ret[0].(strfmt.UUID)
+	return ret0
+}
+
+// GetInfraEnvId indicates an expected call of GetInfraEnvId.
+func (mr *MockInfraEnvEventMockRecorder) GetInfraEnvId() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvId", reflect.TypeOf((*MockInfraEnvEvent)(nil).GetInfraEnvId))
+}
+
+// GetName mocks base method.
+func (m *MockInfraEnvEvent) GetName() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetName")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetName indicates an expected call of GetName.
+func (mr *MockInfraEnvEventMockRecorder) GetName() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetName", reflect.TypeOf((*MockInfraEnvEvent)(nil).GetName))
+}
+
+// GetSeverity mocks base method.
+func (m *MockInfraEnvEvent) GetSeverity() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSeverity")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetSeverity indicates an expected call of GetSeverity.
+func (mr *MockInfraEnvEventMockRecorder) GetSeverity() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSeverity", reflect.TypeOf((*MockInfraEnvEvent)(nil).GetSeverity))
 }

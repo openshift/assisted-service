@@ -13,8 +13,8 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID
     host_id: UUID
+    infra_env_id: UUID
     message: string
     severity: string
 
@@ -39,6 +39,7 @@ x-events:
   properties:
     cluster_id: UUID
     host_id: UUID
+    infra_env_id: UUID
 
 - name: cluster_registration_failed
   message: "Failed to register cluster. Error: {error}"
@@ -198,3 +199,28 @@ x-events:
     cluster_id: UUID
     failed_operators: string
 
+- name: download_image_failed_fetch
+  message: "Failed to download image: error fetching from storage backend"
+  event_type: infra_env
+  severity: "error"
+  properties:
+    infra_env_id: UUID
+
+- name: host_deregistered_cluster
+  message: "Host deregistered from cluster"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+
+- name: host_installer_args_applied
+  message: "Host {host_name}: custom installer arguments were applied"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string

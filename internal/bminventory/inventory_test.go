@@ -9128,7 +9128,8 @@ var _ = Describe("AMS subscriptions", func() {
 			newClusterName := "ams-cluster-new-name"
 			mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any())
 			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName)))
+				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+				eventstest.WithClusterIdMatcher(c.ID.String())))
 			mockAccountsMgmt.EXPECT().UpdateSubscriptionDisplayName(ctx, c.AmsSubscriptionID, newClusterName).Return(nil)
 
 			reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -10032,7 +10033,8 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 			HostID:              hostID,
 			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
 		}
-		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom installer arguments were applied", params.HostID.String()), gomock.Any())
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostInstallerArgsAppliedEventName)))
 		response := bm.UpdateHostInstallerArgs(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostInstallerArgsCreated{}))
 
