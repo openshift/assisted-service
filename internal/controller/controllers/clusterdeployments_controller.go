@@ -360,7 +360,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 
 		log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 		var ic *common.Cluster
-		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
+		ic, err = r.Installer.InstallClusterInternal(ctx, installer.V2InstallClusterParams{
 			ClusterID: *cluster.ID,
 		})
 		if err != nil {

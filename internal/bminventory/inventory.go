@@ -129,7 +129,7 @@ type InstallerInternals interface {
 	UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
-	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
+	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams) error
 	DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error
 	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams) error
@@ -1422,11 +1422,7 @@ func (b *bareMetalInventory) storeOpenshiftClusterID(ctx context.Context, cluste
 }
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
-	c, err := b.InstallClusterInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewInstallClusterAccepted().WithPayload(&c.Cluster)
+	return b.V2InstallCluster(ctx, installer.V2InstallClusterParams(params))
 }
 
 func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.Context, amsSubscriptionID, openshiftClusterID strfmt.UUID) error {
@@ -1439,7 +1435,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.
 	return nil
 }
 
-func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	cluster := &common.Cluster{}
 	var err error

@@ -5247,7 +5247,7 @@ var _ = Describe("cluster", func() {
 				ClusterID: clusterID,
 			})
 
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2InstallClusterAccepted()))
 			waitForDoneChannel()
 
 			count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
@@ -5378,7 +5378,7 @@ var _ = Describe("cluster", func() {
 				ClusterID: clusterID,
 			})
 
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2InstallClusterAccepted()))
 			waitForDoneChannel()
 
 			count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
@@ -9278,7 +9278,7 @@ var _ = Describe("AMS subscriptions", func() {
 					reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 						ClusterID: clusterID,
 					})
-					Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2InstallClusterAccepted()))
 					waitForDoneChannel()
 				})
 			})

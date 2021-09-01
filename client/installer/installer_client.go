@@ -226,6 +226,9 @@ type API interface {
 	   V2GetNextSteps Retrieves the next operations that the host agent needs to perform.*/
 	V2GetNextSteps(ctx context.Context, params *V2GetNextStepsParams) (*V2GetNextStepsOK, error)
 	/*
+	   V2InstallCluster Installs the OpenShift cluster.*/
+	V2InstallCluster(ctx context.Context, params *V2InstallClusterParams) (*V2InstallClusterAccepted, error)
+	/*
 	   V2InstallHost install specific host for day2 cluster.*/
 	V2InstallHost(ctx context.Context, params *V2InstallHostParams) (*V2InstallHostAccepted, error)
 	/*
@@ -1973,6 +1976,31 @@ func (a *Client) V2GetNextSteps(ctx context.Context, params *V2GetNextStepsParam
 		return nil, err
 	}
 	return result.(*V2GetNextStepsOK), nil
+
+}
+
+/*
+V2InstallCluster Installs the OpenShift cluster.
+*/
+func (a *Client) V2InstallCluster(ctx context.Context, params *V2InstallClusterParams) (*V2InstallClusterAccepted, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2InstallCluster",
+		Method:             "POST",
+		PathPattern:        "/v2/clusters/{cluster_id}/actions/install",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2InstallClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2InstallClusterAccepted), nil
 
 }
 

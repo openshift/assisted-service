@@ -68,3 +68,11 @@ func (b *bareMetalInventory) V2UpdateClusterInstallConfig(ctx context.Context, p
 	}
 	return installer.NewV2UpdateClusterInstallConfigCreated()
 }
+
+func (b *bareMetalInventory) V2InstallCluster(ctx context.Context, params installer.V2InstallClusterParams) middleware.Responder {
+	c, err := b.InstallClusterInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2InstallClusterAccepted().WithPayload(&c.Cluster)
+}

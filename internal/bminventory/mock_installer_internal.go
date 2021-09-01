@@ -249,7 +249,7 @@ func (mr *MockInstallerInternalsMockRecorder) GetInfraEnvByKubeKey(arg0 interfac
 }
 
 // InstallClusterInternal mocks base method.
-func (m *MockInstallerInternals) InstallClusterInternal(arg0 context.Context, arg1 installer.InstallClusterParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) InstallClusterInternal(arg0 context.Context, arg1 installer.V2InstallClusterParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InstallClusterInternal", arg0, arg1)
 	ret0, _ := ret[0].(*common.Cluster)
