@@ -61,7 +61,7 @@ function generate_from_swagger() {
 function generate_events() {
     rm -rf internal/common/events
     mkdir -p internal/common/events
-    tools/generate_events.py ./data/events.yaml internal/common/events/events.go
+    tools/generate_events.py ./docs/events.yaml internal/common/events/events.go
 }
 
 function generate_configuration() {
