@@ -30,6 +30,9 @@ type API interface {
 	   ReportMonitoredOperatorStatus Controller API to report of monitored operators.*/
 	ReportMonitoredOperatorStatus(ctx context.Context, params *ReportMonitoredOperatorStatusParams) (*ReportMonitoredOperatorStatusOK, error)
 	/*
+	   V2ListOperatorProperties Lists properties for an operator.*/
+	V2ListOperatorProperties(ctx context.Context, params *V2ListOperatorPropertiesParams) (*V2ListOperatorPropertiesOK, error)
+	/*
 	   V2ReportMonitoredOperatorStatus Controller API to report of monitored operators.*/
 	V2ReportMonitoredOperatorStatus(ctx context.Context, params *V2ReportMonitoredOperatorStatusParams) (*V2ReportMonitoredOperatorStatusOK, error)
 }
@@ -149,6 +152,31 @@ func (a *Client) ReportMonitoredOperatorStatus(ctx context.Context, params *Repo
 		return nil, err
 	}
 	return result.(*ReportMonitoredOperatorStatusOK), nil
+
+}
+
+/*
+V2ListOperatorProperties Lists properties for an operator.
+*/
+func (a *Client) V2ListOperatorProperties(ctx context.Context, params *V2ListOperatorPropertiesParams) (*V2ListOperatorPropertiesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2ListOperatorProperties",
+		Method:             "GET",
+		PathPattern:        "/v2/supported-operators/{operator_name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ListOperatorPropertiesReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ListOperatorPropertiesOK), nil
 
 }
 
