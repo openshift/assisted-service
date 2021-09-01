@@ -286,6 +286,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		ManagedDomainsV2ListManagedDomainsHandler: managed_domains.V2ListManagedDomainsHandlerFunc(func(params managed_domains.V2ListManagedDomainsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation managed_domains.V2ListManagedDomains has not yet been implemented")
 		}),
+		OperatorsV2ListSupportedOperatorsHandler: operators.V2ListSupportedOperatorsHandlerFunc(func(params operators.V2ListSupportedOperatorsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.V2ListSupportedOperators has not yet been implemented")
+		}),
 		InstallerV2UpdateClusterHandler: installer.V2UpdateClusterHandlerFunc(func(params installer.V2UpdateClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateCluster has not yet been implemented")
 		}),
@@ -611,6 +614,8 @@ type AssistedInstallAPI struct {
 	InstallerV2GetPresignedForClusterFilesHandler installer.V2GetPresignedForClusterFilesHandler
 	// ManagedDomainsV2ListManagedDomainsHandler sets the operation handler for the v2 list managed domains operation
 	ManagedDomainsV2ListManagedDomainsHandler managed_domains.V2ListManagedDomainsHandler
+	// OperatorsV2ListSupportedOperatorsHandler sets the operation handler for the v2 list supported operators operation
+	OperatorsV2ListSupportedOperatorsHandler operators.V2ListSupportedOperatorsHandler
 	// InstallerV2UpdateClusterHandler sets the operation handler for the v2 update cluster operation
 	InstallerV2UpdateClusterHandler installer.V2UpdateClusterHandler
 	// InstallerV2CompleteInstallationHandler sets the operation handler for the v2 complete installation operation
@@ -1002,6 +1007,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.ManagedDomainsV2ListManagedDomainsHandler == nil {
 		unregistered = append(unregistered, "managed_domains.V2ListManagedDomainsHandler")
+	}
+	if o.OperatorsV2ListSupportedOperatorsHandler == nil {
+		unregistered = append(unregistered, "operators.V2ListSupportedOperatorsHandler")
 	}
 	if o.InstallerV2UpdateClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateClusterHandler")
@@ -1523,6 +1531,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/domains"] = managed_domains.NewV2ListManagedDomains(o.context, o.ManagedDomainsV2ListManagedDomainsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/supported-operators"] = operators.NewV2ListSupportedOperators(o.context, o.OperatorsV2ListSupportedOperatorsHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
