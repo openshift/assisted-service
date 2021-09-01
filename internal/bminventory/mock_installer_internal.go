@@ -71,7 +71,7 @@ func (mr *MockInstallerInternalsMockRecorder) BindHostInternal(arg0, arg1 interf
 }
 
 // CancelInstallationInternal mocks base method.
-func (m *MockInstallerInternals) CancelInstallationInternal(arg0 context.Context, arg1 installer.CancelInstallationParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) CancelInstallationInternal(arg0 context.Context, arg1 installer.V2CancelInstallationParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CancelInstallationInternal", arg0, arg1)
 	ret0, _ := ret[0].(*common.Cluster)

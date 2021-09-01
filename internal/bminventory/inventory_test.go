@@ -5477,7 +5477,7 @@ var _ = Describe("cluster", func() {
 				cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
 					ClusterID: clusterID,
 				})
-				Expect(cancelReply).Should(BeAssignableToTypeOf(installer.NewCancelInstallationAccepted()))
+				Expect(cancelReply).Should(BeAssignableToTypeOf(installer.NewV2CancelInstallationAccepted()))
 			})
 			It("cancel installation conflict", func() {
 				setCancelInstallationHostConflict()

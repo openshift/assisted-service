@@ -146,7 +146,7 @@ type InstallerInternals interface {
 	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams, v1Flag bool) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, infraEnvId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
-	CancelInstallationInternal(ctx context.Context, params installer.CancelInstallationParams) (*common.Cluster, error)
+	CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error)
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
 	AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
@@ -4630,14 +4630,10 @@ func setInfraEnvPullSecret(infraEnv *common.InfraEnv, pullSecret string) {
 }
 
 func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
-	c, err := b.CancelInstallationInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewCancelInstallationAccepted().WithPayload(&c.Cluster)
+	return b.V2CancelInstallation(ctx, installer.V2CancelInstallationParams(params))
 }
 
-func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, params installer.CancelInstallationParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error) {
 
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("canceling installation for cluster %s", params.ClusterID)

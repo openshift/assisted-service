@@ -834,6 +834,20 @@ func (mr *MockInstallerAPIMockRecorder) UploadLogs(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadLogs", reflect.TypeOf((*MockInstallerAPI)(nil).UploadLogs), arg0, arg1)
 }
 
+// V2CancelInstallation mocks base method.
+func (m *MockInstallerAPI) V2CancelInstallation(arg0 context.Context, arg1 installer.V2CancelInstallationParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2CancelInstallation", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2CancelInstallation indicates an expected call of V2CancelInstallation.
+func (mr *MockInstallerAPIMockRecorder) V2CancelInstallation(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2CancelInstallation", reflect.TypeOf((*MockInstallerAPI)(nil).V2CancelInstallation), arg0, arg1)
+}
+
 // V2DeregisterCluster mocks base method.
 func (m *MockInstallerAPI) V2DeregisterCluster(arg0 context.Context, arg1 installer.V2DeregisterClusterParams) middleware.Responder {
 	m.ctrl.T.Helper()

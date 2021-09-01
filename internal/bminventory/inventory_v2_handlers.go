@@ -76,3 +76,11 @@ func (b *bareMetalInventory) V2InstallCluster(ctx context.Context, params instal
 	}
 	return installer.NewV2InstallClusterAccepted().WithPayload(&c.Cluster)
 }
+
+func (b *bareMetalInventory) V2CancelInstallation(ctx context.Context, params installer.V2CancelInstallationParams) middleware.Responder {
+	c, err := b.CancelInstallationInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2CancelInstallationAccepted().WithPayload(&c.Cluster)
+}
