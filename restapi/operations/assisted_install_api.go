@@ -292,6 +292,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		OperatorsV2ListOfClusterOperatorsHandler: operators.V2ListOfClusterOperatorsHandlerFunc(func(params operators.V2ListOfClusterOperatorsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation operators.V2ListOfClusterOperators has not yet been implemented")
 		}),
+		OperatorsV2ListOperatorPropertiesHandler: operators.V2ListOperatorPropertiesHandlerFunc(func(params operators.V2ListOperatorPropertiesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.V2ListOperatorProperties has not yet been implemented")
+		}),
 		InstallerV2UpdateClusterHandler: installer.V2UpdateClusterHandlerFunc(func(params installer.V2UpdateClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateCluster has not yet been implemented")
 		}),
@@ -624,6 +627,8 @@ type AssistedInstallAPI struct {
 	ManagedDomainsV2ListManagedDomainsHandler managed_domains.V2ListManagedDomainsHandler
 	// OperatorsV2ListOfClusterOperatorsHandler sets the operation handler for the v2 list of cluster operators operation
 	OperatorsV2ListOfClusterOperatorsHandler operators.V2ListOfClusterOperatorsHandler
+	// OperatorsV2ListOperatorPropertiesHandler sets the operation handler for the v2 list operator properties operation
+	OperatorsV2ListOperatorPropertiesHandler operators.V2ListOperatorPropertiesHandler
 	// InstallerV2UpdateClusterHandler sets the operation handler for the v2 update cluster operation
 	InstallerV2UpdateClusterHandler installer.V2UpdateClusterHandler
 	// InstallerV2UploadLogsHandler sets the operation handler for the v2 upload logs operation
@@ -1023,6 +1028,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.OperatorsV2ListOfClusterOperatorsHandler == nil {
 		unregistered = append(unregistered, "operators.V2ListOfClusterOperatorsHandler")
+	}
+	if o.OperatorsV2ListOperatorPropertiesHandler == nil {
+		unregistered = append(unregistered, "operators.V2ListOperatorPropertiesHandler")
 	}
 	if o.InstallerV2UpdateClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateClusterHandler")
@@ -1555,6 +1563,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters/{cluster_id}/monitored-operators"] = operators.NewV2ListOfClusterOperators(o.context, o.OperatorsV2ListOfClusterOperatorsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/supported-operators/{operator_name}"] = operators.NewV2ListOperatorProperties(o.context, o.OperatorsV2ListOperatorPropertiesHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
