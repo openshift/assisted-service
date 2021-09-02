@@ -2,7 +2,6 @@ package host
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -15,7 +14,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -106,10 +107,10 @@ var _ = Describe("monitor_disconnection", func() {
 		})
 
 		AfterEach(func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, host.ID, models.EventSeverityWarning,
-				fmt.Sprintf("Host %s: updated status from \"%s\" to \"disconnected\" (Host has stopped communicating with the installation service)",
-					host.ID.String(), *host.Status),
-				gomock.Any())
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
 			state.HostMonitoring()
 			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
 			Expect(*host.Status).Should(Equal(models.HostStatusDisconnected))
@@ -125,9 +126,10 @@ var _ = Describe("monitor_disconnection", func() {
 		})
 
 		AfterEach(func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, host.ID, models.EventSeverityInfo,
-				fmt.Sprintf("Host %s: updated status from \"disconnected\" to \"discovering\" (Waiting for host to send hardware details)", host.ID.String()),
-				gomock.Any())
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
 			state.HostMonitoring()
 			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
 			Expect(*host.Status).Should(Equal(models.HostStatusDiscovering))
@@ -159,9 +161,8 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		mockEvents.EXPECT().
-			AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			AnyTimes()
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), gomock.Any()).AnyTimes()
+
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		mockMetricApi = metrics.NewMockAPI(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -254,9 +255,7 @@ var _ = Describe("TestHostMonitoring - with infra-env", func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		mockEvents.EXPECT().
-			AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			AnyTimes()
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), gomock.Any()).AnyTimes()
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		mockMetricApi = metrics.NewMockAPI(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)

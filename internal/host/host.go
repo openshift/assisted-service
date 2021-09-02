@@ -15,6 +15,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
@@ -581,8 +582,7 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}
-		m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityInfo,
-			fmt.Sprintf("Host %s: set as bootstrap", hostutil.GetHostnameForMsg(h)), time.Now())
+		eventgen.SendHostSetBootstrapEvent(ctx, m.eventsHandler, *h.ClusterID, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(h))
 	}
 	return nil
 }
@@ -704,15 +704,14 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 		m.log.Infof("Adding new image status for %s with status %s to host %s", newImageStatus.Name, newImageStatus.Result, h.ID.String())
 		m.metricApi.ImagePullStatus(*h.ID, newImageStatus.Name, string(newImageStatus.Result), newImageStatus.DownloadRate)
 
-		eventInfo := fmt.Sprintf("Host %s: New image status %s. result: %s.",
-			hostutil.GetHostnameForMsg(h), newImageStatus.Name, newImageStatus.Result)
-
+		var eventInfo string
 		if newImageStatus.SizeBytes > 0 {
-			eventInfo += fmt.Sprintf(" time: %f seconds; size: %f bytes; download rate: %f MBps",
+			eventInfo += fmt.Sprintf("time: %f seconds; size: %f bytes; download rate: %f MBps",
 				newImageStatus.Time, newImageStatus.SizeBytes, newImageStatus.DownloadRate)
 		}
 
-		m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityInfo, eventInfo, time.Now())
+		eventgen.SendUpdateImageStatusEvent(ctx, m.eventsHandler, *h.ClusterID, *h.ID, h.InfraEnvID,
+			hostutil.GetHostnameForMsg(h), newImageStatus.Name, string(newImageStatus.Result), eventInfo)
 	}
 	marshalledStatuses, err := common.MarshalImageStatuses(hostImageStatuses)
 	if err != nil {
@@ -778,23 +777,28 @@ func (m *Manager) UpdateKubeKeyNS(ctx context.Context, hostID, namespace string)
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
-	eventSeverity := models.EventSeverityInfo
-	eventInfo := fmt.Sprintf("Installation cancelled for host %s", hostutil.GetHostnameForMsg(h))
 	shouldAddEvent := true
+	isFailed := false
+	var err error
 	defer func() {
 		if shouldAddEvent {
-			m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, eventSeverity, eventInfo, time.Now())
+			if isFailed {
+				eventgen.SendHostCancelInstallationFailedEvent(ctx, m.eventsHandler, *h.ClusterID, *h.ID,
+					h.InfraEnvID, hostutil.GetHostnameForMsg(h), err.Error())
+			} else {
+				eventgen.SendHostInstallationCancelledEvent(ctx, m.eventsHandler, *h.ClusterID, *h.ID,
+					h.InfraEnvID, hostutil.GetHostnameForMsg(h))
+			}
 		}
 	}()
 
-	err := m.sm.Run(TransitionTypeCancelInstallation, newStateHost(h), &TransitionArgsCancelInstallation{
+	err = m.sm.Run(TransitionTypeCancelInstallation, newStateHost(h), &TransitionArgsCancelInstallation{
 		ctx:    ctx,
 		reason: reason,
 		db:     db,
 	})
 	if err != nil {
-		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to cancel installation of host %s: %s", hostutil.GetHostnameForMsg(h), err.Error())
+		isFailed = true
 		return common.NewApiError(http.StatusConflict, err)
 	} else if swag.StringValue(h.Status) == models.HostStatusDisabled {
 		shouldAddEvent = false
@@ -820,12 +824,18 @@ func (m *Manager) IsRequireUserActionReset(h *models.Host) bool {
 }
 
 func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
-	eventSeverity := models.EventSeverityInfo
-	eventInfo := fmt.Sprintf("Installation reset for host %s", hostutil.GetHostnameForMsg(h))
 	shouldAddEvent := true
+	isFailed := false
+	var err error
 	defer func() {
 		if shouldAddEvent {
-			m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, eventSeverity, eventInfo, time.Now())
+			if isFailed {
+				eventgen.SendHostResetInstallationFailedEvent(ctx, m.eventsHandler, h.InfraEnvID, *h.ID,
+					h.InfraEnvID, hostutil.GetHostnameForMsg(h), err.Error())
+			} else {
+				eventgen.SendHostResetInstallationEvent(ctx, m.eventsHandler, h.InfraEnvID, *h.ID,
+					h.InfraEnvID, hostutil.GetHostnameForMsg(h))
+			}
 		}
 	}()
 
@@ -847,9 +857,8 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 		}
 	}
 
-	if err := m.sm.Run(transitionType, newStateHost(h), transitionArgs); err != nil {
-		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to reset installation of host %s. Error: %s", hostutil.GetHostnameForMsg(h), err.Error())
+	if err = m.sm.Run(transitionType, newStateHost(h), transitionArgs); err != nil {
+		isFailed = true
 		return common.NewApiError(http.StatusConflict, err)
 	} else if swag.StringValue(h.Status) == models.HostStatusDisabled {
 		shouldAddEvent = false
@@ -858,22 +867,27 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 }
 
 func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	eventSeverity := models.EventSeverityInfo
-	eventInfo := fmt.Sprintf("User action is required in order to complete installation reset for host %s", hostutil.GetHostnameForMsg(h))
 	shouldAddEvent := true
+	isFailed := false
+	var err error
 	defer func() {
 		if shouldAddEvent {
-			m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, eventSeverity, eventInfo, time.Now())
+			if isFailed {
+				eventgen.SendHostSetStatusFailedEvent(ctx, m.eventsHandler, *h.ClusterID, *h.ID,
+					h.InfraEnvID, hostutil.GetHostnameForMsg(h), err.Error())
+			} else {
+				eventgen.SendUserRequiredCompleteInstallationResetEvent(ctx, m.eventsHandler, *h.ClusterID, *h.ID,
+					h.InfraEnvID, hostutil.GetHostnameForMsg(h))
+			}
 		}
 	}()
 
-	err := m.sm.Run(TransitionTypeResettingPendingUserAction, newStateHost(h), &TransitionResettingPendingUserAction{
+	err = m.sm.Run(TransitionTypeResettingPendingUserAction, newStateHost(h), &TransitionResettingPendingUserAction{
 		ctx: ctx,
 		db:  db,
 	})
 	if err != nil {
-		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to set status of host %s to reset-pending-user-action. Error: %s", hostutil.GetHostnameForMsg(h), err.Error())
+		isFailed = true
 		return err
 	} else if swag.StringValue(h.Status) == models.HostStatusDisabled {
 		shouldAddEvent = false
@@ -953,12 +967,12 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 					} else if vc.infraEnv != nil {
 						m.metricApi.HostValidationChanged(vc.infraEnv.OpenshiftVersion, vc.infraEnv.EmailDomain, models.HostValidationID(v.ID))
 					}
-					eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
-					m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
+					eventgen.SendHostValidationFallingEvent(ctx, m.eventsHandler, *h.ClusterID, *h.ID,
+						h.InfraEnvID, hostutil.GetHostnameForMsg(h), v.ID.String())
 				}
 				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
-					eventMsg := fmt.Sprintf("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
-					m.eventsHandler.AddEvent(ctx, h.InfraEnvID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
+					eventgen.SendHostValidationFixedEvent(ctx, m.eventsHandler, *h.ClusterID, *h.ID,
+						h.InfraEnvID, hostutil.GetHostnameForMsg(h), v.ID.String())
 				}
 			}
 		}

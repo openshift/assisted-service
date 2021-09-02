@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -70,12 +71,12 @@ func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 	}
 
 	if newStatus != srcStatus {
-		msg := fmt.Sprintf("Host %s: updated status from \"%s\" to \"%s\"", GetHostnameForMsg(&host.Host), srcStatus, newStatus)
 		if statusInfo != "" {
-			msg += fmt.Sprintf(" (%s)", statusInfo)
+			statusInfo += fmt.Sprintf("(%s)", statusInfo)
 		}
 		// TODO Need event for infra-env instead of cluster
-		eventsHandler.AddEvent(ctx, infraEnvId, &hostId, GetEventSeverityFromHostStatus(newStatus), msg, time.Now())
+		eventgen.SendHostStatusUpdatedEvent(ctx, eventsHandler, hostId, infraEnvId, GetEventSeverityFromHostStatus(newStatus),
+			GetHostnameForMsg(&host.Host), srcStatus, newStatus, statusInfo)
 		log.Infof("host %s from infra env %s has been updated with the following updates %+v", hostId, infraEnvId, extra)
 	}
 

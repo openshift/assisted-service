@@ -13,8 +13,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/connectivity"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -344,7 +346,10 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 	instMng *InstructionManager, mockValidator *hardware.MockValidator, mockRelease *oc.MockRelease, mockVersions *versions.MockHandler,
 	mockConnectivity *connectivity.MockValidator, ctx context.Context, expectedStepTypes []models.StepType) {
 
-	mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, host.ID, hostutil.GetEventSeverityFromHostStatus(state), gomock.Any(), gomock.Any())
+	mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+		eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+		eventstest.WithHostIdMatcher(host.ID.String()),
+		eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
 	updateReply, updateErr := hostutil.UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status, state, "")
 	ExpectWithOffset(1, updateErr).ShouldNot(HaveOccurred())
 	ExpectWithOffset(1, updateReply).ShouldNot(BeNil())
