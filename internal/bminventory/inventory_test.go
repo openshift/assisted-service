@@ -3074,12 +3074,11 @@ var _ = Describe("cluster", func() {
 		BeforeEach(func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
-				ID:                 &clusterID,
-				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
-				APIVip:             "10.11.12.13",
-				IngressVip:         "10.11.12.14",
-				MachineNetworks:    []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
-				MachineNetworkCidr: "10.11.0.0/16", // TODO MGMT-7365: Deprecate single network
+				ID:               &clusterID,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				APIVip:           "10.11.12.13",
+				IngressVip:       "10.11.12.14",
+				MachineNetworks:  []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -4958,14 +4957,6 @@ var _ = Describe("cluster", func() {
 						network.ClusterID = clusterID
 						Expect(db.Model(&models.MachineNetwork{}).Save(network).Error).ShouldNot(HaveOccurred())
 					}
-
-					// TODO MGMT-7365: Deprecate single network
-					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
-						"cluster_network_cidr":        clusterNetworks[0].Cidr,
-						"cluster_network_host_prefix": clusterNetworks[0].HostPrefix,
-						"machine_network_cidr":        machineNetworks[0].Cidr,
-						"service_network_cidr":        serviceNetworks[0].Cidr,
-					}).Error).ShouldNot(HaveOccurred())
 
 					cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
 					Expect(err).ToNot(HaveOccurred())
@@ -10678,15 +10669,6 @@ func validateNetworkConfiguration(cluster *models.Cluster, clusterNetworks *[]*m
 			Expect(cluster.ClusterNetworks[index].Cidr).To(Equal((*clusterNetworks)[index].Cidr))
 			Expect(cluster.ClusterNetworks[index].HostPrefix).To(Equal((*clusterNetworks)[index].HostPrefix))
 		}
-
-		// TODO MGMT-7365: Deprecate single network
-		if len(*clusterNetworks) > 0 {
-			Expect(cluster.ClusterNetworkCidr).To(Equal(string((*clusterNetworks)[0].Cidr)))
-			Expect(cluster.ClusterNetworkHostPrefix).To(Equal((*clusterNetworks)[0].HostPrefix))
-		} else {
-			Expect(cluster.ClusterNetworkCidr).To(Equal(""))
-			Expect(cluster.ClusterNetworkHostPrefix).To(Equal(""))
-		}
 	}
 	if serviceNetworks != nil {
 		Expect(cluster.ServiceNetworks).To(HaveLen(len(*serviceNetworks)))
@@ -10694,26 +10676,12 @@ func validateNetworkConfiguration(cluster *models.Cluster, clusterNetworks *[]*m
 			Expect(cluster.ServiceNetworks[index].ClusterID).To(Equal(*cluster.ID))
 			Expect(cluster.ServiceNetworks[index].Cidr).To(Equal((*serviceNetworks)[index].Cidr))
 		}
-
-		// TODO MGMT-7365: Deprecate single network
-		if len(*serviceNetworks) > 0 {
-			Expect(cluster.ServiceNetworkCidr).To(Equal(string((*serviceNetworks)[0].Cidr)))
-		} else {
-			Expect(cluster.ServiceNetworkCidr).To(Equal(""))
-		}
 	}
 	if machineNetworks != nil {
 		Expect(cluster.MachineNetworks).To(HaveLen(len(*machineNetworks)))
 		for index := range *machineNetworks {
 			Expect(cluster.MachineNetworks[index].ClusterID).To(Equal(*cluster.ID))
 			Expect(cluster.MachineNetworks[index].Cidr).To(Equal((*machineNetworks)[index].Cidr))
-		}
-
-		// TODO MGMT-7365: Deprecate single network
-		if len(*machineNetworks) > 0 {
-			Expect(cluster.MachineNetworkCidr).To(Equal(string((*machineNetworks)[0].Cidr)))
-		} else {
-			Expect(cluster.MachineNetworkCidr).To(Equal(""))
 		}
 	}
 }

@@ -535,18 +535,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		TriggerMonitorTimestamp: time.Now(),
 	}
 
-	// TODO MGMT-7365: Deprecate single network
-	if len(params.NewClusterParams.ClusterNetworks) > 0 {
-		cluster.ClusterNetworkCidr = string(params.NewClusterParams.ClusterNetworks[0].Cidr)
-		cluster.ClusterNetworkHostPrefix = params.NewClusterParams.ClusterNetworks[0].HostPrefix
-	}
-	if len(params.NewClusterParams.ServiceNetworks) > 0 {
-		cluster.ServiceNetworkCidr = string(params.NewClusterParams.ServiceNetworks[0].Cidr)
-	}
-	if len(params.NewClusterParams.MachineNetworks) > 0 {
-		cluster.MachineNetworkCidr = string(params.NewClusterParams.MachineNetworks[0].Cidr)
-	}
-
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
 	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
 	if err != nil {
@@ -2227,7 +2215,6 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 			} else {
 				cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
 			}
-			updates["machine_network_cidr"] = primaryMachineNetworkCidr
 		}
 		err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, apiVip, ingressVip, false, log)
 		if err != nil {
@@ -2364,8 +2351,8 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	return nil
 }
 
-func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.UpdateClusterParams, updates map[string]interface{},
-	cluster *common.Cluster, userManagedNetworking, vipDhcpAllocation bool) error {
+func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.UpdateClusterParams, cluster *common.Cluster,
+	userManagedNetworking, vipDhcpAllocation bool) error {
 	var err error
 
 	if params.ClusterUpdateParams.ClusterNetworks != nil {
@@ -2384,15 +2371,6 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.Update
 			}
 		}
 		cluster.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
-
-		// TODO MGMT-7365: Deprecate single network
-		if len(params.ClusterUpdateParams.ClusterNetworks) > 0 {
-			updates["cluster_network_cidr"] = string(params.ClusterUpdateParams.ClusterNetworks[0].Cidr)
-			updates["cluster_network_host_prefix"] = params.ClusterUpdateParams.ClusterNetworks[0].HostPrefix
-		} else {
-			updates["cluster_network_cidr"] = ""
-			updates["cluster_network_host_prefix"] = 0
-		}
 	}
 
 	if params.ClusterUpdateParams.ServiceNetworks != nil {
@@ -2402,24 +2380,10 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.Update
 			}
 		}
 		cluster.ServiceNetworks = params.ClusterUpdateParams.ServiceNetworks
-
-		// TODO MGMT-7365: Deprecate single network
-		if len(params.ClusterUpdateParams.ServiceNetworks) > 0 {
-			updates["service_network_cidr"] = string(params.ClusterUpdateParams.ServiceNetworks[0].Cidr)
-		} else {
-			updates["service_network_cidr"] = ""
-		}
 	}
 
 	if params.ClusterUpdateParams.MachineNetworks != nil {
 		cluster.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
-
-		// TODO MGMT-7365: Deprecate single network
-		if len(params.ClusterUpdateParams.MachineNetworks) > 0 {
-			updates["machine_network_cidr"] = string(params.ClusterUpdateParams.MachineNetworks[0].Cidr)
-		} else {
-			updates["machine_network_cidr"] = ""
-		}
 	}
 
 	for index := range cluster.MachineNetworks {
@@ -2557,7 +2521,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 		}
 	}
 
-	if err = b.updateNetworks(db, params, updates, cluster, userManagedNetworking, vipDhcpAllocation); err != nil {
+	if err = b.updateNetworks(db, params, cluster, userManagedNetworking, vipDhcpAllocation); err != nil {
 		return err
 	}
 
