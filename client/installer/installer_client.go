@@ -202,6 +202,9 @@ type API interface {
 	   V2DownloadClusterFiles Downloads files relating to the installed/installing cluster.*/
 	V2DownloadClusterFiles(ctx context.Context, params *V2DownloadClusterFilesParams, writer io.Writer) (*V2DownloadClusterFilesOK, error)
 	/*
+	   V2UpdateCluster Updates an OpenShift cluster definition.*/
+	V2UpdateCluster(ctx context.Context, params *V2UpdateClusterParams) (*V2UpdateClusterCreated, error)
+	/*
 	   V2DeregisterCluster Deletes an OpenShift cluster definition.*/
 	V2DeregisterCluster(ctx context.Context, params *V2DeregisterClusterParams) (*V2DeregisterClusterNoContent, error)
 	/*
@@ -1776,6 +1779,31 @@ func (a *Client) V2DownloadClusterFiles(ctx context.Context, params *V2DownloadC
 		return nil, err
 	}
 	return result.(*V2DownloadClusterFilesOK), nil
+
+}
+
+/*
+V2UpdateCluster Updates an OpenShift cluster definition.
+*/
+func (a *Client) V2UpdateCluster(ctx context.Context, params *V2UpdateClusterParams) (*V2UpdateClusterCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2UpdateCluster",
+		Method:             "PATCH",
+		PathPattern:        "/v2/clusters/{cluster_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2UpdateClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2UpdateClusterCreated), nil
 
 }
 
