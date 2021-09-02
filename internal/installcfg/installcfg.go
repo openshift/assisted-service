@@ -391,14 +391,11 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 
 		bootstrapCidr := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, i.log)
 		if bootstrapCidr != "" {
-			i.log.Infof("None-Platform or SNO: Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
-			machineNetwork := []MachineNetwork{}
-			cluster.MachineNetworks = network.GetMachineNetworksFromBoostrapHost(cluster, i.log)
-			for _, net := range cluster.MachineNetworks {
-				machineNetwork = append(machineNetwork, MachineNetwork{Cidr: string(net.Cidr)})
-			}
-			cfg.Networking.MachineNetwork = machineNetwork
+			i.log.Infof("None-Platform: Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
+			cfg.Networking.MachineNetwork = []MachineNetwork{{Cidr: bootstrapCidr}}
+			cluster.MachineNetworks = network.CreateMachineNetworksArray(bootstrapCidr)
 			cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
+
 		} else {
 			cfg.Networking.MachineNetwork = nil
 		}
