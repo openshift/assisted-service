@@ -2249,7 +2249,7 @@ func verifyParsableVIPs(apiVip string, ingressVip string) error {
 	return nil
 }
 
-func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, params installer.UpdateClusterParams, primaryMachineCIDR string, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, params installer.UpdateClusterParams, log logrus.FieldLogger) error {
 	if params.ClusterUpdateParams.APIVip != nil {
 		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
 		log.WithError(err).Warnf("Set API VIP")
@@ -2260,15 +2260,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 		log.WithError(err).Warnf("Set Ingress VIP")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	// VIPs are always allocated from the first provided machine network. We want to trigger
-	// their reallocation only when this network has changed, but not in other cases.
-	//
-	// TODO(mko) Use `common.IsSliceNonEmpty` instead of double `!= nil` check. Deferring it for
-	// later so that this commit can be cherry-picked if needed as a hotfix without dependency on
-	// the one implementing `common.IsSliceNonEmpty`.
-	// Ref.: https://bugzilla.redhat.com/show_bug.cgi?id=1999297
-	// Ref.: https://github.com/openshift/assisted-service/pull/2512
-	if params.ClusterUpdateParams.MachineNetworks != nil && params.ClusterUpdateParams.MachineNetworks[0] != nil && string(params.ClusterUpdateParams.MachineNetworks[0].Cidr) != primaryMachineCIDR {
+	if params.ClusterUpdateParams.MachineNetworks != nil {
 		updates["api_vip"] = ""
 		updates["ingress_vip"] = ""
 	}
@@ -2553,11 +2545,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 		}
 
 		if vipDhcpAllocation {
-			primaryMachineCIDR := ""
-			if network.IsMachineCidrAvailable(cluster) {
-				primaryMachineCIDR = network.GetMachineCidrById(cluster, 0)
-			}
-			err = b.updateDhcpNetworkParams(updates, params, primaryMachineCIDR, log)
+			err = b.updateDhcpNetworkParams(updates, params, log)
 		} else {
 			// The primary Machine CIDR can be calculated on not none-platform machines
 			// (the machines are on the same network)
