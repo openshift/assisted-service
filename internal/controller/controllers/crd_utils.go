@@ -112,7 +112,7 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 				return nil
 			}
 			if h.InfraEnvID == infraenv.ID {
-				log.Infof("Agent CR %s already exists, same infraEnv %s", hostId, h.ClusterID)
+				log.Infof("Agent CR %s already exists, same infraEnv %s", hostId, h.InfraEnvID)
 				return nil
 			}
 			//delete previous host
