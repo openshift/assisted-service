@@ -4857,38 +4857,6 @@ var _ = Describe("cluster", func() {
 						validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{})
 					})
 				})
-
-				Context("Dual-stack", func() {
-					var (
-						machineNetworks = []*models.MachineNetwork{{Cidr: "10.13.0.0/16"}, {Cidr: "2001:db8::/64"}}
-					)
-
-					BeforeEach(func() {
-						for _, network := range machineNetworks {
-							network.ClusterID = clusterID
-						}
-					})
-
-					It("Allow setting dual-stack machine CIDRs when VIP DHCP is true and IPv4 is the first one", func() {
-						mockSuccess(1)
-
-						Expect(db.Model(&models.MachineNetwork{}).Save(machineNetworks[0]).Error).ShouldNot(HaveOccurred())
-						Expect(db.Model(&models.MachineNetwork{}).Save(machineNetworks[1]).Error).ShouldNot(HaveOccurred())
-
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								MachineNetworks:   machineNetworks,
-								VipDhcpAllocation: swag.Bool(true),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-						actual := reply.(*installer.UpdateClusterCreated)
-						Expect(actual.Payload.VipDhcpAllocation).NotTo(BeNil())
-						Expect(*actual.Payload.VipDhcpAllocation).To(BeTrue())
-						validateNetworkConfiguration(actual.Payload, nil, nil, &machineNetworks)
-					})
-				})
 			})
 
 			Context("NTP", func() {

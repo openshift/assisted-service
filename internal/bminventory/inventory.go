@@ -2428,10 +2428,8 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.Update
 				return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Machine network CIDR %s", string(cluster.MachineNetworks[index].Cidr)))
 			}
 		}
-	}
 
-	if len(params.ClusterUpdateParams.MachineNetworks) > 0 {
-		if err = validations.ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation, string(cluster.MachineNetworks[0].Cidr)); err != nil {
+		if err = validations.ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation, string(cluster.MachineNetworks[index].Cidr)); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
