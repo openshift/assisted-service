@@ -626,14 +626,8 @@ func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroup
 		return ValidationPending
 	}
 
-	// TODO(mko) This rule should be revised as soon as OCP supports multiple machineNetwork
-	//           entries using the same IP stack.
-	ret := true
-	for _, machineNet := range c.cluster.MachineNetworks {
-		ret = ret && funk.Contains(majorityGroups[string(machineNet.Cidr)], *c.host.ID)
-	}
-
-	return boolValue(ret)
+	// TODO: Handle multple machine networks
+	return boolValue(funk.Contains(majorityGroups[network.GetMachineCidrById(c.cluster, 0)], *c.host.ID))
 }
 
 func (v *validator) belongsToL3MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {

@@ -59,7 +59,7 @@ var _ = Describe("upload_logs", func() {
 		host2.Inventory = common.GenerateTestDefaultInventory()
 		host2.Role = models.HostRoleMaster
 		Expect(db.Create(&host2).Error).ToNot(HaveOccurred())
-		cluster := hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+		cluster := hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ShouldNot(HaveOccurred())

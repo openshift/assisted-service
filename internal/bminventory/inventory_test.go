@@ -4307,7 +4307,7 @@ var _ = Describe("cluster", func() {
 						"ingress_vip": common.TestIPv4Networking.IngressVip,
 					}).Error).ShouldNot(HaveOccurred())
 					Expect(db.Model(&models.MachineNetwork{}).Save(
-						&models.MachineNetwork{Cidr: common.TestIPv4Networking.MachineNetworks[0].Cidr, ClusterID: clusterID}).Error).ShouldNot(HaveOccurred())
+						&models.MachineNetwork{Cidr: models.Subnet(common.TestIPv4Networking.PrimaryMachineNetworkCidr), ClusterID: clusterID}).Error).ShouldNot(HaveOccurred())
 
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
