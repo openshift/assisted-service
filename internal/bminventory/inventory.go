@@ -6291,7 +6291,7 @@ func (b *bareMetalInventory) updateHostName(ctx context.Context, host *common.Ho
 func (b *bareMetalInventory) updateHostDisksSelectionConfig(ctx context.Context, host *common.Host, disksSelectedConfig []*models.DiskConfigParams, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, b.log)
 	if disksSelectedConfig == nil {
-		log.Infof("No request for dick selection config update for host %s", host.ID)
+		log.Infof("No request for disk selection config update for host %s", host.ID)
 		return nil
 	}
 	if host.ClusterID == nil {
