@@ -116,15 +116,9 @@ func (r *registrar) DeregisterCluster(ctx context.Context, cluster *common.Clust
 		return errors.Errorf("cluster %s can not be removed while being installed", cluster.ID)
 	}
 
-	if txErr = common.DeleteRecordsByClusterID(tx, *cluster.ID, []interface{}{
-		&models.Host{},
-		&models.MonitoredOperator{},
-		&models.ClusterNetwork{},
-		&models.ServiceNetwork{},
-		&models.MachineNetwork{},
-	}); txErr != nil {
+	if txErr = tx.Where("cluster_id = ?", cluster.ID).Delete(&models.Host{}).Error; txErr != nil {
 		tx.Rollback()
-		return errors.Errorf("failed to delete cluster records %s", cluster.ID)
+		return errors.Errorf("failed to deregister host while unregistering cluster %s", cluster.ID)
 	}
 
 	if txErr = tx.Delete(cluster).Error; txErr != nil {

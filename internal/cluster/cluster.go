@@ -1099,14 +1099,12 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt
 			m.log.Debugf("Deleted %s cluster from db", reply.RowsAffected)
 		}
 
-		if err := common.DeleteRecordsByClusterID(db, *c.ID, []interface{}{
-			&models.Event{},
-			&models.MonitoredOperator{},
-			&models.ClusterNetwork{},
-			&models.ServiceNetwork{},
-			&models.MachineNetwork{},
-		}); err != nil {
-			m.log.WithError(err).Warnf("Failed deleting cluster records from db for cluster %s", c.ID.String())
+		if err := common.DeleteRecordsByClusterID(db, *c.ID, models.Event{}); err != nil {
+			m.log.WithError(err).Warnf("Failed deleting events from db for cluster %s", c.ID.String())
+		}
+
+		if err := common.DeleteRecordsByClusterID(db, *c.ID, models.MonitoredOperator{}); err != nil {
+			m.log.WithError(err).Warnf("Failed deleting operators from db for cluster %s", c.ID.String())
 		}
 	}
 	return nil

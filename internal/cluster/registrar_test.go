@@ -22,6 +22,7 @@ var _ = Describe("registrar", func() {
 		updateErr       error
 		cluster         common.Cluster
 		infraEnv        *common.InfraEnv
+		host            models.Host
 		dbName          string
 	)
 
@@ -30,24 +31,22 @@ var _ = Describe("registrar", func() {
 		registerManager = NewRegistrar(common.GetTestLog(), db)
 
 		id = strfmt.UUID(uuid.New().String())
+		cluster = common.Cluster{Cluster: models.Cluster{
+			ID:     &id,
+			Status: swag.String(models.ClusterStatusInsufficient),
+		}}
+
+		//register cluster
+		updateErr = registerManager.RegisterCluster(ctx, &cluster, true, models.ImageTypeFullIso)
+		Expect(updateErr).Should(BeNil())
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
+		cluster = getClusterFromDB(*cluster.ID, db)
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
+		infraEnv, updateErr = common.GetInfraEnvFromDB(db, id)
+		Expect(updateErr).Should(BeNil())
 	})
 
 	Context("register cluster", func() {
-		BeforeEach(func() {
-			cluster = common.Cluster{Cluster: models.Cluster{
-				ID:     &id,
-				Status: swag.String(models.ClusterStatusInsufficient),
-			}}
-
-			updateErr = registerManager.RegisterCluster(ctx, &cluster, true, models.ImageTypeFullIso)
-			Expect(updateErr).Should(BeNil())
-			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
-			cluster = getClusterFromDB(*cluster.ID, db)
-			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
-			infraEnv, updateErr = common.GetInfraEnvFromDB(db, id)
-			Expect(updateErr).Should(BeNil())
-		})
-
 		It("register a registered cluster", func() {
 			updateErr = registerManager.RegisterCluster(ctx, &cluster, true, models.ImageTypeFullIso)
 			Expect(updateErr).Should(HaveOccurred())
@@ -80,23 +79,6 @@ var _ = Describe("registrar", func() {
 	})
 
 	Context("deregister", func() {
-		BeforeEach(func() {
-			cluster = common.Cluster{Cluster: models.Cluster{
-				ID:                 &id,
-				MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
-				ClusterNetworks:    common.TestIPv4Networking.ClusterNetworks,
-				ServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-				MachineNetworks:    common.TestIPv4Networking.MachineNetworks,
-			}}
-
-			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-			dbCluster := getClusterFromDB(*cluster.ID, db)
-			Expect(dbCluster.MonitoredOperators).ToNot(BeEmpty())
-			Expect(dbCluster.ClusterNetworks).ToNot(BeEmpty())
-			Expect(dbCluster.ServiceNetworks).ToNot(BeEmpty())
-			Expect(dbCluster.MachineNetworks).ToNot(BeEmpty())
-		})
-
 		It("unregister a registered cluster", func() {
 			updateErr = registerManager.DeregisterCluster(ctx, &cluster)
 			Expect(updateErr).Should(BeNil())
@@ -105,13 +87,9 @@ var _ = Describe("registrar", func() {
 			Expect(err).Should(HaveOccurred())
 
 			Expect(db.First(&common.Cluster{}, "id = ?", cluster.ID).Error).Should(HaveOccurred())
-			Expect(db.First(&models.Host{}, "cluster_id = ?", *cluster.ID).Error).Should(HaveOccurred())
-			Expect(db.First(&models.MonitoredOperator{}, "cluster_id = ?", cluster.ID).Error).Should(HaveOccurred())
-			Expect(db.First(&models.ClusterNetwork{}, "cluster_id = ?", cluster.ID).Error).Should(HaveOccurred())
-			Expect(db.First(&models.ServiceNetwork{}, "cluster_id = ?", cluster.ID).Error).Should(HaveOccurred())
-			Expect(db.First(&models.MachineNetwork{}, "cluster_id = ?", cluster.ID).Error).Should(HaveOccurred())
-		})
+			Expect(db.First(&host, "cluster_id = ?", cluster.ID).Error).Should(HaveOccurred())
 
+		})
 		It("unregister a cluster in installing state", func() {
 			// cluster state to installing
 			cluster.Status = swag.String("installing")
@@ -123,6 +101,7 @@ var _ = Describe("registrar", func() {
 			db.First(&cluster, "id = ?", cluster.ID)
 			Expect(db.First(&cluster, "id = ?", cluster.ID).Error).NotTo(HaveOccurred())
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInstalling))
+
 		})
 	})
 
