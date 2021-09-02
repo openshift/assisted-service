@@ -129,13 +129,10 @@ func (c *validationContext) validateRole() error {
 
 func (c *validationContext) validateMachineCIDR() error {
 	var err error
-	for _, machineNetwork := range c.cluster.MachineNetworks {
-		_, _, err = net.ParseCIDR(string(machineNetwork.Cidr))
-		if err != nil {
-			return err
-		}
+	if c.cluster.MachineNetworkCidr != "" {
+		_, _, err = net.ParseCIDR(c.cluster.MachineNetworkCidr)
 	}
-	return nil
+	return err
 }
 
 func (c *validationContext) loadClusterHostRequirements(hwValidator hardware.Validator) error {
@@ -382,7 +379,7 @@ func (v *validator) isMachineCidrDefined(c *validationContext) ValidationStatus 
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput
 	}
-	return boolValue(swag.BoolValue(c.cluster.UserManagedNetworking) || swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || network.IsMachineCidrAvailable(c.cluster))
+	return boolValue(swag.BoolValue(c.cluster.UserManagedNetworking) || swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || c.cluster.MachineNetworkCidr != "")
 }
 
 func (v *validator) printIsMachineCidrDefined(context *validationContext, status ValidationStatus) string {
@@ -487,10 +484,10 @@ func (v *validator) belongsToMachineCidr(c *validationContext) ValidationStatus 
 	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || (swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster)) {
 		return ValidationSuccess
 	}
-	if c.inventory == nil || !network.IsMachineCidrAvailable(c.cluster) {
+	if c.inventory == nil || c.cluster.MachineNetworkCidr == "" {
 		return ValidationPending
 	}
-	return boolValue(network.IsHostInPrimaryMachineNetCidr(v.log, c.cluster, c.host))
+	return boolValue(network.IsHostInMachineNetCidr(v.log, c.cluster, c.host))
 }
 
 func (v *validator) printBelongsToMachineCidr(c *validationContext, status ValidationStatus) string {
@@ -504,10 +501,7 @@ func (v *validator) printBelongsToMachineCidr(c *validationContext, status Valid
 		}
 		return "Host belongs to machine network CIDR"
 	case ValidationFailure:
-		if network.IsMachineCidrAvailable(c.cluster) {
-			return fmt.Sprintf("Host does not belong to machine network CIDR %s", c.cluster.MachineNetworks[0].Cidr)
-		}
-		return "Host does not belong to machine network CIDR"
+		return fmt.Sprintf("Host does not belong to machine network CIDR %s", c.cluster.MachineNetworkCidr)
 	case ValidationPending:
 		return "Missing inventory or machine network CIDR"
 	default:
@@ -622,12 +616,10 @@ func getNumEnabledHosts(hosts []*models.Host) int {
 	return ret
 }
 func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
-	if !network.IsMachineCidrAvailable(c.cluster) {
+	if c.cluster.MachineNetworkCidr == "" {
 		return ValidationPending
 	}
-
-	// TODO: Handle multple machine networks
-	return boolValue(funk.Contains(majorityGroups[string(c.cluster.MachineNetworks[0].Cidr)], *c.host.ID))
+	return boolValue(funk.Contains(majorityGroups[c.cluster.MachineNetworkCidr], *c.host.ID))
 }
 
 func (v *validator) belongsToL3MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
@@ -689,7 +681,7 @@ func (v *validator) printBelongsToMajorityGroup(c *validationContext, status Val
 	case ValidationError:
 		return "Parse error for connectivity majority group"
 	case ValidationPending:
-		if !network.IsMachineCidrAvailable(c.cluster) || c.cluster.ConnectivityMajorityGroups == "" {
+		if c.cluster.MachineNetworkCidr == "" || c.cluster.ConnectivityMajorityGroups == "" {
 			return "Machine Network CIDR or Connectivity Majority Groups missing"
 		} else if getNumEnabledHosts(c.cluster.Hosts) < 3 {
 			return "Not enough enabled hosts in cluster to calculate connectivity groups"

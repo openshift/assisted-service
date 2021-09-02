@@ -50,15 +50,16 @@ var _ = Describe("IPv6 installation", func() {
 	BeforeEach(func() {
 		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:     "example.com",
-				ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 64}},
-				ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(openshiftVersion),
-				PullSecret:        swag.String(pullSecret),
-				SSHPublicKey:      sshPublicKey,
-				VipDhcpAllocation: swag.Bool(false),
-				NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+				BaseDNSDomain:            "example.com",
+				ClusterNetworkCidr:       &clusterCIDR,
+				ClusterNetworkHostPrefix: 64,
+				Name:                     swag.String("test-cluster"),
+				OpenshiftVersion:         swag.String(openshiftVersion),
+				PullSecret:               swag.String(pullSecret),
+				ServiceNetworkCidr:       &serviceCIDR,
+				SSHPublicKey:             sshPublicKey,
+				VipDhcpAllocation:        swag.Bool(false),
+				NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

@@ -72,24 +72,20 @@ type imageContentSource struct {
 	Source  string   `yaml:"source"`
 }
 
-type ClusterNetwork struct {
-	Cidr       string `yaml:"cidr"`
-	HostPrefix int    `yaml:"hostPrefix"`
-}
-
-type MachineNetwork struct {
-	Cidr string `yaml:"cidr"`
-}
-
 type InstallerConfigBaremetal struct {
 	APIVersion string `yaml:"apiVersion"`
 	BaseDomain string `yaml:"baseDomain"`
 	Proxy      *proxy `yaml:"proxy,omitempty"`
 	Networking struct {
-		NetworkType    string           `yaml:"networkType"`
-		ClusterNetwork []ClusterNetwork `yaml:"clusterNetwork"`
-		MachineNetwork []MachineNetwork `yaml:"machineNetwork,omitempty"`
-		ServiceNetwork []string         `yaml:"serviceNetwork"`
+		NetworkType    string `yaml:"networkType"`
+		ClusterNetwork []struct {
+			Cidr       string `yaml:"cidr"`
+			HostPrefix int    `yaml:"hostPrefix"`
+		} `yaml:"clusterNetwork"`
+		MachineNetwork []struct {
+			Cidr string `yaml:"cidr"`
+		} `yaml:"machineNetwork,omitempty"`
+		ServiceNetwork []string `yaml:"serviceNetwork"`
 	} `yaml:"networking"`
 	Metadata struct {
 		Name string `yaml:"name"`
@@ -168,22 +164,12 @@ func (i *installConfigBuilder) generateNoProxy(cluster *common.Cluster) string {
 	}
 
 	splitNoProxy := funk.FilterString(strings.Split(noProxy, ","), func(s string) bool { return s != "" })
-
+	if cluster.MachineNetworkCidr != "" {
+		splitNoProxy = append(splitNoProxy, cluster.MachineNetworkCidr)
+	}
 	// Add internal OCP DNS domain
-	splitNoProxy = append(splitNoProxy, "."+cluster.Name+"."+cluster.BaseDNSDomain)
-
-	// Add cluster networks, service networks and machine networks
-	for _, clusterNetwork := range cluster.ClusterNetworks {
-		splitNoProxy = append(splitNoProxy, string(clusterNetwork.Cidr))
-	}
-	for _, serviceNetwork := range cluster.ServiceNetworks {
-		splitNoProxy = append(splitNoProxy, string(serviceNetwork.Cidr))
-	}
-	for _, machineNetwork := range cluster.MachineNetworks {
-		splitNoProxy = append(splitNoProxy, string(machineNetwork.Cidr))
-	}
-
-	return strings.Join(splitNoProxy, ",")
+	internalDnsDomain := "." + cluster.Name + "." + cluster.BaseDNSDomain
+	return strings.Join(append(splitNoProxy, internalDnsDomain, cluster.ClusterNetworkCidr, cluster.ServiceNetworkCidr), ",")
 }
 
 func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*InstallerConfigBaremetal, error) {
@@ -192,6 +178,31 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 	cfg := &InstallerConfigBaremetal{
 		APIVersion: "v1",
 		BaseDomain: cluster.BaseDNSDomain,
+		Networking: struct {
+			NetworkType    string `yaml:"networkType"`
+			ClusterNetwork []struct {
+				Cidr       string `yaml:"cidr"`
+				HostPrefix int    `yaml:"hostPrefix"`
+			} `yaml:"clusterNetwork"`
+			MachineNetwork []struct {
+				Cidr string `yaml:"cidr"`
+			} `yaml:"machineNetwork,omitempty"`
+			ServiceNetwork []string `yaml:"serviceNetwork"`
+		}{
+			NetworkType: networkType,
+			ClusterNetwork: []struct {
+				Cidr       string `yaml:"cidr"`
+				HostPrefix int    `yaml:"hostPrefix"`
+			}{
+				{Cidr: cluster.ClusterNetworkCidr, HostPrefix: int(cluster.ClusterNetworkHostPrefix)},
+			},
+			MachineNetwork: []struct {
+				Cidr string `yaml:"cidr"`
+			}{
+				{Cidr: cluster.MachineNetworkCidr},
+			},
+			ServiceNetwork: []string{cluster.ServiceNetworkCidr},
+		},
 		Metadata: struct {
 			Name string `yaml:"name"`
 		}{
@@ -219,20 +230,6 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 		},
 		PullSecret: cluster.PullSecret,
 		SSHKey:     cluster.SSHPublicKey,
-	}
-
-	cfg.Networking.NetworkType = networkType
-
-	for _, network := range cluster.ClusterNetworks {
-		cfg.Networking.ClusterNetwork = append(cfg.Networking.ClusterNetwork,
-			ClusterNetwork{Cidr: string(network.Cidr), HostPrefix: int(network.HostPrefix)})
-	}
-	for _, network := range cluster.MachineNetworks {
-		cfg.Networking.MachineNetwork = append(cfg.Networking.MachineNetwork,
-			MachineNetwork{Cidr: string(network.Cidr)})
-	}
-	for _, network := range cluster.ServiceNetworks {
-		cfg.Networking.ServiceNetwork = append(cfg.Networking.ServiceNetwork, string(network.Cidr))
 	}
 
 	if cluster.HTTPProxy != "" || cluster.HTTPSProxy != "" {
@@ -389,11 +386,15 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 			None:      &platformNone{},
 		}
 
-		bootstrapCidr := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, i.log)
+		bootstrapCidr := network.GetMachineCidrForUserManagedNetwork(cluster, i.log)
 		if bootstrapCidr != "" {
 			i.log.Infof("None-Platform: Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
-			cfg.Networking.MachineNetwork = []MachineNetwork{{Cidr: bootstrapCidr}}
-			cluster.MachineNetworks = network.CreateMachineNetworksArray(bootstrapCidr)
+			cfg.Networking.MachineNetwork = []struct {
+				Cidr string `yaml:"cidr"`
+			}{
+				{Cidr: bootstrapCidr},
+			}
+			cluster.MachineNetworkCidr = bootstrapCidr
 			cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
 
 		} else {

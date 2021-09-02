@@ -14,14 +14,12 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
-	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/pkg/errors"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -219,40 +217,4 @@ func checksumMap(m map[string]string) (string, error) {
 	encoder.Close()
 
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
-}
-
-func clusterNetworksArrayToEntries(networks []*models.ClusterNetwork) []hiveext.ClusterNetworkEntry {
-	return funk.Map(networks, func(net *models.ClusterNetwork) hiveext.ClusterNetworkEntry {
-		return hiveext.ClusterNetworkEntry{CIDR: string(net.Cidr), HostPrefix: int32(net.HostPrefix)}
-	}).([]hiveext.ClusterNetworkEntry)
-}
-
-func clusterNetworksEntriesToArray(entries []hiveext.ClusterNetworkEntry) []*models.ClusterNetwork {
-	return funk.Map(entries, func(entry hiveext.ClusterNetworkEntry) *models.ClusterNetwork {
-		return &models.ClusterNetwork{Cidr: models.Subnet(entry.CIDR), HostPrefix: int64(entry.HostPrefix)}
-	}).([]*models.ClusterNetwork)
-}
-
-func serviceNetworksArrayToStrings(networks []*models.ServiceNetwork) []string {
-	return funk.Map(networks, func(net *models.ServiceNetwork) string {
-		return string(net.Cidr)
-	}).([]string)
-}
-
-func serviceNetworksEntriesToArray(entries []string) []*models.ServiceNetwork {
-	return funk.Map(entries, func(entry string) *models.ServiceNetwork {
-		return &models.ServiceNetwork{Cidr: models.Subnet(entry)}
-	}).([]*models.ServiceNetwork)
-}
-
-func machineNetworksArrayToEntries(networks []*models.MachineNetwork) []hiveext.MachineNetworkEntry {
-	return funk.Map(networks, func(net *models.MachineNetwork) hiveext.MachineNetworkEntry {
-		return hiveext.MachineNetworkEntry{CIDR: string(net.Cidr)}
-	}).([]hiveext.MachineNetworkEntry)
-}
-
-func machineNetworksEntriesToArray(entries []hiveext.MachineNetworkEntry) []*models.MachineNetwork {
-	return funk.Map(entries, func(entry hiveext.MachineNetworkEntry) *models.MachineNetwork {
-		return &models.MachineNetwork{Cidr: models.Subnet(entry.CIDR)}
-	}).([]*models.MachineNetwork)
 }

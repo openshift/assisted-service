@@ -16,12 +16,12 @@ import (
 )
 
 type TestNetworking struct {
-	PrimaryMachineNetworkCidr string
-	ClusterNetworks           []*models.ClusterNetwork
-	ServiceNetworks           []*models.ServiceNetwork
-	MachineNetworks           []*models.MachineNetwork
-	APIVip                    string
-	IngressVip                string
+	ClusterNetworkCidr       string
+	ClusterNetworkHostPrefix int64
+	ServiceNetworkCidr       string
+	MachineNetworkCidr       string
+	APIVip                   string
+	IngressVip               string
 }
 
 type TestConfiguration struct {
@@ -146,21 +146,21 @@ var TestDomainNameResolutionSuccess = &models.DomainResolutionResponse{
 var TestDefaultRouteConfiguration = []*models.Route{{Family: FamilyIPv4, Interface: "eth0", Gateway: "192.168.1.1", Destination: "0.0.0.0"}}
 
 var TestIPv4Networking = TestNetworking{
-	ClusterNetworks:           []*models.ClusterNetwork{{Cidr: "1.3.0.0/16", HostPrefix: 24}},
-	ServiceNetworks:           []*models.ServiceNetwork{{Cidr: "1.2.5.0/24"}},
-	PrimaryMachineNetworkCidr: "1.2.3.0/24",
-	MachineNetworks:           []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
-	APIVip:                    "1.2.3.5",
-	IngressVip:                "1.2.3.6",
+	ClusterNetworkCidr:       "1.3.0.0/16",
+	ClusterNetworkHostPrefix: 24,
+	ServiceNetworkCidr:       "1.2.5.0/24",
+	MachineNetworkCidr:       "1.2.3.0/24",
+	APIVip:                   "1.2.3.5",
+	IngressVip:               "1.2.3.6",
 }
 
 var TestIPv6Networking = TestNetworking{
-	ClusterNetworks:           []*models.ClusterNetwork{{Cidr: "1003:db8::/53", HostPrefix: 64}},
-	ServiceNetworks:           []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
-	PrimaryMachineNetworkCidr: "1001:db8::/120",
-	MachineNetworks:           []*models.MachineNetwork{{Cidr: "1001:db8::/120"}},
-	APIVip:                    "1001:db8::64",
-	IngressVip:                "1001:db8::65",
+	ClusterNetworkCidr:       "1003:db8::/53",
+	ClusterNetworkHostPrefix: 64,
+	ServiceNetworkCidr:       "1002:db8::/119",
+	MachineNetworkCidr:       "1001:db8::/120",
+	APIVip:                   "1001:db8::64",
+	IngressVip:               "1001:db8::65",
 }
 
 func IncrementCidrIP(subnet string) string {

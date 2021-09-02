@@ -2,7 +2,6 @@ package installcfg
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -36,9 +35,7 @@ var _ = Describe("installcfg", func() {
 			OpenshiftVersion:       common.TestDefaultConfig.OpenShiftVersion,
 			Name:                   "test-cluster",
 			BaseDNSDomain:          "redhat.com",
-			ClusterNetworks:        []*models.ClusterNetwork{{Cidr: "1.1.1.0/24"}},
-			ServiceNetworks:        []*models.ServiceNetwork{{Cidr: "2.2.2.0/24"}},
-			MachineNetworks:        []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
+			MachineNetworkCidr:     "1.2.3.0/24",
 			APIVip:                 "102.345.34.34",
 			IngressVip:             "376.5.56.6",
 			InstallConfigOverrides: `{"fips":true}`,
@@ -142,9 +139,9 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Proxy.HTTPSProxy).Should(Equal(proxyURL))
 		splitNoProxy := strings.Split(result.Proxy.NoProxy, ",")
 		Expect(splitNoProxy).To(HaveLen(4))
-		Expect(splitNoProxy).To(ContainElement(string(cluster.MachineNetworks[0].Cidr)))
-		Expect(splitNoProxy).To(ContainElement(string(cluster.ServiceNetworks[0].Cidr)))
-		Expect(splitNoProxy).To(ContainElement(string(cluster.ClusterNetworks[0].Cidr)))
+		Expect(splitNoProxy).To(ContainElement(cluster.MachineNetworkCidr))
+		Expect(splitNoProxy).To(ContainElement(cluster.ServiceNetworkCidr))
+		Expect(splitNoProxy).To(ContainElement(cluster.ClusterNetworkCidr))
 		domainName := "." + cluster.Name + "." + cluster.BaseDNSDomain
 		Expect(splitNoProxy).To(ContainElement(domainName))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
@@ -156,7 +153,7 @@ var _ = Describe("installcfg", func() {
 		cluster.HTTPProxy = proxyURL
 		cluster.HTTPSProxy = proxyURL
 		cluster.NoProxy = "no-proxy.com"
-		cluster.MachineNetworks = []*models.MachineNetwork{}
+		cluster.MachineNetworkCidr = ""
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -167,8 +164,8 @@ var _ = Describe("installcfg", func() {
 		splitNoProxy := strings.Split(result.Proxy.NoProxy, ",")
 		Expect(splitNoProxy).To(HaveLen(4))
 		Expect(splitNoProxy).To(ContainElement("no-proxy.com"))
-		Expect(splitNoProxy).To(ContainElement(string(cluster.ServiceNetworks[0].Cidr)))
-		Expect(splitNoProxy).To(ContainElement(string(cluster.ClusterNetworks[0].Cidr)))
+		Expect(splitNoProxy).To(ContainElement(cluster.ServiceNetworkCidr))
+		Expect(splitNoProxy).To(ContainElement(cluster.ClusterNetworkCidr))
 		domainName := "." + cluster.Name + "." + cluster.BaseDNSDomain
 		Expect(splitNoProxy).To(ContainElement(domainName))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
@@ -203,7 +200,7 @@ var _ = Describe("installcfg", func() {
 	It("doesn't fail with empty overrides, IPv6 machine CIDR", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
-		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "1001:db8::/120"}}
+		cluster.MachineNetworkCidr = "1001:db8::/120"
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -214,7 +211,7 @@ var _ = Describe("installcfg", func() {
 	It("doesn't fail with empty overrides, IPv6 cluster CIDR", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
-		cluster.ClusterNetworks = []*models.ClusterNetwork{{Cidr: "1001:db8::/120"}}
+		cluster.ClusterNetworkCidr = "1001:db8::/120"
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -225,7 +222,7 @@ var _ = Describe("installcfg", func() {
 	It("doesn't fail with empty overrides, IPv6 service CIDR", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
-		cluster.ServiceNetworks = []*models.ServiceNetwork{{Cidr: "1001:db8::/120"}}
+		cluster.ServiceNetworkCidr = "1001:db8::/120"
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -303,7 +300,7 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
-		cluster.MachineNetworks = []*models.MachineNetwork{}
+		cluster.MachineNetworkCidr = ""
 		host1.Bootstrap = true
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
@@ -320,7 +317,7 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
-		cluster.MachineNetworks = []*models.MachineNetwork{}
+		cluster.MachineNetworkCidr = ""
 		host1.Bootstrap = true
 		host1.Inventory = getInventoryStr("hostname0", "bootMode", true)
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
@@ -355,7 +352,7 @@ var _ = Describe("installcfg", func() {
 		cluster.HighAvailabilityMode = &mode
 		cluster.Hosts[0].Bootstrap = true
 		cluster.Hosts[0].InstallationDiskPath = "/dev/test"
-		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "10.35.20.0/24"}}
+		cluster.MachineNetworkCidr = "10.35.20.0/24"
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
@@ -365,7 +362,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		Expect(*result.Platform.None).Should(Equal(platformNone{}))
 		Expect(result.BootstrapInPlace.InstallationDisk).Should(Equal("/dev/test"))
-		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(string(cluster.MachineNetworks[0].Cidr)))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(cluster.MachineNetworkCidr))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
@@ -373,7 +370,7 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
-		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "fe80::/64"}}
+		cluster.MachineNetworkCidr = "fe80::/64"
 		host1.Bootstrap = true
 		host1.Inventory = getInventoryStr("hostname0", "bootMode", true)
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
@@ -384,7 +381,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = platformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
-		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(string(cluster.MachineNetworks[0].Cidr)))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(cluster.MachineNetworkCidr))
 	})
 
 	It("Hyperthreading config", func() {
@@ -412,58 +409,6 @@ var _ = Describe("installcfg", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Disabled"))
-	})
-
-	Context("networking", func() {
-		// TODO MGMT-7365: Deprecate single network
-		It("Single network fields", func() {
-			var result InstallerConfigBaremetal
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
-			data, err := installConfig.GetInstallConfig(&cluster, false, "")
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(yaml.Unmarshal(data, &result)).ShouldNot(HaveOccurred())
-			Expect(result.Networking.ClusterNetwork).To(HaveLen(1))
-			Expect(result.Networking.MachineNetwork).To(HaveLen(1))
-			Expect(result.Networking.ServiceNetwork).To(HaveLen(1))
-		})
-
-		It("Multiple network fields", func() {
-			cluster.ClusterNetworks = []*models.ClusterNetwork{
-				{
-					Cidr:       "1.3.0.0/16",
-					HostPrefix: 24,
-				},
-				{
-					Cidr:       "1.3.0.0/16",
-					HostPrefix: 24,
-				},
-			}
-			cluster.ServiceNetworks = []*models.ServiceNetwork{
-				{
-					Cidr: "1.2.5.0/24",
-				},
-				{
-					Cidr: "1.4.0.0/16",
-				},
-			}
-			cluster.MachineNetworks = []*models.MachineNetwork{
-				{
-					Cidr: "1.2.3.0/24",
-				},
-				{
-					Cidr: "1.2.3.0/24",
-				},
-			}
-
-			var result InstallerConfigBaremetal
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
-			data, err := installConfig.GetInstallConfig(&cluster, false, "")
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(yaml.Unmarshal(data, &result)).ShouldNot(HaveOccurred())
-			Expect(result.Networking.ClusterNetwork).To(HaveLen(2))
-			Expect(result.Networking.MachineNetwork).To(HaveLen(2))
-			Expect(result.Networking.ServiceNetwork).To(HaveLen(2))
-		})
 	})
 
 	AfterEach(func() {
@@ -556,26 +501,24 @@ var _ = Describe("Generate NoProxy", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		cluster = &common.Cluster{Cluster: models.Cluster{
-			MachineNetworks: []*models.MachineNetwork{{Cidr: "10.35.20.0/24"}},
-			Name:            "proxycluster",
-			BaseDNSDomain:   "myproxy.com",
-			ClusterNetworks: []*models.ClusterNetwork{{Cidr: "192.168.1.0/24"}},
-			ServiceNetworks: []*models.ServiceNetwork{{Cidr: "fe80::1/64"}},
-			Platform:        &models.Platform{Type: models.PlatformTypeBaremetal},
+			MachineNetworkCidr: "10.35.20.0/24",
+			Name:               "proxycluster",
+			BaseDNSDomain:      "myproxy.com",
+			ClusterNetworkCidr: "192.168.1.0/24",
+			ServiceNetworkCidr: "fe80::1/64",
+			Platform:           &models.Platform{Type: models.PlatformTypeBaremetal},
 		}}
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		installConfig = &installConfigBuilder{log: common.GetTestLog(), mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder}
 	})
 	It("Default NoProxy", func() {
 		noProxy := installConfig.generateNoProxy(cluster)
-		Expect(noProxy).Should(Equal(fmt.Sprintf(".proxycluster.myproxy.com,%s,%s,%s",
-			cluster.ClusterNetworks[0].Cidr, cluster.ServiceNetworks[0].Cidr, cluster.MachineNetworks[0].Cidr)))
+		Expect(noProxy).Should(Equal("10.35.20.0/24,.proxycluster.myproxy.com,192.168.1.0/24,fe80::1/64"))
 	})
 	It("Update NoProxy", func() {
 		cluster.NoProxy = "domain.org,127.0.0.2"
 		noProxy := installConfig.generateNoProxy(cluster)
-		Expect(noProxy).Should(Equal(fmt.Sprintf("domain.org,127.0.0.2,.proxycluster.myproxy.com,%s,%s,%s",
-			cluster.ClusterNetworks[0].Cidr, cluster.ServiceNetworks[0].Cidr, cluster.MachineNetworks[0].Cidr)))
+		Expect(noProxy).Should(Equal("domain.org,127.0.0.2,10.35.20.0/24,.proxycluster.myproxy.com,192.168.1.0/24,fe80::1/64"))
 	})
 	It("All-excluded NoProxy", func() {
 		cluster.NoProxy = "*"
@@ -604,7 +547,7 @@ var _ = Describe("Platform", func() {
 			OpenshiftVersion:       common.TestDefaultConfig.OpenShiftVersion,
 			Name:                   "test-cluster",
 			BaseDNSDomain:          "redhat.com",
-			MachineNetworks:        []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
+			MachineNetworkCidr:     "1.2.3.0/24",
 			APIVip:                 "102.345.34.34",
 			IngressVip:             "376.5.56.6",
 			InstallConfigOverrides: `{"networking":{"networkType": "OVNKubernetes"},"fips":true}`,

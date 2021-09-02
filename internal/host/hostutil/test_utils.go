@@ -12,7 +12,6 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
@@ -26,10 +25,10 @@ func GetHostFromDB(hostId, infraEnvId strfmt.UUID, db *gorm.DB) *common.Host {
 func GenerateTestCluster(clusterID strfmt.UUID, machineNetworkCidr string) common.Cluster {
 	return common.Cluster{
 		Cluster: models.Cluster{
-			ID:              &clusterID,
-			MachineNetworks: network.CreateMachineNetworksArray(machineNetworkCidr),
-			Platform:        &models.Platform{Type: models.PlatformTypeBaremetal},
-			Kind:            swag.String(models.ClusterKindCluster),
+			ID:                 &clusterID,
+			MachineNetworkCidr: machineNetworkCidr,
+			Platform:           &models.Platform{Type: models.PlatformTypeBaremetal},
+			Kind:               swag.String(models.ClusterKindCluster),
 		},
 	}
 }

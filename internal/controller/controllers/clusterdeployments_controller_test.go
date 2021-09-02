@@ -65,8 +65,11 @@ func getDefaultSNOAgentClusterInstallSpec(clusterName string) hiveext.AgentClust
 	return hiveext.AgentClusterInstallSpec{
 		Networking: hiveext.Networking{
 			MachineNetwork: nil,
-			ClusterNetwork: clusterNetworksArrayToEntries(common.TestIPv4Networking.ClusterNetworks),
-			ServiceNetwork: serviceNetworksArrayToStrings(common.TestIPv4Networking.ServiceNetworks),
+			ClusterNetwork: []hiveext.ClusterNetworkEntry{{
+				CIDR:       "10.128.0.0/14",
+				HostPrefix: 23,
+			}},
+			ServiceNetwork: []string{"172.30.0.0/16"},
 		},
 		SSHPublicKey: "some-key",
 		ProvisionRequirements: hiveext.ProvisionRequirements{
@@ -101,12 +104,15 @@ func newAgentClusterInstall(name, namespace string, spec hiveext.AgentClusterIns
 
 func getDefaultAgentClusterInstallSpec(clusterName string) hiveext.AgentClusterInstallSpec {
 	return hiveext.AgentClusterInstallSpec{
-		APIVIP:     common.TestIPv4Networking.APIVip,
-		IngressVIP: common.TestIPv4Networking.IngressVip,
+		APIVIP:     "1.2.3.8",
+		IngressVIP: "1.2.3.9",
 		Networking: hiveext.Networking{
 			MachineNetwork: nil,
-			ClusterNetwork: clusterNetworksArrayToEntries(common.TestIPv4Networking.ClusterNetworks),
-			ServiceNetwork: serviceNetworksArrayToStrings(common.TestIPv4Networking.ServiceNetworks),
+			ClusterNetwork: []hiveext.ClusterNetworkEntry{{
+				CIDR:       "10.128.0.0/14",
+				HostPrefix: 23,
+			}},
+			ServiceNetwork: []string{"172.30.0.0/16"},
 		},
 		SSHPublicKey: "some-key",
 		ProvisionRequirements: hiveext.ProvisionRequirements{
@@ -482,19 +488,20 @@ var _ = Describe("cluster reconcile", func() {
 		sId := strfmt.UUID(uuid.New().String())
 		backEndCluster := &common.Cluster{
 			Cluster: models.Cluster{
-				ID:               &sId,
-				Name:             clusterName,
-				OpenshiftVersion: "4.8",
-				ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-				ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-				NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-				Status:           swag.String(models.ClusterStatusReady),
-				IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-				APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-				BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-				SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-				Hyperthreading:   models.ClusterHyperthreadingAll,
-				Kind:             swag.String(models.ClusterKindCluster),
+				ID:                       &sId,
+				Name:                     clusterName,
+				OpenshiftVersion:         "4.8",
+				ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+				ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+				NetworkType:              swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+				Status:                   swag.String(models.ClusterStatusReady),
+				ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+				IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+				APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+				BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+				SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+				Hyperthreading:           models.ClusterHyperthreadingAll,
+				Kind:                     swag.String(models.ClusterKindCluster),
 			},
 			PullSecret: testPullSecretVal,
 		}
@@ -865,19 +872,20 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 			backEndCluster = &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusReady),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
-					Kind:             swag.String(models.ClusterKindCluster),
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					NetworkType:              swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:                   swag.String(models.ClusterStatusReady),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
+					Kind:                     swag.String(models.ClusterKindCluster),
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -1729,26 +1737,6 @@ var _ = Describe("cluster reconcile", func() {
 			aci     *hiveext.AgentClusterInstall
 		)
 
-		getDefaultTestCluster := func() *common.Cluster {
-			return &common.Cluster{
-				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
-				},
-				PullSecret: testPullSecretVal,
-			}
-		}
-
 		BeforeEach(func() {
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
@@ -1766,15 +1754,13 @@ var _ = Describe("cluster reconcile", func() {
 		It("update pull-secret network cidr and cluster name", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             "different-cluster-name",
-					OpenshiftVersion: "4.8",
-					ClusterNetworks: []*models.ClusterNetwork{{
-						Cidr:       "11.129.0.0/14",
-						HostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
-					}},
-					NetworkType: swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:      swag.String(models.ClusterStatusPendingForInput),
+					ID:                       &sId,
+					Name:                     "different-cluster-name",
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       "11.129.0.0/14",
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					NetworkType:              swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:                   swag.String(models.ClusterStatusPendingForInput),
 				},
 				PullSecret: "different-pull-secret",
 			}
@@ -1791,7 +1777,7 @@ var _ = Describe("cluster reconcile", func() {
 				Do(func(ctx context.Context, param installer.UpdateClusterParams) {
 					Expect(swag.StringValue(param.ClusterUpdateParams.PullSecret)).To(Equal(testPullSecretVal))
 					Expect(swag.StringValue(param.ClusterUpdateParams.Name)).To(Equal(defaultClusterSpec.ClusterName))
-					Expect(string(param.ClusterUpdateParams.ClusterNetworks[0].Cidr)).
+					Expect(swag.StringValue(param.ClusterUpdateParams.ClusterNetworkCidr)).
 						To(Equal(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR))
 				}).Return(updateReply, nil)
 
@@ -1807,107 +1793,24 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
-		Context("Networks", func() {
-			tests := []struct {
-				name                    string
-				specMachineNetworks     []hiveext.MachineNetworkEntry
-				dbMachineNetworks       []*models.MachineNetwork
-				expectedMachineNetworks []hiveext.MachineNetworkEntry
-				shouldUpdate            bool
-			}{
-				{
-					name:                    "empty db empty spec - no update",
-					specMachineNetworks:     []hiveext.MachineNetworkEntry{},
-					dbMachineNetworks:       []*models.MachineNetwork{},
-					expectedMachineNetworks: nil,
-					shouldUpdate:            false,
-				},
-				{
-					name:                    "empty db new spec - update",
-					specMachineNetworks:     machineNetworksArrayToEntries(common.TestIPv4Networking.MachineNetworks),
-					dbMachineNetworks:       []*models.MachineNetwork{},
-					expectedMachineNetworks: machineNetworksArrayToEntries(common.TestIPv4Networking.MachineNetworks),
-					shouldUpdate:            true,
-				},
-				{
-					name:                    "db set no spec - no update",
-					specMachineNetworks:     []hiveext.MachineNetworkEntry{},
-					dbMachineNetworks:       common.TestIPv4Networking.MachineNetworks,
-					expectedMachineNetworks: machineNetworksArrayToEntries(common.TestIPv4Networking.MachineNetworks),
-					shouldUpdate:            false,
-				},
-				{
-					name:                    "db set same spec - no update",
-					specMachineNetworks:     machineNetworksArrayToEntries(common.TestIPv4Networking.MachineNetworks),
-					dbMachineNetworks:       common.TestIPv4Networking.MachineNetworks,
-					expectedMachineNetworks: machineNetworksArrayToEntries(common.TestIPv4Networking.MachineNetworks),
-					shouldUpdate:            false,
-				},
-				{
-					name: "db set new spec - update",
-					specMachineNetworks: []hiveext.MachineNetworkEntry{{
-						CIDR: common.IncrementCidrMask(string(common.TestIPv4Networking.MachineNetworks[0].Cidr)),
-					}},
-					dbMachineNetworks: common.TestIPv4Networking.MachineNetworks,
-					expectedMachineNetworks: []hiveext.MachineNetworkEntry{{
-						CIDR: common.IncrementCidrMask(string(common.TestIPv4Networking.MachineNetworks[0].Cidr)),
-					}},
-					shouldUpdate: true,
-				},
-			}
-
-			for idx := range tests {
-				test := tests[idx]
-				It(test.name, func() {
-					backEndCluster := getDefaultTestCluster()
-					for _, network := range test.dbMachineNetworks {
-						network.ClusterID = *backEndCluster.ID
-					}
-					backEndCluster.MachineNetworks = test.dbMachineNetworks
-					mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-
-					aci.Spec.Networking.MachineNetwork = test.specMachineNetworks
-					Expect(c.Update(ctx, aci)).ShouldNot(HaveOccurred())
-
-					if test.shouldUpdate {
-						updateReply := getDefaultTestCluster()
-						updateReply.MachineNetworks = machineNetworksEntriesToArray(test.expectedMachineNetworks)
-
-						mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).
-							Do(func(ctx context.Context, param installer.UpdateClusterParams) {
-								Expect(param.ClusterUpdateParams.MachineNetworks).Should(
-									Equal(machineNetworksEntriesToArray(test.expectedMachineNetworks)))
-							}).Return(updateReply, nil)
-					}
-
-					request := newClusterDeploymentRequest(cluster)
-					result, err := cr.Reconcile(ctx, request)
-					Expect(err).To(BeNil())
-					Expect(result).To(Equal(ctrl.Result{}))
-
-					aci = getTestClusterInstall()
-					Expect(aci.Status.MachineNetwork).Should(Equal(test.expectedMachineNetworks))
-				})
-			}
-		})
-
 		It("only state changed", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
-					Kind:             swag.String(models.ClusterKindCluster),
-					ValidationsInfo:  "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					NetworkType:              swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
+					Kind:                     swag.String(models.ClusterKindCluster),
+					ValidationsInfo:          "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -1945,13 +1848,12 @@ var _ = Describe("cluster reconcile", func() {
 		It("update internal error", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             "different-cluster-name",
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusPendingForInput),
+					ID:                 &sId,
+					Name:               "different-cluster-name",
+					OpenshiftVersion:   "4.8",
+					ClusterNetworkCidr: "11.129.0.0/14",
+					NetworkType:        swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:             swag.String(models.ClusterStatusPendingForInput),
 				},
 				PullSecret: "different-pull-secret",
 			}
@@ -1974,18 +1876,19 @@ var _ = Describe("cluster reconcile", func() {
 		It("add install config overrides annotation", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					NetworkType:              swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2016,19 +1919,20 @@ var _ = Describe("cluster reconcile", func() {
 		It("Remove existing install config overrides annotation", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:                     &sId,
-					Name:                   clusterName,
-					OpenshiftVersion:       "4.8",
-					ClusterNetworks:        clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:        serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:            swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:                 swag.String(models.ClusterStatusInsufficient),
-					IngressVip:             defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:                 defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:          defaultClusterSpec.BaseDomain,
-					SSHPublicKey:           defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:         models.ClusterHyperthreadingAll,
-					InstallConfigOverrides: `{"controlPlane": {"hyperthreading": "Disabled"}}`,
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					NetworkType:              swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
+					InstallConfigOverrides:   `{"controlPlane": {"hyperthreading": "Disabled"}}`,
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2055,19 +1959,20 @@ var _ = Describe("cluster reconcile", func() {
 		It("Update install config overrides annotation", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:                     &sId,
-					Name:                   clusterName,
-					OpenshiftVersion:       "4.8",
-					ClusterNetworks:        clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:        serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:            swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:                 swag.String(models.ClusterStatusInsufficient),
-					IngressVip:             defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:                 defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:          defaultClusterSpec.BaseDomain,
-					SSHPublicKey:           defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:         models.ClusterHyperthreadingAll,
-					InstallConfigOverrides: `{"controlPlane": {"hyperthreading": "Disabled"}}`,
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					NetworkType:              swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
+					InstallConfigOverrides:   `{"controlPlane": {"hyperthreading": "Disabled"}}`,
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2098,18 +2003,19 @@ var _ = Describe("cluster reconcile", func() {
 		It("invalid install config overrides annotation", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					NetworkType:              swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2148,18 +2054,19 @@ var _ = Describe("cluster reconcile", func() {
 		It("SSHPublicKey in ClusterDeployment has spaces in suffix", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					NetworkType:              swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2185,19 +2092,20 @@ var _ = Describe("cluster reconcile", func() {
 			hostIP := "1.2.3.4"
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:                   &sId,
-					Name:                 clusterName,
-					OpenshiftVersion:     "4.8",
-					ClusterNetworks:      clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:      serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:          swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:               swag.String(models.ClusterStatusInstalling),
-					IngressVip:           hostIP,
-					APIVip:               hostIP,
-					BaseDNSDomain:        defaultClusterSpec.BaseDomain,
-					SSHPublicKey:         defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:       models.ClusterHyperthreadingAll,
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					NetworkType:              swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:                   swag.String(models.ClusterStatusInstalling),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               hostIP,
+					APIVip:                   hostIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
+					HighAvailabilityMode:     swag.String(models.ClusterHighAvailabilityModeNone),
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2224,19 +2132,20 @@ var _ = Describe("cluster reconcile", func() {
 		It("DHCP is enabled", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:                &sId,
-					Name:              clusterName,
-					OpenshiftVersion:  "4.8",
-					ClusterNetworks:   clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:   serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:       swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:            swag.String(models.ClusterStatusInstalling),
-					IngressVip:        defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:            defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:     defaultClusterSpec.BaseDomain,
-					SSHPublicKey:      defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:    models.ClusterHyperthreadingAll,
-					VipDhcpAllocation: swag.Bool(true),
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					NetworkType:              swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:                   swag.String(models.ClusterStatusInstalling),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
+					VipDhcpAllocation:        swag.Bool(true),
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2610,52 +2519,53 @@ var _ = Describe("TestConditions", func() {
 
 var _ = Describe("selectClusterNetworkType", func() {
 	tests := []struct {
-		clusterServiceNetworks []*models.ServiceNetwork
-		paramServiceNetworks   []*models.ServiceNetwork
-		resultNetworkType      string
+		clusterServiceNetworkCidr string
+		paramServiceNetworkCidr   string
+		resultNetworkType         string
 	}{
 		{
-			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:   []*models.ServiceNetwork{},
-			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworkCidr: "1.2.8.0/23",
+			paramServiceNetworkCidr:   "",
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		{
-			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:   []*models.ServiceNetwork{},
-			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworkCidr: "1002:db8::/119",
+			paramServiceNetworkCidr:   "",
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
-			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworkCidr: "1.2.8.0/23",
+			paramServiceNetworkCidr:   "1.2.8.0/23",
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		{
-			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
-			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworkCidr: "1002:db8::/119",
+			paramServiceNetworkCidr:   "1.2.8.0/23",
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		{
-			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
-			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworkCidr: "1002:db8::/119",
+			paramServiceNetworkCidr:   "1.2.8.0/23",
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		{
-			clusterServiceNetworks: []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
-			paramServiceNetworks:   []*models.ServiceNetwork{{Cidr: "1003:db8::/119"}},
-			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworkCidr: "1002:db8::/119",
+			paramServiceNetworkCidr:   "1003:db8::/119",
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
 		},
 	}
 	for i := range tests {
 		t := tests[i]
 		It("getNetworkType", func() {
-			ClusterUpdateParams := &models.ClusterUpdateParams{
-				ServiceNetworks: t.paramServiceNetworks,
+			ClusterUpdateParams := &models.ClusterUpdateParams{}
+			if t.paramServiceNetworkCidr != "" {
+				ClusterUpdateParams = &models.ClusterUpdateParams{ServiceNetworkCidr: &t.paramServiceNetworkCidr}
 			}
 
 			cluster := &common.Cluster{Cluster: models.Cluster{
-				ServiceNetworks: t.clusterServiceNetworks,
-				ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-				MachineNetworks: common.TestIPv4Networking.MachineNetworks,
+				ServiceNetworkCidr: t.clusterServiceNetworkCidr,
+				ClusterNetworkCidr: "10.56.20.0/24",
+				MachineNetworkCidr: "1.2.3.0/24",
 			}}
 			networkType := selectClusterNetworkType(ClusterUpdateParams, cluster)
 			Expect(networkType).To(Equal(t.resultNetworkType))

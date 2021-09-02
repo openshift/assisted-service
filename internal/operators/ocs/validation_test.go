@@ -126,6 +126,10 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		name                    string
 		srcState                string
 		srcStatusInfo           string
+		machineNetworkCidr      string
+		apiVip                  string
+		ingressVip              string
+		dnsDomain               string
 		pullSecretSet           bool
 		dstState                string
 		hosts                   []models.Host
@@ -136,10 +140,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		OpenShiftVersion        string
 	}{
 		{
-			name:          "ocs enabled, 3 sufficient nodes",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusReady,
-			pullSecretSet: true,
+			name:               "ocs enabled, 3 sufficient nodes",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusReady,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
 					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
@@ -174,10 +182,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 sufficient nodes",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusReady,
-			pullSecretSet: true,
+			name:               "ocs enabled, 6 sufficient nodes",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusReady,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
 					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
@@ -227,10 +239,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 nodes, one with empty inventory",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusInsufficient,
-			pullSecretSet: true,
+			name:               "ocs enabled, 3 nodes, one with empty inventory",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
 					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
@@ -261,10 +277,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 nodes, total disks not a multiple of 3",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusReady,
-			pullSecretSet: true,
+			name:               "ocs enabled, 3 nodes, total disks not a multiple of 3",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusReady,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
 					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
@@ -301,10 +321,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 insufficient nodes with less than 3 nodes",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusInsufficient,
-			pullSecretSet: true,
+			name:               "ocs enabled, 3 insufficient nodes with less than 3 nodes",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
 					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
@@ -334,10 +358,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 nodes with less than 3 disks",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusInsufficient,
-			pullSecretSet: true,
+			name:               "ocs enabled, 3 nodes with less than 3 disks",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
@@ -360,10 +388,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 nodes with 3 ocs disk, 1 with size less than 25GB",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusInsufficient,
-			pullSecretSet: true,
+			name:               "ocs enabled, 3 nodes with 3 ocs disk, 1 with size less than 25GB",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
 					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
@@ -398,10 +430,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 5 unsupported nodes ( 3 masters + 2 workers )",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusInsufficient,
-			pullSecretSet: true,
+			name:               "ocs enabled, 5 unsupported nodes ( 3 masters + 2 workers )",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
@@ -438,10 +474,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes with 3 worker nodes, one with empty inventory",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusInsufficient,
-			pullSecretSet: true,
+			name:               "ocs enabled, 6 nodes with 3 worker nodes, one with empty inventory",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
@@ -479,10 +519,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes with 3 worker nodes, one with disk less than 25GB",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusInsufficient,
-			pullSecretSet: true,
+			name:               "ocs enabled, 6 nodes with 3 worker nodes, one with disk less than 25GB",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
@@ -526,10 +570,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes with 3 worker nodes, total disks on workers not a multiple of 3",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusReady,
-			pullSecretSet: true,
+			name:               "ocs enabled, 6 nodes with 3 worker nodes, total disks on workers not a multiple of 3",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusReady,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
@@ -568,10 +616,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes with 3 insufficient worker nodes due to insufficient disks",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusInsufficient,
-			pullSecretSet: true,
+			name:               "ocs enabled, 6 nodes with 3 insufficient worker nodes due to insufficient disks",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
@@ -601,10 +653,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes, with role of one as auto-assign (ocs validation failure)",
-			srcState:      models.ClusterStatusPendingForInput,
-			dstState:      models.ClusterStatusInsufficient,
-			pullSecretSet: true,
+			name:               "ocs enabled, 6 nodes, with role of one as auto-assign (ocs validation failure)",
+			srcState:           models.ClusterStatusPendingForInput,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
 					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
@@ -654,10 +710,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 nodes, with role of one as auto-assign (ocs validation success)",
-			srcState:      models.ClusterStatusPendingForInput,
-			dstState:      models.ClusterStatusReady,
-			pullSecretSet: true,
+			name:               "ocs enabled, 3 nodes, with role of one as auto-assign (ocs validation success)",
+			srcState:           models.ClusterStatusPendingForInput,
+			dstState:           models.ClusterStatusReady,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
 					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
@@ -692,10 +752,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes with 3 worker nodes for standard deployment",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusReady,
-			pullSecretSet: true,
+			name:               "ocs enabled, 6 nodes with 3 worker nodes for standard deployment",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusReady,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
 					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
@@ -745,10 +809,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 sufficient nodes, Disk with empty disk size",
-			srcState:      models.ClusterStatusReady,
-			dstState:      models.ClusterStatusReady,
-			pullSecretSet: true,
+			name:               "ocs enabled, 3 sufficient nodes, Disk with empty disk size",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusReady,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
 					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
@@ -794,19 +862,20 @@ var _ = Describe("Ocs Operator use-cases", func() {
 
 			cluster = common.Cluster{
 				Cluster: models.Cluster{
-					ID:                 &clusterId,
-					ClusterNetworks:    common.TestIPv4Networking.ClusterNetworks,
-					ServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-					MachineNetworks:    common.TestIPv4Networking.MachineNetworks,
-					APIVip:             common.TestIPv4Networking.APIVip,
-					IngressVip:         common.TestIPv4Networking.IngressVip,
-					Status:             &t.srcState,
-					StatusInfo:         &t.srcStatusInfo,
-					BaseDNSDomain:      "test.com",
-					PullSecretSet:      t.pullSecretSet,
-					MonitoredOperators: operators,
-					OpenshiftVersion:   t.OpenShiftVersion,
-					NetworkType:        swag.String(models.ClusterNetworkTypeOVNKubernetes),
+					APIVip:                   t.apiVip,
+					ID:                       &clusterId,
+					IngressVip:               t.ingressVip,
+					MachineNetworkCidr:       t.machineNetworkCidr,
+					Status:                   &t.srcState,
+					StatusInfo:               &t.srcStatusInfo,
+					BaseDNSDomain:            t.dnsDomain,
+					PullSecretSet:            t.pullSecretSet,
+					ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+					ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+					ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+					MonitoredOperators:       operators,
+					OpenshiftVersion:         t.OpenShiftVersion,
+					NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 				},
 			}
 

@@ -38,7 +38,7 @@ var _ = Describe("dhcpallocate", func() {
 	})
 
 	It("happy flow", func() {
-		cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.PrimaryMachineNetworkCidr)
+		cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 		cluster.VipDhcpAllocation = swag.Bool(true)
 		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
@@ -56,7 +56,7 @@ var _ = Describe("dhcpallocate", func() {
 	})
 
 	It("happy flow with leases", func() {
-		cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.PrimaryMachineNetworkCidr)
+		cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 		cluster.VipDhcpAllocation = swag.Bool(true)
 		cluster.ApiVipLease = "apiLease"
 		cluster.IngressVipLease = "ingressLease"
@@ -76,7 +76,7 @@ var _ = Describe("dhcpallocate", func() {
 	})
 
 	It("Dhcp disabled", func() {
-		cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.PrimaryMachineNetworkCidr)
+		cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 		cluster.VipDhcpAllocation = swag.Bool(false)
 		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 		stepReply, stepErr = dCmd.GetSteps(ctx, &host)

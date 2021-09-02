@@ -36,10 +36,8 @@ func (m *Manager) initMonitoringQueryGenerator() {
 			models.HostStatusCancelled, // for limited time, until log collection finished or timed-out
 			models.HostStatusError,     // for limited time, until log collection finished or timed-out
 		}
-
-		dbWithCondition := common.LoadTableFromDB(m.db, common.HostsTable, "status in (?)", monitorStates)
-		dbWithCondition = common.LoadClusterTablesFromDB(dbWithCondition, common.HostsTable)
-		dbWithCondition = dbWithCondition.Where("exists (select 1 from hosts where clusters.id = hosts.cluster_id)")
+		dbWithCondition := m.db.Preload("Hosts", "status in (?)", monitorStates).Preload(common.MonitoredOperatorsTable).
+			Where("exists (select 1 from hosts where clusters.id = hosts.cluster_id)")
 		m.monitorClusterQueryGenerator = common.NewMonitorQueryGenerator(m.db, dbWithCondition, m.Config.MonitorBatchSize)
 	}
 	if m.monitorInfraEnvQueryGenerator == nil {

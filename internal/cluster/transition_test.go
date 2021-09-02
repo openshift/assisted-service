@@ -600,7 +600,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 			name               string
 			srcState           string
 			srcStatusInfo      string
-			machineNetworks    []*models.MachineNetwork
+			machineNetworkCidr string
 			apiVip             string
 			ingressVip         string
 			dnsDomain          string
@@ -613,13 +613,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 			errorExpected      bool
 		}{
 			{
-				name:          "pending-for-input to pending-for-input",
-				srcState:      models.ClusterStatusPendingForInput,
-				dstState:      models.ClusterStatusPendingForInput,
-				apiVip:        "",
-				ingressVip:    "",
-				dnsDomain:     "test.com",
-				pullSecretSet: true,
+				name:               "pending-for-input to pending-for-input",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "",
+				apiVip:             "",
+				ingressVip:         "",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
@@ -645,13 +646,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:          "pending-for-input to pending-for-input api-vip-defined",
-				srcState:      models.ClusterStatusPendingForInput,
-				dstState:      models.ClusterStatusPendingForInput,
-				apiVip:        common.TestIPv4Networking.APIVip,
-				ingressVip:    "",
-				dnsDomain:     "test.com",
-				pullSecretSet: true,
+				name:               "pending-for-input to pending-for-input api-vip-defined",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "",
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         "",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
@@ -677,14 +679,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to pending-for-input machine-cidr defined",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusPendingForInput,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          "",
-				ingressVip:      "",
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "pending-for-input to pending-for-input machine-cidr defined",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             "",
+				ingressVip:         "",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
@@ -710,14 +712,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to pending-for-input api-vip and machine-cidr defined",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusPendingForInput,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      "",
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "pending-for-input to pending-for-input api-vip and machine-cidr defined",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         "",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
@@ -743,13 +745,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:          "pending-for-input to pending-for-input with single inventory",
-				srcState:      models.ClusterStatusPendingForInput,
-				dstState:      models.ClusterStatusPendingForInput,
-				apiVip:        "",
-				ingressVip:    "",
-				dnsDomain:     "test.com",
-				pullSecretSet: true,
+				name:               "pending-for-input to pending-for-input with single inventory",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "",
+				apiVip:             "",
+				ingressVip:         "",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster, Inventory: common.GenerateTestDefaultInventory()},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
@@ -775,13 +778,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:          "pending-for-input to pending-for-input with 2 workers",
-				srcState:      models.ClusterStatusPendingForInput,
-				dstState:      models.ClusterStatusPendingForInput,
-				apiVip:        "",
-				ingressVip:    "",
-				dnsDomain:     "test.com",
-				pullSecretSet: true,
+				name:               "pending-for-input to pending-for-input with 2 workers",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "",
+				apiVip:             "",
+				ingressVip:         "",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
@@ -807,13 +811,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:          "pending-for-input to pending-for-input with 3 master 2 workers candidates in auto-assign mode",
-				srcState:      models.ClusterStatusPendingForInput,
-				dstState:      models.ClusterStatusPendingForInput,
-				apiVip:        "",
-				ingressVip:    "",
-				dnsDomain:     "test.com",
-				pullSecretSet: true,
+				name:               "pending-for-input to pending-for-input with 3 master 2 workers candidates in auto-assign mode",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "",
+				apiVip:             "",
+				ingressVip:         "",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleAutoAssign},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleAutoAssign},
@@ -840,14 +845,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to insufficient - masters > 3",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusInsufficient,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "pending-for-input to insufficient - masters > 3",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -873,14 +878,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to insufficient - worker = 1 with auto-assign",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusInsufficient,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "pending-for-input to insufficient - worker = 1 with auto-assign",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleAutoAssign},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleAutoAssign},
@@ -907,14 +912,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to insufficient - worker = 1",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusInsufficient,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "pending-for-input to insufficient - worker = 1",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -940,14 +945,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to insufficient - not all hosts are ready to install",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusInsufficient,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "pending-for-input to insufficient - not all hosts are ready to install",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -972,14 +977,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "ready to pending-for-input - api vip not defined",
-				srcState:        models.ClusterStatusReady,
-				dstState:        models.ClusterStatusPendingForInput,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          "",
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "ready to pending-for-input - api vip not defined",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             "",
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1004,14 +1009,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "ready to pending-for-input - dns domain not defined",
-				srcState:        models.ClusterStatusReady,
-				dstState:        models.ClusterStatusPendingForInput,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "",
-				pullSecretSet:   true,
+				name:               "ready to pending-for-input - dns domain not defined",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1036,14 +1041,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "ready to pending-for-input - pull secret not set",
-				srcState:        models.ClusterStatusReady,
-				dstState:        models.ClusterStatusPendingForInput,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   false,
+				name:               "ready to pending-for-input - pull secret not set",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      false,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1067,14 +1072,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				}),
 				errorExpected: false,
 			}, {
-				name:            "pending-for-input to ready",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusReady,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "pending-for-input to ready",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1099,14 +1104,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "insufficient to ready with disabled master",
-				srcState:        models.ClusterStatusInsufficient,
-				dstState:        models.ClusterStatusReady,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "insufficient to ready with disabled master",
+				srcState:           models.ClusterStatusInsufficient,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusDisabled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1130,14 +1135,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "insufficient to ready",
-				srcState:        models.ClusterStatusInsufficient,
-				dstState:        models.ClusterStatusReady,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "insufficient to ready",
+				srcState:           models.ClusterStatusInsufficient,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1162,14 +1167,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "ready to ready",
-				srcState:        models.ClusterStatusReady,
-				dstState:        models.ClusterStatusReady,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "ready to ready",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1192,15 +1197,15 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "finalizing to finalizing",
-				srcState:        models.ClusterStatusFinalizing,
-				srcStatusInfo:   statusInfoFinalizing,
-				dstState:        models.ClusterStatusFinalizing,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "finalizing to finalizing",
+				srcState:           models.ClusterStatusFinalizing,
+				srcStatusInfo:      statusInfoFinalizing,
+				dstState:           models.ClusterStatusFinalizing,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1213,14 +1218,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected:      false,
 			},
 			{
-				name:            "error to error",
-				srcState:        models.ClusterStatusError,
-				dstState:        models.ClusterStatusError,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "error to error",
+				srcState:           models.ClusterStatusError,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1233,15 +1238,15 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected:      false,
 			},
 			{
-				name:            "installed to installed",
-				srcState:        models.ClusterStatusInstalled,
-				srcStatusInfo:   statusInfoInstalled,
-				dstState:        models.ClusterStatusInstalled,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "installed to installed",
+				srcState:           models.ClusterStatusInstalled,
+				srcStatusInfo:      statusInfoInstalled,
+				dstState:           models.ClusterStatusInstalled,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1254,15 +1259,15 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected:      false,
 			},
 			{
-				name:            "Installing to Installing",
-				srcState:        models.ClusterStatusInstalling,
-				srcStatusInfo:   statusInfoInstalling,
-				dstState:        models.ClusterStatusInstalling,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "Installing to Installing",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstalling,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1281,17 +1286,18 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 			It(t.name, func() {
 				cluster = common.Cluster{
 					Cluster: models.Cluster{
-						APIVip:          t.apiVip,
-						ID:              &clusterId,
-						IngressVip:      t.ingressVip,
-						MachineNetworks: t.machineNetworks,
-						Status:          &t.srcState,
-						StatusInfo:      &t.srcStatusInfo,
-						BaseDNSDomain:   t.dnsDomain,
-						PullSecretSet:   t.pullSecretSet,
-						ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-						ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-						NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						APIVip:                   t.apiVip,
+						ID:                       &clusterId,
+						IngressVip:               t.ingressVip,
+						MachineNetworkCidr:       t.machineNetworkCidr,
+						Status:                   &t.srcState,
+						StatusInfo:               &t.srcStatusInfo,
+						BaseDNSDomain:            t.dnsDomain,
+						PullSecretSet:            t.pullSecretSet,
+						ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+						ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+						ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+						NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 					},
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -1662,29 +1668,30 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 	Context("All transitions", func() {
 		var srcState string
 		tests := []struct {
-			name                  string
-			srcState              string
-			srcStatusInfo         string
-			clusterNetworks       []*models.ClusterNetwork
-			serviceNetworks       []*models.ServiceNetwork
-			machineNetworks       []*models.MachineNetwork
-			apiVip                string
-			ingressVip            string
-			dstState              string
-			hosts                 []models.Host
-			statusInfoChecker     statusInfoChecker
-			validationsChecker    *validationsChecker
-			errorExpected         bool
-			userManagedNetworking bool
-			networkType           string
+			name                     string
+			srcState                 string
+			srcStatusInfo            string
+			machineNetworkCidr       string
+			clusterNetworkCidr       string
+			serviceNetworkCidr       string
+			clusterNetworkHostPrefix int64
+			apiVip                   string
+			ingressVip               string
+			dstState                 string
+			hosts                    []models.Host
+			statusInfoChecker        statusInfoChecker
+			validationsChecker       *validationsChecker
+			errorExpected            bool
+			userManagedNetworking    bool
+			networkType              string
 		}{
 			{
-				name:            "pending-for-input to pending-for-input",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusPendingForInput,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
+				name:               "pending-for-input to pending-for-input",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1710,12 +1717,13 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				errorExpected: false,
 			},
 			{
-				name:        "pending-for-input to pending-for-input user-managed-networking",
-				srcState:    models.ClusterStatusPendingForInput,
-				dstState:    models.ClusterStatusPendingForInput,
-				apiVip:      "",
-				ingressVip:  "",
-				networkType: "",
+				name:               "pending-for-input to pending-for-input user-managed-networking",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "",
+				apiVip:             "",
+				ingressVip:         "",
+				networkType:        "",
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1743,15 +1751,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				userManagedNetworking: true,
 			},
 			{
-				name:            "pending-for-input to ready user-managed-networking",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusReady,
-				clusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-				serviceNetworks: common.TestIPv4Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to ready user-managed-networking",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusReady,
+				clusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+				serviceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv4Networking.APIVip,
+				ingressVip:               common.TestIPv4Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1777,18 +1786,15 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				userManagedNetworking: true,
 			},
 			{
-				name:     "pending-for-input to insufficient - overlapping",
-				srcState: models.ClusterStatusPendingForInput,
-				dstState: models.ClusterStatusInsufficient,
-				clusterNetworks: []*models.ClusterNetwork{
-					{Cidr: common.TestIPv4Networking.ClusterNetworks[0].Cidr},
-				}, serviceNetworks: []*models.ServiceNetwork{
-					{Cidr: models.Subnet(common.IncrementCidrMask(string(common.TestIPv4Networking.MachineNetworks[0].Cidr)))},
-				},
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOpenShiftSDN,
+				name:               "pending-for-input to insufficient - overlapping",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				clusterNetworkCidr: common.TestIPv4Networking.ClusterNetworkCidr,
+				serviceNetworkCidr: common.IncrementCidrMask(common.TestIPv4Networking.MachineNetworkCidr),
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				networkType:        models.ClusterNetworkTypeOpenShiftSDN,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1815,17 +1821,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				errorExpected: false,
 			},
 			{
-				name:     "pending-for-input to insufficient - prefix too low",
-				srcState: models.ClusterStatusPendingForInput,
-				dstState: models.ClusterStatusInsufficient,
-				clusterNetworks: []*models.ClusterNetwork{
-					{Cidr: common.TestIPv4Networking.ClusterNetworks[0].Cidr, HostPrefix: 1},
-				},
-				serviceNetworks: common.TestIPv4Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to insufficient - prefix too low",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusInsufficient,
+				clusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: 1,
+				serviceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv4Networking.APIVip,
+				ingressVip:               common.TestIPv4Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1852,17 +1857,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				errorExpected: false,
 			},
 			{
-				name:     "pending-for-input to insufficient - prefix too high",
-				srcState: models.ClusterStatusPendingForInput,
-				dstState: models.ClusterStatusInsufficient,
-				clusterNetworks: []*models.ClusterNetwork{
-					{Cidr: common.TestIPv4Networking.ClusterNetworks[0].Cidr, HostPrefix: common.TestIPv4Networking.ClusterNetworks[0].HostPrefix * 2},
-				},
-				serviceNetworks: common.TestIPv4Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to insufficient - prefix too high",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusInsufficient,
+				clusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix * 2,
+				serviceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv4Networking.APIVip,
+				ingressVip:               common.TestIPv4Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1883,21 +1887,23 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
-					networkPrefixValid:                  {status: ValidationFailure, messagePattern: "Host prefix, now .*, must be less than or equal to 25 to allow at least 128 addresses"},
-					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
+					networkPrefixValid: {status: ValidationFailure, messagePattern: fmt.Sprintf(
+						"Host prefix, now %d, must be less than or equal to 25 to allow at least 128 addresses", common.TestIPv4Networking.ClusterNetworkHostPrefix*2)},
+					isNetworkTypeValid: {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
 				}),
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to ready",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusReady,
-				clusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-				serviceNetworks: common.TestIPv4Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to ready",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusReady,
+				clusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+				serviceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv4Networking.APIVip,
+				ingressVip:               common.TestIPv4Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1922,17 +1928,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				errorExpected: false,
 			},
 			{
-				name:     "pending-for-input to insufficient - not enough addresses",
-				srcState: models.ClusterStatusPendingForInput,
-				dstState: models.ClusterStatusInsufficient,
-				clusterNetworks: []*models.ClusterNetwork{
-					{Cidr: common.TestIPv4Networking.ClusterNetworks[0].Cidr, HostPrefix: common.TestIPv4Networking.ClusterNetworks[0].HostPrefix / 2},
-				},
-				serviceNetworks: common.TestIPv4Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to insufficient - not enough addresses",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusInsufficient,
+				clusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix / 2,
+				serviceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv4Networking.APIVip,
+				ingressVip:               common.TestIPv4Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -1959,15 +1964,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to ready - with workers",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusReady,
-				clusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-				serviceNetworks: common.TestIPv4Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to ready - with workers",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusReady,
+				clusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+				serviceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv4Networking.APIVip,
+				ingressVip:               common.TestIPv4Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2000,18 +2006,19 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 			It(t.name, func() {
 				cluster = common.Cluster{
 					Cluster: models.Cluster{
-						APIVip:                t.apiVip,
-						ID:                    &clusterId,
-						IngressVip:            t.ingressVip,
-						ClusterNetworks:       t.clusterNetworks,
-						ServiceNetworks:       t.serviceNetworks,
-						MachineNetworks:       t.machineNetworks,
-						Status:                &t.srcState,
-						StatusInfo:            &t.srcStatusInfo,
-						PullSecretSet:         true,
-						BaseDNSDomain:         "test.com",
-						UserManagedNetworking: &t.userManagedNetworking,
-						NetworkType:           &t.networkType,
+						APIVip:                   t.apiVip,
+						ID:                       &clusterId,
+						IngressVip:               t.ingressVip,
+						MachineNetworkCidr:       t.machineNetworkCidr,
+						Status:                   &t.srcState,
+						StatusInfo:               &t.srcStatusInfo,
+						ClusterNetworkCidr:       t.clusterNetworkCidr,
+						ServiceNetworkCidr:       t.serviceNetworkCidr,
+						ClusterNetworkHostPrefix: t.clusterNetworkHostPrefix,
+						PullSecretSet:            true,
+						BaseDNSDomain:            "test.com",
+						UserManagedNetworking:    &t.userManagedNetworking,
+						NetworkType:              &t.networkType,
 					},
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -2050,30 +2057,31 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 	Context("All transitions IPv6", func() {
 		var srcState string
 		tests := []struct {
-			name                  string
-			srcState              string
-			srcStatusInfo         string
-			clusterNetworks       []*models.ClusterNetwork
-			serviceNetworks       []*models.ServiceNetwork
-			machineNetworks       []*models.MachineNetwork
-			apiVip                string
-			ingressVip            string
-			dstState              string
-			hosts                 []models.Host
-			statusInfoChecker     statusInfoChecker
-			validationsChecker    *validationsChecker
-			errorExpected         bool
-			userManagedNetworking bool
-			networkType           string
+			name                     string
+			srcState                 string
+			srcStatusInfo            string
+			machineNetworkCidr       string
+			clusterNetworkCidr       string
+			serviceNetworkCidr       string
+			clusterNetworkHostPrefix int64
+			apiVip                   string
+			ingressVip               string
+			dstState                 string
+			hosts                    []models.Host
+			statusInfoChecker        statusInfoChecker
+			validationsChecker       *validationsChecker
+			errorExpected            bool
+			userManagedNetworking    bool
+			networkType              string
 		}{
 			{
-				name:            "pending-for-input to pending-for-input",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusPendingForInput,
-				machineNetworks: common.TestIPv6Networking.MachineNetworks,
-				apiVip:          common.TestIPv6Networking.APIVip,
-				ingressVip:      common.TestIPv6Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:               "pending-for-input to pending-for-input",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: common.TestIPv6Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv6Networking.APIVip,
+				ingressVip:         common.TestIPv6Networking.IngressVip,
+				networkType:        models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2100,12 +2108,13 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				errorExpected: false,
 			},
 			{
-				name:        "pending-for-input to pending-for-input user-managed-networking",
-				srcState:    models.ClusterStatusPendingForInput,
-				dstState:    models.ClusterStatusPendingForInput,
-				apiVip:      "",
-				ingressVip:  "",
-				networkType: "bla",
+				name:               "pending-for-input to pending-for-input user-managed-networking",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "",
+				apiVip:             "",
+				ingressVip:         "",
+				networkType:        "bla",
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2132,12 +2141,13 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				userManagedNetworking: true,
 			},
 			{
-				name:        "pending-for-input to pending-for-input user-managed-networking",
-				srcState:    models.ClusterStatusPendingForInput,
-				dstState:    models.ClusterStatusPendingForInput,
-				apiVip:      "",
-				ingressVip:  "",
-				networkType: "bla",
+				name:               "pending-for-input to pending-for-input user-managed-networking",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "",
+				apiVip:             "",
+				ingressVip:         "",
+				networkType:        "bla",
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2164,15 +2174,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				userManagedNetworking: true,
 			},
 			{
-				name:            "pending-for-input to ready user-managed-networking testing_now",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusReady,
-				clusterNetworks: common.TestIPv6Networking.ClusterNetworks,
-				serviceNetworks: common.TestIPv6Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv6Networking.MachineNetworks,
-				apiVip:          common.TestIPv6Networking.APIVip,
-				ingressVip:      common.TestIPv6Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to ready user-managed-networking testing_now",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusReady,
+				clusterNetworkCidr:       common.TestIPv6Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: common.TestIPv6Networking.ClusterNetworkHostPrefix,
+				serviceNetworkCidr:       common.TestIPv6Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv6Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv6Networking.APIVip,
+				ingressVip:               common.TestIPv6Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2198,19 +2209,15 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				userManagedNetworking: true,
 			},
 			{
-				name:     "pending-for-input to insufficient - overlapping",
-				srcState: models.ClusterStatusPendingForInput,
-				dstState: models.ClusterStatusInsufficient,
-				clusterNetworks: []*models.ClusterNetwork{
-					{Cidr: common.TestIPv6Networking.ClusterNetworks[0].Cidr},
-				},
-				serviceNetworks: []*models.ServiceNetwork{
-					{Cidr: models.Subnet(common.IncrementCidrMask(string(common.TestIPv6Networking.MachineNetworks[0].Cidr)))},
-				},
-				machineNetworks: common.TestIPv6Networking.MachineNetworks,
-				apiVip:          common.TestIPv6Networking.APIVip,
-				ingressVip:      common.TestIPv6Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:               "pending-for-input to insufficient - overlapping",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				clusterNetworkCidr: common.TestIPv6Networking.ClusterNetworkCidr,
+				serviceNetworkCidr: common.IncrementCidrMask(common.TestIPv6Networking.MachineNetworkCidr),
+				machineNetworkCidr: common.TestIPv6Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv6Networking.APIVip,
+				ingressVip:         common.TestIPv6Networking.IngressVip,
+				networkType:        models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2237,17 +2244,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				errorExpected: false,
 			},
 			{
-				name:     "pending-for-input to insufficient - prefix too low",
-				srcState: models.ClusterStatusPendingForInput,
-				dstState: models.ClusterStatusInsufficient,
-				clusterNetworks: []*models.ClusterNetwork{
-					{Cidr: common.TestIPv6Networking.ClusterNetworks[0].Cidr, HostPrefix: 1},
-				},
-				serviceNetworks: common.TestIPv6Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv6Networking.MachineNetworks,
-				apiVip:          common.TestIPv6Networking.APIVip,
-				ingressVip:      common.TestIPv6Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to insufficient - prefix too low",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusInsufficient,
+				clusterNetworkCidr:       common.TestIPv6Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: 1,
+				serviceNetworkCidr:       common.TestIPv6Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv6Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv6Networking.APIVip,
+				ingressVip:               common.TestIPv6Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2274,15 +2280,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to insufficient networkType invalid",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusInsufficient,
-				clusterNetworks: common.TestIPv6Networking.ClusterNetworks,
-				serviceNetworks: common.TestIPv6Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv6Networking.MachineNetworks,
-				apiVip:          common.TestIPv6Networking.APIVip,
-				ingressVip:      common.TestIPv6Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOpenShiftSDN,
+				name:                     "pending-for-input to insufficient networkType invalid",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusInsufficient,
+				clusterNetworkCidr:       common.TestIPv6Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: common.TestIPv6Networking.ClusterNetworkHostPrefix,
+				serviceNetworkCidr:       common.TestIPv6Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv6Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv6Networking.APIVip,
+				ingressVip:               common.TestIPv6Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOpenShiftSDN,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2308,17 +2315,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				errorExpected: false,
 			},
 			{
-				name:     "pending-for-input to insufficient - prefix too high",
-				srcState: models.ClusterStatusPendingForInput,
-				dstState: models.ClusterStatusInsufficient,
-				clusterNetworks: []*models.ClusterNetwork{
-					{Cidr: common.TestIPv6Networking.ClusterNetworks[0].Cidr, HostPrefix: common.TestIPv6Networking.ClusterNetworks[0].HostPrefix * 2},
-				},
-				serviceNetworks: common.TestIPv6Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv6Networking.MachineNetworks,
-				apiVip:          common.TestIPv6Networking.APIVip,
-				ingressVip:      common.TestIPv6Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to insufficient - prefix too high",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusInsufficient,
+				clusterNetworkCidr:       common.TestIPv6Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: common.TestIPv6Networking.ClusterNetworkHostPrefix * 2,
+				serviceNetworkCidr:       common.TestIPv6Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv6Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv6Networking.APIVip,
+				ingressVip:               common.TestIPv6Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2339,21 +2345,23 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
-					networkPrefixValid:                  {status: ValidationFailure, messagePattern: "Host prefix, now .*, must be less than or equal to 121 to allow at least 128 addresses"},
-					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
+					networkPrefixValid: {status: ValidationFailure, messagePattern: fmt.Sprintf(
+						"Host prefix, now %d, must be less than or equal to 121 to allow at least 128 addresses", common.TestIPv6Networking.ClusterNetworkHostPrefix*2)},
+					isNetworkTypeValid: {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
 				}),
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to ready",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusReady,
-				clusterNetworks: common.TestIPv6Networking.ClusterNetworks,
-				serviceNetworks: common.TestIPv6Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv6Networking.MachineNetworks,
-				apiVip:          common.TestIPv6Networking.APIVip,
-				ingressVip:      common.TestIPv6Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to ready",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusReady,
+				clusterNetworkCidr:       common.TestIPv6Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: common.TestIPv6Networking.ClusterNetworkHostPrefix,
+				serviceNetworkCidr:       common.TestIPv6Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv6Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv6Networking.APIVip,
+				ingressVip:               common.TestIPv6Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2378,17 +2386,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				errorExpected: false,
 			},
 			{
-				name:     "pending-for-input to insufficient - not enough addresses",
-				srcState: models.ClusterStatusPendingForInput,
-				dstState: models.ClusterStatusInsufficient,
-				clusterNetworks: []*models.ClusterNetwork{
-					{Cidr: common.TestIPv6Networking.ClusterNetworks[0].Cidr, HostPrefix: common.TestIPv6Networking.ClusterNetworks[0].HostPrefix / 2},
-				},
-				serviceNetworks: common.TestIPv6Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv6Networking.MachineNetworks,
-				apiVip:          common.TestIPv6Networking.APIVip,
-				ingressVip:      common.TestIPv6Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to insufficient - not enough addresses",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusInsufficient,
+				clusterNetworkCidr:       common.TestIPv6Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: common.TestIPv6Networking.ClusterNetworkHostPrefix / 2,
+				serviceNetworkCidr:       common.TestIPv6Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv6Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv6Networking.APIVip,
+				ingressVip:               common.TestIPv6Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2415,15 +2422,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to ready",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusReady,
-				clusterNetworks: common.TestIPv6Networking.ClusterNetworks,
-				serviceNetworks: common.TestIPv6Networking.ServiceNetworks,
-				machineNetworks: common.TestIPv6Networking.MachineNetworks,
-				apiVip:          common.TestIPv6Networking.APIVip,
-				ingressVip:      common.TestIPv6Networking.IngressVip,
-				networkType:     models.ClusterNetworkTypeOVNKubernetes,
+				name:                     "pending-for-input to ready",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusReady,
+				clusterNetworkCidr:       common.TestIPv6Networking.ClusterNetworkCidr,
+				clusterNetworkHostPrefix: common.TestIPv6Networking.ClusterNetworkHostPrefix,
+				serviceNetworkCidr:       common.TestIPv6Networking.ServiceNetworkCidr,
+				machineNetworkCidr:       common.TestIPv6Networking.MachineNetworkCidr,
+				apiVip:                   common.TestIPv6Networking.APIVip,
+				ingressVip:               common.TestIPv6Networking.IngressVip,
+				networkType:              models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2456,18 +2464,19 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 			It(t.name, func() {
 				cluster = common.Cluster{
 					Cluster: models.Cluster{
-						APIVip:                t.apiVip,
-						ID:                    &clusterId,
-						IngressVip:            t.ingressVip,
-						ClusterNetworks:       t.clusterNetworks,
-						ServiceNetworks:       t.serviceNetworks,
-						MachineNetworks:       t.machineNetworks,
-						Status:                &t.srcState,
-						StatusInfo:            &t.srcStatusInfo,
-						PullSecretSet:         true,
-						BaseDNSDomain:         "test.com",
-						UserManagedNetworking: &t.userManagedNetworking,
-						NetworkType:           &t.networkType,
+						APIVip:                   t.apiVip,
+						ID:                       &clusterId,
+						IngressVip:               t.ingressVip,
+						MachineNetworkCidr:       t.machineNetworkCidr,
+						Status:                   &t.srcState,
+						StatusInfo:               &t.srcStatusInfo,
+						ClusterNetworkCidr:       t.clusterNetworkCidr,
+						ServiceNetworkCidr:       t.serviceNetworkCidr,
+						ClusterNetworkHostPrefix: t.clusterNetworkHostPrefix,
+						PullSecretSet:            true,
+						BaseDNSDomain:            "test.com",
+						UserManagedNetworking:    &t.userManagedNetworking,
+						NetworkType:              &t.networkType,
 					},
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -2553,7 +2562,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 			name                    string
 			srcState                string
 			srcStatusInfo           string
-			machineNetworks         []*models.MachineNetwork
+			machineNetworkCidr      string
 			apiVip                  string
 			ingressVip              string
 			dnsDomain               string
@@ -2566,13 +2575,14 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 			errorExpected           bool
 		}{
 			{
-				name:          "pending-for-input to pending-for-input",
-				srcState:      models.ClusterStatusPendingForInput,
-				dstState:      models.ClusterStatusPendingForInput,
-				apiVip:        "",
-				ingressVip:    "",
-				dnsDomain:     "test.com",
-				pullSecretSet: true,
+				name:               "pending-for-input to pending-for-input",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "",
+				apiVip:             "",
+				ingressVip:         "",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
@@ -2597,14 +2607,14 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to insufficient - masters > 3",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusInsufficient,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "pending-for-input to insufficient - masters > 3",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2629,14 +2639,14 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to insufficient - not all hosts are ready to install - not enough workers",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusInsufficient,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "pending-for-input to insufficient - not all hosts are ready to install - not enough workers",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2659,14 +2669,14 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to insufficient - not all hosts are ready to install",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusInsufficient,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "pending-for-input to insufficient - not all hosts are ready to install",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInsufficient), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2690,14 +2700,14 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "ready to dhcp timeout - api vip not defined",
-				srcState:        models.ClusterStatusReady,
-				dstState:        models.ClusterStatusInsufficient,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          "",
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "ready to dhcp timeout - api vip not defined",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             "",
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2721,14 +2731,14 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "ready to insufficient - api vip not defined",
-				srcState:        models.ClusterStatusReady,
-				dstState:        models.ClusterStatusInsufficient,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          "",
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "ready to insufficient - api vip not defined",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             "",
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2753,14 +2763,14 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected:           false,
 			},
 			{
-				name:            "dhcp timeout to ready",
-				srcState:        models.ClusterStatusInsufficient,
-				dstState:        models.ClusterStatusReady,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "dhcp timeout to ready",
+				srcState:           models.ClusterStatusInsufficient,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2784,14 +2794,14 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to ready",
-				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusReady,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "pending-for-input to ready",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2815,14 +2825,14 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "insufficient to ready",
-				srcState:        models.ClusterStatusInsufficient,
-				dstState:        models.ClusterStatusReady,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "insufficient to ready",
+				srcState:           models.ClusterStatusInsufficient,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2846,14 +2856,14 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "ready to ready",
-				srcState:        models.ClusterStatusReady,
-				dstState:        models.ClusterStatusReady,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "ready to ready",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2877,15 +2887,15 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "finalizing to finalizing",
-				srcState:        models.ClusterStatusFinalizing,
-				srcStatusInfo:   statusInfoFinalizing,
-				dstState:        models.ClusterStatusFinalizing,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "finalizing to finalizing",
+				srcState:           models.ClusterStatusFinalizing,
+				srcStatusInfo:      statusInfoFinalizing,
+				dstState:           models.ClusterStatusFinalizing,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2898,14 +2908,14 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected:      false,
 			},
 			{
-				name:            "error to error",
-				srcState:        models.ClusterStatusError,
-				dstState:        models.ClusterStatusError,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "error to error",
+				srcState:           models.ClusterStatusError,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2918,13 +2928,13 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected:      false,
 			},
 			{
-				name:            "installed to installed",
-				srcState:        models.ClusterStatusInstalled,
-				srcStatusInfo:   statusInfoInstalled,
-				dstState:        models.ClusterStatusInstalled,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
+				name:               "installed to installed",
+				srcState:           models.ClusterStatusInstalled,
+				srcStatusInfo:      statusInfoInstalled,
+				dstState:           models.ClusterStatusInstalled,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2937,15 +2947,15 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected:      false,
 			},
 			{
-				name:            "Installing to Installing",
-				srcState:        models.ClusterStatusInstalling,
-				srcStatusInfo:   statusInfoInstalling,
-				dstState:        models.ClusterStatusInstalling,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:               "Installing to Installing",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstalling,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2964,18 +2974,19 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 			It(t.name, func() {
 				cluster = common.Cluster{
 					Cluster: models.Cluster{
-						APIVip:            t.apiVip,
-						ID:                &clusterId,
-						IngressVip:        t.ingressVip,
-						MachineNetworks:   t.machineNetworks,
-						Status:            &t.srcState,
-						StatusInfo:        &t.srcStatusInfo,
-						VipDhcpAllocation: swag.Bool(true),
-						BaseDNSDomain:     t.dnsDomain,
-						PullSecretSet:     t.pullSecretSet,
-						ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
-						ServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
-						NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						APIVip:                   t.apiVip,
+						ID:                       &clusterId,
+						IngressVip:               t.ingressVip,
+						MachineNetworkCidr:       t.machineNetworkCidr,
+						Status:                   &t.srcState,
+						StatusInfo:               &t.srcStatusInfo,
+						VipDhcpAllocation:        swag.Bool(true),
+						BaseDNSDomain:            t.dnsDomain,
+						PullSecretSet:            t.pullSecretSet,
+						ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+						ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+						ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+						NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 					},
 				}
 				if t.setMachineCidrUpdatedAt {
@@ -3071,6 +3082,10 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 			name                string
 			srcState            string
 			srcStatusInfo       string
+			machineNetworkCidr  string
+			apiVip              string
+			ingressVip          string
+			dnsDomain           string
 			pullSecretSet       bool
 			dstState            string
 			hosts               []models.Host
@@ -3081,10 +3096,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 			operators           []*models.MonitoredOperator
 		}{
 			{
-				name:          "installing to installing",
-				srcState:      models.ClusterStatusInstalling,
-				srcStatusInfo: statusInfoInstalling,
-				dstState:      models.ClusterStatusInstalling,
+				name:               "installing to installing",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstalling,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.ClusterStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.ClusterStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3095,10 +3113,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoInstalling),
 			},
 			{
-				name:          "installing to installing-pending-user-action",
-				srcState:      models.ClusterStatusInstalling,
-				srcStatusInfo: statusInfoInstalling,
-				dstState:      models.ClusterStatusInstallingPendingUserAction,
+				name:               "installing to installing-pending-user-action",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstallingPendingUserAction,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3109,10 +3130,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoInstallingPendingUserAction),
 			},
 			{
-				name:          "installing to installing-pending-user-action (2)",
-				srcState:      models.ClusterStatusInstalling,
-				srcStatusInfo: statusInfoInstalling,
-				dstState:      models.ClusterStatusInstallingPendingUserAction,
+				name:               "installing to installing-pending-user-action (2)",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstallingPendingUserAction,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3123,10 +3147,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoInstallingPendingUserAction),
 			},
 			{
-				name:          "installing-pending-user-action to installing-pending-user-action",
-				srcState:      models.ClusterStatusInstallingPendingUserAction,
-				srcStatusInfo: statusInfoInstallingPendingUserAction,
-				dstState:      models.ClusterStatusInstallingPendingUserAction,
+				name:               "installing-pending-user-action to installing-pending-user-action",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusInstallingPendingUserAction,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3137,10 +3164,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoInstallingPendingUserAction),
 			},
 			{
-				name:          "installing-pending-user-action to installing-pending-user-action (2)",
-				srcState:      models.ClusterStatusInstallingPendingUserAction,
-				srcStatusInfo: statusInfoInstallingPendingUserAction,
-				dstState:      models.ClusterStatusInstallingPendingUserAction,
+				name:               "installing-pending-user-action to installing-pending-user-action (2)",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusInstallingPendingUserAction,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3151,10 +3181,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoInstallingPendingUserAction),
 			},
 			{
-				name:          "installing-pending-user-action to error",
-				srcState:      models.ClusterStatusInstallingPendingUserAction,
-				srcStatusInfo: statusInfoInstallingPendingUserAction,
-				dstState:      models.ClusterStatusError,
+				name:               "installing-pending-user-action to error",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusError), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3165,10 +3198,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoError),
 			},
 			{
-				name:          "installing-pending-user-action to error (2)",
-				srcState:      models.ClusterStatusInstallingPendingUserAction,
-				srcStatusInfo: statusInfoInstallingPendingUserAction,
-				dstState:      models.ClusterStatusError,
+				name:               "installing-pending-user-action to error (2)",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusError), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3179,10 +3215,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoError),
 			},
 			{
-				name:          "installing-pending-user-action to error due to timeout",
-				srcState:      models.ClusterStatusInstallingPendingUserAction,
-				srcStatusInfo: statusInfoInstallingPendingUserAction,
-				dstState:      models.ClusterStatusError,
+				name:               "installing-pending-user-action to error due to timeout",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3194,10 +3233,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				installationTimeout: true,
 			},
 			{
-				name:          "installing-pending-user-action to installing",
-				srcState:      models.ClusterStatusInstallingPendingUserAction,
-				srcStatusInfo: statusInfoInstallingPendingUserAction,
-				dstState:      models.ClusterStatusInstalling,
+				name:               "installing-pending-user-action to installing",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusInstalling,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3208,10 +3250,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoInstalling),
 			},
 			{
-				name:          "installing to finalizing",
-				srcState:      models.ClusterStatusInstalling,
-				srcStatusInfo: statusInfoInstalling,
-				dstState:      models.ClusterStatusFinalizing,
+				name:               "installing to finalizing",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusFinalizing,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3222,10 +3267,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoFinalizing),
 			},
 			{
-				name:          "installing to error - failing master",
-				srcState:      models.ClusterStatusInstalling,
-				srcStatusInfo: statusInfoInstalling,
-				dstState:      models.ClusterStatusError,
+				name:               "installing to error - failing master",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusError), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3236,10 +3284,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoError),
 			},
 			{
-				name:          "installing to error - failing worker, a single worker isn't supported",
-				srcState:      models.ClusterStatusInstalling,
-				srcStatusInfo: statusInfoInstalling,
-				dstState:      models.ClusterStatusError,
+				name:               "installing to error - failing worker, a single worker isn't supported",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3250,10 +3301,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoError),
 			},
 			{
-				name:          "finalizing to finalizing",
-				srcState:      models.ClusterStatusFinalizing,
-				srcStatusInfo: statusInfoFinalizing,
-				dstState:      models.ClusterStatusFinalizing,
+				name:               "finalizing to finalizing",
+				srcState:           models.ClusterStatusFinalizing,
+				srcStatusInfo:      statusInfoFinalizing,
+				dstState:           models.ClusterStatusFinalizing,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3273,10 +3327,13 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				},
 			},
 			{
-				name:          "finalizing to finalizing (2)",
-				srcState:      models.ClusterStatusFinalizing,
-				srcStatusInfo: statusInfoFinalizing,
-				dstState:      models.ClusterStatusFinalizing,
+				name:               "finalizing to finalizing (2)",
+				srcState:           models.ClusterStatusFinalizing,
+				srcStatusInfo:      statusInfoFinalizing,
+				dstState:           models.ClusterStatusFinalizing,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -3303,18 +3360,19 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 			It(t.name, func() {
 				cluster = common.Cluster{
 					Cluster: models.Cluster{
-						ClusterNetworks:    common.TestIPv4Networking.ClusterNetworks,
-						ServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-						MachineNetworks:    common.TestIPv4Networking.MachineNetworks,
-						APIVip:             common.TestIPv4Networking.APIVip,
-						IngressVip:         common.TestIPv4Networking.IngressVip,
-						ID:                 &clusterId,
-						Status:             &t.srcState,
-						StatusInfo:         &t.srcStatusInfo,
-						VipDhcpAllocation:  swag.Bool(true),
-						BaseDNSDomain:      "test.com",
-						PullSecretSet:      t.pullSecretSet,
-						MonitoredOperators: t.operators,
+						APIVip:                   t.apiVip,
+						ID:                       &clusterId,
+						IngressVip:               t.ingressVip,
+						MachineNetworkCidr:       t.machineNetworkCidr,
+						Status:                   &t.srcState,
+						StatusInfo:               &t.srcStatusInfo,
+						VipDhcpAllocation:        swag.Bool(true),
+						BaseDNSDomain:            t.dnsDomain,
+						PullSecretSet:            t.pullSecretSet,
+						ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+						ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+						ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+						MonitoredOperators:       t.operators,
 					},
 				}
 				if t.withOCMClient {
@@ -3577,6 +3635,10 @@ var _ = Describe("NTP refresh cluster", func() {
 			name                    string
 			srcState                string
 			srcStatusInfo           string
+			machineNetworkCidr      string
+			apiVip                  string
+			ingressVip              string
+			dnsDomain               string
 			pullSecretSet           bool
 			dstState                string
 			hosts                   []models.Host
@@ -3586,10 +3648,14 @@ var _ = Describe("NTP refresh cluster", func() {
 			errorExpected           bool
 		}{
 			{
-				name:          "pending-for-input to insufficient - ntp problem",
-				srcState:      models.ClusterStatusPendingForInput,
-				dstState:      models.ClusterStatusInsufficient,
-				pullSecretSet: true,
+				name:               "pending-for-input to insufficient - ntp problem",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239 - 400), Role: models.HostRoleMaster},
@@ -3612,10 +3678,14 @@ var _ = Describe("NTP refresh cluster", func() {
 				errorExpected: false,
 			},
 			{
-				name:          "pending-for-input to ready",
-				srcState:      models.ClusterStatusPendingForInput,
-				dstState:      models.ClusterStatusReady,
-				pullSecretSet: true,
+				name:               "pending-for-input to ready",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
@@ -3638,10 +3708,14 @@ var _ = Describe("NTP refresh cluster", func() {
 				errorExpected: false,
 			},
 			{
-				name:          "insufficient to ready",
-				srcState:      models.ClusterStatusInsufficient,
-				dstState:      models.ClusterStatusReady,
-				pullSecretSet: true,
+				name:               "insufficient to ready",
+				srcState:           models.ClusterStatusInsufficient,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
@@ -3664,10 +3738,14 @@ var _ = Describe("NTP refresh cluster", func() {
 				errorExpected: false,
 			},
 			{
-				name:          "ready to ready",
-				srcState:      models.ClusterStatusReady,
-				dstState:      models.ClusterStatusReady,
-				pullSecretSet: true,
+				name:               "ready to ready",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
@@ -3691,10 +3769,14 @@ var _ = Describe("NTP refresh cluster", func() {
 			},
 
 			{
-				name:          "ready to ready with disabled",
-				srcState:      models.ClusterStatusReady,
-				dstState:      models.ClusterStatusReady,
-				pullSecretSet: true,
+				name:               "ready to ready with disabled",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
@@ -3720,10 +3802,14 @@ var _ = Describe("NTP refresh cluster", func() {
 			},
 
 			{
-				name:          "ready to insufficient with disconnected",
-				srcState:      models.ClusterStatusReady,
-				dstState:      models.ClusterStatusInsufficient,
-				pullSecretSet: true,
+				name:               "ready to insufficient with disconnected",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
@@ -3749,10 +3835,14 @@ var _ = Describe("NTP refresh cluster", func() {
 			},
 
 			{
-				name:          "ready to insufficient with needs o be rebooted status",
-				srcState:      models.ClusterStatusReady,
-				dstState:      models.ClusterStatusInsufficient,
-				pullSecretSet: true,
+				name:               "ready to insufficient with needs o be rebooted status",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
@@ -3778,10 +3868,14 @@ var _ = Describe("NTP refresh cluster", func() {
 			},
 
 			{
-				name:          "ready to insufficient",
-				srcState:      models.ClusterStatusReady,
-				dstState:      models.ClusterStatusInsufficient,
-				pullSecretSet: true,
+				name:               "ready to insufficient",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239 - 400), Role: models.HostRoleMaster},
@@ -3809,18 +3903,18 @@ var _ = Describe("NTP refresh cluster", func() {
 			It(t.name, func() {
 				cluster = common.Cluster{
 					Cluster: models.Cluster{
-						ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-						ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-						MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-						APIVip:          common.TestIPv4Networking.APIVip,
-						IngressVip:      common.TestIPv4Networking.IngressVip,
-						ID:              &clusterId,
-						Status:          &t.srcState,
-						StatusInfo:      &t.srcStatusInfo,
-						BaseDNSDomain:   "test.com",
-						PullSecretSet:   t.pullSecretSet,
-
-						NetworkType: swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						APIVip:                   t.apiVip,
+						ID:                       &clusterId,
+						IngressVip:               t.ingressVip,
+						MachineNetworkCidr:       t.machineNetworkCidr,
+						Status:                   &t.srcState,
+						StatusInfo:               &t.srcStatusInfo,
+						BaseDNSDomain:            t.dnsDomain,
+						PullSecretSet:            t.pullSecretSet,
+						ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+						ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+						ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+						NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 					},
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -3904,6 +3998,10 @@ var _ = Describe("Single node", func() {
 			name                    string
 			srcState                string
 			srcStatusInfo           string
+			machineNetworkCidr      string
+			apiVip                  string
+			ingressVip              string
+			dnsDomain               string
 			pullSecretSet           bool
 			dstState                string
 			hosts                   []models.Host
@@ -3913,10 +4011,14 @@ var _ = Describe("Single node", func() {
 			errorExpected           bool
 		}{
 			{
-				name:          "non ha mode, too much nodes",
-				srcState:      models.ClusterStatusReady,
-				dstState:      models.ClusterStatusInsufficient,
-				pullSecretSet: true,
+				name:               "non ha mode, too much nodes",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
@@ -3937,10 +4039,14 @@ var _ = Describe("Single node", func() {
 				errorExpected: false,
 			},
 			{
-				name:          "non ha mode, 2 nodes, one disabled",
-				srcState:      models.ClusterStatusInsufficient,
-				dstState:      models.ClusterStatusReady,
-				pullSecretSet: true,
+				name:               "non ha mode, 2 nodes, one disabled",
+				srcState:           models.ClusterStatusInsufficient,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusDisabled), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
@@ -3962,10 +4068,14 @@ var _ = Describe("Single node", func() {
 			},
 
 			{
-				name:          "non ha mode, 2 nodes, master and worker",
-				srcState:      models.ClusterStatusReady,
-				dstState:      models.ClusterStatusInsufficient,
-				pullSecretSet: true,
+				name:               "non ha mode, 2 nodes, master and worker",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleWorker},
@@ -3987,10 +4097,14 @@ var _ = Describe("Single node", func() {
 			},
 
 			{
-				name:          "non ha mode, 3 nodes, master and 2 workers",
-				srcState:      models.ClusterStatusReady,
-				dstState:      models.ClusterStatusInsufficient,
-				pullSecretSet: true,
+				name:               "non ha mode, 3 nodes, master and 2 workers",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleWorker},
@@ -4013,10 +4127,14 @@ var _ = Describe("Single node", func() {
 			},
 
 			{
-				name:          "non ha mode, 1 worker, no masters",
-				srcState:      models.ClusterStatusReady,
-				dstState:      models.ClusterStatusInsufficient,
-				pullSecretSet: true,
+				name:               "non ha mode, 1 worker, no masters",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleWorker},
 				},
@@ -4037,10 +4155,14 @@ var _ = Describe("Single node", func() {
 			},
 
 			{
-				name:          "non ha mode, 1 node master",
-				srcState:      models.ClusterStatusReady,
-				dstState:      models.ClusterStatusReady,
-				pullSecretSet: true,
+				name:               "non ha mode, 1 node master",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
 				},
@@ -4061,10 +4183,14 @@ var _ = Describe("Single node", func() {
 			},
 
 			{
-				name:          "non ha mode, 1 node auto assign",
-				srcState:      models.ClusterStatusInsufficient,
-				dstState:      models.ClusterStatusReady,
-				pullSecretSet: true,
+				name:               "non ha mode, 1 node auto assign",
+				srcState:           models.ClusterStatusInsufficient,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleAutoAssign},
 				},
@@ -4084,11 +4210,15 @@ var _ = Describe("Single node", func() {
 				errorExpected: false,
 			},
 			{
-				name:          "set API and Ingress vip for SNO",
-				srcState:      models.ClusterStatusPreparingForInstallation,
-				srcStatusInfo: statusInfoInstalling,
-				dstState:      models.ClusterStatusInstalling,
-				pullSecretSet: true,
+				name:               "set API and Ingress vip for SNO",
+				srcState:           models.ClusterStatusPreparingForInstallation,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstalling,
+				machineNetworkCidr: common.TestIPv4Networking.MachineNetworkCidr,
+				apiVip:             common.TestIPv4Networking.APIVip,
+				ingressVip:         common.TestIPv4Networking.IngressVip,
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusPreparingSuccessful), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster, Bootstrap: true},
 				},
@@ -4114,18 +4244,19 @@ var _ = Describe("Single node", func() {
 			It(t.name, func() {
 				cluster = common.Cluster{
 					Cluster: models.Cluster{
-						ClusterNetworks:      common.TestIPv4Networking.ClusterNetworks,
-						ServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-						MachineNetworks:      common.TestIPv4Networking.MachineNetworks,
-						APIVip:               common.TestIPv4Networking.APIVip,
-						IngressVip:           common.TestIPv4Networking.IngressVip,
-						ID:                   &clusterId,
-						Status:               &t.srcState,
-						StatusInfo:           &t.srcStatusInfo,
-						BaseDNSDomain:        "test.com",
-						PullSecretSet:        t.pullSecretSet,
-						NetworkType:          swag.String(models.ClusterNetworkTypeOVNKubernetes),
-						HighAvailabilityMode: &haMode,
+						APIVip:                   t.apiVip,
+						ID:                       &clusterId,
+						IngressVip:               t.ingressVip,
+						MachineNetworkCidr:       t.machineNetworkCidr,
+						Status:                   &t.srcState,
+						StatusInfo:               &t.srcStatusInfo,
+						BaseDNSDomain:            t.dnsDomain,
+						PullSecretSet:            t.pullSecretSet,
+						ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+						ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+						ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+						NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						HighAvailabilityMode:     &haMode,
 					},
 				}
 				if t.srcState == models.ClusterStatusPreparingForInstallation && t.dstState == models.ClusterStatusInstalling {

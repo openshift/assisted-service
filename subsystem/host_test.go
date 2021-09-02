@@ -232,7 +232,7 @@ var _ = Describe("Host tests", func() {
 
 	It("next step - DHCP", func() {
 		By("Creating cluster")
-		Expect(db.Model(&models.MachineNetwork{}).Save(&models.MachineNetwork{ClusterID: clusterID, Cidr: "1.2.3.0/24"}).Error).ToNot(HaveOccurred())
+		Expect(db.Table("clusters").Where("id = ?", clusterID.String()).UpdateColumn("machine_network_cidr", "1.2.3.0/24").Error).ToNot(HaveOccurred())
 		By("Creating hosts")
 		host := &registerHost(clusterID).Host
 		host2 := &registerHost(clusterID).Host

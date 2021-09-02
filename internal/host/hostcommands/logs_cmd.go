@@ -125,7 +125,7 @@ func (i *logsCmd) getHostsIpsfromMachineCIDR(cluster common.Cluster) ([]string, 
 		if h.Bootstrap || h.Role == models.HostRoleWorker {
 			continue
 		}
-		ip, err := network.GetPrimaryMachineCIDRIP(h, &cluster)
+		ip, err := network.GetMachineCIDRIP(h, &cluster)
 		if err != nil {
 			i.log.WithError(err).Errorf("failed to get machine cidr IP for host %s", h.ID)
 			return nil, err

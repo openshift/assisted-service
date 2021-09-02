@@ -150,7 +150,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 					ID:                 id,
 					Status:             swag.String(status),
 					StatusInfo:         swag.String(statusInfo),
-					MachineNetworks:    common.TestIPv4Networking.MachineNetworks,
+					MachineNetworkCidr: "1.1.0.0/16",
 					BaseDNSDomain:      "test.com",
 					PullSecretSet:      true,
 					MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
@@ -390,17 +390,18 @@ var _ = Describe("TestClusterMonitoring", func() {
 
 					c = common.Cluster{
 						Cluster: models.Cluster{
-							ID:              &id,
-							Status:          swag.String("insufficient"),
-							ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-							ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-							MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-							APIVip:          common.TestIPv4Networking.APIVip,
-							IngressVip:      common.TestIPv4Networking.IngressVip,
-							BaseDNSDomain:   "test.com",
-							PullSecretSet:   true,
-							StatusInfo:      swag.String(StatusInfoInsufficient),
-							NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
+							ID:                       &id,
+							Status:                   swag.String("insufficient"),
+							ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+							ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+							ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+							MachineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+							APIVip:                   common.TestIPv4Networking.APIVip,
+							IngressVip:               common.TestIPv4Networking.IngressVip,
+							BaseDNSDomain:            "test.com",
+							PullSecretSet:            true,
+							StatusInfo:               swag.String(StatusInfoInsufficient),
+							NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 						},
 						TriggerMonitorTimestamp: time.Now(),
 					}
@@ -467,17 +468,18 @@ var _ = Describe("TestClusterMonitoring", func() {
 				BeforeEach(func() {
 					c = common.Cluster{
 						Cluster: models.Cluster{
-							ID:              &id,
-							Status:          swag.String(models.ClusterStatusReady),
-							StatusInfo:      swag.String(StatusInfoReady),
-							ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-							ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-							MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-							APIVip:          common.TestIPv4Networking.APIVip,
-							IngressVip:      common.TestIPv4Networking.IngressVip,
-							BaseDNSDomain:   "test.com",
-							PullSecretSet:   true,
-							NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
+							ID:                       &id,
+							Status:                   swag.String(models.ClusterStatusReady),
+							StatusInfo:               swag.String(StatusInfoReady),
+							ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+							ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+							ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+							MachineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+							APIVip:                   common.TestIPv4Networking.APIVip,
+							IngressVip:               common.TestIPv4Networking.IngressVip,
+							BaseDNSDomain:            "test.com",
+							PullSecretSet:            true,
+							NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 						},
 						TriggerMonitorTimestamp: time.Now(),
 					}
@@ -574,16 +576,17 @@ var _ = Describe("TestClusterMonitoring", func() {
 			for i := 0; i < nClusters; i++ {
 				id = strfmt.UUID(uuid.New().String())
 				c = common.Cluster{Cluster: models.Cluster{
-					ID:              &id,
-					Status:          swag.String(models.ClusterStatusReady),
-					StatusInfo:      swag.String(StatusInfoReady),
-					ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-					ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-					MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-					APIVip:          common.TestIPv4Networking.APIVip,
-					IngressVip:      common.TestIPv4Networking.IngressVip,
-					BaseDNSDomain:   "test.com",
-					PullSecretSet:   true,
+					ID:                       &id,
+					Status:                   swag.String(models.ClusterStatusReady),
+					StatusInfo:               swag.String(StatusInfoReady),
+					ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+					ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+					ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+					MachineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+					APIVip:                   common.TestIPv4Networking.APIVip,
+					IngressVip:               common.TestIPv4Networking.IngressVip,
+					BaseDNSDomain:            "test.com",
+					PullSecretSet:            true,
 				}}
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 
@@ -620,12 +623,12 @@ var _ = Describe("TestClusterMonitoring", func() {
 
 			BeforeEach(func() {
 				c = common.Cluster{Cluster: models.Cluster{
-					ID:              &id,
-					Status:          swag.String("error"),
-					StatusInfo:      swag.String(statusInfoError),
-					MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-					BaseDNSDomain:   "test.com",
-					PullSecretSet:   true,
+					ID:                 &id,
+					Status:             swag.String("error"),
+					StatusInfo:         swag.String(statusInfoError),
+					MachineNetworkCidr: "1.1.0.0/16",
+					BaseDNSDomain:      "test.com",
+					PullSecretSet:      true,
 				}}
 
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -741,16 +744,17 @@ var _ = Describe("lease timeout event", func() {
 		t := t
 		It(t.name, func() {
 			c = common.Cluster{Cluster: models.Cluster{
-				ID:                &id,
-				Status:            swag.String(t.srcState),
-				APIVip:            t.apiVip,
-				IngressVip:        t.ingressVip,
-				ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
-				ServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
-				MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
-				BaseDNSDomain:     "test.com",
-				PullSecretSet:     true,
-				VipDhcpAllocation: swag.Bool(true),
+				ID:                       &id,
+				Status:                   swag.String(t.srcState),
+				APIVip:                   t.apiVip,
+				IngressVip:               t.ingressVip,
+				ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+				ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+				ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+				MachineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+				BaseDNSDomain:            "test.com",
+				PullSecretSet:            true,
+				VipDhcpAllocation:        swag.Bool(true),
 			}}
 			if t.shouldTimeout {
 				c.MachineNetworkCidrUpdatedAt = time.Now().Add(-2 * time.Minute)
@@ -1042,7 +1046,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			apiVip:              "1.2.3.8",
 		},
 		{
-			name:     "One insufficient host, one network, different machine cidr already set - dhcp disabled",
+			name:     "One insufficient host, one network, machine cidr already set - dhcp disabled",
 			srcState: models.ClusterStatusPendingForInput,
 			hosts: []*models.Host{
 				{
@@ -1053,22 +1057,6 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			userActionResetExpected: true,
 			eventCallExpected:       true,
 			machineNetworkCIDR:      "192.168.0.0/16",
-			expectedMachineCIDR:     "1.2.3.0/24",
-			dhcpEnabled:             false,
-			apiVip:                  "1.2.3.8",
-		},
-		{
-			name:     "One insufficient host, one network, same machine cidr already set - dhcp disabled",
-			srcState: models.ClusterStatusPendingForInput,
-			hosts: []*models.Host{
-				{
-					Status:    swag.String(models.HostStatusInsufficient),
-					Inventory: common.GenerateTestDefaultInventory(),
-				},
-			},
-			userActionResetExpected: true,
-			eventCallExpected:       true,
-			machineNetworkCIDR:      "1.2.3.0/24",
 			expectedMachineCIDR:     "1.2.3.0/24",
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
@@ -1115,16 +1103,17 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		t := t
 		It(t.name, func() {
 			c = common.Cluster{Cluster: models.Cluster{
-				ID:                    &id,
-				Status:                swag.String(t.srcState),
-				BaseDNSDomain:         "test.com",
-				PullSecretSet:         true,
-				APIVip:                t.apiVip,
-				ClusterNetworks:       common.TestIPv4Networking.ClusterNetworks,
-				ServiceNetworks:       common.TestIPv4Networking.ServiceNetworks,
-				MachineNetworks:       network.CreateMachineNetworksArray(t.machineNetworkCIDR),
-				VipDhcpAllocation:     swag.Bool(t.dhcpEnabled),
-				UserManagedNetworking: swag.Bool(t.userManagedNetworking),
+				ID:                       &id,
+				Status:                   swag.String(t.srcState),
+				BaseDNSDomain:            "test.com",
+				PullSecretSet:            true,
+				ClusterNetworkCidr:       "1.2.4.0/24",
+				ServiceNetworkCidr:       "1.2.5.0/24",
+				ClusterNetworkHostPrefix: 24,
+				MachineNetworkCidr:       t.machineNetworkCIDR,
+				VipDhcpAllocation:        swag.Bool(t.dhcpEnabled),
+				APIVip:                   t.apiVip,
+				UserManagedNetworking:    swag.Bool(t.userManagedNetworking),
 			}}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			for _, h := range t.hosts {
@@ -1145,13 +1134,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).AnyTimes()
 			}
 			clusterApi.ClusterMonitoring()
-			cluster := getClusterFromDB(id, db)
-			if t.expectedMachineCIDR == "" {
-				Expect(cluster.MachineNetworks).To(BeEmpty())
-			} else {
-				Expect(cluster.MachineNetworks).NotTo(BeEmpty())
-				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal(t.expectedMachineCIDR))
-			}
+			var cluster common.Cluster
+			Expect(db.Take(&cluster, "id = ?", id.String()).Error).ToNot(HaveOccurred())
+			Expect(cluster.MachineNetworkCidr).To(Equal(t.expectedMachineCIDR))
 			ctrl.Finish()
 		})
 	}
@@ -1942,14 +1927,15 @@ var _ = Describe("Majority groups", func() {
 			mockEvents, nil, mockMetricApi, nil, dummy, mockOperators, nil, nil, nil)
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:              &id,
-			Status:          swag.String(models.ClusterStatusReady),
-			ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-			ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-			BaseDNSDomain:   "test.com",
-			PullSecretSet:   true,
-			NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
+			ID:                       &id,
+			Status:                   swag.String(models.ClusterStatusReady),
+			ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+			ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+			ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+			MachineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+			BaseDNSDomain:            "test.com",
+			PullSecretSet:            true,
+			NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -2045,14 +2031,15 @@ var _ = Describe("ready_state", func() {
 			mockEvents, nil, nil, nil, dummy, mockOperators, nil, nil, nil)
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:              &id,
-			Status:          swag.String(models.ClusterStatusReady),
-			ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-			ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-			BaseDNSDomain:   "test.com",
-			PullSecretSet:   true,
-			NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
+			ID:                       &id,
+			Status:                   swag.String(models.ClusterStatusReady),
+			ClusterNetworkCidr:       common.TestIPv4Networking.ClusterNetworkCidr,
+			ClusterNetworkHostPrefix: common.TestIPv4Networking.ClusterNetworkHostPrefix,
+			ServiceNetworkCidr:       common.TestIPv4Networking.ServiceNetworkCidr,
+			MachineNetworkCidr:       common.TestIPv4Networking.MachineNetworkCidr,
+			BaseDNSDomain:            "test.com",
+			PullSecretSet:            true,
+			NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		addInstallationRequirements(id, db)
@@ -2143,13 +2130,13 @@ var _ = Describe("insufficient_state", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:              &id,
-			Status:          swag.String(currentState),
-			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-			APIVip:          common.TestIPv4Networking.APIVip,
-			IngressVip:      common.TestIPv4Networking.IngressVip,
-			BaseDNSDomain:   "test.com",
-			PullSecretSet:   true,
+			ID:                 &id,
+			Status:             swag.String(currentState),
+			MachineNetworkCidr: "1.2.3.0/24",
+			APIVip:             "1.2.3.5",
+			IngressVip:         "1.2.3.6",
+			BaseDNSDomain:      "test.com",
+			PullSecretSet:      true,
 		}}
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.RegisteredClusterEventName),
@@ -2792,15 +2779,15 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 		It(t.name, func() {
 			id := strfmt.UUID(uuid.New().String())
 			cluster := &common.Cluster{Cluster: models.Cluster{
-				ID:               &id,
-				Kind:             swag.String(t.clusterKind),
-				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-				Status:           swag.String(t.clusterStatus),
-				MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
-				APIVip:           common.TestIPv4Networking.APIVip,
-				IngressVip:       common.TestIPv4Networking.IngressVip,
-				BaseDNSDomain:    "test.com",
-				PullSecretSet:    true,
+				ID:                 &id,
+				Kind:               swag.String(t.clusterKind),
+				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
+				Status:             swag.String(t.clusterStatus),
+				MachineNetworkCidr: "1.2.3.0/24",
+				APIVip:             "1.2.3.5",
+				IngressVip:         "1.2.3.6",
+				BaseDNSDomain:      "test.com",
+				PullSecretSet:      true,
 			}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			err1 := clusterApi.TransformClusterToDay2(ctx, cluster, db)

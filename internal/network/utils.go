@@ -48,24 +48,19 @@ func GetClusterAddressStack(hosts []*models.Host) (bool, bool, error) {
 // Get configured address families from cluster configuration based on the CIDRs (machine-network-cidr, cluster-network-cidr,
 // service-network-cidr)
 func GetConfiguredAddressFamilies(cluster *common.Cluster) (ipv4 bool, ipv6 bool, err error) {
-
-	for _, cidr := range common.GetNetworksCidrs(cluster) {
-		if cidr == nil || *cidr == "" {
+	for _, cidr := range []string{cluster.MachineNetworkCidr, cluster.ClusterNetworkCidr, cluster.ServiceNetworkCidr} {
+		if cidr == "" {
 			continue
 		}
-		_, _, err = net.ParseCIDR(*cidr)
+		_, _, err = net.ParseCIDR(cidr)
 		if err != nil {
-			return false, false, errors.Wrapf(err, "%s is not a valid cidr", *cidr)
+			return false, false, errors.Wrapf(err, "%s is not a valid cidr", cidr)
 		}
-		if IsIPV4CIDR(*cidr) {
+		if IsIPV4CIDR(cidr) {
 			ipv4 = true
 		} else {
 			ipv6 = true
 		}
 	}
 	return
-}
-
-func IsMachineCidrAvailable(cluster *common.Cluster) bool {
-	return len(cluster.MachineNetworks) > 0
 }
