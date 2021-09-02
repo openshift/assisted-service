@@ -420,7 +420,7 @@ func installed(agent *aiv1beta1.Agent, status, statusInfo string) {
 	var reason string
 	var msg string
 	switch status {
-	case models.HostStatusInstalled:
+	case models.HostStatusInstalled, models.HostStatusAddedToExistingCluster:
 		condStatus = corev1.ConditionTrue
 		reason = aiv1beta1.InstalledReason
 		msg = fmt.Sprintf("%s %s", aiv1beta1.InstalledMsg, statusInfo)
