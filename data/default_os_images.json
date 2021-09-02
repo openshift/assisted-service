@@ -20,4 +20,4 @@
         "rootfs_url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-live-rootfs.x86_64.img",
         "version": "48.84.202107202156-0"
     }
-  ]
+]
