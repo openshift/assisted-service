@@ -163,6 +163,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, r.newPostgresSecret},
 		{"ImageHandlerServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, r.newImageHandlerServiceAccount},
 		{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, r.newIngressCertCM},
+		{"ImageHandlerConfigMap", aiv1beta1.ReasonConfigFailure, r.newImageHandlerConfigMap},
 		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, r.newAssistedCM},
 		{"ImageHandlerDeployment", aiv1beta1.ReasonImageHandlerDeploymentFailure, r.newImageHandlerDeployment},
 		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, r.newAssistedServiceDeployment},
@@ -598,6 +599,29 @@ func (r *AgentServiceConfigReconciler) newIngressCertCM(ctx context.Context, log
 	return cm, mutateFn, nil
 }
 
+func (r *AgentServiceConfigReconciler) newImageHandlerConfigMap(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      imageHandlerName,
+			Namespace: r.Namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
+			return err
+		}
+
+		if cm.ObjectMeta.Annotations == nil {
+			cm.ObjectMeta.Annotations = make(map[string]string)
+		}
+		cm.ObjectMeta.Annotations["service.beta.openshift.io/inject-cabundle"] = "true"
+		return nil
+	}
+
+	return cm, mutateFn, nil
+}
+
 func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	// must have the route in order to populate SERVICE_BASE_URL for the service
 	route := &routev1.Route{}
@@ -678,7 +702,6 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 }
 
 func (r *AgentServiceConfigReconciler) newImageHandlerDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
-
 	deploymentLabels := map[string]string{
 		"app": imageHandlerName,
 	}
@@ -698,12 +721,14 @@ func (r *AgentServiceConfigReconciler) newImageHandlerDeployment(ctx context.Con
 			{Name: "RHCOS_VERSIONS", Value: r.getOSImages(log, instance)},
 			{Name: "HTTPS_CERT_FILE", Value: "/etc/tls/tls.crt"},
 			{Name: "HTTPS_KEY_FILE", Value: "/etc/tls/tls.key"},
+			{Name: "HTTPS_CA_FILE", Value: "/etc/cabundle/service-ca.crt"},
 			{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
-			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + ":" + servicePort.String()},
+			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + r.Namespace + ".svc:" + servicePort.String()},
 			{Name: "REQUEST_AUTH_TYPE", Value: "param"},
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "tls-certs", MountPath: "/etc/tls"},
+			{Name: "service-cabundle", MountPath: "/etc/cabundle"},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -728,6 +753,16 @@ func (r *AgentServiceConfigReconciler) newImageHandlerDeployment(ctx context.Con
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: imageHandlerName,
+				},
+			},
+		},
+		{
+			Name: "service-cabundle",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: imageHandlerName,
+					},
 				},
 			},
 		},
