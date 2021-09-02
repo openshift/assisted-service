@@ -347,6 +347,7 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 	// to "overwrite" this value everytime as the default
 	// is ""
 	agent.Spec.InstallationDiskID = r.findInstallationDiskID(agent.Status.Inventory.Disks, bmh.Spec.RootDeviceHints)
+	log.Debugf("Agent spec reconcile finished:  %v", agent)
 
 	return reconcileComplete{dirty: true}
 }
@@ -398,9 +399,9 @@ func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(c
 func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 	log.Debugf("Started Agent Inventory reconcile for agent %s/%s and bmh %s/%s", agent.Namespace, agent.Name, bmh.Namespace, bmh.Name)
 
-	// This check should be updated. We should check the
-	// agent status instead.
+	// This check should be updated. We should check the agent's conditions instead
 	if len(agent.Status.Inventory.Interfaces) == 0 {
+		log.Debugf("Skipping Agent Inventory (hardwaredetails) reconcile \n %v", agent)
 		return reconcileComplete{}
 	}
 
@@ -411,7 +412,7 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 
 	// Check whether HardwareDetails has been set already. This annotation
 	// status should only be set through this Reconcile in this scenario.
-	if bmh.Status.HardwareDetails != nil {
+	if bmh.Status.HardwareDetails != nil && bmh.Status.HardwareDetails.Hostname != "" {
 		return reconcileComplete{}
 	}
 
@@ -473,7 +474,7 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 	}
 
 	// Add hostname
-	hardwareDetails.Hostname = agent.Spec.Hostname
+	hardwareDetails.Hostname = inventory.Hostname
 
 	bytes, err := json.Marshal(hardwareDetails)
 	if err != nil {
