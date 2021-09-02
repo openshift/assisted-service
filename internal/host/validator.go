@@ -502,10 +502,10 @@ func (v *validator) printBelongsToMachineCidr(c *validationContext, status Valid
 		if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster {
 			return "No machine network CIDR validation needed: Day2 cluster"
 		}
-		return fmt.Sprintf("Host belongs to machine network CIDR %s", network.GetMachineCidrById(c.cluster, 0))
+		return "Host belongs to machine network CIDR"
 	case ValidationFailure:
 		if network.IsMachineCidrAvailable(c.cluster) {
-			return fmt.Sprintf("Host does not belong to machine network CIDR %s", network.GetMachineCidrById(c.cluster, 0))
+			return fmt.Sprintf("Host does not belong to machine network CIDR %s", c.cluster.MachineNetworks[0].Cidr)
 		}
 		return "Host does not belong to machine network CIDR"
 	case ValidationPending:
@@ -627,7 +627,7 @@ func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroup
 	}
 
 	// TODO: Handle multple machine networks
-	return boolValue(funk.Contains(majorityGroups[network.GetMachineCidrById(c.cluster, 0)], *c.host.ID))
+	return boolValue(funk.Contains(majorityGroups[string(c.cluster.MachineNetworks[0].Cidr)], *c.host.ID))
 }
 
 func (v *validator) belongsToL3MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {

@@ -13,7 +13,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"gopkg.in/yaml.v2"
@@ -143,7 +142,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Proxy.HTTPSProxy).Should(Equal(proxyURL))
 		splitNoProxy := strings.Split(result.Proxy.NoProxy, ",")
 		Expect(splitNoProxy).To(HaveLen(4))
-		Expect(splitNoProxy).To(ContainElement(network.GetMachineCidrById(&cluster, 0)))
+		Expect(splitNoProxy).To(ContainElement(string(cluster.MachineNetworks[0].Cidr)))
 		Expect(splitNoProxy).To(ContainElement(string(cluster.ServiceNetworks[0].Cidr)))
 		Expect(splitNoProxy).To(ContainElement(string(cluster.ClusterNetworks[0].Cidr)))
 		domainName := "." + cluster.Name + "." + cluster.BaseDNSDomain
@@ -366,7 +365,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		Expect(*result.Platform.None).Should(Equal(platformNone{}))
 		Expect(result.BootstrapInPlace.InstallationDisk).Should(Equal("/dev/test"))
-		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(network.GetMachineCidrById(&cluster, 0)))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(string(cluster.MachineNetworks[0].Cidr)))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
@@ -385,7 +384,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = platformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
-		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(network.GetMachineCidrById(&cluster, 0)))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(string(cluster.MachineNetworks[0].Cidr)))
 	})
 
 	It("Hyperthreading config", func() {
@@ -570,13 +569,13 @@ var _ = Describe("Generate NoProxy", func() {
 	It("Default NoProxy", func() {
 		noProxy := installConfig.generateNoProxy(cluster)
 		Expect(noProxy).Should(Equal(fmt.Sprintf(".proxycluster.myproxy.com,%s,%s,%s",
-			cluster.ClusterNetworks[0].Cidr, cluster.ServiceNetworks[0].Cidr, network.GetMachineCidrById(cluster, 0))))
+			cluster.ClusterNetworks[0].Cidr, cluster.ServiceNetworks[0].Cidr, cluster.MachineNetworks[0].Cidr)))
 	})
 	It("Update NoProxy", func() {
 		cluster.NoProxy = "domain.org,127.0.0.2"
 		noProxy := installConfig.generateNoProxy(cluster)
 		Expect(noProxy).Should(Equal(fmt.Sprintf("domain.org,127.0.0.2,.proxycluster.myproxy.com,%s,%s,%s",
-			cluster.ClusterNetworks[0].Cidr, cluster.ServiceNetworks[0].Cidr, network.GetMachineCidrById(cluster, 0))))
+			cluster.ClusterNetworks[0].Cidr, cluster.ServiceNetworks[0].Cidr, cluster.MachineNetworks[0].Cidr)))
 	})
 	It("All-excluded NoProxy", func() {
 		cluster.NoProxy = "*"

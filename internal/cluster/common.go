@@ -207,7 +207,7 @@ func GetCluster(ctx context.Context, logger logrus.FieldLogger, db *gorm.DB, clu
 func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr string) error {
 	// Delete previous primary machine CIDR
 	if network.IsMachineCidrAvailable(cluster) {
-		if err := common.DeleteRecordsByClusterID(db, *cluster.ID, []interface{}{&models.MachineNetwork{}}, "cidr = ?", network.GetMachineCidrById(cluster, 0)); err != nil {
+		if err := common.DeleteRecordsByClusterID(db, *cluster.ID, []interface{}{&models.MachineNetwork{}}, "cidr = ?", cluster.MachineNetworks[0].Cidr); err != nil {
 			return err
 		}
 	}

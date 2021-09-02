@@ -3318,7 +3318,7 @@ func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, 
 	ingressVip := dhcpAllocationReponse.IngressVipAddress.String()
 	primaryMachineCIDR := ""
 	if network.IsMachineCidrAvailable(cluster) {
-		primaryMachineCIDR = network.GetMachineCidrById(cluster, 0)
+		primaryMachineCIDR = string(cluster.MachineNetworks[0].Cidr)
 	}
 
 	isApiVipInMachineCIDR, err := network.IpInCidr(apiVip, primaryMachineCIDR)
