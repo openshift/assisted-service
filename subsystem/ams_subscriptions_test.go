@@ -261,6 +261,61 @@ var _ = Describe("test AMS subscriptions", func() {
 		})
 	})
 
+	Context("[V2UpdateCluster] AMS subscription on cluster update with new cluster name", func() {
+
+		It("happy flow", func() {
+
+			var clusterID strfmt.UUID
+			var err error
+
+			By("create subscription", func() {
+				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				Expect(err).ToNot(HaveOccurred())
+				log.Infof("Register cluster %s", clusterID)
+			})
+
+			By("update subscription's display name", func() {
+				newClusterName := "ams-cluster-new-name"
+				_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						Name: &newClusterName,
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
+		// ATTENTION: this test override a wiremock stub - DO NOT RUN IN PARALLEL
+		It("UpdateSubscription failed", func() {
+
+			var clusterID strfmt.UUID
+			var err error
+
+			By("create subscription", func() {
+				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				Expect(err).ToNot(HaveOccurred())
+				log.Infof("Register cluster %s", clusterID)
+			})
+
+			By("override wiremock stub to fail AMS call", func() {
+				err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusUnauthorized, subscriptionUpdateDisplayName)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			By("update subscription's display name", func() {
+				newClusterName := "ams-cluster-new-name"
+				_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						Name: &newClusterName,
+					},
+				})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
+
 	Context("AMS subscription on cluster installation", func() {
 
 		waitForConsoleUrlUpdateInAMS := func(clusterID strfmt.UUID) {

@@ -216,6 +216,10 @@ func (f fakeInventory) UpdateCluster(ctx context.Context, params installer.Updat
 	return installer.NewUpdateClusterCreated()
 }
 
+func (f fakeInventory) V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder {
+	return installer.NewUpdateClusterCreated()
+}
+
 func (f fakeInventory) V2UpdateHost(ctx context.Context, params installer.V2UpdateHostParams) middleware.Responder {
 	return installer.NewV2UpdateHostCreated()
 }
