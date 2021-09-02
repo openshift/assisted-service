@@ -105,6 +105,15 @@ func (th *transitionHandler) IsHostInReboot(sw stateswitch.StateSwitch, _ states
 	return sHost.host.Progress.CurrentStage == models.HostStageRebooting, nil
 }
 
+func (th *transitionHandler) IsHostInDone(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("IsInDone incompatible type of StateSwitch")
+	}
+
+	return sHost.host.Progress.CurrentStage == models.HostStageDone, nil
+}
+
 func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
