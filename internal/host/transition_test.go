@@ -5111,13 +5111,8 @@ func mockDefaultClusterHostRequirements(mockHwValidator *hardware.MockValidator)
 }
 
 func mockDefaultInfraEnvHostRequirements(mockHwValidator *hardware.MockValidator) {
-	mockHwValidator.EXPECT().GetInfraEnvHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).DoAndReturn(func(ctx context.Context, infraEnv *common.InfraEnv, host *models.Host) (*models.ClusterHostRequirements, error) {
-		var details models.ClusterHostRequirementsDetails
-		if host.Role == models.HostRoleMaster {
-			details = defaultMasterRequirements
-		} else {
-			details = defaultWorkerRequirements
-		}
+	mockHwValidator.EXPECT().GetInfraEnvHostRequirements(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(func(ctx context.Context, infraEnv *common.InfraEnv) (*models.ClusterHostRequirements, error) {
+		details := defaultWorkerRequirements
 		return &models.ClusterHostRequirements{Total: &details}, nil
 	})
 

@@ -81,6 +81,7 @@ var _ = Describe("Disk eligibility", func() {
 		ctrl          *gomock.Controller
 		operatorsMock *operators.MockAPI
 		cluster       common.Cluster
+		infraEnv      *common.InfraEnv
 		host          models.Host
 	)
 
@@ -89,6 +90,7 @@ var _ = Describe("Disk eligibility", func() {
 		clusterID := strfmt.UUID(uuid.New().String())
 		infraEnvID := strfmt.UUID(uuid.New().String())
 		cluster = hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
+		infraEnv = hostutil.GenerateTestInfraEnv(infraEnvID)
 		hostID := strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusDiscovering)
 
@@ -96,8 +98,8 @@ var _ = Describe("Disk eligibility", func() {
 
 		ctrl = gomock.NewController(GinkgoT())
 		operatorsMock = operators.NewMockAPI(ctrl)
-		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil)
 
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil)
 		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock)
 
 		bigEnoughSize = conversions.GbToBytes(minDiskSizeGb) + 1
@@ -118,7 +120,13 @@ var _ = Describe("Disk eligibility", func() {
 	It("Check if SSD is eligible", func() {
 		testDisk.DriveType = "SSD"
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
+
+		By("Check infra env SSD is eligible")
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).To(BeEmpty())
@@ -127,7 +135,13 @@ var _ = Describe("Disk eligibility", func() {
 	It("Check if HDD is eligible", func() {
 		testDisk.DriveType = "HDD"
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
+
+		By("Check infra env HDD is eligible")
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).To(BeEmpty())
@@ -136,7 +150,13 @@ var _ = Describe("Disk eligibility", func() {
 	It("Check that ODD is not eligible", func() {
 		testDisk.DriveType = "ODD"
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).ToNot(BeEmpty())
+
+		By("Check infra-env ODD is not eligible")
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).ToNot(BeEmpty())
@@ -145,16 +165,39 @@ var _ = Describe("Disk eligibility", func() {
 	It("Check that a big enough size is eligible", func() {
 		testDisk.SizeBytes = bigEnoughSize
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).To(BeEmpty())
+
+		By("Check infra-env a big enough size is eligible")
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
+
+		By("Check infra env take a master configuration in case it is smaller then workers")
+		versionRequirements["default"].MasterRequirements.DiskSizeGb = minDiskSizeGb - 2
+		tooSmallSizeForWorker := conversions.GbToBytes(minDiskSizeGb) - 1
+		testDisk.SizeBytes = tooSmallSizeForWorker
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
+
+		versionRequirements["default"].MasterRequirements.DiskSizeGb = minDiskSizeGb
 	})
 
 	It("Check that a small size is not eligible", func() {
 		testDisk.SizeBytes = tooSmallSize
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).ToNot(BeEmpty())
+
+		By("Check infra-env a small size is not eligible")
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).ToNot(BeEmpty())
@@ -164,8 +207,13 @@ var _ = Describe("Disk eligibility", func() {
 		existingReasons := []string{"Reason 1", "Reason 2"}
 		testDisk.InstallationEligibility.NotEligibleReasons = existingReasons
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host)
 
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(ConsistOf(existingReasons))
+
+		By("Check infra-env existing non-eligibility reasons are preserved")
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).To(ConsistOf(existingReasons))
 	})
@@ -176,7 +224,14 @@ var _ = Describe("Disk eligibility", func() {
 
 		testDisk.SizeBytes = tooSmallSize
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(ContainElements(existingReasons))
+		Expect(eligible).To(HaveLen(len(existingReasons) + 1))
+
+		By("Check infra env a small size reason is added to existing reasons")
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).To(ContainElements(existingReasons))
@@ -190,13 +245,13 @@ var _ = Describe("Disk eligibility", func() {
 
 		testDisk.SizeBytes = tooSmallSize
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).To(ContainElements(existingReasons))
 		Expect(eligible).To(HaveLen(len(existingReasons) + 1))
 
 		testDisk.InstallationEligibility.NotEligibleReasons = existingReasons
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).To(ContainElements(existingReasons))
 		Expect(eligible).To(HaveLen(len(existingReasons) + 1))

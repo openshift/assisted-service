@@ -250,7 +250,7 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 // addition to agent-side checks that have already been performed. The reason that some
 // checks are performed by the agent (and not the service) is because the agent has data
 // that is not available in the service.
-func (m *Manager) populateDisksEligibility(ctx context.Context, inventory *models.Inventory, cluster *common.Cluster, host *models.Host) error {
+func (m *Manager) populateDisksEligibility(ctx context.Context, inventory *models.Inventory, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host) error {
 	for _, disk := range inventory.Disks {
 		if !hardware.DiskEligibilityInitialized(disk) {
 			// for backwards compatibility, pretend that the agent has decided that this disk is eligible
@@ -259,7 +259,7 @@ func (m *Manager) populateDisksEligibility(ctx context.Context, inventory *model
 		}
 
 		// Append to the existing reasons already filled in by the agent
-		reasons, err := m.hwValidator.DiskIsEligible(ctx, disk, cluster, host)
+		reasons, err := m.hwValidator.DiskIsEligible(ctx, disk, infraEnv, cluster, host)
 		if err != nil {
 			return err
 		}
@@ -319,27 +319,32 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	if err != nil {
 		return err
 	}
+
 	if h.ClusterID != nil && h.ClusterID.String() != "" {
-		if cluster == nil {
-			cluster, err = common.GetClusterFromDB(m.db, *h.ClusterID, common.UseEagerLoading)
-			if err != nil {
-				log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID.String())
-				return common.NewApiError(http.StatusNotFound, err)
-			}
-		}
-
-		err = m.populateDisksEligibility(ctx, inventory, cluster, h)
+		cluster, err = common.GetClusterFromDB(m.db, *h.ClusterID, common.UseEagerLoading)
 		if err != nil {
-			log.WithError(err).Errorf("not updating inventory - failed to check disks eligibility for host %s", h.ID)
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
-		m.populateDisksId(inventory)
-
-		inventoryStr, err = common.MarshalInventory(inventory)
-		if err != nil {
-			return err
+			log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID.String())
+			return common.NewApiError(http.StatusNotFound, err)
 		}
 	}
+
+	infraEnv, err := common.GetInfraEnvFromDB(m.db, h.InfraEnvID)
+	if err != nil {
+		log.WithError(err).Errorf("not updating inventory - failed to find infra env %s", h.InfraEnvID.String())
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+
+	err = m.populateDisksEligibility(ctx, inventory, infraEnv, cluster, h)
+	if err != nil {
+		log.WithError(err).Errorf("not updating inventory - failed to check disks eligibility for host %s", h.ID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	m.populateDisksId(inventory)
+	inventoryStr, err = common.MarshalInventory(inventory)
+	if err != nil {
+		return err
+	}
+
 	validDisks := m.hwValidator.ListEligibleDisks(inventory)
 	installationDisk := hostutil.DetermineInstallationDisk(validDisks, hostutil.GetHostInstallationPath(h))
 

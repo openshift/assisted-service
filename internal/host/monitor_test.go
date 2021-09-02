@@ -261,7 +261,7 @@ var _ = Describe("TestHostMonitoring - with infra-env", func() {
 		mockMetricApi = metrics.NewMockAPI(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
-		mockHwValidator.EXPECT().GetInfraEnvHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
+		mockHwValidator.EXPECT().GetInfraEnvHostRequirements(gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
 			Total: &models.ClusterHostRequirementsDetails{},
 		}, nil)
 		mockHwValidator.EXPECT().GetPreflightInfraEnvHardwareRequirements(gomock.Any(), gomock.Any()).AnyTimes().Return(&models.PreflightHardwareRequirements{

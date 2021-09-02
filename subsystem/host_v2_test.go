@@ -3,6 +3,7 @@ package subsystem
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -110,6 +111,15 @@ var _ = Describe("Host tests v2", func() {
 		return string(b)
 	}
 
+	It("infra-env host should reach know-unbound state", func() {
+		host := &registerHost(infraEnvID).Host
+		host = getHostV2(infraEnvID, *host.ID)
+		Expect(host).NotTo(BeNil())
+		waitForHostStateV2(ctx, models.HostStatusDiscoveringUnbound, defaultWaitForHostStateTimeout, host)
+		host = updateInventory(ctx, infraEnvID, *host.ID, defaultInventory())
+		waitForHostStateV2(ctx, models.HostStatusKnownUnbound, defaultWaitForHostStateTimeout, host)
+	})
+
 	It("update_hostname_successfully", func() {
 		host := &registerHost(infraEnvID).Host
 		host = getHostV2(infraEnvID, *host.ID)
@@ -156,8 +166,8 @@ var _ = Describe("Host tests v2", func() {
 		Expect(err).ToNot(HaveOccurred())
 		host = updateInventory(ctx, infraEnvID, *host.ID, inventoryStr)
 
-		Expect(host.InstallationDiskID).To(Equal(""))
-		Expect(host.InstallationDiskPath).To(Equal(""))
+		Expect(host.InstallationDiskID).To(Equal(inventory.Disks[0].ID))
+		Expect(host.InstallationDiskPath).To(Equal(fmt.Sprintf("/dev/%s", inventory.Disks[0].Name)))
 
 		diskSelectionRequest := &installer.V2UpdateHostParams{
 			InfraEnvID: infraEnvID,
@@ -221,4 +231,31 @@ func updateHostV2(ctx context.Context, request *installer.V2UpdateHostParams) *m
 	Expect(response).NotTo(BeNil())
 	Expect(response.Payload).NotTo(BeNil())
 	return response.Payload
+}
+
+func isHostInStateV2(ctx context.Context, host *models.Host, state string) (bool, string, string) {
+	rep, err := userBMClient.Installer.V2GetHost(ctx, &installer.V2GetHostParams{InfraEnvID: host.InfraEnvID, HostID: *host.ID})
+	Expect(err).NotTo(HaveOccurred())
+	h := rep.GetPayload()
+	return swag.StringValue(h.Status) == state, swag.StringValue(h.Status), swag.StringValue(h.StatusInfo)
+}
+
+func waitForHostStateV2(ctx context.Context, state string, timeout time.Duration, host *models.Host) {
+	Eventually(func() error {
+		success, lastState, lastStatusInfo := isHostInStateV2(ctx, host, state)
+		if success {
+			return nil
+		}
+		return fmt.Errorf("Host %s in Infra Env %s wasn't in state %s after %d seconds in a row. Actual state %s, state info %s",
+			*host.ID, host.InfraEnvID, state, timeout, lastState, lastStatusInfo)
+
+	}, timeout, time.Second).Should(BeNil())
+	Consistently(func() error {
+		success, lastState, lastStatusInfo := isHostInStateV2(ctx, host, state)
+		if success {
+			return nil
+		}
+		return fmt.Errorf("Host %s in Infra Env %s switched backed to state %s, state info %s.",
+			*host.ID, host.InfraEnvID, lastState, lastStatusInfo)
+	}, 10, 1)
 }

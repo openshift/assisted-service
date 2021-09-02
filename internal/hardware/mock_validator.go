@@ -37,18 +37,18 @@ func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 }
 
 // DiskIsEligible mocks base method.
-func (m *MockValidator) DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error) {
+func (m *MockValidator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DiskIsEligible", ctx, disk, cluster, host)
+	ret := m.ctrl.Call(m, "DiskIsEligible", ctx, disk, infraEnv, cluster, host)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DiskIsEligible indicates an expected call of DiskIsEligible.
-func (mr *MockValidatorMockRecorder) DiskIsEligible(ctx, disk, cluster, host interface{}) *gomock.Call {
+func (mr *MockValidatorMockRecorder) DiskIsEligible(ctx, disk, infraEnv, cluster, host interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskIsEligible", reflect.TypeOf((*MockValidator)(nil).DiskIsEligible), ctx, disk, cluster, host)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskIsEligible", reflect.TypeOf((*MockValidator)(nil).DiskIsEligible), ctx, disk, infraEnv, cluster, host)
 }
 
 // GetClusterHostRequirements mocks base method.
@@ -96,18 +96,18 @@ func (mr *MockValidatorMockRecorder) GetHostValidDisks(host interface{}) *gomock
 }
 
 // GetInfraEnvHostRequirements mocks base method.
-func (m *MockValidator) GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv, host *models.Host) (*models.ClusterHostRequirements, error) {
+func (m *MockValidator) GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.ClusterHostRequirements, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInfraEnvHostRequirements", ctx, infraEnv, host)
+	ret := m.ctrl.Call(m, "GetInfraEnvHostRequirements", ctx, infraEnv)
 	ret0, _ := ret[0].(*models.ClusterHostRequirements)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetInfraEnvHostRequirements indicates an expected call of GetInfraEnvHostRequirements.
-func (mr *MockValidatorMockRecorder) GetInfraEnvHostRequirements(ctx, infraEnv, host interface{}) *gomock.Call {
+func (mr *MockValidatorMockRecorder) GetInfraEnvHostRequirements(ctx, infraEnv interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetInfraEnvHostRequirements), ctx, infraEnv, host)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetInfraEnvHostRequirements), ctx, infraEnv)
 }
 
 // GetInstallationDiskSpeedThresholdMs mocks base method.
