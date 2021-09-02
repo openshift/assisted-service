@@ -122,7 +122,7 @@ func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessC
 }
 
 func (v *clusterValidator) isClusterCidrDefined(c *clusterPreprocessContext) ValidationStatus {
-	return boolToValidationStatus(common.IsSliceNonEmpty(c.cluster.ClusterNetworks))
+	return boolToValidationStatus(len(c.cluster.ClusterNetworks) > 0 && c.cluster.ClusterNetworks[0].Cidr != "")
 }
 
 func (v *clusterValidator) printIsClusterCidrDefined(context *clusterPreprocessContext, status ValidationStatus) string {
@@ -137,7 +137,7 @@ func (v *clusterValidator) printIsClusterCidrDefined(context *clusterPreprocessC
 }
 
 func (v *clusterValidator) isServiceCidrDefined(c *clusterPreprocessContext) ValidationStatus {
-	return boolToValidationStatus(common.IsSliceNonEmpty(c.cluster.ServiceNetworks))
+	return boolToValidationStatus(len(c.cluster.ServiceNetworks) > 0 && c.cluster.ServiceNetworks[0].Cidr != "")
 }
 
 func (v *clusterValidator) printIsServiceCidrDefined(context *clusterPreprocessContext, status ValidationStatus) string {

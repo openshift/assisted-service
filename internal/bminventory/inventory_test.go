@@ -5020,7 +5020,7 @@ var _ = Describe("cluster", func() {
 					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
 				})
 
-				It("Empty networks - valid", func() {
+				It("Empty networks", func() {
 					mockSuccess(1)
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
@@ -5036,90 +5036,6 @@ var _ = Describe("cluster", func() {
 					Expect(actual.Payload.ClusterNetworks).To(BeEmpty())
 					Expect(actual.Payload.ServiceNetworks).To(BeEmpty())
 					Expect(actual.Payload.MachineNetworks).To(BeEmpty())
-				})
-
-				It("Empty networks - invalid empty ClusterNetwork", func() {
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							ClusterNetworks: []*models.ClusterNetwork{{}},
-							ServiceNetworks: []*models.ServiceNetwork{},
-							MachineNetworks: []*models.MachineNetwork{},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
-				})
-
-				It("Empty networks - invalid CIDR, ClusterNetwork", func() {
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							ClusterNetworks: []*models.ClusterNetwork{{Cidr: ""}},
-							ServiceNetworks: []*models.ServiceNetwork{},
-							MachineNetworks: []*models.MachineNetwork{},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
-				})
-
-				It("Empty networks - invalid HostPrefix, ClusterNetwork", func() {
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							ClusterNetworks: []*models.ClusterNetwork{{HostPrefix: 0}},
-							ServiceNetworks: []*models.ServiceNetwork{},
-							MachineNetworks: []*models.MachineNetwork{},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
-				})
-
-				It("Empty networks - invalid empty ServiceNetwork", func() {
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							ClusterNetworks: []*models.ClusterNetwork{},
-							ServiceNetworks: []*models.ServiceNetwork{{}},
-							MachineNetworks: []*models.MachineNetwork{},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : invalid CIDR address: ")
-				})
-
-				It("Empty networks - invalid CIDR, ServiceNetwork", func() {
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							ClusterNetworks: []*models.ClusterNetwork{},
-							ServiceNetworks: []*models.ServiceNetwork{{Cidr: ""}},
-							MachineNetworks: []*models.MachineNetwork{},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : invalid CIDR address: ")
-				})
-
-				It("Empty networks - invalid empty MachineNetwork", func() {
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							ClusterNetworks: []*models.ClusterNetwork{},
-							ServiceNetworks: []*models.ServiceNetwork{},
-							MachineNetworks: []*models.MachineNetwork{{}},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR : invalid CIDR address: ")
-				})
-
-				It("Empty networks - invalid CIDR, MachineNetwork", func() {
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							ClusterNetworks: []*models.ClusterNetwork{},
-							ServiceNetworks: []*models.ServiceNetwork{},
-							MachineNetworks: []*models.MachineNetwork{{Cidr: ""}},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR : invalid CIDR address: ")
 				})
 
 				It("Override networks", func() {

@@ -67,7 +67,7 @@ func GetConfiguredAddressFamilies(cluster *common.Cluster) (ipv4 bool, ipv6 bool
 }
 
 func IsMachineCidrAvailable(cluster *common.Cluster) bool {
-	return common.IsSliceNonEmpty(cluster.MachineNetworks)
+	return len(cluster.MachineNetworks) > 0
 }
 
 func GetMachineCidrById(cluster *common.Cluster, index int) string {

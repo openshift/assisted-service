@@ -384,7 +384,7 @@ var _ = Describe("UpdateMachineCidr", func() {
 		It(test.name, func() {
 			// TODO MGMT-7365: Deprecate single network
 			primaryMachineCidr := ""
-			if common.IsSliceNonEmpty(test.clusterMachineNetworks) {
+			if len(test.clusterMachineNetworks) > 0 {
 				primaryMachineCidr = string(test.clusterMachineNetworks[0].Cidr)
 			}
 
