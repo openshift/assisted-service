@@ -205,26 +205,15 @@ func GetCluster(ctx context.Context, logger logrus.FieldLogger, db *gorm.DB, clu
 }
 
 func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr string) error {
-	txSuccess := false
-	tx := db.Begin()
-	defer func() {
-		if !txSuccess {
-			tx.Rollback()
-		}
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
 	// Delete previous primary machine CIDR
 	if network.IsMachineCidrAvailable(cluster) {
-		if err := common.DeleteRecordsByClusterID(tx, *cluster.ID, []interface{}{&models.MachineNetwork{}}, "cidr = ?", network.GetMachineCidrById(cluster, 0)); err != nil {
+		if err := common.DeleteRecordsByClusterID(db, *cluster.ID, []interface{}{&models.MachineNetwork{}}, "cidr = ?", network.GetMachineCidrById(cluster, 0)); err != nil {
 			return err
 		}
 	}
 
 	if machineCidr != "" {
-		if err := tx.Model(&models.MachineNetwork{}).Save(&models.MachineNetwork{
+		if err := db.Model(&models.MachineNetwork{}).Save(&models.MachineNetwork{
 			ClusterID: *cluster.ID,
 			Cidr:      models.Subnet(machineCidr),
 		}).Error; err != nil {
@@ -233,17 +222,8 @@ func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr string)
 	}
 
 	// TODO MGMT-7365: Deprecate single network
-	if err := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(
+	return db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(
 		"machine_network_cidr", machineCidr,
 		"machine_network_cidr_updated_at", time.Now(),
-	).Error; err != nil {
-		return err
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return err
-	}
-
-	txSuccess = true
-	return nil
+	).Error
 }
