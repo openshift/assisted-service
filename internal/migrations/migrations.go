@@ -31,7 +31,6 @@ func post() []*gormigrate.Migration {
 		changeImageSSHKeyToText(),
 		changeClusterValidationsInfoToText(),
 		changeHostValidationsInfoToText(),
-		multipleNetworks(),
 		copyClusterUserInfoToInfraEnv(),
 	}
 

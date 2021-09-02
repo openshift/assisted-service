@@ -31,7 +31,7 @@ func populateInfraEnv() *gormigrate.Migration {
 				return err
 			}
 
-			dbClusters, err := common.GetClustersFromDBWhere(tx, common.UseEagerLoading, common.IncludeDeletedRecords)
+			dbClusters, err := getClustersFromDB(tx)
 			if err != nil {
 				return err
 			}
@@ -87,4 +87,14 @@ func populateInfraEnv() *gormigrate.Migration {
 		Migrate:  gormigrate.MigrateFunc(migrate),
 		Rollback: gormigrate.RollbackFunc(rollback),
 	}
+}
+
+func getClustersFromDB(db *gorm.DB) ([]*common.Cluster, error) {
+	var clusters []*common.Cluster
+
+	db = db.Unscoped()
+	if err := db.Find(&clusters).Error; err != nil {
+		return nil, err
+	}
+	return clusters, nil
 }
