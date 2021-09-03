@@ -4968,7 +4968,7 @@ var _ = Describe("cluster", func() {
 					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
 				})
 
-				It("Empty networks", func() {
+				It("Empty networks (new API) - valid", func() {
 					mockSuccess(1)
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
@@ -4986,7 +4986,130 @@ var _ = Describe("cluster", func() {
 					Expect(actual.Payload.MachineNetworks).To(BeEmpty())
 				})
 
-				It("Override networks", func() {
+				It("Empty networks (old API) - valid", func() {
+					mockSuccess(1)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworkCidr:       swag.String(""),
+							ClusterNetworkHostPrefix: swag.Int64(0),
+							ServiceNetworkCidr:       swag.String(""),
+							MachineNetworkCidr:       swag.String(""),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+
+					Expect(actual.Payload.ClusterNetworks).To(BeEmpty())
+					Expect(actual.Payload.ServiceNetworks).To(BeEmpty())
+					Expect(actual.Payload.MachineNetworks).To(BeEmpty())
+				})
+
+				It("Empty networks - invalid empty ClusterNetwork", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworks: []*models.ClusterNetwork{{}},
+							ServiceNetworks: []*models.ServiceNetwork{},
+							MachineNetworks: []*models.MachineNetwork{},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
+				})
+
+				It("Empty networks (new API) - invalid CIDR, ClusterNetwork", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworks: []*models.ClusterNetwork{{Cidr: ""}},
+							ServiceNetworks: []*models.ServiceNetwork{},
+							MachineNetworks: []*models.MachineNetwork{},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
+				})
+
+				It("Empty networks (old API) - invalid CIDR, ClusterNetwork", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworkCidr: swag.String(""),
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
+				})
+
+				It("Empty networks (new API - invalid HostPrefix, ClusterNetwork", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworks: []*models.ClusterNetwork{{HostPrefix: 0}},
+							ServiceNetworks: []*models.ServiceNetwork{},
+							MachineNetworks: []*models.MachineNetwork{},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
+				})
+
+				It("Empty networks (old API) - invalid HostPrefix, ClusterNetwork", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworkHostPrefix: swag.Int64(0),
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network host prefix 0: Host prefix, now 0, must be a positive integer")
+				})
+
+				It("Empty networks - invalid empty ServiceNetwork", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworks: []*models.ClusterNetwork{},
+							ServiceNetworks: []*models.ServiceNetwork{{}},
+							MachineNetworks: []*models.MachineNetwork{},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : invalid CIDR address: ")
+				})
+
+				It("Empty networks - invalid CIDR, ServiceNetwork", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworks: []*models.ClusterNetwork{},
+							ServiceNetworks: []*models.ServiceNetwork{{Cidr: ""}},
+							MachineNetworks: []*models.MachineNetwork{},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : invalid CIDR address: ")
+				})
+
+				It("Empty networks - invalid empty MachineNetwork", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworks: []*models.ClusterNetwork{},
+							ServiceNetworks: []*models.ServiceNetwork{},
+							MachineNetworks: []*models.MachineNetwork{{}},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR : invalid CIDR address: ")
+				})
+
+				It("Empty networks - invalid CIDR, MachineNetwork", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworks: []*models.ClusterNetwork{},
+							ServiceNetworks: []*models.ServiceNetwork{},
+							MachineNetworks: []*models.MachineNetwork{{Cidr: ""}},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR : invalid CIDR address: ")
+				})
+
+				It("Override networks with new API", func() {
 					clusterNetworks = []*models.ClusterNetwork{{Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}}
 					serviceNetworks = []*models.ServiceNetwork{{Cidr: "13.13.0.0/21"}, {Cidr: "14.14.0.0/21"}}
 					machineNetworks = []*models.MachineNetwork{{Cidr: "15.15.0.0/21"}, {Cidr: "16.16.0.0/21"}}
@@ -4999,6 +5122,49 @@ var _ = Describe("cluster", func() {
 							ServiceNetworks:   serviceNetworks,
 							MachineNetworks:   machineNetworks,
 							VipDhcpAllocation: swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+
+					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
+				})
+
+				It("Override networks with new API 2", func() {
+					clusterNetworks = []*models.ClusterNetwork{{Cidr: "10.10.0.0/21", HostPrefix: 24}, {Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}}
+					serviceNetworks = []*models.ServiceNetwork{{Cidr: "13.13.0.0/21"}, {Cidr: "14.14.0.0/21"}}
+					machineNetworks = []*models.MachineNetwork{{Cidr: "15.15.0.0/21"}, {Cidr: "16.16.0.0/21"}}
+
+					mockSuccess(1)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworks:   clusterNetworks,
+							ServiceNetworks:   serviceNetworks,
+							MachineNetworks:   machineNetworks,
+							VipDhcpAllocation: swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+
+					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
+				})
+
+				It("Override networks with old API", func() {
+					clusterNetworks = []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}}
+					serviceNetworks = []*models.ServiceNetwork{{Cidr: "172.30.0.0/16"}}
+					machineNetworks = []*models.MachineNetwork{{Cidr: "192.168.145.0/24"}}
+
+					mockSuccess(1)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							ClusterNetworkCidr:       swag.String("10.128.0.0/14"),
+							ClusterNetworkHostPrefix: swag.Int64(23),
+							ServiceNetworkCidr:       swag.String("172.30.0.0/16"),
+							MachineNetworkCidr:       swag.String("192.168.145.0/24"),
+							VipDhcpAllocation:        swag.Bool(true),
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
