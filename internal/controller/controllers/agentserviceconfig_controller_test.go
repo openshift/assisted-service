@@ -104,6 +104,174 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 	})
 })
 
+var _ = Describe("newImageServiceService", func() {
+	var (
+		asc  *aiv1beta1.AgentServiceConfig
+		ascr *AgentServiceConfigReconciler
+		ctx  = context.Background()
+		log  = logrus.New()
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc)
+	})
+
+	Context("with no existing service", func() {
+		It("should create new service", func() {
+			found := &corev1.Service{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).ToNot(Succeed())
+
+			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceService)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(found.ObjectMeta.Annotations).NotTo(BeNil())
+			Expect(found.ObjectMeta.Annotations[servingCertAnnotation]).To(Equal(imageServiceName))
+		})
+	})
+
+	Context("with existing service", func() {
+		It("should add annotation", func() {
+			s, _, _ := ascr.newImageServiceService(ctx, log, asc)
+			service := s.(*corev1.Service)
+			Expect(ascr.Client.Create(ctx, service)).To(Succeed())
+
+			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceService)
+
+			found := &corev1.Service{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(found.ObjectMeta.Annotations).NotTo(BeNil())
+			Expect(found.ObjectMeta.Annotations[servingCertAnnotation]).To(Equal(imageServiceName))
+		})
+	})
+})
+
+var _ = Describe("newImageServiceRoute", func() {
+	var (
+		asc  *aiv1beta1.AgentServiceConfig
+		ascr *AgentServiceConfigReconciler
+		ctx  = context.Background()
+		log  = logrus.New()
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc)
+	})
+
+	Context("with no existing route", func() {
+		It("should create new route", func() {
+			found := &routev1.Route{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).ToNot(Succeed())
+
+			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceRoute)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+		})
+	})
+
+	Context("with existing route", func() {
+		It("should not change route Host", func() {
+			routeHost := "route.example.com"
+			r, _, _ := ascr.newImageServiceRoute(ctx, log, asc)
+			route := r.(*routev1.Route)
+			route.Spec.Host = routeHost
+			Expect(ascr.Client.Create(ctx, route)).To(Succeed())
+
+			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceRoute)
+
+			found := &routev1.Route{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(found.Spec.Host).To(Equal(routeHost))
+		})
+	})
+})
+
+var _ = Describe("newImageServiceServiceAccount", func() {
+	var (
+		asc  *aiv1beta1.AgentServiceConfig
+		ascr *AgentServiceConfigReconciler
+		ctx  = context.Background()
+		log  = logrus.New()
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc)
+	})
+
+	Context("with no existing serviceAccount", func() {
+		It("should create new serviceAccount", func() {
+			found := &corev1.ServiceAccount{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).ToNot(Succeed())
+
+			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceServiceAccount)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+		})
+	})
+})
+
+var _ = Describe("newImageServiceConfigMap", func() {
+	var (
+		asc  *aiv1beta1.AgentServiceConfig
+		ascr *AgentServiceConfigReconciler
+		ctx  = context.Background()
+		log  = logrus.New()
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc)
+	})
+
+	Context("with no existing configmap", func() {
+		It("should create new configmap", func() {
+			found := &corev1.ConfigMap{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).ToNot(Succeed())
+
+			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceConfigMap)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+		})
+	})
+
+	Context("with existing configmap", func() {
+		It("should add annotation", func() {
+			cm, _, _ := ascr.newImageServiceConfigMap(ctx, log, asc)
+			configMap := cm.(*corev1.ConfigMap)
+			Expect(ascr.Client.Create(ctx, configMap)).To(Succeed())
+
+			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceConfigMap)
+
+			found := &corev1.ConfigMap{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(found.ObjectMeta.Annotations).NotTo(BeNil())
+			Expect(found.ObjectMeta.Annotations[injectCABundleAnnotation]).To(Equal("true"))
+		})
+	})
+})
+
+var _ = Describe("newImageServiceDeployment", func() {
+	var (
+		asc  *aiv1beta1.AgentServiceConfig
+		ascr *AgentServiceConfigReconciler
+		ctx  = context.Background()
+		log  = logrus.New()
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc)
+	})
+
+	Context("with no existing deployment", func() {
+		It("should create new deployment", func() {
+			found := &appsv1.Deployment{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).ToNot(Succeed())
+
+			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceDeployment)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+		})
+	})
+})
+
 var _ = Describe("ensureAgentRoute", func() {
 	var (
 		asc  *aiv1beta1.AgentServiceConfig
