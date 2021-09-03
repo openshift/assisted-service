@@ -528,8 +528,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		TriggerMonitorTimestamp: time.Now(),
 	}
 
-	createNetworkParamsCompatibilityPropagation(params)
-
 	// TODO MGMT-7365: Deprecate single network
 	if len(params.NewClusterParams.ClusterNetworks) > 0 {
 		cluster.ClusterNetworkCidr = string(params.NewClusterParams.ClusterNetworks[0].Cidr)
@@ -2509,50 +2507,6 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 	}
 
 	return nil
-}
-
-// createNetworkParamsCompatibilityPropagation is a backwards compatibility adapter adding ability
-// to configure clutster networking using the following structures
-//
-//   * MachineNetworkCidr
-//   * ClusterNetworkCidr
-//   * ClusterNetworkHostPrefix
-//   * ServiceNetworkCidr
-//
-// Please note those will take precedence over the more complex introduced as part of dual-stack
-// and multi-network support, i.e.
-//
-//   * MachineNetworks
-//   * ClusterNetworks
-//   * ServiceNetworks
-func createNetworkParamsCompatibilityPropagation(params installer.V2RegisterClusterParams) {
-	if params.NewClusterParams.ServiceNetworkCidr != nil {
-		serviceNetwork := []*models.ServiceNetwork{}
-		if *params.NewClusterParams.ServiceNetworkCidr != "" {
-			serviceNetwork = []*models.ServiceNetwork{{
-				Cidr: models.Subnet(swag.StringValue(params.NewClusterParams.ServiceNetworkCidr)),
-			}}
-		}
-		params.NewClusterParams.ServiceNetworks = serviceNetwork
-	}
-
-	if params.NewClusterParams.ClusterNetworkCidr != nil || params.NewClusterParams.ClusterNetworkHostPrefix != 0 {
-		net := []*models.ClusterNetwork{}
-		var netCidr models.Subnet
-		var netHostPrefix int64
-
-		if params.NewClusterParams.ClusterNetworkCidr != nil {
-			netCidr = models.Subnet(*params.NewClusterParams.ClusterNetworkCidr)
-		}
-		if params.NewClusterParams.ClusterNetworkHostPrefix != 0 {
-			netHostPrefix = params.NewClusterParams.ClusterNetworkHostPrefix
-		}
-		if netCidr != "" || netHostPrefix != 0 {
-			net = []*models.ClusterNetwork{{Cidr: netCidr, HostPrefix: netHostPrefix}}
-		}
-
-		params.NewClusterParams.ClusterNetworks = net
-	}
 }
 
 // updateNetworkParamsCompatiblityPropagation is an adapter equivalent to the one above, i.e.
