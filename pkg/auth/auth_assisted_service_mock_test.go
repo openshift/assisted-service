@@ -168,6 +168,10 @@ func (f fakeInventory) InstallCluster(ctx context.Context, params installer.Inst
 	return installer.NewInstallClusterAccepted()
 }
 
+func (f fakeInventory) V2InstallCluster(ctx context.Context, params installer.V2InstallClusterParams) middleware.Responder {
+	return installer.NewV2InstallClusterAccepted()
+}
+
 func (f fakeInventory) InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder {
 	return installer.NewInstallHostsAccepted()
 }

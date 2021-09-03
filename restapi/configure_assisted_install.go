@@ -259,6 +259,9 @@ type InstallerAPI interface {
 	/* V2GetNextSteps Retrieves the next operations that the host agent needs to perform. */
 	V2GetNextSteps(ctx context.Context, params installer.V2GetNextStepsParams) middleware.Responder
 
+	/* V2InstallCluster Installs the OpenShift cluster. */
+	V2InstallCluster(ctx context.Context, params installer.V2InstallClusterParams) middleware.Responder
+
 	/* V2InstallHost install specific host for day2 cluster. */
 	V2InstallHost(ctx context.Context, params installer.V2InstallHostParams) middleware.Responder
 
@@ -854,6 +857,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetNextSteps(ctx, params)
+	})
+	api.InstallerV2InstallClusterHandler = installer.V2InstallClusterHandlerFunc(func(params installer.V2InstallClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2InstallCluster(ctx, params)
 	})
 	api.InstallerV2InstallHostHandler = installer.V2InstallHostHandlerFunc(func(params installer.V2InstallHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
