@@ -21,7 +21,7 @@ logging.getLogger("__main__").setLevel(logging.INFO)
 
 # Users / branch names / messages
 BRANCH_NAME = "{prefix}_update_assisted_service_versions"
-DEFAULT_ASSIGN = "lgamliel"
+DEFAULT_ASSIGN = "oscohen"
 DEFAULT_WATCHERS = ["lgamliel", "yuvalgoldberg"]
 PR_MENTION = ["gamli75", "YuviGold"]
 PR_MESSAGE = "{task}: Bump OCP versions {versions_string}"
@@ -232,8 +232,8 @@ def get_latest_release_from_minor(minor_release, cpu_architecture: str):
     release_data = get_release_data(minor_release, cpu_architecture)
     return release_data['version']
 
-def get_release_note_url(minor_release, cpu_architecture: str):
-    release_data = get_release_data(minor_release, cpu_architecture)
+def get_release_note_url(minor_release):
+    release_data = get_release_data(minor_release, CPU_ARCHITECTURE_AMD64)
     try:
         release_url = release_data['metadata']["url"]
     except KeyError:
@@ -312,6 +312,10 @@ def main(args):
 
     updates_made = set()
     updates_made_str = set()
+
+    if not dry_run:
+        user, password = get_login(args.github_user_password)
+        clone_assisted_service(user, password)
 
     update_release_images_json(default_release_images_json, updates_made, updates_made_str, dry_run)
     update_os_images_json(default_os_images_json, updates_made, updates_made_str, dry_run)
@@ -477,9 +481,6 @@ def create_jira_task(updates_made_str, dry_run, args):
 
     title = PR_MESSAGE.format(task=task, versions_string=versions_str)
     logger.info(f"PR title will be {title}")
-
-    user, password = get_login(args.github_user_password)
-    clone_assisted_service(user, password)
 
     return title, task
 
