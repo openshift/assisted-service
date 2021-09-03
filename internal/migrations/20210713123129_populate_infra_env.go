@@ -31,7 +31,7 @@ func populateInfraEnv() *gormigrate.Migration {
 				return err
 			}
 
-			dbClusters, err := common.GetClustersFromDBWhere(tx, common.UseEagerLoading, common.IncludeDeletedRecords)
+			dbClusters, err := common.GetClustersFromDBWhere(tx, common.SkipEagerLoading, common.IncludeDeletedRecords)
 			if err != nil {
 				return err
 			}
