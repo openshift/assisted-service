@@ -5689,6 +5689,10 @@ definitions:
         type: boolean
         description: Indicate if virtual IP DHCP allocation mode is enabled.
         x-nullable: true
+      auto_assign_roles:
+        type: boolean
+        description: Toggle between user assigned control plane nodes and auto assignment
+        x-nullable: true
       http_proxy:
         type: string
         description: |
@@ -6028,6 +6032,10 @@ definitions:
         type: boolean
         description: Indicate if virtual IP DHCP allocation mode is enabled.
         x-nullable: true
+      auto_assign_roles:
+        type: boolean
+        description: Toggle between user assigned control plane nodes and auto assignment
+        default: true
       validations_info:
         type: string
         description: JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)

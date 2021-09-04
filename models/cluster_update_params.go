@@ -30,6 +30,9 @@ type ClusterUpdateParams struct {
 	// The domain name used to reach the OpenShift cluster API.
 	APIVipDNSName *string `json:"api_vip_dns_name,omitempty"`
 
+	// Toggle between user assigned control plane nodes and auto assignment
+	AutoAssignRoles *bool `json:"auto_assign_roles,omitempty"`
+
 	// Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
 	BaseDNSDomain *string `json:"base_dns_domain,omitempty"`
 

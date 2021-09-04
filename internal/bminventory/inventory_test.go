@@ -170,6 +170,14 @@ func mockUsageReports() {
 	mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 }
 
+var mockSuccess = func(times int) {
+	mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(times * 3) // Number of hosts
+	mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times * 3)
+	mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times * 1)
+	mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times * 3)
+	mockSetConnectivityMajorityGroupsForClusterTimes(mockClusterApi, times)
+}
+
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	common.InitializeDBTest()
@@ -2962,13 +2970,14 @@ var _ = Describe("cluster", func() {
 
 	addHost := func(hostId strfmt.UUID, role models.HostRole, state, kind string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
 		host := models.Host{
-			ID:         &hostId,
-			InfraEnvID: clusterId,
-			ClusterID:  &clusterId,
-			Status:     swag.String(state),
-			Kind:       swag.String(kind),
-			Role:       role,
-			Inventory:  inventory,
+			ID:            &hostId,
+			InfraEnvID:    clusterId,
+			ClusterID:     &clusterId,
+			Status:        swag.String(state),
+			Kind:          swag.String(kind),
+			Role:          role,
+			SuggestedRole: role,
+			Inventory:     inventory,
 		}
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		return host
@@ -4188,6 +4197,45 @@ var _ = Describe("cluster", func() {
 			})
 		})
 
+		Context("Update auto-assign toggle", func() {
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				addHost(masterHostId1, models.HostRoleAutoAssign, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+				addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
+			})
+
+			It("updating auto-assign toggle sets the role to auto-assign", func() {
+				By("auto-assign --> user-assigned")
+				mockSuccess(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), models.HostRoleAutoAssign, gomock.Any()).Return(nil).Times(3)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						AutoAssignRoles: swag.Bool(false),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+
+				By("user-assign --> auto-assigned")
+				mockSuccess(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), models.HostRoleAutoAssign, gomock.Any()).Return(nil).Times(3)
+				reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						AutoAssignRoles: swag.Bool(true),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			})
+		})
+
 		Context("Update Network", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
@@ -4203,14 +4251,6 @@ var _ = Describe("cluster", func() {
 				Expect(err).ToNot(HaveOccurred())
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 			})
-
-			mockSuccess := func(times int) {
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(times * 3) // Number of hosts
-				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times * 3)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times * 1)
-				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times * 3)
-				mockSetConnectivityMajorityGroupsForClusterTimes(mockClusterApi, times)
-			}
 
 			Context("Single node", func() {
 				BeforeEach(func() {

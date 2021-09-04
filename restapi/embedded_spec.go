@@ -7383,6 +7383,11 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "auto_assign_roles": {
+          "description": "Toggle between user assigned control plane nodes and auto assignment",
+          "type": "boolean",
+          "default": true
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
@@ -8000,6 +8005,11 @@ func init() {
         "api_vip_dns_name": {
           "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
+          "x-nullable": true
+        },
+        "auto_assign_roles": {
+          "description": "Toggle between user assigned control plane nodes and auto assignment",
+          "type": "boolean",
           "x-nullable": true
         },
         "base_dns_domain": {
@@ -18310,6 +18320,11 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "auto_assign_roles": {
+          "description": "Toggle between user assigned control plane nodes and auto assignment",
+          "type": "boolean",
+          "default": true
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
@@ -18927,6 +18942,11 @@ func init() {
         "api_vip_dns_name": {
           "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
+          "x-nullable": true
+        },
+        "auto_assign_roles": {
+          "description": "Toggle between user assigned control plane nodes and auto assignment",
+          "type": "boolean",
           "x-nullable": true
         },
         "base_dns_domain": {

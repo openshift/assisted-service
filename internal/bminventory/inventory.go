@@ -2117,6 +2117,12 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
+	err = b.updateAutoAssignRoleToggle(ctx, cluster, params, usages, tx)
+	if err != nil {
+		log.WithError(err).Error("updateAutoAssignRoleToggle")
+		return nil, err
+	}
+
 	err = b.updateClusterData(ctx, cluster, params, usages, tx, log, interactivity)
 	if err != nil {
 		log.WithError(err).Error("updateClusterData")
@@ -2369,6 +2375,24 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		}
 	}
 
+	return nil
+}
+
+func (b *bareMetalInventory) updateAutoAssignRoleToggle(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB) error {
+	if params.ClusterUpdateParams.AutoAssignRoles != nil {
+		// updating the auto-assign toggle resets the host's role assignment
+		// Setting the property to true would cause the service to set all host roles to auto-assign.
+		// setting the property to false leaves the roles as auto-assign.
+		// This will allow the user to choose some roles (e.g., the 3 masters) but let the service choose the rest.
+		return b.db.Transaction(func(tx *gorm.DB) error {
+			for _, host := range cluster.Hosts {
+				if err := b.hostApi.UpdateRole(ctx, host, models.HostRoleAutoAssign, tx); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}
 	return nil
 }
 
