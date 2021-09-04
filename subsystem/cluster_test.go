@@ -1186,6 +1186,7 @@ var _ = Describe("cluster install", func() {
 					PullSecret:           swag.String(pullSecret),
 					SSHPublicKey:         sshPublicKey,
 					VipDhcpAllocation:    swag.Bool(true),
+					NetworkType:          swag.String("OVNKubernetes"),
 					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
 				},
 			})
@@ -1196,6 +1197,7 @@ var _ = Describe("cluster install", func() {
 			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
 			verifyUsageSet(getReply.Payload.FeatureUsage,
 				models.Usage{Name: usage.HighAvailabilityModeUsage})
+			verifyUsageSet(getReply.Payload.FeatureUsage, models.Usage{Name: usage.OVNNetworkTypeUsage})
 			verifyUsageNotSet(getReply.Payload.FeatureUsage, strings.ToUpper("console"), usage.VipDhcpAllocationUsage)
 		})
 
@@ -1205,6 +1207,7 @@ var _ = Describe("cluster install", func() {
 			ntpSources := "1.1.1.1,2.2.2.2"
 			proxy := "http://1.1.1.1:8080"
 			no_proxy := "a.redhat.com"
+			ovn := "OVNKubernetes"
 			_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 				ClusterUpdateParams: &models.ClusterUpdateParams{
 					VipDhcpAllocation:   swag.Bool(true),
@@ -1212,6 +1215,7 @@ var _ = Describe("cluster install", func() {
 					HTTPProxy:           &proxy,
 					HTTPSProxy:          &proxy,
 					NoProxy:             &no_proxy,
+					NetworkType:         &ovn,
 					HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
 						{ID: *h.ID, Hostname: "h1"},
 					},
@@ -1223,6 +1227,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			verifyUsageSet(getReply.Payload.FeatureUsage,
 				models.Usage{Name: usage.VipDhcpAllocationUsage},
+				models.Usage{Name: usage.OVNNetworkTypeUsage},
 				models.Usage{
 					Name: usage.AdditionalNtpSourceUsage,
 					Data: map[string]interface{}{

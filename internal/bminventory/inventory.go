@@ -2621,10 +2621,8 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 	userManagedNetworking := swag.BoolValue(cluster.UserManagedNetworking)
 
 	if params.ClusterUpdateParams.NetworkType != nil && params.ClusterUpdateParams.NetworkType != cluster.NetworkType {
-		b.setUsage(true, usage.NetworkTypeSelectionUsage, &map[string]interface{}{
-			"network_type": params.ClusterUpdateParams.NetworkType}, usages)
-
 		updates["network_type"] = swag.StringValue(params.ClusterUpdateParams.NetworkType)
+		b.setNetworkTypeUsage(params.ClusterUpdateParams.NetworkType, usages)
 	}
 
 	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
@@ -2768,13 +2766,22 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) {
 		return op != nil && op.OperatorType == models.OperatorTypeOlm
 	}).([]*models.MonitoredOperator)
 	b.setOperatorsUsage(olmOperators, []*models.MonitoredOperator{}, usages)
-	featusage, _ := json.Marshal(usages)
-	cluster.FeatureUsage = string(featusage)
-	b.setUsage(false, usage.NetworkTypeSelectionUsage, &map[string]interface{}{
-		"network_type": cluster.NetworkType}, usages)
+	b.setNetworkTypeUsage(cluster.NetworkType, usages)
 	withCredentials := cluster.Platform.Vsphere != nil && cluster.Platform.Vsphere.VCenter != nil && cluster.Platform.Vsphere.Password != nil && cluster.Platform.Vsphere.Username != nil
 	b.setUsage(cluster.Platform.Type != models.PlatformTypeBaremetal, usage.PlatformSelectionUsage, &map[string]interface{}{
 		"platform_type": cluster.Platform.Type, "with_credentials": withCredentials}, usages)
+	//write all the usages to the cluster object
+	featusage, _ := json.Marshal(usages)
+	cluster.FeatureUsage = string(featusage)
+}
+
+func (b *bareMetalInventory) setNetworkTypeUsage(networkType *string, usages map[string]models.Usage) {
+	switch swag.StringValue(networkType) {
+	case models.ClusterNetworkTypeOVNKubernetes:
+		b.setUsage(true, usage.OVNNetworkTypeUsage, nil, usages)
+	case models.ClusterNetworkTypeOpenShiftSDN:
+		b.setUsage(true, usage.SDNNetworkTypeUsage, nil, usages)
+	}
 }
 
 func (b *bareMetalInventory) setProxyUsage(httpProxy *string, httpsProxy *string, noProxy *string, usages map[string]models.Usage) {
