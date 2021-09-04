@@ -189,6 +189,24 @@ func (h *installerHandler) Create(outPath string, volumeLabel string) error {
 				},
 			},
 		}
+	} else if exists, _ := h.fileExists("images/efiboot.img"); exists {
+		// Creating an ISO with EFI boot only
+		efiSectors, err := h.efiLoadSectors()
+		if err != nil {
+			return err
+		}
+		options.ElTorito = &iso9660.ElTorito{
+			BootCatalog:     "boot.catalog",
+			HideBootCatalog: true,
+			Entries: []*iso9660.ElToritoEntry{
+				{
+					Platform:  iso9660.EFI,
+					Emulation: iso9660.NoEmulation,
+					BootFile:  "images/efiboot.img",
+					LoadSize:  efiSectors,
+				},
+			},
+		}
 	}
 
 	return iso.Finalize(options)
