@@ -25,6 +25,5 @@ To be run, every migration function should be added to the list in `postMigratio
 
 We currently have a single migration in `preMigrations`, i.e. running before `AutoMigrate` step that is responsible for synchronizing the database schema.
 
-It is a bad decision, but given that it has already been rolled out, it would be extremely difficult to move it again to `postMigrations` with the guarantee that no deployment is going to break or end up in a state that is difficult to recover.
-
-When developing a new migration, `preMigrations` must not be used.
+The use of `preMigrations` is (currently) discouraged, as it may cause unexpected failures due to the existing usage of application code (`common.GetClustersFromDBWhere`)
+in some of the already-released migrations.
