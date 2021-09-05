@@ -428,8 +428,11 @@ func installed(agent *aiv1beta1.Agent, status, statusInfo string) {
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.InstallationFailedReason
 		msg = fmt.Sprintf("%s %s", aiv1beta1.InstallationFailedMsg, statusInfo)
-	case models.HostStatusInsufficient, models.HostStatusDisconnected, models.HostStatusDiscovering,
-		models.HostStatusPendingForInput, models.HostStatusKnown:
+	case models.HostStatusInsufficient, models.HostStatusInsufficientUnbound,
+		models.HostStatusDisconnected, models.HostStatusDisconnectedUnbound,
+		models.HostStatusDiscovering, models.HostStatusDiscoveringUnbound,
+		models.HostStatusKnown, models.HostStatusKnownUnbound,
+		models.HostStatusPendingForInput:
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.InstallationNotStartedReason
 		msg = aiv1beta1.InstallationNotStartedMsg
@@ -470,7 +473,7 @@ func validated(agent *aiv1beta1.Agent, status string, h *models.Host) {
 	var reason string
 	var msg string
 	switch {
-	case models.HostStatusInsufficient == status:
+	case models.HostStatusInsufficient == status || models.HostStatusInsufficientUnbound == status:
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.ValidationsFailingReason
 		msg = fmt.Sprintf("%s %s", aiv1beta1.AgentValidationsFailingMsg, failedValidationInfo)
@@ -500,7 +503,7 @@ func connected(agent *aiv1beta1.Agent, status string) {
 	var reason string
 	var msg string
 	switch status {
-	case models.HostStatusDisconnected:
+	case models.HostStatusDisconnectedUnbound, models.HostStatusDisconnected:
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.AgentDisconnectedReason
 		msg = aiv1beta1.AgentDisonnectedMsg
@@ -522,7 +525,7 @@ func requirementsMet(agent *aiv1beta1.Agent, status string) {
 	var reason string
 	var msg string
 	switch status {
-	case models.HostStatusKnown:
+	case models.HostStatusKnown, models.HostStatusKnownUnbound:
 		if agent.Spec.Approved {
 			condStatus = corev1.ConditionTrue
 			reason = aiv1beta1.AgentReadyReason
@@ -533,7 +536,9 @@ func requirementsMet(agent *aiv1beta1.Agent, status string) {
 			msg = aiv1beta1.AgentIsNotApprovedMsg
 		}
 	case models.HostStatusInsufficient, models.HostStatusDisconnected,
-		models.HostStatusDiscovering, models.HostStatusPendingForInput:
+		models.HostStatusInsufficientUnbound, models.HostStatusDisconnectedUnbound,
+		models.HostStatusDiscoveringUnbound, models.HostStatusDiscovering,
+		models.HostStatusPendingForInput:
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.AgentNotReadyReason
 		msg = aiv1beta1.AgentNotReadyMsg
