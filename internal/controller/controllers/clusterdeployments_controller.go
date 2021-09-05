@@ -457,7 +457,7 @@ func (r *ClusterDeploymentsReconciler) updateKubeConfigSecret(ctx context.Contex
 		return nil, getErr
 	}
 
-	respBody, _, err := r.Installer.DownloadClusterFilesInternal(ctx, installer.DownloadClusterFilesParams{
+	respBody, _, err := r.Installer.V2DownloadClusterCredentialsInternal(ctx, installer.V2DownloadClusterCredentialsParams{
 		ClusterID: *c.ID,
 		FileName:  constants.Kubeconfig,
 	})
@@ -485,7 +485,7 @@ func (r *ClusterDeploymentsReconciler) ensureKubeConfigNoIngressSecret(ctx conte
 	if getErr == nil || !k8serrors.IsNotFound(getErr) {
 		return s, getErr
 	}
-	respBody, _, err := r.Installer.DownloadClusterFilesInternal(ctx, installer.DownloadClusterFilesParams{
+	respBody, _, err := r.Installer.V2DownloadClusterCredentialsInternal(ctx, installer.V2DownloadClusterCredentialsParams{
 		ClusterID: *c.ID,
 		FileName:  constants.KubeconfigNoIngress,
 	})
@@ -622,7 +622,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	cluster *common.Cluster) (*common.Cluster, error) {
 
 	update := false
-	params := &models.ClusterUpdateParams{}
+	params := &models.V2ClusterUpdateParams{}
 
 	spec := clusterDeployment.Spec
 	updateString := func(new, old string, target **string) {
@@ -727,7 +727,8 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	}
 
 	var clusterAfterUpdate *common.Cluster
-	clusterAfterUpdate, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.UpdateClusterParams{
+
+	clusterAfterUpdate, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.V2UpdateClusterParams{
 		ClusterUpdateParams: params,
 		ClusterID:           *cluster.ID,
 	})
@@ -740,7 +741,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	return clusterAfterUpdate, nil
 }
 
-func selectClusterNetworkType(params *models.ClusterUpdateParams, cluster *common.Cluster) string {
+func selectClusterNetworkType(params *models.V2ClusterUpdateParams, cluster *common.Cluster) string {
 	clusterWithNewNetworks := &common.Cluster{
 		Cluster: models.Cluster{
 			ClusterNetworks: cluster.ClusterNetworks,

@@ -383,7 +383,7 @@ func (mr *MockInstallerInternalsMockRecorder) UpdateClusterInstallConfigInternal
 }
 
 // UpdateClusterNonInteractive mocks base method.
-func (m *MockInstallerInternals) UpdateClusterNonInteractive(arg0 context.Context, arg1 installer.UpdateClusterParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) UpdateClusterNonInteractive(arg0 context.Context, arg1 installer.V2UpdateClusterParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateClusterNonInteractive", arg0, arg1)
 	ret0, _ := ret[0].(*common.Cluster)
