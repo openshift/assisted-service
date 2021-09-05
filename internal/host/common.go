@@ -76,7 +76,7 @@ func refreshHostStageUpdateTime(
 }
 
 // update host role with an option to update only if the current role is srcRole to prevent races
-func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, suggestedRole models.HostRole, db *gorm.DB, srcRole *string) error {
+func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, suggestedRole models.HostRole, db *gorm.DB, srcRole string) error {
 	hostStatus := swag.StringValue(h.Status)
 	allowedStatuses := append(hostStatusesBeforeInstallation[:], hostStatusesInInfraEnv[:]...)
 	if !funk.ContainsString(allowedStatuses, hostStatus) {
@@ -85,15 +85,19 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, su
 				hostStatus, hostStatusesBeforeInstallation[:]))
 	}
 
-	extras := append(make([]interface{}, 0), "role", role, "suggested_role", suggestedRole)
+	fields := make(map[string]interface{})
+	fields["suggested_role"] = suggestedRole
+	if srcRole != string(role) {
+		fields["role"] = role
 
-	if hostutil.IsDay2Host(h) && (h.MachineConfigPoolName == "" || h.MachineConfigPoolName == *srcRole) {
-		extras = append(extras, "machine_config_pool_name", role)
+		if hostutil.IsDay2Host(h) && (h.MachineConfigPoolName == "" || h.MachineConfigPoolName == srcRole) {
+			fields["machine_config_pool_name"] = role
+		}
 	}
-	extras = append(extras, "trigger_monitor_timestamp", time.Now())
+	fields["trigger_monitor_timestamp"] = time.Now()
 
-	_, err := hostutil.UpdateHost(log, db, h.InfraEnvID, *h.ID, *h.Status, extras...)
-	return err
+	return db.Model(&common.Host{}).Where("id = ? and infra_env_id = ? and role = ?",
+		*h.ID, h.InfraEnvID, srcRole).Updates(fields).Error
 }
 
 func GetHostnameAndRoleByIP(ip string, hosts []*models.Host) (string, models.HostRole, error) {

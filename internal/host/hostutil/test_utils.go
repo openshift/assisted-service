@@ -70,6 +70,7 @@ func GenerateTestHostByKind(hostID, infraEnvID strfmt.UUID, clusterID *strfmt.UU
 		Status:          swag.String(state),
 		Inventory:       common.GenerateTestDefaultInventory(),
 		Role:            role,
+		SuggestedRole:   role,
 		Kind:            swag.String(kind),
 		CheckedInAt:     now,
 		StatusUpdatedAt: now,

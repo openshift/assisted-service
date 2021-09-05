@@ -66,7 +66,7 @@ var _ = Describe("Validations test", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
-		}, nil)
+		}, nil).AnyTimes()
 		mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvID, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 		err := m.RefreshStatus(ctx, h, db)
