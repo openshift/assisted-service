@@ -31,10 +31,10 @@ if [ -z "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-}" ]; then
     export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE=$(echo ${OPENSHIFT_VERSIONS} | jq -rc '[.[].release_image]|max')
 fi
 
-export ASSISTED_OPENSHIFT_VERSION="${ASSISTED_OPENSHIFT_VERSION:-openshift-v4.8.0}"
+export ASSISTED_OPENSHIFT_VERSION="${ASSISTED_OPENSHIFT_VERSION:-openshift-v4.9.0}"
 
 OPENSHIFT_VERSIONS=$(echo ${OPENSHIFT_VERSIONS} |
-    jq -rc 'with_entries(.key = "4.8") | with_entries(
+    jq -rc 'with_entries(select(.key != "4.6" and .key != "4.7")) | with_entries(
     {
         key: .key,
         value: {rhcos_image:   .value.rhcos_image,
