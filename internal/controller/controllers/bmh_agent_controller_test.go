@@ -808,6 +808,14 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(c.Get(ctx, secretKey, secret)).To(BeNil())
 				Expect(secret.Labels[WatchResourceLabel]).To(Equal(WatchResourceValue))
 			})
+
+			It("ClusterDeployment not set in Agent", func() {
+				agent.Spec.ClusterDeploymentName = nil
+				Expect(c.Update(ctx, agent)).To(BeNil())
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
 		})
 	})
 
