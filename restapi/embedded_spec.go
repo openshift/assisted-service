@@ -9476,7 +9476,8 @@ func init() {
         "api-int-domain-name-resolved-correctly",
         "apps-domain-name-resolved-correctly",
         "compatible-with-cluster-platform",
-        "dns-wildcard-not-configured"
+        "dns-wildcard-not-configured",
+        "disk-encryption-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -9945,6 +9946,14 @@ func init() {
         },
         "timestamp": {
           "type": "integer"
+        },
+        "tpm_version": {
+          "type": "string",
+          "enum": [
+            "none",
+            "1.2",
+            "2.0"
+          ]
         }
       }
     },
@@ -20396,7 +20405,8 @@ func init() {
         "api-int-domain-name-resolved-correctly",
         "apps-domain-name-resolved-correctly",
         "compatible-with-cluster-platform",
-        "dns-wildcard-not-configured"
+        "dns-wildcard-not-configured",
+        "disk-encryption-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -20867,6 +20877,14 @@ func init() {
         },
         "timestamp": {
           "type": "integer"
+        },
+        "tpm_version": {
+          "type": "string",
+          "enum": [
+            "none",
+            "1.2",
+            "2.0"
+          ]
         }
       }
     },

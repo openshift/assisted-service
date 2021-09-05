@@ -6,11 +6,13 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // Inventory inventory
@@ -53,6 +55,10 @@ type Inventory struct {
 
 	// timestamp
 	Timestamp int64 `json:"timestamp,omitempty"`
+
+	// tpm version
+	// Enum: [none 1.2 2.0]
+	TpmVersion string `json:"tpm_version,omitempty"`
 }
 
 // Validate validates this inventory
@@ -88,6 +94,10 @@ func (m *Inventory) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateSystemVendor(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTpmVersion(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -264,6 +274,52 @@ func (m *Inventory) validateSystemVendor(formats strfmt.Registry) error {
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+var inventoryTypeTpmVersionPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["none","1.2","2.0"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		inventoryTypeTpmVersionPropEnum = append(inventoryTypeTpmVersionPropEnum, v)
+	}
+}
+
+const (
+
+	// InventoryTpmVersionNone captures enum value "none"
+	InventoryTpmVersionNone string = "none"
+
+	// InventoryTpmVersionNr12 captures enum value "1.2"
+	InventoryTpmVersionNr12 string = "1.2"
+
+	// InventoryTpmVersionNr20 captures enum value "2.0"
+	InventoryTpmVersionNr20 string = "2.0"
+)
+
+// prop value enum
+func (m *Inventory) validateTpmVersionEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, inventoryTypeTpmVersionPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Inventory) validateTpmVersion(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.TpmVersion) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateTpmVersionEnum("tpm_version", "body", m.TpmVersion); err != nil {
+		return err
 	}
 
 	return nil

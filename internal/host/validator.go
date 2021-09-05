@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	reflect "reflect"
 	"strings"
 	"time"
 
@@ -337,6 +338,66 @@ func (v *validator) printCompatibleWithClusterPlatform(c *validationContext, sta
 			c.cluster.Platform.Type, *hostAvailablePlatforms)
 	case ValidationPending:
 		return "Missing inventory or platform isn't set"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func isDiskEncryptionRelevantForHost(c *validationContext) bool {
+	switch *c.cluster.DiskEncryption.EnableOn {
+	case models.DiskEncryptionEnableOnAll:
+		return true
+	case models.DiskEncryptionEnableOnMasters:
+		return c.host.Role == models.HostRoleMaster || c.host.Role == models.HostRoleBootstrap || c.host.Role == models.HostRoleAutoAssign
+	case models.DiskEncryptionEnableOnWorkers:
+		return c.host.Role == models.HostRoleWorker || c.host.Role == models.HostRoleAutoAssign
+	default: // models.DiskEncryptionEnableOnNone
+		return false
+	}
+}
+
+func isAutoAassignAllowed(c *validationContext) bool {
+	return *c.cluster.DiskEncryption.EnableOn == models.DiskEncryptionEnableOnAll ||
+		*c.cluster.DiskEncryption.EnableOn == models.DiskEncryptionEnableOnNone
+}
+
+func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) ValidationStatus {
+
+	if c.infraEnv != nil || reflect.DeepEqual(c.cluster.DiskEncryption, &models.DiskEncryption{}) || !isDiskEncryptionRelevantForHost(c) {
+		return ValidationSuccessSuppressOutput
+	}
+
+	if c.host.Role == models.HostRoleAutoAssign && !isAutoAassignAllowed(c) {
+		return ValidationFailure
+	}
+
+	if c.inventory == nil {
+		return ValidationPending
+	}
+
+	if *c.cluster.DiskEncryption.Mode != models.DiskEncryptionModeTpmv2 {
+		return ValidationSuccess
+	}
+
+	return boolValue(c.inventory.TpmVersion == models.InventoryTpmVersionNr20)
+}
+
+func (v *validator) printDiskEncryptionRequirementsSatisfied(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return fmt.Sprintf("Installation disk can be encrypted using %s", *c.cluster.DiskEncryption.Mode)
+	case ValidationFailure:
+		if c.host.Role == models.HostRoleAutoAssign && !isAutoAassignAllowed(c) {
+			return "Host role auto assignment is supported only if encryption is enabled on all nodes or disabled"
+		}
+		if c.inventory.TpmVersion == models.InventoryTpmVersionNone {
+			return "TPM version could not be found, make sure TPM is enalbed in host's BIOS"
+		} else {
+			return fmt.Sprintf("The host's TPM version is not supported, expected-version: %s, actual-version: %s",
+				models.InventoryTpmVersionNr20, c.inventory.TpmVersion)
+		}
+	case ValidationPending:
+		return "Missing host inventory"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
