@@ -28,7 +28,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		TransitionType: TransitionTypeRegisterHost,
 		SourceStates: []stateswitch.State{
 			"",
-			stateswitch.State(models.HostStatusBinding),
 		},
 		Condition:        stateswitch.Not(th.IsUnboundHost),
 		DestinationState: stateswitch.State(models.HostStatusDiscovering),
@@ -46,6 +45,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusResettingPendingUserAction),
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusPreparingSuccessful),
+			stateswitch.State(models.HostStatusBinding),
 		},
 		DestinationState: stateswitch.State(models.HostStatusDiscovering),
 		PostTransition:   th.PostRegisterHost,
