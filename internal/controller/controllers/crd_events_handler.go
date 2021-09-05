@@ -10,23 +10,19 @@ const EventsChannelSize = 200
 //go:generate mockgen -package controllers -destination mock_crd_events_handler.go . CRDEventsHandler
 type CRDEventsHandler interface {
 	NotifyClusterDeploymentUpdates(clusterDeploymentName string, clusterDeploymentNamespace string)
-	NotifyInfraEnvUpdates(infraEnvName string, infraEnvNamespace string)
 	NotifyAgentUpdates(agentName string, agentNamespace string)
-	GetInfraEnvUpdates() chan event.GenericEvent
 	GetClusterDeploymentUpdates() chan event.GenericEvent
 	GetAgentUpdates() chan event.GenericEvent
 }
 
 type CRDEventsHandlerChannels struct {
 	clusterDeploymentUpdates chan event.GenericEvent
-	infraEnvUpdates          chan event.GenericEvent
 	agentUpdates             chan event.GenericEvent
 }
 
 func NewCRDEventsHandler() CRDEventsHandler {
 	return &CRDEventsHandlerChannels{
 		clusterDeploymentUpdates: make(chan event.GenericEvent, EventsChannelSize),
-		infraEnvUpdates:          make(chan event.GenericEvent, EventsChannelSize),
 		agentUpdates:             make(chan event.GenericEvent, EventsChannelSize),
 	}
 }
@@ -48,14 +44,6 @@ func (h *CRDEventsHandlerChannels) NotifyClusterDeploymentUpdates(clusterDeploym
 
 func (h *CRDEventsHandlerChannels) NotifyAgentUpdates(agentName string, agentNamespace string) {
 	h.NotifyUpdates(h.agentUpdates, agentName, agentNamespace)
-}
-
-func (h *CRDEventsHandlerChannels) NotifyInfraEnvUpdates(infraEnvName string, infraEnvNamespace string) {
-	h.NotifyUpdates(h.infraEnvUpdates, infraEnvName, infraEnvNamespace)
-}
-
-func (h *CRDEventsHandlerChannels) GetInfraEnvUpdates() chan event.GenericEvent {
-	return h.infraEnvUpdates
 }
 
 func (h *CRDEventsHandlerChannels) GetClusterDeploymentUpdates() chan event.GenericEvent {

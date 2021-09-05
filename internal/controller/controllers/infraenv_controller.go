@@ -502,11 +502,9 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return reply
 	}
 
-	infraEnvUpdates := r.CRDEventsHandler.GetInfraEnvUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.InfraEnv{}).
 		Watches(&source.Kind{Type: &aiv1beta1.NMStateConfig{}}, handler.EnqueueRequestsFromMapFunc(mapNMStateConfigToInfraEnv)).
 		Watches(&source.Kind{Type: &hivev1.ClusterDeployment{}}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToInfraEnv)).
-		Watches(&source.Channel{Source: infraEnvUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
