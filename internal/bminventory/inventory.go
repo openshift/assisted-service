@@ -528,15 +528,17 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		TriggerMonitorTimestamp: time.Now(),
 	}
 
+	createNetworkParamsCompatibilityPropagation(params)
+
 	// TODO MGMT-7365: Deprecate single network
-	if len(params.NewClusterParams.ClusterNetworks) > 0 {
+	if common.IsSliceNonEmpty(params.NewClusterParams.ClusterNetworks) {
 		cluster.ClusterNetworkCidr = string(params.NewClusterParams.ClusterNetworks[0].Cidr)
 		cluster.ClusterNetworkHostPrefix = params.NewClusterParams.ClusterNetworks[0].HostPrefix
 	}
-	if len(params.NewClusterParams.ServiceNetworks) > 0 {
+	if common.IsSliceNonEmpty(params.NewClusterParams.ServiceNetworks) {
 		cluster.ServiceNetworkCidr = string(params.NewClusterParams.ServiceNetworks[0].Cidr)
 	}
-	if len(params.NewClusterParams.MachineNetworks) > 0 {
+	if common.IsSliceNonEmpty(params.NewClusterParams.MachineNetworks) {
 		cluster.MachineNetworkCidr = string(params.NewClusterParams.MachineNetworks[0].Cidr)
 	}
 
@@ -2187,7 +2189,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		ingressVip = *params.ClusterUpdateParams.IngressVip
 	}
 	if params.ClusterUpdateParams.MachineNetworks != nil &&
-		len(params.ClusterUpdateParams.MachineNetworks) > 0 {
+		common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) {
 		err := errors.New("Setting Machine network CIDR is forbidden when cluster is not in vip-dhcp-allocation mode")
 		log.WithError(err).Warnf("Set Machine Network CIDR")
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -2312,6 +2314,9 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 
 	b.updatePlatformSources(params, updates, usages)
 
+	if err = updateNetworkParamsCompatiblityPropagation(params, cluster); err != nil {
+		return err
+	}
 	if err = b.updateNetworkParams(params, cluster, updates, usages, db, log, interactivity); err != nil {
 		return err
 	}
@@ -2384,7 +2389,7 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.Update
 		cluster.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
 
 		// TODO MGMT-7365: Deprecate single network
-		if len(params.ClusterUpdateParams.ClusterNetworks) > 0 {
+		if common.IsSliceNonEmpty(params.ClusterUpdateParams.ClusterNetworks) {
 			updates["cluster_network_cidr"] = string(params.ClusterUpdateParams.ClusterNetworks[0].Cidr)
 			updates["cluster_network_host_prefix"] = params.ClusterUpdateParams.ClusterNetworks[0].HostPrefix
 		} else {
@@ -2402,7 +2407,7 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.Update
 		cluster.ServiceNetworks = params.ClusterUpdateParams.ServiceNetworks
 
 		// TODO MGMT-7365: Deprecate single network
-		if len(params.ClusterUpdateParams.ServiceNetworks) > 0 {
+		if common.IsSliceNonEmpty(params.ClusterUpdateParams.ServiceNetworks) {
 			updates["service_network_cidr"] = string(params.ClusterUpdateParams.ServiceNetworks[0].Cidr)
 		} else {
 			updates["service_network_cidr"] = ""
@@ -2410,24 +2415,23 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.Update
 	}
 
 	if params.ClusterUpdateParams.MachineNetworks != nil {
+		for _, machineNetwork := range params.ClusterUpdateParams.MachineNetworks {
+			if err = network.VerifyMachineCIDR(string(machineNetwork.Cidr)); err != nil {
+				return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Machine network CIDR %s", string(machineNetwork.Cidr)))
+			}
+		}
 		cluster.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
 
 		// TODO MGMT-7365: Deprecate single network
-		if len(params.ClusterUpdateParams.MachineNetworks) > 0 {
+		if common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) {
 			updates["machine_network_cidr"] = string(params.ClusterUpdateParams.MachineNetworks[0].Cidr)
 		} else {
 			updates["machine_network_cidr"] = ""
 		}
 	}
 
-	for index := range cluster.MachineNetworks {
-		if string(cluster.MachineNetworks[index].Cidr) != "" {
-			if err = network.VerifyMachineCIDR(string(cluster.MachineNetworks[index].Cidr)); err != nil {
-				return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Machine network CIDR %s", string(cluster.MachineNetworks[index].Cidr)))
-			}
-		}
-
-		if err = validations.ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation, string(cluster.MachineNetworks[index].Cidr)); err != nil {
+	if common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) {
+		if err = validations.ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation, string(cluster.MachineNetworks[0].Cidr)); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -2442,9 +2446,14 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.Update
 				machineNetworkCidr = string(cluster.MachineNetworks[index].Cidr)
 			}
 
+			serviceNetworkCidr := ""
+			if len(cluster.ServiceNetworks) > index {
+				serviceNetworkCidr = string(cluster.ServiceNetworks[index].Cidr)
+			}
+
 			if err = network.VerifyClusterCIDRsNotOverlap(machineNetworkCidr,
 				string(cluster.ClusterNetworks[index].Cidr),
-				string(cluster.ServiceNetworks[index].Cidr),
+				serviceNetworkCidr,
 				userManagedNetworking); err != nil {
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
@@ -2496,6 +2505,100 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 			err = errors.Wrapf(err, "failed to update machine network %v of cluster %s", *machineNetwork, params.ClusterID)
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
+	}
+
+	return nil
+}
+
+// createNetworkParamsCompatibilityPropagation is a backwards compatibility adapter adding ability
+// to configure clutster networking using the following structures
+//
+//   * MachineNetworkCidr
+//   * ClusterNetworkCidr
+//   * ClusterNetworkHostPrefix
+//   * ServiceNetworkCidr
+//
+// Please note those will take precedence over the more complex introduced as part of dual-stack
+// and multi-network support, i.e.
+//
+//   * MachineNetworks
+//   * ClusterNetworks
+//   * ServiceNetworks
+func createNetworkParamsCompatibilityPropagation(params installer.RegisterClusterParams) {
+	if params.NewClusterParams.ServiceNetworkCidr != nil {
+		serviceNetwork := []*models.ServiceNetwork{}
+		if *params.NewClusterParams.ServiceNetworkCidr != "" {
+			serviceNetwork = []*models.ServiceNetwork{{
+				Cidr: models.Subnet(swag.StringValue(params.NewClusterParams.ServiceNetworkCidr)),
+			}}
+		}
+		params.NewClusterParams.ServiceNetworks = serviceNetwork
+	}
+
+	if params.NewClusterParams.ClusterNetworkCidr != nil || params.NewClusterParams.ClusterNetworkHostPrefix != 0 {
+		net := []*models.ClusterNetwork{}
+		var netCidr models.Subnet
+		var netHostPrefix int64
+
+		if params.NewClusterParams.ClusterNetworkCidr != nil {
+			netCidr = models.Subnet(*params.NewClusterParams.ClusterNetworkCidr)
+		}
+		if params.NewClusterParams.ClusterNetworkHostPrefix != 0 {
+			netHostPrefix = params.NewClusterParams.ClusterNetworkHostPrefix
+		}
+		if netCidr != "" || netHostPrefix != 0 {
+			net = []*models.ClusterNetwork{{Cidr: netCidr, HostPrefix: netHostPrefix}}
+		}
+
+		params.NewClusterParams.ClusterNetworks = net
+	}
+}
+
+// updateNetworkParamsCompatiblityPropagation is an adapter equivalent to the one above, i.e.
+// createNetworkParamsCompatibilityPropagation but responsible for handling cluster updates. It
+// exists as a separate function because creation and update of the cluster use different data
+// structures, i.e. installer.V2RegisterClusterParams and installer.UpdateClusterParams
+func updateNetworkParamsCompatiblityPropagation(params installer.UpdateClusterParams, cluster *common.Cluster) error {
+	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
+		serviceNetwork := []*models.ServiceNetwork{}
+		if *params.ClusterUpdateParams.ServiceNetworkCidr != "" {
+			serviceNetwork = []*models.ServiceNetwork{{
+				Cidr: models.Subnet(swag.StringValue(params.ClusterUpdateParams.ServiceNetworkCidr)),
+			}}
+		}
+		params.ClusterUpdateParams.ServiceNetworks = serviceNetwork
+	}
+	if params.ClusterUpdateParams.MachineNetworkCidr != nil {
+		machineNetwork := []*models.MachineNetwork{}
+		if *params.ClusterUpdateParams.MachineNetworkCidr != "" {
+			machineNetwork = []*models.MachineNetwork{{
+				Cidr: models.Subnet(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)),
+			}}
+		}
+		params.ClusterUpdateParams.MachineNetworks = machineNetwork
+	}
+
+	if params.ClusterUpdateParams.ClusterNetworkCidr != nil || params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
+		clusterNetwork := []*models.ClusterNetwork{}
+		var netCidr models.Subnet
+		var netHostPrefix int64
+
+		if cluster.ClusterNetworks[0] != nil {
+			netCidr = cluster.ClusterNetworks[0].Cidr
+			netHostPrefix = cluster.ClusterNetworks[0].HostPrefix
+		}
+
+		if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
+			netCidr = models.Subnet(*params.ClusterUpdateParams.ClusterNetworkCidr)
+		}
+		if params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
+			netHostPrefix = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
+		}
+		if netCidr != "" || netHostPrefix != 0 {
+			clusterNetwork = []*models.ClusterNetwork{{Cidr: netCidr, HostPrefix: netHostPrefix}}
+		}
+
+		params.ClusterUpdateParams.ClusterNetworks = clusterNetwork
 	}
 
 	return nil
@@ -2620,7 +2723,7 @@ func validateUserManagedNetworkConflicts(params *models.ClusterUpdateParams, sin
 		log.WithError(err)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if params.MachineNetworks != nil && len(params.MachineNetworks) > 0 && !singleNodeCluster {
+	if common.IsSliceNonEmpty(params.MachineNetworks) && !singleNodeCluster {
 		err := errors.Errorf("Machine Network CIDR cannot be set with User Managed Networking")
 		log.WithError(err)
 		return common.NewApiError(http.StatusBadRequest, err)
