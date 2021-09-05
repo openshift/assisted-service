@@ -19,4 +19,12 @@ Migrations are run at startup right after the automigration is run.
 - A new migration scaffold can be created using `MIGRATION_NAME=someMigrationNameHere make generate-migration`
     - This will give the migration files a proper timestamp as well as (empty) tests
 
-To be run, every migration function should be added to the list in `migrations.all()`
+To be run, every migration function should be added to the list in `postMigrations`
+
+### Pre-migrations
+
+We currently have a single migration in `preMigrations`, i.e. running before `AutoMigrate` step that is responsible for synchronizing the database schema.
+
+It is a bad decision, but given that it has already been rolled out, it would be extremely difficult to move it again to `postMigrations` with the guarantee that no deployment is going to break or end up in a state that is difficult to recover.
+
+When developing a new migration, `preMigrations` must not be used.
