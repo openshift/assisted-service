@@ -6319,11 +6319,6 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind": {
       "post": {
-        "security": [
-          {
-            "agentAuth": []
-          }
-        ],
         "description": "Bind host to a cluster",
         "tags": [
           "installer"
@@ -6625,11 +6620,6 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind": {
       "post": {
-        "security": [
-          {
-            "agentAuth": []
-          }
-        ],
         "description": "Unbind host to a cluster",
         "tags": [
           "installer"
@@ -17171,11 +17161,6 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind": {
       "post": {
-        "security": [
-          {
-            "agentAuth": []
-          }
-        ],
         "description": "Bind host to a cluster",
         "tags": [
           "installer"
@@ -17477,11 +17462,6 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind": {
       "post": {
-        "security": [
-          {
-            "agentAuth": []
-          }
-        ],
         "description": "Unbind host to a cluster",
         "tags": [
           "installer"
