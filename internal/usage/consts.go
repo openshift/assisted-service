@@ -15,8 +15,10 @@ const (
 	VipDhcpAllocationUsage string = "VIP auto alloc."
 	//usage of disk selection
 	DiskSelectionUsage string = "Disk Selection"
-	//user networkType selection
-	NetworkTypeSelectionUsage string = "NetworkType"
+	//cluster is using OVN network type
+	OVNNetworkTypeUsage string = "OVN network type"
+	//cluster is using SDN network type
+	SDNNetworkTypeUsage string = "SDN network type"
 	//usage of platform provider other than baremetal
 	PlatformSelectionUsage string = "Platform selection"
 	//usage of schedulable masters
