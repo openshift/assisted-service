@@ -87,6 +87,18 @@ func registerHostByUUID(infraEnvID, hostID strfmt.UUID) *models.HostRegistration
 	return host.GetPayload()
 }
 
+func bindHost(infraEnvID, hostID, clusterID strfmt.UUID) *models.Host {
+	host, err := userBMClient.Installer.BindHost(context.Background(), &installer.BindHostParams{
+		HostID:     hostID,
+		InfraEnvID: infraEnvID,
+		BindHostParams: &models.BindHostParams{
+			ClusterID: &clusterID,
+		},
+	})
+	Expect(err).NotTo(HaveOccurred())
+	return host.GetPayload()
+}
+
 func getHost(clusterID, hostID strfmt.UUID) *models.Host {
 	host, err := userBMClient.Installer.GetHost(context.Background(), &installer.GetHostParams{
 		ClusterID: clusterID,
@@ -162,9 +174,9 @@ func getStepInList(steps models.Steps, sType models.StepType) (*models.Step, boo
 	return nil, false
 }
 
-func getNextSteps(clusterID, hostID strfmt.UUID) models.Steps {
+func getNextSteps(infraEnvID, hostID strfmt.UUID) models.Steps {
 	steps, err := agentBMClient.Installer.V2GetNextSteps(context.Background(), &installer.V2GetNextStepsParams{
-		InfraEnvID: clusterID,
+		InfraEnvID: infraEnvID,
 		HostID:     hostID,
 	})
 	Expect(err).NotTo(HaveOccurred())

@@ -3980,8 +3980,6 @@ paths:
     post:
       tags:
         - installer
-      security:
-        - agentAuth: [ ]
       description: Bind host to a cluster
       operationId: BindHost
       parameters:
@@ -4045,8 +4043,6 @@ paths:
     post:
       tags:
         - installer
-      security:
-        - agentAuth: [ ]
       description: Unbind host to a cluster
       operationId: UnbindHost
       parameters:

@@ -142,6 +142,9 @@ var _ = Describe("instruction_manager", func() {
 					models.StepTypeResetInstallation,
 				})
 			})
+			It("binding", func() {
+				checkStep(models.HostStatusBinding, nil)
+			})
 		})
 	})
 
@@ -173,6 +176,9 @@ var _ = Describe("instruction_manager", func() {
 					models.StepTypeDhcpLeaseAllocate, models.StepTypeInventory,
 					models.StepTypeNtpSynchronizer, models.StepTypeDomainResolution,
 				})
+			})
+			It("binding", func() {
+				checkStep(models.HostStatusBinding, nil)
 			})
 			It("disconnected", func() {
 				checkStep(models.HostStatusDisconnected, []models.StepType{
@@ -223,8 +229,6 @@ var _ = Describe("instruction_manager", func() {
 
 	Context("Unbound host steps", func() {
 		BeforeEach(func() {
-			//host_updates := map[string]interface{}{}
-			//host_updates["cluster_id"] = nil
 			Expect(db.Model(&common.Host{}).Select("cluster_id").Updates(map[string]interface{}{"cluster_id": nil}).Error).ShouldNot(HaveOccurred())
 		})
 
@@ -250,10 +254,6 @@ var _ = Describe("instruction_manager", func() {
 			checkStep(models.HostStatusKnownUnbound, []models.StepType{
 				models.StepTypeInventory,
 			})
-		})
-
-		It("binding", func() {
-			checkStep(models.HostStatusBinding, nil)
 		})
 
 		It("unbinding", func() {
