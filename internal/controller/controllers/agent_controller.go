@@ -154,13 +154,6 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 
 		// Retrieve clusterDeployment
 		if err = r.Get(ctx, kubeKey, clusterDeployment); err != nil {
-			if k8serrors.IsNotFound(err) {
-				// Delete the agent, using a finalizer with pre-delete to deregister the host.
-				log.Infof("Cluster Deployment name: %s namespace: %s not found, deleting Agent",
-					agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
-				return r.deleteAgent(ctx, log, req.NamespacedName)
-			}
-
 			errMsg := fmt.Sprintf("failed to get clusterDeployment with name %s in namespace %s",
 				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 			log.WithError(err).Error(errMsg)
@@ -174,14 +167,10 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 			// Retrieve cluster by ClusterDeploymentName from the database
 			cluster, err2 := r.Installer.GetClusterByKubeKey(kubeKey)
 			if err2 != nil {
-				if errors.Is(err2, gorm.ErrRecordNotFound) {
-					// Delete the agent, using a finalizer with pre-delete to deregister the host.
-					log.Infof("Cluster name: %s namespace: %s not found in backend, deleting Agent",
-						agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
-					return r.deleteAgent(ctx, log, req.NamespacedName)
-				}
+				log.WithError(err2).Errorf("Fail to get cluster name: %s namespace: %s in backend",
+					agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 				// Update that we failed to retrieve the cluster from the database
-				return r.updateStatus(ctx, log, agent, nil, nil, err2, !errors.Is(err2, gorm.ErrRecordNotFound))
+				return r.updateStatus(ctx, log, agent, nil, nil, err2, true)
 			}
 
 			host, err2 := r.Installer.BindHostInternal(ctx, installer.BindHostParams{

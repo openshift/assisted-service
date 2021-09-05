@@ -1765,6 +1765,74 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(infraEnv.Generated).Should(Equal(true))
 	})
 
+	It("Bind Agent to not existing ClusterDeployment", func() {
+		defer func() {
+			Expect(kubeClient.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+		}()
+		By("Deploy InfraEnv without cluster reference")
+		infraEnvSpec.ClusterRef = nil
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		infraEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+
+		By("Verify ISO URL is populated")
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
+		}, "15s", "5s").Should(Not(BeEmpty()))
+
+		By("Verify infraEnv has no reference to CD")
+		infraEnvCr := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName)
+		Expect(infraEnvCr.Spec.ClusterRef).To(BeNil())
+
+		By("Register Agent to InfraEnv")
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		host := &registerHost(infraEnv.ID).Host
+		hwInfo := validHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
+		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+
+		By("Verify agent is not bind")
+		hostKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, hostKey)
+			return agent.Spec.ClusterDeploymentName == nil
+		}, "30s", "10s").Should(BeTrue())
+
+		By("Wait for Agent to be Known Unbound")
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, hostKey)
+			return agent.Status.DebugInfo.State == models.HostStatusKnownUnbound
+		}, "1m", "10s").Should(BeTrue())
+
+		By("Bind Agent to invalid CD")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, hostKey)
+			agent.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{
+				Namespace: Options.Namespace,
+				Name:      "ghostcd",
+			}
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, hostKey)
+			return agent.Spec.ClusterDeploymentName != nil
+		}, "30s", "1s").Should(BeTrue())
+
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.SpecSyncedCondition, v1beta1.InputErrorReason)
+	})
+
 	It("deploy clusterDeployment and infraEnv and with an invalid NMState config YAML", func() {
 		var (
 			NMStateLabelName  = "someName"
