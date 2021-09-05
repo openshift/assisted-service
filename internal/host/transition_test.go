@@ -521,6 +521,13 @@ var _ = Describe("RegisterHost", func() {
 				newHost:     false,
 				eventRaised: false,
 			},
+			{
+				name:        "unbinding to discovering-unbound",
+				srcState:    models.HostStatusUnbinding,
+				dstState:    models.HostStatusDiscoveringUnbound,
+				newHost:     false,
+				eventRaised: true,
+			},
 		}
 		for i := range tests {
 			t := tests[i]
