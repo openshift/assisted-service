@@ -76,6 +76,16 @@ const (
 	BackendErrorMsg    string = "The Spec could not be synced due to backend error:"
 	InputErrorReason   string = "InputError"
 	InputErrorMsg      string = "The Spec could not be synced due to an input error:"
+
+	BoundCondition  conditionsv1.ConditionType = "Bound"
+	BoundReason     string                     = "Bound"
+	BoundMsg        string                     = "The agent is bound to a cluster deployment"
+	UnboundReason   string                     = "Unbound"
+	UnboundMsg      string                     = "The agent is not bound to any cluster deployment"
+	BindingReason   string                     = "Binding"
+	BindingMsg      string                     = "The agent is currently binding to a cluster deployment"
+	UnbindingReason string                     = "Unbinding"
+	UnbindingMsg    string                     = "The agent is currently unbinding from a cluster deployment"
 )
 
 type HostMemory struct {

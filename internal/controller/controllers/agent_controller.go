@@ -305,6 +305,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		requirementsMet(agent, status)
 		validated(agent, status, h)
 		installed(agent, status, swag.StringValue(h.StatusInfo))
+		bound(agent, status, h)
 	} else {
 		setConditionsUnknown(agent)
 	}
@@ -366,6 +367,12 @@ func setConditionsUnknown(agent *aiv1beta1.Agent) {
 	})
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ValidatedCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  aiv1beta1.NotAvailableReason,
+		Message: aiv1beta1.NotAvailableMsg,
+	})
+	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.BoundCondition,
 		Status:  corev1.ConditionUnknown,
 		Reason:  aiv1beta1.NotAvailableReason,
 		Message: aiv1beta1.NotAvailableMsg,
@@ -468,6 +475,14 @@ func installed(agent *aiv1beta1.Agent, status, statusInfo string) {
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.InstallationInProgressReason
 		msg = fmt.Sprintf("%s %s", aiv1beta1.InstallationInProgressMsg, statusInfo)
+	case models.HostStatusBinding:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.BindingReason
+		msg = aiv1beta1.BindingMsg
+	case models.HostStatusUnbinding:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.UnbindingReason
+		msg = aiv1beta1.UnbindingMsg
 	default:
 		condStatus = corev1.ConditionUnknown
 		reason = aiv1beta1.UnknownStatusReason
@@ -499,6 +514,14 @@ func validated(agent *aiv1beta1.Agent, status string, h *models.Host) {
 	var reason string
 	var msg string
 	switch {
+	case models.HostStatusBinding == status:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.BindingReason
+		msg = aiv1beta1.BindingMsg
+	case models.HostStatusUnbinding == status:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.UnbindingReason
+		msg = aiv1beta1.UnbindingMsg
 	case models.HostStatusInsufficient == status || models.HostStatusInsufficientUnbound == status:
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.ValidationsFailingReason
@@ -577,6 +600,14 @@ func requirementsMet(agent *aiv1beta1.Agent, status string) {
 		condStatus = corev1.ConditionTrue
 		reason = aiv1beta1.AgentInstallationStoppedReason
 		msg = aiv1beta1.AgentInstallationStoppedMsg
+	case models.HostStatusBinding:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.BindingReason
+		msg = aiv1beta1.BindingMsg
+	case models.HostStatusUnbinding:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.UnbindingReason
+		msg = aiv1beta1.UnbindingMsg
 	default:
 		condStatus = corev1.ConditionUnknown
 		reason = aiv1beta1.UnknownStatusReason
@@ -584,6 +615,37 @@ func requirementsMet(agent *aiv1beta1.Agent, status string) {
 	}
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.RequirementsMetCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func bound(agent *aiv1beta1.Agent, status string, h *models.Host) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	switch status {
+	case models.HostStatusBinding:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.BindingReason
+		msg = aiv1beta1.BindingMsg
+	case models.HostStatusUnbinding:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.UnbindingReason
+		msg = aiv1beta1.UnbindingMsg
+	case models.HostStatusDisconnectedUnbound, models.HostStatusKnownUnbound, models.HostStatusInsufficientUnbound,
+		models.HostStatusDisabledUnbound, models.HostStatusDiscoveringUnbound:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.UnboundReason
+		msg = aiv1beta1.UnboundMsg
+	default:
+		condStatus = corev1.ConditionTrue
+		reason = aiv1beta1.BoundReason
+		msg = aiv1beta1.BoundMsg
+	}
+	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.BoundCondition,
 		Status:  condStatus,
 		Reason:  reason,
 		Message: msg,

@@ -953,6 +953,12 @@ var _ = Describe("TestConditions", func() {
 					Reason:  v1beta1.ValidationsUserPendingReason,
 					Status:  corev1.ConditionFalse,
 				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.BoundMsg,
+					Reason:  v1beta1.BoundReason,
+					Status:  corev1.ConditionTrue,
+				},
 			},
 		},
 		{
@@ -984,6 +990,12 @@ var _ = Describe("TestConditions", func() {
 					Message: v1beta1.AgentValidationsFailingMsg + " Host check1 is not OK,Host check3 is not OK",
 					Reason:  v1beta1.ValidationsFailingReason,
 					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.BoundMsg,
+					Reason:  v1beta1.BoundReason,
+					Status:  corev1.ConditionTrue,
 				},
 			},
 		},
@@ -1017,6 +1029,12 @@ var _ = Describe("TestConditions", func() {
 					Reason:  v1beta1.ValidationsFailingReason,
 					Status:  corev1.ConditionFalse,
 				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.UnboundMsg,
+					Reason:  v1beta1.UnboundReason,
+					Status:  corev1.ConditionFalse,
+				},
 			},
 		},
 		{
@@ -1048,6 +1066,12 @@ var _ = Describe("TestConditions", func() {
 					Type:    v1beta1.ValidatedCondition,
 					Message: v1beta1.AgentValidationsPassingMsg,
 					Reason:  v1beta1.ValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.BoundMsg,
+					Reason:  v1beta1.BoundReason,
 					Status:  corev1.ConditionTrue,
 				},
 			},
@@ -1083,6 +1107,12 @@ var _ = Describe("TestConditions", func() {
 					Reason:  v1beta1.ValidationsPassingReason,
 					Status:  corev1.ConditionTrue,
 				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.UnboundMsg,
+					Reason:  v1beta1.UnboundReason,
+					Status:  corev1.ConditionFalse,
+				},
 			},
 		},
 		{
@@ -1114,6 +1144,12 @@ var _ = Describe("TestConditions", func() {
 					Type:    v1beta1.ValidatedCondition,
 					Message: v1beta1.AgentValidationsPassingMsg,
 					Reason:  v1beta1.ValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.BoundMsg,
+					Reason:  v1beta1.BoundReason,
 					Status:  corev1.ConditionTrue,
 				},
 			},
@@ -1148,6 +1184,12 @@ var _ = Describe("TestConditions", func() {
 					Reason:  v1beta1.ValidationsPassingReason,
 					Status:  corev1.ConditionTrue,
 				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.BoundMsg,
+					Reason:  v1beta1.BoundReason,
+					Status:  corev1.ConditionTrue,
+				},
 			},
 		},
 		{
@@ -1178,6 +1220,12 @@ var _ = Describe("TestConditions", func() {
 					Type:    v1beta1.ValidatedCondition,
 					Message: v1beta1.AgentValidationsPassingMsg,
 					Reason:  v1beta1.ValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.BoundMsg,
+					Reason:  v1beta1.BoundReason,
 					Status:  corev1.ConditionTrue,
 				},
 			},
@@ -1212,6 +1260,12 @@ var _ = Describe("TestConditions", func() {
 					Reason:  v1beta1.ValidationsPassingReason,
 					Status:  corev1.ConditionTrue,
 				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.BoundMsg,
+					Reason:  v1beta1.BoundReason,
+					Status:  corev1.ConditionTrue,
+				},
 			},
 		},
 		{
@@ -1242,6 +1296,12 @@ var _ = Describe("TestConditions", func() {
 					Type:    v1beta1.ValidatedCondition,
 					Message: v1beta1.AgentValidationsPassingMsg,
 					Reason:  v1beta1.ValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.BoundMsg,
+					Reason:  v1beta1.BoundReason,
 					Status:  corev1.ConditionTrue,
 				},
 			},
@@ -1276,6 +1336,12 @@ var _ = Describe("TestConditions", func() {
 					Reason:  v1beta1.ValidationsPassingReason,
 					Status:  corev1.ConditionTrue,
 				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.UnboundMsg,
+					Reason:  v1beta1.UnboundReason,
+					Status:  corev1.ConditionFalse,
+				},
 			},
 		},
 		{
@@ -1307,6 +1373,88 @@ var _ = Describe("TestConditions", func() {
 					Message: v1beta1.AgentValidationsPassingMsg,
 					Reason:  v1beta1.ValidationsPassingReason,
 					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.BoundMsg,
+					Reason:  v1beta1.BoundReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+		{
+			name:           "Binding",
+			hostStatus:     models.HostStatusBinding,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.RequirementsMetCondition,
+					Message: v1beta1.BindingMsg,
+					Reason:  v1beta1.BindingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.BindingMsg,
+					Reason:  v1beta1.BindingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.BindingMsg,
+					Reason:  v1beta1.BindingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.BindingMsg,
+					Reason:  v1beta1.BindingReason,
+					Status:  corev1.ConditionFalse,
+				},
+			},
+		},
+		{
+			name:           "Unbinding",
+			hostStatus:     models.HostStatusUnbinding,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.RequirementsMetCondition,
+					Message: v1beta1.UnbindingMsg,
+					Reason:  v1beta1.UnbindingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.UnbindingMsg,
+					Reason:  v1beta1.UnbindingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.UnbindingMsg,
+					Reason:  v1beta1.UnbindingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.UnbindingMsg,
+					Reason:  v1beta1.UnbindingReason,
+					Status:  corev1.ConditionFalse,
 				},
 			},
 		},
@@ -1340,10 +1488,15 @@ var _ = Describe("TestConditions", func() {
 					Reason:  v1beta1.ValidationsPassingReason,
 					Status:  corev1.ConditionTrue,
 				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.UnboundMsg,
+					Reason:  v1beta1.UnboundReason,
+					Status:  corev1.ConditionFalse,
+				},
 			},
 		},
 	}
-
 	for i := range tests {
 		t := tests[i]
 		It(t.name, func() {

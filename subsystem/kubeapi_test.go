@@ -916,6 +916,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Spec.ClusterDeploymentName == nil
 		}, "30s", "10s").Should(BeTrue())
+
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.BoundCondition, v1beta1.UnboundReason)
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {
