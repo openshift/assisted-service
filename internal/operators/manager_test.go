@@ -13,12 +13,12 @@ import (
 	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
-	"github.com/openshift/assisted-service/mocks"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -34,7 +34,7 @@ var (
 	log          = logrus.New()
 	manager      *operators.Manager
 	ctrl         *gomock.Controller
-	manifestsAPI *mocks.MockManifestsAPI
+	manifestsAPI *manifestsapi.MockManifestsAPI
 	mockS3Api    *s3wrapper.MockAPI
 )
 
@@ -57,7 +57,7 @@ var _ = BeforeEach(func() {
 	clusterHost = &models.Host{Inventory: b, Role: models.HostRoleMaster, InstallationDiskID: common.TestDiskId}
 
 	ctrl = gomock.NewController(GinkgoT())
-	manifestsAPI = mocks.NewMockManifestsAPI(ctrl)
+	manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 	mockS3Api = s3wrapper.NewMockAPI(ctrl)
 	manager = operators.NewManager(log, manifestsAPI, operators.Options{}, mockS3Api, nil)
 })

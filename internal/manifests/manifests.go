@@ -16,11 +16,12 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
+	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -28,24 +29,18 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var _ restapi.ManifestsAPI = &Manifests{}
+var _ manifestsapi.ManifestsAPI = &Manifests{}
 
 // ManifestFolder represents the manifests folder on s3 per cluster
 const ManifestFolder = "manifests"
 
-//go:generate mockgen -package manifests -destination mock_manifests_internal.go . ClusterManifestsInternals
-type ClusterManifestsInternals interface {
-	CreateClusterManifestInternal(ctx context.Context, params operations.CreateClusterManifestParams) (*models.Manifest, error)
-	ListClusterManifestsInternal(ctx context.Context, params operations.ListClusterManifestsParams) (models.ListManifests, error)
-	DeleteClusterManifestInternal(ctx context.Context, params operations.DeleteClusterManifestParams) error
-}
-
 // NewManifestsAPI returns manifests API
-func NewManifestsAPI(db *gorm.DB, log logrus.FieldLogger, objectHandler s3wrapper.API) *Manifests {
+func NewManifestsAPI(db *gorm.DB, log logrus.FieldLogger, objectHandler s3wrapper.API, usageAPI usage.API) *Manifests {
 	return &Manifests{
 		db:            db,
 		log:           log,
 		objectHandler: objectHandler,
+		usageAPI:      usageAPI,
 	}
 }
 
@@ -54,12 +49,19 @@ type Manifests struct {
 	db            *gorm.DB
 	log           logrus.FieldLogger
 	objectHandler s3wrapper.API
+	usageAPI      usage.API
 }
 
 func (m *Manifests) CreateClusterManifest(ctx context.Context, params operations.CreateClusterManifestParams) middleware.Responder {
+	log := logutil.FromContext(ctx, m.log)
 	manifest, err := m.CreateClusterManifestInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
+	}
+	err = m.setUsage(true, manifest, params.ClusterID)
+	if err != nil {
+		// We don't want to return the error - the requested manifest was set successfully,  setting the feature usage failed.
+		log.Infof("Failed to set feature usage '%s' Error: %v. Manifest %v created by user successfully.", usage.CustomManifest, err, manifest)
 	}
 	return operations.NewCreateClusterManifestCreated().WithPayload(manifest)
 }
@@ -238,6 +240,34 @@ func (m *Manifests) DownloadClusterManifest(ctx context.Context, params operatio
 	}
 
 	return filemiddleware.NewResponder(operations.NewDownloadClusterManifestOK().WithPayload(respBody), params.FileName, contentLength)
+}
+
+func (m *Manifests) setUsage(active bool, manifest *models.Manifest, clusterID strfmt.UUID) error {
+	err := m.db.Transaction(func(tx *gorm.DB) error {
+		cluster, err := common.GetClusterFromDB(tx, clusterID, common.SkipEagerLoading)
+		if err != nil {
+			return err
+		}
+		if usages, uerr := usage.Unmarshal(cluster.Cluster.FeatureUsage); uerr == nil {
+			// Since the usage API upserts prev usage keys - we need to concat data if exists.
+			data := make(map[string]interface{})
+			if feature, ok := usages[usage.CustomManifest]; ok {
+				data = feature.Data
+			}
+			if active {
+				data[manifest.FileName] = fmt.Sprintf("%s/%s", manifest.Folder, manifest.FileName)
+				m.usageAPI.Add(usages, usage.CustomManifest, &data)
+			} else {
+				delete(data, manifest.FileName)
+				if len(data) == 0 {
+					m.usageAPI.Remove(usages, usage.CustomManifest)
+				}
+			}
+			m.usageAPI.Save(tx, *cluster.ID, usages)
+		}
+		return nil
+	})
+	return err
 }
 
 // GetManifestObjectName returns the manifest object name as stored in S3

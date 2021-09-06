@@ -25,4 +25,6 @@ const (
 	SchedulableMasters string = "Schedulable masters"
 	//usage of auto assign role
 	AutoAssignRoleUsage string = "auto assign role"
+	// usage of a custom manifest
+	CustomManifest string = "Custom manifest"
 )

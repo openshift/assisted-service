@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"fmt"
 	"html/template"
 
 	"github.com/go-openapi/strfmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/client/manifests"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -78,6 +80,9 @@ spec:
 			})
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(*response.Payload).Should(Equal(manifestFile))
+			verifyUsage(true, *cluster.ID, map[string]interface{}{
+				manifestFile.FileName: fmt.Sprintf("%s/%s", manifestFile.Folder, manifestFile.FileName),
+			})
 		})
 
 		By("List files after upload", func() {
@@ -172,6 +177,9 @@ spec:
 				}
 			}
 			Expect(found).To(BeTrue())
+			verifyUsage(true, clusterID, map[string]interface{}{
+				manifestFile.FileName: fmt.Sprintf("%s/%s", manifestFile.Folder, manifestFile.FileName),
+			})
 		})
 	})
 })
@@ -479,3 +487,14 @@ spec:
 		}
 	})
 })
+
+func verifyUsage(set bool, clusterID strfmt.UUID, data map[string]interface{}) {
+	getReply, err := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(clusterID))
+	Expect(err).ToNot(HaveOccurred())
+	c := &common.Cluster{Cluster: *getReply.Payload}
+	if set {
+		verifyUsageSet(c.FeatureUsage, models.Usage{Name: usage.CustomManifest, Data: data})
+	} else {
+		verifyUsageNotSet(c.FeatureUsage, usage.CustomManifest)
+	}
+}

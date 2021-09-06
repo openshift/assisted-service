@@ -11,8 +11,8 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -34,11 +34,11 @@ type Config struct {
 }
 
 type ManifestsGenerator struct {
-	manifestsApi restapi.ManifestsAPI
+	manifestsApi manifestsapi.ManifestsAPI
 	Config       Config
 }
 
-func NewManifestsGenerator(manifestsApi restapi.ManifestsAPI, config Config) *ManifestsGenerator {
+func NewManifestsGenerator(manifestsApi manifestsapi.ManifestsAPI, config Config) *ManifestsGenerator {
 	return &ManifestsGenerator{
 		manifestsApi: manifestsApi,
 		Config:       config,
@@ -314,7 +314,7 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 
 		tangServers, err := common.UnmarshalTangServers(c.DiskEncryption.TangServers)
 		if err != nil {
-			log.WithError(err).Error("faild to unmarshal tang_server from cluster object")
+			log.WithError(err).Error("failed to unmarshal tang_server from cluster object")
 			return err
 		}
 
@@ -356,7 +356,7 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 
 func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte) error {
 	// all relevant logs of creating manifest will be inside CreateClusterManifest
-	response := m.manifestsApi.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+	_, err := m.manifestsApi.CreateClusterManifestInternal(ctx, operations.CreateClusterManifestParams{
 		ClusterID: *cluster.ID,
 		CreateManifestParams: &models.CreateManifestParams{
 			Content:  swag.String(base64.StdEncoding.EncodeToString(content)),
@@ -365,12 +365,10 @@ func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *commo
 		},
 	})
 
-	if _, ok := response.(*operations.CreateClusterManifestCreated); !ok {
-		if apiErr, ok := response.(*common.ApiErrorResponse); ok {
-			return errors.Wrapf(apiErr, "Failed to create manifest %s", filename)
-		}
+	if err != nil {
 		return errors.Errorf("Failed to create manifest %s", filename)
 	}
+
 	return nil
 }
 

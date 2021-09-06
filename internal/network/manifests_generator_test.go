@@ -14,9 +14,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/mocks"
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/models"
-	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -116,7 +115,7 @@ var _ = Describe("chrony manifest", func() {
 			ctx          = context.Background()
 			log          *logrus.Logger
 			ctrl         *gomock.Controller
-			manifestsApi *mocks.MockManifestsAPI
+			manifestsApi *manifestsapi.MockManifestsAPI
 			ntpUtils     ManifestsGeneratorAPI
 			db           *gorm.DB
 			dbName       string
@@ -127,7 +126,7 @@ var _ = Describe("chrony manifest", func() {
 		BeforeEach(func() {
 			log = logrus.New()
 			ctrl = gomock.NewController(GinkgoT())
-			manifestsApi = mocks.NewMockManifestsAPI(ctrl)
+			manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
 			ntpUtils = NewManifestsGenerator(manifestsApi, Config{})
 			db, dbName = common.PrepareTestDB()
 			clusterId = strfmt.UUID(uuid.New().String())
@@ -146,6 +145,7 @@ var _ = Describe("chrony manifest", func() {
 				},
 			}
 			Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
+			manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
 		})
 
 		AfterEach(func() {
@@ -154,12 +154,21 @@ var _ = Describe("chrony manifest", func() {
 		})
 
 		It("CreateClusterManifest success", func() {
-			manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(2)
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+				FileName: "50-masters-chrony-configuration.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil).Times(1)
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+				FileName: "50-workers-chrony-configuration.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil).Times(1)
 			Expect(ntpUtils.AddChronyManifest(ctx, log, &cluster)).ShouldNot(HaveOccurred())
+
 		})
 
 		It("CreateClusterManifest failure", func() {
-			manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(common.GenerateErrorResponder(errors.Errorf("failed to upload to s3"))).Times(1)
+			fileName := "50-masters-chrony-configuration.yaml"
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("Failed to create manifest %s", fileName)).Times(1)
 			Expect(ntpUtils.AddChronyManifest(ctx, log, &cluster)).Should(HaveOccurred())
 		})
 	})
@@ -317,7 +326,7 @@ var _ = Describe("telemeter manifest", func() {
 		ctx                   = context.Background()
 		log                   *logrus.Logger
 		ctrl                  *gomock.Controller
-		mockManifestsApi      *mocks.MockManifestsAPI
+		mockManifestsApi      *manifestsapi.MockManifestsAPI
 		manifestsGeneratorApi ManifestsGeneratorAPI
 		db                    *gorm.DB
 		dbName                string
@@ -329,7 +338,7 @@ var _ = Describe("telemeter manifest", func() {
 
 		log = logrus.New()
 		ctrl = gomock.NewController(GinkgoT())
-		mockManifestsApi = mocks.NewMockManifestsAPI(ctrl)
+		mockManifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
 		db, dbName = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 
@@ -339,6 +348,7 @@ var _ = Describe("telemeter manifest", func() {
 			},
 		}
 		Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
+		mockManifestsApi.EXPECT().CreateClusterManifest(ctx, gomock.Any()).Times(0)
 	})
 
 	AfterEach(func() {
@@ -369,9 +379,14 @@ var _ = Describe("telemeter manifest", func() {
 				manifestsGeneratorApi = NewManifestsGenerator(mockManifestsApi, Config{ServiceBaseURL: test.serviceBaseURL})
 			})
 
+			fileName := "redirect-telemeter.yaml"
 			It("happy flow", func() {
 				if test.envName == "Stage env" || test.envName == "Integration env" {
-					mockManifestsApi.EXPECT().CreateClusterManifest(ctx, gomock.Any()).Return(operations.NewCreateClusterManifestCreated())
+					mockManifestsApi.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any()).Return(&models.Manifest{
+						FileName: fileName,
+						Folder:   models.ManifestFolderOpenshift,
+					},
+						nil)
 				}
 				err := manifestsGeneratorApi.AddTelemeterManifest(ctx, log, &cluster)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -381,7 +396,7 @@ var _ = Describe("telemeter manifest", func() {
 				if test.envName != "Stage env" && test.envName != "Integration env" {
 					Skip("We don't create any additional manifest in prod")
 				}
-				mockManifestsApi.EXPECT().CreateClusterManifest(ctx, gomock.Any()).Return(common.GenerateErrorResponder(errors.Errorf("failed to upload to s3")))
+				mockManifestsApi.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any()).Return(nil, errors.Errorf("Failed to create manifest %s", fileName))
 				err := manifestsGeneratorApi.AddTelemeterManifest(ctx, log, &cluster)
 				Expect(err).Should(HaveOccurred())
 			})
@@ -394,7 +409,7 @@ var _ = Describe("schedulable masters manifest", func() {
 		ctx                   = context.Background()
 		log                   *logrus.Logger
 		ctrl                  *gomock.Controller
-		manifestsApi          *mocks.MockManifestsAPI
+		manifestsApi          *manifestsapi.MockManifestsAPI
 		manifestsGeneratorApi ManifestsGeneratorAPI
 		db                    *gorm.DB
 		dbName                string
@@ -405,7 +420,7 @@ var _ = Describe("schedulable masters manifest", func() {
 	BeforeEach(func() {
 		log = logrus.New()
 		ctrl = gomock.NewController(GinkgoT())
-		manifestsApi = mocks.NewMockManifestsAPI(ctrl)
+		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
 		manifestsGeneratorApi = NewManifestsGenerator(manifestsApi, Config{})
 		db, dbName = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -416,6 +431,7 @@ var _ = Describe("schedulable masters manifest", func() {
 			},
 		}
 		Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
+		manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
 	})
 
 	AfterEach(func() {
@@ -424,13 +440,17 @@ var _ = Describe("schedulable masters manifest", func() {
 	})
 
 	Context("CreateClusterManifest success", func() {
+		fileName := "50-schedulable_masters.yaml"
 		It("CreateClusterManifest success", func() {
-			manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(1)
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+				FileName: fileName,
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil).Times(1)
 			Expect(manifestsGeneratorApi.AddSchedulableMastersManifest(ctx, log, &cluster)).ShouldNot(HaveOccurred())
 		})
 
 		It("CreateClusterManifest failure", func() {
-			manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(common.GenerateErrorResponder(errors.Errorf("failed to upload to s3"))).Times(1)
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("Failed to create manifest %s", fileName)).Times(1)
 			Expect(manifestsGeneratorApi.AddSchedulableMastersManifest(ctx, log, &cluster)).Should(HaveOccurred())
 		})
 	})
@@ -442,7 +462,7 @@ var _ = Describe("disk encryption manifest", func() {
 		ctx                   = context.Background()
 		log                   *logrus.Logger
 		ctrl                  *gomock.Controller
-		mockManifestsApi      *mocks.MockManifestsAPI
+		mockManifestsApi      *manifestsapi.MockManifestsAPI
 		manifestsGeneratorApi ManifestsGeneratorAPI
 		db                    *gorm.DB
 		dbName                string
@@ -454,7 +474,7 @@ var _ = Describe("disk encryption manifest", func() {
 
 		log = logrus.New()
 		ctrl = gomock.NewController(GinkgoT())
-		mockManifestsApi = mocks.NewMockManifestsAPI(ctrl)
+		mockManifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
 		manifestsGeneratorApi = NewManifestsGenerator(mockManifestsApi, Config{})
 		db, dbName = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -463,6 +483,7 @@ var _ = Describe("disk encryption manifest", func() {
 				ID: &clusterId,
 			},
 		}
+		mockManifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
 	})
 
 	AfterEach(func() {
@@ -527,17 +548,16 @@ var _ = Describe("disk encryption manifest", func() {
 			numOfManifests: 1,
 		},
 		{
-			name: "disks encryption not set",
+			name:           "disks encryption not set",
+			numOfManifests: 0,
 		},
 	} {
 		t := t
 
 		It(t.name, func() {
-
 			c.DiskEncryption = t.diskEncryption
 			Expect(db.Create(&c).Error).NotTo(HaveOccurred())
-
-			mockManifestsApi.EXPECT().CreateClusterManifest(ctx, gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(t.numOfManifests)
+			mockManifestsApi.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any()).Times(t.numOfManifests)
 			err := manifestsGeneratorApi.AddDiskEncryptionManifest(ctx, log, &c)
 			Expect(err).ToNot(HaveOccurred())
 		})

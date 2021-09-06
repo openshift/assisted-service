@@ -18,6 +18,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/manifests"
+	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -66,14 +67,15 @@ var _ = Describe("ClusterManifestTests", func() {
 		validFolder   = "openshift"
 		defaultFolder = "manifests"
 		content       = encodeToBase64(contentAsYAML)
+		mockUsageAPI  *usage.MockAPI
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-
-		manifestsAPI = manifests.NewManifestsAPI(db, common.GetTestLog(), mockS3Client)
+		mockUsageAPI = usage.NewMockAPI(ctrl)
+		manifestsAPI = manifests.NewManifestsAPI(db, common.GetTestLog(), mockS3Client, mockUsageAPI)
 	})
 
 	AfterEach(func() {
@@ -93,7 +95,12 @@ var _ = Describe("ClusterManifestTests", func() {
 		return &cluster
 	}
 
+	expectUsageCalls := func() {
+		mockUsageAPI.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+		mockUsageAPI.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+	}
 	addManifestToCluster := func(clusterID *strfmt.UUID, content, fileName, folderName string) {
+		expectUsageCalls()
 		response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 			ClusterID: *clusterID,
 			CreateManifestParams: &models.CreateManifestParams{
@@ -126,6 +133,7 @@ var _ = Describe("ClusterManifestTests", func() {
 		It("creates manifest successfully with default folder", func() {
 			clusterID := registerCluster().ID
 			mockUpload(1)
+			expectUsageCalls()
 			response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
@@ -143,6 +151,7 @@ var _ = Describe("ClusterManifestTests", func() {
 		It("creates manifest successfully with 'openshift' folder", func() {
 			clusterID := registerCluster().ID
 			mockUpload(1)
+			expectUsageCalls()
 			response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
@@ -161,6 +170,7 @@ var _ = Describe("ClusterManifestTests", func() {
 		It("override an existing manifest", func() {
 			clusterID := registerCluster().ID
 			mockUpload(2)
+			expectUsageCalls()
 			response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
@@ -174,6 +184,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			Expect(responsePayload.Payload.FileName).To(Equal(fileName))
 			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
 
+			expectUsageCalls()
 			response = manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
@@ -224,6 +235,7 @@ var _ = Describe("ClusterManifestTests", func() {
 				jsonContent := encodeToBase64(contentAsJSON)
 				fileName := "99-openshift-machineconfig-master-kargs.json"
 				mockUpload(1)
+				expectUsageCalls()
 				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
@@ -242,6 +254,7 @@ var _ = Describe("ClusterManifestTests", func() {
 				clusterID := registerCluster().ID
 				fileName := "99-openshift-machineconfig-master-kargs.yml"
 				mockUpload(1)
+				expectUsageCalls()
 				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
@@ -302,6 +315,7 @@ spec:
       version: 2.2.0
 `)
 				mockUpload(1)
+				expectUsageCalls()
 				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
