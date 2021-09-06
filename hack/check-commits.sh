@@ -11,7 +11,7 @@ if [ -z $remote ]; then
     echo "could not find remote for github.com/openshift/assisted-service"
     exit 1
 fi
-master_branch="$remote/master"
+master_branch="$remote/cloud_hotfix_releases"
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 
 revs=$(git rev-list "${master_branch}".."${current_branch}")
