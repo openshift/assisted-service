@@ -8,14 +8,14 @@
     {
         "openshift_version": "4.7",
         "cpu_architecture": "x86_64",
-        "url": "quay.io/openshift-release-dev/ocp-release:4.7.24-x86_64",
-        "version": "4.7.24"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.7.28-x86_64",
+        "version": "4.7.28"
     },
     {
         "openshift_version": "4.8",
         "cpu_architecture": "x86_64",
-        "url": "quay.io/openshift-release-dev/ocp-release:4.8.5-x86_64",
-        "version": "4.8.5"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.8.9-x86_64",
+        "version": "4.8.9"
     },
     {
         "openshift_version": "4.9",
