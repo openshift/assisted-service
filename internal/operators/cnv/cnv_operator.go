@@ -141,27 +141,44 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	log := logutil.FromContext(ctx, o.log)
 	preflightRequirements, err := o.GetPreflightRequirements(ctx, cluster)
+	masterRequirements := preflightRequirements.Requirements.Master.Quantitative
 	if err != nil {
 		log.WithError(err).Errorf("Cannot Retrieve prefligh requirements for cluster %s", cluster.ID)
 		return nil, err
 	}
 
-	switch host.Role {
-	case models.HostRoleMaster:
-		return preflightRequirements.Requirements.Master.Quantitative, nil
-	case models.HostRoleWorker, models.HostRoleAutoAssign:
-		overhead, err := o.getDevicesMemoryOverhead(host)
+	if common.IsSingleNodeCluster(cluster) {
+		reqs, err := o.getWorkerRequirements(ctx, cluster, host, preflightRequirements)
 		if err != nil {
-			log.WithError(err).WithField("inventory", host.Inventory).Errorf("Cannot parse inventory for host %v", host.ID)
 			return nil, err
 		}
-		workerBaseRequirements := preflightRequirements.Requirements.Worker.Quantitative
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores: workerBaseRequirements.CPUCores,
-			RAMMib:   workerBaseRequirements.RAMMib + overhead,
+			CPUCores: reqs.CPUCores + masterRequirements.CPUCores,
+			RAMMib:   reqs.RAMMib + masterRequirements.RAMMib,
 		}, nil
 	}
+
+	switch host.Role {
+	case models.HostRoleMaster:
+		return masterRequirements, nil
+	case models.HostRoleWorker, models.HostRoleAutoAssign:
+		return o.getWorkerRequirements(ctx, cluster, host, preflightRequirements)
+	}
 	return nil, fmt.Errorf("unsupported role: %s", host.Role)
+}
+
+func (o *operator) getWorkerRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host, preflightRequirements *models.OperatorHardwareRequirements) (*models.ClusterHostRequirementsDetails, error) {
+	log := logutil.FromContext(ctx, o.log)
+	overhead, err := o.getDevicesMemoryOverhead(host)
+	if err != nil {
+		log.WithError(err).WithField("inventory", host.Inventory).Errorf("Cannot parse inventory for host %v", host.ID)
+		return nil, err
+	}
+	workerBaseRequirements := preflightRequirements.Requirements.Worker.Quantitative
+	return &models.ClusterHostRequirementsDetails{
+		CPUCores: workerBaseRequirements.CPUCores,
+		RAMMib:   workerBaseRequirements.RAMMib + overhead,
+	}, nil
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only

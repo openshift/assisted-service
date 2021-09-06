@@ -35,10 +35,19 @@ var _ = Describe("CNV operator", func() {
 
 	Context("host requirements", func() {
 
+		var cluster common.Cluster
+
+		BeforeEach(func() {
+			mode := models.ClusterHighAvailabilityModeFull
+			cluster = common.Cluster{
+				Cluster: models.Cluster{HighAvailabilityMode: &mode},
+			}
+		})
+
 		table.DescribeTable("should be returned for no inventory", func(role models.HostRole, expectedRequirements *models.ClusterHostRequirementsDetails) {
 			host := models.Host{Role: role}
 
-			requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
+			requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(requirements).ToNot(BeNil())
@@ -55,7 +64,7 @@ var _ = Describe("CNV operator", func() {
 					Inventory: getInventoryWithGPUs(gpus),
 				}
 
-				requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
+				requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(requirements).ToNot(BeNil())
@@ -87,7 +96,7 @@ var _ = Describe("CNV operator", func() {
 					Inventory: getInventoryWithInterfaces(interfaces),
 				}
 
-				requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
+				requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(requirements).ToNot(BeNil())
@@ -118,7 +127,7 @@ var _ = Describe("CNV operator", func() {
 				Inventory: getInventoryWithGPUs(gpus),
 			}
 
-			requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
+			requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(requirements).ToNot(BeNil())
@@ -146,7 +155,7 @@ var _ = Describe("CNV operator", func() {
 					Inventory: getInventoryWithInterfaces(interfaces),
 				}
 
-				requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
+				requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(requirements).ToNot(BeNil())
@@ -175,7 +184,7 @@ var _ = Describe("CNV operator", func() {
 				),
 			}
 
-			requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
+			requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(requirements).ToNot(BeNil())
@@ -188,11 +197,24 @@ var _ = Describe("CNV operator", func() {
 				Inventory: "garbage...garbage...trash",
 			}
 
-			_, err := operator.GetHostRequirements(context.TODO(), nil, &host)
+			_, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)
 
 			Expect(err).To(HaveOccurred())
 		})
 
+		It("should return reqs for SNO", func() {
+			host := models.Host{Role: models.HostRoleMaster}
+			haMode := models.ClusterHighAvailabilityModeNone
+			cluster = common.Cluster{
+				Cluster: models.Cluster{HighAvailabilityMode: &haMode},
+			}
+
+			requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(requirements).ToNot(BeNil())
+			Expect(requirements).To(BeEquivalentTo(newRequirements(cnv.WorkerCPU+cnv.MasterCPU, cnv.WorkerMemory+cnv.MasterMemory)))
+		})
 	})
 
 	Context("preflight hardware requirements", func() {
