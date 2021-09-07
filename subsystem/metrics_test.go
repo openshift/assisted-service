@@ -287,6 +287,30 @@ func registerDay2Cluster(ctx context.Context) strfmt.UUID {
 	return clusterID
 }
 
+func v2RegisterDay2Cluster(ctx context.Context) strfmt.UUID {
+
+	c, err := userBMClient.Installer.RegisterAddHostsCluster(ctx, &installer.RegisterAddHostsClusterParams{
+		NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
+			Name:             swag.String("test-metrics-day2-cluster"),
+			OpenshiftVersion: swag.String(openshiftVersion),
+			APIVipDnsname:    swag.String("api_vip_dnsname"),
+			ID:               strToUUID(uuid.New().String()),
+		},
+	})
+	Expect(err).NotTo(HaveOccurred())
+	clusterID := *c.GetPayload().ID
+
+	_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+		ClusterUpdateParams: &models.V2ClusterUpdateParams{
+			PullSecret: swag.String(pullSecret),
+		},
+		ClusterID: clusterID,
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	return clusterID
+}
+
 func metricsDeregisterCluster(ctx context.Context, clusterID strfmt.UUID) {
 
 	_, err := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
@@ -796,9 +820,55 @@ var _ = Describe("Metrics tests", func() {
 			Expect(getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
 		})
 
+		It("[V2UpdateCluster] 'api-vip-connected' failed", func() {
+
+			day2ClusterID := v2RegisterDay2Cluster(ctx)
+			// in order to simulate infra env generation
+			generateClusterISO(day2ClusterID, models.ImageTypeMinimalIso)
+
+			// create a validation success
+			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
+			generateApiVipPostStepReply(ctx, h, true)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDAPIVipConnected)
+
+			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationChangedMetric)
+			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationFailedMetric)
+
+			// create a validation failure
+			generateApiVipPostStepReply(ctx, h, false)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDAPIVipConnected)
+
+			// check generated events
+			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDAPIVipConnected, true)
+
+			// check generated metrics
+			Expect(getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
+			metricsDeregisterCluster(ctx, day2ClusterID)
+			Expect(getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
+		})
+
 		It("'api-vip-connected' got fixed", func() {
 
 			day2ClusterID := registerDay2Cluster(ctx)
+			// in order to simulate infra env generation
+			generateClusterISO(day2ClusterID, models.ImageTypeMinimalIso)
+
+			// create a validation failure
+			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
+			generateApiVipPostStepReply(ctx, h, false)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDAPIVipConnected)
+
+			// create a validation success
+			generateApiVipPostStepReply(ctx, h, true)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDAPIVipConnected)
+
+			// check generated events
+			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDAPIVipConnected, false)
+		})
+
+		It("[V2UpdateCluster] 'api-vip-connected' got fixed", func() {
+
+			day2ClusterID := v2RegisterDay2Cluster(ctx)
 			// in order to simulate infra env generation
 			generateClusterISO(day2ClusterID, models.ImageTypeMinimalIso)
 
@@ -909,6 +979,28 @@ var _ = Describe("Metrics tests", func() {
 				h2 := registerNode(ctx, clusterID, "h2", ips[1])
 				h3 := registerNode(ctx, clusterID, "h3", ips[2])
 				updateVipParams(ctx, clusterID)
+				generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
+			}, 0)
+			It("validates 'sufficient-network-latency-requirement-for-role' is generated", func() {
+				record, err := getMetricRecord(networkLatencyMetric)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(record).NotTo(BeEmpty())
+			})
+			It("validates 'sufficient-packet-loss-requirement-for-role' is generated", func() {
+				record, err := getMetricRecord(packetLossMetric)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(record).NotTo(BeEmpty())
+			})
+		})
+
+		Context("[V2UpdateCluster] for network latency and packet loss", func() {
+			BeforeEach(func() {
+				// create hosts and report connectivity metrics
+				ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+				h1 := registerNode(ctx, clusterID, "h1", ips[0])
+				h2 := registerNode(ctx, clusterID, "h2", ips[1])
+				h3 := registerNode(ctx, clusterID, "h3", ips[2])
+				v2UpdateVipParams(ctx, clusterID)
 				generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
 			}, 0)
 			It("validates 'sufficient-network-latency-requirement-for-role' is generated", func() {

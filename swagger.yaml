@@ -494,6 +494,58 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+    patch:
+      tags:
+        - installer
+      description: Updates an OpenShift cluster definition.
+      operationId: V2UpdateCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster to be updated.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: cluster-update-params
+          description: The properties to update.
+          required: true
+          schema:
+            $ref: '#/definitions/v2-cluster-update-params'
+      responses:
+        "201":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /v2/clusters/{cluster_id}/supported-platforms:
     get:
       tags:
@@ -5851,6 +5903,140 @@ definitions:
         type: object
         $ref: '#/definitions/disk-encryption'
         description: Installation disks encryption mode and host roles to be applied.
+
+
+  v2-cluster-update-params:
+    type: object
+    properties:
+      name:
+        type: string
+        minLength: 1
+        maxLength: 54
+        description: OpenShift cluster name.
+        x-nullable: true
+      base_dns_domain:
+        type: string
+        description: Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
+        x-nullable: true
+      cluster_network_cidr:
+        type: string
+        description: IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
+        pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$'
+        x-nullable: true
+      platform:
+        type: object
+        $ref: '#/definitions/platform'
+      cluster_network_host_prefix:
+        type: integer
+        description: The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.
+        minimum: 1
+        maximum: 128
+        x-nullable: true
+      service_network_cidr:
+        type: string
+        description: The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
+        pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$'
+        x-nullable: true
+      api_vip:
+        type: string
+        pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$'
+        description: The virtual IP used to reach the OpenShift cluster's API.
+        x-nullable: true
+      ingress_vip:
+        type: string
+        pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$'
+        description: The virtual IP used for cluster ingress traffic.
+        x-nullable: true
+      api_vip_dns_name:
+        type: string
+        description: The domain name used to reach the OpenShift cluster API.
+        x-nullable: true
+      machine_network_cidr:
+        type: string
+        description: A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.
+        pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$'
+        x-nullable: true
+      pull_secret:
+        type: string
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
+        x-nullable: true
+      ssh_public_key:
+        type: string
+        description: SSH public key for debugging OpenShift nodes.
+        x-nullable: true
+      vip_dhcp_allocation:
+        type: boolean
+        description: Indicate if virtual IP DHCP allocation mode is enabled.
+        x-nullable: true
+      http_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTP connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      https_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTPS connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      no_proxy:
+        type: string
+        description: An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
+        x-nullable: true
+      user_managed_networking:
+        type: boolean
+        description: Indicate if the networking is managed by the user.
+        x-nullable: true
+      additional_ntp_source:
+        type: string
+        description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
+        x-nullable: true
+      olm_operators:
+        type: array
+        description: List of OLM operators to be installed.
+        items:
+          $ref: '#/definitions/operator-create-params'
+      hyperthreading:
+        type: string
+        description: Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.
+        enum: ['masters', 'workers', 'all', 'none']
+        x-nullable: true
+      network_type:
+        type: string
+        description: The desired network type used.
+        enum: ['OpenShiftSDN', 'OVNKubernetes']
+        x-nullable: true
+      schedulable_masters:
+        type: boolean
+        description: Schedule workloads on masters
+        default: false
+      cluster_networks:
+        type: array
+        description: Cluster networks that are associated with this cluster.
+        items:
+          type: object
+          $ref: '#/definitions/cluster_network'
+        x-nullable: true
+      service_networks:
+        type: array
+        description: Service networks that are associated with this cluster.
+        items:
+          type: object
+          $ref: '#/definitions/service_network'
+        x-nullable: true
+      machine_networks:
+        type: array
+        description: Machine networks that are associated with this cluster.
+        items:
+          type: object
+          $ref: '#/definitions/machine_network'
+        x-nullable: true
+      disk_encryption:
+        type: object
+        $ref: '#/definitions/disk-encryption'
+        description: Installation disks encryption mode and host roles to be applied.
+
 
   add-hosts-cluster-create-params:
     type: object

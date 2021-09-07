@@ -4725,6 +4725,82 @@ func init() {
             }
           }
         }
+      },
+      "patch": {
+        "description": "Updates an OpenShift cluster definition.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "V2UpdateCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to be updated.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The properties to update.",
+            "name": "cluster-update-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2-cluster-update-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/v2/clusters/{cluster_id}/actions/install": {
@@ -10733,6 +10809,173 @@ func init() {
         }
       }
     },
+    "v2-cluster-update-params": {
+      "type": "object",
+      "properties": {
+        "additional_ntp_source": {
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "api_vip": {
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
+          "x-nullable": true
+        },
+        "api_vip_dns_name": {
+          "description": "The domain name used to reach the OpenShift cluster API.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "base_dns_domain": {
+          "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "cluster_network_cidr": {
+          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
+          "x-nullable": true
+        },
+        "cluster_network_host_prefix": {
+          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "integer",
+          "maximum": 128,
+          "minimum": 1,
+          "x-nullable": true
+        },
+        "cluster_networks": {
+          "description": "Cluster networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          },
+          "x-nullable": true
+        },
+        "disk_encryption": {
+          "description": "Installation disks encryption mode and host roles to be applied.",
+          "type": "object",
+          "$ref": "#/definitions/disk-encryption"
+        },
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "hyperthreading": {
+          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.",
+          "type": "string",
+          "enum": [
+            "masters",
+            "workers",
+            "all",
+            "none"
+          ],
+          "x-nullable": true
+        },
+        "ingress_vip": {
+          "description": "The virtual IP used for cluster ingress traffic.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
+          "x-nullable": true
+        },
+        "machine_network_cidr": {
+          "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
+          "x-nullable": true
+        },
+        "machine_networks": {
+          "description": "Machine networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/machine_network"
+          },
+          "x-nullable": true
+        },
+        "name": {
+          "description": "OpenShift cluster name.",
+          "type": "string",
+          "maxLength": 54,
+          "minLength": 1,
+          "x-nullable": true
+        },
+        "network_type": {
+          "description": "The desired network type used.",
+          "type": "string",
+          "enum": [
+            "OpenShiftSDN",
+            "OVNKubernetes"
+          ],
+          "x-nullable": true
+        },
+        "no_proxy": {
+          "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "olm_operators": {
+          "description": "List of OLM operators to be installed.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operator-create-params"
+          }
+        },
+        "platform": {
+          "type": "object",
+          "$ref": "#/definitions/platform"
+        },
+        "pull_secret": {
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "schedulable_masters": {
+          "description": "Schedule workloads on masters",
+          "type": "boolean",
+          "default": false
+        },
+        "service_network_cidr": {
+          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
+          "x-nullable": true
+        },
+        "service_networks": {
+          "description": "Service networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          },
+          "x-nullable": true
+        },
+        "ssh_public_key": {
+          "description": "SSH public key for debugging OpenShift nodes.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "user_managed_networking": {
+          "description": "Indicate if the networking is managed by the user.",
+          "type": "boolean",
+          "x-nullable": true
+        },
+        "vip_dhcp_allocation": {
+          "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
+          "type": "boolean",
+          "x-nullable": true
+        }
+      }
+    },
     "versioned-host-requirements": {
       "type": "object",
       "properties": {
@@ -15541,6 +15784,82 @@ func init() {
         "responses": {
           "204": {
             "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "patch": {
+        "description": "Updates an OpenShift cluster definition.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "V2UpdateCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to be updated.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The properties to update.",
+            "name": "cluster-update-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2-cluster-update-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           },
           "401": {
             "description": "Unauthorized.",
@@ -21643,6 +21962,173 @@ func init() {
         "name": {
           "description": "name of the feature to track",
           "type": "string"
+        }
+      }
+    },
+    "v2-cluster-update-params": {
+      "type": "object",
+      "properties": {
+        "additional_ntp_source": {
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "api_vip": {
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
+          "x-nullable": true
+        },
+        "api_vip_dns_name": {
+          "description": "The domain name used to reach the OpenShift cluster API.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "base_dns_domain": {
+          "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "cluster_network_cidr": {
+          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
+          "x-nullable": true
+        },
+        "cluster_network_host_prefix": {
+          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "integer",
+          "maximum": 128,
+          "minimum": 1,
+          "x-nullable": true
+        },
+        "cluster_networks": {
+          "description": "Cluster networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          },
+          "x-nullable": true
+        },
+        "disk_encryption": {
+          "description": "Installation disks encryption mode and host roles to be applied.",
+          "type": "object",
+          "$ref": "#/definitions/disk-encryption"
+        },
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "hyperthreading": {
+          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.",
+          "type": "string",
+          "enum": [
+            "masters",
+            "workers",
+            "all",
+            "none"
+          ],
+          "x-nullable": true
+        },
+        "ingress_vip": {
+          "description": "The virtual IP used for cluster ingress traffic.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
+          "x-nullable": true
+        },
+        "machine_network_cidr": {
+          "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
+          "x-nullable": true
+        },
+        "machine_networks": {
+          "description": "Machine networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/machine_network"
+          },
+          "x-nullable": true
+        },
+        "name": {
+          "description": "OpenShift cluster name.",
+          "type": "string",
+          "maxLength": 54,
+          "minLength": 1,
+          "x-nullable": true
+        },
+        "network_type": {
+          "description": "The desired network type used.",
+          "type": "string",
+          "enum": [
+            "OpenShiftSDN",
+            "OVNKubernetes"
+          ],
+          "x-nullable": true
+        },
+        "no_proxy": {
+          "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "olm_operators": {
+          "description": "List of OLM operators to be installed.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operator-create-params"
+          }
+        },
+        "platform": {
+          "type": "object",
+          "$ref": "#/definitions/platform"
+        },
+        "pull_secret": {
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "schedulable_masters": {
+          "description": "Schedule workloads on masters",
+          "type": "boolean",
+          "default": false
+        },
+        "service_network_cidr": {
+          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
+          "x-nullable": true
+        },
+        "service_networks": {
+          "description": "Service networks that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          },
+          "x-nullable": true
+        },
+        "ssh_public_key": {
+          "description": "SSH public key for debugging OpenShift nodes.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "user_managed_networking": {
+          "description": "Indicate if the networking is managed by the user.",
+          "type": "boolean",
+          "x-nullable": true
+        },
+        "vip_dhcp_allocation": {
+          "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
+          "type": "boolean",
+          "x-nullable": true
         }
       }
     },

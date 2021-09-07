@@ -283,6 +283,49 @@ var _ = Describe("system-test proxy update tests", func() {
 		msg = fmt.Sprintf("Generated image (proxy URL is \"%s\", Image type is \"full-iso\", SSH public key is not set)", httpProxy)
 		verifyEventExistence(clusterID, msg)
 	})
+
+	It("[V2UpdateCluster] generate_image_after_proxy_was_set", func() {
+		// Generate ISO of registered cluster without proxy configured
+		_, err := userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+			ClusterID:         clusterID,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		// fetch cluster proxy hash for generated image
+		msg := "Generated image (Image type is \"full-iso\", SSH public key is not set)"
+		verifyEventExistence(clusterID, msg)
+
+		// Update cluster with proxy settings
+		httpProxy := "http://proxyserver:3128"
+		noProxy := "test.com"
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
+				HTTPProxy: &httpProxy,
+				NoProxy:   &noProxy,
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// Verify proxy settings changed event emitted
+		verifyEventExistence(clusterID, "Proxy settings changed")
+
+		// at least 10s must elapse between requests to generate the same ISO
+		time.Sleep(time.Second * 10)
+
+		// Generate ISO of registered cluster with proxy configured
+		_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+			ClusterID:         clusterID,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		// fetch cluster proxy hash for generated image
+		msg = fmt.Sprintf("Generated image (proxy URL is \"%s\", Image type is \"full-iso\", SSH public key is not set)", httpProxy)
+		verifyEventExistence(clusterID, msg)
+	})
+
 })
 
 func verifyEventExistence(ClusterID strfmt.UUID, message string) {

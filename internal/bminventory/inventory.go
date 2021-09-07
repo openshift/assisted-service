@@ -1983,38 +1983,50 @@ func (b *bareMetalInventory) noneHaModeClusterUpdateValidations(cluster *common.
 	return nil
 }
 
-func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context, params *installer.UpdateClusterParams) (installer.UpdateClusterParams, error) {
+func (b *bareMetalInventory) v2NoneHaModeClusterUpdateValidations(cluster *common.Cluster, params installer.V2UpdateClusterParams) error {
+	if swag.StringValue(cluster.HighAvailabilityMode) != models.ClusterHighAvailabilityModeNone {
+		return nil
+	}
+
+	if params.ClusterUpdateParams.UserManagedNetworking != nil && !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) {
+		return errors.Errorf("disabling UserManagedNetworking is not allowed in single node mode")
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context, params *installer.V2UpdateClusterParams) (installer.V2UpdateClusterParams, error) {
 
 	log := logutil.FromContext(ctx, b.log)
 
 	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
 		if err := b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler); err != nil {
 			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
-			return installer.UpdateClusterParams{}, err
+			return installer.V2UpdateClusterParams{}, err
 		}
 		ps, errUpdate := b.updatePullSecret(*params.ClusterUpdateParams.PullSecret, log)
 		if errUpdate != nil {
-			return installer.UpdateClusterParams{}, errors.New("Failed to update Pull-secret with additional credentials")
+			return installer.V2UpdateClusterParams{}, errors.New("Failed to update Pull-secret with additional credentials")
 		}
 		params.ClusterUpdateParams.PullSecret = &ps
 	}
 
 	if swag.StringValue(params.ClusterUpdateParams.Name) != "" {
 		if err := validations.ValidateClusterNameFormat(*params.ClusterUpdateParams.Name); err != nil {
-			return installer.UpdateClusterParams{}, err
+			return installer.V2UpdateClusterParams{}, err
 		}
 	}
 
 	addresses := []*string{params.ClusterUpdateParams.APIVip, params.ClusterUpdateParams.IngressVip}
 	addresses = append(addresses, common.GetNetworksCidrs(params.ClusterUpdateParams)...)
 	if err := validations.ValidateIPAddressFamily(b.IPv6Support, addresses...); err != nil {
-		return installer.UpdateClusterParams{}, common.NewApiError(http.StatusBadRequest, err)
+		return installer.V2UpdateClusterParams{}, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
 		sshPublicKey = strings.TrimSpace(sshPublicKey)
 		if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
-			return installer.UpdateClusterParams{}, err
+			return installer.V2UpdateClusterParams{}, err
 		}
 		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
 	}
@@ -2022,7 +2034,7 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 	return *params, nil
 }
 
-func (b *bareMetalInventory) validateAndUpdateProxyParams(ctx context.Context, params *installer.UpdateClusterParams, ocpVersion *string) (installer.UpdateClusterParams, error) {
+func (b *bareMetalInventory) validateAndUpdateProxyParams(ctx context.Context, params *installer.V2UpdateClusterParams, ocpVersion *string) (installer.V2UpdateClusterParams, error) {
 
 	log := logutil.FromContext(ctx, b.log)
 
@@ -2035,7 +2047,7 @@ func (b *bareMetalInventory) validateAndUpdateProxyParams(ctx context.Context, p
 		params.ClusterUpdateParams.HTTPSProxy,
 		params.ClusterUpdateParams.NoProxy, ocpVersion); err != nil {
 		log.WithError(err).Errorf("Failed to validate Proxy settings")
-		return installer.UpdateClusterParams{}, err
+		return installer.V2UpdateClusterParams{}, err
 	}
 
 	return *params, nil
@@ -2048,11 +2060,176 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	}
 	return installer.NewUpdateClusterCreated().WithPayload(&c.Cluster)
 }
+
+func (b *bareMetalInventory) V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder {
+	c, err := b.v2UpdateClusterInternal(ctx, params, Interactive)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2UpdateClusterCreated().WithPayload(&c.Cluster)
+}
+
 func (b *bareMetalInventory) UpdateClusterNonInteractive(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error) {
 	return b.updateClusterInternal(ctx, params, NonInteractive)
 }
 
-func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, params installer.UpdateClusterParams, interactivity Interactivity) (*common.Cluster, error) {
+func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params installer.UpdateClusterParams, interactivity Interactivity) (*common.Cluster, error) {
+	log := logutil.FromContext(ctx, b.log)
+	var cluster *common.Cluster
+	var err error
+	log.Infof("update cluster %s with v2Params: %+v", v1Params.ClusterID, v1Params.ClusterUpdateParams)
+
+	v2Params := installer.V2UpdateClusterParams{
+		HTTPRequest: v1Params.HTTPRequest,
+		ClusterID:   v1Params.ClusterID,
+		ClusterUpdateParams: &models.V2ClusterUpdateParams{
+			AdditionalNtpSource:      v1Params.ClusterUpdateParams.AdditionalNtpSource,
+			APIVip:                   v1Params.ClusterUpdateParams.APIVip,
+			APIVipDNSName:            v1Params.ClusterUpdateParams.APIVipDNSName,
+			BaseDNSDomain:            v1Params.ClusterUpdateParams.BaseDNSDomain,
+			ClusterNetworkCidr:       v1Params.ClusterUpdateParams.ClusterNetworkCidr,
+			ClusterNetworkHostPrefix: v1Params.ClusterUpdateParams.ClusterNetworkHostPrefix,
+			ClusterNetworks:          v1Params.ClusterUpdateParams.ClusterNetworks,
+			DiskEncryption:           v1Params.ClusterUpdateParams.DiskEncryption,
+			HTTPProxy:                v1Params.ClusterUpdateParams.HTTPProxy,
+			HTTPSProxy:               v1Params.ClusterUpdateParams.HTTPSProxy,
+			Hyperthreading:           v1Params.ClusterUpdateParams.Hyperthreading,
+			IngressVip:               v1Params.ClusterUpdateParams.IngressVip,
+			MachineNetworkCidr:       v1Params.ClusterUpdateParams.MachineNetworkCidr,
+			MachineNetworks:          v1Params.ClusterUpdateParams.MachineNetworks,
+			Name:                     v1Params.ClusterUpdateParams.Name,
+			NetworkType:              v1Params.ClusterUpdateParams.NetworkType,
+			NoProxy:                  v1Params.ClusterUpdateParams.NoProxy,
+			OlmOperators:             v1Params.ClusterUpdateParams.OlmOperators,
+			Platform:                 v1Params.ClusterUpdateParams.Platform,
+			PullSecret:               v1Params.ClusterUpdateParams.PullSecret,
+			SchedulableMasters:       v1Params.ClusterUpdateParams.SchedulableMasters,
+			ServiceNetworkCidr:       v1Params.ClusterUpdateParams.ServiceNetworkCidr,
+			ServiceNetworks:          v1Params.ClusterUpdateParams.ServiceNetworks,
+			SSHPublicKey:             v1Params.ClusterUpdateParams.SSHPublicKey,
+			UserManagedNetworking:    v1Params.ClusterUpdateParams.UserManagedNetworking,
+			VipDhcpAllocation:        v1Params.ClusterUpdateParams.VipDhcpAllocation,
+		},
+	}
+
+	if v2Params, err = b.validateAndUpdateClusterParams(ctx, &v2Params); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("update cluster failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("update cluster failed")
+			tx.Rollback()
+		}
+	}()
+
+	if tx.Error != nil {
+		log.WithError(tx.Error).Errorf("failed to start db transaction")
+		return nil, common.NewApiError(http.StatusInternalServerError,
+			errors.New("DB error, failed to start transaction"))
+	}
+
+	// in case host monitor already updated the state we need to use FOR UPDATE option
+	tx = transaction.AddForUpdateQueryOption(tx)
+
+	if cluster, err = common.GetClusterFromDB(tx, v2Params.ClusterID, common.UseEagerLoading); err != nil {
+		log.WithError(err).Errorf("failed to get cluster: %s", v2Params.ClusterID)
+		return nil, common.NewApiError(http.StatusNotFound, err)
+	}
+
+	if v2Params, err = b.validateAndUpdateProxyParams(ctx, &v2Params, &cluster.OpenshiftVersion); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = b.clusterApi.VerifyClusterUpdatability(cluster); err != nil {
+		log.WithError(err).Errorf("cluster %s can't be updated in current state", v2Params.ClusterID)
+		return nil, common.NewApiError(http.StatusConflict, err)
+	}
+
+	if err = b.noneHaModeClusterUpdateValidations(cluster, v1Params); err != nil {
+		log.WithError(err).Warnf("Unsupported update v2Params in none ha mode")
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = b.validateDNSDomain(*cluster, v2Params, log); err != nil {
+		return nil, err
+	}
+
+	if err = validations.ValidateDiskEncryptionParams(v2Params.ClusterUpdateParams.DiskEncryption); err != nil {
+		return nil, err
+	}
+
+	usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)
+	if err != nil {
+		log.WithError(err).Errorf("failed to read feature usage from cluster %s", v2Params.ClusterID)
+		return nil, err
+	}
+
+	err = b.updateClusterData(ctx, cluster, v2Params, usages, tx, log, interactivity)
+	if err != nil {
+		log.WithError(err).Error("updateClusterData")
+		return nil, err
+	}
+
+	err = b.updateHostsData(ctx, v1Params, usages, tx, log)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.updateOperatorsData(ctx, cluster, v2Params, usages, tx, log)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.updateHostsAndClusterStatus(ctx, cluster, tx, log)
+	if err != nil {
+		return nil, err
+	}
+
+	b.usageApi.Save(tx, v2Params.ClusterID, usages)
+
+	newClusterName := swag.StringValue(v2Params.ClusterUpdateParams.Name)
+	if b.ocmClient != nil && newClusterName != "" && newClusterName != cluster.Name {
+		if err = b.integrateWithAMSClusterUpdateName(ctx, cluster, *v2Params.ClusterUpdateParams.Name); err != nil {
+			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update with new name %s", v2Params.ClusterID, newClusterName)
+			return nil, err
+		}
+	}
+
+	if err = tx.Commit().Error; err != nil {
+		log.Error(err)
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("DB error, failed to commit"))
+	}
+	txSuccess = true
+
+	if proxySettingsChanged(v2Params.ClusterUpdateParams, cluster) {
+		b.eventsHandler.AddEvent(ctx, v2Params.ClusterID, nil, models.EventSeverityInfo, "Proxy settings changed", time.Now())
+	}
+
+	if cluster, err = common.GetClusterFromDB(b.db, v2Params.ClusterID, common.UseEagerLoading); err != nil {
+		log.WithError(err).Errorf("failed to get cluster %s after update", v2Params.ClusterID)
+		return nil, err
+	}
+
+	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
+	for _, host := range cluster.Hosts {
+		if err := b.customizeHost(host); err != nil {
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+		// Clear this field as it is not needed to be sent via API
+		host.FreeAddresses = ""
+	}
+
+	return cluster, nil
+}
+
+func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params installer.V2UpdateClusterParams, interactivity Interactivity) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
 	var err error
@@ -2098,7 +2275,7 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, params i
 		return nil, common.NewApiError(http.StatusConflict, err)
 	}
 
-	if err = b.noneHaModeClusterUpdateValidations(cluster, params); err != nil {
+	if err = b.v2NoneHaModeClusterUpdateValidations(cluster, params); err != nil {
 		log.WithError(err).Warnf("Unsupported update params in none ha mode")
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -2123,19 +2300,14 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
-	err = b.updateHostsData(ctx, params, usages, tx, log)
-	if err != nil {
-		return nil, err
-	}
-
 	err = b.updateOperatorsData(ctx, cluster, params, usages, tx, log)
 	if err != nil {
 		return nil, err
 	}
 
-	err = b.updateHostsAndClusterStatus(ctx, cluster, tx, log)
-	if err != nil {
-		return nil, err
+	if _, err = b.clusterApi.RefreshStatus(ctx, cluster, tx); err != nil {
+		log.WithError(err).Errorf("failed to validate or update cluster %s state", cluster.ID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	b.usageApi.Save(tx, params.ClusterID, usages)
@@ -2164,13 +2336,6 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, params i
 	}
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
-	for _, host := range cluster.Hosts {
-		if err := b.customizeHost(host); err != nil {
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
-		// Clear this field as it is not needed to be sent via API
-		host.FreeAddresses = ""
-	}
 
 	return cluster, nil
 }
@@ -2185,7 +2350,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterUpdateName(ctx context.Conte
 	return nil
 }
 
-func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, interactivity Interactivity) error {
+func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger, interactivity Interactivity) error {
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
 	if params.ClusterUpdateParams.APIVip != nil {
@@ -2249,7 +2414,7 @@ func verifyParsableVIPs(apiVip string, ingressVip string) error {
 	return nil
 }
 
-func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, params installer.UpdateClusterParams, primaryMachineCIDR string, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, params installer.V2UpdateClusterParams, primaryMachineCIDR string, log logrus.FieldLogger) error {
 	if params.ClusterUpdateParams.APIVip != nil {
 		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
 		log.WithError(err).Warnf("Set API VIP")
@@ -2274,7 +2439,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 	}
 	return nil
 }
-func (b *bareMetalInventory) updatePlatformParams(params installer.UpdateClusterParams, updates map[string]interface{}) {
+func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClusterParams, updates map[string]interface{}) {
 	platform := params.ClusterUpdateParams.Platform
 	if platform == nil || platform.Type == "" {
 		return
@@ -2307,7 +2472,7 @@ func (b *bareMetalInventory) updatePlatformParams(params installer.UpdateCluster
 	}
 }
 
-func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {
+func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {
 	var err error
 	updates := map[string]interface{}{}
 	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
@@ -2375,7 +2540,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	return nil
 }
 
-func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.UpdateClusterParams, updates map[string]interface{},
+func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2UpdateClusterParams, updates map[string]interface{},
 	cluster *common.Cluster, userManagedNetworking, vipDhcpAllocation bool) error {
 	var err error
 
@@ -2471,7 +2636,7 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.Update
 	return b.updateNetworkTables(db, cluster, params)
 }
 
-func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cluster, params installer.UpdateClusterParams) error {
+func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cluster, params installer.V2UpdateClusterParams) error {
 	var err error
 
 	if params.ClusterUpdateParams.ClusterNetworks != nil {
@@ -2566,7 +2731,7 @@ func createNetworkParamsCompatibilityPropagation(params installer.V2RegisterClus
 // createNetworkParamsCompatibilityPropagation but responsible for handling cluster updates. It
 // exists as a separate function because creation and update of the cluster use different data
 // structures, i.e. installer.V2RegisterClusterParams and installer.UpdateClusterParams
-func updateNetworkParamsCompatiblityPropagation(params installer.UpdateClusterParams, cluster *common.Cluster) error {
+func updateNetworkParamsCompatiblityPropagation(params installer.V2UpdateClusterParams, cluster *common.Cluster) error {
 	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
 		serviceNetwork := []*models.ServiceNetwork{}
 		if *params.ClusterUpdateParams.ServiceNetworkCidr != "" {
@@ -2616,7 +2781,7 @@ func updateNetworkParamsCompatiblityPropagation(params installer.UpdateClusterPa
 // 1. Bare metal installation
 // 2. None-platform multi-node
 // 3. None-platform single-node (Machine CIDR must be defined)
-func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{},
+func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{},
 	usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {
 	var err error
 	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
@@ -2676,7 +2841,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 	return nil
 }
 
-func setCommonUserNetworkManagedParams(params *models.ClusterUpdateParams, singleNodeCluster bool, updates map[string]interface{}, log logrus.FieldLogger) (error, bool) {
+func setCommonUserNetworkManagedParams(params *models.V2ClusterUpdateParams, singleNodeCluster bool, updates map[string]interface{}, log logrus.FieldLogger) (error, bool) {
 	err := validateUserManagedNetworkConflicts(params, singleNodeCluster, log)
 	if err != nil {
 		return err, false
@@ -2688,7 +2853,7 @@ func setCommonUserNetworkManagedParams(params *models.ClusterUpdateParams, singl
 	return nil, false
 }
 
-func (b *bareMetalInventory) updatePlatformSources(params installer.UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) {
+func (b *bareMetalInventory) updatePlatformSources(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) {
 	b.updatePlatformParams(params, updates)
 
 	if params.ClusterUpdateParams.Platform != nil {
@@ -2699,7 +2864,7 @@ func (b *bareMetalInventory) updatePlatformSources(params installer.UpdateCluste
 	}
 }
 
-func (b *bareMetalInventory) updateNtpSources(params installer.UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateNtpSources(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage, log logrus.FieldLogger) error {
 	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
 		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
 		additionalNtpSourcesDefined := ntpSource != ""
@@ -2718,7 +2883,7 @@ func (b *bareMetalInventory) updateNtpSources(params installer.UpdateClusterPara
 	return nil
 }
 
-func validateUserManagedNetworkConflicts(params *models.ClusterUpdateParams, singleNodeCluster bool, log logrus.FieldLogger) error {
+func validateUserManagedNetworkConflicts(params *models.V2ClusterUpdateParams, singleNodeCluster bool, log logrus.FieldLogger) error {
 	if params.VipDhcpAllocation != nil && swag.BoolValue(params.VipDhcpAllocation) {
 		err := errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
 		log.WithError(err)
@@ -2947,7 +3112,7 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 	return nil
 }
 
-func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {
 	if params.ClusterUpdateParams.OlmOperators == nil {
 		return nil
 	}
@@ -4730,7 +4895,7 @@ func (b *bareMetalInventory) deleteDNSRecordSets(ctx context.Context, cluster co
 	return b.dnsApi.DeleteDNSRecordSets(ctx, &cluster)
 }
 
-func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger) error {
 	clusterName := swag.StringValue(params.ClusterUpdateParams.Name)
 	if clusterName == "" {
 		clusterName = cluster.Name
@@ -5084,7 +5249,7 @@ func (b *bareMetalInventory) customizeHostname(host *models.Host) {
 	host.RequestedHostname = hostutil.GetHostnameForMsg(host)
 }
 
-func proxySettingsChanged(params *models.ClusterUpdateParams, cluster *common.Cluster) bool {
+func proxySettingsChanged(params *models.V2ClusterUpdateParams, cluster *common.Cluster) bool {
 	if (params.HTTPProxy != nil && cluster.HTTPProxy != swag.StringValue(params.HTTPProxy)) ||
 		(params.HTTPSProxy != nil && cluster.HTTPSProxy != swag.StringValue(params.HTTPSProxy)) ||
 		(params.NoProxy != nil && cluster.NoProxy != swag.StringValue(params.NoProxy)) {

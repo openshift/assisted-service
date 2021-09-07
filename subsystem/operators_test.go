@@ -149,6 +149,47 @@ var _ = Describe("Operators endpoint tests", func() {
 				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)})
 			})
 		})
+
+		It("Update OLMs", func() {
+			By("First time - operators is empty", func() {
+				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						OlmOperators: []*models.OperatorCreateParams{
+							{Name: lso.Operator.Name},
+							{Name: ocs.Operator.Name},
+						},
+					},
+					ClusterID: clusterID,
+				})
+				Expect(err).ToNot(HaveOccurred())
+				getReply, err2 := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(clusterID))
+				Expect(err2).ToNot(HaveOccurred())
+				c := &common.Cluster{Cluster: *getReply.Payload}
+
+				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
+				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeTrue())
+				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)}, models.Usage{Name: strings.ToUpper(ocs.Operator.Name)})
+			})
+
+			By("Second time - operators is not empty", func() {
+				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						OlmOperators: []*models.OperatorCreateParams{
+							{Name: lso.Operator.Name},
+						},
+					},
+					ClusterID: clusterID,
+				})
+				Expect(err).ToNot(HaveOccurred())
+				getReply, err := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(clusterID))
+				Expect(err).ToNot(HaveOccurred())
+				c := &common.Cluster{Cluster: *getReply.Payload}
+
+				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
+				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeFalse())
+				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)})
+			})
+		})
 	})
 
 	Context("Monitored operators", func() {
@@ -260,6 +301,65 @@ var _ = Describe("Operators endpoint tests", func() {
 			By("Update OLM", func() {
 				_, err := userBMClient.Installer.UpdateCluster(context.TODO(), &installer.UpdateClusterParams{
 					ClusterUpdateParams: &models.ClusterUpdateParams{
+						OlmOperators: []*models.OperatorCreateParams{
+							{Name: lso.Operator.Name},
+						},
+					},
+					ClusterID: clusterID,
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			By("Report operator failed", func() {
+				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusFailed)
+			})
+
+			By("Wait for cluster to be degraded", func() {
+				setClusterAsFinalizing(context.TODO(), clusterID)
+				completeInstallation(agentBMClient, clusterID)
+				expectedStatusInfo := fmt.Sprintf("%s. Failed OLM operators: %s", cluster.StatusInfoDegraded, lso.Operator.Name)
+				waitForClusterState(context.TODO(), clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout, expectedStatusInfo)
+			})
+		})
+	})
+
+	Context("[V2ClusterUpdate] Installation", func() {
+		BeforeEach(func() {
+			cID, err := registerCluster(context.TODO(), userBMClient, "test-cluster", pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			clusterID = cID
+			// in order to simulate infra env generation
+			generateClusterISO(clusterID, models.ImageTypeMinimalIso)
+			registerHostsAndSetRoles(clusterID, minHosts, "test-cluster", "example.com")
+		})
+
+		It("All OLM operators available", func() {
+			By("Update OLM", func() {
+				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						OlmOperators: []*models.OperatorCreateParams{
+							{Name: lso.Operator.Name},
+						},
+					},
+					ClusterID: clusterID,
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			By("Report operator available", func() {
+				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusAvailable)
+			})
+
+			By("Wait for cluster to be installed", func() {
+				setClusterAsFinalizing(context.TODO(), clusterID)
+				completeInstallationAndVerify(context.TODO(), agentBMClient, clusterID, true)
+			})
+		})
+
+		It("Failed OLM Operator", func() {
+			By("Update OLM", func() {
+				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: lso.Operator.Name},
 						},

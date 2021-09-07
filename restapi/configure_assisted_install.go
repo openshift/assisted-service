@@ -235,6 +235,9 @@ type InstallerAPI interface {
 	/* V2DownloadClusterFiles Downloads files relating to the installed/installing cluster. */
 	V2DownloadClusterFiles(ctx context.Context, params installer.V2DownloadClusterFilesParams) middleware.Responder
 
+	/* V2UpdateCluster Updates an OpenShift cluster definition. */
+	V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder
+
 	/* V2DeregisterCluster Deletes an OpenShift cluster definition. */
 	V2DeregisterCluster(ctx context.Context, params installer.V2DeregisterClusterParams) middleware.Responder
 
@@ -817,6 +820,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2DownloadClusterFiles(ctx, params)
+	})
+	api.InstallerV2UpdateClusterHandler = installer.V2UpdateClusterHandlerFunc(func(params installer.V2UpdateClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2UpdateCluster(ctx, params)
 	})
 	api.InstallerV2DeregisterClusterHandler = installer.V2DeregisterClusterHandlerFunc(func(params installer.V2DeregisterClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
