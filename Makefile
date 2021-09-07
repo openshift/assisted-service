@@ -82,7 +82,7 @@ ifeq ($(ENABLE_KUBE_API),true)
 endif
 
 # Operator Vars
-BUNDLE_CHANNELS ?= alpha
+BUNDLE_CHANNELS ?= alpha,ocm-2.4
 BUNDLE_OUTPUT_DIR ?= deploy/olm-catalog
 BUNDLE_METADATA_OPTS ?= --channels=$(BUNDLE_CHANNELS) --default-channel=alpha
 
