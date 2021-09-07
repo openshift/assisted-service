@@ -721,16 +721,16 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 		Env: []corev1.EnvVar{
 			{Name: "LISTEN_PORT", Value: imageHandlerPort.String()},
 			{Name: "RHCOS_VERSIONS", Value: r.getOSImages(log, instance)},
-			{Name: "HTTPS_CERT_FILE", Value: "/etc/tls/tls.crt"},
-			{Name: "HTTPS_KEY_FILE", Value: "/etc/tls/tls.key"},
-			{Name: "HTTPS_CA_FILE", Value: "/etc/cabundle/service-ca.crt"},
+			{Name: "HTTPS_CERT_FILE", Value: "/etc/image-service/certs/tls.crt"},
+			{Name: "HTTPS_KEY_FILE", Value: "/etc/image-service/certs/tls.key"},
+			{Name: "HTTPS_CA_FILE", Value: "/etc/image-service/ca-bundle/service-ca.crt"},
 			{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
 			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + r.Namespace + ".svc:" + servicePort.String()},
 			{Name: "REQUEST_AUTH_TYPE", Value: "param"},
 		},
 		VolumeMounts: []corev1.VolumeMount{
-			{Name: "tls-certs", MountPath: "/etc/tls"},
-			{Name: "service-cabundle", MountPath: "/etc/cabundle"},
+			{Name: "tls-certs", MountPath: "/etc/image-service/certs"},
+			{Name: "service-cabundle", MountPath: "/etc/image-service/ca-bundle"},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
