@@ -160,6 +160,6 @@ function assisted_update_manifests() {
 co_clone_repo
 co_get_operator_versions
 co_update_manifests
-# co_submit_pr
+co_submit_pr
 co_cleanup
 assisted_update_manifests
