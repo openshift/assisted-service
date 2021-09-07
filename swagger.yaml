@@ -4419,6 +4419,7 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
+        - urlAuth: []
       description: Downloads the customized ignition file for this host
       operationId: v2DownloadInfraEnvFiles
       produces:

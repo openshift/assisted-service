@@ -5570,6 +5570,9 @@ func init() {
           },
           {
             "agentAuth": []
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads the customized ignition file for this host",
@@ -16421,6 +16424,9 @@ func init() {
           },
           {
             "agentAuth": []
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads the customized ignition file for this host",

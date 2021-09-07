@@ -111,6 +111,8 @@ spec:
   relatedImages:
   - image: quay.io/ocpmetal/assisted-service:latest
     name: controller
+  - image: quay.io/app-sre/assisted-image-service:latest
+    name: image-service
   - image: quay.io/ocpmetal/postgresql-12-centos7:latest
     name: postgresql
   - image: quay.io/ocpmetal/assisted-installer:latest
