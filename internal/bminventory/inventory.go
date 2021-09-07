@@ -578,6 +578,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	b.setDefaultUsage(&cluster.Cluster)
 
+	setDiskEncryption(&cluster.Cluster, params.NewClusterParams.DiskEncryption)
+
 	err = b.clusterApi.RegisterCluster(ctx, &cluster, v1Flag, models.ImageType(b.Config.ISOImageType))
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -593,6 +595,14 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	success = true
 	b.metricApi.ClusterRegistered(cluster.OpenshiftVersion, *cluster.ID, cluster.EmailDomain)
 	return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *cluster.ID})
+}
+
+func setDiskEncryption(cluster *models.Cluster, config *models.DiskEncryption) {
+	// When enabling the encryption we set the mode to TPMv2 unless the request contains an
+	// explicit value.
+	if config != nil && config.EnableOn != swag.String(models.DiskEncryptionEnableOnNone) && config.Mode == nil {
+		cluster.DiskEncryption.Mode = swag.String(models.DiskEncryptionModeTpmv2)
+	}
 }
 
 func updateSSHPublicKey(cluster *common.Cluster) error {
@@ -2361,7 +2371,15 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 
 	if params.ClusterUpdateParams.DiskEncryption != nil {
 		updates["disk_encryption_enable_on"] = params.ClusterUpdateParams.DiskEncryption.EnableOn
-		updates["disk_encryption_mode"] = params.ClusterUpdateParams.DiskEncryption.Mode
+
+		// When enabling the encryption we set the mode to TPMv2 unless the request contains an
+		// explicit value.
+		if params.ClusterUpdateParams.DiskEncryption.EnableOn != swag.String(models.DiskEncryptionEnableOnNone) &&
+			params.ClusterUpdateParams.DiskEncryption.Mode == nil {
+			updates["disk_encryption_mode"] = models.DiskEncryptionModeTpmv2
+		} else {
+			updates["disk_encryption_mode"] = params.ClusterUpdateParams.DiskEncryption.Mode
+		}
 	}
 
 	if len(updates) > 0 {
