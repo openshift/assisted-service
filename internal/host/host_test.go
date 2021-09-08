@@ -167,12 +167,14 @@ var _ = Describe("update_role", func() {
 	})
 
 	It("update role master to worker", func() {
+		By("update role worker to master")
 		host = hostutil.GenerateTestHost(id, infraEnvID, clusterID, models.HostStatusKnown)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		Expect(state.UpdateRole(ctx, &host, models.HostRoleMaster, nil)).NotTo(HaveOccurred())
 		h := hostutil.GetHostFromDB(id, infraEnvID, db)
 		Expect(h.Role).To(Equal(models.HostRoleMaster))
-		Expect(state.UpdateRole(ctx, &host, models.HostRoleWorker, nil)).NotTo(HaveOccurred())
+		By("update role master to worker")
+		Expect(state.UpdateRole(ctx, &h.Host, models.HostRoleWorker, nil)).NotTo(HaveOccurred())
 		h = hostutil.GetHostFromDB(id, infraEnvID, db)
 		Expect(h.Role).To(Equal(models.HostRoleWorker))
 	})

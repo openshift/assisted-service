@@ -404,6 +404,15 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 		}
 	}
 
+	//update suggested role, if not yet set
+	var suggestedRole models.HostRole
+	if h.Role == models.HostRoleAutoAssign && h.SuggestedRole == models.HostRoleAutoAssign &&
+		funk.ContainsString(hostStatusesBeforeInstallation[:], *h.Status) {
+		if suggestedRole, err = m.autoRoleSelection(ctx, h, db); err == nil {
+			_ = updateRole(m.log, h, h.Role, suggestedRole, db, string(h.Role))
+		}
+	}
+
 	err = m.sm.Run(TransitionTypeRefresh, newStateHost(h), &TransitionArgsRefreshHost{
 		ctx:               ctx,
 		db:                db,
@@ -625,11 +634,7 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.Ho
 	//UpdateRole is always invoked from an API and therefore
 	//the roles are user-selected. In this case suggested roles
 	//takes the user selection
-	if h.Role == "" {
-		return updateRole(m.log, h, role, role, cdb, nil)
-	} else {
-		return updateRole(m.log, h, role, role, cdb, swag.String(string(h.Role)))
-	}
+	return updateRole(m.log, h, role, role, cdb, string(h.Role))
 }
 
 func (m *Manager) UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error {
@@ -994,7 +999,7 @@ func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.D
 
 		//copy the suggested role into the role and update the host record
 		log.Infof("suggested role %s for host %s cluster %s", suggestedRole, h.ID.String(), h.ClusterID.String())
-		if err := updateRole(m.log, h, suggestedRole, suggestedRole, db, swag.String(string(models.HostRoleAutoAssign))); err != nil {
+		if err := updateRole(m.log, h, suggestedRole, suggestedRole, db, string(models.HostRoleAutoAssign)); err != nil {
 			log.WithError(err).Errorf("failed to update role %s for host %s cluster %s",
 				suggestedRole, h.ID.String(), h.ClusterID.String())
 			return true, err
