@@ -10330,6 +10330,80 @@ var _ = Describe("TestRegisterCluster", func() {
 			verifyApiErrorString(reply, http.StatusBadRequest, "Tang thumbprint isn't set")
 		})
 
+		It("Disabling with specifying mode", func() {
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					DiskEncryption: &models.DiskEncryption{
+						EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+						Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+					},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Disabling encryption with specifying mode")
+		})
+
+		It("Specifying mode without state", func() {
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					DiskEncryption: &models.DiskEncryption{
+						Mode: swag.String(models.DiskEncryptionModeTpmv2),
+					},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Setting encryption mode without enabling")
+		})
+
+		It("Enabling with explicit TPMv2 mode", func() {
+			mockClusterRegisterSuccess(bm, true)
+			mockAMSSubscription(ctx)
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					DiskEncryption: &models.DiskEncryption{
+						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+						Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+					},
+				},
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnAll)))
+			Expect(actual.Payload.DiskEncryption.Mode).To(Equal(swag.String(models.DiskEncryptionModeTpmv2)))
+		})
+
+		It("Enabling with default TPMv2 mode", func() {
+			mockClusterRegisterSuccess(bm, true)
+			mockAMSSubscription(ctx)
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					DiskEncryption: &models.DiskEncryption{
+						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+					},
+				},
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnAll)))
+			Expect(actual.Payload.DiskEncryption.Mode).To(Equal(swag.String(models.DiskEncryptionModeTpmv2)))
+		})
+
+		It("Disabling", func() {
+			mockClusterRegisterSuccess(bm, true)
+			mockAMSSubscription(ctx)
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					DiskEncryption: &models.DiskEncryption{
+						EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+					},
+				},
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnNone)))
+		})
+
 	})
 
 	Context("NTPSource", func() {
