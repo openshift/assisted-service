@@ -1098,10 +1098,11 @@ func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *
 }
 
 func (m *Manager) canBeMaster(conditions map[string]bool) bool {
-	if conditions[HasCPUCoresForRole.String()] && conditions[HasMemoryForRole.String()] {
-		return true
-	}
-	return false
+	return conditions[HasCPUCoresForRole.String()] &&
+		conditions[HasMemoryForRole.String()] &&
+		conditions[AreLsoRequirementsSatisfied.String()] &&
+		conditions[AreOcsRequirementsSatisfied.String()] &&
+		conditions[AreCnvRequirementsSatisfied.String()]
 }
 
 func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
