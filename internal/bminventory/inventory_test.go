@@ -6446,6 +6446,59 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest,
 						"Setting Machine network CIDR is forbidden when cluster is not in vip-dhcp-allocation mode")
 				})
+				It("Machine network CIDR in non dhcp for dual-stack", func() {
+					mockSuccess(2)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:          &apiVip,
+							IngressVip:      &ingressVip,
+							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:          &apiVip,
+							IngressVip:      &ingressVip,
+							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.12.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated)
+					Expect(len(actual.Payload.MachineNetworks)).To(Equal(2))
+				})
+				It("Wrong order of machine network CIDRs in non dhcp for dual-stack", func() {
+					mockSuccess(1)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:          &apiVip,
+							IngressVip:      &ingressVip,
+							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:          &apiVip,
+							IngressVip:      &ingressVip,
+							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "IPv6 network provided before IPv4")
+				})
 			})
 			Context("Advanced networking validations", func() {
 
