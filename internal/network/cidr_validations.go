@@ -3,6 +3,7 @@ package network
 import (
 	"net"
 
+	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
 
@@ -123,5 +124,33 @@ func VerifyNetworkHostPrefix(prefix int64) error {
 	if prefix < 1 {
 		return errors.Errorf("Host prefix, now %d, must be a positive integer", prefix)
 	}
+	return nil
+}
+
+// Verify if the constrains for dual-stack machine networks are met:
+//   * there are at least 2 machine networks
+//   * the first one is IPv4 subnet
+//   * one of the remaining ones is IPv6 subnet
+func VerifyMachineNetworksDualStack(networks []*models.MachineNetwork, isDualStack bool) error {
+	if !isDualStack {
+		return nil
+	}
+	if len(networks) < 2 {
+		return errors.Errorf("Expected at least 2 machine networks, found %d", len(networks))
+	}
+	if !IsIPV4CIDR(string(networks[0].Cidr)) {
+		return errors.Errorf("First machine network has to be an IPv4 subnet")
+	}
+
+	foundV6Subnet := false
+	for _, subnet := range networks {
+		if IsIPv6CIDR(string(subnet.Cidr)) {
+			foundV6Subnet = foundV6Subnet || true
+		}
+	}
+	if !foundV6Subnet {
+		return errors.Errorf("No IPv6 machine network found")
+	}
+
 	return nil
 }

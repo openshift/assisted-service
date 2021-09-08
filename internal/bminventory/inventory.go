@@ -2361,8 +2361,15 @@ func (b *bareMetalInventory) integrateWithAMSClusterUpdateName(ctx context.Conte
 }
 
 func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger, interactivity Interactivity) error {
+	// Even though reqDualStack could be TRUE if reqV4 and reqV6 are both FALSE, we always handle
+	// this variable together with the length of respective *-Networks variable so this is not
+	// causing an unexpected behaviour (because for non-empty networks we will always have either
+	// V4 or V6 or both present).
+	reqV4, reqV6, _ := network.GetConfiguredAddressFamilies(cluster)
+	reqDualStack := reqV4 && reqV6
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
+
 	if params.ClusterUpdateParams.APIVip != nil {
 		updates["api_vip"] = *params.ClusterUpdateParams.APIVip
 		apiVip = *params.ClusterUpdateParams.APIVip
@@ -2371,19 +2378,13 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		updates["ingress_vip"] = *params.ClusterUpdateParams.IngressVip
 		ingressVip = *params.ClusterUpdateParams.IngressVip
 	}
-	if params.ClusterUpdateParams.MachineNetworks != nil &&
-		common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) {
-		err := errors.New("Setting Machine network CIDR is forbidden when cluster is not in vip-dhcp-allocation mode")
-		log.WithError(err).Warnf("Set Machine Network CIDR")
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
+
 	var err error
 	err = verifyParsableVIPs(apiVip, ingressVip)
 	if err != nil {
 		log.WithError(err).Errorf("Failed validating VIPs of cluster id=%s", params.ClusterID)
 		return err
 	}
-
 	err = network.VerifyDifferentVipAddresses(apiVip, ingressVip)
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
@@ -2396,18 +2397,43 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		if err != nil {
 			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Calculate machine network CIDR"))
 		}
+
+		// For setting machine networks when API or Ingress VIPs are provided by the user we have
+		// two scenarios possible
+		//   * machine networks are not provided; in this case cluster will be a single-stack and
+		//     machine network CIDR is calculated automatically
+		//   * machine networks are provided; in this case cluster can be a single or dual-stack;
+		//     autocalculation will not happen, but we will verify if the first provided machine
+		//     network matches the one that would have been calculated otherwise
 		if primaryMachineNetworkCidr != "" {
-			if network.IsMachineCidrAvailable(cluster) {
-				cluster.MachineNetworks[0].Cidr = models.Subnet(primaryMachineNetworkCidr)
-			} else {
+			if !network.IsMachineCidrAvailable(cluster) && !common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) {
 				cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
+				updates["machine_network_cidr"] = primaryMachineNetworkCidr
 			}
-			updates["machine_network_cidr"] = primaryMachineNetworkCidr
+			if network.IsMachineCidrAvailable(cluster) {
+				primaryMachineNetworkCidr = string(cluster.MachineNetworks[0].Cidr)
+			}
+			if common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) {
+				primaryMachineNetworkCidr = string(params.ClusterUpdateParams.MachineNetworks[0].Cidr)
+			}
 		}
 		err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, apiVip, ingressVip, false, log)
 		if err != nil {
 			log.WithError(err).Warnf("Verify VIPs")
 			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		if params.ClusterUpdateParams.MachineNetworks != nil {
+			err = network.VerifyMachineNetworksDualStack(params.ClusterUpdateParams.MachineNetworks, reqDualStack)
+			if err != nil {
+				log.WithError(err).Warnf("Verify dual-stack machine networks")
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+		} else {
+			err = network.VerifyMachineNetworksDualStack(cluster.MachineNetworks, reqDualStack)
+			if err != nil {
+				log.WithError(err).Warnf("Verify dual-stack machine networks")
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
 		}
 	}
 
