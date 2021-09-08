@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+export SERVICE_IMAGE=""
+export INDEX_IMAGE="${INDEX_IMAGE_OVERRIDE:-quay.io/ocpmetal/assisted-service-index:ocm-2.3}"
+export ASSISTED_UPGRADE_OPERATOR="${ASSISTED_UPGRADE_OPERATOR:-true}"
+export ASSISTED_STOP_AFTER_AGENT_DISCOVERY="${ASSISTED_STOP_AFTER_AGENT_DISCOVERY:-false}"

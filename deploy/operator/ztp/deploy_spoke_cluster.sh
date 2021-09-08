@@ -16,6 +16,7 @@ export EXTRA_BAREMETALHOSTS_FILE="${EXTRA_BAREMETALHOSTS_FILE:-/home/test/dev-sc
 export SPOKE_CONTROLPLANE_AGENTS="${SPOKE_CONTROLPLANE_AGENTS:-1}"
 export SPOKE_API_VIP="${SPOKE_API_VIP:-}"
 export SPOKE_INGRESS_VIP="${SPOKE_INGRESS_VIP:-}"
+export ASSISTED_STOP_AFTER_AGENT_DISCOVERY="${ASSISTED_STOP_AFTER_AGENT_DISCOVERY:-false}"
 
 if [[ "${IP_STACK}" == "v4" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
@@ -66,6 +67,11 @@ echo "Waiting until at least ${SPOKE_CONTROLPLANE_AGENTS} agents are available..
 export -f wait_for_object_amount
 timeout 20m bash -c "wait_for_object_amount agent ${SPOKE_CONTROLPLANE_AGENTS} 30 ${SPOKE_NAMESPACE}"
 echo "All ${SPOKE_CONTROLPLANE_AGENTS} agents have been discovered!"
+
+if [[ "${ASSISTED_STOP_AFTER_AGENT_DISCOVERY}" == "true" ]]; then
+    echo "Agents have been discovered, do not wait for the cluster installtion to finish."
+    exit
+fi
 
 wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Stopped" "90m" "${SPOKE_NAMESPACE}"
 echo "Cluster installation has been stopped (either for good or bad reasons)"
