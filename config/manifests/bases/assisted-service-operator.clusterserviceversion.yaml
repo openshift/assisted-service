@@ -5,6 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     categories: OpenShift Optional
+    containerImage: quay.io/ocpmetal/assisted-service:latest
     createdAt: ""
     description: The Infrastructure Operator for Red Hat OpenShift is responsible
       for managing the deployment of the Assisted Service.
@@ -130,4 +131,5 @@ spec:
   - assisted-service-operator.v0.0.5
   - assisted-service-operator.v0.0.6
   - assisted-service-operator.v0.0.7
+  - assisted-service-operator.v0.1.0
   version: 99.0.0-unreleased
