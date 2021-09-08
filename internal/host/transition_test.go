@@ -232,22 +232,37 @@ var _ = Describe("RegisterHost", func() {
 		tests := []struct {
 			name     string
 			srcState string
+			kind     string
 		}{
 			{
 				name:     "discovering",
 				srcState: models.HostStatusDiscovering,
+				kind:     models.HostKindHost,
 			},
 			{
 				name:     "insufficient",
 				srcState: models.HostStatusInsufficient,
+				kind:     models.HostKindHost,
 			},
 			{
 				name:     "disconnected",
 				srcState: models.HostStatusDisconnected,
+				kind:     models.HostKindHost,
 			},
 			{
 				name:     "known",
 				srcState: models.HostStatusKnown,
+				kind:     models.HostKindHost,
+			},
+			{
+				name:     "binding day1",
+				srcState: models.HostStatusBinding,
+				kind:     models.HostKindHost,
+			},
+			{
+				name:     "binding day2",
+				srcState: models.HostStatusBinding,
+				kind:     models.HostKindAddToExistingClusterHost,
 			},
 		}
 
@@ -277,6 +292,7 @@ var _ = Describe("RegisterHost", func() {
 					Inventory:  defaultHwInfo,
 					Status:     swag.String(t.srcState),
 					Bootstrap:  true,
+					Kind:       swag.String(t.kind),
 					Progress: &models.HostProgressInfo{
 						CurrentStage: common.TestDefaultConfig.HostProgressStage,
 						ProgressInfo: "some info",
@@ -298,6 +314,8 @@ var _ = Describe("RegisterHost", func() {
 					DiscoveryAgentVersion: discoveryAgentVersion,
 				},
 					db)).ShouldNot(HaveOccurred())
+				h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+				Expect(swag.StringValue(h.Kind)).To(Equal(t.kind))
 			})
 		}
 	})
