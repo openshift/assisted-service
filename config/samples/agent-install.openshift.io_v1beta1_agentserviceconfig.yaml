@@ -31,6 +31,6 @@ spec:
     url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-4.8.2-x86_64-live.x86_64.iso
     version: 48.84.202107202156-0
   - openshiftVersion: '4.9'
-    rootFSUrl: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-fc.0/rhcos-live-rootfs.x86_64.img
-    url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-fc.0/rhcos-4.9.0-fc.0-x86_64-live.x86_64.iso
-    version: 49.84.202108192337-0
+    rootFSUrl: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-rc.0/rhcos-live-rootfs.x86_64.img
+    url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-rc.0/rhcos-4.9.0-rc.0-x86_64-live.x86_64.iso
+    version: 49.84.202109041651-0
