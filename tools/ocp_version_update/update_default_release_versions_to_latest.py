@@ -29,10 +29,11 @@ PR_MESSAGE = "{task}: Bump OCP versions {versions_string}"
 OCP_INFO_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=stable-{version}\&arch\={architecture} | jq '[.nodes[]] | sort_by(.version | split(".") | map(tonumber))[-1]'"""
 OCP_INFO_FC_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=candidate-{version}\&arch\={architecture} | jq '[.nodes[]] | max_by(.version)'"""
 
-RHCOS_RELEASES = "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/{minor}"
+RHCOS_RELEASES = "https://mirror.openshift.com/pub/openshift-v4/{architecture}/dependencies/rhcos/{minor}"
+RHCOS_PRE_RELEASE = "pre-release"
 
 # RCHOS version
-RCHOS_LIVE_ISO_URL = "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/{minor}/{version}/rhcos-{version}-x86_64-live.x86_64.iso"
+RCHOS_LIVE_ISO_URL = "https://mirror.openshift.com/pub/openshift-v4/{architecture}/dependencies/rhcos/{minor}/{version}/rhcos-{version}-{architecture}-live.{architecture}.iso"
 
 RCHOS_VERSION_FROM_ISO_REGEX = re.compile("coreos.liveiso=rhcos-(.*) ")
 DOWNLOAD_LIVE_ISO_CMD = "curl {live_iso_url} -o {out_file}"
@@ -60,8 +61,6 @@ ASSISTED_SERVICE_OPENSHIFT_TEMPLATE_YAML = f"{ASSISTED_SERVICE_CLONE_DIR}/opensh
 
 OCP_REPLACE_CONTEXT = ['"{version}"', "ocp-release:{version}"]
 
-RHCOS_LIVE_ISO_REGEX = re.compile("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/.*/(.*)/.*-x86_64-live.x86_64.iso")
-
 # GitLab SSL
 REDHAT_CERT_URL = 'https://password.corp.redhat.com/RH-IT-Root-CA.crt'
 REDHAT_CERT_LOCATION = "/tmp/redhat.cert"
@@ -80,6 +79,8 @@ SKIPPED_MAJOR_RELEASE = ["4.6"]
 
 CPU_ARCHITECTURE_AMD64 = "amd64"
 CPU_ARCHITECTURE_X86_64 = "x86_64"
+CPU_ARCHITECTURE_ARM64 = "arm64"
+CPU_ARCHITECTURE_AARCH64 = "aarch64"
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -110,8 +111,11 @@ def cmd_with_git_ssh_key(key_file):
         "GIT_SSH_COMMAND": GIT_SSH_COMMAND_WITH_KEY.format(key=key_file)
     })
 
-def get_rchos_version_from_iso(rhcos_latest_release, iso_url):
-    live_iso_url = iso_url.format(version=rhcos_latest_release)
+def get_rchos_version_from_iso(minor_version, rhcos_latest_release, cpu_architecture):
+    # RHCOS filename uses 'aarch64' naming
+    if cpu_architecture == CPU_ARCHITECTURE_ARM64:
+        cpu_architecture = CPU_ARCHITECTURE_AARCH64
+    live_iso_url = RCHOS_LIVE_ISO_URL.format(minor=minor_version, version=rhcos_latest_release, architecture=cpu_architecture)
     with tempfile.NamedTemporaryFile() as tmp_live_iso_file:
         subprocess.check_output(
             DOWNLOAD_LIVE_ISO_CMD.format(live_iso_url=live_iso_url, out_file=tmp_live_iso_file.name), shell=True)
@@ -120,7 +124,7 @@ def get_rchos_version_from_iso(rhcos_latest_release, iso_url):
         except FileNotFoundError:
             pass
 
-        subprocess.check_output(f"7za x {tmp_live_iso_file.name} zipl.prm", shell=True, cwd="/tmp")
+        subprocess.check_output(f"isoinfo -i {tmp_live_iso_file.name} -x /ZIPL.PRM\;1 > zipl.prm", shell=True, cwd="/tmp")
         with open("/tmp/zipl.prm", 'r') as f:
             zipl_info = f.read()
         result = RCHOS_VERSION_FROM_ISO_REGEX.search(zipl_info)
@@ -255,33 +259,33 @@ def get_release_data(minor_release, cpu_architecture):
     return release_data
 
 def is_pre_release(release):
-        return "-fc" in release or "-rc" in release
+        return ("-fc" in release or "-rc" in release) and not "nightly" in release
 
-def get_latest_rchos_release_from_minor(minor_release: str, all_releases: list):
-
-    all_relevant_releases = [r for r in all_releases if r.startswith(minor_release) and not is_pre_release(r)]
-
-    if not all_relevant_releases:
-        all_relevant_releases = [r for r in all_releases if r.startswith(minor_release)]
+def get_latest_rhcos_release_from_minor(minor_release: str, all_releases: list, pre_release: bool = False):
+    if pre_release:
+        all_relevant_releases = [r for r in all_releases if r.startswith(minor_release) and is_pre_release(r)]
+    else:
+        all_relevant_releases = [r for r in all_releases if r.startswith(minor_release) and not is_pre_release(r)]
 
     if not all_relevant_releases:
         return None
 
     return sorted(all_relevant_releases, key=LooseVersion)[-1]
 
-def get_all_releases(path: str):
+def get_all_releases(openshift_version, cpu_architecture):
+    path = RHCOS_RELEASES.format(minor=openshift_version, architecture=cpu_architecture)
     res = requests.get(path)
     if not res.ok:
-        raise Exception("can\'t get releases")
+        return None
 
     page = res.text
     soup = BeautifulSoup(page, 'html.parser')
     return [node.get('href').replace("/", "") for node in soup.find_all('a')]
 
-def get_rchos_release_from_default_version_json(rhcos_image_url, rhcos_url_regex):
-    result = rhcos_url_regex.search(rhcos_image_url)
-    rhcos_default_version = result.group(1)
-    return rhcos_default_version
+def get_rchos_release_from_default_version_json(rhcos_image_url):
+    # Fetch version from RHCOS image URL
+    return rhcos_image_url.split('/')[-2]
+    
 
 def is_open_update_version_ticket(args):
     jira_client = get_jira_client(*get_login(args.jira_user_password))
@@ -301,10 +305,12 @@ def main(args):
     dry_run = args.dry_run
     if dry_run:
         logger.info("Running dry-run")
-    if not dry_run:
-        if is_open_update_version_ticket(args) and not dry_run:
+    else:
+        if is_open_update_version_ticket(args):
             logger.info("No updates today since there is a update waiting to be merged")
             return
+        user, password = get_login(args.github_user_password)
+        clone_assisted_service(user, password)
 
     default_release_images_json = request_json_file(ASSISTED_SERVICE_MASTER_DEFAULT_RELEASE_IMAGES_JSON_URL)
     default_os_images_json = request_json_file(ASSISTED_SERVICE_MASTER_DEFAULT_OS_IMAGES_JSON_URL)
@@ -312,10 +318,6 @@ def main(args):
 
     updates_made = set()
     updates_made_str = set()
-
-    if not dry_run:
-        user, password = get_login(args.github_user_password)
-        clone_assisted_service(user, password)
 
     update_release_images_json(default_release_images_json, updates_made, updates_made_str, dry_run)
     update_os_images_json(default_os_images_json, updates_made, updates_made_str, dry_run)
@@ -325,6 +327,7 @@ def main(args):
         verify_latest_config()
 
         if dry_run:
+            logger.info(f"Bump OCP versions: {updates_made_str}")
             return
 
         title, task = create_jira_task(updates_made_str, dry_run, args)
@@ -347,10 +350,10 @@ def update_ocp_versions_json(default_version_json, updates_made, updates_made_st
 
         current_default_ocp_release = default_version_json.get(release).get("display_name")
 
-        if current_default_ocp_release != latest_ocp_release or dry_run:
+        if current_default_ocp_release != latest_ocp_release:
 
             updates_made.add(release)
-            updates_made_str.add(f"{current_default_ocp_release} -> {latest_ocp_release}")
+            updates_made_str.add(f"release {current_default_ocp_release} -> {latest_ocp_release}")
 
             logger.info(f"New latest ocp release available for {release}, {current_default_ocp_release} -> {latest_ocp_release}")
             updated_version_release = updated_version_json[release]
@@ -367,15 +370,21 @@ def update_ocp_versions_json(default_version_json, updates_made, updates_made_st
         if not all (k in updated_version_json[release] for k in ("rhcos_image","rhcos_rootfs","rhcos_version")):
             continue
 
-        rchos_image_url = updated_version_json[release]['rhcos_image']
-        rhcos_default_release = get_rchos_release_from_default_version_json(rchos_image_url, RHCOS_LIVE_ISO_REGEX)
-        rhcos_latest_of_releases = get_all_releases(RHCOS_RELEASES.format(minor=release))
-        rhcos_latest_release = get_latest_rchos_release_from_minor(release, rhcos_latest_of_releases)
+        rhcos_image_url = updated_version_json[release]['rhcos_image']
+        rhcos_default_release = get_rchos_release_from_default_version_json(rhcos_image_url)
 
-        if (not is_pre_release(rhcos_latest_release) and rhcos_default_release != rhcos_latest_release) or dry_run:
+        # Get all releases for minor versions. If not available, fallback to pre-releases.
+        rhcos_latest_of_releases = get_all_releases(release, CPU_ARCHITECTURE_X86_64)
+        pre_release = False
+        if not rhcos_latest_of_releases:
+            rhcos_latest_of_releases = get_all_releases(RHCOS_PRE_RELEASE, CPU_ARCHITECTURE_X86_64)
+            pre_release = True
+        rhcos_latest_release = get_latest_rhcos_release_from_minor(release, rhcos_latest_of_releases, pre_release)
+
+        if rhcos_default_release != rhcos_latest_release:
 
             updates_made.add(release)
-            updates_made_str.add(f"rchos {rhcos_default_release} -> {rhcos_latest_release}")
+            updates_made_str.add(f"rhcos {rhcos_default_release} -> {rhcos_latest_release}")
 
             logger.info(f"New latest rhcos release available, {rhcos_default_release} -> {rhcos_latest_release}")
 
@@ -383,10 +392,11 @@ def update_ocp_versions_json(default_version_json, updates_made, updates_made_st
             updated_version_json[release]["rhcos_rootfs"] = updated_version_json[release]["rhcos_rootfs"].replace(rhcos_default_release, rhcos_latest_release)
 
             if dry_run:
-                rchos_version_from_iso = "8888888"
+                rhcos_version_from_iso = "8888888"
             else:
-                rchos_version_from_iso = get_rchos_version_from_iso(rhcos_latest_release, RCHOS_LIVE_ISO_URL.format(minor=release, version=rhcos_latest_release))            
-            updated_version_json[release]["rhcos_version"] = rchos_version_from_iso
+                minor_version = RHCOS_PRE_RELEASE if pre_release else release
+                rhcos_version_from_iso = get_rchos_version_from_iso(minor_version, rhcos_latest_release, CPU_ARCHITECTURE_X86_64)            
+            updated_version_json[release]["rhcos_version"] = rhcos_version_from_iso
 
     if updates_made:
         with open(os.path.join(ASSISTED_SERVICE_CLONE_DIR, DEFAULT_VERSIONS_FILES), 'w') as outfile:
@@ -412,10 +422,10 @@ def update_release_images_json(default_release_images_json, updates_made, update
 
         current_default_release_version = release_image["version"]
 
-        if current_default_release_version != latest_ocp_release_version or dry_run:
+        if current_default_release_version != latest_ocp_release_version:
 
             updates_made.add(openshift_version)
-            updates_made_str.add(f"{current_default_release_version} -> {latest_ocp_release_version}")
+            updates_made_str.add(f"release {current_default_release_version} -> {latest_ocp_release_version}")
 
             logger.info(f"New latest ocp release available for {openshift_version}, {current_default_release_version} -> {latest_ocp_release_version}")
             updated_version_json[index]["version"] = latest_ocp_release_version
@@ -437,19 +447,21 @@ def update_os_images_json(default_os_images_json, updates_made, updates_made_str
             logger.info(f"Skipping {openshift_version} listed in the skip list")
             continue
 
+        rhcos_image_url = os_image['url']
+        rhcos_default_release = get_rchos_release_from_default_version_json(rhcos_image_url)
+
+        # Get all releases for minor versions. If not available, fallback to pre-releases.
         cpu_architecture = os_image["cpu_architecture"]
-        if cpu_architecture != CPU_ARCHITECTURE_X86_64:
-            logger.info(f"Skipping non-x86_64 OS images for now")
-            continue
+        rhcos_latest_of_releases = get_all_releases(openshift_version, cpu_architecture)
+        pre_release = False
+        if not rhcos_latest_of_releases:
+            rhcos_latest_of_releases = get_all_releases(RHCOS_PRE_RELEASE, cpu_architecture)
+            pre_release = True
+        rhcos_latest_release = get_latest_rhcos_release_from_minor(openshift_version, rhcos_latest_of_releases, pre_release)
 
-        rchos_image_url = os_image['url']       
-        rhcos_default_release = get_rchos_release_from_default_version_json(rchos_image_url, RHCOS_LIVE_ISO_REGEX)
-        rhcos_latest_of_releases = get_all_releases(RHCOS_RELEASES.format(minor=openshift_version))
-        rhcos_latest_release = get_latest_rchos_release_from_minor(openshift_version, rhcos_latest_of_releases)
-
-        if (not is_pre_release(rhcos_latest_release) and rhcos_default_release != rhcos_latest_release) or dry_run:
+        if rhcos_default_release != rhcos_latest_release:
             updates_made.add(openshift_version)
-            updates_made_str.add(f"rchos {rhcos_default_release} -> {rhcos_latest_release}")
+            updates_made_str.add(f"rhcos {rhcos_default_release} -> {rhcos_latest_release}")
 
             logger.info(f"New latest rhcos release available, {rhcos_default_release} -> {rhcos_latest_release}")
             updated_version_json[index]["url"] = updated_version_json[index]["url"].replace(rhcos_default_release, rhcos_latest_release)
@@ -458,8 +470,8 @@ def update_os_images_json(default_os_images_json, updates_made, updates_made_str
             if dry_run:
                 rhcos_version_from_iso = "8888888"
             else:
-                rhcos_version_from_iso = get_rchos_version_from_iso(rhcos_latest_release, RCHOS_LIVE_ISO_URL.format(minor=openshift_version, version=rhcos_latest_release))            
-            
+                minor_version = RHCOS_PRE_RELEASE if pre_release else openshift_version
+                rhcos_version_from_iso = get_rchos_version_from_iso(minor_version, rhcos_latest_release, cpu_architecture)
             updated_version_json[index]["version"] = rhcos_version_from_iso
 
     if updates_made:
