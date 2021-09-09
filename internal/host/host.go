@@ -215,6 +215,9 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB)
 		host = h
 	} else {
 		host = &dbHost.Host
+		if h != nil {
+			host.Kind = h.Kind
+		}
 	}
 
 	return m.sm.Run(TransitionTypeRegisterHost, newStateHost(host), &TransitionArgsRegisterHost{

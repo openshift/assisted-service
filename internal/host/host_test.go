@@ -1597,6 +1597,7 @@ var _ = Describe("Unbind host", func() {
 			Expect(reply).To(BeNil())
 			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
 			Expect(h.ClusterID).To(BeNil())
+			Expect(swag.StringValue(h.Kind)).To(Equal(models.HostKindHost))
 		}
 
 		failure := func(reply error) {
@@ -1608,6 +1609,7 @@ var _ = Describe("Unbind host", func() {
 		tests := []struct {
 			name       string
 			srcState   string
+			kind       *string
 			validation func(error)
 		}{
 			{
@@ -1658,6 +1660,7 @@ var _ = Describe("Unbind host", func() {
 			{
 				name:       models.HostStatusInsufficient,
 				srcState:   models.HostStatusInsufficient,
+				kind:       swag.String(models.HostKindAddToExistingClusterHost),
 				validation: success,
 			},
 			{
@@ -1702,6 +1705,9 @@ var _ = Describe("Unbind host", func() {
 			It(t.name, func() {
 				mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvId, &hostId, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, t.srcState)
+				if t.kind != nil {
+					host.Kind = t.kind
+				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				t.validation(hapi.UnbindHost(ctx, &host, db))
 			})

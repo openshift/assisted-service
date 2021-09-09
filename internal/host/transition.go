@@ -368,7 +368,7 @@ func (th *transitionHandler) PostUnbindHost(sw stateswitch.StateSwitch, args sta
 		return errors.New("PostUnbindHost invalid argument")
 	}
 
-	extra := append(resetFields[:], "cluster_id", nil)
+	extra := append(resetFields[:], "cluster_id", nil, "kind", swag.String(models.HostKindHost))
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoUnbinding,
 		extra...)
 }
