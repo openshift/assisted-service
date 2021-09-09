@@ -160,9 +160,11 @@ var _ = Describe("test authorization", func() {
 })
 
 var _ = Describe("Make sure that sensitive files are accessible only by owners of cluster", func() {
-	var ctx context.Context
-	var clusterID strfmt.UUID
-	var file *os.File
+	var (
+		ctx       context.Context
+		clusterID strfmt.UUID
+		file      *os.File
+	)
 	AfterEach(func() {
 		clearDB()
 	})
@@ -181,20 +183,24 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		Expect(err).NotTo(HaveOccurred())
 		Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
 	})
-	It("Should not allow read-only-admins to download kubeconfig", func() {
-		_, err := readOnlyAdminUserBMClient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
-		Expect(err).To(HaveOccurred())
-		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterKubeconfigForbidden())))
+
+	Context("/v1/<cluster_id>/downloads/kubeconfig", func() {
+		It("Should not allow read-only-admins to download kubeconfig", func() {
+			_, err := readOnlyAdminUserBMClient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+			Expect(err).To(HaveOccurred())
+			Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterKubeconfigForbidden())))
+		})
+		It("Should allow 'user role' to download kubeconfig", func() {
+			res, err := userBMClient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterKubeconfigOK(file))))
+		})
 	})
-	It("Should allow 'user role' to download kubeconfig", func() {
-		res, err := userBMClient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterKubeconfigOK(file))))
-	})
+
 	for _, name := range cluster.ClusterOwnerFileNames {
 		// No access tests
 		fileName := name
-		it := fmt.Sprintf("Should not read-only-admins to download '%v' via download/files endpoint", fileName)
+		it := fmt.Sprintf("Should not allow read-only-admins to download '%v' via downloads/files endpoint", fileName)
 		It(it, func() {
 			file, err := ioutil.TempFile("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
@@ -202,13 +208,24 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 			Expect(err).To(HaveOccurred())
 			Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterFilesForbidden())))
 		})
+		it = fmt.Sprintf("Should not allow read-only-admins  to download '%v' via downloads/files-presigned endpoint", fileName)
+		It(it, func() {
+			_, err := readOnlyAdminUserBMClient.Installer.GetPresignedForClusterFiles(ctx, &installer.GetPresignedForClusterFilesParams{ClusterID: clusterID, FileName: fileName})
+			Expect(err).To(HaveOccurred())
+			Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewGetPresignedForClusterFilesForbidden())))
+		})
 		// Access granted
-		it = fmt.Sprintf("Should allow cluster users to download '%v' via download/files endpoint", fileName)
+		it = fmt.Sprintf("Should allow cluster users to download '%v' via downloads/files endpoint", fileName)
 		It(it, func() {
 			file, err := ioutil.TempFile("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
 			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: fileName}, file)
 			Expect(err).ToNot(HaveOccurred())
+		})
+		it = fmt.Sprintf("Should allow cluster users to download '%v' via downloads/files-presigned endpoint", fileName)
+		It(it, func() {
+			_, err := userBMClient.Installer.GetPresignedForClusterFiles(ctx, &installer.GetPresignedForClusterFilesParams{ClusterID: clusterID, FileName: fileName})
+			Expect(reflect.TypeOf(err)).ShouldNot(Equal(reflect.TypeOf(installer.NewGetPresignedForClusterFilesForbidden())))
 		})
 
 	}
