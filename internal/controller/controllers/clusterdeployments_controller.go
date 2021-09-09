@@ -266,7 +266,7 @@ func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.
 			if err == nil {
 				if swag.StringValue(cluster.Status) == models.ClusterStatusInstalling {
 					log.Infof("ClusterInstall is being deleted, cancel installation for cluster %s", *cluster.ID)
-					if _, err = r.Installer.CancelInstallationInternal(ctx, installer.CancelInstallationParams{
+					if _, err = r.Installer.CancelInstallationInternal(ctx, installer.V2CancelInstallationParams{
 						ClusterID: *cluster.ID,
 					}); err != nil {
 						return &ctrl.Result{Requeue: true}, err

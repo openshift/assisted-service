@@ -196,6 +196,9 @@ type API interface {
 	   UploadLogs Agent API to upload logs.*/
 	UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error)
 	/*
+	   V2CancelInstallation Cancels an ongoing installation.*/
+	V2CancelInstallation(ctx context.Context, params *V2CancelInstallationParams) (*V2CancelInstallationAccepted, error)
+	/*
 	   V2DownloadClusterCredentials Downloads credentials relating to the installed/installing cluster.*/
 	V2DownloadClusterCredentials(ctx context.Context, params *V2DownloadClusterCredentialsParams, writer io.Writer) (*V2DownloadClusterCredentialsOK, error)
 	/*
@@ -1729,6 +1732,31 @@ func (a *Client) UploadLogs(ctx context.Context, params *UploadLogsParams) (*Upl
 		return nil, err
 	}
 	return result.(*UploadLogsNoContent), nil
+
+}
+
+/*
+V2CancelInstallation Cancels an ongoing installation.
+*/
+func (a *Client) V2CancelInstallation(ctx context.Context, params *V2CancelInstallationParams) (*V2CancelInstallationAccepted, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2CancelInstallation",
+		Method:             "POST",
+		PathPattern:        "/v2/clusters/{cluster_id}/actions/cancel",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2CancelInstallationReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2CancelInstallationAccepted), nil
 
 }
 

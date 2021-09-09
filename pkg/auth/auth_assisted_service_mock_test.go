@@ -28,6 +28,10 @@ func (f fakeInventory) CancelInstallation(ctx context.Context, params installer.
 	return installer.NewCancelInstallationAccepted()
 }
 
+func (f fakeInventory) V2CancelInstallation(ctx context.Context, params installer.V2CancelInstallationParams) middleware.Responder {
+	return installer.NewV2CancelInstallationAccepted()
+}
+
 func (f fakeInventory) Prog(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
 	return installer.NewCancelInstallationAccepted()
 }
