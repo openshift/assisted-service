@@ -1180,6 +1180,9 @@ func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationS
 }
 
 func (v *validator) isDNSWildcardNotConfigured(c *validationContext) ValidationStatus {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput
+	}
 	if hostutil.IsDay2Host(c.host) {
 		return ValidationSuccess
 	}
