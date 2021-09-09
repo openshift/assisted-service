@@ -124,7 +124,7 @@ type OCPClusterAPI interface {
 type InstallerInternals interface {
 	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.V2RegisterClusterParams, v1Flag bool) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error)
-	UpdateClusterNonInteractive(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
+	UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
 	UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
@@ -2079,8 +2079,8 @@ func (b *bareMetalInventory) V2UpdateCluster(ctx context.Context, params install
 	return installer.NewV2UpdateClusterCreated().WithPayload(&c.Cluster)
 }
 
-func (b *bareMetalInventory) UpdateClusterNonInteractive(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error) {
-	return b.updateClusterInternal(ctx, params, NonInteractive)
+func (b *bareMetalInventory) UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams) (*common.Cluster, error) {
+	return b.v2UpdateClusterInternal(ctx, params, NonInteractive)
 }
 
 func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params installer.UpdateClusterParams, interactivity Interactivity) (*common.Cluster, error) {

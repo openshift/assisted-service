@@ -1055,7 +1055,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			kubeconfig := "kubeconfig content"
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(&models.Credentials{Password: "foo", Username: "bar"}, nil).Times(1)
-			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
+			mockInstallerInternal.EXPECT().V2DownloadClusterCredentialsInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
@@ -1101,7 +1101,7 @@ var _ = Describe("cluster reconcile", func() {
 				Username: username,
 			}
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
-			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfigNoIngress)), int64(len(kubeconfigNoIngress)), nil).Times(1)
+			mockInstallerInternal.EXPECT().V2DownloadClusterCredentialsInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfigNoIngress)), int64(len(kubeconfigNoIngress)), nil).Times(1)
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
@@ -1116,7 +1116,7 @@ var _ = Describe("cluster reconcile", func() {
 			By("Call reconcile again to test update of Kubeconfig secret")
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			kubeconfigIngress := "kubeconfig content WITHINGRESS"
-			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfigIngress)), int64(len(kubeconfigIngress)), nil).Times(1)
+			mockInstallerInternal.EXPECT().V2DownloadClusterCredentialsInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfigIngress)), int64(len(kubeconfigIngress)), nil).Times(1)
 			result, err = cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
@@ -1144,7 +1144,7 @@ var _ = Describe("cluster reconcile", func() {
 				Username: username,
 			}
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
-			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
+			mockInstallerInternal.EXPECT().V2DownloadClusterCredentialsInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
 			aci.Spec.ProvisionRequirements.WorkerAgents = 0
 			aci.Spec.ProvisionRequirements.ControlPlaneAgents = 1
 			cluster.Spec.BaseDomain = "hive.example.com"
@@ -1245,7 +1245,7 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
 			expectedErr := "internal error"
-			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(nil, int64(0), errors.New(expectedErr)).Times(1)
+			mockInstallerInternal.EXPECT().V2DownloadClusterCredentialsInternal(gomock.Any(), gomock.Any()).Return(nil, int64(0), errors.New(expectedErr)).Times(1)
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
@@ -1788,7 +1788,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, param installer.UpdateClusterParams) {
+				Do(func(ctx context.Context, param installer.V2UpdateClusterParams) {
 					Expect(swag.StringValue(param.ClusterUpdateParams.PullSecret)).To(Equal(testPullSecretVal))
 					Expect(swag.StringValue(param.ClusterUpdateParams.Name)).To(Equal(defaultClusterSpec.ClusterName))
 					Expect(string(param.ClusterUpdateParams.ClusterNetworks[0].Cidr)).
@@ -1874,7 +1874,7 @@ var _ = Describe("cluster reconcile", func() {
 						updateReply.MachineNetworks = machineNetworksEntriesToArray(test.expectedMachineNetworks)
 
 						mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).
-							Do(func(ctx context.Context, param installer.UpdateClusterParams) {
+							Do(func(ctx context.Context, param installer.V2UpdateClusterParams) {
 								Expect(param.ClusterUpdateParams.MachineNetworks).Should(
 									Equal(machineNetworksEntriesToArray(test.expectedMachineNetworks)))
 							}).Return(updateReply, nil)
@@ -2202,7 +2202,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader("kubeconfig")), int64(len("kubeconfig")), nil).Times(1)
+			mockInstallerInternal.EXPECT().V2DownloadClusterCredentialsInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader("kubeconfig")), int64(len("kubeconfig")), nil).Times(1)
 
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
@@ -2241,7 +2241,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader("kubeconfig")), int64(len("kubeconfig")), nil).Times(1)
+			mockInstallerInternal.EXPECT().V2DownloadClusterCredentialsInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader("kubeconfig")), int64(len("kubeconfig")), nil).Times(1)
 
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
@@ -2648,7 +2648,7 @@ var _ = Describe("selectClusterNetworkType", func() {
 	for i := range tests {
 		t := tests[i]
 		It("getNetworkType", func() {
-			ClusterUpdateParams := &models.ClusterUpdateParams{
+			ClusterUpdateParams := &models.V2ClusterUpdateParams{
 				ServiceNetworks: t.paramServiceNetworks,
 			}
 
