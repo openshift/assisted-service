@@ -1111,7 +1111,7 @@ func (v *validator) isAPIDomainNameResolvedCorrectly(c *validationContext) Valid
 
 func (v *validator) printIsAPIDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
 	apiDomainName := domainNameToResolve(c, constants.APIName)
-	return printIsDomainNameResolvedCorrectly(c, status, apiDomainName)
+	return printIsDomainNameResolvedCorrectly(c, status, apiDomainName, "API load balancer")
 }
 
 func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
@@ -1127,7 +1127,7 @@ func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContex
 
 func (v *validator) printIsAPIInternalDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
 	apiInternalDomainName := domainNameToResolve(c, constants.APIInternalName)
-	return printIsDomainNameResolvedCorrectly(c, status, apiInternalDomainName)
+	return printIsDomainNameResolvedCorrectly(c, status, apiInternalDomainName, "API load balancer")
 }
 
 func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
@@ -1143,7 +1143,7 @@ func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) Vali
 
 func (v *validator) printIsAppsDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
 	appsDomainName := domainNameToResolve(c, "*.apps")
-	return printIsDomainNameResolvedCorrectly(c, status, appsDomainName)
+	return printIsDomainNameResolvedCorrectly(c, status, appsDomainName, "application Ingress load balancer")
 }
 
 func checkDomainNameResolution(c *validationContext, domainName string) ValidationStatus {
@@ -1163,7 +1163,7 @@ func checkDomainNameResolution(c *validationContext, domainName string) Validati
 	return ValidationFailure
 }
 
-func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus, domainName string) string {
+func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus, domainName string, destination string) string {
 	switch status {
 	case ValidationSuccess:
 		if !swag.BoolValue(c.cluster.UserManagedNetworking) {
@@ -1171,7 +1171,7 @@ func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationS
 		}
 		return fmt.Sprintf("Domain name resolution was successful for domain %s", domainName)
 	case ValidationFailure:
-		return fmt.Sprintf("Failed to resolve domain name %s correctly on the host. Expected name to resolve to something. The installation will not be able to complete as long as the DNS resolution is empty. Please create the necessary DNS entries to continue.", domainName)
+		return fmt.Sprintf("Couldn’t resolve domain name “%s” on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", domainName, destination)
 	case ValidationError:
 		return "Parse error for domain name resolutions result"
 	default:
