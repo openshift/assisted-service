@@ -4076,6 +4076,12 @@ func (b *bareMetalInventory) refreshClusterStatus(
 
 func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, params installer.GetPresignedForClusterFilesParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+
+	if err := b.checkFileDownloadAccess(ctx, params.FileName); err != nil {
+		payload := common.GenerateInfraError(http.StatusForbidden, err)
+		return installer.NewGetPresignedForClusterFilesForbidden().WithPayload(payload)
+	}
+
 	// Presigned URL only works with AWS S3 because Scality is not exposed
 	if !b.objectHandler.IsAwsS3() {
 		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
@@ -4175,15 +4181,11 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 		return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(ioutil.NopCloser(strings.NewReader(cfg))), params.FileName, int64(len(cfg)))
 	}
 
-	// the OCM payload is only set in the cloud environment when the auth type is RHSSO
-	if funk.Contains(clusterPkg.ClusterOwnerFileNames, params.FileName) && b.authHandler.AuthType() == auth.TypeRHSSO {
-		authPayload := ocm.PayloadFromContext(ctx)
-		if ocm.UserRole != authPayload.Role {
-			errMsg := fmt.Sprintf("File '%v' is accessible only for cluster owners", params.FileName)
-			payload := common.GenerateInfraError(http.StatusForbidden, errors.New(errMsg))
-			return installer.NewDownloadClusterFilesForbidden().WithPayload(payload)
-		}
+	if err := b.checkFileDownloadAccess(ctx, params.FileName); err != nil {
+		payload := common.GenerateInfraError(http.StatusForbidden, err)
+		return installer.NewDownloadClusterFilesForbidden().WithPayload(payload)
 	}
+
 	respBody, contentLength, err := b.DownloadClusterFilesInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
@@ -4289,6 +4291,18 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	if err != nil {
 		log.WithError(err).Errorf("failed to get file for cluster %s in current state", clusterID)
 		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) checkFileDownloadAccess(ctx context.Context, fileName string) error {
+	// the OCM payload is only set in the cloud environment when the auth type is RHSSO
+	if funk.Contains(clusterPkg.ClusterOwnerFileNames, fileName) && b.authHandler.AuthType() == auth.TypeRHSSO {
+		authPayload := ocm.PayloadFromContext(ctx)
+		if ocm.UserRole != authPayload.Role {
+			errMsg := fmt.Sprintf("File '%v' is accessible only for cluster owners", fileName)
+			return errors.New(errMsg)
+		}
 	}
 	return nil
 }
