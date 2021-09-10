@@ -15,6 +15,9 @@ volumes:
   - $HOME/.docker/:$HOME/.docker
   - $KUBECONFIG:$KUBECONFIG
 
+  # podman - sharing the podman.socket between the host and the skipper container
+  - $XDG_RUNTIME_DIR/podman/podman.sock:/run/podman/podman.sock
+  
   # cache
   - $HOME/.cache/go-build:/go/pkg/mod
   - $HOME/.cache/golangci-lint:$HOME/.cache/golangci-lint
@@ -28,3 +31,5 @@ env_file:
 env:
   GOCACHE: "/go/pkg/mod"
   KUBECONFIG: $KUBECONFIG
+  # a podman-remote env variable: the podman socket url to use
+  CONTAINER_HOST: unix://run/podman/podman.sock

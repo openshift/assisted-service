@@ -39,13 +39,22 @@ function spectral() {
   chmod +x /usr/local/bin/spectral
 }
 
+function get_package_manager() {
+    PACKAGE_MANAGER=$( command -v dnf &> /dev/null && echo "dnf" || echo "yum")
+    echo $PACKAGE_MANAGER
+}
+
 function assisted_service() {
+  PACKAGE_MANAGER=$(get_package_manager)
+
+  mkdir -p $GOPATH
   latest_kubectl_version=$(curl --retry 5 -L -s https://dl.k8s.io/release/stable.txt)
   curl --retry 5 -L "https://dl.k8s.io/release/${latest_kubectl_version}/bin/linux/amd64/kubectl" -o /tmp/kubectl && \
     install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
     rm -f /tmp/kubectl
-  yum install -y docker podman libvirt-clients awscli python3-pip postgresql genisoimage skopeo p7zip && \
-    yum clean all
+  
+  ${PACKAGE_MANAGER} -y update && ${PACKAGE_MANAGER} install -y which jq python3 podman-remote docker-ce-cli libvirt-client python3-pip postgresql genisoimage make git skopeo p7zip awscli && \
+    ${PACKAGE_MANAGER} clean all
 
   kustomize
 
@@ -70,6 +79,7 @@ function assisted_service() {
     sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.2 \
     github.com/AlekSi/gocov-xml@v0.0.0-20190121064608-3a14fb1c4737
 
+  python3 -m venv ${VIRTUAL_ENV:-/opt/venv} 
   python3 -m pip install --upgrade pip
   python3 -m pip install -r ./dev-requirements.txt
 }
