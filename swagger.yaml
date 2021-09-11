@@ -4940,6 +4940,261 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}/actions/reset:
+    post:
+      tags:
+        - installer
+      description: Resets a failed installation.
+      operationId: v2ResetCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose installation is to be reset.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "202":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/clusters/{cluster_id}/preflight-requirements:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      description: Get preflight requirements for a cluster.
+      operationId: v2GetPreflightRequirements
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster to return preflight requrements for.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/preflight-hardware-requirements'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/clusters/{cluster_id}/uploads/ingress-cert:
+    post:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      description: Transfer the ingress certificate for the cluster.
+      operationId: v2UploadClusterIngressCert
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster to associate with the ingress certificate.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: ingress-cert-params
+          description: The ingress certificate.
+          required: true
+          schema:
+            $ref: '#/definitions/ingress-cert-params'
+        - in: header
+          name: discovery_agent_version
+          description: The software version of the discovery agent that is uploading the ingress certificate.
+          type: string
+          required: false
+      responses:
+        "201":
+          description: Success.
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/clusters/{cluster_id}/actions/complete-installation:
+    post:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      description: Agent API to mark a finalizing installation as complete.
+      operationId: v2CompleteInstallation
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose installation is being completing.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: completion-params
+          description: The final status of the cluster installation.
+          required: true
+          schema:
+            $ref: '#/definitions/completion-params'
+        - in: header
+          name: discovery_agent_version
+          description: The software version of the discovery agent that is completing the installation.
+          type: string
+          required: false
+      responses:
+        "202":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/clusters/{cluster_id}/logs-progress:
+    put:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      description: Update log collection state and progress.
+      operationId: v2UpdateClusterLogsProgress
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose log progress is being updated.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: logs-progress-params
+          description: Parameters for updating log progress.
+          required: true
+          schema:
+            $ref: '#/definitions/logs-progress-params'
+      responses:
+        "204":
+          description: Update cluster install progress.
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   vsphere_platform:
     type: object

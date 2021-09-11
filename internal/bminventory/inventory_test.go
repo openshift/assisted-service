@@ -5508,7 +5508,7 @@ var _ = Describe("cluster", func() {
 				resetReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
 					ClusterID: clusterID,
 				})
-				Expect(resetReply).Should(BeAssignableToTypeOf(installer.NewResetClusterAccepted()))
+				Expect(resetReply).Should(BeAssignableToTypeOf(installer.NewV2ResetClusterAccepted()))
 			})
 			It("reset cluster conflict", func() {
 				setResetClusterConflict()
@@ -5542,7 +5542,7 @@ var _ = Describe("cluster", func() {
 					ClusterID:        clusterID,
 					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
 				})
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewCompleteInstallationAccepted()))
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2CompleteInstallationAccepted()))
 			})
 			It("complete failure", func() {
 				success := false
@@ -5552,7 +5552,7 @@ var _ = Describe("cluster", func() {
 					ClusterID:        clusterID,
 					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
 				})
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewCompleteInstallationAccepted()))
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2CompleteInstallationAccepted()))
 			})
 			It("complete failure bad request", func() {
 				success := false
@@ -8317,14 +8317,14 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			ClusterID:         *clusterId,
 			IngressCertParams: ingressCa,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertNotFound()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertNotFound()))
 	})
 	It("UploadClusterIngressCert cluster is not in installed state", func() {
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertBadRequest()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertBadRequest()))
 
 	})
 	It("UploadClusterIngressCert kubeconfig already exists, return ok", func() {
@@ -8336,7 +8336,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertCreated()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertCreated()))
 	})
 	It("UploadClusterIngressCert DoesObjectExist fails ", func() {
 		status := models.ClusterStatusFinalizing
@@ -8347,7 +8347,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertInternalServerError()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
 	It("UploadClusterIngressCert s3download failure", func() {
 		status := models.ClusterStatusFinalizing
@@ -8359,7 +8359,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertInternalServerError()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
 	It("UploadClusterIngressCert bad kubeconfig, mergeIngressCaIntoKubeconfig failure", func() {
 		status := models.ClusterStatusFinalizing
@@ -8372,7 +8372,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertInternalServerError()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
 	It("UploadClusterIngressCert bad ingressCa, mergeIngressCaIntoKubeconfig failure", func() {
 		status := models.ClusterStatusFinalizing
@@ -8384,7 +8384,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			ClusterID:         clusterID,
 			IngressCertParams: "bad format",
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertInternalServerError()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
 
 	It("UploadClusterIngressCert push fails", func() {
@@ -8407,7 +8407,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertInternalServerError()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
 
 	It("UploadClusterIngressCert download happy flow", func() {
@@ -8428,7 +8428,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
-		Expect(generateReply).Should(Equal(installer.NewUploadClusterIngressCertCreated()))
+		Expect(generateReply).Should(Equal(installer.NewV2UploadClusterIngressCertCreated()))
 	})
 })
 var _ = Describe("List clusters", func() {

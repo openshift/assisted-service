@@ -848,6 +848,20 @@ func (mr *MockInstallerAPIMockRecorder) V2CancelInstallation(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2CancelInstallation", reflect.TypeOf((*MockInstallerAPI)(nil).V2CancelInstallation), arg0, arg1)
 }
 
+// V2CompleteInstallation mocks base method.
+func (m *MockInstallerAPI) V2CompleteInstallation(arg0 context.Context, arg1 installer.V2CompleteInstallationParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2CompleteInstallation", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2CompleteInstallation indicates an expected call of V2CompleteInstallation.
+func (mr *MockInstallerAPIMockRecorder) V2CompleteInstallation(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2CompleteInstallation", reflect.TypeOf((*MockInstallerAPI)(nil).V2CompleteInstallation), arg0, arg1)
+}
+
 // V2DeregisterCluster mocks base method.
 func (m *MockInstallerAPI) V2DeregisterCluster(arg0 context.Context, arg1 installer.V2DeregisterClusterParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -988,6 +1002,20 @@ func (mr *MockInstallerAPIMockRecorder) V2GetNextSteps(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetNextSteps", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetNextSteps), arg0, arg1)
 }
 
+// V2GetPreflightRequirements mocks base method.
+func (m *MockInstallerAPI) V2GetPreflightRequirements(arg0 context.Context, arg1 installer.V2GetPreflightRequirementsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2GetPreflightRequirements", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2GetPreflightRequirements indicates an expected call of V2GetPreflightRequirements.
+func (mr *MockInstallerAPIMockRecorder) V2GetPreflightRequirements(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetPreflightRequirements", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetPreflightRequirements), arg0, arg1)
+}
+
 // V2InstallCluster mocks base method.
 func (m *MockInstallerAPI) V2InstallCluster(arg0 context.Context, arg1 installer.V2InstallClusterParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -1086,6 +1114,20 @@ func (mr *MockInstallerAPIMockRecorder) V2RegisterHost(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2RegisterHost", reflect.TypeOf((*MockInstallerAPI)(nil).V2RegisterHost), arg0, arg1)
 }
 
+// V2ResetCluster mocks base method.
+func (m *MockInstallerAPI) V2ResetCluster(arg0 context.Context, arg1 installer.V2ResetClusterParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2ResetCluster", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2ResetCluster indicates an expected call of V2ResetCluster.
+func (mr *MockInstallerAPIMockRecorder) V2ResetCluster(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ResetCluster", reflect.TypeOf((*MockInstallerAPI)(nil).V2ResetCluster), arg0, arg1)
+}
+
 // V2ResetHost mocks base method.
 func (m *MockInstallerAPI) V2ResetHost(arg0 context.Context, arg1 installer.V2ResetHostParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -1140,6 +1182,20 @@ func (m *MockInstallerAPI) V2UpdateClusterInstallConfig(arg0 context.Context, ar
 func (mr *MockInstallerAPIMockRecorder) V2UpdateClusterInstallConfig(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateClusterInstallConfig", reflect.TypeOf((*MockInstallerAPI)(nil).V2UpdateClusterInstallConfig), arg0, arg1)
+}
+
+// V2UpdateClusterLogsProgress mocks base method.
+func (m *MockInstallerAPI) V2UpdateClusterLogsProgress(arg0 context.Context, arg1 installer.V2UpdateClusterLogsProgressParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2UpdateClusterLogsProgress", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2UpdateClusterLogsProgress indicates an expected call of V2UpdateClusterLogsProgress.
+func (mr *MockInstallerAPIMockRecorder) V2UpdateClusterLogsProgress(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateClusterLogsProgress", reflect.TypeOf((*MockInstallerAPI)(nil).V2UpdateClusterLogsProgress), arg0, arg1)
 }
 
 // V2UpdateHost mocks base method.
@@ -1210,4 +1266,18 @@ func (m *MockInstallerAPI) V2UpdateHostLogsProgress(arg0 context.Context, arg1 i
 func (mr *MockInstallerAPIMockRecorder) V2UpdateHostLogsProgress(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateHostLogsProgress", reflect.TypeOf((*MockInstallerAPI)(nil).V2UpdateHostLogsProgress), arg0, arg1)
+}
+
+// V2UploadClusterIngressCert mocks base method.
+func (m *MockInstallerAPI) V2UploadClusterIngressCert(arg0 context.Context, arg1 installer.V2UploadClusterIngressCertParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2UploadClusterIngressCert", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2UploadClusterIngressCert indicates an expected call of V2UploadClusterIngressCert.
+func (mr *MockInstallerAPIMockRecorder) V2UploadClusterIngressCert(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UploadClusterIngressCert", reflect.TypeOf((*MockInstallerAPI)(nil).V2UploadClusterIngressCert), arg0, arg1)
 }
