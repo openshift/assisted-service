@@ -420,9 +420,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 	}()
 
-	addresses := []*string{&params.NewClusterParams.IngressVip}
-	addresses = append(addresses, common.GetNetworksCidrs(params.NewClusterParams)...)
-	if err = validations.ValidateIPAddressFamily(b.IPv6Support, addresses...); err != nil {
+	if err = validations.ValidateIPAddresses(b.IPv6Support, params.NewClusterParams); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -2027,9 +2025,7 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		}
 	}
 
-	addresses := []*string{params.ClusterUpdateParams.APIVip, params.ClusterUpdateParams.IngressVip}
-	addresses = append(addresses, common.GetNetworksCidrs(params.ClusterUpdateParams)...)
-	if err := validations.ValidateIPAddressFamily(b.IPv6Support, addresses...); err != nil {
+	if err := validations.ValidateIPAddresses(b.IPv6Support, params.ClusterUpdateParams); err != nil {
 		return installer.V2UpdateClusterParams{}, common.NewApiError(http.StatusBadRequest, err)
 	}
 
