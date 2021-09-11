@@ -1,13 +1,10 @@
 String cron_string = BRANCH_NAME == "master" ? "@hourly" : BRANCH_NAME.startsWith("PR") ? "@midnight" : ""
 
 pipeline {
-    agent { label 'centos_worker'}
+    agent { label 'centos_worker' }
     triggers { cron(cron_string) }
-    environment{
-        CONTAINER_RUNTIME_COMMAND="podman"
-        GOPATH="/go"
-        VIRTUAL_ENV="/opt/venv"
-        PATH = "${PATH}:${VIRTUAL_ENV}/bin:${GOPATH}/bin"
+    environment {
+        PATH = "${PATH}:/usr/local/go/bin"
         CI = "true"
 
         // Images
@@ -33,10 +30,12 @@ pipeline {
                 sh 'make clear-all || true'
 
                 // Logout from problematic registries
+                sh 'docker logout registry.svc.ci.openshift.org || true'
                 sh 'podman logout --all || true'
                 sh 'oc logout || true'
 
                 // Login to quay.io
+                sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
                 sh "podman login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
 
                 sh 'make ci-lint'
