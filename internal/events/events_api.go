@@ -35,16 +35,34 @@ func (a *Api) ListEvents(ctx context.Context, params events.ListEventsParams) mi
 		log.WithError(err).Errorf("failed to get events")
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
+	ret := toModelEvents(evs)
+	return events.NewListEventsOK().WithPayload(ret)
+}
+
+func (a *Api) ListInfraEnvEvents(ctx context.Context, params events.ListInfraEnvEventsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, a.log)
+
+	evs, err := a.handler.GetInfraEnvEvents(params.InfraEnvID, params.HostID, params.Categories...)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get events")
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	ret := toModelEvents(evs)
+	return events.NewListEventsOK().WithPayload(ret)
+}
+
+func toModelEvents(evs []*common.Event) models.EventList {
 	ret := make(models.EventList, len(evs))
 	for i, ev := range evs {
 		ret[i] = &models.Event{
-			ClusterID: ev.ClusterID,
-			HostID:    ev.HostID,
-			Severity:  ev.Severity,
-			EventTime: ev.EventTime,
-			Message:   ev.Message,
-			Props:     ev.Props,
+			ClusterID:  ev.ClusterID,
+			InfraEnvID: ev.InfraEnvID,
+			HostID:     ev.HostID,
+			Severity:   ev.Severity,
+			EventTime:  ev.EventTime,
+			Message:    ev.Message,
+			Props:      ev.Props,
 		}
 	}
-	return events.NewListEventsOK().WithPayload(ret)
+	return ret
 }

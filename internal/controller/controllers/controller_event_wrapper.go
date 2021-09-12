@@ -43,6 +43,10 @@ func (c *controllerEventsWrapper) GetEvents(clusterID strfmt.UUID, hostID *strfm
 	return c.events.GetEvents(clusterID, hostID, categories...)
 }
 
+func (c *controllerEventsWrapper) GetInfraEnvEvents(infraEnvID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+	return c.events.GetInfraEnvEvents(infraEnvID, hostID, categories...)
+}
+
 func (c *controllerEventsWrapper) SendClusterEvent(ctx context.Context, event events.ClusterEvent) {
 	c.events.SendClusterEvent(ctx, event)
 

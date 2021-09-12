@@ -48,6 +48,9 @@ type AssistedServiceIsoAPI interface {
 type EventsAPI interface {
 	/* ListEvents Lists events for a cluster. */
 	ListEvents(ctx context.Context, params events.ListEventsParams) middleware.Responder
+
+	/* ListInfraEnvEvents Lists events for a infra env. */
+	ListInfraEnvEvents(ctx context.Context, params events.ListInfraEnvEventsParams) middleware.Responder
 }
 
 //go:generate mockery -name InstallerAPI -inpkg
@@ -698,6 +701,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.ListHosts(ctx, params)
+	})
+	api.EventsListInfraEnvEventsHandler = events.ListInfraEnvEventsHandlerFunc(func(params events.ListInfraEnvEventsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.EventsAPI.ListInfraEnvEvents(ctx, params)
 	})
 	api.InstallerListInfraEnvsHandler = installer.ListInfraEnvsHandlerFunc(func(params installer.ListInfraEnvsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

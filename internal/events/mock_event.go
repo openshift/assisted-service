@@ -220,6 +220,26 @@ func (mr *MockHandlerMockRecorder) GetEvents(clusterID, hostID interface{}, cate
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEvents", reflect.TypeOf((*MockHandler)(nil).GetEvents), varargs...)
 }
 
+// GetInfraEnvEvents mocks base method.
+func (m *MockHandler) GetInfraEnvEvents(infraEnvID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{infraEnvID, hostID}
+	for _, a := range categories {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetInfraEnvEvents", varargs...)
+	ret0, _ := ret[0].([]*common.Event)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInfraEnvEvents indicates an expected call of GetInfraEnvEvents.
+func (mr *MockHandlerMockRecorder) GetInfraEnvEvents(infraEnvID, hostID interface{}, categories ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{infraEnvID, hostID}, categories...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvEvents", reflect.TypeOf((*MockHandler)(nil).GetInfraEnvEvents), varargs...)
+}
+
 // SendClusterEvent mocks base method.
 func (m *MockHandler) SendClusterEvent(ctx context.Context, event ClusterEvent) {
 	m.ctrl.T.Helper()

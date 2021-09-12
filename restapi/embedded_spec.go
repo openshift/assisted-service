@@ -6439,6 +6439,91 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/events": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Lists events for a infra env.",
+        "tags": [
+          "events"
+        ],
+        "operationId": "ListInfraEnvEvents",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env to return events for.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "A host in the specified infra env to return events for.",
+            "name": "host_id",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A comma-separated list of event categories.",
+            "name": "categories",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/event-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/hosts": {
       "get": {
         "security": [
@@ -9473,6 +9558,11 @@ func init() {
         },
         "host_id": {
           "description": "Unique identifier of the host this event relates to.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Unique identifier of the infra env this event relates to.",
           "type": "string",
           "format": "uuid"
         },
@@ -17983,6 +18073,91 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/events": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Lists events for a infra env.",
+        "tags": [
+          "events"
+        ],
+        "operationId": "ListInfraEnvEvents",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env to return events for.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "A host in the specified infra env to return events for.",
+            "name": "host_id",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A comma-separated list of event categories.",
+            "name": "categories",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/event-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/hosts": {
       "get": {
         "security": [
@@ -21085,6 +21260,11 @@ func init() {
         },
         "host_id": {
           "description": "Unique identifier of the host this event relates to.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Unique identifier of the infra env this event relates to.",
           "type": "string",
           "format": "uuid"
         },

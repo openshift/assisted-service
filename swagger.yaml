@@ -4590,6 +4590,61 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/infra-envs/{infra_env_id}/events:
+    get:
+      tags:
+        - events
+      security:
+        - userAuth: [admin, read-only-admin, user]
+        - urlAuth: []
+      description: Lists events for a infra env.
+      operationId: ListInfraEnvEvents
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The infra env to return events for.
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: host_id
+          description: A host in the specified infra env to return events for.
+          type: string
+          format: uuid
+          required: false
+        - in: query
+          name: categories
+          description: A comma-separated list of event categories.
+          type: array
+          items:
+            type: string
+          required: false
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/event-list'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /v2/clusters/{cluster_id}/downloads/files:
     get:
       tags:
@@ -5491,6 +5546,10 @@ definitions:
         type: string
         format: uuid
         description: Unique identifier of the host this event relates to.
+      infra_env_id:
+        type: string
+        format: uuid
+        description: Unique identifier of the infra env this event relates to.
       severity:
         type: string
         enum: [info, warning, error, critical]

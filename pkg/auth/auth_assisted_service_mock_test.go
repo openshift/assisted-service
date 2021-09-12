@@ -462,6 +462,10 @@ func (f fakeEventsAPI) ListEvents(
 	return eventsapi.NewListEventsOK()
 }
 
+func (f fakeEventsAPI) ListInfraEnvEvents(ctx context.Context, params eventsapi.ListInfraEnvEventsParams) middleware.Responder {
+	return eventsapi.NewListEventsOK()
+}
+
 type fakeVersionsAPI struct{}
 
 func (f fakeVersionsAPI) ListComponentVersions(

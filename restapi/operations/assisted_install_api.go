@@ -190,6 +190,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerListHostsHandler: installer.ListHostsHandlerFunc(func(params installer.ListHostsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListHosts has not yet been implemented")
 		}),
+		EventsListInfraEnvEventsHandler: events.ListInfraEnvEventsHandlerFunc(func(params events.ListInfraEnvEventsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation events.ListInfraEnvEvents has not yet been implemented")
+		}),
 		InstallerListInfraEnvsHandler: installer.ListInfraEnvsHandlerFunc(func(params installer.ListInfraEnvsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListInfraEnvs has not yet been implemented")
 		}),
@@ -526,6 +529,8 @@ type AssistedInstallAPI struct {
 	EventsListEventsHandler events.ListEventsHandler
 	// InstallerListHostsHandler sets the operation handler for the list hosts operation
 	InstallerListHostsHandler installer.ListHostsHandler
+	// EventsListInfraEnvEventsHandler sets the operation handler for the list infra env events operation
+	EventsListInfraEnvEventsHandler events.ListInfraEnvEventsHandler
 	// InstallerListInfraEnvsHandler sets the operation handler for the list infra envs operation
 	InstallerListInfraEnvsHandler installer.ListInfraEnvsHandler
 	// ManagedDomainsListManagedDomainsHandler sets the operation handler for the list managed domains operation
@@ -871,6 +876,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerListHostsHandler == nil {
 		unregistered = append(unregistered, "installer.ListHostsHandler")
+	}
+	if o.EventsListInfraEnvEventsHandler == nil {
+		unregistered = append(unregistered, "events.ListInfraEnvEventsHandler")
 	}
 	if o.InstallerListInfraEnvsHandler == nil {
 		unregistered = append(unregistered, "installer.ListInfraEnvsHandler")
@@ -1339,6 +1347,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts"] = installer.NewListHosts(o.context, o.InstallerListHostsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/events"] = events.NewListInfraEnvEvents(o.context, o.EventsListInfraEnvEventsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

@@ -38,6 +38,7 @@ type Handler interface {
 	Sender
 	//Get a list of events. Events can be filtered by category. if no filter is specified, events with the default category are returned
 	GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error)
+	GetInfraEnvEvents(infraEnvID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error)
 }
 
 var _ Handler = &Events{}
@@ -143,6 +144,16 @@ func (e Events) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories
 	var err error
 	var events []*common.Event
 
+	selectedCategories := getCategories(categories)
+	if hostID == nil {
+		err = e.clusterEventsQuery(&events, selectedCategories, clusterID).Error
+	} else {
+		err = e.hostEventsQuery(&events, selectedCategories, clusterID, hostID).Error
+	}
+	return events, err
+}
+
+func getCategories(categories []string) []string {
 	//initialize the selectedCategories either from the filter, if exists, or from the default values
 	selectedCategories := make([]string, 0)
 	if len(categories) > 0 {
@@ -150,11 +161,18 @@ func (e Events) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories
 	} else {
 		selectedCategories = append(selectedCategories, DefaultEventCategories...)
 	}
+	return selectedCategories
+}
 
+func (e Events) GetInfraEnvEvents(infraEnvID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+	var err error
+	var events []*common.Event
+
+	selectedCategories := getCategories(categories)
 	if hostID == nil {
-		err = e.clusterEventsQuery(&events, selectedCategories, clusterID).Error
+		err = e.infraEnvEventsQuery(&events, selectedCategories, infraEnvID).Error
 	} else {
-		err = e.hostEventsQuery(&events, selectedCategories, clusterID, hostID).Error
+		err = e.hostEventsForInfraEnvQuery(&events, selectedCategories, infraEnvID, hostID).Error
 	}
 	return events, err
 }
@@ -167,6 +185,16 @@ func (e Events) clusterEventsQuery(events *[]*common.Event, selectedCategories [
 func (e Events) hostEventsQuery(events *[]*common.Event, selectedCategories []string, clusterID strfmt.UUID, hostID *strfmt.UUID) *gorm.DB {
 	return e.db.Where("category IN (?)", selectedCategories).Order("event_time").
 		Find(events, "cluster_id = ? AND host_id = ?", clusterID.String(), (*hostID).String())
+}
+
+func (e Events) infraEnvEventsQuery(events *[]*common.Event, selectedCategories []string, infraEnvID strfmt.UUID) *gorm.DB {
+	return e.db.Where("category IN (?)", selectedCategories).Order("event_time").
+		Find(events, "infra_env_id = ?", infraEnvID.String())
+}
+
+func (e Events) hostEventsForInfraEnvQuery(events *[]*common.Event, selectedCategories []string, infraEnvID strfmt.UUID, hostID *strfmt.UUID) *gorm.DB {
+	return e.db.Where("category IN (?)", selectedCategories).Order("event_time").
+		Find(events, "infra_env_id = ? AND host_id = ?", infraEnvID.String(), (*hostID).String())
 }
 
 func toProps(attrs ...interface{}) (result string, err error) {
