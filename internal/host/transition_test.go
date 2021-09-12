@@ -1382,6 +1382,200 @@ var _ = Describe("Enable", func() {
 	})
 })
 
+var _ = Describe("Unbind", func() {
+	var (
+		ctx                           = context.Background()
+		hapi                          API
+		db                            *gorm.DB
+		ctrl                          *gomock.Controller
+		mockEvents                    *events.MockHandler
+		hostId, clusterId, infraEnvId strfmt.UUID
+		host                          models.Host
+		dbName                        string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+		infraEnvId = strfmt.UUID(uuid.New().String())
+	})
+
+	success := func(reply error, dstState string) {
+		Expect(reply).To(BeNil())
+		h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+		Expect(h.ClusterID).Should(BeNil())
+		Expect(*h.Status).Should(Equal(dstState))
+		Expect(*h.StatusInfo).Should(Equal(statusInfoUnbinding))
+		Expect(*h.Kind).Should(Equal(models.HostKindHost))
+		Expect(h.Inventory).Should(BeEmpty())
+		Expect(h.Bootstrap).Should(BeFalse())
+		Expect(h.NtpSources).ShouldNot(BeEmpty())
+		Expect(h.Connectivity).Should(BeEmpty())
+		Expect(h.APIVipConnectivity).Should(BeEmpty())
+		Expect(h.DomainNameResolutions).Should(BeEmpty())
+		Expect(h.FreeAddresses).Should(BeEmpty())
+		Expect(h.ImagesStatus).Should(BeEmpty())
+		Expect(h.InstallationDiskID).Should(BeEmpty())
+		Expect(h.InstallationDiskPath).Should(BeEmpty())
+		Expect(h.MachineConfigPoolName).Should(BeEmpty())
+		Expect(h.Role).Should(Equal(models.HostRoleAutoAssign))
+		Expect(h.SuggestedRole).Should(BeEmpty())
+		bytes, err := json.Marshal(defaultNTPSources)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(h.NtpSources).Should(Equal(string(bytes)))
+		resetPogress := &models.HostProgressInfo{
+			CurrentStage:           "",
+			InstallationPercentage: 0,
+			ProgressInfo:           "",
+			StageStartedAt:         strfmt.DateTime(time.Time{}),
+			StageUpdatedAt:         strfmt.DateTime(time.Time{}),
+		}
+		Expect(h.Progress).Should(Equal(resetPogress))
+		Expect(h.ProgressStages).Should(BeNil())
+		Expect(h.LogsInfo).Should(BeEmpty())
+		Expect(h.LogsStartedAt).Should(Equal(strfmt.DateTime(time.Time{})))
+		Expect(h.LogsCollectedAt).Should(Equal(strfmt.DateTime(time.Time{})))
+		Expect(h.StageStartedAt).Should(Equal(strfmt.DateTime(time.Time{})))
+		Expect(h.StageUpdatedAt).Should(Equal(strfmt.DateTime(time.Time{})))
+	}
+
+	failure := func(reply error, srcState string) {
+		Expect(reply).Should(HaveOccurred())
+		h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+		Expect(*h.Status).Should(Equal(srcState))
+		Expect(h.Inventory).Should(Equal(defaultHwInfo))
+		Expect(h.Bootstrap).Should(Equal(true))
+		var ntpSources []*models.NtpSource
+		Expect(json.Unmarshal([]byte(h.NtpSources), &ntpSources)).ShouldNot(HaveOccurred())
+		Expect(ntpSources).Should(Equal(defaultNTPSources))
+	}
+
+	tests := []struct {
+		name      string
+		srcState  string
+		success   bool
+		sendEvent bool
+	}{
+		{
+			name:      "known to unbinding",
+			srcState:  models.HostStatusKnown,
+			success:   true,
+			sendEvent: true,
+		},
+		{
+			name:      "disabled to unbinding",
+			srcState:  models.HostStatusDisabled,
+			success:   true,
+			sendEvent: true,
+		},
+		{
+			name:      "disconnected to unbinding",
+			srcState:  models.HostStatusDisconnected,
+			success:   true,
+			sendEvent: true,
+		},
+		{
+			name:      "discovering to unbinding",
+			srcState:  models.HostStatusDiscovering,
+			success:   true,
+			sendEvent: true,
+		},
+		{
+			name:      "pending-for-input to binding",
+			srcState:  models.HostStatusPendingForInput,
+			success:   true,
+			sendEvent: true,
+		},
+		{
+			name:      "error to unbinding",
+			srcState:  models.HostStatusError,
+			success:   true,
+			sendEvent: true,
+		},
+		{
+			name:      "cancelled to unbinding",
+			srcState:  models.HostStatusCancelled,
+			success:   true,
+			sendEvent: true,
+		},
+		{
+			name:      "installing to unbinding",
+			srcState:  models.HostStatusInstalling,
+			success:   false,
+			sendEvent: false,
+		},
+		{
+			name:      "added-host-to-existing-cluster to unbinding",
+			srcState:  models.HostStatusAddedToExistingCluster,
+			success:   false,
+			sendEvent: false,
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			// Test setup - Host creation
+			host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, t.srcState)
+			host.Inventory = defaultHwInfo
+			host.Bootstrap = true
+			host.APIVipConnectivity = "whatever"
+			host.Connectivity = "whatever"
+			host.DisksInfo = "whatever"
+			host.DomainNameResolutions = "whatever"
+			host.FreeAddresses = "whatever"
+			host.ImagesStatus = "whatever"
+			host.InstallationDiskID = "whatever"
+			host.InstallationDiskPath = "whatever"
+			host.MachineConfigPoolName = "whatever"
+			host.ValidationsInfo = "whatever"
+			host.SuggestedRole = models.HostRoleBootstrap
+			host.Role = models.HostRoleMaster
+			host.Progress = &models.HostProgressInfo{
+				CurrentStage:           models.HostStageJoined,
+				InstallationPercentage: 60,
+				ProgressInfo:           "whatever",
+				StageStartedAt:         strfmt.DateTime(time.Now()),
+				StageUpdatedAt:         strfmt.DateTime(time.Now()),
+			}
+			host.ProgressStages = MasterStages[:]
+			host.LogsInfo = models.LogsStateRequested
+			host.LogsStartedAt = strfmt.DateTime(time.Now())
+			host.LogsCollectedAt = strfmt.DateTime(time.Now())
+			host.StageStartedAt = strfmt.DateTime(time.Now())
+			host.StageUpdatedAt = strfmt.DateTime(time.Now())
+
+			dstState := models.HostStatusUnbinding
+
+			bytes, err := json.Marshal(defaultNTPSources)
+			Expect(err).ShouldNot(HaveOccurred())
+			host.NtpSources = string(bytes)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			// Test definition
+			if t.sendEvent {
+				mockEvents.EXPECT().SendHostEvent(gomock.Any(), gomock.Any())
+			}
+			validation := success
+			validationState := dstState
+			if !t.success {
+				validation = failure
+				validationState = t.srcState
+			}
+			validation(hapi.UnbindHost(ctx, &host, db), validationState)
+		})
+	}
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
 type statusInfoChecker interface {
 	check(statusInfo *string)
 	String() string

@@ -31,6 +31,11 @@ type transitionHandler struct {
 
 var resetFields = [...]interface{}{"inventory", "", "bootstrap", false}
 var resetLogsField = []interface{}{"logs_info", "", "logs_started_at", strfmt.DateTime(time.Time{}), "logs_collected_at", strfmt.DateTime(time.Time{})}
+var restFieldsOnUnbind = []interface{}{"cluster_id", nil, "kind", swag.String(models.HostKindHost), "connectivity", "", "domain_name_resolutions", "",
+	"free_addresses", "", "images_status", "", "installation_disk_id", "", "installation_disk_path", "", "machine_config_pool_name", "",
+	"role", "auto-assign", "api_vip_connectivity", "", "suggested_role", "", "progress_current_stage", "", "progress_installation_percentage", 0,
+	"progress_progress_info", "", "progress_stage_started_at", strfmt.DateTime(time.Time{}), "progress_stage_updated_at", strfmt.DateTime(time.Time{}),
+	"progress_stages", nil, "stage_started_at", strfmt.DateTime(time.Time{}), "stage_updated_at", strfmt.DateTime(time.Time{})}
 
 ////////////////////////////////////////////////////////////////////////////
 // RegisterHost
@@ -368,7 +373,8 @@ func (th *transitionHandler) PostUnbindHost(sw stateswitch.StateSwitch, args sta
 		return errors.New("PostUnbindHost invalid argument")
 	}
 
-	extra := append(resetFields[:], "cluster_id", nil, "kind", swag.String(models.HostKindHost))
+	extra := append(resetFields[:], resetLogsField...)
+	extra = append(extra, restFieldsOnUnbind...)
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoUnbinding,
 		extra...)
 }
