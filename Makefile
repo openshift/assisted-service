@@ -495,4 +495,5 @@ operator-bundle-update:
 	$(CONTAINER_COMMAND) push $(BUNDLE_IMAGE)
 
 operator-index-build:
-	opm index add --bundles $(BUNDLE_IMAGE) --tag $(INDEX_IMAGE) --container-tool $(CONTAINER_COMMAND)
+	opm index add --bundles $(BUNDLE_IMAGE) --generate --out-dockerfile Dockerfile.index --tag $(INDEX_IMAGE) --container-tool $(CONTAINER_COMMAND)
+	$(CONTAINER_COMMAND) build -f Dockerfile.index -t $(INDEX_IMAGE) .
