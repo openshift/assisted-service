@@ -3735,6 +3735,29 @@ func generateFullMeshConnectivity(ctx context.Context, startCIDR string, hosts .
 	}
 }
 
+func expectProgressToBe(c *models.Cluster, preparingForInstallationStagePercentage, installingStagePercentage, finalizingStagePercentage int) {
+
+	preparingForInstallationRange := []int{preparingForInstallationStagePercentage, preparingForInstallationStagePercentage}
+	installingRange := []int{installingStagePercentage, installingStagePercentage}
+	finalizingRange := []int{finalizingStagePercentage, finalizingStagePercentage}
+	expectProgressToBeInRange(c, preparingForInstallationRange, installingRange, finalizingRange)
+}
+
+func expectProgressToBeInRange(c *models.Cluster, preparingForInstallationRange, installingRange, finalizingRange []int) {
+
+	Expect(c.Progress).NotTo(BeNil())
+	Expect(c.Progress.PreparingForInstallationStagePercentage >= int64(preparingForInstallationRange[0]) &&
+		c.Progress.PreparingForInstallationStagePercentage <= int64(preparingForInstallationRange[1])).To(BeTrue())
+	Expect(c.Progress.InstallingStagePercentage >= int64(installingRange[0]) &&
+		c.Progress.InstallingStagePercentage <= int64(installingRange[1])).To(BeTrue())
+	Expect(c.Progress.FinalizingStagePercentage >= int64(finalizingRange[0]) &&
+		c.Progress.FinalizingStagePercentage <= int64(finalizingRange[1])).To(BeTrue())
+	totalPercentage := common.ProgressWeightPreparingForInstallationStage*float64(c.Progress.PreparingForInstallationStagePercentage) +
+		common.ProgressWeightInstallingStage*float64(c.Progress.InstallingStagePercentage) +
+		common.ProgressWeightFinalizingStage*float64(c.Progress.FinalizingStagePercentage)
+	Expect(c.Progress.TotalPercentage).To(Equal(int64(totalPercentage)))
+}
+
 var _ = Describe("Installation progress", func() {
 	var (
 		ctx         = context.Background()
@@ -3746,29 +3769,6 @@ var _ = Describe("Installation progress", func() {
 	AfterEach(func() {
 		clearDB()
 	})
-
-	expectProgressToBeInRange := func(c *models.Cluster, preparingForInstallationRange, installingRange, finalizingRange []int) {
-
-		Expect(c.Progress).NotTo(BeNil())
-		Expect(c.Progress.PreparingForInstallationStagePercentage >= int64(preparingForInstallationRange[0]) &&
-			c.Progress.PreparingForInstallationStagePercentage <= int64(preparingForInstallationRange[1])).To(BeTrue())
-		Expect(c.Progress.InstallingStagePercentage >= int64(installingRange[0]) &&
-			c.Progress.InstallingStagePercentage <= int64(installingRange[1])).To(BeTrue())
-		Expect(c.Progress.FinalizingStagePercentage >= int64(finalizingRange[0]) &&
-			c.Progress.FinalizingStagePercentage <= int64(finalizingRange[1])).To(BeTrue())
-		totalPercentage := common.ProgressWeightPreparingForInstallationStage*float64(c.Progress.PreparingForInstallationStagePercentage) +
-			common.ProgressWeightInstallingStage*float64(c.Progress.InstallingStagePercentage) +
-			common.ProgressWeightFinalizingStage*float64(c.Progress.FinalizingStagePercentage)
-		Expect(c.Progress.TotalPercentage).To(Equal(int64(totalPercentage)))
-	}
-
-	expectProgressToBe := func(c *models.Cluster, preparingForInstallationStagePercentage, installingStagePercentage, finalizingStagePercentage int) {
-
-		preparingForInstallationRange := []int{preparingForInstallationStagePercentage, preparingForInstallationStagePercentage}
-		installingRange := []int{installingStagePercentage, installingStagePercentage}
-		finalizingRange := []int{finalizingStagePercentage, finalizingStagePercentage}
-		expectProgressToBeInRange(c, preparingForInstallationRange, installingRange, finalizingRange)
-	}
 
 	It("Test installation progress", func() {
 
