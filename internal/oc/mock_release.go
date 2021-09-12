@@ -109,3 +109,18 @@ func (mr *MockReleaseMockRecorder) GetOpenshiftVersion(log, releaseImage, releas
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOpenshiftVersion", reflect.TypeOf((*MockRelease)(nil).GetOpenshiftVersion), log, releaseImage, releaseImageMirror, pullSecret)
 }
+
+// GetReleaseArchitecture mocks base method.
+func (m *MockRelease) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage, pullSecret string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReleaseArchitecture", log, releaseImage, pullSecret)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetReleaseArchitecture indicates an expected call of GetReleaseArchitecture.
+func (mr *MockReleaseMockRecorder) GetReleaseArchitecture(log, releaseImage, pullSecret interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseArchitecture", reflect.TypeOf((*MockRelease)(nil).GetReleaseArchitecture), log, releaseImage, pullSecret)
+}

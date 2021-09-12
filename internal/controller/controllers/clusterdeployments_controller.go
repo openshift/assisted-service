@@ -900,7 +900,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
-	openshiftVersion, err := r.addOpenshiftVersion(ctx, clusterInstall.Spec, pullSecret)
+	releaseImage, err := r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret)
 	if err != nil {
 		log.WithError(err).Error("failed to add OCP version")
 		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
@@ -911,7 +911,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	clusterParams := &models.ClusterCreateParams{
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
-		OpenshiftVersion:      swag.String(*openshiftVersion.ReleaseVersion),
+		OpenshiftVersion:      swag.String(*releaseImage.Version),
 		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(false),
@@ -983,7 +983,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
-	openshiftVersion, err := r.addOpenshiftVersion(ctx, clusterInstall.Spec, pullSecret)
+	releaseImage, err := r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret)
 	if err != nil {
 		log.WithError(err).Error("failed to add OCP version")
 		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
@@ -994,7 +994,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	clusterParams := &models.AddHostsClusterCreateParams{
 		APIVipDnsname:    swag.String(apiVipDnsname),
 		Name:             swag.String(spec.ClusterName),
-		OpenshiftVersion: swag.String(*openshiftVersion.ReleaseVersion),
+		OpenshiftVersion: swag.String(*releaseImage.Version),
 		ID:               &id,
 	}
 
@@ -1015,22 +1015,22 @@ func (r *ClusterDeploymentsReconciler) getReleaseImage(ctx context.Context, spec
 	return releaseImage, nil
 }
 
-func (r *ClusterDeploymentsReconciler) addOpenshiftVersion(
+func (r *ClusterDeploymentsReconciler) addReleaseImage(
 	ctx context.Context,
 	spec hiveext.AgentClusterInstallSpec,
-	pullSecret string) (*models.OpenshiftVersion, error) {
+	pullSecret string) (*models.ReleaseImage, error) {
 
-	releaseImage, err := r.getReleaseImage(ctx, spec)
+	releaseImageUrl, err := r.getReleaseImage(ctx, spec)
 	if err != nil {
 		return nil, err
 	}
 
-	openshiftVersion, err := r.Installer.AddOpenshiftVersion(ctx, releaseImage, pullSecret)
+	releaseImage, err := r.Installer.AddReleaseImage(ctx, releaseImageUrl, pullSecret)
 	if err != nil {
 		return nil, err
 	}
 
-	return openshiftVersion, nil
+	return releaseImage, nil
 }
 
 func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) (ctrl.Result, error) {

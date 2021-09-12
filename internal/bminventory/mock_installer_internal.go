@@ -40,19 +40,19 @@ func (m *MockInstallerInternals) EXPECT() *MockInstallerInternalsMockRecorder {
 	return m.recorder
 }
 
-// AddOpenshiftVersion mocks base method.
-func (m *MockInstallerInternals) AddOpenshiftVersion(arg0 context.Context, arg1, arg2 string) (*models.OpenshiftVersion, error) {
+// AddReleaseImage mocks base method.
+func (m *MockInstallerInternals) AddReleaseImage(arg0 context.Context, arg1, arg2 string) (*models.ReleaseImage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddOpenshiftVersion", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*models.OpenshiftVersion)
+	ret := m.ctrl.Call(m, "AddReleaseImage", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*models.ReleaseImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// AddOpenshiftVersion indicates an expected call of AddOpenshiftVersion.
-func (mr *MockInstallerInternalsMockRecorder) AddOpenshiftVersion(arg0, arg1, arg2 interface{}) *gomock.Call {
+// AddReleaseImage indicates an expected call of AddReleaseImage.
+func (mr *MockInstallerInternalsMockRecorder) AddReleaseImage(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddOpenshiftVersion", reflect.TypeOf((*MockInstallerInternals)(nil).AddOpenshiftVersion), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddReleaseImage", reflect.TypeOf((*MockInstallerInternals)(nil).AddReleaseImage), arg0, arg1, arg2)
 }
 
 // BindHostInternal mocks base method.

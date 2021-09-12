@@ -116,7 +116,7 @@ var (
 
 func mockClusterRegisterSteps() {
 	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+	mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 }
 
@@ -131,7 +131,7 @@ func mockClusterRegisterSuccess(bm *bareMetalInventory, withEvents bool) {
 }
 
 func mockInfraEnvRegisterSuccess() {
-	mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+	mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 	mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(2)
@@ -188,7 +188,7 @@ func strToUUID(s string) *strfmt.UUID {
 
 func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallConfigGenerator, mockVersions *versions.MockHandler) {
 	if mockGenerator != nil {
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 }
@@ -3604,7 +3604,7 @@ var _ = Describe("cluster", func() {
 				It("OLM invalid name", func() {
 					newOperatorName := "invalid-name"
 
-					mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+					mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 					mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 					mockOperatorManager.EXPECT().GetOperatorByName(newOperatorName).Return(nil, errors.Errorf("error")).Times(1)
 
@@ -7330,7 +7330,7 @@ var _ = Describe("infraEnvs", func() {
 		})
 
 		It("No version specified", func() {
-			mockVersions.EXPECT().GetLatestOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+			mockVersions.EXPECT().GetLatestOsImage(gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(2)
@@ -7363,7 +7363,7 @@ var _ = Describe("infraEnvs", func() {
 			err := db.Create(&cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
-			mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
@@ -7377,7 +7377,7 @@ var _ = Describe("infraEnvs", func() {
 		})
 
 		It("Invalid Ignition", func() {
-			mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 			override := `{"ignition": {"wdd": "3.9.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
@@ -9626,14 +9626,14 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		}
 		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), true, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, clusterID, "Unknown").Times(1)
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		actual := res.(*installer.RegisterAddHostsClusterCreated)
 
 		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
 		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
 		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
-		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImage))
+		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImageUrl))
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
 	})
 
@@ -10482,7 +10482,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(errors.New("error")).Times(1)
 		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -10495,7 +10495,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("openshift version not supported", func() {
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("OpenShift VVersion is not supported")).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("OpenShift Version is not supported")).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -10520,7 +10520,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 		actual := reply.(*installer.RegisterClusterCreated)
 		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
-		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImage))
+		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImageUrl))
 	})
 
 	It("Register cluster with default CPU architecture", func() {
@@ -12491,7 +12491,7 @@ var _ = Describe("GetCredentials", func() {
 	})
 })
 
-var _ = Describe("AddOpenshiftVersion", func() {
+var _ = Describe("AddReleaseImage", func() {
 	var (
 		cfg          = Config{}
 		ctx          = context.Background()
@@ -12508,17 +12508,17 @@ var _ = Describe("AddOpenshiftVersion", func() {
 	})
 
 	It("successfully added version", func() {
-		mockVersions.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+		mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 
-		version, err := bm.AddOpenshiftVersion(ctx, releaseImage, pullSecret)
+		image, err := bm.AddReleaseImage(ctx, releaseImage, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(version).Should(Equal(common.TestDefaultConfig.Version))
+		Expect(image).Should(Equal(common.TestDefaultConfig.ReleaseImage))
 	})
 
 	It("failed to added version", func() {
-		mockVersions.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed")).Times(1)
+		mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed")).Times(1)
 
-		_, err := bm.AddOpenshiftVersion(ctx, releaseImage, pullSecret)
+		_, err := bm.AddReleaseImage(ctx, releaseImage, pullSecret)
 		Expect(err).Should(HaveOccurred())
 	})
 })

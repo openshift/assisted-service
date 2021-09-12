@@ -3,7 +3,6 @@ package versions
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/hashicorp/go-version"
@@ -14,6 +13,7 @@ import (
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 type MustGatherVersion map[string]string
@@ -31,13 +31,12 @@ type Versions struct {
 type Handler interface {
 	restapi.VersionsAPI
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
-	GetOpenshiftVersion(openshiftVersion, cpuArchitecture string) (*models.OpenshiftVersion, error)
-	GetLatestOpenshiftVersion(cpuArchitecture string) (*models.OpenshiftVersion, error)
+	GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error)
 	GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error)
-	GetKey(openshiftVersion string) (string, error)
-	IsOpenshiftVersionSupported(versionKey string) bool
-	AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
+	GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error)
 	GetCPUArchitectures(openshiftVersion string) ([]string, error)
+	GetOpenshiftVersions() []string
+	AddReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error)
 }
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
@@ -94,11 +93,11 @@ func (h *handler) ListSupportedOpenshiftVersions(ctx context.Context, params ope
 }
 
 func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error) {
-	versionKey, err := h.GetKey(openshiftVersion)
+	versionKey, err := h.getKey(openshiftVersion)
 	if err != nil {
 		return nil, err
 	}
-	if !h.IsOpenshiftVersionSupported(versionKey) {
+	if !h.isOpenshiftVersionSupported(versionKey) {
 		return nil, errors.Errorf("No operators must-gather version for unsupported openshift version %s", versionKey)
 	}
 	if h.mustGatherVersions == nil {
@@ -114,11 +113,11 @@ func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSec
 		return versions, nil
 	}
 	//if not, fetch it from the release image and add it to the cache
-	ocpVersion, err := h.GetOpenshiftVersion(openshiftVersion, cpuArchitecture)
+	releaseImage, err := h.GetReleaseImage(openshiftVersion, cpuArchitecture)
 	if err != nil {
 		return nil, err
 	}
-	ocpMustGatherImage, err := h.releaseHandler.GetMustGatherImage(h.log, *ocpVersion.ReleaseImage, h.releaseImageMirror, pullSecret)
+	ocpMustGatherImage, err := h.releaseHandler.GetMustGatherImage(h.log, *releaseImage.URL, h.releaseImageMirror, pullSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -128,86 +127,30 @@ func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSec
 	return versions, nil
 }
 
-func (h *handler) IsOpenshiftVersionSupported(versionKey string) bool {
-	if _, ok := h.openshiftVersions[versionKey]; !ok {
-		return false
-	}
-
-	return true
-}
-
-// Returns the highest OpenshiftVersion entity
-func (h *handler) GetLatestOpenshiftVersion(cpuArchitecture string) (*models.OpenshiftVersion, error) {
-	var latest *models.OpenshiftVersion
-	var latestKey string
-	for k := range h.openshiftVersions {
-		if latest == nil || k > latestKey {
-			v, err := h.GetOpenshiftVersion(k, cpuArchitecture)
-			if err != nil {
-				continue
-			}
-			latest = v
-			latestKey = k
+// Returns the latest OSImage entity for a specified CPU architecture
+func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error) {
+	var latest *models.OsImage
+	openshiftVersions := h.GetOpenshiftVersions()
+	for _, k := range openshiftVersions {
+		osImage, err := h.GetOsImage(k, cpuArchitecture)
+		if err != nil {
+			continue
+		}
+		if latest == nil || *osImage.OpenshiftVersion > *latest.OpenshiftVersion {
+			latest = osImage
 		}
 	}
 	if latest == nil {
-		return nil, errors.Errorf("No latest OpenshiftVersion found")
+		return nil, errors.Errorf("No OS images are available")
 	}
 	return latest, nil
 }
 
-// Returns the OpenshiftVersion entity
-func (h *handler) GetOpenshiftVersion(openshiftVersion, cpuArchitecture string) (*models.OpenshiftVersion, error) {
-	versionKey, err := h.GetKey(openshiftVersion)
-	if err != nil {
-		return nil, err
-	}
-	if !h.IsOpenshiftVersionSupported(versionKey) {
-		return nil, errors.Errorf("The requested openshift version (%s) isn't specified in versions list", versionKey)
-	}
-
-	missingValueTemplate := "Missing value in OpenshiftVersion for '%s' field"
-	ocpVersion := h.openshiftVersions[versionKey]
-	if ocpVersion.DisplayName == nil {
-		return nil, errors.Errorf(fmt.Sprintf(missingValueTemplate, "display_name"))
-	}
-	if ocpVersion.SupportLevel == nil {
-		return nil, errors.Errorf(fmt.Sprintf(missingValueTemplate, "support_level"))
-	}
-
-	// Get release image URL and version from releaseImages if available
-	for _, release := range h.releaseImages {
-		if *release.OpenshiftVersion == versionKey && *release.CPUArchitecture == cpuArchitecture {
-			ocpVersion.ReleaseImage = release.URL
-			ocpVersion.ReleaseVersion = release.Version
-			return &ocpVersion, nil
-		}
-	}
-
-	if cpuArchitecture != "" && cpuArchitecture != common.DefaultCPUArchitecture {
-		// An empty cpuArchitecture implies the default CPU architecture.
-		// TODO: remove this check once release images list is exclusively used.
-		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in release images list", cpuArchitecture)
-	}
-
-	if ocpVersion.ReleaseImage == nil {
-		return nil, errors.Errorf(fmt.Sprintf(missingValueTemplate, "release_image"))
-	}
-	if ocpVersion.ReleaseVersion == nil {
-		return nil, errors.Errorf(fmt.Sprintf(missingValueTemplate, "release_version"))
-	}
-
-	return &ocpVersion, nil
-}
-
 // Returns the OsImage entity
 func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
-	versionKey, err := h.GetKey(openshiftVersion)
+	versionKey, err := h.getKey(openshiftVersion)
 	if err != nil {
 		return nil, err
-	}
-	if !h.IsOpenshiftVersionSupported(versionKey) {
-		return nil, errors.Errorf("The requested openshift version (%s) isn't specified in versions list", versionKey)
 	}
 
 	for _, osImage := range h.osImages {
@@ -226,6 +169,9 @@ func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.
 	}
 
 	// Try fetching from OpenshiftVersion struct for backwards compatibility
+	if !h.isOpenshiftVersionSupported(versionKey) {
+		return nil, errors.Errorf("The requested openshift version (%s) isn't specified in versions list", versionKey)
+	}
 	ocpVersion := h.openshiftVersions[versionKey]
 	osImage := models.OsImage{
 		OpenshiftVersion: &versionKey,
@@ -237,8 +183,142 @@ func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.
 	return &osImage, nil
 }
 
+// Returns the ReleaseImage entity
+func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
+	versionKey, err := h.getKey(openshiftVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, releaseImage := range h.releaseImages {
+		if *releaseImage.OpenshiftVersion == versionKey && *releaseImage.CPUArchitecture == cpuArchitecture {
+			return releaseImage, nil
+		}
+	}
+
+	if cpuArchitecture != "" && cpuArchitecture != common.DefaultCPUArchitecture {
+		// An empty cpuArchitecture implies the default CPU architecture.
+		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in Release images list", cpuArchitecture)
+	}
+
+	// Try fetching from OpenshiftVersion struct for backwards compatibility
+	if !h.isOpenshiftVersionSupported(versionKey) {
+		return nil, errors.Errorf("The requested openshift version (%s) isn't specified in versions list", versionKey)
+	}
+	ocpVersion := h.openshiftVersions[versionKey]
+	releaseImage := models.ReleaseImage{
+		CPUArchitecture:  &cpuArchitecture,
+		OpenshiftVersion: &versionKey,
+		URL:              ocpVersion.ReleaseImage,
+		Version:          ocpVersion.ReleaseVersion,
+	}
+
+	return &releaseImage, nil
+}
+
+func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error) {
+	// Get openshift version from release image metadata (oc adm release info)
+	ocpReleaseVersion, err := h.releaseHandler.GetOpenshiftVersion(h.log, releaseImageUrl, "", pullSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get CPU architecture from release image
+	cpuArchitecture, err := h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, pullSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get minor version
+	ocpVersionKey, err := h.getKey(ocpReleaseVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure a relevant OsImage exists
+	osImage, err := h.GetOsImage(ocpVersionKey, cpuArchitecture)
+	if err != nil || osImage.URL == nil {
+		return nil, errors.Errorf("No OS images are available for version: %s", ocpVersionKey)
+	}
+
+	// Update or create OpenshiftVersion if not available
+	if !h.isOpenshiftVersionSupported(ocpVersionKey) {
+		h.openshiftVersions[ocpVersionKey] = models.OpenshiftVersion{}
+	}
+	openshiftVersion := h.openshiftVersions[ocpVersionKey]
+	openshiftVersion.DisplayName = &ocpReleaseVersion
+	if openshiftVersion.SupportLevel == nil {
+		supportLevel := models.OpenshiftVersionSupportLevelCustom
+		openshiftVersion.SupportLevel = &supportLevel
+	}
+	h.openshiftVersions[ocpVersionKey] = openshiftVersion
+
+	// Fetch ReleaseImage if exists
+	releaseImage, err := h.GetReleaseImage(ocpVersionKey, cpuArchitecture)
+	if err != nil {
+		return nil, err
+	}
+
+	// Remove original ReleaseImage from array
+	h.releaseImages = funk.Subtract(h.releaseImages, models.ReleaseImages{releaseImage}).([]*models.ReleaseImage)
+
+	// Update ReleaseImage
+	releaseImage.URL = &releaseImageUrl
+	releaseImage.Version = &ocpReleaseVersion
+
+	// Store in releaseImages array
+	h.releaseImages = append(h.releaseImages, releaseImage)
+	h.log.Infof("Stored release version: %s", ocpReleaseVersion)
+
+	return releaseImage, nil
+}
+
+// Get CPU architectures available for the specified openshift version
+// according to the OS images list.
+func (h *handler) GetCPUArchitectures(openshiftVersion string) ([]string, error) {
+	cpuArchitectures := []string{}
+	for _, release := range h.osImages {
+		if *release.OpenshiftVersion == openshiftVersion {
+			if release.OpenshiftVersion == nil {
+				return nil, errors.Errorf("Missing openshift_version in OsImage")
+			}
+			if release.CPUArchitecture == nil {
+				return nil, errors.Errorf("Missing cpu_architecture in OsImage")
+			}
+			cpuArchitectures = append(cpuArchitectures, *release.CPUArchitecture)
+		}
+	}
+
+	// TODO: remove once osImages list is exclusively used
+	if len(cpuArchitectures) == 0 {
+		if !h.isOpenshiftVersionSupported(openshiftVersion) {
+			return nil, errors.Errorf("No OS images for openshift version %s", openshiftVersion)
+		}
+		cpuArchitectures = append(cpuArchitectures, common.DefaultCPUArchitecture)
+	}
+
+	return cpuArchitectures, nil
+}
+
+// Get available openshift versions according to OS images list.
+// Or, keys of openshiftVersions map as a fallback.
+func (h *handler) GetOpenshiftVersions() []string {
+	versions := []string{}
+	for _, image := range h.osImages {
+		if !funk.Contains(versions, *image.OpenshiftVersion) {
+			versions = append(versions, *image.OpenshiftVersion)
+		}
+	}
+	if len(versions) == 0 {
+		for k := range h.openshiftVersions {
+			versions = append(versions, k)
+		}
+	}
+	return versions
+}
+
 // Returns version in major.minor format
-func (h *handler) GetKey(openshiftVersion string) (string, error) {
+func (h *handler) getKey(openshiftVersion string) (string, error) {
 	v, err := version.NewVersion(openshiftVersion)
 	if err != nil {
 		return "", err
@@ -246,103 +326,26 @@ func (h *handler) GetKey(openshiftVersion string) (string, error) {
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
 
-func (h *handler) AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error) {
-	// Check whether ocpReleaseImage already exists in cache
-	for _, v := range h.openshiftVersions {
-		if v.ReleaseImage != nil && *v.ReleaseImage == ocpReleaseImage {
-			// Return existing version
-			version := v
-			return &version, nil
-		}
-	}
-
-	// Get openshift version from release image metadata (oc adm release info)
-	ocpReleaseVersion, err := h.releaseHandler.GetOpenshiftVersion(h.log, ocpReleaseImage, h.releaseImageMirror, pullSecret)
+// Checks whether a specified version is in the openshiftVersions map
+func (h *handler) isOpenshiftVersionSupported(openshiftVersion string) bool {
+	versionKey, err := h.getKey(openshiftVersion)
 	if err != nil {
-		return nil, err
+		return false
+	}
+	if _, ok := h.openshiftVersions[versionKey]; !ok {
+		return false
 	}
 
-	// Return if version is not specified in OPENSHIFT_VERSIONS
-	ocpVersionKey, err := h.GetKey(ocpReleaseVersion)
-	if err != nil {
-		return nil, err
-	}
-	versionFromCache, ok := h.openshiftVersions[ocpVersionKey]
-	if !ok {
-		return nil, errors.Errorf("RHCOS image is not configured for version: %s, supported versions: %s",
-			ocpVersionKey, reflect.ValueOf(h.openshiftVersions).MapKeys())
-	}
-
-	// Get SupportLevel or default to 'custom'
-	var supportLevel string
-	if versionFromCache.SupportLevel != nil {
-		supportLevel = *versionFromCache.SupportLevel
-	}
-	supportLevel = models.OpenshiftVersionSupportLevelCustom
-
-	// Create OpenshiftVersion according to fetched data
-	openshiftVersion := &models.OpenshiftVersion{
-		DisplayName:    &ocpReleaseVersion,
-		ReleaseImage:   &ocpReleaseImage,
-		ReleaseVersion: &ocpReleaseVersion,
-		RhcosImage:     versionFromCache.RhcosImage,
-		RhcosRootfs:    versionFromCache.RhcosRootfs,
-		RhcosVersion:   versionFromCache.RhcosVersion,
-		SupportLevel:   &supportLevel,
-	}
-
-	// Store in map
-	h.openshiftVersions[ocpVersionKey] = *openshiftVersion
-	h.log.Infof("Stored OCP version: %s", ocpReleaseVersion)
-
-	return openshiftVersion, nil
+	return true
 }
 
-// Get CPU architecture available by the specified openshift version
-func (h *handler) GetCPUArchitectures(openshiftVersion string) ([]string, error) {
-	versionKey, err := h.GetKey(openshiftVersion)
-	if err != nil {
-		return nil, err
-	}
-	if !h.IsOpenshiftVersionSupported(versionKey) {
-		return nil, errors.Errorf("No available CPU architectures for openshift version %s", versionKey)
-	}
-
-	cpuArchitectures := []string{}
-	for _, release := range h.releaseImages {
-		if *release.OpenshiftVersion == openshiftVersion {
-			if release.OpenshiftVersion == nil {
-				return nil, errors.Errorf("Missing openshift_version in ReleaseImage")
-			}
-			if release.CPUArchitecture == nil {
-				return nil, errors.Errorf("Missing cpu_architecture in ReleaseImage")
-			}
-			cpuArchitectures = append(cpuArchitectures, *release.CPUArchitecture)
-		}
-	}
-
-	// TODO: remove once releaseImages list is exclusively used
-	if len(cpuArchitectures) == 0 {
-		cpuArchitectures = append(cpuArchitectures, common.DefaultCPUArchitecture)
-	}
-
-	return cpuArchitectures, nil
-}
-
-// Ensures no missing values in OS images.
-// No need to validate OpenshiftVersion fields here,
-// e.g. since release is not available in AddOpenshiftVersion flow.
+// Ensure no missing values in OS images and Release images.
 func (h *handler) validateVersions() error {
-	missingValueTemplate := "Missing value in OsImage for '%s' field (openshift_version: %s)"
-	for key := range h.openshiftVersions {
+	missingValueTemplate := "Missing value in OSImage for '%s' field (openshift_version: %s)"
+	for _, key := range h.GetOpenshiftVersions() {
 		architectures, err := h.GetCPUArchitectures(key)
 		if err != nil {
 			return err
-		}
-
-		// TODO: remove once release_images is exclusively used
-		if len(architectures) == 0 {
-			architectures = append(architectures, common.DefaultCPUArchitecture)
 		}
 
 		for _, architecture := range architectures {
@@ -350,7 +353,6 @@ func (h *handler) validateVersions() error {
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("Failed to get OSImage for openshift version: %s", key))
 			}
-
 			if osImage.URL == nil {
 				return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url", key))
 			}
@@ -362,8 +364,17 @@ func (h *handler) validateVersions() error {
 			}
 		}
 	}
+
+	// Release images are not mandatory (dynamically added in kube-api flow),
+	// validating fields for those specified in list.
 	missingValueTemplate = "Missing value in ReleaseImage for '%s' field"
 	for _, release := range h.releaseImages {
+		if release.CPUArchitecture == nil {
+			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "cpu_architecture"))
+		}
+		if release.OpenshiftVersion == nil {
+			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "openshift_version"))
+		}
 		if release.URL == nil {
 			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url"))
 		}

@@ -163,15 +163,14 @@ var _ = Describe("cluster reconcile", func() {
 		defaultAgentClusterInstallSpec hiveext.AgentClusterInstallSpec
 		pullSecretName                 = "pull-secret"
 		imageSetName                   = "openshift-v4.8.0"
-		releaseImage                   = "quay.io/openshift-release-dev/ocp-release:4.8.0-x86_64"
+		releaseImageUrl                = "quay.io/openshift-release-dev/ocp-release:4.8.0-x86_64"
 		ocpReleaseVersion              = "4.8.0"
-		openshiftVersion               = &models.OpenshiftVersion{
-			DisplayName:    new(string),
-			ReleaseImage:   new(string),
-			ReleaseVersion: &ocpReleaseVersion,
-			RhcosImage:     new(string),
-			RhcosVersion:   new(string),
-			SupportLevel:   new(string),
+		ocpVersion                     = "4.8"
+		releaseImage                   = &models.ReleaseImage{
+			CPUArchitecture:  &common.TestDefaultConfig.CPUArchitecture,
+			OpenshiftVersion: &ocpVersion,
+			URL:              &releaseImageUrl,
+			Version:          &ocpReleaseVersion,
 		}
 	)
 
@@ -238,7 +237,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
-			imageSet := getDefaultTestImageSet(imageSetName, releaseImage)
+			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
 			Expect(c.Create(ctx, imageSet)).To(BeNil())
 		})
 
@@ -272,10 +271,9 @@ var _ = Describe("cluster reconcile", func() {
 			It("create new cluster", func() {
 				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), false).
 					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ bool) {
-						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*openshiftVersion.ReleaseVersion))
-						Expect(params.NewClusterParams.OcpReleaseImage).To(Equal(*openshiftVersion.ReleaseImage))
+						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*releaseImage.Version))
 					}).Return(clusterReply, nil)
-				mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
+				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -289,7 +287,7 @@ var _ = Describe("cluster reconcile", func() {
 					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ bool) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(ocpReleaseVersion))
 					}).Return(clusterReply, nil)
-				mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
+				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace,
 					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName))
@@ -308,7 +306,7 @@ var _ = Describe("cluster reconcile", func() {
 						Expect(swag.StringValue(params.NewClusterParams.HighAvailabilityMode)).
 							To(Equal(HighAvailabilityModeNone))
 					}).Return(clusterReply, nil)
-				mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
+				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -346,7 +344,7 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("fail to get openshift version when trying to create a cluster", func() {
-				mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("some-error"))
+				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("some-error"))
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -376,7 +374,7 @@ var _ = Describe("cluster reconcile", func() {
 			errString := "internal error"
 			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), false).
 				Return(nil, errors.Errorf(errString))
-			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
+			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
 			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -757,7 +755,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
-			imageSet := getDefaultTestImageSet(imageSetName, releaseImage)
+			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
 			Expect(c.Create(ctx, imageSet)).To(BeNil())
 		})
 
@@ -823,7 +821,7 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
-			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
+			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
 			simulateACIDeletionWithFinalizer(ctx, c, aci)
 			request := newClusterDeploymentRequest(cd)
@@ -855,7 +853,7 @@ var _ = Describe("cluster reconcile", func() {
 		BeforeEach(func() {
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
-			imageSet := getDefaultTestImageSet(imageSetName, releaseImage)
+			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
 			Expect(c.Create(ctx, imageSet)).To(BeNil())
 			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			id := uuid.New()
@@ -1214,7 +1212,7 @@ var _ = Describe("cluster reconcile", func() {
 				},
 			}
 			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(clusterReply, nil)
-			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
+			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
 				Type:    hiveext.ClusterCompletedCondition,
 				Status:  corev1.ConditionTrue,

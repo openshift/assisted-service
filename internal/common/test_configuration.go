@@ -26,12 +26,14 @@ type TestNetworking struct {
 type TestConfiguration struct {
 	OpenShiftVersion string
 	ReleaseVersion   string
-	ReleaseImage     string
+	ReleaseImageUrl  string
 	RhcosImage       string
 	RhcosVersion     string
 	SupportLevel     string
 	CPUArchitecture  string
 	Version          *models.OpenshiftVersion
+	ReleaseImage     *models.ReleaseImage
+	OsImage          *models.OsImage
 
 	Status            string
 	StatusInfo        string
@@ -54,6 +56,7 @@ var (
 	ReleaseImage            = "quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64"
 	RhcosImage              = "rhcos_4.6.0"
 	RhcosVersion            = "version-46.123-0"
+	RhcosRootfs             = "rhcos_4.6.0_rootfs"
 	SupportLevel            = "beta"
 	CPUArchitecture         = DefaultCPUArchitecture
 )
@@ -62,7 +65,7 @@ var (
 var TestDefaultConfig = &TestConfiguration{
 	OpenShiftVersion: OpenShiftVersion,
 	ReleaseVersion:   ReleaseVersion,
-	ReleaseImage:     ReleaseImage,
+	ReleaseImageUrl:  ReleaseImage,
 	CPUArchitecture:  CPUArchitecture,
 	Version: &models.OpenshiftVersion{
 		DisplayName:    &OpenShiftVersion,
@@ -71,6 +74,19 @@ var TestDefaultConfig = &TestConfiguration{
 		RhcosImage:     &RhcosImage,
 		RhcosVersion:   &RhcosVersion,
 		SupportLevel:   &SupportLevel,
+	},
+	ReleaseImage: &models.ReleaseImage{
+		CPUArchitecture:  &CPUArchitecture,
+		OpenshiftVersion: &OpenShiftVersion,
+		URL:              &ReleaseImage,
+		Version:          &ReleaseVersion,
+	},
+	OsImage: &models.OsImage{
+		CPUArchitecture:  &CPUArchitecture,
+		OpenshiftVersion: &OpenShiftVersion,
+		RootfsURL:        &RhcosRootfs,
+		URL:              &RhcosImage,
+		Version:          &RhcosVersion,
 	},
 	Status:            "status",
 	StatusInfo:        "statusInfo",

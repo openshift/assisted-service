@@ -224,8 +224,8 @@ func main() {
 			"Failed to parse supported Release images JSON %s", Options.ReleaseImages)
 	}
 
-	log.Println(fmt.Sprintf("Started service with OCP versions %v, OS images %v",
-		Options.OpenshiftVersions, Options.OsImages))
+	log.Println(fmt.Sprintf("Started service with OCP versions %v, OS images %v, Release images %v",
+		Options.OpenshiftVersions, Options.OsImages, Options.ReleaseImages))
 
 	var mustGatherVersionsMap = make(versions.MustGatherVersions)
 	if Options.MustGatherImages != "" {
@@ -584,7 +584,8 @@ func uploadISOs(objectHandler s3wrapper.API, openshiftVersionsMap models.Openshi
 	// Checks whether latest version of minimal ISO templates already exists
 	// Must be done while holding the leader lock but outside of the version loop
 	haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(uploadctx, log, objectHandler)
-	for version := range openshiftVersionsMap {
+	versions := versionHandler.GetOpenshiftVersions()
+	for _, version := range versions {
 		currVersion := version
 		cpuArchitectures, _ := versionHandler.GetCPUArchitectures(currVersion)
 		for _, cpuArchitecture := range cpuArchitectures {
