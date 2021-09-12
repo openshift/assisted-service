@@ -686,6 +686,11 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UU
 		return err
 	}
 
+	// day2 cluster isn't a real cluster and doesn't have a real progress
+	if *cluster.Kind == models.ClusterKindAddHostsCluster {
+		return nil
+	}
+
 	var totalHostsDoneStages, totalHostsStages float64
 	for _, h := range cluster.Hosts {
 		stages := m.hostAPI.GetStagesByRole(h.Role, h.Bootstrap)

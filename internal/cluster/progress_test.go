@@ -81,7 +81,8 @@ var _ = Describe("Progress bar test", func() {
 			hid5 := strfmt.UUID(uuid.New().String())
 			c := common.Cluster{
 				Cluster: models.Cluster{
-					ID: &clusterId,
+					ID:   &clusterId,
+					Kind: swag.String(models.ClusterKindCluster),
 					Hosts: []*models.Host{
 						{
 							ID:         &hid1,
