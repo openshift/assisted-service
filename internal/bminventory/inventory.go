@@ -5590,7 +5590,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			UserName:               ocm.UserNameFromContext(ctx),
 			OrgID:                  ocm.OrgIDFromContext(ctx),
 			EmailDomain:            ocm.EmailDomainFromContext(ctx),
-			OpenshiftVersion:       *openshiftVersion.ReleaseVersion,
+			OpenshiftVersion:       openshiftVersion,
 			IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
 			StaticNetworkConfig:    b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraenvCreateParams.StaticNetworkConfig),
 			Type:                   params.InfraenvCreateParams.ImageType,
@@ -5675,24 +5675,25 @@ func (b *bareMetalInventory) setDefaultRegisterInfraEnvParams(_ context.Context,
 	return params
 }
 
-func (b *bareMetalInventory) getOpenshiftVersionOrLatest(version *string, cpuArch string) (*models.OpenshiftVersion, error) {
-	var openshiftVersion *models.OpenshiftVersion
-	var err error
+func (b *bareMetalInventory) getOpenshiftVersionOrLatest(version *string, cpuArch string) (string, error) {
+	var releaseVersion string
 	if swag.StringValue(version) != "" {
-		openshiftVersion, err = b.versionsHandler.GetOpenshiftVersion(swag.StringValue(version), cpuArch)
+		openshiftVersion, err := b.versionsHandler.GetOpenshiftVersion(swag.StringValue(version), cpuArch)
 		if err != nil {
 			err = errors.Errorf("Openshift version %s is not supported",
 				swag.StringValue(version))
-			return nil, common.NewApiError(http.StatusBadRequest, err)
+			return "", common.NewApiError(http.StatusBadRequest, err)
 		}
+		releaseVersion = *openshiftVersion.ReleaseVersion
 	} else {
-		openshiftVersion, err = b.versionsHandler.GetLatestOpenshiftVersion(cpuArch)
+		osImage, err := b.versionsHandler.GetLatestOsImage(cpuArch)
 		if err != nil {
 			err = errors.Errorf("Fail to get latest Openshift version")
-			return nil, common.NewApiError(http.StatusBadRequest, err)
+			return "", common.NewApiError(http.StatusBadRequest, err)
 		}
+		releaseVersion = *osImage.OpenshiftVersion
 	}
-	return openshiftVersion, nil
+	return releaseVersion, nil
 }
 
 func (b *bareMetalInventory) validateClusterInfraEnvRegister(clusterId *strfmt.UUID, arch string) error {

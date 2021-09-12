@@ -32,7 +32,7 @@ type Handler interface {
 	restapi.VersionsAPI
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
 	GetOpenshiftVersion(openshiftVersion, cpuArchitecture string) (*models.OpenshiftVersion, error)
-	GetLatestOpenshiftVersion(cpuArchitecture string) (*models.OpenshiftVersion, error)
+	GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error)
 	GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error)
 	GetKey(openshiftVersion string) (string, error)
 	IsOpenshiftVersionSupported(versionKey string) bool
@@ -136,21 +136,19 @@ func (h *handler) IsOpenshiftVersionSupported(versionKey string) bool {
 	return true
 }
 
-// Returns the highest OpenshiftVersion entity
-func (h *handler) GetLatestOpenshiftVersion(cpuArchitecture string) (*models.OpenshiftVersion, error) {
-	var latest *models.OpenshiftVersion
-	var latestKey string
-	for k := range h.openshiftVersions {
-		if latest == nil || k > latestKey {
-			v, err := h.GetOpenshiftVersion(k, cpuArchitecture)
-			if err != nil {
-				continue
+// Returns the highest OsImage entity
+func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error) {
+	latestKey := ""
+	var latest *models.OsImage
+	for _, osImage := range h.osImages {
+		if osImage.OpenshiftVersion != nil {
+			if *osImage.OpenshiftVersion > latestKey && *osImage.CPUArchitecture == cpuArchitecture {
+				latestKey = *osImage.OpenshiftVersion
+				latest = osImage
 			}
-			latest = v
-			latestKey = k
 		}
 	}
-	if latest == nil {
+	if latestKey == "" {
 		return nil, errors.Errorf("No latest OpenshiftVersion found")
 	}
 	return latest, nil

@@ -7330,7 +7330,7 @@ var _ = Describe("infraEnvs", func() {
 		})
 
 		It("No version specified", func() {
-			mockVersions.EXPECT().GetLatestOpenshiftVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+			mockVersions.EXPECT().GetLatestOsImage(gomock.Any()).Return(&models.OsImage{OpenshiftVersion: swag.String("4.9")}, nil).Times(1)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(2)

@@ -82,19 +82,19 @@ func (mr *MockHandlerMockRecorder) GetKey(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKey", reflect.TypeOf((*MockHandler)(nil).GetKey), arg0)
 }
 
-// GetLatestOpenshiftVersion mocks base method.
-func (m *MockHandler) GetLatestOpenshiftVersion(arg0 string) (*models.OpenshiftVersion, error) {
+// GetLatestOsImage mocks base method.
+func (m *MockHandler) GetLatestOsImage(arg0 string) (*models.OsImage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLatestOpenshiftVersion", arg0)
-	ret0, _ := ret[0].(*models.OpenshiftVersion)
+	ret := m.ctrl.Call(m, "GetLatestOsImage", arg0)
+	ret0, _ := ret[0].(*models.OsImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetLatestOpenshiftVersion indicates an expected call of GetLatestOpenshiftVersion.
-func (mr *MockHandlerMockRecorder) GetLatestOpenshiftVersion(arg0 interface{}) *gomock.Call {
+// GetLatestOsImage indicates an expected call of GetLatestOsImage.
+func (mr *MockHandlerMockRecorder) GetLatestOsImage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestOpenshiftVersion", reflect.TypeOf((*MockHandler)(nil).GetLatestOpenshiftVersion), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestOsImage", reflect.TypeOf((*MockHandler)(nil).GetLatestOsImage), arg0)
 }
 
 // GetMustGatherImages mocks base method.

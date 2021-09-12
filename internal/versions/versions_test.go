@@ -603,79 +603,105 @@ var _ = Describe("list versions", func() {
 
 	Context("getLatestVersion", func() {
 
-		It("No versions", func() {
-			osImages = &defaultOsImages
+		It("No OS Image", func() {
+			osImages = &models.OsImages{}
 			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
-			_, err = h.GetLatestOpenshiftVersion("x86_64")
+			_, err = h.GetLatestOsImage("x86_64")
 			Expect(err).Should(HaveOccurred())
 		})
 
-		It("only one OpenShift version", func() {
-			var version *models.OpenshiftVersion
-			openshiftVersions = &models.OpenshiftVersions{
-				"4.8": models.OpenshiftVersion{
-					DisplayName:  swag.String("4.8-candidate"),
-					ReleaseImage: swag.String("release_4.8"), ReleaseVersion: swag.String("4.8-candidate"),
-					RhcosImage: swag.String("rhcos_4.8"), RhcosRootfs: swag.String("rhcos_rootfs_4.8"),
-					RhcosVersion: swag.String("version-48.123-0"),
-					SupportLevel: swag.String("newbie"),
+		It("Only one OS Image version", func() {
+			expectedVersion := "4.6"
+			var osImage *models.OsImage
+			osImages = &models.OsImages{
+				&models.OsImage{
+					OpenshiftVersion: swag.String(expectedVersion),
+					CPUArchitecture:  swag.String("x86_64"),
+					URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso"),
+					RootfsURL:        swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-live-rootfs.x86_64.img"),
+					Version:          swag.String("46.82.202012051820-0"),
 				},
 			}
 			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
-			version, err = h.GetLatestOpenshiftVersion("x86_64")
+			osImage, err = h.GetLatestOsImage("x86_64")
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(*version).Should(Equal((*openshiftVersions)["4.8"]))
+			Expect(*osImage.OpenshiftVersion).Should(Equal(expectedVersion))
 		})
 
-		It("Multiple OpenShift versions", func() {
-			var version *models.OpenshiftVersion
-			openshiftVersions = &models.OpenshiftVersions{
-				"4.8": models.OpenshiftVersion{
-					DisplayName:  swag.String("4.8-candidate"),
-					ReleaseImage: swag.String("release_4.8"), ReleaseVersion: swag.String("4.8-candidate"),
-					RhcosImage: swag.String("rhcos_4.8"), RhcosRootfs: swag.String("rhcos_rootfs_4.8"),
-					RhcosVersion: swag.String("version-48.123-0"),
-					SupportLevel: swag.String("newbie"),
+		It("Multiple OS Image versions", func() {
+			expectedVersion := "4.9"
+			var osImage *models.OsImage
+			osImages = &models.OsImages{
+				&models.OsImage{
+					OpenshiftVersion: swag.String(expectedVersion),
+					CPUArchitecture:  swag.String("x86_64"),
+					URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.8/rhcos-4.6.8-x86_64-live.x86_64.iso"),
+					RootfsURL:        swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.8/rhcos-live-rootfs.x86_64.img"),
+					Version:          swag.String("49.82.202012051820-0"),
 				},
-				"4.9": models.OpenshiftVersion{
-					DisplayName:  swag.String("4.9-candidate"),
-					ReleaseImage: swag.String("release_4.9"), ReleaseVersion: swag.String("4.9-candidate"),
-					RhcosImage: swag.String("rhcos_4.9"), RhcosRootfs: swag.String("rhcos_rootfs_4.9"),
-					RhcosVersion: swag.String("version-49.123-0"),
-					SupportLevel: swag.String("newbie"),
+				&models.OsImage{
+					OpenshiftVersion: swag.String("4.6"),
+					CPUArchitecture:  swag.String("x86_64"),
+					URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso"),
+					RootfsURL:        swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-live-rootfs.x86_64.img"),
+					Version:          swag.String("46.82.202012051820-0"),
 				},
-				"4.6": models.OpenshiftVersion{
-					DisplayName:  swag.String("4.6-candidate"),
-					ReleaseImage: swag.String("release_4.6"), ReleaseVersion: swag.String("4.6-candidate"),
-					RhcosImage: swag.String("rhcos_4.6"), RhcosRootfs: swag.String("rhcos_rootfs_4.6"),
-					RhcosVersion: swag.String("version-46.123-0"),
-					SupportLevel: swag.String("newbie"),
+				&models.OsImage{
+					OpenshiftVersion: swag.String("4.7"),
+					CPUArchitecture:  swag.String("x86_64"),
+					URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.8/rhcos-4.6.8-x86_64-live.x86_64.iso"),
+					RootfsURL:        swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.8/rhcos-live-rootfs.x86_64.img"),
+					Version:          swag.String("47.82.202012051820-0"),
 				},
 			}
 			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
-			version, err = h.GetLatestOpenshiftVersion("x86_64")
+			osImage, err = h.GetLatestOsImage("x86_64")
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(*version).Should(Equal((*openshiftVersions)["4.9"]))
+			Expect(*osImage.OpenshiftVersion).Should(Equal(expectedVersion))
 		})
 
-		It("OpenShift version without ReleaseImage", func() {
-			openshiftVersions = &models.OpenshiftVersions{
-				"4.8": models.OpenshiftVersion{
-					DisplayName: swag.String("4.8-candidate"),
-					RhcosImage:  swag.String("rhcos_4.8"), RhcosRootfs: swag.String("rhcos_rootfs_4.8"),
-					RhcosVersion: swag.String("version-48.123-0"),
-					SupportLevel: swag.String("newbie"),
+		It("Multiple OS Image versions, multiple arch", func() {
+			expectedVersion := "4.9"
+			var osImage *models.OsImage
+			osImages = &models.OsImages{
+				&models.OsImage{
+					OpenshiftVersion: swag.String("5.0"),
+					CPUArchitecture:  swag.String("arm"),
+					URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.8/rhcos-4.6.8-x86_64-live.x86_64.iso"),
+					RootfsURL:        swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.8/rhcos-live-rootfs.x86_64.img"),
+					Version:          swag.String("47.82.202012051820-0"),
+				},
+				&models.OsImage{
+					OpenshiftVersion: swag.String(expectedVersion),
+					CPUArchitecture:  swag.String("x86_64"),
+					URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.8/rhcos-4.6.8-x86_64-live.x86_64.iso"),
+					RootfsURL:        swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.8/rhcos-live-rootfs.x86_64.img"),
+					Version:          swag.String("49.82.202012051820-0"),
+				},
+				&models.OsImage{
+					OpenshiftVersion: swag.String("4.6"),
+					CPUArchitecture:  swag.String("x86_64"),
+					URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso"),
+					RootfsURL:        swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-live-rootfs.x86_64.img"),
+					Version:          swag.String("46.82.202012051820-0"),
+				},
+				&models.OsImage{
+					OpenshiftVersion: swag.String("4.7"),
+					CPUArchitecture:  swag.String("x86_64"),
+					URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.8/rhcos-4.6.8-x86_64-live.x86_64.iso"),
+					RootfsURL:        swag.String("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.8/rhcos-live-rootfs.x86_64.img"),
+					Version:          swag.String("47.82.202012051820-0"),
 				},
 			}
 			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
-			_, err = h.GetLatestOpenshiftVersion("x86_64")
-			Expect(err).Should(HaveOccurred())
+			osImage, err = h.GetLatestOsImage("x86_64")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*osImage.OpenshiftVersion).Should(Equal(expectedVersion))
 		})
-
 	})
 
 	Context("validateVersions", func() {
