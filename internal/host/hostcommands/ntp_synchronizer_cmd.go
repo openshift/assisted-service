@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -24,9 +25,13 @@ func NewNtpSyncCmd(log logrus.FieldLogger, ntpSynchronizerImage string, db *gorm
 	}
 }
 
-func (f *ntpSynchronizerCmd) prepareParam(host *models.Host, cluster *common.Cluster) (string, error) {
+func (f *ntpSynchronizerCmd) prepareParam(host *models.Host) (string, error) {
+	ntpSources, err := common.GetHostNTPSources(f.db, host)
+	if err != nil {
+		return "", err
+	}
 	request := models.NtpSynchronizationRequest{
-		NtpSource: &cluster.AdditionalNtpSource,
+		NtpSource: swag.String(ntpSources),
 	}
 	b, err := json.Marshal(&request)
 	if err != nil {
@@ -37,12 +42,7 @@ func (f *ntpSynchronizerCmd) prepareParam(host *models.Host, cluster *common.Clu
 }
 
 func (f *ntpSynchronizerCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	var cluster common.Cluster
-	if err := f.db.Take(&cluster, "id = ?", host.ClusterID.String()).Error; err != nil {
-		return nil, err
-	}
-
-	param, err := f.prepareParam(host, &cluster)
+	param, err := f.prepareParam(host)
 	if err != nil {
 		return nil, err
 	}

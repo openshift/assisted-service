@@ -765,11 +765,32 @@ func (v *validator) printBelongsToMajorityGroup(c *validationContext, status Val
 	}
 }
 
+func (v *validator) missingNTPSyncResult(db *gorm.DB, host *models.Host) ValidationStatus {
+	unboundStatuses := []string{
+		models.HostStatusInsufficientUnbound,
+		models.HostStatusDisconnectedUnbound,
+		models.HostStatusDiscoveringUnbound,
+		models.HostStatusKnownUnbound,
+		models.HostStatusDisabledUnbound,
+	}
+	if funk.ContainsString(unboundStatuses, swag.StringValue(host.Status)) {
+		sources, err := common.GetHostNTPSources(db, host)
+		if err != nil {
+			v.log.WithError(err).Errorf("Failed to get sources for host %s", host.ID.String())
+			return ValidationError
+		}
+		if sources == "" {
+			return ValidationSuccessSuppressOutput
+		}
+	}
+	return ValidationFailure
+}
+
 func (v *validator) isNTPSynced(c *validationContext) ValidationStatus {
 	var sources []*models.NtpSource
 
 	if c.host.NtpSources == "" {
-		return ValidationFailure
+		return v.missingNTPSyncResult(c.db, c.host)
 	}
 
 	if err := json.Unmarshal([]byte(c.host.NtpSources), &sources); err != nil {
@@ -783,7 +804,7 @@ func (v *validator) isNTPSynced(c *validationContext) ValidationStatus {
 		}
 	}
 
-	return ValidationFailure
+	return v.missingNTPSyncResult(c.db, c.host)
 }
 
 func (v *validator) printNTPSynced(c *validationContext, status ValidationStatus) string {

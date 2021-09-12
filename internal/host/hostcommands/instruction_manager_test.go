@@ -2,6 +2,7 @@ package hostcommands
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,6 +25,8 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 )
+
+const UNBOUND_SOURCE = "my-unbound-source"
 
 var _ = Describe("instruction_manager", func() {
 	var (
@@ -232,11 +235,17 @@ var _ = Describe("instruction_manager", func() {
 	Context("Unbound host steps", func() {
 		BeforeEach(func() {
 			Expect(db.Model(&common.Host{}).Select("cluster_id").Updates(map[string]interface{}{"cluster_id": nil}).Error).ShouldNot(HaveOccurred())
+			Expect(db.Create(&common.InfraEnv{
+				InfraEnv: models.InfraEnv{
+					ID:                   infraEnvId,
+					AdditionalNtpSources: UNBOUND_SOURCE,
+				},
+			}).Error).ToNot(HaveOccurred())
 		})
 
 		It("discovering-unbound", func() {
 			checkStep(models.HostStatusDiscoveringUnbound, []models.StepType{
-				models.StepTypeInventory,
+				models.StepTypeInventory, models.StepTypeNtpSynchronizer,
 			})
 		})
 
@@ -248,13 +257,13 @@ var _ = Describe("instruction_manager", func() {
 
 		It("insufficient-unbound", func() {
 			checkStep(models.HostStatusInsufficientUnbound, []models.StepType{
-				models.StepTypeInventory,
+				models.StepTypeInventory, models.StepTypeNtpSynchronizer,
 			})
 		})
 
 		It("known-unbound", func() {
 			checkStep(models.HostStatusKnownUnbound, []models.StepType{
-				models.StepTypeInventory,
+				models.StepTypeInventory, models.StepTypeNtpSynchronizer,
 			})
 		})
 
@@ -377,7 +386,6 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(1)
 	}
-
 	stepsReply, stepsErr := instMng.GetNextSteps(ctx, &h.Host)
 	ExpectWithOffset(1, stepsReply.Instructions).To(HaveLen(len(expectedStepTypes)))
 	if stateValues, ok := instMng.installingClusterStateToSteps[state]; ok {
@@ -396,7 +404,12 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 
 	for i, step := range stepsReply.Instructions {
 		ExpectWithOffset(1, step.StepType).Should(Equal(expectedStepTypes[i]))
+		if expectedStepTypes[i] == models.StepTypeNtpSynchronizer && funk.ContainsString([]string{models.HostStatusKnownUnbound,
+			models.HostStatusInsufficientUnbound, models.HostStatusDiscoveringUnbound}, state) {
+			Expect(strings.Join(step.Args, ",")).To(ContainSubstring(UNBOUND_SOURCE))
+		}
 	}
+
 	ExpectWithOffset(1, stepsErr).ShouldNot(HaveOccurred())
 }
 
