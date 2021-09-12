@@ -43,7 +43,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -135,14 +134,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 
 	if agent.Spec.ClusterDeploymentName == nil && h.ClusterID != nil {
 		log.Debugf("ClusterDeploymentName is unset in Agent %s. unbind", agent.Name)
-		host, err2 := r.Installer.UnbindHostInternal(ctx, installer.UnbindHostParams{
-			HostID:     *h.ID,
-			InfraEnvID: h.InfraEnvID,
-		})
-		if err2 != nil {
-			return r.updateStatus(ctx, log, agent, nil, nil, err2, !IsUserError(err2))
-		}
-		return r.updateStatus(ctx, log, agent, &host.Host, h.ClusterID, nil, true)
+		return r.unbindHost(ctx, log, agent, h)
 	}
 
 	if agent.Spec.ClusterDeploymentName != nil {
@@ -158,20 +150,21 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 			log.WithError(err).Error(errMsg)
 			// Update that we failed to retrieve the clusterDeployment
-			return r.updateStatus(ctx, log, agent, nil, nil, errors.Wrapf(err, errMsg), !k8serrors.IsNotFound(err))
+			//TODO MGMT-7844 add mapping CD-ACI to rnot requeue always
+			return r.updateStatus(ctx, log, agent, &h.Host, nil, errors.Wrapf(err, errMsg), true)
+		}
+
+		// Retrieve cluster by ClusterDeploymentName from the database
+		cluster, err2 := r.Installer.GetClusterByKubeKey(kubeKey)
+		if err2 != nil {
+			log.WithError(err2).Errorf("Fail to get cluster name: %s namespace: %s in backend",
+				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+			// Update that we failed to retrieve the cluster from the database
+			return r.updateStatus(ctx, log, agent, &h.Host, nil, err2, true)
 		}
 
 		if h.ClusterID == nil {
-			log.Debugf("ClusterDeploymentName is set in Agent %s. bind", agent.Name)
-
-			// Retrieve cluster by ClusterDeploymentName from the database
-			cluster, err2 := r.Installer.GetClusterByKubeKey(kubeKey)
-			if err2 != nil {
-				log.WithError(err2).Errorf("Fail to get cluster name: %s namespace: %s in backend",
-					agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
-				// Update that we failed to retrieve the cluster from the database
-				return r.updateStatus(ctx, log, agent, nil, nil, err2, true)
-			}
+			log.Infof("ClusterDeploymentName is set in Agent %s. bind", agent.Name)
 
 			host, err2 := r.Installer.BindHostInternal(ctx, installer.BindHostParams{
 				HostID:     *h.ID,
@@ -181,9 +174,12 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 				},
 			})
 			if err2 != nil {
-				return r.updateStatus(ctx, log, agent, nil, nil, err2, !IsUserError(err2))
+				return r.updateStatus(ctx, log, agent, &h.Host, nil, err2, !IsUserError(err2))
 			}
 			return r.updateStatus(ctx, log, agent, &host.Host, cluster.ID, nil, true)
+		} else if *h.ClusterID != *cluster.ID {
+			log.Infof("ClusterDeploymentName is changed in Agent %s. unbind first", agent.Name)
+			return r.unbindHost(ctx, log, agent, h)
 		}
 	}
 
@@ -204,6 +200,17 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	}
 
 	return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, nil, false)
+}
+
+func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *common.Host) (ctrl.Result, error) {
+	host, err2 := r.Installer.UnbindHostInternal(ctx, installer.UnbindHostParams{
+		HostID:     *h.ID,
+		InfraEnvID: h.InfraEnvID,
+	})
+	if err2 != nil {
+		return r.updateStatus(ctx, log, agent, &h.Host, nil, err2, !IsUserError(err2))
+	}
+	return r.updateStatus(ctx, log, agent, &host.Host, h.ClusterID, nil, true)
 }
 
 func (r *AgentReconciler) deleteAgent(ctx context.Context, log logrus.FieldLogger, agent types.NamespacedName) (ctrl.Result, error) {
