@@ -3947,9 +3947,24 @@ var _ = Describe("disk encryption", func() {
 	It("host doesn't have minimal requirementes for disk-encryption, TPM mode", func() {
 
 		h := &registerHost(*c.ID).Host
-		hwInfo := validHwInfo
-		hwInfo.TpmVersion = models.InventoryTpmVersionNr12
-		generateEssentialHostStepsWithInventory(ctx, h, "test-host", hwInfo)
+		nonValidTPMHwInfo := &models.Inventory{
+			CPU:    &models.CPU{Count: 16},
+			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
+			Disks:  []*models.Disk{&loop0, &sdb},
+			Interfaces: []*models.Interface{
+				{
+					IPV4Addresses: []string{
+						defaultCIDRv4,
+					},
+					MacAddress: "e6:53:3d:a7:77:b4",
+				},
+			},
+			SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
+			Timestamp:    1601853088,
+			Routes:       common.TestDefaultRouteConfiguration,
+			TpmVersion:   models.InventoryTpmVersionNr12,
+		}
+		generateEssentialHostStepsWithInventory(ctx, h, "test-host", nonValidTPMHwInfo)
 		waitForHostState(ctx, *c.ID, models.HostStatusInsufficient, 60*time.Second, h)
 
 		h = getHost(*c.ID, *h.ID)
