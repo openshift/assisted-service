@@ -6,6 +6,9 @@ set -o errexit
 
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(cd "$(dirname "${__dir}")" && pwd)"
+# Adding the "sleep 0" command overrides the current context to prevent utils.sh from executing the command in the param.
+# For example: "generate.sh generate_go_server" should be executed by this file and not by utils.sh which hasn't the generate_go_server function.
+source ${__dir}/utils.sh sleep 0
 
 function lint_swagger() {
     spectral lint swagger.yaml
@@ -13,14 +16,14 @@ function lint_swagger() {
 
 function generate_go_server() {
     rm -rf restapi
-    docker run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
+    $(get_container_runtime_command) run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
         quay.io/goswagger/swagger:v0.25.0 generate server --template=stratoscale -f ${__root}/swagger.yaml \
         --template-dir=/templates/contrib
 }
 
 function generate_go_client() {
     rm -rf client models
-    docker run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
+    $(get_container_runtime_command) run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
         quay.io/goswagger/swagger:v0.25.0 generate client --template=stratoscale -f swagger.yaml \
         --template-dir=/templates/contrib
 }
@@ -29,7 +32,7 @@ function generate_python_client() {
     local dest="${BUILD_FOLDER}"
     rm -rf "${dest}"/assisted-service-client/*
 
-    docker run --rm -u "$(id -u)" --entrypoint /bin/sh \
+    $(get_container_runtime_command) run --rm -u "$(id -u)" --entrypoint /bin/sh \
         -v "${dest}":/local:Z \
         -v "${__root}"/swagger.yaml:/swagger.yaml:ro,Z \
         -v "${__root}"/tools/generate_python_client.sh:/script.sh:ro,Z \
@@ -91,7 +94,7 @@ function generate_configuration() {
     sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" ${__root}/config/onprem-iso-fcc.yaml
 
     sed -i "s|HW_VALIDATOR_REQUIREMENTS=.*|HW_VALIDATOR_REQUIREMENTS=${HW_VALIDATOR_REQUIREMENTS}|" ${__root}/config/onprem-iso-fcc.yaml
-    docker run --rm -v ${__root}/config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > ${__root}/config/onprem-iso-config.ign
+    $(get_container_runtime_command) run --rm -v ${__root}/config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > ${__root}/config/onprem-iso-config.ign
 
     # Updated operator manifests with openshift versions
     sed -i "s|value: '.*' # openshift version|value: '${OPERATOR_OPENSHIFT_VERSIONS}' # openshift version|" ${__root}/config/manager/manager.yaml
