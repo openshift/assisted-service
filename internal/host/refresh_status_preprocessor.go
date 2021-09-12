@@ -201,9 +201,9 @@ func newValidations(v *validator) []validation {
 			formatter: v.printBelongsToMajorityGroup,
 		},
 		{
-			id:        IsPlatformValid,
-			condition: v.isValidPlatform,
-			formatter: v.printValidPlatform,
+			id:        IsPlatformNetworkSettingsValid,
+			condition: v.isValidPlatformNetworkSettings,
+			formatter: v.printValidPlatformNetworkSettings,
 		},
 		{
 			id:            IsNTPSynced,

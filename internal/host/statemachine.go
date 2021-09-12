@@ -547,13 +547,13 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 	})
 
 	var hasMinRequiredHardware = stateswitch.And(If(HasMinValidDisks), If(HasMinCPUCores), If(HasMinMemory),
-		If(IsPlatformValid), If(CompatibleWithClusterPlatform), If(DiskEncryptionRequirementsSatisfied))
+		If(CompatibleWithClusterPlatform), If(DiskEncryptionRequirementsSatisfied))
 
 	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined))
 
 	var isSufficientForInstall = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole), If(BelongsToMachineCidr), If(IsHostnameUnique), If(IsHostnameValid), If(IsAPIVipConnected), If(BelongsToMajorityGroup),
 		If(AreOcsRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(SufficientOrUnknownInstallationDiskSpeed), If(SucessfullOrUnknownContainerImagesAvailability), If(HasSufficientNetworkLatencyRequirementForRole), If(HasSufficientPacketLossRequirementForRole), If(HasDefaultRoute),
-		If(IsAPIDomainNameResolvedCorrectly), If(IsAPIInternalDomainNameResolvedCorrectly), If(IsAppsDomainNameResolvedCorrectly), If(IsDNSWildcardNotConfigured))
+		If(IsAPIDomainNameResolvedCorrectly), If(IsAPIInternalDomainNameResolvedCorrectly), If(IsAppsDomainNameResolvedCorrectly), If(IsDNSWildcardNotConfigured), If(IsPlatformNetworkSettingsValid))
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles

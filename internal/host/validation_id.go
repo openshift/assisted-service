@@ -24,7 +24,7 @@ const (
 	IsHostnameValid                                = validationID(models.HostValidationIDHostnameValid)
 	IsAPIVipConnected                              = validationID(models.HostValidationIDAPIVipConnected)
 	BelongsToMajorityGroup                         = validationID(models.HostValidationIDBelongsToMajorityGroup)
-	IsPlatformValid                                = validationID(models.HostValidationIDValidPlatform)
+	IsPlatformNetworkSettingsValid                 = validationID(models.HostValidationIDValidPlatformNetworkSettings)
 	IsNTPSynced                                    = validationID(models.HostValidationIDNtpSynced)
 	SucessfullOrUnknownContainerImagesAvailability = validationID(models.HostValidationIDContainerImagesAvailable)
 	AreLsoRequirementsSatisfied                    = validationID(models.HostValidationIDLsoRequirementsSatisfied)
@@ -56,6 +56,7 @@ func (v validationID) category() (string, error) {
 		HasDefaultRoute,
 		IsAPIDomainNameResolvedCorrectly,
 		IsAPIInternalDomainNameResolvedCorrectly,
+		IsPlatformNetworkSettingsValid,
 		IsAppsDomainNameResolvedCorrectly,
 		IsDNSWildcardNotConfigured:
 		return "network", nil
@@ -68,7 +69,6 @@ func (v validationID) category() (string, error) {
 		HasMemoryForRole,
 		IsHostnameUnique,
 		IsHostnameValid,
-		IsPlatformValid,
 		CompatibleWithClusterPlatform,
 		DiskEncryptionRequirementsSatisfied:
 		return "hardware", nil
