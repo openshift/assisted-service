@@ -7381,7 +7381,7 @@ definitions:
       - 'belongs-to-machine-cidr'
       - 'api-vip-connected'
       - 'belongs-to-majority-group'
-      - 'valid-platform'
+      - 'valid-platform-network-settings'
       - 'ntp-synced'
       - 'container-images-available'
       - 'lso-requirements-satisfied'

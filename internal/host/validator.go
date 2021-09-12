@@ -495,7 +495,7 @@ func (v *validator) hasMemoryForRole(c *validationContext) ValidationStatus {
 	return boolValue(c.inventory.Memory.PhysicalBytes >= requiredBytes)
 }
 
-func (v *validator) isValidPlatform(c *validationContext) ValidationStatus {
+func (v *validator) isValidPlatformNetworkSettings(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
@@ -514,7 +514,7 @@ func (v *validator) isValidPlatform(c *validationContext) ValidationStatus {
 	return ValidationSuccess
 }
 
-func (v *validator) printValidPlatform(c *validationContext, status ValidationStatus) string {
+func (v *validator) printValidPlatformNetworkSettings(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return fmt.Sprintf("Platform %s is allowed", c.inventory.SystemVendor.ProductName)

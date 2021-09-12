@@ -534,19 +534,19 @@ var _ = Describe("Metrics tests", func() {
 			waitForHostValidationStatus(clusterID, *h.ID, "success",
 				models.HostValidationIDHasMinCPUCores,
 				models.HostValidationIDHasMinMemory,
-				models.HostValidationIDValidPlatform,
+				models.HostValidationIDValidPlatformNetworkSettings,
 				models.HostValidationIDHasCPUCoresForRole,
 				models.HostValidationIDHasMemoryForRole)
 
 			oldChangedMetricCounterHasMinCPUCores := getValidationMetricCounter(string(models.HostValidationIDHasMinCPUCores), hostValidationChangedMetric)
 			oldChangedMetricCounterHasMinMemory := getValidationMetricCounter(string(models.HostValidationIDHasMinMemory), hostValidationChangedMetric)
-			oldChangedMetricCounterValidPlatform := getValidationMetricCounter(string(models.HostValidationIDValidPlatform), hostValidationChangedMetric)
+			oldChangedMetricCounterValidPlatform := getValidationMetricCounter(string(models.HostValidationIDValidPlatformNetworkSettings), hostValidationChangedMetric)
 			oldChangedMetricCounterHasCPUCoresForRole := getValidationMetricCounter(string(models.HostValidationIDHasCPUCoresForRole), hostValidationChangedMetric)
 			oldChangedMetricCounterHasMemoryForRole := getValidationMetricCounter(string(models.HostValidationIDHasMemoryForRole), hostValidationChangedMetric)
 
 			oldFailedMetricCounterHasMinCPUCores := getValidationMetricCounter(string(models.HostValidationIDHasMinCPUCores), hostValidationFailedMetric)
 			oldFailedMetricCounterHasMinMemroy := getValidationMetricCounter(string(models.HostValidationIDHasMinMemory), hostValidationFailedMetric)
-			oldFailedMetricCounterValidPlatform := getValidationMetricCounter(string(models.HostValidationIDValidPlatform), hostValidationFailedMetric)
+			oldFailedMetricCounterValidPlatform := getValidationMetricCounter(string(models.HostValidationIDValidPlatformNetworkSettings), hostValidationFailedMetric)
 			oldFailedMetricCounterHasCPUCoresForRole := getValidationMetricCounter(string(models.HostValidationIDHasCPUCoresForRole), hostValidationFailedMetric)
 			oldFailedMetricCounterHasMemoryForRole := getValidationMetricCounter(string(models.HostValidationIDHasMemoryForRole), hostValidationFailedMetric)
 
@@ -563,27 +563,27 @@ var _ = Describe("Metrics tests", func() {
 			waitForHostValidationStatus(clusterID, *h.ID, "failure",
 				models.HostValidationIDHasMinCPUCores,
 				models.HostValidationIDHasMinMemory,
-				models.HostValidationIDValidPlatform,
+				models.HostValidationIDValidPlatformNetworkSettings,
 				models.HostValidationIDHasCPUCoresForRole,
 				models.HostValidationIDHasMemoryForRole)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHasMinCPUCores, true)
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHasMinMemory, true)
-			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDValidPlatform, true)
+			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDValidPlatformNetworkSettings, true)
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHasCPUCoresForRole, true)
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHasMemoryForRole, true)
 
 			// check generated metrics
 			Expect(getValidationMetricCounter(string(models.HostValidationIDHasMinCPUCores), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounterHasMinCPUCores + 1))
 			Expect(getValidationMetricCounter(string(models.HostValidationIDHasMinMemory), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounterHasMinMemory + 1))
-			Expect(getValidationMetricCounter(string(models.HostValidationIDValidPlatform), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounterValidPlatform + 1))
+			Expect(getValidationMetricCounter(string(models.HostValidationIDValidPlatformNetworkSettings), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounterValidPlatform + 1))
 			Expect(getValidationMetricCounter(string(models.HostValidationIDHasCPUCoresForRole), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounterHasCPUCoresForRole + 1))
 			Expect(getValidationMetricCounter(string(models.HostValidationIDHasMemoryForRole), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounterHasMemoryForRole + 1))
 			metricsDeregisterCluster(ctx, clusterID)
 			Expect(getValidationMetricCounter(string(models.HostValidationIDHasMinCPUCores), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounterHasMinCPUCores + 1))
 			Expect(getValidationMetricCounter(string(models.HostValidationIDHasMinMemory), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounterHasMinMemroy + 1))
-			Expect(getValidationMetricCounter(string(models.HostValidationIDValidPlatform), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounterValidPlatform + 1))
+			Expect(getValidationMetricCounter(string(models.HostValidationIDValidPlatformNetworkSettings), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounterValidPlatform + 1))
 			Expect(getValidationMetricCounter(string(models.HostValidationIDHasCPUCoresForRole), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounterHasCPUCoresForRole + 1))
 			Expect(getValidationMetricCounter(string(models.HostValidationIDHasMemoryForRole), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounterHasMemoryForRole + 1))
 
@@ -605,7 +605,7 @@ var _ = Describe("Metrics tests", func() {
 			waitForHostValidationStatus(clusterID, *h.ID, "failure",
 				models.HostValidationIDHasMinCPUCores,
 				models.HostValidationIDHasMinMemory,
-				models.HostValidationIDValidPlatform,
+				models.HostValidationIDValidPlatformNetworkSettings,
 				models.HostValidationIDHasCPUCoresForRole,
 				models.HostValidationIDHasMemoryForRole)
 
@@ -614,14 +614,14 @@ var _ = Describe("Metrics tests", func() {
 			waitForHostValidationStatus(clusterID, *h.ID, "success",
 				models.HostValidationIDHasMinCPUCores,
 				models.HostValidationIDHasMinMemory,
-				models.HostValidationIDValidPlatform,
+				models.HostValidationIDValidPlatformNetworkSettings,
 				models.HostValidationIDHasCPUCoresForRole,
 				models.HostValidationIDHasMemoryForRole)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHasMinCPUCores, false)
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHasMinMemory, false)
-			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDValidPlatform, false)
+			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDValidPlatformNetworkSettings, false)
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHasCPUCoresForRole, false)
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHasMemoryForRole, false)
 		})
