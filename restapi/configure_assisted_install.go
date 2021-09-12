@@ -241,6 +241,9 @@ type InstallerAPI interface {
 	/* V2UpdateCluster Updates an OpenShift cluster definition. */
 	V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder
 
+	/* V2CompleteInstallation Agent API to mark a finalizing installation as complete. */
+	V2CompleteInstallation(ctx context.Context, params installer.V2CompleteInstallationParams) middleware.Responder
+
 	/* V2DeregisterCluster Deletes an OpenShift cluster definition. */
 	V2DeregisterCluster(ctx context.Context, params installer.V2DeregisterClusterParams) middleware.Responder
 
@@ -265,6 +268,9 @@ type InstallerAPI interface {
 	/* V2GetNextSteps Retrieves the next operations that the host agent needs to perform. */
 	V2GetNextSteps(ctx context.Context, params installer.V2GetNextStepsParams) middleware.Responder
 
+	/* V2GetPreflightRequirements Get preflight requirements for a cluster. */
+	V2GetPreflightRequirements(ctx context.Context, params installer.V2GetPreflightRequirementsParams) middleware.Responder
+
 	/* V2InstallCluster Installs the OpenShift cluster. */
 	V2InstallCluster(ctx context.Context, params installer.V2InstallClusterParams) middleware.Responder
 
@@ -286,6 +292,9 @@ type InstallerAPI interface {
 	/* V2RegisterHost Registers a new OpenShift agent. */
 	V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder
 
+	/* V2ResetCluster Resets a failed installation. */
+	V2ResetCluster(ctx context.Context, params installer.V2ResetClusterParams) middleware.Responder
+
 	/* V2ResetHost reset a failed host for day2 cluster. */
 	V2ResetHost(ctx context.Context, params installer.V2ResetHostParams) middleware.Responder
 
@@ -294,6 +303,9 @@ type InstallerAPI interface {
 
 	/* V2UpdateClusterInstallConfig Override values in the install config. */
 	V2UpdateClusterInstallConfig(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) middleware.Responder
+
+	/* V2UpdateClusterLogsProgress Update log collection state and progress. */
+	V2UpdateClusterLogsProgress(ctx context.Context, params installer.V2UpdateClusterLogsProgressParams) middleware.Responder
 
 	/* V2UpdateHost Update an Openshift host */
 	V2UpdateHost(ctx context.Context, params installer.V2UpdateHostParams) middleware.Responder
@@ -309,6 +321,9 @@ type InstallerAPI interface {
 
 	/* V2UpdateHostLogsProgress Update log collection state and progress. */
 	V2UpdateHostLogsProgress(ctx context.Context, params installer.V2UpdateHostLogsProgressParams) middleware.Responder
+
+	/* V2UploadClusterIngressCert Transfer the ingress certificate for the cluster. */
+	V2UploadClusterIngressCert(ctx context.Context, params installer.V2UploadClusterIngressCertParams) middleware.Responder
 }
 
 //go:generate mockery -name ManagedDomainsAPI -inpkg
@@ -834,6 +849,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2UpdateCluster(ctx, params)
 	})
+	api.InstallerV2CompleteInstallationHandler = installer.V2CompleteInstallationHandlerFunc(func(params installer.V2CompleteInstallationParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2CompleteInstallation(ctx, params)
+	})
 	api.InstallerV2DeregisterClusterHandler = installer.V2DeregisterClusterHandlerFunc(func(params installer.V2DeregisterClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -874,6 +894,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetNextSteps(ctx, params)
 	})
+	api.InstallerV2GetPreflightRequirementsHandler = installer.V2GetPreflightRequirementsHandlerFunc(func(params installer.V2GetPreflightRequirementsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2GetPreflightRequirements(ctx, params)
+	})
 	api.InstallerV2InstallClusterHandler = installer.V2InstallClusterHandlerFunc(func(params installer.V2InstallClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -909,6 +934,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2RegisterHost(ctx, params)
 	})
+	api.InstallerV2ResetClusterHandler = installer.V2ResetClusterHandlerFunc(func(params installer.V2ResetClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2ResetCluster(ctx, params)
+	})
 	api.InstallerV2ResetHostHandler = installer.V2ResetHostHandlerFunc(func(params installer.V2ResetHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -923,6 +953,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2UpdateClusterInstallConfig(ctx, params)
+	})
+	api.InstallerV2UpdateClusterLogsProgressHandler = installer.V2UpdateClusterLogsProgressHandlerFunc(func(params installer.V2UpdateClusterLogsProgressParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2UpdateClusterLogsProgress(ctx, params)
 	})
 	api.InstallerV2UpdateHostHandler = installer.V2UpdateHostHandlerFunc(func(params installer.V2UpdateHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
@@ -948,6 +983,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2UpdateHostLogsProgress(ctx, params)
+	})
+	api.InstallerV2UploadClusterIngressCertHandler = installer.V2UploadClusterIngressCertHandlerFunc(func(params installer.V2UploadClusterIngressCertParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2UploadClusterIngressCert(ctx, params)
 	})
 	api.ServerShutdown = func() {}
 	return api.Serve(c.InnerMiddleware), api, nil

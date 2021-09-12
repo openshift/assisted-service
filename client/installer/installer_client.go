@@ -208,6 +208,9 @@ type API interface {
 	   V2UpdateCluster Updates an OpenShift cluster definition.*/
 	V2UpdateCluster(ctx context.Context, params *V2UpdateClusterParams) (*V2UpdateClusterCreated, error)
 	/*
+	   V2CompleteInstallation Agent API to mark a finalizing installation as complete.*/
+	V2CompleteInstallation(ctx context.Context, params *V2CompleteInstallationParams) (*V2CompleteInstallationAccepted, error)
+	/*
 	   V2DeregisterCluster Deletes an OpenShift cluster definition.*/
 	V2DeregisterCluster(ctx context.Context, params *V2DeregisterClusterParams) (*V2DeregisterClusterNoContent, error)
 	/*
@@ -232,6 +235,9 @@ type API interface {
 	   V2GetNextSteps Retrieves the next operations that the host agent needs to perform.*/
 	V2GetNextSteps(ctx context.Context, params *V2GetNextStepsParams) (*V2GetNextStepsOK, error)
 	/*
+	   V2GetPreflightRequirements Get preflight requirements for a cluster.*/
+	V2GetPreflightRequirements(ctx context.Context, params *V2GetPreflightRequirementsParams) (*V2GetPreflightRequirementsOK, error)
+	/*
 	   V2InstallCluster Installs the OpenShift cluster.*/
 	V2InstallCluster(ctx context.Context, params *V2InstallClusterParams) (*V2InstallClusterAccepted, error)
 	/*
@@ -253,6 +259,9 @@ type API interface {
 	   V2RegisterHost Registers a new OpenShift agent.*/
 	V2RegisterHost(ctx context.Context, params *V2RegisterHostParams) (*V2RegisterHostCreated, error)
 	/*
+	   V2ResetCluster Resets a failed installation.*/
+	V2ResetCluster(ctx context.Context, params *V2ResetClusterParams) (*V2ResetClusterAccepted, error)
+	/*
 	   V2ResetHost reset a failed host for day2 cluster.*/
 	V2ResetHost(ctx context.Context, params *V2ResetHostParams) (*V2ResetHostOK, error)
 	/*
@@ -263,6 +272,9 @@ type API interface {
 	/*
 	   V2UpdateClusterInstallConfig Override values in the install config.*/
 	V2UpdateClusterInstallConfig(ctx context.Context, params *V2UpdateClusterInstallConfigParams) (*V2UpdateClusterInstallConfigCreated, error)
+	/*
+	   V2UpdateClusterLogsProgress Update log collection state and progress.*/
+	V2UpdateClusterLogsProgress(ctx context.Context, params *V2UpdateClusterLogsProgressParams) (*V2UpdateClusterLogsProgressNoContent, error)
 	/*
 	   V2UpdateHost Update an Openshift host*/
 	V2UpdateHost(ctx context.Context, params *V2UpdateHostParams) (*V2UpdateHostCreated, error)
@@ -278,6 +290,9 @@ type API interface {
 	/*
 	   V2UpdateHostLogsProgress Update log collection state and progress.*/
 	V2UpdateHostLogsProgress(ctx context.Context, params *V2UpdateHostLogsProgressParams) (*V2UpdateHostLogsProgressNoContent, error)
+	/*
+	   V2UploadClusterIngressCert Transfer the ingress certificate for the cluster.*/
+	V2UploadClusterIngressCert(ctx context.Context, params *V2UploadClusterIngressCertParams) (*V2UploadClusterIngressCertCreated, error)
 }
 
 // New creates a new installer API client.
@@ -1836,6 +1851,31 @@ func (a *Client) V2UpdateCluster(ctx context.Context, params *V2UpdateClusterPar
 }
 
 /*
+V2CompleteInstallation Agent API to mark a finalizing installation as complete.
+*/
+func (a *Client) V2CompleteInstallation(ctx context.Context, params *V2CompleteInstallationParams) (*V2CompleteInstallationAccepted, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2CompleteInstallation",
+		Method:             "POST",
+		PathPattern:        "/v2/clusters/{cluster_id}/actions/complete-installation",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2CompleteInstallationReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2CompleteInstallationAccepted), nil
+
+}
+
+/*
 V2DeregisterCluster Deletes an OpenShift cluster definition.
 */
 func (a *Client) V2DeregisterCluster(ctx context.Context, params *V2DeregisterClusterParams) (*V2DeregisterClusterNoContent, error) {
@@ -2036,6 +2076,31 @@ func (a *Client) V2GetNextSteps(ctx context.Context, params *V2GetNextStepsParam
 }
 
 /*
+V2GetPreflightRequirements Get preflight requirements for a cluster.
+*/
+func (a *Client) V2GetPreflightRequirements(ctx context.Context, params *V2GetPreflightRequirementsParams) (*V2GetPreflightRequirementsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2GetPreflightRequirements",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/preflight-requirements",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetPreflightRequirementsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetPreflightRequirementsOK), nil
+
+}
+
+/*
 V2InstallCluster Installs the OpenShift cluster.
 */
 func (a *Client) V2InstallCluster(ctx context.Context, params *V2InstallClusterParams) (*V2InstallClusterAccepted, error) {
@@ -2211,6 +2276,31 @@ func (a *Client) V2RegisterHost(ctx context.Context, params *V2RegisterHostParam
 }
 
 /*
+V2ResetCluster Resets a failed installation.
+*/
+func (a *Client) V2ResetCluster(ctx context.Context, params *V2ResetClusterParams) (*V2ResetClusterAccepted, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2ResetCluster",
+		Method:             "POST",
+		PathPattern:        "/v2/clusters/{cluster_id}/actions/reset",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ResetClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ResetClusterAccepted), nil
+
+}
+
+/*
 V2ResetHost reset a failed host for day2 cluster.
 */
 func (a *Client) V2ResetHost(ctx context.Context, params *V2ResetHostParams) (*V2ResetHostOK, error) {
@@ -2284,6 +2374,31 @@ func (a *Client) V2UpdateClusterInstallConfig(ctx context.Context, params *V2Upd
 		return nil, err
 	}
 	return result.(*V2UpdateClusterInstallConfigCreated), nil
+
+}
+
+/*
+V2UpdateClusterLogsProgress Update log collection state and progress.
+*/
+func (a *Client) V2UpdateClusterLogsProgress(ctx context.Context, params *V2UpdateClusterLogsProgressParams) (*V2UpdateClusterLogsProgressNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2UpdateClusterLogsProgress",
+		Method:             "PUT",
+		PathPattern:        "/v2/clusters/{cluster_id}/logs-progress",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2UpdateClusterLogsProgressReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2UpdateClusterLogsProgressNoContent), nil
 
 }
 
@@ -2409,5 +2524,30 @@ func (a *Client) V2UpdateHostLogsProgress(ctx context.Context, params *V2UpdateH
 		return nil, err
 	}
 	return result.(*V2UpdateHostLogsProgressNoContent), nil
+
+}
+
+/*
+V2UploadClusterIngressCert Transfer the ingress certificate for the cluster.
+*/
+func (a *Client) V2UploadClusterIngressCert(ctx context.Context, params *V2UploadClusterIngressCertParams) (*V2UploadClusterIngressCertCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2UploadClusterIngressCert",
+		Method:             "POST",
+		PathPattern:        "/v2/clusters/{cluster_id}/uploads/ingress-cert",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2UploadClusterIngressCertReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2UploadClusterIngressCertCreated), nil
 
 }

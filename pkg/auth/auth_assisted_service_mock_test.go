@@ -24,6 +24,10 @@ func (f fakeInventory) GetPreflightRequirements(ctx context.Context, params inst
 	return installer.NewGetPreflightRequirementsOK().WithPayload(&models.PreflightHardwareRequirements{})
 }
 
+func (f fakeInventory) V2GetPreflightRequirements(ctx context.Context, params installer.V2GetPreflightRequirementsParams) middleware.Responder {
+	return installer.NewV2GetPreflightRequirementsOK().WithPayload(&models.PreflightHardwareRequirements{})
+}
+
 func (f fakeInventory) CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
 	return installer.NewCancelInstallationAccepted()
 }
@@ -38,6 +42,10 @@ func (f fakeInventory) Prog(ctx context.Context, params installer.CancelInstalla
 
 func (f fakeInventory) CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder {
 	return installer.NewCompleteInstallationAccepted()
+}
+
+func (f fakeInventory) V2CompleteInstallation(ctx context.Context, params installer.V2CompleteInstallationParams) middleware.Responder {
+	return installer.NewV2CompleteInstallationAccepted()
 }
 
 func (f fakeInventory) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
@@ -212,6 +220,10 @@ func (f fakeInventory) ResetCluster(ctx context.Context, params installer.ResetC
 	return installer.NewResetClusterAccepted()
 }
 
+func (f fakeInventory) V2ResetCluster(ctx context.Context, params installer.V2ResetClusterParams) middleware.Responder {
+	return installer.NewV2ResetClusterAccepted()
+}
+
 func (f fakeInventory) ResetHost(ctx context.Context, params installer.ResetHostParams) middleware.Responder {
 	return installer.NewResetHostOK()
 }
@@ -256,12 +268,20 @@ func (f fakeInventory) UploadClusterIngressCert(ctx context.Context, params inst
 	return installer.NewUploadClusterIngressCertCreated()
 }
 
+func (f fakeInventory) V2UploadClusterIngressCert(ctx context.Context, params installer.V2UploadClusterIngressCertParams) middleware.Responder {
+	return installer.NewV2UploadClusterIngressCertCreated()
+}
+
 func (f fakeInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
 	return installer.NewUploadHostLogsNoContent()
 }
 
 func (f fakeInventory) UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder {
 	return installer.NewUpdateClusterLogsProgressNoContent()
+}
+
+func (f fakeInventory) V2UpdateClusterLogsProgress(ctx context.Context, params installer.V2UpdateClusterLogsProgressParams) middleware.Responder {
+	return installer.NewV2UpdateClusterLogsProgressNoContent()
 }
 
 func (f fakeInventory) UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder {

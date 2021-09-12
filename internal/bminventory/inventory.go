@@ -4517,63 +4517,11 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 }
 
 func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("UploadClusterIngressCert for cluster %s with params %s", params.ClusterID, params.IngressCertParams)
-	var cluster common.Cluster
-
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return installer.NewUploadClusterIngressCertNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
-		} else {
-			return installer.NewUploadClusterIngressCertInternalServerError().
-				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-		}
-	}
-
-	if err := b.clusterApi.UploadIngressCert(&cluster); err != nil {
-		return installer.NewUploadClusterIngressCertBadRequest().
-			WithPayload(common.GenerateError(http.StatusBadRequest, err))
-	}
-
-	objectName := fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)
-	exists, err := b.objectHandler.DoesObjectExist(ctx, objectName)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to upload ingress ca")
-		return installer.NewUploadClusterIngressCertInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-
-	if exists {
-		log.Infof("Ingress ca for cluster %s already exists", cluster.ID)
-		return installer.NewUploadClusterIngressCertCreated()
-	}
-
-	noingress := fmt.Sprintf("%s/%s-noingress", cluster.ID, constants.Kubeconfig)
-	resp, _, err := b.objectHandler.Download(ctx, noingress)
-	if err != nil {
-		return installer.NewUploadClusterIngressCertInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-
-	kubeconfigData, err := ioutil.ReadAll(resp)
-	if err != nil {
-		log.WithError(err).Infof("Failed to convert kubeconfig s3 response to io reader")
-		return installer.NewUploadClusterIngressCertInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-
-	mergedKubeConfig, err := mergeIngressCaIntoKubeconfig(kubeconfigData, []byte(params.IngressCertParams), log)
-	if err != nil {
-		return installer.NewUploadClusterIngressCertInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-
-	if err := b.objectHandler.Upload(ctx, mergedKubeConfig, objectName); err != nil {
-		return installer.NewUploadClusterIngressCertInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.Errorf("failed to upload %s to s3", objectName)))
-	}
-	return installer.NewUploadClusterIngressCertCreated()
+	return b.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
+		ClusterID:             params.ClusterID,
+		DiscoveryAgentVersion: params.DiscoveryAgentVersion,
+		IngressCertParams:     params.IngressCertParams,
+	})
 }
 
 // Merging given ingress ca certificate into kubeconfig
@@ -4704,68 +4652,7 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 }
 
 func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("resetting cluster %s", params.ClusterID)
-
-	var cluster *common.Cluster
-
-	txSuccess := false
-	tx := b.db.Begin()
-	tx = transaction.AddForUpdateQueryOption(tx)
-	defer func() {
-		if !txSuccess {
-			log.Error("reset cluster failed")
-			tx.Rollback()
-		}
-		if r := recover(); r != nil {
-			log.Error("reset cluster failed")
-			tx.Rollback()
-		}
-	}()
-
-	if tx.Error != nil {
-		log.WithError(tx.Error).Errorf("failed to start db transaction")
-		return installer.NewResetClusterInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
-	}
-
-	var err error
-	if cluster, err = common.GetClusterFromDB(tx, params.ClusterID, common.UseEagerLoading); err != nil {
-		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return installer.NewResetClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
-		}
-		return installer.NewResetClusterInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-
-	if err := b.clusterApi.ResetCluster(ctx, cluster, "cluster was reset by user", tx); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	for _, h := range cluster.Hosts {
-		if err := b.hostApi.ResetHost(ctx, h, "cluster was reset by user", tx); err != nil {
-			return common.GenerateErrorResponder(err)
-		}
-		if err := b.customizeHost(h); err != nil {
-			return installer.NewResetClusterInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-		}
-	}
-
-	if err := b.clusterApi.DeleteClusterFiles(ctx, cluster, b.objectHandler); err != nil {
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	if err := b.deleteDNSRecordSets(ctx, *cluster); err != nil {
-		log.Warnf("failed to delete DNS record sets for base domain: %s", cluster.BaseDNSDomain)
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		log.Error(err)
-		return installer.NewResetClusterInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction")))
-	}
-	txSuccess = true
-
-	return installer.NewResetClusterAccepted().WithPayload(&cluster.Cluster)
+	return b.V2ResetCluster(ctx, installer.V2ResetClusterParams{ClusterID: params.ClusterID})
 }
 
 func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.InstallHostParams) middleware.Responder {
@@ -4889,30 +4776,11 @@ func (b *bareMetalInventory) resetHost(ctx context.Context, hostId, infraEnvId s
 }
 
 func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder {
-	// TODO: MGMT-4458
-	// This function can be removed once the controller will stop sending this request
-	// The service is already capable of completing the installation on its own
-
-	log := logutil.FromContext(ctx, b.log)
-
-	log.Infof("complete cluster %s installation", params.ClusterID)
-
-	var cluster *common.Cluster
-	var err error
-	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	if !*params.CompletionParams.IsSuccess {
-		if _, err := b.clusterApi.CompleteInstallation(ctx, b.db, cluster, false, params.CompletionParams.ErrorInfo); err != nil {
-			log.WithError(err).Errorf("Failed to set complete cluster state on %s ", params.ClusterID.String())
-			return common.GenerateErrorResponder(err)
-		}
-	} else {
-		log.Warnf("Cluster %s tried to complete its installation using deprecated CompleteInstallation API. The service decides whether the cluster completed", params.ClusterID)
-	}
-
-	return installer.NewCompleteInstallationAccepted().WithPayload(&cluster.Cluster)
+	return b.V2CompleteInstallation(ctx, installer.V2CompleteInstallationParams{
+		ClusterID:             params.ClusterID,
+		CompletionParams:      params.CompletionParams,
+		DiscoveryAgentVersion: params.DiscoveryAgentVersion,
+	})
 }
 
 func (b *bareMetalInventory) deleteDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
@@ -5014,21 +4882,10 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 }
 
 func (b *bareMetalInventory) UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder {
-	var err error
-	var currentCluster *common.Cluster
-
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("update log progress on %s cluster to %s", params.ClusterID, params.LogsProgressParams.LogsState)
-	currentCluster, err = b.getCluster(ctx, params.ClusterID.String())
-	if err == nil {
-		err = b.clusterApi.UpdateLogsProgress(ctx, currentCluster, string(params.LogsProgressParams.LogsState))
-	}
-	if err != nil {
-		b.log.WithError(err).Errorf("failed to update log progress %s on cluster %s", params.LogsProgressParams.LogsState, params.ClusterID.String())
-		return common.GenerateErrorResponder(err)
-	}
-
-	return installer.NewUpdateClusterLogsProgressNoContent()
+	return b.V2UpdateClusterLogsProgress(ctx, installer.V2UpdateClusterLogsProgressParams{
+		ClusterID:          params.ClusterID,
+		LogsProgressParams: params.LogsProgressParams,
+	})
 }
 
 func (b *bareMetalInventory) UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder {
@@ -5358,15 +5215,7 @@ func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, par
 }
 
 func (b *bareMetalInventory) GetPreflightRequirements(ctx context.Context, params installer.GetPreflightRequirementsParams) middleware.Responder {
-	cluster, err := b.getCluster(ctx, params.ClusterID.String(), common.UseEagerLoading)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	requirements, err := b.hwValidator.GetPreflightHardwareRequirements(ctx, cluster)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewGetPreflightRequirementsOK().WithPayload(requirements)
+	return b.V2GetPreflightRequirements(ctx, installer.V2GetPreflightRequirementsParams{ClusterID: params.ClusterID})
 }
 
 func (b *bareMetalInventory) V2ResetHostValidation(ctx context.Context, params installer.V2ResetHostValidationParams) middleware.Responder {

@@ -280,6 +280,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2UpdateClusterHandler: installer.V2UpdateClusterHandlerFunc(func(params installer.V2UpdateClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateCluster has not yet been implemented")
 		}),
+		InstallerV2CompleteInstallationHandler: installer.V2CompleteInstallationHandlerFunc(func(params installer.V2CompleteInstallationParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2CompleteInstallation has not yet been implemented")
+		}),
 		InstallerV2DeregisterClusterHandler: installer.V2DeregisterClusterHandlerFunc(func(params installer.V2DeregisterClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DeregisterCluster has not yet been implemented")
 		}),
@@ -304,6 +307,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2GetNextStepsHandler: installer.V2GetNextStepsHandlerFunc(func(params installer.V2GetNextStepsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetNextSteps has not yet been implemented")
 		}),
+		InstallerV2GetPreflightRequirementsHandler: installer.V2GetPreflightRequirementsHandlerFunc(func(params installer.V2GetPreflightRequirementsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2GetPreflightRequirements has not yet been implemented")
+		}),
 		InstallerV2InstallClusterHandler: installer.V2InstallClusterHandlerFunc(func(params installer.V2InstallClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2InstallCluster has not yet been implemented")
 		}),
@@ -325,6 +331,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2RegisterHostHandler: installer.V2RegisterHostHandlerFunc(func(params installer.V2RegisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2RegisterHost has not yet been implemented")
 		}),
+		InstallerV2ResetClusterHandler: installer.V2ResetClusterHandlerFunc(func(params installer.V2ResetClusterParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2ResetCluster has not yet been implemented")
+		}),
 		InstallerV2ResetHostHandler: installer.V2ResetHostHandlerFunc(func(params installer.V2ResetHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2ResetHost has not yet been implemented")
 		}),
@@ -333,6 +342,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerV2UpdateClusterInstallConfigHandler: installer.V2UpdateClusterInstallConfigHandlerFunc(func(params installer.V2UpdateClusterInstallConfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateClusterInstallConfig has not yet been implemented")
+		}),
+		InstallerV2UpdateClusterLogsProgressHandler: installer.V2UpdateClusterLogsProgressHandlerFunc(func(params installer.V2UpdateClusterLogsProgressParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2UpdateClusterLogsProgress has not yet been implemented")
 		}),
 		InstallerV2UpdateHostHandler: installer.V2UpdateHostHandlerFunc(func(params installer.V2UpdateHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateHost has not yet been implemented")
@@ -348,6 +360,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerV2UpdateHostLogsProgressHandler: installer.V2UpdateHostLogsProgressHandlerFunc(func(params installer.V2UpdateHostLogsProgressParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateHostLogsProgress has not yet been implemented")
+		}),
+		InstallerV2UploadClusterIngressCertHandler: installer.V2UploadClusterIngressCertHandlerFunc(func(params installer.V2UploadClusterIngressCertParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2UploadClusterIngressCert has not yet been implemented")
 		}),
 
 		// Applies when the "X-Secret-Key" header is set
@@ -571,6 +586,8 @@ type AssistedInstallAPI struct {
 	InstallerV2DownloadClusterFilesHandler installer.V2DownloadClusterFilesHandler
 	// InstallerV2UpdateClusterHandler sets the operation handler for the v2 update cluster operation
 	InstallerV2UpdateClusterHandler installer.V2UpdateClusterHandler
+	// InstallerV2CompleteInstallationHandler sets the operation handler for the v2 complete installation operation
+	InstallerV2CompleteInstallationHandler installer.V2CompleteInstallationHandler
 	// InstallerV2DeregisterClusterHandler sets the operation handler for the v2 deregister cluster operation
 	InstallerV2DeregisterClusterHandler installer.V2DeregisterClusterHandler
 	// InstallerV2DeregisterHostHandler sets the operation handler for the v2 deregister host operation
@@ -587,6 +604,8 @@ type AssistedInstallAPI struct {
 	InstallerV2GetHostIgnitionHandler installer.V2GetHostIgnitionHandler
 	// InstallerV2GetNextStepsHandler sets the operation handler for the v2 get next steps operation
 	InstallerV2GetNextStepsHandler installer.V2GetNextStepsHandler
+	// InstallerV2GetPreflightRequirementsHandler sets the operation handler for the v2 get preflight requirements operation
+	InstallerV2GetPreflightRequirementsHandler installer.V2GetPreflightRequirementsHandler
 	// InstallerV2InstallClusterHandler sets the operation handler for the v2 install cluster operation
 	InstallerV2InstallClusterHandler installer.V2InstallClusterHandler
 	// InstallerV2InstallHostHandler sets the operation handler for the v2 install host operation
@@ -601,12 +620,16 @@ type AssistedInstallAPI struct {
 	InstallerV2RegisterClusterHandler installer.V2RegisterClusterHandler
 	// InstallerV2RegisterHostHandler sets the operation handler for the v2 register host operation
 	InstallerV2RegisterHostHandler installer.V2RegisterHostHandler
+	// InstallerV2ResetClusterHandler sets the operation handler for the v2 reset cluster operation
+	InstallerV2ResetClusterHandler installer.V2ResetClusterHandler
 	// InstallerV2ResetHostHandler sets the operation handler for the v2 reset host operation
 	InstallerV2ResetHostHandler installer.V2ResetHostHandler
 	// InstallerV2ResetHostValidationHandler sets the operation handler for the v2 reset host validation operation
 	InstallerV2ResetHostValidationHandler installer.V2ResetHostValidationHandler
 	// InstallerV2UpdateClusterInstallConfigHandler sets the operation handler for the v2 update cluster install config operation
 	InstallerV2UpdateClusterInstallConfigHandler installer.V2UpdateClusterInstallConfigHandler
+	// InstallerV2UpdateClusterLogsProgressHandler sets the operation handler for the v2 update cluster logs progress operation
+	InstallerV2UpdateClusterLogsProgressHandler installer.V2UpdateClusterLogsProgressHandler
 	// InstallerV2UpdateHostHandler sets the operation handler for the v2 update host operation
 	InstallerV2UpdateHostHandler installer.V2UpdateHostHandler
 	// InstallerV2UpdateHostIgnitionHandler sets the operation handler for the v2 update host ignition operation
@@ -617,6 +640,8 @@ type AssistedInstallAPI struct {
 	InstallerV2UpdateHostInstallerArgsHandler installer.V2UpdateHostInstallerArgsHandler
 	// InstallerV2UpdateHostLogsProgressHandler sets the operation handler for the v2 update host logs progress operation
 	InstallerV2UpdateHostLogsProgressHandler installer.V2UpdateHostLogsProgressHandler
+	// InstallerV2UploadClusterIngressCertHandler sets the operation handler for the v2 upload cluster ingress cert operation
+	InstallerV2UploadClusterIngressCertHandler installer.V2UploadClusterIngressCertHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -937,6 +962,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerV2UpdateClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateClusterHandler")
 	}
+	if o.InstallerV2CompleteInstallationHandler == nil {
+		unregistered = append(unregistered, "installer.V2CompleteInstallationHandler")
+	}
 	if o.InstallerV2DeregisterClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2DeregisterClusterHandler")
 	}
@@ -961,6 +989,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerV2GetNextStepsHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetNextStepsHandler")
 	}
+	if o.InstallerV2GetPreflightRequirementsHandler == nil {
+		unregistered = append(unregistered, "installer.V2GetPreflightRequirementsHandler")
+	}
 	if o.InstallerV2InstallClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2InstallClusterHandler")
 	}
@@ -982,6 +1013,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerV2RegisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2RegisterHostHandler")
 	}
+	if o.InstallerV2ResetClusterHandler == nil {
+		unregistered = append(unregistered, "installer.V2ResetClusterHandler")
+	}
 	if o.InstallerV2ResetHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2ResetHostHandler")
 	}
@@ -990,6 +1024,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2UpdateClusterInstallConfigHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateClusterInstallConfigHandler")
+	}
+	if o.InstallerV2UpdateClusterLogsProgressHandler == nil {
+		unregistered = append(unregistered, "installer.V2UpdateClusterLogsProgressHandler")
 	}
 	if o.InstallerV2UpdateHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateHostHandler")
@@ -1005,6 +1042,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2UpdateHostLogsProgressHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateHostLogsProgressHandler")
+	}
+	if o.InstallerV2UploadClusterIngressCertHandler == nil {
+		unregistered = append(unregistered, "installer.V2UploadClusterIngressCertHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -1419,6 +1459,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/v2/clusters/{cluster_id}"] = installer.NewV2UpdateCluster(o.context, o.InstallerV2UpdateClusterHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/clusters/{cluster_id}/actions/complete-installation"] = installer.NewV2CompleteInstallation(o.context, o.InstallerV2CompleteInstallationHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
@@ -1451,6 +1495,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions"] = installer.NewV2GetNextSteps(o.context, o.InstallerV2GetNextStepsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/clusters/{cluster_id}/preflight-requirements"] = installer.NewV2GetPreflightRequirements(o.context, o.InstallerV2GetPreflightRequirementsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -1482,6 +1530,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
+	o.handlers["POST"]["/v2/clusters/{cluster_id}/actions/reset"] = installer.NewV2ResetCluster(o.context, o.InstallerV2ResetClusterHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
 	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset"] = installer.NewV2ResetHost(o.context, o.InstallerV2ResetHostHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
@@ -1491,6 +1543,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/v2/clusters/{cluster_id}/install-config"] = installer.NewV2UpdateClusterInstallConfig(o.context, o.InstallerV2UpdateClusterInstallConfigHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/v2/clusters/{cluster_id}/logs-progress"] = installer.NewV2UpdateClusterLogsProgress(o.context, o.InstallerV2UpdateClusterLogsProgressHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
@@ -1511,6 +1567,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
 	o.handlers["PUT"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/logs-progress"] = installer.NewV2UpdateHostLogsProgress(o.context, o.InstallerV2UpdateHostLogsProgressHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/clusters/{cluster_id}/uploads/ingress-cert"] = installer.NewV2UploadClusterIngressCert(o.context, o.InstallerV2UploadClusterIngressCertHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP
