@@ -5290,6 +5290,124 @@ func init() {
         }
       }
     },
+    "/v2/clusters/{cluster_id}/downloads/files-presigned": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves a pre-signed S3 URL for downloading cluster files.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "V2GetPresignedForClusterFiles",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster that owns the file that should be downloaded.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "bootstrap.ign",
+              "master.ign",
+              "metadata.json",
+              "worker.ign",
+              "install-config.yaml",
+              "logs",
+              "manifests"
+            ],
+            "type": "string",
+            "description": "The file to be downloaded.",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "description": "If downloading logs, the type of logs to download.",
+            "name": "logs_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "If downloading a file related to a host, the relevant host.",
+            "name": "host_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "If downloading a manifest, the file name, prefaced with folder name, for example, openshift/99-openshift-xyz.yaml.",
+            "name": "additional_name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/presigned"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/clusters/{cluster_id}/install-config": {
       "get": {
         "security": [
@@ -16859,6 +16977,124 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/clusters/{cluster_id}/downloads/files-presigned": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves a pre-signed S3 URL for downloading cluster files.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "V2GetPresignedForClusterFiles",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster that owns the file that should be downloaded.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "bootstrap.ign",
+              "master.ign",
+              "metadata.json",
+              "worker.ign",
+              "install-config.yaml",
+              "logs",
+              "manifests"
+            ],
+            "type": "string",
+            "description": "The file to be downloaded.",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "description": "If downloading logs, the type of logs to download.",
+            "name": "logs_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "If downloading a file related to a host, the relevant host.",
+            "name": "host_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "If downloading a manifest, the file name, prefaced with folder name, for example, openshift/99-openshift-xyz.yaml.",
+            "name": "additional_name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/presigned"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }

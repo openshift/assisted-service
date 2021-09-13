@@ -8072,9 +8072,27 @@ var _ = Describe("KubeConfig download", func() {
 		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 	})
+	It("V2 kubeconfig presigned backend not aws", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(false)
+		generateReply := bm.V2GetPresignedForClusterFiles(ctx, installer.V2GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  constants.Kubeconfig,
+		})
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+	})
 	It("kubeconfig presigned cluster is not in installed state", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  constants.Kubeconfig,
+		})
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+	})
+	It("V2 kubeconfig presigned cluster is not in installed state", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		generateReply := bm.V2GetPresignedForClusterFiles(ctx, installer.V2GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
 			FileName:  constants.Kubeconfig,
 		})
@@ -8094,6 +8112,21 @@ var _ = Describe("KubeConfig download", func() {
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
 		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
+		Expect(*replyPayload.URL).Should(Equal("url"))
+	})
+	It("V2 kubeconfig presigned happy flow", func() {
+		status := models.ClusterStatusInstalled
+		c.Status = &status
+		db.Save(&c)
+		fileName := fmt.Sprintf("%s/%s", clusterID, constants.Kubeconfig)
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, constants.Kubeconfig, gomock.Any()).Return("url", nil)
+		generateReply := bm.V2GetPresignedForClusterFiles(ctx, installer.V2GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  constants.Kubeconfig,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.V2GetPresignedForClusterFilesOK{}))
+		replyPayload := generateReply.(*installer.V2GetPresignedForClusterFilesOK).Payload
 		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
 

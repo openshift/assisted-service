@@ -238,6 +238,9 @@ type InstallerAPI interface {
 	/* V2DownloadClusterFiles Downloads files relating to the installed/installing cluster. */
 	V2DownloadClusterFiles(ctx context.Context, params installer.V2DownloadClusterFilesParams) middleware.Responder
 
+	/* V2GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files. */
+	V2GetPresignedForClusterFiles(ctx context.Context, params installer.V2GetPresignedForClusterFilesParams) middleware.Responder
+
 	/* V2UpdateCluster Updates an OpenShift cluster definition. */
 	V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder
 
@@ -846,6 +849,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2DownloadClusterFiles(ctx, params)
+	})
+	api.InstallerV2GetPresignedForClusterFilesHandler = installer.V2GetPresignedForClusterFilesHandlerFunc(func(params installer.V2GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2GetPresignedForClusterFiles(ctx, params)
 	})
 	api.ManagedDomainsV2ListManagedDomainsHandler = managed_domains.V2ListManagedDomainsHandlerFunc(func(params managed_domains.V2ListManagedDomainsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
