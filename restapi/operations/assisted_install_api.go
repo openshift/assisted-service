@@ -271,6 +271,12 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2CancelInstallationHandler: installer.V2CancelInstallationHandlerFunc(func(params installer.V2CancelInstallationParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2CancelInstallation has not yet been implemented")
 		}),
+		ManifestsV2CreateClusterManifestHandler: manifests.V2CreateClusterManifestHandlerFunc(func(params manifests.V2CreateClusterManifestParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation manifests.V2CreateClusterManifest has not yet been implemented")
+		}),
+		ManifestsV2DeleteClusterManifestHandler: manifests.V2DeleteClusterManifestHandlerFunc(func(params manifests.V2DeleteClusterManifestParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation manifests.V2DeleteClusterManifest has not yet been implemented")
+		}),
 		InstallerV2DownloadClusterCredentialsHandler: installer.V2DownloadClusterCredentialsHandlerFunc(func(params installer.V2DownloadClusterCredentialsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DownloadClusterCredentials has not yet been implemented")
 		}),
@@ -282,6 +288,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerV2GetPresignedForClusterFilesHandler: installer.V2GetPresignedForClusterFilesHandlerFunc(func(params installer.V2GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetPresignedForClusterFiles has not yet been implemented")
+		}),
+		ManifestsV2ListClusterManifestsHandler: manifests.V2ListClusterManifestsHandlerFunc(func(params manifests.V2ListClusterManifestsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation manifests.V2ListClusterManifests has not yet been implemented")
 		}),
 		ManagedDomainsV2ListManagedDomainsHandler: managed_domains.V2ListManagedDomainsHandlerFunc(func(params managed_domains.V2ListManagedDomainsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation managed_domains.V2ListManagedDomains has not yet been implemented")
@@ -601,6 +610,10 @@ type AssistedInstallAPI struct {
 	InstallerUploadLogsHandler installer.UploadLogsHandler
 	// InstallerV2CancelInstallationHandler sets the operation handler for the v2 cancel installation operation
 	InstallerV2CancelInstallationHandler installer.V2CancelInstallationHandler
+	// ManifestsV2CreateClusterManifestHandler sets the operation handler for the v2 create cluster manifest operation
+	ManifestsV2CreateClusterManifestHandler manifests.V2CreateClusterManifestHandler
+	// ManifestsV2DeleteClusterManifestHandler sets the operation handler for the v2 delete cluster manifest operation
+	ManifestsV2DeleteClusterManifestHandler manifests.V2DeleteClusterManifestHandler
 	// InstallerV2DownloadClusterCredentialsHandler sets the operation handler for the v2 download cluster credentials operation
 	InstallerV2DownloadClusterCredentialsHandler installer.V2DownloadClusterCredentialsHandler
 	// InstallerV2DownloadClusterFilesHandler sets the operation handler for the v2 download cluster files operation
@@ -609,6 +622,8 @@ type AssistedInstallAPI struct {
 	InstallerV2GetClusterDefaultConfigHandler installer.V2GetClusterDefaultConfigHandler
 	// InstallerV2GetPresignedForClusterFilesHandler sets the operation handler for the v2 get presigned for cluster files operation
 	InstallerV2GetPresignedForClusterFilesHandler installer.V2GetPresignedForClusterFilesHandler
+	// ManifestsV2ListClusterManifestsHandler sets the operation handler for the v2 list cluster manifests operation
+	ManifestsV2ListClusterManifestsHandler manifests.V2ListClusterManifestsHandler
 	// ManagedDomainsV2ListManagedDomainsHandler sets the operation handler for the v2 list managed domains operation
 	ManagedDomainsV2ListManagedDomainsHandler managed_domains.V2ListManagedDomainsHandler
 	// InstallerV2UpdateClusterHandler sets the operation handler for the v2 update cluster operation
@@ -988,6 +1003,12 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerV2CancelInstallationHandler == nil {
 		unregistered = append(unregistered, "installer.V2CancelInstallationHandler")
 	}
+	if o.ManifestsV2CreateClusterManifestHandler == nil {
+		unregistered = append(unregistered, "manifests.V2CreateClusterManifestHandler")
+	}
+	if o.ManifestsV2DeleteClusterManifestHandler == nil {
+		unregistered = append(unregistered, "manifests.V2DeleteClusterManifestHandler")
+	}
 	if o.InstallerV2DownloadClusterCredentialsHandler == nil {
 		unregistered = append(unregistered, "installer.V2DownloadClusterCredentialsHandler")
 	}
@@ -999,6 +1020,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2GetPresignedForClusterFilesHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetPresignedForClusterFilesHandler")
+	}
+	if o.ManifestsV2ListClusterManifestsHandler == nil {
+		unregistered = append(unregistered, "manifests.V2ListClusterManifestsHandler")
 	}
 	if o.ManagedDomainsV2ListManagedDomainsHandler == nil {
 		unregistered = append(unregistered, "managed_domains.V2ListManagedDomainsHandler")
@@ -1503,6 +1527,14 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v2/clusters/{cluster_id}/actions/cancel"] = installer.NewV2CancelInstallation(o.context, o.InstallerV2CancelInstallationHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/clusters/{cluster_id}/manifests"] = manifests.NewV2CreateClusterManifest(o.context, o.ManifestsV2CreateClusterManifestHandler)
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/v2/clusters/{cluster_id}/manifests"] = manifests.NewV2DeleteClusterManifest(o.context, o.ManifestsV2DeleteClusterManifestHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -1519,6 +1551,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters/{cluster_id}/downloads/files-presigned"] = installer.NewV2GetPresignedForClusterFiles(o.context, o.InstallerV2GetPresignedForClusterFilesHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/clusters/{cluster_id}/manifests"] = manifests.NewV2ListClusterManifests(o.context, o.ManifestsV2ListClusterManifestsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

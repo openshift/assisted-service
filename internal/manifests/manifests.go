@@ -53,17 +53,7 @@ type Manifests struct {
 }
 
 func (m *Manifests) CreateClusterManifest(ctx context.Context, params operations.CreateClusterManifestParams) middleware.Responder {
-	log := logutil.FromContext(ctx, m.log)
-	manifest, err := m.CreateClusterManifestInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	err = m.setUsage(true, manifest, params.ClusterID)
-	if err != nil {
-		// We don't want to return the error - the requested manifest was set successfully,  setting the feature usage failed.
-		log.Infof("Failed to set feature usage '%s' Error: %v. Manifest %v created by user successfully.", usage.CustomManifest, err, manifest)
-	}
-	return operations.NewCreateClusterManifestCreated().WithPayload(manifest)
+	return m.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams(params))
 }
 
 func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params operations.CreateClusterManifestParams) (*models.Manifest, error) {
@@ -117,11 +107,7 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 }
 
 func (m *Manifests) ListClusterManifests(ctx context.Context, params operations.ListClusterManifestsParams) middleware.Responder {
-	manifests, err := m.ListClusterManifestsInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return operations.NewListClusterManifestsOK().WithPayload(manifests)
+	return m.V2ListClusterManifests(ctx, operations.V2ListClusterManifestsParams(params))
 }
 
 func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params operations.ListClusterManifestsParams) (models.ListManifests, error) {
@@ -153,11 +139,7 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 }
 
 func (m *Manifests) DeleteClusterManifest(ctx context.Context, params operations.DeleteClusterManifestParams) middleware.Responder {
-	err := m.DeleteClusterManifestInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return operations.NewDeleteClusterManifestOK()
+	return m.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams(params))
 }
 
 func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params operations.DeleteClusterManifestParams) error {

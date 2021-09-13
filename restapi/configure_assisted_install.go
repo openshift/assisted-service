@@ -359,6 +359,15 @@ type ManifestsAPI interface {
 	/* ListClusterManifests Lists manifests for customizing cluster installation. */
 	ListClusterManifests(ctx context.Context, params manifests.ListClusterManifestsParams) middleware.Responder
 
+	/* V2CreateClusterManifest Creates a manifest for customizing cluster installation. */
+	V2CreateClusterManifest(ctx context.Context, params manifests.V2CreateClusterManifestParams) middleware.Responder
+
+	/* V2DeleteClusterManifest Deletes a manifest from the cluster. */
+	V2DeleteClusterManifest(ctx context.Context, params manifests.V2DeleteClusterManifestParams) middleware.Responder
+
+	/* V2ListClusterManifests Lists manifests for customizing cluster installation. */
+	V2ListClusterManifests(ctx context.Context, params manifests.V2ListClusterManifestsParams) middleware.Responder
+
 	/* V2DownloadClusterManifest Downloads cluster manifest. */
 	V2DownloadClusterManifest(ctx context.Context, params manifests.V2DownloadClusterManifestParams) middleware.Responder
 }
@@ -855,6 +864,16 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2CancelInstallation(ctx, params)
 	})
+	api.ManifestsV2CreateClusterManifestHandler = manifests.V2CreateClusterManifestHandlerFunc(func(params manifests.V2CreateClusterManifestParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManifestsAPI.V2CreateClusterManifest(ctx, params)
+	})
+	api.ManifestsV2DeleteClusterManifestHandler = manifests.V2DeleteClusterManifestHandlerFunc(func(params manifests.V2DeleteClusterManifestParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManifestsAPI.V2DeleteClusterManifest(ctx, params)
+	})
 	api.InstallerV2DownloadClusterCredentialsHandler = installer.V2DownloadClusterCredentialsHandlerFunc(func(params installer.V2DownloadClusterCredentialsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -874,6 +893,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetPresignedForClusterFiles(ctx, params)
+	})
+	api.ManifestsV2ListClusterManifestsHandler = manifests.V2ListClusterManifestsHandlerFunc(func(params manifests.V2ListClusterManifestsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManifestsAPI.V2ListClusterManifests(ctx, params)
 	})
 	api.ManagedDomainsV2ListManagedDomainsHandler = managed_domains.V2ListManagedDomainsHandlerFunc(func(params managed_domains.V2ListManagedDomainsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
