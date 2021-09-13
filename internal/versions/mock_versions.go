@@ -183,3 +183,31 @@ func (mr *MockHandlerMockRecorder) ListSupportedOpenshiftVersions(arg0, arg1 int
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSupportedOpenshiftVersions", reflect.TypeOf((*MockHandler)(nil).ListSupportedOpenshiftVersions), arg0, arg1)
 }
+
+// V2ListComponentVersions mocks base method.
+func (m *MockHandler) V2ListComponentVersions(arg0 context.Context, arg1 versions0.V2ListComponentVersionsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2ListComponentVersions", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2ListComponentVersions indicates an expected call of V2ListComponentVersions.
+func (mr *MockHandlerMockRecorder) V2ListComponentVersions(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ListComponentVersions", reflect.TypeOf((*MockHandler)(nil).V2ListComponentVersions), arg0, arg1)
+}
+
+// V2ListSupportedOpenshiftVersions mocks base method.
+func (m *MockHandler) V2ListSupportedOpenshiftVersions(arg0 context.Context, arg1 versions0.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2ListSupportedOpenshiftVersions", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2ListSupportedOpenshiftVersions indicates an expected call of V2ListSupportedOpenshiftVersions.
+func (mr *MockHandlerMockRecorder) V2ListSupportedOpenshiftVersions(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ListSupportedOpenshiftVersions", reflect.TypeOf((*MockHandler)(nil).V2ListSupportedOpenshiftVersions), arg0, arg1)
+}

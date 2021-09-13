@@ -207,6 +207,14 @@ func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params op
 }
 
 func (m *Manifests) DownloadClusterManifest(ctx context.Context, params operations.DownloadClusterManifestParams) middleware.Responder {
+	return m.V2DownloadClusterManifest(ctx, operations.V2DownloadClusterManifestParams{
+		ClusterID: params.ClusterID,
+		FileName:  params.FileName,
+		Folder:    params.Folder,
+	})
+}
+
+func (m *Manifests) V2DownloadClusterManifest(ctx context.Context, params operations.V2DownloadClusterManifestParams) middleware.Responder {
 	log := logutil.FromContext(ctx, m.log)
 	if params.Folder == nil {
 		defaultFolder := models.CreateManifestParamsFolderManifests
@@ -239,7 +247,7 @@ func (m *Manifests) DownloadClusterManifest(ctx context.Context, params operatio
 		return common.GenerateErrorResponder(err)
 	}
 
-	return filemiddleware.NewResponder(operations.NewDownloadClusterManifestOK().WithPayload(respBody), params.FileName, contentLength)
+	return filemiddleware.NewResponder(operations.NewV2DownloadClusterManifestOK().WithPayload(respBody), params.FileName, contentLength)
 }
 
 func (m *Manifests) setUsage(active bool, manifest *models.Manifest, clusterID strfmt.UUID) error {

@@ -65,6 +65,14 @@ func (h *Handler) ListOfClusterOperators(ctx context.Context, params restoperato
 
 // ReportMonitoredOperatorStatus Controller API to report of monitored operators.
 func (h *Handler) ReportMonitoredOperatorStatus(ctx context.Context, params restoperators.ReportMonitoredOperatorStatusParams) middleware.Responder {
+	return h.V2ReportMonitoredOperatorStatus(ctx, restoperators.V2ReportMonitoredOperatorStatusParams{
+		ClusterID:    params.ClusterID,
+		ReportParams: params.ReportParams,
+	})
+}
+
+// ReportMonitoredOperatorStatus Controller API to report of monitored operators.
+func (h *Handler) V2ReportMonitoredOperatorStatus(ctx context.Context, params restoperators.V2ReportMonitoredOperatorStatusParams) middleware.Responder {
 
 	log := logutil.FromContext(ctx, h.log)
 
@@ -96,7 +104,7 @@ func (h *Handler) ReportMonitoredOperatorStatus(ctx context.Context, params rest
 
 	txSuccess = true
 
-	return restoperators.NewReportMonitoredOperatorStatusOK()
+	return restoperators.NewV2ReportMonitoredOperatorStatusOK()
 }
 
 // GetMonitoredOperators retrieves list of monitored operators for a cluster

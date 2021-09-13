@@ -5503,6 +5503,182 @@ func init() {
         }
       }
     },
+    "/v2/clusters/{cluster_id}/manifests/files": {
+      "get": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "description": "Downloads cluster manifest.",
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "manifests"
+        ],
+        "operationId": "v2DownloadClusterManifest",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose manifest should be downloaded.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "manifests",
+              "openshift"
+            ],
+            "type": "string",
+            "default": "manifests",
+            "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
+            "name": "folder",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The manifest file name to download.",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/clusters/{cluster_id}/monitored-operators": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Controller API to report of monitored operators.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "v2ReportMonitoredOperatorStatus",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose operators are being monitored.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The operators monitor report.",
+            "name": "report-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/operator-monitor-report"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/clusters/{cluster_id}/preflight-requirements": {
       "get": {
         "security": [
@@ -5713,6 +5889,32 @@ func init() {
             "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/component-versions": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "List of component versions.",
+        "tags": [
+          "versions"
+        ],
+        "operationId": "v2ListComponentVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/list-versions"
             }
           }
         }
@@ -7865,6 +8067,38 @@ func init() {
             "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/openshift-versions": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the list of OpenShift supported versions.",
+        "tags": [
+          "versions"
+        ],
+        "operationId": "v2ListSupportedOpenshiftVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/openshift-versions"
             }
           },
           "503": {
@@ -17079,6 +17313,182 @@ func init() {
         }
       }
     },
+    "/v2/clusters/{cluster_id}/manifests/files": {
+      "get": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "description": "Downloads cluster manifest.",
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "manifests"
+        ],
+        "operationId": "v2DownloadClusterManifest",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose manifest should be downloaded.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "manifests",
+              "openshift"
+            ],
+            "type": "string",
+            "default": "manifests",
+            "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
+            "name": "folder",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The manifest file name to download.",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/clusters/{cluster_id}/monitored-operators": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Controller API to report of monitored operators.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "v2ReportMonitoredOperatorStatus",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose operators are being monitored.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The operators monitor report.",
+            "name": "report-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/operator-monitor-report"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/clusters/{cluster_id}/preflight-requirements": {
       "get": {
         "security": [
@@ -17289,6 +17699,32 @@ func init() {
             "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/component-versions": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "List of component versions.",
+        "tags": [
+          "versions"
+        ],
+        "operationId": "v2ListComponentVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/list-versions"
             }
           }
         }
@@ -19441,6 +19877,38 @@ func init() {
             "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/openshift-versions": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the list of OpenShift supported versions.",
+        "tags": [
+          "versions"
+        ],
+        "operationId": "v2ListSupportedOpenshiftVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/openshift-versions"
             }
           },
           "503": {

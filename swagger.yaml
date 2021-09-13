@@ -5212,6 +5212,155 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/component-versions:
+    get:
+      tags:
+        - versions
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      description: List of component versions.
+      operationId: v2ListComponentVersions
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/list-versions'
+
+  /v2/openshift-versions:
+    get:
+      tags:
+        - versions
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      operationId: v2ListSupportedOpenshiftVersions
+      description: Retrieves the list of OpenShift supported versions.
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/openshift-versions'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/clusters/{cluster_id}/manifests/files:
+    get:
+      tags:
+        - manifests
+      security:
+        - userAuth: []
+      description: Downloads cluster manifest.
+      operationId: v2DownloadClusterManifest
+      produces:
+        - application/octet-stream
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose manifest should be downloaded.
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: folder
+          description: The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
+          type: string
+          enum: [manifests,openshift]
+          required: false
+          default: manifests
+        - in: query
+          name: file_name
+          description: The manifest file name to download.
+          type: string
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: file
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/clusters/{cluster_id}/monitored-operators:
+    put:
+      tags:
+        - operators
+        - installer
+      security:
+        - agentAuth: []
+      description: Controller API to report of monitored operators.
+      operationId: v2ReportMonitoredOperatorStatus
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose operators are being monitored.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: report-params
+          description: The operators monitor report.
+          required: true
+          schema:
+            $ref: '#/definitions/operator-monitor-report'
+      responses:
+        "200":
+          description: Success.
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   vsphere_platform:
     type: object
