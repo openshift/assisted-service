@@ -5412,7 +5412,25 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 	log := logutil.FromContext(ctx, b.log)
 	var infraEnv *common.InfraEnv
 	var err error
+	success := false
 	log.Infof("Deregister infraEnv id %s", params.InfraEnvID)
+
+	defer func() {
+		if success {
+			msg := fmt.Sprintf("Successfully deregistered InfraEnv %s", params.InfraEnvID.String())
+			log.Info(msg)
+			eventgen.SendDeregisteredInfraEnvEvent(ctx, b.eventsHandler, params.InfraEnvID)
+		} else {
+			errMsg := fmt.Sprintf("Failed to deregister InfraEnv %s", params.InfraEnvID.String())
+			errString := ""
+			if err != nil {
+				errString = err.Error()
+				errMsg = fmt.Sprintf("%s. Error: %s", errMsg, errString)
+			}
+			log.Errorf(errMsg)
+			eventgen.SendInfraEnvDeregisterFailedEvent(ctx, b.eventsHandler, params.InfraEnvID, errString)
+		}
+	}()
 
 	if infraEnv, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
@@ -5447,7 +5465,7 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 		log.WithError(err).Errorf("failed to deregister infraEnv %s", params.InfraEnvID)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-
+	success = true
 	return nil
 }
 
@@ -5519,13 +5537,17 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			msg := fmt.Sprintf("Successfully registered InfraEnv %s with id %s",
 				swag.StringValue(params.InfraenvCreateParams.Name), id)
 			log.Info(msg)
+			eventgen.SendRegisteredInfraEnvEvent(ctx, b.eventsHandler, id)
 		} else {
-			errWrapperLog := log
-			if err != nil {
-				errWrapperLog = log.WithError(err)
-			}
-			errWrapperLog.Errorf("Failed to registered InfraEnv %s with id %s",
+			errMsg := fmt.Sprintf("Failed to register InfraEnv %s with id %s",
 				swag.StringValue(params.InfraenvCreateParams.Name), id)
+			errString := ""
+			if err != nil {
+				errString = err.Error()
+				errMsg = fmt.Sprintf("%s. Error: %s", errMsg, errString)
+			}
+			log.Errorf(errMsg)
+			eventgen.SendInfraEnvRegistrationFailedEvent(ctx, b.eventsHandler, id, errString)
 		}
 	}()
 
