@@ -7,9 +7,11 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/transaction"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -276,4 +278,24 @@ func (b *bareMetalInventory) V2UpdateClusterLogsProgress(ctx context.Context, pa
 
 func (b *bareMetalInventory) V2GetClusterDefaultConfig(_ context.Context, _ installer.V2GetClusterDefaultConfigParams) middleware.Responder {
 	return installer.NewV2GetClusterDefaultConfigOK().WithPayload(b.getClusterDefaultConfig())
+}
+
+func (b *bareMetalInventory) V2DownloadClusterLogs(ctx context.Context, params installer.V2DownloadClusterLogsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Downloading logs from cluster %s", params.ClusterID)
+	fileName, downloadFileName, err := b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID, swag.StringValue(params.LogsType))
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
+	if err != nil {
+		if _, ok := err.(common.NotFound); ok {
+			log.WithError(err).Warnf("File not found %s", fileName)
+			return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs of type %s for cluster %s "+
+				"were not found", swag.StringValue(params.LogsType), params.ClusterID))
+		}
+		log.WithError(err).Errorf("failed to download file %s", fileName)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(respBody), downloadFileName, contentLength)
 }

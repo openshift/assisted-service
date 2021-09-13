@@ -5030,23 +5030,7 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, clusterId strin
 }
 
 func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Downloading logs from cluster %s", params.ClusterID)
-	fileName, downloadFileName, err := b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID, swag.StringValue(params.LogsType))
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
-	if err != nil {
-		if _, ok := err.(common.NotFound); ok {
-			log.WithError(err).Warnf("File not found %s", fileName)
-			return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs of type %s for cluster %s "+
-				"were not found", swag.StringValue(params.LogsType), params.ClusterID))
-		}
-		log.WithError(err).Errorf("failed to download file %s", fileName)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(respBody), downloadFileName, contentLength)
+	return b.V2DownloadClusterLogs(ctx, installer.V2DownloadClusterLogsParams(params))
 }
 
 func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
