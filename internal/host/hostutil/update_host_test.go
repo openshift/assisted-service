@@ -11,7 +11,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -46,9 +48,10 @@ var _ = Describe("update_host_state", func() {
 
 	Describe("UpdateHostStatus", func() {
 		It("change_status", func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, host.ID, models.EventSeverityInfo,
-				fmt.Sprintf("Host %s: updated status from \"status\" to \"newStatus\" (newStatusInfo)", host.ID.String()),
-				gomock.Any())
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
 			returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, common.TestDefaultConfig.Status,
 				newStatus, newStatusInfo)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -126,9 +129,10 @@ var _ = Describe("update_host_state", func() {
 		})
 
 		It("new_status_new_stage", func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.InfraEnvID, host.ID, models.EventSeverityInfo,
-				fmt.Sprintf("Host %s: updated status from \"status\" to \"newStatus\" (newStatusInfo)", host.ID.String()),
-				gomock.Any())
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
 			returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status, newStatus, newStatusInfo,
 				host.Progress.CurrentStage, common.TestDefaultConfig.HostProgressStage, "")
 			Expect(err).ShouldNot(HaveOccurred())

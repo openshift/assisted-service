@@ -13,7 +13,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -57,8 +59,7 @@ var _ = Describe("Validations test", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	mockAndRefreshStatus := func(h *models.Host) {
-
+	mockAndRefreshStatusWithoutEvents := func(h *models.Host) {
 		mockDefaultClusterHostRequirements(mockHwValidator)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return([]*models.Disk{}).AnyTimes()
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
@@ -67,10 +68,18 @@ var _ = Describe("Validations test", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil).AnyTimes()
-		mockEvents.EXPECT().AddEvent(gomock.Any(), infraEnvID, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 		err := m.RefreshStatus(ctx, h, db)
 		Expect(err).ToNot(HaveOccurred())
+	}
+
+	mockAndRefreshStatus := func(h *models.Host) {
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+			eventstest.WithHostIdMatcher(h.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
+		))
+		mockAndRefreshStatusWithoutEvents(h)
 	}
 
 	Context("Disk encryption validation", func() {
@@ -162,7 +171,7 @@ var _ = Describe("Validations test", func() {
 			h.Inventory = ""
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 
-			mockAndRefreshStatus(&h)
+			mockAndRefreshStatusWithoutEvents(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)

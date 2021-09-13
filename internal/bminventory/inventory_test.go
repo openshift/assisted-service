@@ -1588,7 +1588,10 @@ var _ = Describe("PostStepReply", func() {
 		})
 
 		It("Media disconnection occurred", func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, hostId, models.EventSeverityError, gomock.Any(), gomock.Any())
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
 
 			params := installer.V2PostStepReplyParams{
 				InfraEnvID: *clusterId,
@@ -2104,7 +2107,10 @@ var _ = Describe("v2PostStepReply", func() {
 		})
 
 		It("Media disconnection occurred", func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, hostId, models.EventSeverityError, gomock.Any(), gomock.Any())
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
 
 			params := installer.V2PostStepReplyParams{
 				InfraEnvID: *clusterId,

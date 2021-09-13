@@ -37,7 +37,6 @@ x-events:
   event_type: host
   severity: "error"
   properties:
-    cluster_id: UUID
     host_id: UUID
     infra_env_id: UUID
 
@@ -224,3 +223,124 @@ x-events:
     host_id: UUID
     infra_env_id: UUID
     host_name: string
+
+- name: host_set_bootstrap
+  message: "Host {host_name}: set as bootstrap"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
+- name: host_status_updated
+  message: "Host {host_name}: updated status from {src_status} to {new_status} {info}"
+  event_type: host
+  severity: "info"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    severity: string
+    host_name: string
+    src_status: string
+    new_status: string
+    info: string
+
+- name: update_image_status
+  message: "Host {host_name}: New image status {image_status}. result: {result}. {info}"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+    image_status: string
+    result: string
+    info: string
+
+- name: host_installation_cancelled
+  message: "Installation cancelled for host {host_name}"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
+- name: host_cancel_installation_failed
+  message: "Failed to cancel installation of host {host_name}: {error}"
+  event_type: host
+  severity: "error"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+    error: string
+
+- name: host_reset_installation
+  message: "Installation reset for host {host_name}"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
+- name: host_reset_installation_failed
+  message: "Failed to reset installation of host {host_name}. Error: {error}"
+  event_type: host
+  severity: "error"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+    error: string
+
+- name: user_required_complete_installation_reset
+  message: "User action is required in order to complete installation reset for host {host_name}"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
+- name: host_set_status_failed
+  message: "Failed to set status of host {host_name} to reset-pending-user-action. Error: {error}"
+  event_type: host
+  severity: "error"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+    error: string
+
+- name: host_validation_falling
+  message: "Host {host_name}: validation '{validation_id}' that used to succeed is now failing"
+  event_type: host
+  severity: "warning"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+    validation_id: string
+
+- name: host_validation_fixed
+  message: "Host {host_name}: validation '{validation_id}' is now fixed"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+    validation_id: string

@@ -5871,7 +5871,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 	if err = b.customizeHost(host); err != nil {
 		// TODO Need event for infra-env instead of cluster
-		eventgen.SendHostRegistrationFailedSettingPropertiesEvent(ctx, b.eventsHandler, *host.ClusterID, *params.NewHostParams.HostID, params.InfraEnvID)
+		eventgen.SendHostRegistrationFailedSettingPropertiesEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID)
 		return common.GenerateErrorResponder(err)
 	}
 

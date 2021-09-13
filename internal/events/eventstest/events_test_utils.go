@@ -51,6 +51,19 @@ func WithHostIdMatcher(expected string) eventPartMatcher {
 	}
 }
 
+func WithInfraEnvIdMatcher(expected string) eventPartMatcher {
+	return func(event interface{}) bool {
+		e, ok := event.(events.HostEvent)
+		if !ok {
+			return false
+		}
+		if e.GetInfraEnvId().String() == expected {
+			return true
+		}
+		return false
+	}
+}
+
 func WithSeverityMatcher(expected string) eventPartMatcher {
 	return func(event interface{}) bool {
 		e, ok := event.(events.HostEvent)
@@ -58,6 +71,19 @@ func WithSeverityMatcher(expected string) eventPartMatcher {
 			return false
 		}
 		if e.GetSeverity() == expected {
+			return true
+		}
+		return false
+	}
+}
+
+func WithMessageMatcher(expected string) eventPartMatcher {
+	return func(event interface{}) bool {
+		e, ok := event.(events.BaseEvent)
+		if !ok {
+			return false
+		}
+		if e.FormatMessage() == expected {
 			return true
 		}
 		return false
