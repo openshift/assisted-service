@@ -34,19 +34,19 @@ var _ = Describe("Events library", func() {
 		db, dbName = common.PrepareTestDB()
 		theEvents = events.New(db, logrus.WithField("pkg", "events"))
 	})
-	numOfEvents := func(clusterID strfmt.UUID, hostID *strfmt.UUID) int {
-		evs, err := theEvents.GetEvents(clusterID, hostID)
+	numOfEvents := func(clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) int {
+		evs, err := theEvents.V2GetEvents(clusterID, hostID, infraEnvID)
 		Expect(err).Should(BeNil())
 		return len(evs)
 	}
 
 	Context("Initially", func() {
 		It("No events for cluster1 ", func() {
-			nEvents := numOfEvents(cluster1, nil)
+			nEvents := numOfEvents(&cluster1, nil, nil)
 			Expect(nEvents).Should(Equal(0))
 		})
 		It("No events for cluster2 ", func() {
-			nEvents := numOfEvents(cluster2, nil)
+			nEvents := numOfEvents(&cluster2, nil, nil)
 			Expect(nEvents).Should(Equal(0))
 		})
 
@@ -55,34 +55,34 @@ var _ = Describe("Events library", func() {
 	Context("With events", func() {
 		It("Adding a cluster event", func() {
 			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "the event1", time.Now())
-			Expect(numOfEvents(cluster1, nil)).Should(Equal(1))
-			Expect(numOfEvents(cluster2, nil)).Should(Equal(0))
+			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(1))
+			Expect(numOfEvents(&cluster2, nil, nil)).Should(Equal(0))
 
-			evs, err := theEvents.GetEvents(cluster1, nil)
+			evs, err := theEvents.V2GetEvents(&cluster1, nil, nil)
 			Expect(err).Should(BeNil())
 			Expect(evs[0]).Should(WithMessage(swag.String("the event1")))
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
 
 			theEvents.AddEvent(context.TODO(), cluster2, nil, models.EventSeverityInfo, "event2", time.Now())
-			Expect(numOfEvents(cluster1, nil)).Should(Equal(1))
-			Expect(numOfEvents(cluster2, nil)).Should(Equal(1))
+			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(1))
+			Expect(numOfEvents(&cluster2, nil, nil)).Should(Equal(1))
 		})
 
 		It("Adding a host event ", func() {
 			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "event1", time.Now())
-			Expect(numOfEvents(cluster1, nil)).Should(Equal(1))
-			Expect(numOfEvents(cluster1, &host)).Should(Equal(0))
+			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(1))
+			Expect(numOfEvents(&cluster1, &host, nil)).Should(Equal(0))
 
 			theEvents.AddEvent(context.TODO(), cluster1, &host, models.EventSeverityInfo, "event2", time.Now())
-			Expect(numOfEvents(cluster1, nil)).Should(Equal(2))
-			Expect(numOfEvents(cluster1, &host)).Should(Equal(1))
+			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(2))
+			Expect(numOfEvents(&cluster1, &host, nil)).Should(Equal(1))
 		})
 
 		It("Adding same event multiple times", func() {
 			t1 := time.Now().Add(-1 * time.Second) // 1 second ago
 			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "event1", t1)
-			Expect(numOfEvents(cluster1, nil)).Should(Equal(1))
-			evs, err := theEvents.GetEvents(cluster1, nil)
+			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(1))
+			evs, err := theEvents.V2GetEvents(&cluster1, nil, nil)
 			Expect(err).Should(BeNil())
 			Expect(evs[0]).Should(WithMessage(swag.String("event1")))
 			Expect(evs[0]).Should(WithTime(t1))
@@ -90,15 +90,15 @@ var _ = Describe("Events library", func() {
 
 			t2 := time.Now()
 			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "event1", t2)
-			Expect(numOfEvents(cluster1, nil)).Should(Equal(2))
+			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(2))
 
-			evs, err = theEvents.GetEvents(cluster1, nil)
+			evs, err = theEvents.V2GetEvents(&cluster1, nil, nil)
 			Expect(err).Should(BeNil())
 			Expect(evs[0]).Should(WithMessage(swag.String("event1")))
 			Expect(evs[0]).Should(WithTime(t1))
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
 
-			Expect(numOfEvents(cluster2, nil)).Should(Equal(0))
+			Expect(numOfEvents(&cluster2, nil, nil)).Should(Equal(0))
 		})
 	})
 
@@ -108,15 +108,15 @@ var _ = Describe("Events library", func() {
 			rid1 := uuid.New().String()
 			ctx = requestid.ToContext(ctx, rid1)
 			theEvents.AddEvent(ctx, cluster1, &host, models.EventSeverityInfo, "event1", time.Now())
-			Expect(numOfEvents(cluster1, &host)).Should(Equal(1))
+			Expect(numOfEvents(&cluster1, &host, nil)).Should(Equal(1))
 
-			evs, err := theEvents.GetEvents(cluster1, nil)
+			evs, err := theEvents.V2GetEvents(&cluster1, nil, nil)
 			Expect(err).Should(BeNil())
 			Expect(evs[0]).Should(WithMessage(swag.String("event1")))
 			Expect(evs[0]).Should(WithRequestID(rid1))
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
 
-			evs, err = theEvents.GetEvents(cluster1, &host)
+			evs, err = theEvents.V2GetEvents(&cluster1, &host, nil)
 			Expect(err).Should(BeNil())
 			Expect(evs[0]).Should(WithMessage(swag.String("event1")))
 			Expect(evs[0]).Should(WithRequestID(rid1))
@@ -126,9 +126,9 @@ var _ = Describe("Events library", func() {
 
 	Context("additional properties", func() {
 		It("multiple properties", func() {
-			theEvents.AddMetricsEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "e1", time.Now(),
+			theEvents.V2AddMetricsEvent(context.TODO(), &cluster1, nil, nil, models.EventSeverityInfo, "e1", time.Now(),
 				"p1", "abcd", "p2", 6.0)
-			evs, err := theEvents.GetEvents(cluster1, nil, models.EventCategoryMetrics)
+			evs, err := theEvents.V2GetEvents(&cluster1, nil, nil, models.EventCategoryMetrics)
 			Expect(err).Should(BeNil())
 			Expect(len(evs)).Should(Equal(1))
 			Expect(evs[0]).Should(WithProperty("p1", "abcd"))
@@ -139,16 +139,16 @@ var _ = Describe("Events library", func() {
 			var props = map[string]interface{}{"p1": "abcd"}
 			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "e1", time.Now(),
 				props)
-			evs, err := theEvents.GetEvents(cluster1, nil, models.EventCategoryUser)
+			evs, err := theEvents.V2GetEvents(&cluster1, nil, nil, models.EventCategoryUser)
 			Expect(err).Should(BeNil())
 			Expect(len(evs)).Should(Equal(1))
 			Expect(evs[0]).Should(WithProperty("p1", "abcd"))
 		})
 
 		It("bad properties", func() {
-			theEvents.AddMetricsEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "e1", time.Now(),
+			theEvents.V2AddMetricsEvent(context.TODO(), &cluster1, nil, nil, models.EventSeverityInfo, "e1", time.Now(),
 				"p1")
-			evs, err := theEvents.GetEvents(cluster1, nil, models.EventCategoryMetrics)
+			evs, err := theEvents.V2GetEvents(&cluster1, nil, nil, models.EventCategoryMetrics)
 			Expect(err).Should(BeNil())
 			Expect(len(evs)).Should(Equal(1))
 			Expect(evs[0].Props).Should(Equal(""))
@@ -158,17 +158,17 @@ var _ = Describe("Events library", func() {
 	Context("event category", func() {
 		BeforeEach(func() {
 			for _, s := range events.DefaultEventCategories {
-				theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, s, time.Now())
+				theEvents.V2AddEvent(context.TODO(), &cluster1, nil, nil, models.EventSeverityInfo, s, time.Now())
 			}
-			theEvents.AddMetricsEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "metrics", time.Now())
+			theEvents.V2AddMetricsEvent(context.TODO(), &cluster1, nil, nil, models.EventSeverityInfo, "metrics", time.Now())
 		})
 		It("GetEvents with default category", func() {
-			evs, err := theEvents.GetEvents(cluster1, nil)
+			evs, err := theEvents.V2GetEvents(&cluster1, nil, nil)
 			Expect(err).Should(BeNil())
 			Expect(len(evs)).Should(Equal(len(events.DefaultEventCategories)))
 		})
 		It("GetEvents with selected category", func() {
-			evs, err := theEvents.GetEvents(cluster1, nil, models.EventCategoryMetrics)
+			evs, err := theEvents.V2GetEvents(&cluster1, nil, nil, models.EventCategoryMetrics)
 			Expect(err).Should(BeNil())
 			Expect(len(evs)).Should(Equal(1))
 			Expect(*evs[0].Message).Should(Equal("metrics"))

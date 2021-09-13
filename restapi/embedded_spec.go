@@ -6683,6 +6683,97 @@ func init() {
         }
       }
     },
+    "/v2/events": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Lists events for a cluster.",
+        "tags": [
+          "events"
+        ],
+        "operationId": "v2ListEvents",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to return events for.",
+            "name": "cluster_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "A host in the specified cluster to return events for.",
+            "name": "host_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env to return events for.",
+            "name": "infra_env_id",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A comma-separated list of event categories.",
+            "name": "categories",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/event-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition": {
       "get": {
         "security": [
@@ -10632,7 +10723,6 @@ func init() {
     "event": {
       "type": "object",
       "required": [
-        "cluster_id",
         "severity",
         "message",
         "event_time"
@@ -10650,7 +10740,8 @@ func init() {
           "description": "Unique identifier of the cluster this event relates to.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"index\""
+          "x-go-custom-tag": "gorm:\"index\"",
+          "x-nullable": true
         },
         "event_time": {
           "type": "string",
@@ -10660,12 +10751,16 @@ func init() {
         "host_id": {
           "description": "Unique identifier of the host this event relates to.",
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"index\"",
+          "x-nullable": true
         },
         "infra_env_id": {
           "description": "Unique identifier of the infra env this event relates to.",
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"index\"",
+          "x-nullable": true
         },
         "message": {
           "type": "string",
@@ -19432,6 +19527,97 @@ func init() {
         }
       }
     },
+    "/v2/events": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Lists events for a cluster.",
+        "tags": [
+          "events"
+        ],
+        "operationId": "v2ListEvents",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to return events for.",
+            "name": "cluster_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "A host in the specified cluster to return events for.",
+            "name": "host_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env to return events for.",
+            "name": "infra_env_id",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A comma-separated list of event categories.",
+            "name": "categories",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/event-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition": {
       "get": {
         "security": [
@@ -23449,7 +23635,6 @@ func init() {
     "event": {
       "type": "object",
       "required": [
-        "cluster_id",
         "severity",
         "message",
         "event_time"
@@ -23467,7 +23652,8 @@ func init() {
           "description": "Unique identifier of the cluster this event relates to.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"index\""
+          "x-go-custom-tag": "gorm:\"index\"",
+          "x-nullable": true
         },
         "event_time": {
           "type": "string",
@@ -23477,12 +23663,16 @@ func init() {
         "host_id": {
           "description": "Unique identifier of the host this event relates to.",
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"index\"",
+          "x-nullable": true
         },
         "infra_env_id": {
           "description": "Unique identifier of the infra env this event relates to.",
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"index\"",
+          "x-nullable": true
         },
         "message": {
           "type": "string",

@@ -24,9 +24,8 @@ type Event struct {
 	Category string `json:"category,omitempty" gorm:"default:'user'"`
 
 	// Unique identifier of the cluster this event relates to.
-	// Required: true
 	// Format: uuid
-	ClusterID *strfmt.UUID `json:"cluster_id" gorm:"index"`
+	ClusterID *strfmt.UUID `json:"cluster_id,omitempty" gorm:"index"`
 
 	// event time
 	// Required: true
@@ -35,11 +34,11 @@ type Event struct {
 
 	// Unique identifier of the host this event relates to.
 	// Format: uuid
-	HostID strfmt.UUID `json:"host_id,omitempty"`
+	HostID *strfmt.UUID `json:"host_id,omitempty" gorm:"index"`
 
 	// Unique identifier of the infra env this event relates to.
 	// Format: uuid
-	InfraEnvID strfmt.UUID `json:"infra_env_id,omitempty"`
+	InfraEnvID *strfmt.UUID `json:"infra_env_id,omitempty" gorm:"index"`
 
 	// message
 	// Required: true
@@ -145,8 +144,8 @@ func (m *Event) validateCategory(formats strfmt.Registry) error {
 
 func (m *Event) validateClusterID(formats strfmt.Registry) error {
 
-	if err := validate.Required("cluster_id", "body", m.ClusterID); err != nil {
-		return err
+	if swag.IsZero(m.ClusterID) { // not required
+		return nil
 	}
 
 	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
