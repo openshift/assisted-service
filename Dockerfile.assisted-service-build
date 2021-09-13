@@ -8,7 +8,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$GOPATH/bin:$PATH"
 COPY ./hack/setup_env.sh ./dev-requirements.txt ./ 
 # Add docker repo to install docker-ce-cli to execute commands against the docker.socket
 # Add epel to install p7zip and awscli
-RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
+RUN dnf install -y epel-release && \
     dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \ 
     dnf -y update && \
     dnf -y install golang && \
