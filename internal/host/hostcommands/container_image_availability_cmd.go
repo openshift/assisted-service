@@ -36,15 +36,14 @@ func NewImageAvailabilityCmd(log logrus.FieldLogger, db *gorm.DB, ocRelease oc.R
 }
 
 func (cmd *imageAvailabilityCmd) getImages(cluster *common.Cluster) ([]string, error) {
-
 	images := make([]string, 0)
-	ocpVersion, err := cmd.versionsHandler.GetOpenshiftVersion(cluster.OpenshiftVersion, cluster.CPUArchitecture)
+	releaseImage, err := cmd.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture)
 	if err != nil {
 		return images, err
 	}
-	images = append(images, *ocpVersion.ReleaseImage)
+	images = append(images, *releaseImage.URL)
 
-	mcoImage, err := cmd.ocRelease.GetMCOImage(cmd.log, *ocpVersion.ReleaseImage, cmd.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+	mcoImage, err := cmd.ocRelease.GetMCOImage(cmd.log, *releaseImage.URL, cmd.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
 	if err != nil {
 		return images, err
 	}

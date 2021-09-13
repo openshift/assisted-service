@@ -47,8 +47,6 @@ endif
 
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
-OS_IMAGES := $(or ${OS_IMAGES}, $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_os_images.json)))
-RELEASE_IMAGES := $(or ${RELEASE_IMAGES}, $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_release_images.json)))
 MUST_GATHER_IMAGES := $(or ${MUST_GATHER_IMAGES}, $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_must_gather_versions.json)))
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
@@ -99,13 +97,23 @@ CI ?= false
 VERBOSE ?= false
 REPORTS ?= $(ROOT_DIR)/reports
 GO_TEST_FORMAT = pkgname
+DEFAULT_RELEASE_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_release_images.json))
+DEFAULT_OS_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_os_images.json))
 
 ifeq ($(CI), true)
 	VERBOSE = true
 	OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell hack/get_ocp_versions_for_testing.sh))
 else
-	OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell hack/get_ocp_versions_for_testing.sh | jq 'with_entries(select(.value.default))'))
+	OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell hack/get_ocp_versions_for_testing.sh | jq -c 'with_entries(select(.value.default))'))
+	ifneq ($(OPENSHIFT_VERSIONS), {})
+		DEFAULT_VERSION := $(shell (jq -n '$(OPENSHIFT_VERSIONS)' | jq 'keys[0]'))
+		RELEASE_IMAGES := $(or ${RELEASE_IMAGES}, $(shell (echo '$(DEFAULT_RELEASE_IMAGES)' | jq -c --arg v $(DEFAULT_VERSION) 'map(select(.openshift_version==$$v))')))
+		OS_IMAGES := $(or ${OS_IMAGES}, $(shell (echo '$(DEFAULT_OS_IMAGES)' | jq -c --arg v $(DEFAULT_VERSION) 'map(select(.openshift_version==$$v))')))
+	endif
 endif
+
+RELEASE_IMAGES := $(or ${RELEASE_IMAGES},${DEFAULT_RELEASE_IMAGES})
+OS_IMAGES := $(or ${OS_IMAGES},${DEFAULT_OS_IMAGES})
 
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
 RHCOS_BASE_ISO := $(shell (jq -n '$(OPENSHIFT_VERSIONS)' | jq '[.[].rhcos_image]|max'))

@@ -104,12 +104,12 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		haMode = *cluster.HighAvailabilityMode
 	}
 
-	ocpVersion, err := i.versionsHandler.GetOpenshiftVersion(cluster.OpenshiftVersion, cluster.CPUArchitecture)
+	releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture)
 	if err != nil {
 		return "", err
 	}
 
-	mcoImage, err := i.ocRelease.GetMCOImage(i.log, *ocpVersion.ReleaseImage, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+	mcoImage, err := i.ocRelease.GetMCOImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
 	if err != nil {
 		return "", err
 	}
@@ -123,7 +123,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		return "", err
 	}
 
-	i.log.Infof("Install command releaseImage: %s, mcoImage: %s", *ocpVersion.ReleaseImage, mcoImage)
+	i.log.Infof("Install command releaseImage: %s, mcoImage: %s", *releaseImage.URL, mcoImage)
 
 	podmanCmd := podmanBaseCmd[:]
 	installerCmd := []string{

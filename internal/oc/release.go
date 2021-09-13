@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/buger/jsonparser"
 	"github.com/hashicorp/go-version"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/sirupsen/logrus"
@@ -33,6 +35,7 @@ type Release interface {
 	GetMustGatherImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
+	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, pullSecret string) (string, error)
 	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error)
 }
 
@@ -52,6 +55,7 @@ const (
 	templateGetImage   = "oc adm release info --image-for=%s --insecure=%t %s"
 	templateGetVersion = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s"
 	templateExtract    = "oc adm release extract --command=%s --to=%s --insecure=%t %s"
+	templateImageInfo  = "oc image info --output json %s"
 )
 
 // GetMCOImage gets mcoImage url from the releaseImageMirror if provided.
@@ -124,6 +128,30 @@ func (r *release) GetMajorMinorVersion(log logrus.FieldLogger, releaseImage stri
 	}
 
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
+}
+
+func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, pullSecret string) (string, error) {
+	if releaseImage == "" {
+		return "", errors.New("no releaseImage is provided")
+	}
+	cmd := fmt.Sprintf(templateImageInfo, releaseImage)
+	imageInfoStr, err := execute(log, r.executer, pullSecret, cmd)
+	if err != nil {
+		return "", err
+	}
+
+	architecture, err := jsonparser.GetString([]byte(imageInfoStr), "config", "architecture")
+	if err != nil {
+		return "", err
+	}
+
+	// Convert architecture naming to supported values
+	switch architecture {
+	case "amd64":
+		architecture = common.DefaultCPUArchitecture
+	}
+
+	return architecture, nil
 }
 
 func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, releaseImage, pullSecret string, insecure bool) (string, error) {

@@ -11,6 +11,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
 	logrus "github.com/sirupsen/logrus"
@@ -255,6 +256,25 @@ var _ = Describe("oc", func() {
 				}
 			})
 		}
+	})
+
+	Context("GetReleaseArchitecture", func() {
+		It("fetch cpu architecture from release image", func() {
+			command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			imageInfoStr := fmt.Sprintf("{ \"config\": { \"architecture\": \"%s\" }}", common.TestDefaultConfig.CPUArchitecture)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(imageInfoStr, "", 0).Times(1)
+
+			arch, err := oc.GetReleaseArchitecture(log, releaseImage, pullSecret)
+			Expect(arch).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("fetch cpu architecture - no release image", func() {
+			arch, err := oc.GetReleaseArchitecture(log, "", pullSecret)
+			Expect(arch).Should(BeEmpty())
+			Expect(err).Should(HaveOccurred())
+		})
 	})
 
 	Context("Extract", func() {

@@ -77,7 +77,7 @@ var _ = Describe("installcmd", func() {
 	})
 
 	mockGetReleaseImage := func(times int) {
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(times)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(times)
 	}
 
 	mockImages := func(times int) {
@@ -289,7 +289,7 @@ var _ = Describe("installcmd arguments", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
-		mockVersions.EXPECT().GetOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).AnyTimes()
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).AnyTimes()
 		mockImages()
 	})
 
