@@ -109,7 +109,7 @@ var _ = Describe("ClusterManifestTests", func() {
 				Folder:   &folderName,
 			},
 		})
-		Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
+		Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
 	}
 
 	getObjectName := func(clusterID *strfmt.UUID, folderName, fileName string) string {
@@ -141,8 +141,8 @@ var _ = Describe("ClusterManifestTests", func() {
 					FileName: &fileName,
 				},
 			})
-			Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
-			responsePayload := response.(*operations.CreateClusterManifestCreated)
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
+			responsePayload := response.(*operations.V2CreateClusterManifestCreated)
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
 			Expect(responsePayload.Payload.FileName).To(Equal(fileName))
 			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
@@ -160,8 +160,8 @@ var _ = Describe("ClusterManifestTests", func() {
 					Folder:   &validFolder,
 				},
 			})
-			Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
-			responsePayload := response.(*operations.CreateClusterManifestCreated)
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
+			responsePayload := response.(*operations.V2CreateClusterManifestCreated)
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
 			Expect(responsePayload.Payload.FileName).To(Equal(fileName))
 			Expect(responsePayload.Payload.Folder).To(Equal(validFolder))
@@ -178,8 +178,8 @@ var _ = Describe("ClusterManifestTests", func() {
 					FileName: &fileName,
 				},
 			})
-			Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
-			responsePayload := response.(*operations.CreateClusterManifestCreated)
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
+			responsePayload := response.(*operations.V2CreateClusterManifestCreated)
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
 			Expect(responsePayload.Payload.FileName).To(Equal(fileName))
 			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
@@ -192,8 +192,8 @@ var _ = Describe("ClusterManifestTests", func() {
 					FileName: &fileName,
 				},
 			})
-			Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
-			responsePayload = response.(*operations.CreateClusterManifestCreated)
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
+			responsePayload = response.(*operations.V2CreateClusterManifestCreated)
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
 			Expect(responsePayload.Payload.FileName).To(Equal(fileName))
 			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
@@ -243,8 +243,8 @@ var _ = Describe("ClusterManifestTests", func() {
 						FileName: &fileName,
 					},
 				})
-				Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
-				responsePayload := response.(*operations.CreateClusterManifestCreated)
+				Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
+				responsePayload := response.(*operations.V2CreateClusterManifestCreated)
 				Expect(responsePayload.Payload).ShouldNot(BeNil())
 				Expect(responsePayload.Payload.FileName).To(Equal(fileName))
 				Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
@@ -262,8 +262,8 @@ var _ = Describe("ClusterManifestTests", func() {
 						FileName: &fileName,
 					},
 				})
-				Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
-				responsePayload := response.(*operations.CreateClusterManifestCreated)
+				Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
+				responsePayload := response.(*operations.V2CreateClusterManifestCreated)
 				Expect(responsePayload.Payload).ShouldNot(BeNil())
 				Expect(responsePayload.Payload.FileName).To(Equal(fileName))
 				Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
@@ -323,8 +323,8 @@ spec:
 						FileName: &fileName,
 					},
 				})
-				Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
-				responsePayload := response.(*operations.CreateClusterManifestCreated)
+				Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
+				responsePayload := response.(*operations.V2CreateClusterManifestCreated)
 				Expect(responsePayload.Payload).ShouldNot(BeNil())
 				Expect(responsePayload.Payload.FileName).To(Equal(fileName))
 				Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
@@ -430,8 +430,8 @@ spec:
 			response := manifestsAPI.ListClusterManifests(ctx, operations.ListClusterManifestsParams{
 				ClusterID: *clusterID,
 			})
-			Expect(response).Should(BeAssignableToTypeOf(operations.NewListClusterManifestsOK()))
-			responsePayload := response.(*operations.ListClusterManifestsOK)
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2ListClusterManifestsOK()))
+			responsePayload := response.(*operations.V2ListClusterManifestsOK)
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
 			Expect(len(responsePayload.Payload)).To(Equal(len(manifests)))
 
@@ -446,8 +446,8 @@ spec:
 			response := manifestsAPI.ListClusterManifests(ctx, operations.ListClusterManifestsParams{
 				ClusterID: *clusterID,
 			})
-			Expect(response).Should(BeAssignableToTypeOf(operations.NewListClusterManifestsOK()))
-			responsePayload := response.(*operations.ListClusterManifestsOK)
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2ListClusterManifestsOK()))
+			responsePayload := response.(*operations.V2ListClusterManifestsOK)
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
 			Expect(len(responsePayload.Payload)).To(Equal(0))
 		})
@@ -475,7 +475,7 @@ spec:
 				ClusterID: *clusterID,
 				FileName:  "file-1.yaml",
 			})
-			Expect(response).Should(BeAssignableToTypeOf(operations.NewDeleteClusterManifestOK()))
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2DeleteClusterManifestOK()))
 		})
 
 		It("deletes manifest from a different folder", func() {
@@ -490,7 +490,7 @@ spec:
 				FileName:  "file-1.yaml",
 				Folder:    &validFolder,
 			})
-			Expect(response).Should(BeAssignableToTypeOf(operations.NewDeleteClusterManifestOK()))
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2DeleteClusterManifestOK()))
 		})
 
 		It("deletes missing manifest", func() {
@@ -501,7 +501,7 @@ spec:
 				ClusterID: *clusterID,
 				FileName:  "file-1.yaml",
 			})
-			Expect(response).Should(BeAssignableToTypeOf(operations.NewDeleteClusterManifestOK()))
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2DeleteClusterManifestOK()))
 		})
 
 		It("cluster doesn't exist", func() {

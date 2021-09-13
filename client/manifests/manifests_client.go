@@ -31,6 +31,15 @@ type API interface {
 	   ListClusterManifests Lists manifests for customizing cluster installation.*/
 	ListClusterManifests(ctx context.Context, params *ListClusterManifestsParams) (*ListClusterManifestsOK, error)
 	/*
+	   V2CreateClusterManifest Creates a manifest for customizing cluster installation.*/
+	V2CreateClusterManifest(ctx context.Context, params *V2CreateClusterManifestParams) (*V2CreateClusterManifestCreated, error)
+	/*
+	   V2DeleteClusterManifest Deletes a manifest from the cluster.*/
+	V2DeleteClusterManifest(ctx context.Context, params *V2DeleteClusterManifestParams) (*V2DeleteClusterManifestOK, error)
+	/*
+	   V2ListClusterManifests Lists manifests for customizing cluster installation.*/
+	V2ListClusterManifests(ctx context.Context, params *V2ListClusterManifestsParams) (*V2ListClusterManifestsOK, error)
+	/*
 	   V2DownloadClusterManifest Downloads cluster manifest.*/
 	V2DownloadClusterManifest(ctx context.Context, params *V2DownloadClusterManifestParams, writer io.Writer) (*V2DownloadClusterManifestOK, error)
 }
@@ -150,6 +159,81 @@ func (a *Client) ListClusterManifests(ctx context.Context, params *ListClusterMa
 		return nil, err
 	}
 	return result.(*ListClusterManifestsOK), nil
+
+}
+
+/*
+V2CreateClusterManifest Creates a manifest for customizing cluster installation.
+*/
+func (a *Client) V2CreateClusterManifest(ctx context.Context, params *V2CreateClusterManifestParams) (*V2CreateClusterManifestCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2CreateClusterManifest",
+		Method:             "POST",
+		PathPattern:        "/v2/clusters/{cluster_id}/manifests",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2CreateClusterManifestReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2CreateClusterManifestCreated), nil
+
+}
+
+/*
+V2DeleteClusterManifest Deletes a manifest from the cluster.
+*/
+func (a *Client) V2DeleteClusterManifest(ctx context.Context, params *V2DeleteClusterManifestParams) (*V2DeleteClusterManifestOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2DeleteClusterManifest",
+		Method:             "DELETE",
+		PathPattern:        "/v2/clusters/{cluster_id}/manifests",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2DeleteClusterManifestReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2DeleteClusterManifestOK), nil
+
+}
+
+/*
+V2ListClusterManifests Lists manifests for customizing cluster installation.
+*/
+func (a *Client) V2ListClusterManifests(ctx context.Context, params *V2ListClusterManifestsParams) (*V2ListClusterManifestsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2ListClusterManifests",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/manifests",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ListClusterManifestsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ListClusterManifestsOK), nil
 
 }
 
