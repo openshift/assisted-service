@@ -236,6 +236,10 @@ objects:
                 value: ${BASE_DNS_DOMAINS}
               - name: OPENSHIFT_VERSIONS
                 value: ${OPENSHIFT_VERSIONS}
+              - name: OS_IMAGES
+                value: ${OS_IMAGES}
+              - name: RELEASE_IMAGES
+                value: ${RELEASE_IMAGES}
               - name: MUST_GATHER_IMAGES
                 value: ${MUST_GATHER_IMAGES}
               - name: AUTH_TYPE
