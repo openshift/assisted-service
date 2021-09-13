@@ -5580,6 +5580,10 @@ definitions:
         type: string
         format: uuid
         description: Unique identifier of the host this event relates to.
+      infra_env_id:
+        type: string
+        format: uuid
+        description: Unique identifier of the infra env this event relates to.
       severity:
         type: string
         enum: [info, warning, error, critical]
