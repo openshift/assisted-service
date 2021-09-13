@@ -9508,6 +9508,11 @@ func init() {
           "type": "string",
           "format": "uuid"
         },
+        "infra_env_id": {
+          "description": "Unique identifier of the infra env this event relates to.",
+          "type": "string",
+          "format": "uuid"
+        },
         "message": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(4096)\""
@@ -21149,6 +21154,11 @@ func init() {
         },
         "host_id": {
           "description": "Unique identifier of the host this event relates to.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Unique identifier of the infra env this event relates to.",
           "type": "string",
           "format": "uuid"
         },

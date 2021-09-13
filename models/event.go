@@ -37,6 +37,10 @@ type Event struct {
 	// Format: uuid
 	HostID strfmt.UUID `json:"host_id,omitempty"`
 
+	// Unique identifier of the infra env this event relates to.
+	// Format: uuid
+	InfraEnvID strfmt.UUID `json:"infra_env_id,omitempty"`
+
 	// message
 	// Required: true
 	Message *string `json:"message" gorm:"type:varchar(4096)"`
@@ -71,6 +75,10 @@ func (m *Event) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateHostID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateInfraEnvID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -168,6 +176,19 @@ func (m *Event) validateHostID(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("host_id", "body", "uuid", m.HostID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Event) validateInfraEnvID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.InfraEnvID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("infra_env_id", "body", "uuid", m.InfraEnvID.String(), formats); err != nil {
 		return err
 	}
 
