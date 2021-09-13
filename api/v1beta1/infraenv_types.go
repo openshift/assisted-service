@@ -112,6 +112,15 @@ type InfraEnvStatus struct {
 	// associated with a particular InfraEnv.
 	// +optional
 	AgentLabelSelector metav1.LabelSelector `json:"agentLabelSelector,omitempty"`
+	// InfraEnvDebugInfo includes information for debugging the installation process.
+	// +optional
+	InfraEnvDebugInfo InfraEnvDebugInfo `json:"debugInfo"`
+}
+
+type InfraEnvDebugInfo struct {
+	// EventsURL specifies an HTTP/S URL that contains InfraEnv events
+	// +optional
+	EventsURL string `json:"eventsURL"`
 }
 
 // +kubebuilder:object:root=true
