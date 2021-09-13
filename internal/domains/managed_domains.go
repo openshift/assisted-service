@@ -34,17 +34,37 @@ func (h *Handler) parseDomainProvider(val string) (string, error) {
 }
 
 func (h *Handler) ListManagedDomains(ctx context.Context, params operations.ListManagedDomainsParams) middleware.Responder {
+	managedDomains, err := h.getManagedDomains()
+	if err != nil {
+		return operations.NewListManagedDomainsInternalServerError().
+			WithPayload(common.GenerateInternalFromError(err))
+	}
+
+	return operations.NewListManagedDomainsOK().WithPayload(managedDomains)
+}
+
+func (h *Handler) V2ListManagedDomains(ctx context.Context, params operations.V2ListManagedDomainsParams) middleware.Responder {
+	managedDomains, err := h.getManagedDomains()
+	if err != nil {
+		return operations.NewListManagedDomainsInternalServerError().
+			WithPayload(common.GenerateInternalFromError(err))
+	}
+
+	return operations.NewV2ListManagedDomainsOK().WithPayload(managedDomains)
+}
+
+func (h *Handler) getManagedDomains() (models.ListManagedDomains, error) {
 	managedDomains := models.ListManagedDomains{}
 	for k, v := range h.baseDNSDomains {
 		provider, err := h.parseDomainProvider(v)
 		if err != nil {
-			return operations.NewListManagedDomainsInternalServerError().
-				WithPayload(common.GenerateInternalFromError(err))
+			return managedDomains, err
 		}
 		managedDomains = append(managedDomains, &models.ManagedDomain{
 			Domain:   k,
 			Provider: provider,
 		})
 	}
-	return operations.NewListManagedDomainsOK().WithPayload(managedDomains)
+
+	return managedDomains, nil
 }

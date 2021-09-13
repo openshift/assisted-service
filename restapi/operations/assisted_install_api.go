@@ -277,6 +277,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2DownloadClusterFilesHandler: installer.V2DownloadClusterFilesHandlerFunc(func(params installer.V2DownloadClusterFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DownloadClusterFiles has not yet been implemented")
 		}),
+		ManagedDomainsV2ListManagedDomainsHandler: managed_domains.V2ListManagedDomainsHandlerFunc(func(params managed_domains.V2ListManagedDomainsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation managed_domains.V2ListManagedDomains has not yet been implemented")
+		}),
 		InstallerV2UpdateClusterHandler: installer.V2UpdateClusterHandlerFunc(func(params installer.V2UpdateClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateCluster has not yet been implemented")
 		}),
@@ -584,6 +587,8 @@ type AssistedInstallAPI struct {
 	InstallerV2DownloadClusterCredentialsHandler installer.V2DownloadClusterCredentialsHandler
 	// InstallerV2DownloadClusterFilesHandler sets the operation handler for the v2 download cluster files operation
 	InstallerV2DownloadClusterFilesHandler installer.V2DownloadClusterFilesHandler
+	// ManagedDomainsV2ListManagedDomainsHandler sets the operation handler for the v2 list managed domains operation
+	ManagedDomainsV2ListManagedDomainsHandler managed_domains.V2ListManagedDomainsHandler
 	// InstallerV2UpdateClusterHandler sets the operation handler for the v2 update cluster operation
 	InstallerV2UpdateClusterHandler installer.V2UpdateClusterHandler
 	// InstallerV2CompleteInstallationHandler sets the operation handler for the v2 complete installation operation
@@ -958,6 +963,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2DownloadClusterFilesHandler == nil {
 		unregistered = append(unregistered, "installer.V2DownloadClusterFilesHandler")
+	}
+	if o.ManagedDomainsV2ListManagedDomainsHandler == nil {
+		unregistered = append(unregistered, "managed_domains.V2ListManagedDomainsHandler")
 	}
 	if o.InstallerV2UpdateClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateClusterHandler")
@@ -1455,6 +1463,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters/{cluster_id}/downloads/files"] = installer.NewV2DownloadClusterFiles(o.context, o.InstallerV2DownloadClusterFilesHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/domains"] = managed_domains.NewV2ListManagedDomains(o.context, o.ManagedDomainsV2ListManagedDomainsHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}

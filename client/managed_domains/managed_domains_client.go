@@ -20,6 +20,9 @@ type API interface {
 	/*
 	   ListManagedDomains List of managed DNS domains.*/
 	ListManagedDomains(ctx context.Context, params *ListManagedDomainsParams) (*ListManagedDomainsOK, error)
+	/*
+	   V2ListManagedDomains List of managed DNS domains.*/
+	V2ListManagedDomains(ctx context.Context, params *V2ListManagedDomainsParams) (*V2ListManagedDomainsOK, error)
 }
 
 // New creates a new managed domains API client.
@@ -62,5 +65,30 @@ func (a *Client) ListManagedDomains(ctx context.Context, params *ListManagedDoma
 		return nil, err
 	}
 	return result.(*ListManagedDomainsOK), nil
+
+}
+
+/*
+V2ListManagedDomains List of managed DNS domains.
+*/
+func (a *Client) V2ListManagedDomains(ctx context.Context, params *V2ListManagedDomainsParams) (*V2ListManagedDomainsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2ListManagedDomains",
+		Method:             "GET",
+		PathPattern:        "/v2/domains",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ListManagedDomainsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ListManagedDomainsOK), nil
 
 }

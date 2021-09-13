@@ -484,6 +484,12 @@ func (f fakeManagedDomainsAPI) ListManagedDomains(
 	return managed_domains_api.NewListManagedDomainsOK()
 }
 
+func (f fakeManagedDomainsAPI) V2ListManagedDomains(
+	_ context.Context,
+	_ managed_domains_api.V2ListManagedDomainsParams) middleware.Responder {
+	return managed_domains_api.NewV2ListManagedDomainsOK()
+}
+
 type fakeAssistedServiceIsoAPI struct{}
 
 func (f fakeAssistedServiceIsoAPI) CreateISOAndUploadToS3(ctx context.Context, params assisted_service_iso.CreateISOAndUploadToS3Params) middleware.Responder {

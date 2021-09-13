@@ -5718,6 +5718,38 @@ func init() {
         }
       }
     },
+    "/v2/domains": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "List of managed DNS domains.",
+        "tags": [
+          "managed_domains"
+        ],
+        "operationId": "V2ListManagedDomains",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/list-managed-domains"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs": {
       "get": {
         "security": [
@@ -17255,6 +17287,38 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/domains": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "List of managed DNS domains.",
+        "tags": [
+          "managed_domains"
+        ],
+        "operationId": "V2ListManagedDomains",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/list-managed-domains"
+            }
+          },
+          "500": {
+            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }
