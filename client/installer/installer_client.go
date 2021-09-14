@@ -205,6 +205,9 @@ type API interface {
 	   V2DownloadClusterFiles Downloads files relating to the installed/installing cluster.*/
 	V2DownloadClusterFiles(ctx context.Context, params *V2DownloadClusterFilesParams, writer io.Writer) (*V2DownloadClusterFilesOK, error)
 	/*
+	   V2GetClusterDefaultConfig Get the default values for various cluster properties.*/
+	V2GetClusterDefaultConfig(ctx context.Context, params *V2GetClusterDefaultConfigParams) (*V2GetClusterDefaultConfigOK, error)
+	/*
 	   V2GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files.*/
 	V2GetPresignedForClusterFiles(ctx context.Context, params *V2GetPresignedForClusterFilesParams) (*V2GetPresignedForClusterFilesOK, error)
 	/*
@@ -1825,6 +1828,31 @@ func (a *Client) V2DownloadClusterFiles(ctx context.Context, params *V2DownloadC
 		return nil, err
 	}
 	return result.(*V2DownloadClusterFilesOK), nil
+
+}
+
+/*
+V2GetClusterDefaultConfig Get the default values for various cluster properties.
+*/
+func (a *Client) V2GetClusterDefaultConfig(ctx context.Context, params *V2GetClusterDefaultConfigParams) (*V2GetClusterDefaultConfigOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2GetClusterDefaultConfig",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/default-config",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetClusterDefaultConfigReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetClusterDefaultConfigOK), nil
 
 }
 

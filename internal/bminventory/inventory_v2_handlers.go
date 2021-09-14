@@ -273,3 +273,7 @@ func (b *bareMetalInventory) V2UpdateClusterLogsProgress(ctx context.Context, pa
 
 	return installer.NewV2UpdateClusterLogsProgressNoContent()
 }
+
+func (b *bareMetalInventory) V2GetClusterDefaultConfig(_ context.Context, _ installer.V2GetClusterDefaultConfigParams) middleware.Responder {
+	return installer.NewV2GetClusterDefaultConfigOK().WithPayload(b.getClusterDefaultConfig())
+}
