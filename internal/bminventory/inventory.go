@@ -5407,13 +5407,15 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		}
 	}
 
-	if params.InfraenvCreateParams.AdditionalNtpSources != &b.Config.DefaultNTPSource {
+	if params.InfraenvCreateParams.AdditionalNtpSources != nil && swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources) != b.Config.DefaultNTPSource {
 		ntpSource := swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources)
 
 		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
 			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
+	} else {
+		params.InfraenvCreateParams.AdditionalNtpSources = swag.String(b.Config.DefaultNTPSource)
 	}
 
 	osImage, err := b.getOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)

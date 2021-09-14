@@ -668,7 +668,7 @@ func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*m
 		return errors.Wrapf(err, "Failed to marshal NTP sources for host %s", h.ID.String())
 	}
 
-	m.log.Infof("Updateing ntp source of host %s to %s", h.ID, string(bytes))
+	m.log.Infof("Updating ntp source of host %s to %s", h.ID, string(bytes))
 	return db.Model(h).Update("ntp_sources", string(bytes)).Error
 }
 
@@ -956,6 +956,13 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 	return nil
 }
 
+func getClusterIDForEvent(h *models.Host) strfmt.UUID {
+	if h.ClusterID != nil {
+		return *h.ClusterID
+	}
+	return h.InfraEnvID
+}
+
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host,
 	newValidationRes, currentValidationRes ValidationsStatus) {
 	for vCategory, vRes := range newValidationRes {
@@ -967,11 +974,11 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 					} else if vc.infraEnv != nil {
 						m.metricApi.HostValidationChanged(vc.infraEnv.OpenshiftVersion, vc.infraEnv.EmailDomain, models.HostValidationID(v.ID))
 					}
-					eventgen.SendHostValidationFallingEvent(ctx, m.eventsHandler, *h.ClusterID, *h.ID,
+					eventgen.SendHostValidationFallingEvent(ctx, m.eventsHandler, getClusterIDForEvent(h), *h.ID,
 						h.InfraEnvID, hostutil.GetHostnameForMsg(h), v.ID.String())
 				}
 				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
-					eventgen.SendHostValidationFixedEvent(ctx, m.eventsHandler, *h.ClusterID, *h.ID,
+					eventgen.SendHostValidationFixedEvent(ctx, m.eventsHandler, getClusterIDForEvent(h), *h.ID,
 						h.InfraEnvID, hostutil.GetHostnameForMsg(h), v.ID.String())
 				}
 			}

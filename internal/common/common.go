@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 )
@@ -189,4 +192,52 @@ func IsSliceNonEmpty(arg interface{}) bool {
 		})
 	}
 	return res
+}
+
+func getUnifiedNTPSources(db *gorm.DB, clusterID strfmt.UUID) (string, error) {
+	var sources []string
+	err := db.Raw("select distinct(additional_ntp_sources) as sources from infra_envs where id in (select distinct(infra_env_id) from hosts where cluster_id = ?)", clusterID.String()).Pluck("sources", &sources).Error
+	if err != nil {
+		return "", err
+	}
+	combinedSources := make(map[string]bool)
+	for _, singleSource := range sources {
+		if singleSource != "" {
+			for _, s := range strings.Split(singleSource, ",") {
+				combinedSources[s] = true
+			}
+		}
+	}
+	var ret []string
+	for k := range combinedSources {
+		ret = append(ret, k)
+	}
+	return strings.Join(ret, ","), nil
+}
+
+func GetClusterNTPSources(db *gorm.DB, clusterID strfmt.UUID) (string, error) {
+	cluster, err := GetClusterFromDB(db, clusterID, SkipEagerLoading)
+	if err != nil {
+		return "", err
+	}
+	if cluster.AdditionalNtpSource != "" {
+		return cluster.AdditionalNtpSource, nil
+	} else {
+		return getUnifiedNTPSources(db, clusterID)
+	}
+}
+
+func GetHostNTPSources(db *gorm.DB, host *models.Host) (string, error) {
+	var (
+		infraEnv *InfraEnv
+		err      error
+	)
+	if host.ClusterID != nil {
+		return GetClusterNTPSources(db, *host.ClusterID)
+	}
+	infraEnv, err = GetInfraEnvFromDB(db, host.InfraEnvID)
+	if err != nil {
+		return "", err
+	}
+	return infraEnv.AdditionalNtpSources, nil
 }

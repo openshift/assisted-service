@@ -5130,6 +5130,7 @@ var _ = Describe("Refresh Host", func() {
 			inventory         string
 			eventRaised       bool
 			statusInfoChecker statusInfoChecker
+			sourceState       models.SourceState
 		}{
 			{
 				name:              "discovering-unbound to disconnected-unbound",
@@ -5269,6 +5270,7 @@ var _ = Describe("Refresh Host", func() {
 				hostname:          "test-hostname",
 				eventRaised:       true,
 				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				sourceState:       models.SourceStateSynced,
 			},
 			{
 				name:              "discovering-unbound to known-unbound",
@@ -5279,6 +5281,7 @@ var _ = Describe("Refresh Host", func() {
 				hostname:          "test-hostname",
 				eventRaised:       true,
 				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				sourceState:       models.SourceStateSynced,
 			},
 			{
 				name:              "insufficient-unbound to known-unbound",
@@ -5289,6 +5292,7 @@ var _ = Describe("Refresh Host", func() {
 				hostname:          "test-hostname",
 				eventRaised:       true,
 				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				sourceState:       models.SourceStateSynced,
 			},
 			{
 				name:              "known-unbound to known-unbound",
@@ -5298,6 +5302,94 @@ var _ = Describe("Refresh Host", func() {
 				inventory:         hostutil.GenerateMasterInventory(),
 				eventRaised:       false,
 				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				sourceState:       models.SourceStateSynced,
+			},
+			{
+				name:              "disconnected-unbound to known-unbound - no NTP",
+				srcState:          models.HostStatusDisconnectedUnbound,
+				dstState:          models.HostStatusKnownUnbound,
+				validCheckInTime:  true,
+				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
+				hostname:          "test-hostname",
+				eventRaised:       true,
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+			},
+			{
+				name:              "discovering-unbound to known-unbound - no NTP",
+				srcState:          models.HostStatusDiscoveringUnbound,
+				dstState:          models.HostStatusKnownUnbound,
+				validCheckInTime:  true,
+				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
+				hostname:          "test-hostname",
+				eventRaised:       true,
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+			},
+			{
+				name:              "insufficient-unbound to known-unbound - no NTP",
+				srcState:          models.HostStatusInsufficientUnbound,
+				dstState:          models.HostStatusKnownUnbound,
+				validCheckInTime:  true,
+				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
+				hostname:          "test-hostname",
+				eventRaised:       true,
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+			},
+			{
+				name:              "known-unbound to known-unbound - no NTP",
+				srcState:          models.HostStatusKnownUnbound,
+				dstState:          models.HostStatusKnownUnbound,
+				validCheckInTime:  true,
+				inventory:         hostutil.GenerateMasterInventory(),
+				eventRaised:       false,
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+			},
+			{
+				name:             "disconnected-unbound to insufficient-unbound un-synced NTP",
+				srcState:         models.HostStatusDisconnectedUnbound,
+				dstState:         models.HostStatusInsufficientUnbound,
+				validCheckInTime: true,
+				inventory:        hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
+				hostname:         "test-hostname",
+				eventRaised:      true,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
+					"Host couldn't synchronize with any NTP server")),
+				sourceState: models.SourceStateUnreachable,
+			},
+			{
+				name:             "discovering-unbound to insufficient-unbound un-synced NTP",
+				srcState:         models.HostStatusDiscoveringUnbound,
+				dstState:         models.HostStatusInsufficientUnbound,
+				validCheckInTime: true,
+				inventory:        hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
+				hostname:         "test-hostname",
+				eventRaised:      true,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
+					"Host couldn't synchronize with any NTP server")),
+				sourceState: models.SourceStateUnreachable,
+			},
+			{
+				name:             "insufficient-unbound to insufficient-unbound un-synced NTP",
+				srcState:         models.HostStatusInsufficientUnbound,
+				dstState:         models.HostStatusInsufficientUnbound,
+				validCheckInTime: true,
+				inventory:        hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
+				hostname:         "test-hostname",
+				eventRaised:      false,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
+					"Host couldn't synchronize with any NTP server")),
+				sourceState: models.SourceStateUnreachable,
+			},
+			{
+				name:             "known-unbound to insufficient-unbound un-synced NTP",
+				srcState:         models.HostStatusKnownUnbound,
+				dstState:         models.HostStatusInsufficientUnbound,
+				validCheckInTime: true,
+				hostname:         "master-hostname",
+				inventory:        hostutil.GenerateMasterInventory(),
+				eventRaised:      true,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
+					"Host couldn't synchronize with any NTP server")),
+				sourceState: models.SourceStateUnreachable,
 			},
 		}
 
@@ -5313,6 +5405,17 @@ var _ = Describe("Refresh Host", func() {
 					hostCheckInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
 				}
 				host.CheckedInAt = hostCheckInAt
+				if t.sourceState != "" {
+					b, err := json.Marshal(&[]*models.NtpSource{
+						{
+							SourceName:  "source",
+							SourceState: t.sourceState,
+						},
+					})
+					Expect(err).ToNot(HaveOccurred())
+					host.NtpSources = string(b)
+					Expect(db.Model(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: infraEnvId}}).Update("additional_ntp_sources", "source").Error).ToNot(HaveOccurred())
+				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 				mockDefaultInfraEnvHostRequirements(mockHwValidator)

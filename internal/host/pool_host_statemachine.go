@@ -99,6 +99,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 	})
 
 	var hasMinRequiredHardware = stateswitch.And(If(HasMinValidDisks), If(HasMinCPUCores), If(HasMinMemory))
+	sufficientToBeBound := stateswitch.And(hasMinRequiredHardware, If(IsNTPSynced))
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles
@@ -111,7 +112,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 			stateswitch.State(models.HostStatusKnownUnbound),
 		},
 		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
-			stateswitch.Not(hasMinRequiredHardware)),
+			stateswitch.Not(sufficientToBeBound)),
 		DestinationState: stateswitch.State(models.HostStatusInsufficientUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoInsufficientHardware),
 	})
@@ -138,7 +139,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 			stateswitch.State(models.HostStatusKnownUnbound),
 		},
 		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
-			hasMinRequiredHardware),
+			sufficientToBeBound),
 		DestinationState: stateswitch.State(models.HostStatusKnownUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoHostReadyToBeMoved),
 	})
