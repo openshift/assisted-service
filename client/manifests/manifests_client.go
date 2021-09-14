@@ -30,6 +30,9 @@ type API interface {
 	/*
 	   ListClusterManifests Lists manifests for customizing cluster installation.*/
 	ListClusterManifests(ctx context.Context, params *ListClusterManifestsParams) (*ListClusterManifestsOK, error)
+	/*
+	   V2DownloadClusterManifest Downloads cluster manifest.*/
+	V2DownloadClusterManifest(ctx context.Context, params *V2DownloadClusterManifestParams, writer io.Writer) (*V2DownloadClusterManifestOK, error)
 }
 
 // New creates a new manifests API client.
@@ -147,5 +150,30 @@ func (a *Client) ListClusterManifests(ctx context.Context, params *ListClusterMa
 		return nil, err
 	}
 	return result.(*ListClusterManifestsOK), nil
+
+}
+
+/*
+V2DownloadClusterManifest Downloads cluster manifest.
+*/
+func (a *Client) V2DownloadClusterManifest(ctx context.Context, params *V2DownloadClusterManifestParams, writer io.Writer) (*V2DownloadClusterManifestOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2DownloadClusterManifest",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/manifests/files",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2DownloadClusterManifestReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2DownloadClusterManifestOK), nil
 
 }

@@ -29,6 +29,9 @@ type API interface {
 	/*
 	   ReportMonitoredOperatorStatus Controller API to report of monitored operators.*/
 	ReportMonitoredOperatorStatus(ctx context.Context, params *ReportMonitoredOperatorStatusParams) (*ReportMonitoredOperatorStatusOK, error)
+	/*
+	   V2ReportMonitoredOperatorStatus Controller API to report of monitored operators.*/
+	V2ReportMonitoredOperatorStatus(ctx context.Context, params *V2ReportMonitoredOperatorStatusParams) (*V2ReportMonitoredOperatorStatusOK, error)
 }
 
 // New creates a new operators API client.
@@ -146,5 +149,30 @@ func (a *Client) ReportMonitoredOperatorStatus(ctx context.Context, params *Repo
 		return nil, err
 	}
 	return result.(*ReportMonitoredOperatorStatusOK), nil
+
+}
+
+/*
+V2ReportMonitoredOperatorStatus Controller API to report of monitored operators.
+*/
+func (a *Client) V2ReportMonitoredOperatorStatus(ctx context.Context, params *V2ReportMonitoredOperatorStatusParams) (*V2ReportMonitoredOperatorStatusOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2ReportMonitoredOperatorStatus",
+		Method:             "PUT",
+		PathPattern:        "/v2/clusters/{cluster_id}/monitored-operators",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ReportMonitoredOperatorStatusReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ReportMonitoredOperatorStatusOK), nil
 
 }

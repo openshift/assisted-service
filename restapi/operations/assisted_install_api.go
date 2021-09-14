@@ -298,6 +298,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2DeregisterHostHandler: installer.V2DeregisterHostHandlerFunc(func(params installer.V2DeregisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DeregisterHost has not yet been implemented")
 		}),
+		ManifestsV2DownloadClusterManifestHandler: manifests.V2DownloadClusterManifestHandlerFunc(func(params manifests.V2DownloadClusterManifestParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation manifests.V2DownloadClusterManifest has not yet been implemented")
+		}),
 		InstallerV2DownloadInfraEnvFilesHandler: installer.V2DownloadInfraEnvFilesHandlerFunc(func(params installer.V2DownloadInfraEnvFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DownloadInfraEnvFiles has not yet been implemented")
 		}),
@@ -328,8 +331,14 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2ListClustersHandler: installer.V2ListClustersHandlerFunc(func(params installer.V2ListClustersParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2ListClusters has not yet been implemented")
 		}),
+		VersionsV2ListComponentVersionsHandler: versions.V2ListComponentVersionsHandlerFunc(func(params versions.V2ListComponentVersionsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation versions.V2ListComponentVersions has not yet been implemented")
+		}),
 		InstallerV2ListHostsHandler: installer.V2ListHostsHandlerFunc(func(params installer.V2ListHostsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2ListHosts has not yet been implemented")
+		}),
+		VersionsV2ListSupportedOpenshiftVersionsHandler: versions.V2ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.V2ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation versions.V2ListSupportedOpenshiftVersions has not yet been implemented")
 		}),
 		InstallerV2PostStepReplyHandler: installer.V2PostStepReplyHandlerFunc(func(params installer.V2PostStepReplyParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2PostStepReply has not yet been implemented")
@@ -339,6 +348,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerV2RegisterHostHandler: installer.V2RegisterHostHandlerFunc(func(params installer.V2RegisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2RegisterHost has not yet been implemented")
+		}),
+		OperatorsV2ReportMonitoredOperatorStatusHandler: operators.V2ReportMonitoredOperatorStatusHandlerFunc(func(params operators.V2ReportMonitoredOperatorStatusParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.V2ReportMonitoredOperatorStatus has not yet been implemented")
 		}),
 		InstallerV2ResetClusterHandler: installer.V2ResetClusterHandlerFunc(func(params installer.V2ResetClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2ResetCluster has not yet been implemented")
@@ -607,6 +619,8 @@ type AssistedInstallAPI struct {
 	InstallerV2DeregisterClusterHandler installer.V2DeregisterClusterHandler
 	// InstallerV2DeregisterHostHandler sets the operation handler for the v2 deregister host operation
 	InstallerV2DeregisterHostHandler installer.V2DeregisterHostHandler
+	// ManifestsV2DownloadClusterManifestHandler sets the operation handler for the v2 download cluster manifest operation
+	ManifestsV2DownloadClusterManifestHandler manifests.V2DownloadClusterManifestHandler
 	// InstallerV2DownloadInfraEnvFilesHandler sets the operation handler for the v2 download infra env files operation
 	InstallerV2DownloadInfraEnvFilesHandler installer.V2DownloadInfraEnvFilesHandler
 	// InstallerV2GetClusterHandler sets the operation handler for the v2 get cluster operation
@@ -627,14 +641,20 @@ type AssistedInstallAPI struct {
 	InstallerV2InstallHostHandler installer.V2InstallHostHandler
 	// InstallerV2ListClustersHandler sets the operation handler for the v2 list clusters operation
 	InstallerV2ListClustersHandler installer.V2ListClustersHandler
+	// VersionsV2ListComponentVersionsHandler sets the operation handler for the v2 list component versions operation
+	VersionsV2ListComponentVersionsHandler versions.V2ListComponentVersionsHandler
 	// InstallerV2ListHostsHandler sets the operation handler for the v2 list hosts operation
 	InstallerV2ListHostsHandler installer.V2ListHostsHandler
+	// VersionsV2ListSupportedOpenshiftVersionsHandler sets the operation handler for the v2 list supported openshift versions operation
+	VersionsV2ListSupportedOpenshiftVersionsHandler versions.V2ListSupportedOpenshiftVersionsHandler
 	// InstallerV2PostStepReplyHandler sets the operation handler for the v2 post step reply operation
 	InstallerV2PostStepReplyHandler installer.V2PostStepReplyHandler
 	// InstallerV2RegisterClusterHandler sets the operation handler for the v2 register cluster operation
 	InstallerV2RegisterClusterHandler installer.V2RegisterClusterHandler
 	// InstallerV2RegisterHostHandler sets the operation handler for the v2 register host operation
 	InstallerV2RegisterHostHandler installer.V2RegisterHostHandler
+	// OperatorsV2ReportMonitoredOperatorStatusHandler sets the operation handler for the v2 report monitored operator status operation
+	OperatorsV2ReportMonitoredOperatorStatusHandler operators.V2ReportMonitoredOperatorStatusHandler
 	// InstallerV2ResetClusterHandler sets the operation handler for the v2 reset cluster operation
 	InstallerV2ResetClusterHandler installer.V2ResetClusterHandler
 	// InstallerV2ResetHostHandler sets the operation handler for the v2 reset host operation
@@ -995,6 +1015,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerV2DeregisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2DeregisterHostHandler")
 	}
+	if o.ManifestsV2DownloadClusterManifestHandler == nil {
+		unregistered = append(unregistered, "manifests.V2DownloadClusterManifestHandler")
+	}
 	if o.InstallerV2DownloadInfraEnvFilesHandler == nil {
 		unregistered = append(unregistered, "installer.V2DownloadInfraEnvFilesHandler")
 	}
@@ -1025,8 +1048,14 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerV2ListClustersHandler == nil {
 		unregistered = append(unregistered, "installer.V2ListClustersHandler")
 	}
+	if o.VersionsV2ListComponentVersionsHandler == nil {
+		unregistered = append(unregistered, "versions.V2ListComponentVersionsHandler")
+	}
 	if o.InstallerV2ListHostsHandler == nil {
 		unregistered = append(unregistered, "installer.V2ListHostsHandler")
+	}
+	if o.VersionsV2ListSupportedOpenshiftVersionsHandler == nil {
+		unregistered = append(unregistered, "versions.V2ListSupportedOpenshiftVersionsHandler")
 	}
 	if o.InstallerV2PostStepReplyHandler == nil {
 		unregistered = append(unregistered, "installer.V2PostStepReplyHandler")
@@ -1036,6 +1065,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2RegisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2RegisterHostHandler")
+	}
+	if o.OperatorsV2ReportMonitoredOperatorStatusHandler == nil {
+		unregistered = append(unregistered, "operators.V2ReportMonitoredOperatorStatusHandler")
 	}
 	if o.InstallerV2ResetClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2ResetClusterHandler")
@@ -1510,6 +1542,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/v2/clusters/{cluster_id}/manifests/files"] = manifests.NewV2DownloadClusterManifest(o.context, o.ManifestsV2DownloadClusterManifestHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/files"] = installer.NewV2DownloadInfraEnvFiles(o.context, o.InstallerV2DownloadInfraEnvFilesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -1550,7 +1586,15 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/v2/component-versions"] = versions.NewV2ListComponentVersions(o.context, o.VersionsV2ListComponentVersionsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/hosts"] = installer.NewV2ListHosts(o.context, o.InstallerV2ListHostsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/openshift-versions"] = versions.NewV2ListSupportedOpenshiftVersions(o.context, o.VersionsV2ListSupportedOpenshiftVersionsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -1563,6 +1607,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts"] = installer.NewV2RegisterHost(o.context, o.InstallerV2RegisterHostHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/v2/clusters/{cluster_id}/monitored-operators"] = operators.NewV2ReportMonitoredOperatorStatus(o.context, o.OperatorsV2ReportMonitoredOperatorStatusHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

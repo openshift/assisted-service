@@ -76,7 +76,11 @@ type handler struct {
 }
 
 func (h *handler) ListComponentVersions(ctx context.Context, params operations.ListComponentVersionsParams) middleware.Responder {
-	return operations.NewListComponentVersionsOK().WithPayload(
+	return h.V2ListComponentVersions(ctx, operations.V2ListComponentVersionsParams{})
+}
+
+func (h *handler) V2ListComponentVersions(ctx context.Context, params operations.V2ListComponentVersionsParams) middleware.Responder {
+	return operations.NewV2ListComponentVersionsOK().WithPayload(
 		&models.ListVersions{
 			Versions: models.Versions{
 				"assisted-installer-service":    h.versions.SelfVersion,
@@ -89,7 +93,11 @@ func (h *handler) ListComponentVersions(ctx context.Context, params operations.L
 }
 
 func (h *handler) ListSupportedOpenshiftVersions(ctx context.Context, params operations.ListSupportedOpenshiftVersionsParams) middleware.Responder {
-	return operations.NewListSupportedOpenshiftVersionsOK().WithPayload(h.openshiftVersions)
+	return h.V2ListSupportedOpenshiftVersions(ctx, operations.V2ListSupportedOpenshiftVersionsParams{})
+}
+
+func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
+	return operations.NewV2ListSupportedOpenshiftVersionsOK().WithPayload(h.openshiftVersions)
 }
 
 func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error) {

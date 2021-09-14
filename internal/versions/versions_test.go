@@ -138,8 +138,8 @@ var _ = Describe("list versions", func() {
 			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
 			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
-			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
-			val, _ := reply.(*operations.ListComponentVersionsOK)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListComponentVersionsOK()))
+			val, _ := reply.(*operations.V2ListComponentVersionsOK)
 			Expect(val.Payload.Versions["assisted-installer-service"]).
 				Should(Equal("quay.io/ocpmetal/assisted-service:latest"))
 			Expect(val.Payload.Versions["discovery-agent"]).Should(Equal("quay.io/ocpmetal/agent:latest"))
@@ -156,8 +156,8 @@ var _ = Describe("list versions", func() {
 			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
 			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
-			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
-			val, _ := reply.(*operations.ListComponentVersionsOK)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListComponentVersionsOK()))
+			val, _ := reply.(*operations.V2ListComponentVersionsOK)
 			Expect(val.Payload.Versions["assisted-installer-service"]).Should(Equal("self-version"))
 			Expect(val.Payload.Versions["discovery-agent"]).Should(Equal("agent-image"))
 			Expect(val.Payload.Versions["assisted-installer"]).Should(Equal("installer-image"))
@@ -172,8 +172,8 @@ var _ = Describe("list versions", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
-			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListSupportedOpenshiftVersionsOK()))
-			val, _ := reply.(*operations.ListSupportedOpenshiftVersionsOK)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 
 			Expect(val.Payload).Should(BeEmpty())
 		})
@@ -211,8 +211,8 @@ var _ = Describe("list versions", func() {
 			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
-			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListSupportedOpenshiftVersionsOK()))
-			val, _ := reply.(*operations.ListSupportedOpenshiftVersionsOK)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 
 			Expect(val.Payload).Should(HaveLen(len(*openshiftVersions)))
 

@@ -23,6 +23,12 @@ type API interface {
 	/*
 	   ListSupportedOpenshiftVersions Retrieves the list of OpenShift supported versions.*/
 	ListSupportedOpenshiftVersions(ctx context.Context, params *ListSupportedOpenshiftVersionsParams) (*ListSupportedOpenshiftVersionsOK, error)
+	/*
+	   V2ListComponentVersions List of component versions.*/
+	V2ListComponentVersions(ctx context.Context, params *V2ListComponentVersionsParams) (*V2ListComponentVersionsOK, error)
+	/*
+	   V2ListSupportedOpenshiftVersions Retrieves the list of OpenShift supported versions.*/
+	V2ListSupportedOpenshiftVersions(ctx context.Context, params *V2ListSupportedOpenshiftVersionsParams) (*V2ListSupportedOpenshiftVersionsOK, error)
 }
 
 // New creates a new versions API client.
@@ -90,5 +96,55 @@ func (a *Client) ListSupportedOpenshiftVersions(ctx context.Context, params *Lis
 		return nil, err
 	}
 	return result.(*ListSupportedOpenshiftVersionsOK), nil
+
+}
+
+/*
+V2ListComponentVersions List of component versions.
+*/
+func (a *Client) V2ListComponentVersions(ctx context.Context, params *V2ListComponentVersionsParams) (*V2ListComponentVersionsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2ListComponentVersions",
+		Method:             "GET",
+		PathPattern:        "/v2/component-versions",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ListComponentVersionsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ListComponentVersionsOK), nil
+
+}
+
+/*
+V2ListSupportedOpenshiftVersions Retrieves the list of OpenShift supported versions.
+*/
+func (a *Client) V2ListSupportedOpenshiftVersions(ctx context.Context, params *V2ListSupportedOpenshiftVersionsParams) (*V2ListSupportedOpenshiftVersionsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2ListSupportedOpenshiftVersions",
+		Method:             "GET",
+		PathPattern:        "/v2/openshift-versions",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ListSupportedOpenshiftVersionsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ListSupportedOpenshiftVersionsOK), nil
 
 }

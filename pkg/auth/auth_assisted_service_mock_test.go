@@ -484,6 +484,18 @@ func (f fakeVersionsAPI) ListSupportedOpenshiftVersions(
 	return versionsapi.NewListSupportedOpenshiftVersionsOK()
 }
 
+func (f fakeVersionsAPI) V2ListComponentVersions(
+	_ context.Context,
+	_ versionsapi.V2ListComponentVersionsParams) middleware.Responder {
+	return versionsapi.NewV2ListComponentVersionsOK()
+}
+
+func (f fakeVersionsAPI) V2ListSupportedOpenshiftVersions(
+	_ context.Context,
+	_ versionsapi.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
+	return versionsapi.NewV2ListSupportedOpenshiftVersionsOK()
+}
+
 type fakeManagedDomainsAPI struct{}
 
 func (f fakeManagedDomainsAPI) ListManagedDomains(
