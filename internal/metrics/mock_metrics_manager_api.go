@@ -121,6 +121,18 @@ func (mr *MockAPIMockRecorder) Duration(operation, duration interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Duration", reflect.TypeOf((*MockAPI)(nil).Duration), operation, duration)
 }
 
+// DurationWithThreshold mocks base method.
+func (m *MockAPI) DurationWithThreshold(operation string, threshold float64, duration time.Duration) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "DurationWithThreshold", operation, threshold, duration)
+}
+
+// DurationWithThreshold indicates an expected call of DurationWithThreshold.
+func (mr *MockAPIMockRecorder) DurationWithThreshold(operation, threshold, duration interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DurationWithThreshold", reflect.TypeOf((*MockAPI)(nil).DurationWithThreshold), operation, threshold, duration)
+}
+
 // FileSystemUsage mocks base method.
 func (m *MockAPI) FileSystemUsage(usageInPercentage float64) {
 	m.ctrl.T.Helper()

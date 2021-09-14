@@ -134,6 +134,7 @@ type Config struct {
 	FinalizingTimeout       time.Duration `envconfig:"FINALIZING_TIMEOUT" default:"5h"`
 	MonitorBatchSize        int           `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
 	EnableSingleNodeDnsmasq bool          `envconfig:"ENABLE_SINGLE_NODE_DNSMASQ" default:"false"`
+	MonitoringMetricThresholdInSec float64       `envconfig:"MONITORING_METRIC_THRESHOLD" default:"5"`
 }
 
 type Manager struct {
@@ -339,6 +340,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+	defer commonutils.MeasureOperationWithThresholdAndId("ClusterMonitoring-refreshStatusInternal", m.log, m.metricAPI, m.Config.MonitoringMetricThresholdInSec, c.ID.String())()
 	//new transition code
 	if db == nil {
 		db = m.db
@@ -350,7 +352,11 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 		newValidationRes map[string][]ValidationResult
 	)
 	vc = newClusterValidationContext(c, db)
-	conditions, newValidationRes, err = m.rp.preprocess(ctx, vc)
+
+	func() {
+		defer commonutils.MeasureOperationWithThresholdAndId("ClusterMonitoring-preprocess", m.log, m.metricAPI, m.Config.MonitoringMetricThresholdInSec, c.ID.String())()
+		conditions, newValidationRes, err = m.rp.preprocess(ctx, vc)
+	}()
 	if err != nil {
 		return c, err
 	}
@@ -382,7 +388,10 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 		dnsApi:            m.dnsApi,
 	}
 
-	err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), args)
+	func() {
+		defer commonutils.MeasureOperationWithThresholdAndId("ClusterMonitoring-refreshStatusInternal-transition", m.log, m.metricAPI, m.Config.MonitoringMetricThresholdInSec, c.ID.String())()
+		err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), args)
+	}()
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)
 	}
@@ -432,6 +441,7 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 }
 
 func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
+	defer commonutils.MeasureOperationWithThresholdAndId("ClusterMonitoring-autoAssignMachineNetworkCidr", m.log, m.metricAPI, m.Config.MonitoringMetricThresholdInSec, c.ID.String())()
 	if !funk.ContainsString([]string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}, swag.StringValue(c.Status)) {
 		return nil
 	}
@@ -455,6 +465,7 @@ func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
 }
 
 func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorInvokedAt time.Time) bool {
+	defer commonutils.MeasureOperationWithThresholdAndId("ClusterMonitoring-shouldTriggerLeaseTimeoutEvent", m.log, m.metricAPI, m.Config.MonitoringMetricThresholdInSec, c.ID.String())()
 	notAllowedStates := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCancelled}
 	if funk.Contains(notAllowedStates, *c.Status) {
 		return false
@@ -930,6 +941,7 @@ func (m *Manager) IsReadyForInstallation(c *common.Cluster) (bool, string) {
 }
 
 func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *common.Cluster, db *gorm.DB) error {
+	defer commonutils.MeasureOperationWithThresholdAndId("ClusterMonitoring-setConnectivityMajorityGroupsForClusterInternal", m.log, m.metricAPI, m.Config.MonitoringMetricThresholdInSec, cluster.ID.String())()
 	if db == nil {
 		db = m.db
 	}
