@@ -529,6 +529,7 @@ func (m *Manager) ClusterMonitoring() {
 		if len(clusters) == 0 {
 			break
 		}
+		m.log.Debugf("We are going to monitor %d, query is: %v", len(clusters), query)
 		for _, cluster := range clusters {
 			if !m.leaderElector.IsLeader() {
 				m.log.Debugf("Not a leader, exiting ClusterMonitoring")
@@ -558,6 +559,7 @@ func (m *Manager) ClusterMonitoring() {
 		}
 		offset += limit
 	}
+	m.log.Debugf("Monitored %d clusters", monitored)
 	m.metricAPI.MonitoredClusterCount(monitored)
 }
 
