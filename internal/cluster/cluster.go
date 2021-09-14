@@ -42,7 +42,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const DhcpLeaseTimeoutMinutes = 2
+const (
+	DhcpLeaseTimeoutMinutes = 2
+	OperationThresholdInSec = 10
+)
 
 var S3FileNames = []string{
 	constants.Kubeconfig,
@@ -337,6 +340,8 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+
+	defer commonutils.MeasureOperationWithThresholdAndId("ClusterMonitoring-refreshStatusInternal", m.log, m.metricAPI, OperationThresholdInSec, c.ID.String())()
 	//new transition code
 	if db == nil {
 		db = m.db
@@ -430,6 +435,7 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 }
 
 func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
+	defer commonutils.MeasureOperationWithThresholdAndId("ClusterMonitoring-autoAssignMachineNetworkCidr", m.log, m.metricAPI, OperationThresholdInSec, c.ID.String())()
 	if !funk.ContainsString([]string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}, swag.StringValue(c.Status)) {
 		return nil
 	}
@@ -453,6 +459,7 @@ func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
 }
 
 func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorInvokedAt time.Time) bool {
+	defer commonutils.MeasureOperationWithThresholdAndId("ClusterMonitoring-shouldTriggerLeaseTimeoutEvent", m.log, m.metricAPI, OperationThresholdInSec, c.ID.String())()
 	notAllowedStates := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCancelled}
 	if funk.Contains(notAllowedStates, *c.Status) {
 		return false
@@ -464,6 +471,7 @@ func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorIn
 }
 
 func (m *Manager) triggerLeaseTimeoutEvent(ctx context.Context, c *common.Cluster) {
+	defer commonutils.MeasureOperationWithThresholdAndId("ClusterMonitoring-triggerLeaseTimeoutEvent", m.log, m.metricAPI, OperationThresholdInSec, c.ID.String())()
 	m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, "API and Ingress VIPs lease allocation has been timed out", time.Now())
 }
 
@@ -916,6 +924,7 @@ func (m *Manager) IsReadyForInstallation(c *common.Cluster) (bool, string) {
 }
 
 func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *common.Cluster, db *gorm.DB) error {
+	defer commonutils.MeasureOperationWithThresholdAndId("ClusterMonitoring-setConnectivityMajorityGroupsForClusterInternal", m.log, m.metricAPI, OperationThresholdInSec, cluster.ID.String())()
 	if db == nil {
 		db = m.db
 	}

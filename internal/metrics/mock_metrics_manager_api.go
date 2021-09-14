@@ -121,6 +121,18 @@ func (mr *MockAPIMockRecorder) Duration(operation, duration interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Duration", reflect.TypeOf((*MockAPI)(nil).Duration), operation, duration)
 }
 
+// DurationWithObjectId mocks base method.
+func (m *MockAPI) DurationWithObjectId(operation, objectId string, duration time.Duration) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "DurationWithObjectId", operation, objectId, duration)
+}
+
+// DurationWithObjectId indicates an expected call of DurationWithObjectId.
+func (mr *MockAPIMockRecorder) DurationWithObjectId(operation, objectId, duration interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DurationWithObjectId", reflect.TypeOf((*MockAPI)(nil).DurationWithObjectId), operation, objectId, duration)
+}
+
 // FileSystemUsage mocks base method.
 func (m *MockAPI) FileSystemUsage(usageInPercentage float64) {
 	m.ctrl.T.Helper()

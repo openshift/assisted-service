@@ -18,3 +18,16 @@ func MeasureOperation(operation string, log logrus.FieldLogger, metricsApi metri
 		}
 	}
 }
+
+func MeasureOperationWithThresholdAndId(operation string, log logrus.FieldLogger, metricsApi metrics.API, thresholdInSec float64, objectId string) func() {
+	start := time.Now()
+	return func() {
+		duration := time.Since(start)
+		if duration.Seconds() >= thresholdInSec {
+			log.Debugf("%s for %s took : %v", operation, objectId, duration)
+			if metricsApi != nil {
+				metricsApi.DurationWithObjectId(operation, objectId, duration)
+			}
+		}
+	}
+}

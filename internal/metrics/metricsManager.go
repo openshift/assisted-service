@@ -24,6 +24,7 @@ const (
 	counterClusterInstallationStarted             = "assisted_installer_cluster_installation_started"
 	counterClusterInstallationSeconds             = "assisted_installer_cluster_installation_seconds"
 	counterOperationDurationMiliSeconds           = "assisted_installer_operation_duration_miliseconds"
+	counterOperationDurationWithObjectIdMili      = "assisted_installer_operation_duration_with_object_id_miliseconds"
 	counterHostInstallationPhaseSeconds           = "assisted_installer_host_installation_phase_seconds"
 	counterClusterHosts                           = "assisted_installer_cluster_hosts"
 	counterClusterHostCores                       = "assisted_installer_cluster_host_cores"
@@ -81,6 +82,7 @@ const (
 	emailDomainLabel           = "emailDomain"
 	resultLabel                = "result"
 	operation                  = "operation"
+	operationObjectId          = "objectId"
 	phaseLabel                 = "phase"
 	roleLabel                  = "role"
 	diskTypeLabel              = "diskType"
@@ -107,6 +109,7 @@ type API interface {
 	InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string)
 	ClusterHostInstallationCount(emailDomain string, hostCount int, clusterVersion string)
 	Duration(operation string, duration time.Duration)
+	DurationWithObjectId(operation string, objectId string, duration time.Duration)
 	ClusterInstallationFinished(ctx context.Context, result, prevState, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime)
 	ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
 	DiskSyncDuration(hostID strfmt.UUID, diskPath string, syncDuration int64)
@@ -128,6 +131,7 @@ type MetricsManager struct {
 	serviceLogicClusterHostNTPFailuresCount            *prometheus.HistogramVec
 	serviceLogicClusterInstallationSeconds             *prometheus.HistogramVec
 	serviceLogicOperationDurationMiliSeconds           *prometheus.HistogramVec
+	serviceLogicOperationDurationWithObjectIdMili      *prometheus.HistogramVec
 	serviceLogicHostInstallationPhaseSeconds           *prometheus.HistogramVec
 	serviceLogicClusterHosts                           *prometheus.CounterVec
 	serviceLogicClusterHostCores                       *prometheus.HistogramVec
@@ -201,6 +205,15 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler events.Hand
 			Buckets: []float64{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1200,
 				1400, 1600, 1800, 2000, 2400, 2800, 3200, 3600, 4000, 5000},
 		}, []string{operation}),
+
+		serviceLogicOperationDurationWithObjectIdMili: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      counterOperationDurationWithObjectIdMili,
+			Help:      counterDescriptionOperationDurationMiliSeconds,
+			Buckets: []float64{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1200,
+				1400, 1600, 1800, 2000, 2400, 2800, 3200, 3600, 4000, 5000},
+		}, []string{operation, operationObjectId}),
 
 		serviceLogicHostInstallationPhaseSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -342,6 +355,7 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler events.Hand
 		m.serviceLogicClusterInstallationStarted,
 		m.serviceLogicClusterInstallationSeconds,
 		m.serviceLogicOperationDurationMiliSeconds,
+		m.serviceLogicOperationDurationWithObjectIdMili,
 		m.serviceLogicHostInstallationPhaseSeconds,
 		m.serviceLogicClusterHosts,
 		m.serviceLogicClusterHostCores,
@@ -403,6 +417,10 @@ func (m *MetricsManager) ClusterInstallationFinished(ctx context.Context, result
 
 func (m *MetricsManager) Duration(operation string, duration time.Duration) {
 	m.serviceLogicOperationDurationMiliSeconds.WithLabelValues(operation).Observe(float64(duration.Milliseconds()))
+}
+
+func (m *MetricsManager) DurationWithObjectId(operation string, objectId string, duration time.Duration) {
+	m.serviceLogicOperationDurationWithObjectIdMili.WithLabelValues(operation, objectId).Observe(float64(duration.Milliseconds()))
 }
 
 func (m *MetricsManager) DiskSyncDuration(hostID strfmt.UUID, diskPath string, syncDuration int64) {
