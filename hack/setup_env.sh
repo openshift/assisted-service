@@ -53,7 +53,7 @@ function assisted_service() {
     install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
     rm -f /tmp/kubectl
   
-  ${PACKAGE_MANAGER} -y update && ${PACKAGE_MANAGER} install -y which jq python3 podman podman-remote docker-ce-cli libvirt-client python3-pip postgresql genisoimage make git skopeo p7zip awscli && \
+  ${PACKAGE_MANAGER} -y update && ${PACKAGE_MANAGER} install -y which jq python3 podman-remote docker-ce-cli libvirt-client python3-pip postgresql genisoimage make git skopeo p7zip awscli && \
     ${PACKAGE_MANAGER} clean all
 
   kustomize
