@@ -333,10 +333,10 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	if err != nil {
 		return nil, err
 	}
-	return m.refreshStatusInternal(ctx, cluster, db)
+	return m.refreshStatusInternal(ctx, cluster, db, nil)
 }
 
-func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, db *gorm.DB, durations map[string]time.Duration) (*common.Cluster, error) {
 	//new transition code
 	if db == nil {
 		db = m.db
@@ -348,7 +348,12 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 		newValidationRes map[string][]ValidationResult
 	)
 	vc = newClusterValidationContext(c, db)
-	conditions, newValidationRes, err = m.rp.preprocess(ctx, vc)
+	preprocessDuration := measure(func() {
+		conditions, newValidationRes, err = m.rp.preprocess(ctx, vc)
+	})
+	if durations != nil {
+		durations["prepeocess"] = preprocessDuration
+	}
 	if err != nil {
 		return c, err
 	}
@@ -361,8 +366,17 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 		// current validations in the DB.
 		// For changes to be detected and reported correctly, the comparison needs to be
 		// performed before the new validations are updated to the DB.
-		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)
-		if _, err = m.updateValidationsInDB(ctx, db, c, newValidationRes); err != nil {
+		validationStatusChangedDuration := measure(func() {
+			m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)
+		})
+		updateValidationsDuration := measure(func() {
+			_, err = m.updateValidationsInDB(ctx, db, c, newValidationRes)
+		})
+		if durations != nil {
+			durations["report-validation-changed"] = validationStatusChangedDuration
+			durations["update-validations"] = updateValidationsDuration
+		}
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -379,8 +393,12 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 		ocmClient:         m.ocmClient,
 		dnsApi:            m.dnsApi,
 	}
-
-	err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), args)
+	runDuration := measure(func() {
+		err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), args)
+	})
+	if durations != nil {
+		durations["run"] = runDuration
+	}
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)
 	}
@@ -490,6 +508,36 @@ func (m *Manager) initMonitorQueryGenerator() {
 	}
 }
 
+func measure(f func()) time.Duration {
+	start := time.Now()
+	f()
+	return time.Since(start)
+}
+
+type operationDuration struct {
+	name     string
+	duration time.Duration
+}
+
+func logLongMonitoredCluster(log logrus.FieldLogger, cluster *common.Cluster, durations map[string]time.Duration) {
+	var array []*operationDuration
+	for k, v := range durations {
+		array = append(array,
+			&operationDuration{
+				name:     k,
+				duration: v,
+			})
+	}
+	sort.Slice(array, func(i, j int) bool {
+		return array[i].duration.Nanoseconds() > array[j].duration.Nanoseconds()
+	})
+	var outputs []string
+	for _, a := range array {
+		outputs = append(outputs, fmt.Sprintf("Operation %s took: %s", a.name, a.duration))
+	}
+	log.Warnf("Cluster %s had long monitoring cycle:\n%s", cluster.ID.String(), strings.Join(outputs, "\n"))
+}
+
 func (m *Manager) ClusterMonitoring() {
 	if !m.leaderElector.IsLeader() {
 		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
@@ -508,6 +556,8 @@ func (m *Manager) ClusterMonitoring() {
 		log                 = requestid.RequestIDLogger(m.log, requestID)
 		err                 error
 	)
+
+	clusterMonitoringThreshold := 3 * time.Second
 
 	curMonitorInvokedAt := time.Now()
 	defer func() {
@@ -530,30 +580,50 @@ func (m *Manager) ClusterMonitoring() {
 			break
 		}
 		m.log.Debugf("We are going to monitor %d, query is: %v", len(clusters), query)
-		for _, cluster := range clusters {
+		for _, cls := range clusters {
+			cluster := cls
 			if !m.leaderElector.IsLeader() {
 				m.log.Debugf("Not a leader, exiting ClusterMonitoring")
 				return
 			}
 			if !m.SkipMonitoring(cluster) {
 				monitored += 1
-				_ = m.autoAssignMachineNetworkCidr(cluster)
-				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
-					log.WithError(err).Error("failed to set majority group for clusters")
-				}
-				clusterAfterRefresh, err = m.refreshStatusInternal(ctx, cluster, m.db)
-				if err != nil {
-					log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
-					continue
-				}
+				durations := make(map[string]time.Duration)
+				totalDuration := measure(func() {
+					autoAsssignDuration := measure(func() {
+						_ = m.autoAssignMachineNetworkCidr(cluster)
+					})
+					durations["auto-assign-machine-cidr"] = autoAsssignDuration
+					connectivityMajorityGroupsDuration := measure(func() {
+						if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
+							log.WithError(err).Error("failed to set majority group for clusters")
+						}
+					})
+					durations["connectivity-majority-groups"] = connectivityMajorityGroupsDuration
+					refreshDuration := measure(func() {
+						clusterAfterRefresh, err = m.refreshStatusInternal(ctx, cluster, m.db, durations)
+					})
+					durations["refresh-status"] = refreshDuration
+					if err != nil {
+						log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
+						return
+					}
 
-				if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
-					log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
-						swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
-				}
+					if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
+						log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
+							swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
+					}
 
-				if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
-					m.triggerLeaseTimeoutEvent(ctx, cluster)
+					leaseTimeoutDuration := measure(func() {
+						if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
+							m.triggerLeaseTimeoutEvent(ctx, cluster)
+						}
+					})
+					durations["lease-timeout"] = leaseTimeoutDuration
+				})
+				durations["total-duration"] = totalDuration
+				if totalDuration.Nanoseconds() > clusterMonitoringThreshold.Nanoseconds() {
+					logLongMonitoredCluster(log, cluster, durations)
 				}
 			}
 		}
