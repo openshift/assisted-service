@@ -13,7 +13,6 @@ from deployment_options import INGRESS_REMOTE_TARGET, LOCAL_TARGET, OCP_TARGET
 KUBECTL_CMD = 'kubectl'
 DOCKER = "docker"
 PODMAN = "podman"
-PODMAN_REMOTE = "podman-remote"
 
 
 def verify_build_directory(namespace):
@@ -253,8 +252,6 @@ def get_runtime_command():
         cmd = DOCKER
     elif is_tool(PODMAN):
         cmd = PODMAN
-    elif is_tool(PODMAN_REMOTE):
-        cmd = PODMAN_REMOTE
     else:
         raise Exception("Nor %s nor %s are installed" % (PODMAN, DOCKER))
     return cmd
