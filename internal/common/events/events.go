@@ -454,6 +454,67 @@ func (e *ClusterRegistrationFailedEvent) FormatMessage() string {
 }
 
 //
+// Event cluster_registration_succeeded
+//
+type ClusterRegistrationSucceededEvent struct {
+    ClusterId strfmt.UUID
+}
+
+var ClusterRegistrationSucceededEventName string = "cluster_registration_succeeded"
+
+func NewClusterRegistrationSucceededEvent(
+    clusterId strfmt.UUID,
+) *ClusterRegistrationSucceededEvent {
+    return &ClusterRegistrationSucceededEvent{
+        ClusterId: clusterId,
+    }
+}
+
+func SendClusterRegistrationSucceededEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,) {
+    ev := NewClusterRegistrationSucceededEvent(
+        clusterId,
+    )
+    eventsHandler.SendClusterEvent(ctx, ev)
+}
+
+func SendClusterRegistrationSucceededEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    eventTime time.Time) {
+    ev := NewClusterRegistrationSucceededEvent(
+        clusterId,
+    )
+    eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *ClusterRegistrationSucceededEvent) GetName() string {
+    return "cluster_registration_succeeded"
+}
+
+func (e *ClusterRegistrationSucceededEvent) GetSeverity() string {
+    return "info"
+}
+func (e *ClusterRegistrationSucceededEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
+}
+
+func (e *ClusterRegistrationSucceededEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+    )
+    return r.Replace(*message)
+}
+
+func (e *ClusterRegistrationSucceededEvent) FormatMessage() string {
+    s := "Successfully registered cluster"
+    return e.format(&s)
+}
+
+//
 // Event registered_cluster
 //
 type RegisteredClusterEvent struct {
