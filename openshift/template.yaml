@@ -92,6 +92,9 @@ parameters:
 - name: DISABLED_HOST_VALIDATIONS
   value: ""
   required: false
+- name: LIVENESS_VALIDATION_TIMEOUT
+  value: "5m"
+  required: false
 - name: DISABLED_STEPS
   value: ""
   required: false
@@ -274,6 +277,8 @@ objects:
                 value: /etc/.aws/credentials
               - name: ADMIN_USERS
                 value: ${ADMIN_USERS}
+              - name: LIVENESS_VALIDATION_TIMEOUT
+                value: ${LIVENESS_VALIDATION_TIMEOUT}
               - name: PUBLIC_CONTAINER_REGISTRIES
                 value: ${PUBLIC_CONTAINER_REGISTRIES}
               - name: CHECK_CLUSTER_VERSION

@@ -137,6 +137,7 @@ var Options struct {
 	FileSystemUsageThreshold    int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
 	EnableElasticAPM            bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
 	WorkDir                     string        `envconfig:"WORK_DIR" default:"/data/"`
+	LivenessValidationTimeout   time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -466,7 +467,8 @@ func main() {
 
 	h = app.WithMetricsResponderMiddleware(h)
 	apiEnabler := NewApiEnabler(h, log)
-	h = app.WithHealthMiddleware(apiEnabler)
+	h = app.WithHealthMiddleware(apiEnabler, []*thread.Thread{hostStateMonitor, clusterStateMonitor},
+		log.WithField("pkg", "healthcheck"), Options.LivenessValidationTimeout)
 	h = requestid.Middleware(h)
 	h = spec.WithSpecMiddleware(h)
 

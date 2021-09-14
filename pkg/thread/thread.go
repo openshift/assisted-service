@@ -18,11 +18,12 @@ import (
 //    ....
 //
 type Thread struct {
-	log      logrus.FieldLogger
-	exec     func()
-	done     chan struct{}
-	name     string
-	interval time.Duration
+	log              logrus.FieldLogger
+	exec             func()
+	done             chan struct{}
+	name             string
+	interval         time.Duration
+	lastRunStartedAt time.Time
 }
 
 func New(log logrus.FieldLogger, name string, interval time.Duration, exec func()) *Thread {
@@ -38,6 +39,7 @@ func New(log logrus.FieldLogger, name string, interval time.Duration, exec func(
 // Start thread
 func (t *Thread) Start() {
 	t.log.Infof("Started %s", t.name)
+	t.lastRunStartedAt = time.Now()
 	go t.loop()
 }
 
@@ -47,6 +49,14 @@ func (t *Thread) Stop() {
 	t.done <- struct{}{}
 	<-t.done
 	t.log.Infof("Stopped %s", t.name)
+}
+
+func (t *Thread) LastRunStartedAt() time.Time {
+	return t.lastRunStartedAt
+}
+
+func (t *Thread) Name() string {
+	return t.name
 }
 
 func (t *Thread) loop() {
@@ -59,6 +69,7 @@ func (t *Thread) loop() {
 		case <-t.done:
 			return
 		case <-ticker.C:
+			t.lastRunStartedAt = time.Now()
 			t.exec()
 		}
 	}
