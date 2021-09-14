@@ -466,7 +466,8 @@ func main() {
 
 	h = app.WithMetricsResponderMiddleware(h)
 	apiEnabler := NewApiEnabler(h, log)
-	h = app.WithHealthMiddleware(apiEnabler)
+	h = app.WithHealthMiddleware(apiEnabler, []*thread.Thread{hostStateMonitor, clusterStateMonitor},
+		log.WithField("pkg", "healthcheck"))
 	h = requestid.Middleware(h)
 	h = spec.WithSpecMiddleware(h)
 

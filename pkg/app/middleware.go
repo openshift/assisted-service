@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
+	"github.com/sirupsen/logrus"
 )
 
 // WithMetricsResponderMiddleware Returns middleware which responds to /metrics endpoint with the prometheus metrics
@@ -21,10 +23,19 @@ func WithMetricsResponderMiddleware(next http.Handler) http.Handler {
 }
 
 // WithHealthMiddleware returns middleware which responds to the /health endpoint
-func WithHealthMiddleware(next http.Handler) http.Handler {
+func WithHealthMiddleware(next http.Handler, threads []*thread.Thread, logger logrus.FieldLogger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && r.URL.Path == "/health" {
-			w.WriteHeader(http.StatusOK)
+			status := http.StatusOK
+			for _, th := range threads {
+				if th.LastRunTimestamp().IsZero() && time.Since(th.LastRunTimestamp()).Minutes() > 5 {
+					logger.Errorf("thread %s live probe validation failed, last run timestamp "+
+						"is %v, current time %s", th.Name(), th.LastRunTimestamp(), time.Now())
+					status = http.StatusInternalServerError
+					break
+				}
+			}
+			w.WriteHeader(status)
 			return
 		}
 		next.ServeHTTP(w, r)
