@@ -471,17 +471,20 @@ func main() {
 	h = spec.WithSpecMiddleware(h)
 
 	go func() {
-		// Upload ISOs with a leader lock if we're running with multiple replicas
-		if Options.DeployTarget == deployment_type_k8s {
-			baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
-				RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
-				"assisted-service-baseiso-helper",
-				log.WithField("pkg", "baseISOUploadLeader"))
+		// only need to upload images if we're not using the image service
+		if bm.ImageServiceBaseURL == "" {
+			// Upload ISOs with a leader lock if we're running with multiple replicas
+			if Options.DeployTarget == deployment_type_k8s {
+				baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
+					RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
+					"assisted-service-baseiso-helper",
+					log.WithField("pkg", "baseISOUploadLeader"))
 
-			uploadFunc := func() error { return uploadISOs(objectHandler, openshiftVersionsMap, versionHandler, log) }
-			failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), uploadFunc), "Failed to upload boot files")
-		} else {
-			failOnError(uploadISOs(objectHandler, openshiftVersionsMap, versionHandler, log), "Failed to upload boot files")
+				uploadFunc := func() error { return uploadISOs(objectHandler, openshiftVersionsMap, versionHandler, log) }
+				failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), uploadFunc), "Failed to upload boot files")
+			} else {
+				failOnError(uploadISOs(objectHandler, openshiftVersionsMap, versionHandler, log), "Failed to upload boot files")
+			}
 		}
 
 		apiEnabler.Enable()
