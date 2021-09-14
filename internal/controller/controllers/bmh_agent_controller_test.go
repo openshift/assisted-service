@@ -575,6 +575,7 @@ var _ = Describe("bmac reconcile", func() {
 				Memory: v1beta1.HostMemory{
 					PhysicalBytes: 2,
 				},
+				Hostname: "discovered-hostname",
 				Interfaces: []v1beta1.HostInterface{
 					{
 						Name: "eth0",
@@ -606,6 +607,41 @@ var _ = Describe("bmac reconcile", func() {
 		})
 
 		Context("when an agent matches", func() {
+			It("should set the metal3 hardwaredetails hostname to the inventory if agent.Spec.Hostname is provided", func() {
+				agent.Spec.Hostname = "desired-hostname"
+				Expect(c.Update(ctx, agent)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
+
+				var hDetails bmh_v1alpha1.HardwareDetails
+				err = json.Unmarshal([]byte(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]), &hDetails)
+				Expect(err).To(BeNil())
+				Expect(hDetails.Hostname).To(Equal(agent.Spec.Hostname))
+			})
+
+			It("should set the metal3 hardwaredetails hostname to the inventory if agent.Spec.Hostname is not provided", func() {
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
+
+				var hDetails bmh_v1alpha1.HardwareDetails
+				err = json.Unmarshal([]byte(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]), &hDetails)
+				Expect(err).To(BeNil())
+				Expect(hDetails.Hostname).To(Equal(agent.Status.Inventory.Hostname))
+			})
+
 			It("should set the metal3 hardwaredetails annotation if the Agent inventory is set", func() {
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
@@ -624,7 +660,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(hDetails.RAMMebibytes).To(BeEquivalentTo(agent.Status.Inventory.Memory.PhysicalBytes / (1024 * 1024)))
 				Expect(hDetails.CPU.Arch).To(Equal(agent.Status.Inventory.Cpu.Architecture))
 				Expect(hDetails.CPU.Model).To(Equal(agent.Status.Inventory.Cpu.ModelName))
-				Expect(hDetails.Hostname).To(Equal(agent.Spec.Hostname))
+				Expect(hDetails.Hostname).To(Equal(agent.Status.Inventory.Hostname))
 			})
 		})
 	})

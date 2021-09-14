@@ -474,7 +474,11 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 	}
 
 	// Add hostname
-	hardwareDetails.Hostname = inventory.Hostname
+	if agent.Spec.Hostname != "" {
+		hardwareDetails.Hostname = agent.Spec.Hostname
+	} else {
+		hardwareDetails.Hostname = inventory.Hostname
+	}
 
 	bytes, err := json.Marshal(hardwareDetails)
 	if err != nil {
