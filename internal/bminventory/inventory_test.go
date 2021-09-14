@@ -126,7 +126,9 @@ func mockClusterRegisterSuccess(bm *bareMetalInventory, withEvents bool) {
 
 	if withEvents {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.RegisteredClusterEventName))).Times(2)
+			eventstest.WithNameMatcher(eventgen.RegisteredClusterEventName))).Times(1)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).Times(1)
 	}
 }
 
