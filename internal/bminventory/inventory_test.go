@@ -843,6 +843,74 @@ var _ = Describe("GenerateClusterISO", func() {
 			Expect(generateReply.(*common.ApiErrorResponse).Error()).Should(Equal(expectedErrMsg))
 		})
 	})
+
+	It("sets the download url correctly with the image service", func() {
+		bm.ImageServiceBaseURL = "https://image-service.example.com:8080"
+		cluster := createClusterInDB(true)
+		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
+		mockVersions.EXPECT().GetOsImage(cluster.OpenshiftVersion, cluster.CPUArchitecture).Return(common.TestDefaultConfig.OsImage, nil)
+
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *cluster.ID,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *cluster.ID}).(*installer.GetClusterOK)
+		gotURL, err := url.Parse(getReply.Payload.ImageInfo.DownloadURL)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(gotURL.Scheme).To(Equal("https"))
+		Expect(gotURL.Host).To(Equal("image-service.example.com:8080"))
+
+		gotQuery, err := url.ParseQuery(gotURL.RawQuery)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(gotQuery.Get("type")).To(Equal("full-iso"))
+		Expect(gotQuery.Get("version")).To(Equal(cluster.OpenshiftVersion))
+	})
+
+	It("only updates the image service url if something changed with local auth", func() {
+		// Use a local auth handler
+		pub, priv, err := gencrypto.ECDSAKeyPairPEM()
+		Expect(err).NotTo(HaveOccurred())
+		os.Setenv("EC_PRIVATE_KEY_PEM", priv)
+		defer os.Unsetenv("EC_PRIVATE_KEY_PEM")
+		bm.authHandler, err = auth.NewLocalAuthenticator(
+			&auth.Config{AuthType: auth.TypeLocal, ECPublicKeyPEM: pub},
+			common.GetTestLog().WithField("pkg", "auth"),
+			db,
+		)
+		Expect(err).NotTo(HaveOccurred())
+		bm.ImageServiceBaseURL = "https://image-service.example.com:8080"
+
+		cluster := createClusterInDB(true)
+		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(3)
+		mockVersions.EXPECT().GetOsImage(cluster.OpenshiftVersion, cluster.CPUArchitecture).Return(common.TestDefaultConfig.OsImage, nil).Times(3)
+
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *cluster.ID,
+			ImageCreateParams: &models.ImageCreateParams{ImageType: models.ImageTypeFullIso},
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *cluster.ID}).(*installer.GetClusterOK)
+		firstURL := getReply.Payload.ImageInfo.DownloadURL
+
+		generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *cluster.ID,
+			ImageCreateParams: &models.ImageCreateParams{ImageType: models.ImageTypeFullIso},
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+		getReply = bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *cluster.ID}).(*installer.GetClusterOK)
+		Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(firstURL))
+
+		generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *cluster.ID,
+			ImageCreateParams: &models.ImageCreateParams{ImageType: models.ImageTypeMinimalIso},
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+		getReply = bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *cluster.ID}).(*installer.GetClusterOK)
+		Expect(getReply.Payload.ImageInfo.DownloadURL).ToNot(Equal(firstURL))
+	})
 })
 
 func createClusterWithAvailability(db *gorm.DB, status string, highAvailabilityMode string) *common.Cluster {
@@ -7745,6 +7813,89 @@ var _ = Describe("infraEnvs", func() {
 				})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(reponse.GeneratedAt).ShouldNot(Equal(generatedAt))
+			})
+
+			It("sets the download url correctly with the image service", func() {
+				bm.ImageServiceBaseURL = "https://image-service.example.com:8080"
+				infraEnvID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.InfraEnv{
+					PullSecret: "PULL_SECRET",
+					InfraEnv: models.InfraEnv{
+						ID:               infraEnvID,
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						PullSecretSet:    true,
+					},
+				}).Error
+				Expect(err).ToNot(HaveOccurred())
+
+				mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
+
+				response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID:           infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				parsed, err := url.Parse(response.DownloadURL)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(parsed.Scheme).To(Equal("https"))
+				Expect(parsed.Host).To(Equal("image-service.example.com:8080"))
+
+				gotQuery, err := url.ParseQuery(parsed.RawQuery)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(gotQuery.Get("type")).To(Equal(string(models.ImageTypeMinimalIso)))
+				Expect(gotQuery.Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+			})
+
+			It("only updates the image service url if something changed with local auth", func() {
+				// Use a local auth handler
+				pub, priv, err := gencrypto.ECDSAKeyPairPEM()
+				Expect(err).NotTo(HaveOccurred())
+				os.Setenv("EC_PRIVATE_KEY_PEM", priv)
+				defer os.Unsetenv("EC_PRIVATE_KEY_PEM")
+				bm.authHandler, err = auth.NewLocalAuthenticator(
+					&auth.Config{AuthType: auth.TypeLocal, ECPublicKeyPEM: pub},
+					common.GetTestLog().WithField("pkg", "auth"),
+					db,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				bm.ImageServiceBaseURL = "https://image-service.example.com:8080"
+
+				infraEnvID = strfmt.UUID(uuid.New().String())
+				err = db.Create(&common.InfraEnv{
+					PullSecret: "PULL_SECRET",
+					InfraEnv: models.InfraEnv{
+						ID:               infraEnvID,
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						PullSecretSet:    true,
+					},
+				}).Error
+				Expect(err).ToNot(HaveOccurred())
+
+				mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil).Times(3)
+
+				response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID:           infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
+				})
+				Expect(err).ToNot(HaveOccurred())
+				firstURL := response.DownloadURL
+
+				response, err = bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID:           infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
+				})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(response.DownloadURL).To(Equal(firstURL))
+
+				response, err = bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID:           infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeFullIso},
+				})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(response.DownloadURL).ToNot(Equal(firstURL))
 			})
 		})
 
