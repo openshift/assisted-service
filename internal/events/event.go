@@ -114,7 +114,7 @@ func (e *Events) SendHostEvent(ctx context.Context, event HostEvent) {
 
 func (e *Events) SendHostEventAtTime(ctx context.Context, event HostEvent, eventTime time.Time) {
 	hostID := event.GetHostId()
-	if event.GetClusterId() == nil || len(*event.GetClusterId()) == 0 {
+	if event.GetClusterId() == nil {
 		e.AddEvent(ctx, event.GetInfraEnvId(), &hostID, event.GetSeverity(), event.FormatMessage(), eventTime)
 	} else {
 		e.AddEvent(ctx, *event.GetClusterId(), &hostID, event.GetSeverity(), event.FormatMessage(), eventTime)

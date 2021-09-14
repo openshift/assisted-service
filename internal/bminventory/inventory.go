@@ -3457,7 +3457,7 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 		return err
 	}
 	clusterID = infraEnv.ClusterID
-	eventgen.SendHostDeregisteredClusterEvent(ctx, b.eventsHandler, clusterID, params.HostID, params.InfraEnvID)
+	eventgen.SendHostDeregisteredClusterEvent(ctx, b.eventsHandler, &clusterID, params.HostID, params.InfraEnvID)
 	return nil
 }
 
@@ -3524,7 +3524,7 @@ func (b *bareMetalInventory) UpdateHostInstallerArgsInternal(ctx context.Context
 	}
 
 	// TODO: pass InfraEnvID instead of ClusterID
-	eventgen.SendHostInstallerArgsAppliedEvent(ctx, b.eventsHandler, params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
+	eventgen.SendHostInstallerArgsAppliedEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
 	log.Infof("Custom installer arguments were applied to host %s in cluster %s", params.HostID, params.ClusterID)
 
 	h, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())

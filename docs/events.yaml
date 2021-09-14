@@ -217,7 +217,7 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
 
@@ -226,7 +226,7 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
@@ -236,7 +236,7 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
@@ -259,7 +259,7 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
@@ -272,7 +272,7 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
@@ -282,7 +282,7 @@ x-events:
   event_type: host
   severity: "error"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
@@ -293,7 +293,7 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
@@ -303,7 +303,7 @@ x-events:
   event_type: host
   severity: "error"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
@@ -314,7 +314,7 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
@@ -324,7 +324,7 @@ x-events:
   event_type: host
   severity: "error"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
@@ -335,7 +335,7 @@ x-events:
   event_type: host
   severity: "warning"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
@@ -346,7 +346,7 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
