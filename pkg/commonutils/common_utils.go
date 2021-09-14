@@ -9,6 +9,7 @@ import (
 
 func MeasureOperation(operation string, log logrus.FieldLogger, metricsApi metrics.API) func() {
 	start := time.Now()
+	log.Debugf("%s started at: %v", operation, start)
 	return func() {
 		duration := time.Since(start)
 		log.Debugf("%s took : %v", operation, duration)
