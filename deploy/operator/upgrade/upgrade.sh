@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "************ baremetalds assisted operator upgrade command ************"
-# export INDEX_IMAGE="${INDEX_IMAGE:-quay.io/ocpmetal/assisted-service-index:latest}"
+export INDEX_IMAGE="${INDEX_IMAGE_UPGRADE_OVERRIDE:-quay.io/ocpmetal/assisted-service-index:latest}"
 
 echo "## catalogsource spec.image before upgrade"
 oc get catalogsource assisted-service-operator-catalog -n openshift-marketplace -o=jsonpath='{.spec.image}{"\n"}'
