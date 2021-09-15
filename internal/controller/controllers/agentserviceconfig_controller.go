@@ -624,19 +624,33 @@ func (r *AgentServiceConfigReconciler) newImageServiceConfigMap(ctx context.Cont
 	return cm, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
-	// must have the route in order to populate SERVICE_BASE_URL for the service
+func (r *AgentServiceConfigReconciler) urlForRoute(ctx context.Context, routeName string) (string, error) {
 	route := &routev1.Route{}
-	err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, route)
+	err := r.Get(ctx, types.NamespacedName{Name: routeName, Namespace: r.Namespace}, route)
 	if err != nil || route.Spec.Host == "" {
 		if err == nil {
-			err = fmt.Errorf("Route's host is empty")
+			err = fmt.Errorf("%s route host is empty", routeName)
 		}
-		log.Info("Failed to get route or route's host is empty")
+		return "", err
+	}
+
+	u := &url.URL{Scheme: "https", Host: route.Spec.Host}
+	return u.String(), nil
+}
+
+func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	serviceURL, err := r.urlForRoute(ctx, serviceName)
+	if err != nil {
+		log.WithError(err).Warnf("Failed to get URL for route %s", serviceName)
 		return nil, nil, err
 	}
 
-	serviceURL := &url.URL{Scheme: "https", Host: route.Spec.Host}
+	imageServiceURL, err := r.urlForRoute(ctx, imageServiceName)
+	if err != nil {
+		log.WithError(err).Warnf("Failed to get URL for route %s", imageServiceName)
+		return nil, nil, err
+	}
+
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
@@ -650,7 +664,8 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 		}
 
 		cm.Data = map[string]string{
-			"SERVICE_BASE_URL": serviceURL.String(),
+			"SERVICE_BASE_URL":       serviceURL,
+			"IMAGE_SERVICE_BASE_URL": imageServiceURL,
 
 			// image overrides
 			"AGENT_DOCKER_IMAGE":     AgentImage(),
