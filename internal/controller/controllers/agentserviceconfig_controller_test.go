@@ -822,6 +822,13 @@ var _ = Describe("getOSImages", func() {
 			Version:          "version-49.123-0",
 			CPUArchitecture:  "x86_64",
 		},
+		{
+			OpenshiftVersion: "4.9",
+			Url:              "rhcos_4.9",
+			RootFSUrl:        "rhcos_rootfs_4.9",
+			Version:          "version-49.123-0",
+			CPUArchitecture:  "arm",
+		},
 	}
 	var defaultEnvOsImages = models.OsImages{
 		&models.OsImage{
@@ -835,6 +842,13 @@ var _ = Describe("getOSImages", func() {
 	var outSpecOsImages = models.OsImages{
 		&models.OsImage{
 			CPUArchitecture:  swag.String("x86_64"),
+			OpenshiftVersion: swag.String("4.9"),
+			RootfsURL:        swag.String("rhcos_rootfs_4.9"),
+			URL:              swag.String("rhcos_4.9"),
+			Version:          swag.String("version-49.123-0"),
+		},
+		&models.OsImage{
+			CPUArchitecture:  swag.String("arm"),
 			OpenshiftVersion: swag.String("4.9"),
 			RootfsURL:        swag.String("rhcos_rootfs_4.9"),
 			URL:              swag.String("rhcos_4.9"),
@@ -1064,6 +1078,12 @@ func newASCWithOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, string) {
 			Url:              "4.8.iso",
 			RootFSUrl:        "4.8.img",
 		},
+		{
+			OpenshiftVersion: "4.9",
+			Version:          "49",
+			Url:              "4.9.iso",
+			RootFSUrl:        "4.9.img",
+		},
 	}
 
 	s := func(s string) *string { return &s }
@@ -1073,6 +1093,12 @@ func newASCWithOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, string) {
 			RhcosVersion: s("48"),
 			RhcosImage:   s("4.8.iso"),
 			RhcosRootfs:  s("4.8.img"),
+		},
+		"4.9": {
+			DisplayName:  s("4.9"),
+			RhcosVersion: s("49"),
+			RhcosImage:   s("4.9.iso"),
+			RhcosRootfs:  s("4.9.img"),
 		},
 	})
 
