@@ -2491,6 +2491,20 @@ func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClust
 	}
 }
 
+func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncryption *models.DiskEncryption, usages map[string]models.Usage) {
+
+	if c.DiskEncryption == nil {
+		return
+	}
+
+	props := map[string]interface{}{
+		"enable_on":    *diskEncryption.EnableOn,
+		"mode":         *diskEncryption.Mode,
+		"tang_servers": diskEncryption.TangServers,
+	}
+	b.setUsage(*c.DiskEncryption.EnableOn != models.DiskEncryptionEnableOnNone, usage.DiskEncryption, &props, usages)
+}
+
 func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {
 	var err error
 	updates := map[string]interface{}{}
@@ -2550,6 +2564,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		if params.ClusterUpdateParams.DiskEncryption.Mode != nil {
 			updates["disk_encryption_mode"] = params.ClusterUpdateParams.DiskEncryption.Mode
 		}
+		b.setDiskEncryptionUsage(&cluster.Cluster, params.ClusterUpdateParams.DiskEncryption, usages)
 	}
 
 	if len(updates) > 0 {
@@ -2960,6 +2975,7 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) {
 	withCredentials := cluster.Platform.Vsphere != nil && cluster.Platform.Vsphere.VCenter != nil && cluster.Platform.Vsphere.Password != nil && cluster.Platform.Vsphere.Username != nil
 	b.setUsage(cluster.Platform.Type != models.PlatformTypeBaremetal, usage.PlatformSelectionUsage, &map[string]interface{}{
 		"platform_type": cluster.Platform.Type, "with_credentials": withCredentials}, usages)
+	b.setDiskEncryptionUsage(cluster, cluster.DiskEncryption, usages)
 	//write all the usages to the cluster object
 	featusage, _ := json.Marshal(usages)
 	cluster.FeatureUsage = string(featusage)

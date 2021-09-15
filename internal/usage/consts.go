@@ -27,4 +27,6 @@ const (
 	AutoAssignRoleUsage string = "auto assign role"
 	// usage of a custom manifest
 	CustomManifest string = "Custom manifest"
+	// usage of disk encryption
+	DiskEncryption string = "Disk encryption"
 )

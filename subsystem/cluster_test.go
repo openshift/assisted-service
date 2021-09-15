@@ -3927,6 +3927,14 @@ var _ = Describe("disk encryption", func() {
 		Expect(err).NotTo(HaveOccurred())
 		c = registerClusterReply.GetPayload()
 		generateClusterISO(*c.ID, models.ImageTypeMinimalIso)
+
+		// validate feature usage
+		var featureUsage map[string]models.Usage
+		err = json.Unmarshal([]byte(c.FeatureUsage), &featureUsage)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(featureUsage["Disk encryption"].Data["enable_on"]).To(Equal(models.DiskEncryptionEnableOnAll))
+		Expect(featureUsage["Disk encryption"].Data["mode"]).To(Equal(models.DiskEncryptionModeTpmv2))
+		Expect(featureUsage["Disk encryption"].Data["tang_server"]).To(BeNil())
 	})
 
 	AfterEach(func() {
@@ -3940,6 +3948,7 @@ var _ = Describe("disk encryption", func() {
 		reply, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: *c.ID})
 		Expect(err).NotTo(HaveOccurred())
 		c = reply.GetPayload()
+
 		generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
 		waitForInstallationPreparationCompletionStatus(*c.ID, common.InstallationPreparationSucceeded)
 	})
