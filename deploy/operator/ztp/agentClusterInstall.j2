@@ -14,12 +14,22 @@ spec:
     clusterNetwork:
     - cidr: {{ cluster_subnet }}
       hostPrefix: {{ cluster_host_prefix }}
-{% if spoke_controlplane_agents|int == 1 %}
+{% if cluster_subnet_additional|length and cluster_host_prefix_additional|length %}
+    - cidr: {{ cluster_subnet_additional }}
+      hostPrefix: {{ cluster_host_prefix_additional }}
+{% endif %}
+{% if (spoke_controlplane_agents|int == 1 and external_subnet_additional|length == 0) or external_subnet_additional|length %}
     machineNetwork:
     - cidr: {{ external_subnet }}
+{% if external_subnet_additional|length %}
+    - cidr: {{ external_subnet_additional }}
+{% endif %}
 {% endif %}
     serviceNetwork:
     - {{ service_subnet }}
+{% if service_subnet_additional|length %}
+    - {{ service_subnet_additional }}
+{% endif %}
   provisionRequirements:
     controlPlaneAgents: {{ spoke_controlplane_agents }}
   sshPublicKey: '{{ ssh_public_key }}'
