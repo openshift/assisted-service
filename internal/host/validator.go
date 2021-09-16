@@ -551,7 +551,7 @@ func (v *validator) belongsToMachineCidr(c *validationContext) ValidationStatus 
 	if c.inventory == nil || !network.IsMachineCidrAvailable(c.cluster) {
 		return ValidationPending
 	}
-	return boolValue(network.IsHostInPrimaryMachineNetCidr(v.log, c.cluster, c.host))
+	return boolValue(network.IsHostInMachineNetCidr(v.log, c.cluster, c.host))
 }
 
 func (v *validator) printBelongsToMachineCidr(c *validationContext, status ValidationStatus) string {

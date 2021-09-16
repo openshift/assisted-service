@@ -348,23 +348,37 @@ func GetClusterNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {
 	return ret
 }
 
-func IsHostInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
-	// The host should belong to all the networks specified as Machine Networks.
-
-	// TODO(mko) This rule should be revised as soon as OCP supports multiple machineNetwork
-	//           entries using the same IP stack.
-
+// For every IP stack present across all the configured Machine Networks the host should
+// belong to at least 1 subnet.
+func IsHostInMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
 	if !IsMachineCidrAvailable(cluster) {
 		return false
 	}
 
-	ret := true
+	clusterV4 := false
+	clusterV6 := false
+	hostV4 := false
+	hostV6 := false
+
 	for _, machineNet := range cluster.MachineNetworks {
 		_, machineIpnet, err := net.ParseCIDR(string(machineNet.Cidr))
 		if err != nil {
 			return false
 		}
-		ret = ret && belongsToNetwork(log, host, machineIpnet)
+		if IsIPV4CIDR(string(machineNet.Cidr)) {
+			clusterV4 = clusterV4 || true
+			hostV4 = hostV4 || belongsToNetwork(log, host, machineIpnet)
+
+		}
+		if IsIPv6CIDR(string(machineNet.Cidr)) {
+			clusterV6 = clusterV6 || true
+			hostV6 = hostV6 || belongsToNetwork(log, host, machineIpnet)
+		}
+	}
+
+	ret := true
+	if (clusterV4 && !hostV4) || (clusterV6 && !hostV6) {
+		ret = false
 	}
 	return ret
 }
