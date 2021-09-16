@@ -1158,13 +1158,13 @@ func (r *AgentServiceConfigReconciler) getOSImages(log logrus.FieldLogger, insta
 	}
 
 	osImages := make(models.OsImages, 0)
-	for _, image := range instance.Spec.OSImages {
+	for i := range instance.Spec.OSImages {
 		osImage := models.OsImage{
-			OpenshiftVersion: &image.OpenshiftVersion,
-			URL:              &image.Url,
-			RootfsURL:        &image.RootFSUrl,
-			Version:          &image.Version,
-			CPUArchitecture:  &image.CPUArchitecture,
+			OpenshiftVersion: &instance.Spec.OSImages[i].OpenshiftVersion,
+			URL:              &instance.Spec.OSImages[i].Url,
+			RootfsURL:        &instance.Spec.OSImages[i].RootFSUrl,
+			Version:          &instance.Spec.OSImages[i].Version,
+			CPUArchitecture:  &instance.Spec.OSImages[i].CPUArchitecture,
 		}
 		osImages = append(osImages, &osImage)
 	}
