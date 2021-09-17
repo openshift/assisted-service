@@ -62,6 +62,14 @@ function wait_for_condition() {
     for i in {1..40}; do
         oc get ${object} --selector="${selector}" --namespace=${namespace} |& grep -ivE "(no resources found|not found)" && break || sleep 10
     done
+    if [[ "${object}" == "crd/agentserviceconfigs.agent-install.openshift.io" ]]; then
+        echo "## Install plan is"
+        oc get InstallPlan -n assisted-installer -o yaml
+
+        echo "## Catalogsource is"
+        oc get catalogsource assisted-service-operator-catalog -n openshift-marketplace -o yaml
+        sleep 60m
+    fi
 
     echo "Waiting for (${object}) on namespace (${namespace}) with labels (${selector}) to become (${condition})..."
     oc wait -n "${namespace}" --for=condition=${condition} --selector "${selector}" ${object} --timeout=${timeout}
