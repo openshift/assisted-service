@@ -1041,8 +1041,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, 
 		arch = *osImage.CPUArchitecture
 	}
 
-	// only update download url if type or version have changed
-	if string(imageType) != prevType || version != prevVersion || arch != prevArch {
+	if string(imageType) != prevType || version != prevVersion || arch != prevArch || !infraEnv.Generated {
 		baseURL, urlErr := url.Parse(b.ImageServiceBaseURL)
 		if urlErr != nil {
 			return errors.Wrap(err, "failed to parse image service base URL")
@@ -1066,6 +1065,8 @@ func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, 
 			}
 		}
 		updates["download_url"] = infraEnv.DownloadURL
+		updates["generated"] = true
+		infraEnv.Generated = true
 	}
 
 	err = b.db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates).Error
@@ -1187,7 +1188,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		infraEnv.ProxyHash == infraEnvProxyHash &&
 		infraEnv.StaticNetworkConfig == staticNetworkConfig &&
 		infraEnv.Generated &&
-		infraEnv.Type == params.ImageCreateParams.ImageType {
+		infraEnv.Type == params.ImageCreateParams.ImageType &&
+		b.ImageServiceBaseURL == "" {
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
 		if err != nil {
@@ -1281,7 +1283,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 	*/
 	var imageExists bool
 	var err error
-	if infraEnv.Generated {
+	if infraEnv.Generated && b.ImageServiceBaseURL == "" {
 		imgName := getImageName(infraEnv.ID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
 		if err != nil {

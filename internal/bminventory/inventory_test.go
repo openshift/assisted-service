@@ -7777,15 +7777,22 @@ var _ = Describe("infraEnvs", func() {
 		})
 
 		Context("GenerateInfraEnvISOInternal", func() {
-			It("GenerateInfraEnvISOInternal Fail - too fast", func() {
+			BeforeEach(func() {
 				infraEnvID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.InfraEnv{
-					GeneratedAt: strfmt.DateTime(time.Now()),
+					GeneratedAt: strfmt.NewDateTime(),
 					PullSecret:  "PULL_SECRET",
 					InfraEnv: models.InfraEnv{
-						ID:            infraEnvID,
-						PullSecretSet: true,
-					}}).Error
+						ID:               infraEnvID,
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						PullSecretSet:    true,
+					},
+				}).Error
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("GenerateInfraEnvISOInternal Fail - too fast", func() {
+				err := db.Model(&common.InfraEnv{}).Where("id = ?", infraEnvID).Update("generated_at", strfmt.DateTime(time.Now())).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
 					InfraEnvID:           infraEnvID,
@@ -7797,105 +7804,152 @@ var _ = Describe("infraEnvs", func() {
 
 			It("UpdateInternal GeneratedAt updated in response", func() {
 				mockInfraEnvUpdateSuccess()
-				infraEnvID = strfmt.UUID(uuid.New().String())
-				generatedAt := strfmt.NewDateTime()
-				err := db.Create(&common.InfraEnv{
-					GeneratedAt: generatedAt,
-					PullSecret:  "PULL_SECRET",
-					InfraEnv: models.InfraEnv{
-						ID:            infraEnvID,
-						PullSecretSet: true,
-					}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
 				reponse, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 					InfraEnvID:           infraEnvID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{},
 				})
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(reponse.GeneratedAt).ShouldNot(Equal(generatedAt))
+				Expect(reponse.GeneratedAt).ShouldNot(Equal(strfmt.NewDateTime()))
 			})
 
-			It("sets the download url correctly with the image service", func() {
-				bm.ImageServiceBaseURL = "https://image-service.example.com:8080"
-				infraEnvID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.InfraEnv{
-					PullSecret: "PULL_SECRET",
-					InfraEnv: models.InfraEnv{
-						ID:               infraEnvID,
-						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-						PullSecretSet:    true,
-					},
-				}).Error
-				Expect(err).ToNot(HaveOccurred())
-
-				mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
-
-				response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID:           infraEnvID,
-					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
+			Context("when using the image service", func() {
+				BeforeEach(func() {
+					bm.ImageServiceBaseURL = "https://image-service.example.com:8080"
 				})
-				Expect(err).ToNot(HaveOccurred())
 
-				parsed, err := url.Parse(response.DownloadURL)
-				Expect(err).NotTo(HaveOccurred())
+				It("sets the download url correctly with the image service", func() {
 
-				Expect(parsed.Scheme).To(Equal("https"))
-				Expect(parsed.Host).To(Equal("image-service.example.com:8080"))
+					mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
 
-				gotQuery, err := url.ParseQuery(parsed.RawQuery)
-				Expect(err).NotTo(HaveOccurred())
+					response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID:           infraEnvID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
+					})
+					Expect(err).ToNot(HaveOccurred())
 
-				Expect(gotQuery.Get("type")).To(Equal(string(models.ImageTypeMinimalIso)))
-				Expect(gotQuery.Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
-			})
+					parsed, err := url.Parse(response.DownloadURL)
+					Expect(err).NotTo(HaveOccurred())
 
-			It("only updates the image service url if something changed with local auth", func() {
-				// Use a local auth handler
-				pub, priv, err := gencrypto.ECDSAKeyPairPEM()
-				Expect(err).NotTo(HaveOccurred())
-				os.Setenv("EC_PRIVATE_KEY_PEM", priv)
-				defer os.Unsetenv("EC_PRIVATE_KEY_PEM")
-				bm.authHandler, err = auth.NewLocalAuthenticator(
-					&auth.Config{AuthType: auth.TypeLocal, ECPublicKeyPEM: pub},
-					common.GetTestLog().WithField("pkg", "auth"),
-					db,
-				)
-				Expect(err).NotTo(HaveOccurred())
-				bm.ImageServiceBaseURL = "https://image-service.example.com:8080"
+					Expect(parsed.Scheme).To(Equal("https"))
+					Expect(parsed.Host).To(Equal("image-service.example.com:8080"))
 
-				infraEnvID = strfmt.UUID(uuid.New().String())
-				err = db.Create(&common.InfraEnv{
-					PullSecret: "PULL_SECRET",
-					InfraEnv: models.InfraEnv{
-						ID:               infraEnvID,
-						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-						PullSecretSet:    true,
-					},
-				}).Error
-				Expect(err).ToNot(HaveOccurred())
+					gotQuery, err := url.ParseQuery(parsed.RawQuery)
+					Expect(err).NotTo(HaveOccurred())
 
-				mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil).Times(3)
-
-				response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID:           infraEnvID,
-					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
+					Expect(gotQuery.Get("type")).To(Equal(string(models.ImageTypeMinimalIso)))
+					Expect(gotQuery.Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 				})
-				Expect(err).ToNot(HaveOccurred())
-				firstURL := response.DownloadURL
 
-				response, err = bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID:           infraEnvID,
-					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
-				})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(response.DownloadURL).To(Equal(firstURL))
+				Context("with local auth", func() {
+					BeforeEach(func() {
+						// Use a local auth handler
+						pub, priv, err := gencrypto.ECDSAKeyPairPEM()
+						Expect(err).NotTo(HaveOccurred())
+						os.Setenv("EC_PRIVATE_KEY_PEM", priv)
+						bm.authHandler, err = auth.NewLocalAuthenticator(
+							&auth.Config{AuthType: auth.TypeLocal, ECPublicKeyPEM: pub},
+							common.GetTestLog().WithField("pkg", "auth"),
+							db,
+						)
+						Expect(err).NotTo(HaveOccurred())
+					})
 
-				response, err = bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID:           infraEnvID,
-					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeFullIso},
+					AfterEach(func() {
+						os.Unsetenv("EC_PRIVATE_KEY_PEM")
+					})
+
+					updateInfraEnv := func(params *models.InfraEnvUpdateParams) string {
+						response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+							InfraEnvID:           infraEnvID,
+							InfraEnvUpdateParams: params,
+						})
+						Expect(err).ToNot(HaveOccurred())
+						return response.DownloadURL
+					}
+
+					It("does not update the image service url if nothing changed", func() {
+						mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil).Times(2)
+						params := &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso}
+						firstURL := updateInfraEnv(params)
+						newURL := updateInfraEnv(params)
+
+						Expect(newURL).To(Equal(firstURL))
+
+					})
+
+					It("updates the image service url when things change", func() {
+						mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil).Times(7)
+
+						params := &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso}
+						prevURL := updateInfraEnv(params)
+
+						By("updating ignition overrides")
+						params.IgnitionConfigOverride = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+						newURL := updateInfraEnv(params)
+						Expect(newURL).ToNot(Equal(prevURL))
+						prevURL = newURL
+
+						By("updating image type")
+						params.ImageType = models.ImageTypeFullIso
+						newURL = updateInfraEnv(params)
+						Expect(newURL).ToNot(Equal(prevURL))
+						prevURL = newURL
+
+						By("updating proxy")
+						proxy := &models.Proxy{
+							HTTPProxy:  swag.String("http://proxy.example.com"),
+							HTTPSProxy: swag.String("http://other-proxy.example.com"),
+						}
+						params.Proxy = proxy
+						newURL = updateInfraEnv(params)
+						Expect(newURL).ToNot(Equal(prevURL))
+						prevURL = newURL
+
+						By("updating ssh key")
+						sshKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56u" +
+							"ar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvH" +
+							"MAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqng" +
+							"qbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3f" +
+							"AC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAq" +
+							"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
+						params.SSHAuthorizedKey = &sshKey
+						newURL = updateInfraEnv(params)
+						Expect(newURL).ToNot(Equal(prevURL))
+						prevURL = newURL
+
+						By("updating static network config")
+						staticNetworkFormatRes := "static network format result"
+						map1 := models.MacInterfaceMap{
+							&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+							&models.MacInterfaceMapItems0{MacAddress: "mac11", LogicalNicName: "nic11"},
+						}
+						map2 := models.MacInterfaceMap{
+							&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
+							&models.MacInterfaceMapItems0{MacAddress: "mac21", LogicalNicName: "nic21"},
+						}
+						map3 := models.MacInterfaceMap{
+							&models.MacInterfaceMapItems0{MacAddress: "mac30", LogicalNicName: "nic30"},
+							&models.MacInterfaceMapItems0{MacAddress: "mac31", LogicalNicName: "nic31"},
+						}
+						staticNetworkConfig := []*models.HostStaticNetworkConfig{
+							common.FormatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
+							common.FormatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.40", "192.168.141.40", "192.168.126.1", map2),
+							common.FormatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.42", "192.168.141.42", "192.168.126.1", map3),
+						}
+						mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(staticNetworkConfig).Return(nil).Times(2)
+						mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes).Times(2)
+						params.StaticNetworkConfig = staticNetworkConfig
+						newURL = updateInfraEnv(params)
+						Expect(newURL).ToNot(Equal(prevURL))
+						prevURL = newURL
+
+						By("updating pull secret")
+						mockSecretValidator.EXPECT().ValidatePullSecret("mypullsecret", gomock.Any(), gomock.Any()).Return(nil)
+						params.PullSecret = "mypullsecret"
+						newURL = updateInfraEnv(params)
+						Expect(newURL).ToNot(Equal(prevURL))
+					})
 				})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(response.DownloadURL).ToNot(Equal(firstURL))
 			})
 		})
 
