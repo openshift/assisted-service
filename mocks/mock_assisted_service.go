@@ -918,6 +918,20 @@ func (mr *MockInstallerAPIMockRecorder) V2DownloadClusterFiles(arg0, arg1 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DownloadClusterFiles", reflect.TypeOf((*MockInstallerAPI)(nil).V2DownloadClusterFiles), arg0, arg1)
 }
 
+// V2DownloadClusterLogs mocks base method.
+func (m *MockInstallerAPI) V2DownloadClusterLogs(arg0 context.Context, arg1 installer.V2DownloadClusterLogsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2DownloadClusterLogs", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2DownloadClusterLogs indicates an expected call of V2DownloadClusterLogs.
+func (mr *MockInstallerAPIMockRecorder) V2DownloadClusterLogs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DownloadClusterLogs", reflect.TypeOf((*MockInstallerAPI)(nil).V2DownloadClusterLogs), arg0, arg1)
+}
+
 // V2DownloadInfraEnvFiles mocks base method.
 func (m *MockInstallerAPI) V2DownloadInfraEnvFiles(arg0 context.Context, arg1 installer.V2DownloadInfraEnvFilesParams) middleware.Responder {
 	m.ctrl.T.Helper()

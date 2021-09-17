@@ -460,6 +460,10 @@ func (f fakeInventory) V2GetClusterDefaultConfig(ctx context.Context, params ins
 	return installer.NewV2GetClusterDefaultConfigOK()
 }
 
+func (f fakeInventory) V2DownloadClusterLogs(ctx context.Context, params installer.V2DownloadClusterLogsParams) middleware.Responder {
+	return installer.NewV2DownloadClusterLogsOK()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

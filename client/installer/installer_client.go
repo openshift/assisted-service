@@ -205,6 +205,9 @@ type API interface {
 	   V2DownloadClusterFiles Downloads files relating to the installed/installing cluster.*/
 	V2DownloadClusterFiles(ctx context.Context, params *V2DownloadClusterFilesParams, writer io.Writer) (*V2DownloadClusterFilesOK, error)
 	/*
+	   V2DownloadClusterLogs Download cluster logs.*/
+	V2DownloadClusterLogs(ctx context.Context, params *V2DownloadClusterLogsParams, writer io.Writer) (*V2DownloadClusterLogsOK, error)
+	/*
 	   V2GetClusterDefaultConfig Get the default values for various cluster properties.*/
 	V2GetClusterDefaultConfig(ctx context.Context, params *V2GetClusterDefaultConfigParams) (*V2GetClusterDefaultConfigOK, error)
 	/*
@@ -1828,6 +1831,31 @@ func (a *Client) V2DownloadClusterFiles(ctx context.Context, params *V2DownloadC
 		return nil, err
 	}
 	return result.(*V2DownloadClusterFilesOK), nil
+
+}
+
+/*
+V2DownloadClusterLogs Download cluster logs.
+*/
+func (a *Client) V2DownloadClusterLogs(ctx context.Context, params *V2DownloadClusterLogsParams, writer io.Writer) (*V2DownloadClusterLogsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2DownloadClusterLogs",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/logs",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2DownloadClusterLogsReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2DownloadClusterLogsOK), nil
 
 }
 
