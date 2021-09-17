@@ -16,6 +16,12 @@ function gather_hive_data() {
   oc get events -n "${HIVE_NAMESPACE}" --sort-by=.metadata.creationTimestamp > ${hive_dir}/oc_get_events.log || true
 }
 
+function gather_olm_data() {
+  oc get catalogsource assisted-service-operator-catalog -n openshift-marketplace -o yaml > ${LOGS_DEST}/assisted-service-operator-catalog.log
+  oc get subscription assisted-service-operator -n "${ASSISTED_NAMESPACE}" -o yaml > ${LOGS_DEST}/assisted-service-operator-subscription.log
+  oc get installplan -n "${ASSISTED_NAMESPACE}" -o yaml  > ${LOGS_DEST}/oc_install_plan.log
+}
+
 function gather_operator_data() {
   oc cluster-info > ${LOGS_DEST}/oc_cluster_info.log
   oc get all -n "${ASSISTED_NAMESPACE}" > ${LOGS_DEST}/oc_get_all.log || true
@@ -107,6 +113,7 @@ function gather_imageset_data() {
 
 function gather_all() {
   gather_hive_data
+  gather_olm_data
   gather_operator_data
   gather_agentclusterinstall_data
   gather_bmh_data
