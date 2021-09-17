@@ -7944,7 +7944,9 @@ definitions:
         description: Version of the OpenShift cluster.
       cpu_architecture:
         type: string
+        default: "x86_64"
         description: The CPU architecture of the image (x86_64/arm64/etc).
+        x-go-custom-tag: gorm:"default:'x86_64'"
       url:
         type: string
         description: The base OS image used for the discovery iso.
@@ -7973,7 +7975,9 @@ definitions:
         description: Version of the OpenShift cluster.
       cpu_architecture:
         type: string
+        default: "x86_64"
         description: The CPU architecture of the image (x86_64/arm64/etc).
+        x-go-custom-tag: gorm:"default:'x86_64'"
       url:
         type: string
         description: The installation image of the OpenShift cluster.
