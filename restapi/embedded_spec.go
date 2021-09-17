@@ -5755,6 +5755,73 @@ func init() {
       }
     },
     "/v2/clusters/{cluster_id}/monitored-operators": {
+      "get": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Lists operators to be monitored for a cluster.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "V2ListOfClusterOperators",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to return operators for.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "An operator in the specified cluster to return its data.",
+            "name": "operator_name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/monitored-operators-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "put": {
         "security": [
           {
@@ -17732,6 +17799,73 @@ func init() {
       }
     },
     "/v2/clusters/{cluster_id}/monitored-operators": {
+      "get": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Lists operators to be monitored for a cluster.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "V2ListOfClusterOperators",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to return operators for.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "An operator in the specified cluster to return its data.",
+            "name": "operator_name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/monitored-operators-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "put": {
         "security": [
           {
