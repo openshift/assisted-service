@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -28,7 +29,9 @@ import (
 	"github.com/openshift/assisted-service/models"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -39,6 +42,7 @@ import (
 
 const (
 	NamespaceEnvVar string = "NAMESPACE"
+	PodNameEnvVar   string = "POD_NAME"
 )
 
 var (
@@ -89,6 +93,11 @@ func main() {
 		setupLog.Error(fmt.Errorf("%s environment variable must be set (commonly set automatically in every Pod)", NamespaceEnvVar), "unable to get namespace")
 		os.Exit(1)
 	}
+	podName, found := os.LookupEnv(PodNameEnvVar)
+	if !found {
+		setupLog.Error(fmt.Errorf("%s environment variable must be set (commonly set automatically in every Pod)", PodNameEnvVar), "unable to get pod name")
+		os.Exit(1)
+	}
 
 	// must have openshift versions specified on the operator
 	// this prevents us from having to include the full json in source
@@ -108,12 +117,21 @@ func main() {
 		os.Exit(1)
 	}
 
+	client := mgr.GetClient()
+	operatorPod := &corev1.Pod{}
+	if err = client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: ns}, operatorPod); err != nil {
+		setupLog.Error(err, "Unable to get Infrastructure Operator Pod")
+		os.Exit(1)
+	}
+
 	if err = (&controllers.AgentServiceConfigReconciler{
-		Client:    mgr.GetClient(),
-		Log:       logrus.New(),
-		Scheme:    mgr.GetScheme(),
-		Recorder:  mgr.GetEventRecorderFor("agentserviceconfig-controller"),
-		Namespace: ns,
+		Client:       client,
+		Log:          logrus.New(),
+		Scheme:       mgr.GetScheme(),
+		Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
+		Namespace:    ns,
+		NodeSelector: operatorPod.Spec.NodeSelector,
+		Tolerations:  operatorPod.Spec.Tolerations,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AgentServiceConfig")
 		os.Exit(1)
