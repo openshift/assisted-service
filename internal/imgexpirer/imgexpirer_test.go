@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
@@ -43,7 +43,9 @@ var _ = Describe("imgexpirer", func() {
 	})
 	It("callback_valid_objname", func() {
 		clusterId := "53116787-3eb0-4211-93ac-611d5cedaa30"
-		mockEvents.EXPECT().AddEvent(gomock.Any(), strfmt.UUID(clusterId), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.DeleteExpiredImageEventName),
+			eventstest.WithClusterIdMatcher(clusterId)))
 		imgExp.DeletedImageCallback(ctx, log, fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterId)))
 	})
 	It("callback_invalid_objname", func() {

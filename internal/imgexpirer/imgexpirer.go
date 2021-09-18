@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -59,8 +59,7 @@ func (m *Manager) DeletedImageCallback(ctx context.Context, log logrus.FieldLogg
 		return
 	}
 	clusterID := strfmt.UUID(matches[1])
-	m.eventsHandler.AddEvent(ctx, clusterID, nil, models.EventSeverityInfo,
-		"Deleted image from backend because it expired. It may be generated again at any time.", time.Now())
+	eventgen.SendDeleteExpiredImageEvent(ctx, m.eventsHandler, clusterID)
 }
 
 func (m *Manager) DeletedImageNoCallback(ctx context.Context, log logrus.FieldLogger, objectName string) {
