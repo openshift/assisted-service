@@ -3128,3 +3128,110 @@ func (e *HostValidationFixedEvent) FormatMessage() string {
     return e.format(&s)
 }
 
+//
+// Event quick_disk_format
+//
+type QuickDiskFormatEvent struct {
+    ClusterId *strfmt.UUID
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    HostName string
+    DiskName string
+    DiskId string
+}
+
+var QuickDiskFormatEventName string = "quick_disk_format"
+
+func NewQuickDiskFormatEvent(
+    clusterId *strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+    diskName string,
+    diskId string,
+) *QuickDiskFormatEvent {
+    return &QuickDiskFormatEvent{
+        ClusterId: clusterId,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        HostName: hostName,
+        DiskName: diskName,
+        DiskId: diskId,
+    }
+}
+
+func SendQuickDiskFormatEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId *strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+    diskName string,
+    diskId string,) {
+    ev := NewQuickDiskFormatEvent(
+        clusterId,
+        hostId,
+        infraEnvId,
+        hostName,
+        diskName,
+        diskId,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendQuickDiskFormatEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId *strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+    diskName string,
+    diskId string,
+    eventTime time.Time) {
+    ev := NewQuickDiskFormatEvent(
+        clusterId,
+        hostId,
+        infraEnvId,
+        hostName,
+        diskName,
+        diskId,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *QuickDiskFormatEvent) GetName() string {
+    return "quick_disk_format"
+}
+
+func (e *QuickDiskFormatEvent) GetSeverity() string {
+    return "info"
+}
+func (e *QuickDiskFormatEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
+}
+func (e *QuickDiskFormatEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *QuickDiskFormatEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+func (e *QuickDiskFormatEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{host_name}", fmt.Sprint(e.HostName),
+        "{disk_name}", fmt.Sprint(e.DiskName),
+        "{disk_id}", fmt.Sprint(e.DiskId),
+    )
+    return r.Replace(*message)
+}
+
+func (e *QuickDiskFormatEvent) FormatMessage() string {
+    s := "{host_name}: Performing quick format of disk {disk_name}({disk_id})"
+    return e.format(&s)
+}
+
