@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
@@ -166,8 +166,6 @@ func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID s
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	eventMsg := fmt.Sprintf("Operator %s status: %s message: %s", operator.Name, status, statusInfo)
-	h.eventsHandler.AddEvent(ctx, clusterID, nil, models.EventSeverityInfo, eventMsg, time.Now())
-
+	eventgen.SendClusterOperatorStatusEvent(ctx, h.eventsHandler, clusterID, operator.Name, string(status), statusInfo)
 	return nil
 }

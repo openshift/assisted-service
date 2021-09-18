@@ -1863,6 +1863,91 @@ func (e *DeleteExpiredImageEvent) FormatMessage() string {
 }
 
 //
+// Event cluster_operator_status
+//
+type ClusterOperatorStatusEvent struct {
+    ClusterId strfmt.UUID
+    OperatorName string
+    Status string
+    StatusInfo string
+}
+
+var ClusterOperatorStatusEventName string = "cluster_operator_status"
+
+func NewClusterOperatorStatusEvent(
+    clusterId strfmt.UUID,
+    operatorName string,
+    status string,
+    statusInfo string,
+) *ClusterOperatorStatusEvent {
+    return &ClusterOperatorStatusEvent{
+        ClusterId: clusterId,
+        OperatorName: operatorName,
+        Status: status,
+        StatusInfo: statusInfo,
+    }
+}
+
+func SendClusterOperatorStatusEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    operatorName string,
+    status string,
+    statusInfo string,) {
+    ev := NewClusterOperatorStatusEvent(
+        clusterId,
+        operatorName,
+        status,
+        statusInfo,
+    )
+    eventsHandler.SendClusterEvent(ctx, ev)
+}
+
+func SendClusterOperatorStatusEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    operatorName string,
+    status string,
+    statusInfo string,
+    eventTime time.Time) {
+    ev := NewClusterOperatorStatusEvent(
+        clusterId,
+        operatorName,
+        status,
+        statusInfo,
+    )
+    eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *ClusterOperatorStatusEvent) GetName() string {
+    return "cluster_operator_status"
+}
+
+func (e *ClusterOperatorStatusEvent) GetSeverity() string {
+    return "info"
+}
+func (e *ClusterOperatorStatusEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
+}
+
+func (e *ClusterOperatorStatusEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{operator_name}", fmt.Sprint(e.OperatorName),
+        "{status}", fmt.Sprint(e.Status),
+        "{status_info}", fmt.Sprint(e.StatusInfo),
+    )
+    return r.Replace(*message)
+}
+
+func (e *ClusterOperatorStatusEvent) FormatMessage() string {
+    s := "Operator {operator_name} status: {status} message: {status_info}"
+    return e.format(&s)
+}
+
+//
 // Event download_image_failed_fetch
 //
 type DownloadImageFailedFetchEvent struct {
