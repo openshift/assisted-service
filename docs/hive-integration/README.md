@@ -66,6 +66,8 @@ The InfraEnv reflects the image creation status through Conditions.
 
 More details on conditions is available [here](kube-api-conditions.md)
 
+The InfraEnv can be created without a Cluster Deployment reference for late binding flow. More information is available [here](./late-binding.md).
+
 
 ### [NMStateConfig](../../api/v1beta1/nmstate_config_types.go)
 The NMStateConfig contains network configuration that will applied on the hosts. See NMState repository [here](https://github.com/nmstate/nmstate).
@@ -169,6 +171,7 @@ Those examples are here for reference.
 You will likely need to adapt those for your own needs.
 
 * [InfraEnv](crds/infraEnv.yaml)
+* [InfraEnv Late Binding](crds/infraEnvLateBinding.yaml)
 * [NMState Config](crds/nmstate.yaml)
 * [Hive PullSecret Secret](crds/pullsecret.yaml)
 * [Hive ClusterDeployment](crds/clusterDeployment.yaml)
