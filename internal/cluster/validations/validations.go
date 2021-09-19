@@ -458,25 +458,9 @@ func ValidateDualStackIPNetworksOrder(elements ...*string) error {
 	return nil
 }
 
-// ValidateDiskEncryptionParams performs basic sanity checks for the disk encryption configuration
-// using the following set of rules
-//   * whenever a change happens, the whole DiskEncryption structure has to be provided
-//   * setting the encryption mode is allowed only when the encryption is enabled
-//   * setting the encryption mode is forbidden when the encryption is disabled
-//   * tang servers cannot be empty if tang mode is used
 func ValidateDiskEncryptionParams(diskEncryptionParams *models.DiskEncryption) error {
 	if diskEncryptionParams == nil {
 		return nil
-	}
-	// Check that mode is set only when the encryption is explicitly enabled
-	if diskEncryptionParams.Mode != nil && diskEncryptionParams.EnableOn == nil {
-		return errors.New("Setting encryption mode without enabling")
-	}
-	// Check that mode is unset if encryption is disabled
-	if (diskEncryptionParams.EnableOn == nil || diskEncryptionParams.EnableOn != nil &&
-		*diskEncryptionParams.EnableOn == models.DiskEncryptionEnableOnNone) &&
-		diskEncryptionParams.Mode != nil {
-		return errors.New("Disabling encryption with specifying mode")
 	}
 	if diskEncryptionParams.Mode != nil && *diskEncryptionParams.Mode == models.DiskEncryptionModeTang {
 		if diskEncryptionParams.TangServers == "" {

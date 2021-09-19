@@ -10372,6 +10372,9 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("Disabling with specifying mode", func() {
+			mockClusterRegisterSuccess(bm, true)
+			mockAMSSubscription(ctx)
+
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
@@ -10380,10 +10383,13 @@ var _ = Describe("TestRegisterCluster", func() {
 					},
 				},
 			})
-			verifyApiErrorString(reply, http.StatusBadRequest, "Disabling encryption with specifying mode")
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 		})
 
 		It("Specifying mode without state", func() {
+			mockClusterRegisterSuccess(bm, true)
+			mockAMSSubscription(ctx)
+
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
@@ -10391,7 +10397,9 @@ var _ = Describe("TestRegisterCluster", func() {
 					},
 				},
 			})
-			verifyApiErrorString(reply, http.StatusBadRequest, "Setting encryption mode without enabling")
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnNone)))
 		})
 
 		It("Enabling with explicit TPMv2 mode", func() {

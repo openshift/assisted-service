@@ -528,7 +528,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			ServiceNetworks:       params.NewClusterParams.ServiceNetworks,
 			MachineNetworks:       params.NewClusterParams.MachineNetworks,
 			CPUArchitecture:       cpuArchitecture,
-			DiskEncryption:        params.NewClusterParams.DiskEncryption,
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
@@ -574,9 +573,9 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	b.setDefaultUsage(&cluster.Cluster)
+	setDiskEncryptionWithDefaultValues(&cluster.Cluster, params.NewClusterParams.DiskEncryption)
 
-	setDiskEncryption(&cluster.Cluster, params.NewClusterParams.DiskEncryption)
+	b.setDefaultUsage(&cluster.Cluster)
 
 	err = b.clusterApi.RegisterCluster(ctx, &cluster, v1Flag, models.ImageType(b.Config.ISOImageType))
 	if err != nil {
@@ -595,11 +594,21 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *cluster.ID})
 }
 
-func setDiskEncryption(cluster *models.Cluster, config *models.DiskEncryption) {
+func setDiskEncryptionWithDefaultValues(c *models.Cluster, config *models.DiskEncryption) {
 	// When enabling the encryption we set the mode to TPMv2 unless the request contains an
 	// explicit value.
-	if config != nil && config.EnableOn != swag.String(models.DiskEncryptionEnableOnNone) && config.Mode == nil {
-		cluster.DiskEncryption.Mode = swag.String(models.DiskEncryptionModeTpmv2)
+	if config == nil {
+		return
+	}
+
+	c.DiskEncryption = config
+
+	if c.DiskEncryption.EnableOn == nil {
+		c.DiskEncryption.EnableOn = swag.String(models.DiskEncryptionEnableOnNone)
+	}
+
+	if config.Mode == nil {
+		c.DiskEncryption.Mode = swag.String(models.DiskEncryptionModeTpmv2)
 	}
 }
 
@@ -2535,14 +2544,10 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	}
 
 	if params.ClusterUpdateParams.DiskEncryption != nil {
-		updates["disk_encryption_enable_on"] = params.ClusterUpdateParams.DiskEncryption.EnableOn
-
-		// When enabling the encryption we set the mode to TPMv2 unless the request contains an
-		// explicit value.
-		if params.ClusterUpdateParams.DiskEncryption.EnableOn != swag.String(models.DiskEncryptionEnableOnNone) &&
-			params.ClusterUpdateParams.DiskEncryption.Mode == nil {
-			updates["disk_encryption_mode"] = models.DiskEncryptionModeTpmv2
-		} else {
+		if params.ClusterUpdateParams.DiskEncryption.EnableOn != nil {
+			updates["disk_encryption_enable_on"] = params.ClusterUpdateParams.DiskEncryption.EnableOn
+		}
+		if params.ClusterUpdateParams.DiskEncryption.Mode != nil {
 			updates["disk_encryption_mode"] = params.ClusterUpdateParams.DiskEncryption.Mode
 		}
 	}
