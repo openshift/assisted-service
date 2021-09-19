@@ -5269,7 +5269,7 @@ var _ = Describe("Refresh Host", func() {
 				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
 				hostname:          "test-hostname",
 				eventRaised:       true,
-				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeBound),
 				sourceState:       models.SourceStateSynced,
 			},
 			{
@@ -5280,7 +5280,7 @@ var _ = Describe("Refresh Host", func() {
 				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
 				hostname:          "test-hostname",
 				eventRaised:       true,
-				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeBound),
 				sourceState:       models.SourceStateSynced,
 			},
 			{
@@ -5291,7 +5291,7 @@ var _ = Describe("Refresh Host", func() {
 				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
 				hostname:          "test-hostname",
 				eventRaised:       true,
-				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeBound),
 				sourceState:       models.SourceStateSynced,
 			},
 			{
@@ -5301,7 +5301,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:  true,
 				inventory:         hostutil.GenerateMasterInventory(),
 				eventRaised:       false,
-				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeBound),
 				sourceState:       models.SourceStateSynced,
 			},
 			{
@@ -5312,7 +5312,7 @@ var _ = Describe("Refresh Host", func() {
 				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
 				hostname:          "test-hostname",
 				eventRaised:       true,
-				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeBound),
 			},
 			{
 				name:              "discovering-unbound to known-unbound - no NTP",
@@ -5322,7 +5322,7 @@ var _ = Describe("Refresh Host", func() {
 				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
 				hostname:          "test-hostname",
 				eventRaised:       true,
-				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeBound),
 			},
 			{
 				name:              "insufficient-unbound to known-unbound - no NTP",
@@ -5332,7 +5332,7 @@ var _ = Describe("Refresh Host", func() {
 				inventory:         hostutil.GenerateMasterInventoryWithHostname("test-hostname"),
 				hostname:          "test-hostname",
 				eventRaised:       true,
-				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeBound),
 			},
 			{
 				name:              "known-unbound to known-unbound - no NTP",
@@ -5341,7 +5341,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:  true,
 				inventory:         hostutil.GenerateMasterInventory(),
 				eventRaised:       false,
-				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeMoved),
+				statusInfoChecker: makeValueChecker(statusInfoHostReadyToBeBound),
 			},
 			{
 				name:             "disconnected-unbound to insufficient-unbound un-synced NTP",

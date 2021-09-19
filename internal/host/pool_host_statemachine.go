@@ -141,7 +141,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
 			sufficientToBeBound),
 		DestinationState: stateswitch.State(models.HostStatusKnownUnbound),
-		PostTransition:   th.PostRefreshHost(statusInfoHostReadyToBeMoved),
+		PostTransition:   th.PostRefreshHost(statusInfoHostReadyToBeBound),
 	})
 
 	return sm
