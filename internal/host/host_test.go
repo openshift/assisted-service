@@ -744,7 +744,7 @@ var _ = Describe("reset host", func() {
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResetting))
-			events, err := eventsHandler.GetEvents(h.InfraEnvID, h.ID)
+			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -829,7 +829,7 @@ var _ = Describe("reset host", func() {
 			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDiscovering)
 			reply := state.ResetHost(ctx, &h, "some reason", db)
 			Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
-			events, err := eventsHandler.GetEvents(h.InfraEnvID, h.ID)
+			events, err := eventsHandler.GetEvents(clusterId, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -2783,6 +2783,32 @@ var _ = Describe("Validation metrics and events", func() {
 
 		currentValidationRes = newValidationRes
 		newValidationRes = generateTestValidationResult(ValidationFailure)
+		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
+	})
+
+	It("Test reportValidationStatusChanged for unbound host", func() {
+
+		mockEvents.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostValidationFixedEventName),
+			eventstest.WithHostIdMatcher(h.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String())))
+
+		vc := generateValidationCtx()
+		newValidationRes := generateTestValidationResult(ValidationSuccess)
+		var currentValidationRes ValidationsStatus
+		err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes)
+		Expect(err).ToNot(HaveOccurred())
+		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
+
+		mockMetric.EXPECT().HostValidationChanged(openshiftVersion, emailDomain, models.HostValidationIDHasMinCPUCores)
+		mockEvents.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostValidationFallingEventName),
+			eventstest.WithHostIdMatcher(h.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String())))
+
+		currentValidationRes = newValidationRes
+		newValidationRes = generateTestValidationResult(ValidationFailure)
+		h.ClusterID = nil
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
 	})
 })

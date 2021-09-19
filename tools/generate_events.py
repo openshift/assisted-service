@@ -96,7 +96,7 @@ func (e *{{eventName}}) GetClusterId() strfmt.UUID {
 }
 {%- else %}
 func (e *{{eventName}}) GetClusterId() *strfmt.UUID {
-    {% if event.properties.cluster_id -%}     return &e.ClusterId
+    {% if event.properties.cluster_id -%}     return e.ClusterId
     {%- else -%}      return nil
     {%- endif %}
 }
@@ -130,6 +130,7 @@ func (e *{{eventName}}) FormatMessage() string {
 
 class EventGenerator(object):
     VALID_PROPS_TYPES = {"UUID":dict(go_type="strfmt.UUID", go_import="github.com/go-openapi/strfmt"),
+                         "UUID_PTR":dict(go_type="*strfmt.UUID", go_import="github.com/go-openapi/strfmt"),
                          "integer":dict(go_type="int", go_import=None),
                          "int64":dict(go_type="int64", go_import=None),
                          "string":dict(go_type="string", go_import=None),
