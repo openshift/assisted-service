@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -2127,13 +2128,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		installInfo := "Great Success"
 		updateProgressWithInfo(*host.ID, infraEnv.ID, installProgress, installInfo)
 
-		//TODO UploadLogs V2
-		// kubeconfigFile, err := os.Open("test_kubeconfig")
-		// Expect(err).NotTo(HaveOccurred())
-		// _, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: *cluster.ID,
-		// 	HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
-		// Expect(err).NotTo(HaveOccurred())
-		// kubeconfigFile.Close()
+		kubeconfigFile, err := os.Open("test_kubeconfig")
+		Expect(err).NotTo(HaveOccurred())
+		_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
+			InfraEnvID: &infraEnv.ID, HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
+		Expect(err).NotTo(HaveOccurred())
+		kubeconfigFile.Close()
 
 		By("Verify Agent Progress Info")
 		Eventually(func() bool {
@@ -2142,12 +2142,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				agent.Status.Progress.CurrentStage == installProgress
 		}, "30s", "10s").Should(BeTrue())
 
-		//TODO UploadLogs V2
-		// By("Check ACI Logs URL exists")
-		// Eventually(func() string {
-		// 	aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-		// 	return aci.Status.DebugInfo.LogsURL
-		// }, "30s", "10s").ShouldNot(Equal(""))
+		By("Check ACI Logs URL exists")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.LogsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Check Agent Role and Bootstrap")
 		Eventually(func() bool {
@@ -2164,20 +2163,18 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configSecret := getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
 
-		//TODO UploadLogs V2
-
-		// By("Upload cluster logs")
-		// kubeconfigFile, err1 := os.Open("test_kubeconfig")
-		// Expect(err1).NotTo(HaveOccurred())
-		// _, err1 = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: *cluster.ID,
-		// 	Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
-		// Expect(err1).NotTo(HaveOccurred())
-		// kubeconfigFile.Close()
+		By("Upload cluster logs")
+		kubeconfigFile, err1 := os.Open("test_kubeconfig")
+		Expect(err1).NotTo(HaveOccurred())
+		_, err1 = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
+			InfraEnvID: &infraEnv.ID, Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
+		Expect(err1).NotTo(HaveOccurred())
+		kubeconfigFile.Close()
 
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
-		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+		_, err = agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
@@ -2210,12 +2207,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.EventsURL
 		}, "1m", "10s").ShouldNot(Equal(""))
 
-		//TODO UploadLogs V2
-		// By("Check ACI Logs URL still exists")
-		// Eventually(func() string {
-		// 	aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-		// 	return aci.Status.DebugInfo.LogsURL
-		// }, "30s", "10s").ShouldNot(Equal(""))
+		By("Check ACI Logs URL still exists")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.LogsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Check ACI DebugInfo state and stateinfo")
 		Eventually(func() bool {
@@ -2539,39 +2535,37 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return true
 		}, "1m", "2s").Should(BeTrue())
 
-		//TODO UploadLogs V2
-
-		// By("Upload hosts logs during installation")
+		By("Upload hosts logs during installation")
 		for _, host := range hosts {
 			updateProgress(*host.ID, infraEnv.ID, models.HostStageDone)
+
+			kubeconfigFile, err := os.Open("test_kubeconfig")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
+				InfraEnvID: &infraEnv.ID, HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
+			Expect(err).NotTo(HaveOccurred())
+			kubeconfigFile.Close()
 		}
-		// 	kubeconfigFile, err := os.Open("test_kubeconfig")
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: *cluster.ID,
-		// 		HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	kubeconfigFile.Close()
-		// }
 
-		// By("Check ACI Logs URL exists")
-		// Eventually(func() string {
-		// 	aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-		// 	return aci.Status.DebugInfo.LogsURL
-		// }, "30s", "10s").ShouldNot(Equal(""))
+		By("Check ACI Logs URL exists")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.LogsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
 
-		// By("Upload cluster logs")
-		// kubeconfigFile, err1 := os.Open("test_kubeconfig")
-		// Expect(err1).NotTo(HaveOccurred())
-		// _, err1 = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: *cluster.ID,
-		// 	Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
-		// Expect(err1).NotTo(HaveOccurred())
-		// kubeconfigFile.Close()
+		By("Upload cluster logs")
+		kubeconfigFile, err1 := os.Open("test_kubeconfig")
+		Expect(err1).NotTo(HaveOccurred())
+		_, err1 = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
+			InfraEnvID: &infraEnv.ID, Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
+		Expect(err1).NotTo(HaveOccurred())
+		kubeconfigFile.Close()
 
-		// By("Check ACI Logs URL still exists")
-		// Eventually(func() string {
-		// 	aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-		// 	return aci.Status.DebugInfo.LogsURL
-		// }, "30s", "10s").ShouldNot(Equal(""))
+		By("Check ACI Logs URL still exists")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.LogsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
