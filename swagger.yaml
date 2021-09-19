@@ -4616,6 +4616,51 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}/credentials:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [ user ]
+      description: Get the cluster admin credentials.
+      operationId: V2GetCredentials
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose admin credentials should be retrieved.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/credentials'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /v2/clusters/{cluster_id}/downloads/files:
     get:
       tags:
@@ -5139,6 +5184,68 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/supported-operators/{operator_name}:
+    get:
+      tags:
+        - operators
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      description: Lists properties for an operator.
+      operationId: V2ListOperatorProperties
+      parameters:
+        - in: path
+          name: operator_name
+          description: The operator name.
+          type: string
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/operator-properties'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/supported-operators:
+    get:
+      tags:
+        - operators
+      operationId: V2ListSupportedOperators
+      description: Retrieves the list of supported operators.
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: array
+            items:
+              type: string
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /v2/clusters/{cluster_id}/uploads/ingress-cert:
     post:
       tags:
@@ -5309,6 +5416,157 @@ paths:
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
+  
+  /v2/clusters/{cluster_id}/manifests:
+    get:
+      tags:
+        - manifests
+      security:
+        - userAuth: []
+      description: Lists manifests for customizing cluster installation.
+      operationId: V2ListClusterManifests
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster for which the manifests should be listed.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/list-manifests'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+    post:
+      tags:
+        - manifests
+      security:
+        - userAuth: []
+      description: Creates a manifest for customizing cluster installation.
+      operationId: V2CreateClusterManifest
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster for which a new manifest should be created.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: CreateManifestParams
+          description: The new manifest to create.
+          required: true
+          schema:
+            $ref: '#/definitions/create-manifest-params'
+      responses:
+        "201":
+          description: Success.
+          schema:
+            $ref: '#/definitions/manifest'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+    delete:
+      tags:
+        - manifests
+      description: Deletes a manifest from the cluster.
+      operationId: V2DeleteClusterManifest
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose manifest should be deleted.
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: folder
+          description: The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
+          type: string
+          enum: [manifests,openshift]
+          required: false
+          default: manifests
+        - in: query
+          name: file_name
+          description: The manifest file name to delete from the cluster.
+          type: string
+          required: true
+      responses:
+        "200":
+          description: Success.
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
 
   /v2/component-versions:
     get:
@@ -5458,6 +5716,78 @@ paths:
             $ref: '#/definitions/error'
         "500":
           description: Error.
+          schema:
+            $ref: '#/definitions/error'
+    post:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      description: Agent API to upload logs.
+      operationId: V2UploadLogs
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose logs should be uploaded.
+          type: string
+          format: uuid
+          required: true
+        - in: formData
+          name: upfile
+          description: The log file to be uploaded.
+          type: file
+          required: false
+          maxLength: 104857600  #100MB
+          x-mimetype: application/zip
+        - in: query
+          name: logs_type
+          description: The type of log file to be uploaded.
+          type: string
+          enum: ['host', 'controller']
+          required: true
+        - in: query
+          name: infra_env_id
+          description: The infra_env_id of the host.
+          type: string
+          format: uuid
+          required: false
+        - in: query
+          name: host_id
+          description: The host whose logs should be uploaded.
+          type: string
+          format: uuid
+          required: false
+      responses:
+        "204":
+          description: Success.
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
           schema:
             $ref: '#/definitions/error'
 

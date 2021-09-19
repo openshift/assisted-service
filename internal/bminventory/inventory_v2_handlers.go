@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/transaction"
@@ -298,4 +301,92 @@ func (b *bareMetalInventory) V2DownloadClusterLogs(ctx context.Context, params i
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(respBody), downloadFileName, contentLength)
+}
+
+func (b *bareMetalInventory) V2UploadLogs(ctx context.Context, params installer.V2UploadLogsParams) middleware.Responder {
+	err := b.v2uploadLogs(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2UploadLogsNoContent()
+}
+
+func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.V2UploadLogsParams) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Uploading logs from cluster %s", params.ClusterID)
+
+	defer func() {
+		// Closing file and removing all temporary files created by Multipart
+		params.Upfile.Close()
+		params.HTTPRequest.Body.Close()
+		err := params.HTTPRequest.MultipartForm.RemoveAll()
+		if err != nil {
+			log.WithError(err).Warnf("Failed to delete temporary files used for upload")
+		}
+	}()
+
+	if params.LogsType == string(models.LogsTypeHost) {
+		if params.InfraEnvID == nil || params.HostID == nil {
+			return common.NewApiError(http.StatusInternalServerError, errors.New("infra_env_id and host_id are required for upload host logs"))
+		}
+
+		dbHost, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+		if err != nil {
+			return err
+		}
+
+		err = b.uploadHostLogs(ctx, dbHost, params.Upfile)
+		if err != nil {
+			return err
+		}
+
+		b.eventsHandler.AddEvent(ctx, dbHost.InfraEnvID, params.HostID, models.EventSeverityInfo,
+			fmt.Sprintf("Uploaded logs for host %s cluster %s",
+				hostutil.GetHostnameForMsg(&dbHost.Host), params.ClusterID.String()), time.Now())
+		return nil
+	}
+
+	currentCluster, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		return err
+	}
+	fileName := b.getLogsFullName(params.ClusterID.String(), params.LogsType)
+	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
+	err = b.objectHandler.UploadStream(ctx, params.Upfile, fileName)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to upload %s to s3", fileName)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if params.LogsType == string(models.LogsTypeController) {
+		firstClusterLogCollectionEvent := false
+		if swag.IsZero(currentCluster.ControllerLogsCollectedAt) {
+			firstClusterLogCollectionEvent = true
+		}
+		err = b.clusterApi.SetUploadControllerLogsAt(ctx, currentCluster, b.db)
+		if err != nil {
+			log.WithError(err).Errorf("Failed update cluster %s controller_logs_collected_at flag", params.ClusterID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		err = b.clusterApi.UpdateLogsProgress(ctx, currentCluster, string(models.LogsStateCollecting))
+		if err != nil {
+			log.WithError(err).Errorf("Failed update cluster %s log progress %s", params.ClusterID, string(models.LogsStateCollecting))
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		if firstClusterLogCollectionEvent { // Issue an event only for the very first cluster log collection event.
+			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
+				fmt.Sprintf("Uploaded logs for cluster %s",
+					params.ClusterID.String()), time.Now())
+		}
+	}
+
+	log.Infof("Done uploading file %s", fileName)
+	return nil
+}
+
+func (b *bareMetalInventory) V2GetCredentials(ctx context.Context, params installer.V2GetCredentialsParams) middleware.Responder {
+	c, err := b.GetCredentialsInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2GetCredentialsOK().WithPayload(c)
 }

@@ -988,6 +988,20 @@ func (mr *MockInstallerAPIMockRecorder) V2GetClusterInstallConfig(arg0, arg1 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetClusterInstallConfig", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetClusterInstallConfig), arg0, arg1)
 }
 
+// V2GetCredentials mocks base method.
+func (m *MockInstallerAPI) V2GetCredentials(arg0 context.Context, arg1 installer.V2GetCredentialsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2GetCredentials", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2GetCredentials indicates an expected call of V2GetCredentials.
+func (mr *MockInstallerAPIMockRecorder) V2GetCredentials(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetCredentials", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetCredentials), arg0, arg1)
+}
+
 // V2GetHost mocks base method.
 func (m *MockInstallerAPI) V2GetHost(arg0 context.Context, arg1 installer.V2GetHostParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -1322,4 +1336,18 @@ func (m *MockInstallerAPI) V2UploadClusterIngressCert(arg0 context.Context, arg1
 func (mr *MockInstallerAPIMockRecorder) V2UploadClusterIngressCert(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UploadClusterIngressCert", reflect.TypeOf((*MockInstallerAPI)(nil).V2UploadClusterIngressCert), arg0, arg1)
+}
+
+// V2UploadLogs mocks base method.
+func (m *MockInstallerAPI) V2UploadLogs(arg0 context.Context, arg1 installer.V2UploadLogsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2UploadLogs", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2UploadLogs indicates an expected call of V2UploadLogs.
+func (mr *MockInstallerAPIMockRecorder) V2UploadLogs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UploadLogs", reflect.TypeOf((*MockInstallerAPI)(nil).V2UploadLogs), arg0, arg1)
 }

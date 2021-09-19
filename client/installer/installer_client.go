@@ -211,11 +211,17 @@ type API interface {
 	   V2GetClusterDefaultConfig Get the default values for various cluster properties.*/
 	V2GetClusterDefaultConfig(ctx context.Context, params *V2GetClusterDefaultConfigParams) (*V2GetClusterDefaultConfigOK, error)
 	/*
+	   V2GetCredentials Get the cluster admin credentials.*/
+	V2GetCredentials(ctx context.Context, params *V2GetCredentialsParams) (*V2GetCredentialsOK, error)
+	/*
 	   V2GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files.*/
 	V2GetPresignedForClusterFiles(ctx context.Context, params *V2GetPresignedForClusterFilesParams) (*V2GetPresignedForClusterFilesOK, error)
 	/*
 	   V2UpdateCluster Updates an OpenShift cluster definition.*/
 	V2UpdateCluster(ctx context.Context, params *V2UpdateClusterParams) (*V2UpdateClusterCreated, error)
+	/*
+	   V2UploadLogs Agent API to upload logs.*/
+	V2UploadLogs(ctx context.Context, params *V2UploadLogsParams) (*V2UploadLogsNoContent, error)
 	/*
 	   V2CompleteInstallation Agent API to mark a finalizing installation as complete.*/
 	V2CompleteInstallation(ctx context.Context, params *V2CompleteInstallationParams) (*V2CompleteInstallationAccepted, error)
@@ -1885,6 +1891,31 @@ func (a *Client) V2GetClusterDefaultConfig(ctx context.Context, params *V2GetClu
 }
 
 /*
+V2GetCredentials Get the cluster admin credentials.
+*/
+func (a *Client) V2GetCredentials(ctx context.Context, params *V2GetCredentialsParams) (*V2GetCredentialsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2GetCredentials",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/credentials",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetCredentialsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetCredentialsOK), nil
+
+}
+
+/*
 V2GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files.
 */
 func (a *Client) V2GetPresignedForClusterFiles(ctx context.Context, params *V2GetPresignedForClusterFilesParams) (*V2GetPresignedForClusterFilesOK, error) {
@@ -1931,6 +1962,31 @@ func (a *Client) V2UpdateCluster(ctx context.Context, params *V2UpdateClusterPar
 		return nil, err
 	}
 	return result.(*V2UpdateClusterCreated), nil
+
+}
+
+/*
+V2UploadLogs Agent API to upload logs.
+*/
+func (a *Client) V2UploadLogs(ctx context.Context, params *V2UploadLogsParams) (*V2UploadLogsNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2UploadLogs",
+		Method:             "POST",
+		PathPattern:        "/v2/clusters/{cluster_id}/logs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"multipart/form-data"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2UploadLogsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2UploadLogsNoContent), nil
 
 }
 

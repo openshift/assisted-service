@@ -464,6 +464,14 @@ func (f fakeInventory) V2DownloadClusterLogs(ctx context.Context, params install
 	return installer.NewV2DownloadClusterLogsOK()
 }
 
+func (f fakeInventory) V2UploadLogs(ctx context.Context, params installer.V2UploadLogsParams) middleware.Responder {
+	return installer.NewV2UploadLogsNoContent()
+}
+
+func (f fakeInventory) V2GetCredentials(ctx context.Context, params installer.V2GetCredentialsParams) middleware.Responder {
+	return installer.NewV2GetCredentialsOK()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

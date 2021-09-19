@@ -244,11 +244,17 @@ type InstallerAPI interface {
 	/* V2GetClusterDefaultConfig Get the default values for various cluster properties. */
 	V2GetClusterDefaultConfig(ctx context.Context, params installer.V2GetClusterDefaultConfigParams) middleware.Responder
 
+	/* V2GetCredentials Get the cluster admin credentials. */
+	V2GetCredentials(ctx context.Context, params installer.V2GetCredentialsParams) middleware.Responder
+
 	/* V2GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files. */
 	V2GetPresignedForClusterFiles(ctx context.Context, params installer.V2GetPresignedForClusterFilesParams) middleware.Responder
 
 	/* V2UpdateCluster Updates an OpenShift cluster definition. */
 	V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder
+
+	/* V2UploadLogs Agent API to upload logs. */
+	V2UploadLogs(ctx context.Context, params installer.V2UploadLogsParams) middleware.Responder
 
 	/* V2CompleteInstallation Agent API to mark a finalizing installation as complete. */
 	V2CompleteInstallation(ctx context.Context, params installer.V2CompleteInstallationParams) middleware.Responder
@@ -362,6 +368,15 @@ type ManifestsAPI interface {
 	/* ListClusterManifests Lists manifests for customizing cluster installation. */
 	ListClusterManifests(ctx context.Context, params manifests.ListClusterManifestsParams) middleware.Responder
 
+	/* V2CreateClusterManifest Creates a manifest for customizing cluster installation. */
+	V2CreateClusterManifest(ctx context.Context, params manifests.V2CreateClusterManifestParams) middleware.Responder
+
+	/* V2DeleteClusterManifest Deletes a manifest from the cluster. */
+	V2DeleteClusterManifest(ctx context.Context, params manifests.V2DeleteClusterManifestParams) middleware.Responder
+
+	/* V2ListClusterManifests Lists manifests for customizing cluster installation. */
+	V2ListClusterManifests(ctx context.Context, params manifests.V2ListClusterManifestsParams) middleware.Responder
+
 	/* V2DownloadClusterManifest Downloads cluster manifest. */
 	V2DownloadClusterManifest(ctx context.Context, params manifests.V2DownloadClusterManifestParams) middleware.Responder
 }
@@ -384,6 +399,12 @@ type OperatorsAPI interface {
 
 	/* V2ListOfClusterOperators Lists operators to be monitored for a cluster. */
 	V2ListOfClusterOperators(ctx context.Context, params operators.V2ListOfClusterOperatorsParams) middleware.Responder
+
+	/* V2ListOperatorProperties Lists properties for an operator. */
+	V2ListOperatorProperties(ctx context.Context, params operators.V2ListOperatorPropertiesParams) middleware.Responder
+
+	/* V2ListSupportedOperators Retrieves the list of supported operators. */
+	V2ListSupportedOperators(ctx context.Context, params operators.V2ListSupportedOperatorsParams) middleware.Responder
 
 	/* V2ReportMonitoredOperatorStatus Controller API to report of monitored operators. */
 	V2ReportMonitoredOperatorStatus(ctx context.Context, params operators.V2ReportMonitoredOperatorStatusParams) middleware.Responder
@@ -861,6 +882,16 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2CancelInstallation(ctx, params)
 	})
+	api.ManifestsV2CreateClusterManifestHandler = manifests.V2CreateClusterManifestHandlerFunc(func(params manifests.V2CreateClusterManifestParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManifestsAPI.V2CreateClusterManifest(ctx, params)
+	})
+	api.ManifestsV2DeleteClusterManifestHandler = manifests.V2DeleteClusterManifestHandlerFunc(func(params manifests.V2DeleteClusterManifestParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManifestsAPI.V2DeleteClusterManifest(ctx, params)
+	})
 	api.InstallerV2DownloadClusterCredentialsHandler = installer.V2DownloadClusterCredentialsHandlerFunc(func(params installer.V2DownloadClusterCredentialsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -881,10 +912,20 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetClusterDefaultConfig(ctx, params)
 	})
+	api.InstallerV2GetCredentialsHandler = installer.V2GetCredentialsHandlerFunc(func(params installer.V2GetCredentialsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2GetCredentials(ctx, params)
+	})
 	api.InstallerV2GetPresignedForClusterFilesHandler = installer.V2GetPresignedForClusterFilesHandlerFunc(func(params installer.V2GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetPresignedForClusterFiles(ctx, params)
+	})
+	api.ManifestsV2ListClusterManifestsHandler = manifests.V2ListClusterManifestsHandlerFunc(func(params manifests.V2ListClusterManifestsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManifestsAPI.V2ListClusterManifests(ctx, params)
 	})
 	api.ManagedDomainsV2ListManagedDomainsHandler = managed_domains.V2ListManagedDomainsHandlerFunc(func(params managed_domains.V2ListManagedDomainsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
@@ -896,10 +937,25 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.OperatorsAPI.V2ListOfClusterOperators(ctx, params)
 	})
+	api.OperatorsV2ListOperatorPropertiesHandler = operators.V2ListOperatorPropertiesHandlerFunc(func(params operators.V2ListOperatorPropertiesParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.OperatorsAPI.V2ListOperatorProperties(ctx, params)
+	})
+	api.OperatorsV2ListSupportedOperatorsHandler = operators.V2ListSupportedOperatorsHandlerFunc(func(params operators.V2ListSupportedOperatorsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.OperatorsAPI.V2ListSupportedOperators(ctx, params)
+	})
 	api.InstallerV2UpdateClusterHandler = installer.V2UpdateClusterHandlerFunc(func(params installer.V2UpdateClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2UpdateCluster(ctx, params)
+	})
+	api.InstallerV2UploadLogsHandler = installer.V2UploadLogsHandlerFunc(func(params installer.V2UploadLogsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2UploadLogs(ctx, params)
 	})
 	api.InstallerV2CompleteInstallationHandler = installer.V2CompleteInstallationHandlerFunc(func(params installer.V2CompleteInstallationParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

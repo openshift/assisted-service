@@ -81,7 +81,7 @@ var _ = Describe("Operators manager", func() {
 					if _, err := yaml.YAMLToJSON(manifestContent); err != nil {
 						return common.GenerateErrorResponder(err)
 					}
-					return operations.NewCreateClusterManifestCreated()
+					return operations.NewV2CreateClusterManifestCreated()
 				}).AnyTimes()
 			err := manager.GenerateManifests(ctx, cluster)
 			Expect(err).NotTo(HaveOccurred())
@@ -94,7 +94,7 @@ var _ = Describe("Operators manager", func() {
 			}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(6)
+			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(6)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -104,7 +104,7 @@ var _ = Describe("Operators manager", func() {
 			}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(3)
+			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(3)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -115,7 +115,7 @@ var _ = Describe("Operators manager", func() {
 			}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(6)
+			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(6)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 	})

@@ -137,6 +137,34 @@ func (mr *MockManifestsAPIMockRecorder) ListClusterManifestsInternal(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusterManifestsInternal", reflect.TypeOf((*MockManifestsAPI)(nil).ListClusterManifestsInternal), arg0, arg1)
 }
 
+// V2CreateClusterManifest mocks base method.
+func (m *MockManifestsAPI) V2CreateClusterManifest(arg0 context.Context, arg1 manifests.V2CreateClusterManifestParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2CreateClusterManifest", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2CreateClusterManifest indicates an expected call of V2CreateClusterManifest.
+func (mr *MockManifestsAPIMockRecorder) V2CreateClusterManifest(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2CreateClusterManifest", reflect.TypeOf((*MockManifestsAPI)(nil).V2CreateClusterManifest), arg0, arg1)
+}
+
+// V2DeleteClusterManifest mocks base method.
+func (m *MockManifestsAPI) V2DeleteClusterManifest(arg0 context.Context, arg1 manifests.V2DeleteClusterManifestParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2DeleteClusterManifest", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2DeleteClusterManifest indicates an expected call of V2DeleteClusterManifest.
+func (mr *MockManifestsAPIMockRecorder) V2DeleteClusterManifest(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DeleteClusterManifest", reflect.TypeOf((*MockManifestsAPI)(nil).V2DeleteClusterManifest), arg0, arg1)
+}
+
 // V2DownloadClusterManifest mocks base method.
 func (m *MockManifestsAPI) V2DownloadClusterManifest(arg0 context.Context, arg1 manifests.V2DownloadClusterManifestParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -149,4 +177,18 @@ func (m *MockManifestsAPI) V2DownloadClusterManifest(arg0 context.Context, arg1 
 func (mr *MockManifestsAPIMockRecorder) V2DownloadClusterManifest(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DownloadClusterManifest", reflect.TypeOf((*MockManifestsAPI)(nil).V2DownloadClusterManifest), arg0, arg1)
+}
+
+// V2ListClusterManifests mocks base method.
+func (m *MockManifestsAPI) V2ListClusterManifests(arg0 context.Context, arg1 manifests.V2ListClusterManifestsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2ListClusterManifests", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2ListClusterManifests indicates an expected call of V2ListClusterManifests.
+func (mr *MockManifestsAPIMockRecorder) V2ListClusterManifests(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ListClusterManifests", reflect.TypeOf((*MockManifestsAPI)(nil).V2ListClusterManifests), arg0, arg1)
 }

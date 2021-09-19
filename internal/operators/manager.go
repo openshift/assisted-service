@@ -171,7 +171,7 @@ func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster
 		},
 	})
 
-	if _, ok := response.(*operations.CreateClusterManifestCreated); !ok {
+	if _, ok := response.(*operations.V2CreateClusterManifestCreated); !ok {
 		if apiErr, ok := response.(*common.ApiErrorResponse); ok {
 			return errors.Wrapf(apiErr, "Failed to create manifest %s for cluster %s", filename, cluster.ID)
 		}
