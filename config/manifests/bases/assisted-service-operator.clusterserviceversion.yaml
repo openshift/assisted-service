@@ -9,7 +9,7 @@ metadata:
     createdAt: ""
     description: The Infrastructure Operator for Red Hat OpenShift is responsible
       for managing the deployment of the Assisted Service.
-    olm.skipRange: '>=0.0.0 <99.0.0-unreleased'
+    olm.skipRange: '>=0.0.1 <99.0.0-unreleased'
     operatorframework.io/suggested-namespace: assisted-installer
     operators.operatorframework.io/builder: operator-sdk-v1.3.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
