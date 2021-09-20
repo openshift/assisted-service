@@ -6271,6 +6271,10 @@ definitions:
         format: double
         x-nullable: true
         description: Maximum packet loss allowed at L3 for role.
+      tpm_enabled_in_bios:
+        type: boolean
+        description: Whether TPM module should be enabled in host's BIOS.
+
 
   versioned-host-requirements:
     type: object

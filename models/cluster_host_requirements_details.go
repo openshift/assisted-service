@@ -32,6 +32,9 @@ type ClusterHostRequirementsDetails struct {
 
 	// Required number of RAM in MiB
 	RAMMib int64 `json:"ram_mib,omitempty"`
+
+	// Whether TPM module should be enabled in host's BIOS.
+	TpmEnabledInBios bool `json:"tpm_enabled_in_bios,omitempty"`
 }
 
 // Validate validates this cluster host requirements details

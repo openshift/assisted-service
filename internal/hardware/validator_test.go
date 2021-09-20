@@ -893,6 +893,108 @@ var _ = Describe("Preflight host requirements", func() {
 		Expect(result.Operators).To(ConsistOf(operatorRequirements))
 	})
 
+	Context("disk-encryption TPM requirements", func() {
+
+		It("TPM - all roles", func() {
+
+			diskEncryptionClusterID := strfmt.UUID(uuid.New().String())
+			diskEncryptionCluster := &common.Cluster{Cluster: models.Cluster{
+				ID:               &diskEncryptionClusterID,
+				OpenshiftVersion: openShiftVersionNotInConfig,
+				DiskEncryption: &models.DiskEncryption{
+					EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+					Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+				},
+			}}
+
+			operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(diskEncryptionCluster)).Return(operatorRequirements, nil)
+
+			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeTrue())
+			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeTrue())
+		})
+
+		It("TPM - masters only", func() {
+
+			diskEncryptionClusterID := strfmt.UUID(uuid.New().String())
+			diskEncryptionCluster := &common.Cluster{Cluster: models.Cluster{
+				ID:               &diskEncryptionClusterID,
+				OpenshiftVersion: openShiftVersionNotInConfig,
+				DiskEncryption: &models.DiskEncryption{
+					EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+					Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+				},
+			}}
+
+			operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(diskEncryptionCluster)).Return(operatorRequirements, nil)
+
+			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeTrue())
+			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeFalse())
+		})
+
+		It("TPM - workers only", func() {
+
+			diskEncryptionClusterID := strfmt.UUID(uuid.New().String())
+			diskEncryptionCluster := &common.Cluster{Cluster: models.Cluster{
+				ID:               &diskEncryptionClusterID,
+				OpenshiftVersion: openShiftVersionNotInConfig,
+				DiskEncryption: &models.DiskEncryption{
+					EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
+					Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+				},
+			}}
+
+			operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(diskEncryptionCluster)).Return(operatorRequirements, nil)
+
+			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeFalse())
+			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeTrue())
+		})
+
+		It("TPM - none", func() {
+
+			diskEncryptionClusterID := strfmt.UUID(uuid.New().String())
+			diskEncryptionCluster := &common.Cluster{Cluster: models.Cluster{
+				ID:               &diskEncryptionClusterID,
+				OpenshiftVersion: openShiftVersionNotInConfig,
+				DiskEncryption: &models.DiskEncryption{
+					EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+					Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+				},
+			}}
+
+			operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(diskEncryptionCluster)).Return(operatorRequirements, nil)
+
+			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeFalse())
+			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeFalse())
+		})
+
+		It("Tang - all roles", func() {
+
+			diskEncryptionClusterID := strfmt.UUID(uuid.New().String())
+			diskEncryptionCluster := &common.Cluster{Cluster: models.Cluster{
+				ID:               &diskEncryptionClusterID,
+				OpenshiftVersion: openShiftVersionNotInConfig,
+				DiskEncryption: &models.DiskEncryption{
+					EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+					Mode:     swag.String(models.DiskEncryptionModeTang),
+				},
+			}}
+
+			operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(diskEncryptionCluster)).Return(operatorRequirements, nil)
+
+			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeFalse())
+			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeFalse())
+		})
+	})
 })
 
 func isBlockDeviceNameInlist(disks []*models.Disk, name string) bool {

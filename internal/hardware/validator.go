@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/dustin/go-humanize"
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -204,6 +205,12 @@ func (v *validator) GetInfraEnvHostRequirements(ctx context.Context, infraEnv *c
 	}, nil
 }
 
+func isDiskEncryptionSetWithTpm(c *common.Cluster) bool {
+	return c.DiskEncryption != nil &&
+		swag.StringValue(c.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone &&
+		swag.StringValue(c.DiskEncryption.Mode) == models.DiskEncryptionModeTpmv2
+}
+
 func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error) {
 	operatorsRequirements, err := v.operatorsAPI.GetPreflightRequirementsBreakdownForCluster(ctx, cluster)
 	if err != nil {
@@ -212,6 +219,19 @@ func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluste
 	ocpRequirements, err := v.getClusterPreflightOCPRequirements(cluster)
 	if err != nil {
 		return nil, err
+	}
+	if isDiskEncryptionSetWithTpm(cluster) {
+		switch swag.StringValue(cluster.DiskEncryption.EnableOn) {
+		case models.DiskEncryptionEnableOnAll:
+			ocpRequirements.Master.Quantitative.TpmEnabledInBios = true
+			ocpRequirements.Worker.Quantitative.TpmEnabledInBios = true
+		case models.DiskEncryptionEnableOnMasters:
+			ocpRequirements.Master.Quantitative.TpmEnabledInBios = true
+		case models.DiskEncryptionEnableOnWorkers:
+			ocpRequirements.Worker.Quantitative.TpmEnabledInBios = true
+		default:
+			return nil, fmt.Errorf("disk-encryption is enabled on non-valid role: %s", swag.StringValue(cluster.DiskEncryption.EnableOn))
+		}
 	}
 
 	return &models.PreflightHardwareRequirements{
