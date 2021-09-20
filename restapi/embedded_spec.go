@@ -12043,7 +12043,9 @@ func init() {
       "properties": {
         "cpu_architecture": {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
-          "type": "string"
+          "type": "string",
+          "default": "x86_64",
+          "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
@@ -12153,7 +12155,9 @@ func init() {
       "properties": {
         "cpu_architecture": {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
-          "type": "string"
+          "type": "string",
+          "default": "x86_64",
+          "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
@@ -24739,7 +24743,9 @@ func init() {
       "properties": {
         "cpu_architecture": {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
-          "type": "string"
+          "type": "string",
+          "default": "x86_64",
+          "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
@@ -24849,7 +24855,9 @@ func init() {
       "properties": {
         "cpu_architecture": {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
-          "type": "string"
+          "type": "string",
+          "default": "x86_64",
+          "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",

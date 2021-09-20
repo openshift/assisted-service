@@ -19,7 +19,7 @@ type ReleaseImage struct {
 
 	// The CPU architecture of the image (x86_64/arm64/etc).
 	// Required: true
-	CPUArchitecture *string `json:"cpu_architecture"`
+	CPUArchitecture *string `json:"cpu_architecture" gorm:"default:'x86_64'"`
 
 	// Version of the OpenShift cluster.
 	// Required: true
