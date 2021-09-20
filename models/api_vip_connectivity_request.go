@@ -21,7 +21,7 @@ type APIVipConnectivityRequest struct {
 	// Required: true
 	URL *string `json:"url"`
 
-	// Whether to verify if the API VIP belongs to one of the interfaces.
+	// Whether to verify if the API VIP belongs to one of the interfaces (DEPRECATED).
 	VerifyCidr bool `json:"verify_cidr,omitempty"`
 }
 

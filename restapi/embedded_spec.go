@@ -8973,7 +8973,7 @@ func init() {
           "type": "string"
         },
         "verify_cidr": {
-          "description": "Whether to verify if the API VIP belongs to one of the interfaces.",
+          "description": "Whether to verify if the API VIP belongs to one of the interfaces (DEPRECATED).",
           "type": "boolean"
         }
       }
@@ -21754,7 +21754,7 @@ func init() {
           "type": "string"
         },
         "verify_cidr": {
-          "description": "Whether to verify if the API VIP belongs to one of the interfaces.",
+          "description": "Whether to verify if the API VIP belongs to one of the interfaces (DEPRECATED).",
           "type": "boolean"
         }
       }

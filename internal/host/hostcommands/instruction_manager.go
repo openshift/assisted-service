@@ -55,7 +55,6 @@ type InstructionConfig struct {
 	ControllerImage          string            `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
 	AgentImage               string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	SkipCertVerification     bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	SupportL2                bool              `envconfig:"SUPPORT_L2" default:"true"`
 	DiskCheckTimeout         time.Duration     `envconfig:"DISK_CHECK_TIMEOUT" default:"8m"`
 	ImageAvailabilityTimeout time.Duration     `envconfig:"IMAGE_AVAILABILITY_TIMEOUT" default:"16m"`
 	DisabledSteps            []models.StepType `envconfig:"DISABLED_STEPS" default:""`
@@ -73,7 +72,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	stopCmd := NewStopInstallationCmd(log)
 	logsCmd := NewLogsCmd(log, db, instructionConfig)
 	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.AgentImage, db)
-	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.AgentImage, instructionConfig.SupportL2)
+	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.AgentImage)
 	ntpSynchronizerCmd := NewNtpSyncCmd(log, instructionConfig.AgentImage, db)
 	diskPerfCheckCmd := NewDiskPerfCheckCmd(log, instructionConfig.AgentImage, hwValidator, instructionConfig.DiskCheckTimeout.Seconds())
 	imageAvailabilityCmd := NewImageAvailabilityCmd(log, db, ocRelease, versionHandler, instructionConfig, instructionConfig.ImageAvailabilityTimeout.Seconds())

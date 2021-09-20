@@ -16,15 +16,13 @@ type apivipConnectivityCheckCmd struct {
 	baseCmd
 	db                     *gorm.DB
 	connectivityCheckImage string
-	verifyAPIVipCidr       bool
 }
 
-func NewAPIVIPConnectivityCheckCmd(log logrus.FieldLogger, db *gorm.DB, connectivityCheckImage string, verifyAPIVipCidr bool) *apivipConnectivityCheckCmd {
+func NewAPIVIPConnectivityCheckCmd(log logrus.FieldLogger, db *gorm.DB, connectivityCheckImage string) *apivipConnectivityCheckCmd {
 	return &apivipConnectivityCheckCmd{
 		baseCmd:                baseCmd{log: log},
 		db:                     db,
 		connectivityCheckImage: connectivityCheckImage,
-		verifyAPIVipCidr:       verifyAPIVipCidr,
 	}
 }
 
@@ -42,8 +40,7 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 
 	apiURL := fmt.Sprintf("http://%s:22624/config/worker", addressPart)
 	request := models.APIVipConnectivityRequest{
-		URL:        &apiURL,
-		VerifyCidr: c.verifyAPIVipCidr,
+		URL: &apiURL,
 	}
 	requestBytes, err := json.Marshal(request)
 	if err != nil {

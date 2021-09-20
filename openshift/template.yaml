@@ -65,8 +65,6 @@ parameters:
   value: ''
 - name: AGENT_TIMEOUT_START
   value: '3m'
-- name: SUPPORT_L2
-  value: "true"
 - name: ADMIN_USERS
   value: ''
   required: false
@@ -265,8 +263,6 @@ objects:
                 value: ${CONTROLLER_IMAGE}
               - name: AGENT_DOCKER_IMAGE
                 value: ${AGENT_DOCKER_IMAGE}
-              - name: SUPPORT_L2
-                value: ${SUPPORT_L2}
               - name: LOG_LEVEL
                 value: ${LOG_LEVEL}
               - name: INSTALL_RH_CA

@@ -5416,7 +5416,6 @@ paths:
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
-  
   /v2/clusters/{cluster_id}/manifests:
     get:
       tags:
@@ -7921,7 +7920,7 @@ definitions:
         description: URL address of the API.
       verify_cidr:
         type: boolean
-        description: Whether to verify if the API VIP belongs to one of the interfaces.
+        description: Whether to verify if the API VIP belongs to one of the interfaces (DEPRECATED).
 
   api_vip_connectivity_response:
     type: object
