@@ -43,6 +43,7 @@ import (
 const (
 	NamespaceEnvVar string = "NAMESPACE"
 	PodNameEnvVar   string = "POD_NAME"
+	K8sSvcHost      string = "KUBERNETES_SERVICE_HOST"
 )
 
 var (
@@ -118,10 +119,17 @@ func main() {
 	}
 
 	client := mgr.GetClient()
-	operatorPod := &corev1.Pod{}
-	if err = client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: ns}, operatorPod); err != nil {
-		setupLog.Error(err, "Unable to get Infrastructure Operator Pod")
-		os.Exit(1)
+	var nodeSelector map[string]string
+	var tolerations []corev1.Toleration
+	_, found = os.LookupEnv(K8sSvcHost)
+	if found { // Running inside a Kubelet pod
+		operatorPod := &corev1.Pod{}
+		if err = client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: ns}, operatorPod); err != nil {
+			setupLog.Error(err, "Unable to get Infrastructure Operator Pod")
+			os.Exit(1)
+		}
+		nodeSelector = operatorPod.Spec.NodeSelector
+		tolerations = operatorPod.Spec.Tolerations
 	}
 
 	if err = (&controllers.AgentServiceConfigReconciler{
@@ -130,8 +138,8 @@ func main() {
 		Scheme:       mgr.GetScheme(),
 		Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
 		Namespace:    ns,
-		NodeSelector: operatorPod.Spec.NodeSelector,
-		Tolerations:  operatorPod.Spec.Tolerations,
+		NodeSelector: nodeSelector,
+		Tolerations:  tolerations,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AgentServiceConfig")
 		os.Exit(1)

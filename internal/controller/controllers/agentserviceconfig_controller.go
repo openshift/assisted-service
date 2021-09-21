@@ -804,12 +804,16 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 		deployment.Spec.Template.Spec.Volumes = volumes
 		deployment.Spec.Template.Spec.ServiceAccountName = imageServiceName
 
-		nodeSelector := make(map[string]string)
-		for key, value := range r.NodeSelector {
-			nodeSelector[key] = value
+		if r.NodeSelector != nil {
+			nodeSelector := make(map[string]string)
+			for key, value := range r.NodeSelector {
+				nodeSelector[key] = value
+			}
+			deployment.Spec.Template.Spec.NodeSelector = nodeSelector
 		}
-		deployment.Spec.Template.Spec.NodeSelector = nodeSelector
-		deployment.Spec.Template.Spec.Tolerations = append([]corev1.Toleration{}, r.Tolerations...)
+		if r.Tolerations != nil {
+			deployment.Spec.Template.Spec.Tolerations = append([]corev1.Toleration{}, r.Tolerations...)
+		}
 		return nil
 	}
 
@@ -1094,12 +1098,16 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		deployment.Spec.Template.Spec.Volumes = volumes
 		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
 
-		nodeSelector := make(map[string]string)
-		for key, value := range r.NodeSelector {
-			nodeSelector[key] = value
+		if r.NodeSelector != nil {
+			nodeSelector := make(map[string]string)
+			for key, value := range r.NodeSelector {
+				nodeSelector[key] = value
+			}
+			deployment.Spec.Template.Spec.NodeSelector = nodeSelector
 		}
-		deployment.Spec.Template.Spec.NodeSelector = nodeSelector
-		deployment.Spec.Template.Spec.Tolerations = append([]corev1.Toleration{}, r.Tolerations...)
+		if r.Tolerations != nil {
+			deployment.Spec.Template.Spec.Tolerations = append([]corev1.Toleration{}, r.Tolerations...)
+		}
 
 		return nil
 	}
