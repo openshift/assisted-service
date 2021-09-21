@@ -26,7 +26,7 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		apivipConnectivityCheckCmd = NewAPIVIPConnectivityCheckCmd(common.GetTestLog(), db, "quay.io/ocpmetal/assisted-installer-agent:latest", true)
+		apivipConnectivityCheckCmd = NewAPIVIPConnectivityCheckCmd(common.GetTestLog(), db, "quay.io/ocpmetal/assisted-installer-agent:latest")
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
@@ -41,7 +41,7 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 	It("get_step", func() {
 		stepReply, stepErr = apivipConnectivityCheckCmd.GetSteps(ctx, &host)
 		Expect(stepReply[0]).ShouldNot(BeNil())
-		Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal("{\"url\":\"http://test.com:22624/config/worker\",\"verify_cidr\":true}"))
+		Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal("{\"url\":\"http://test.com:22624/config/worker\"}"))
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 
