@@ -43,7 +43,6 @@ import (
 const (
 	NamespaceEnvVar string = "NAMESPACE"
 	PodNameEnvVar   string = "POD_NAME"
-	K8sSvcHost      string = "KUBERNETES_SERVICE_HOST"
 )
 
 var (
@@ -94,11 +93,6 @@ func main() {
 		setupLog.Error(fmt.Errorf("%s environment variable must be set (commonly set automatically in every Pod)", NamespaceEnvVar), "unable to get namespace")
 		os.Exit(1)
 	}
-	podName, found := os.LookupEnv(PodNameEnvVar)
-	if !found {
-		setupLog.Error(fmt.Errorf("%s environment variable must be set (commonly set automatically in every Pod)", PodNameEnvVar), "unable to get pod name")
-		os.Exit(1)
-	}
 
 	// must have openshift versions specified on the operator
 	// this prevents us from having to include the full json in source
@@ -121,8 +115,9 @@ func main() {
 	client := mgr.GetClient()
 	var nodeSelector map[string]string
 	var tolerations []corev1.Toleration
-	_, found = os.LookupEnv(K8sSvcHost)
-	if found { // Running inside a Kubelet pod
+
+	podName, found := os.LookupEnv(PodNameEnvVar)
+	if found {
 		operatorPod := &corev1.Pod{}
 		if err = client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: ns}, operatorPod); err != nil {
 			setupLog.Error(err, "Unable to get Infrastructure Operator Pod")
