@@ -2356,7 +2356,7 @@ paths:
     get:
       tags:
         - installer
-      description: Get the customized ignition file for this host
+      description: Get the customized ignition file for this host as a string
       operationId: GetHostIgnition
       parameters:
         - in: path
@@ -2459,7 +2459,7 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
-      description: Downloads the customized ignition file for this host
+      description: Downloads the customized ignition file for this host, produces octet string
       operationId: DownloadHostIgnition
       produces:
         - application/octet-stream
@@ -4360,7 +4360,7 @@ paths:
     get:
       tags:
         - installer
-      description: Fetch the ignition file for this host.
+      description: Fetch the ignition file for this host as a string. In case of unbound host produces an error
       operationId: v2GetHostIgnition
       parameters:
         - in: path
@@ -5867,6 +5867,64 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+        - agentAuth: []
+      description: Downloads the customized ignition file for this bound host, produces octet stream. For unbound host - error is returned
+      operationId: v2DownloadHostIgnition
+      produces:
+        - application/octet-stream
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The infra-env of the host whose ignition file should be downloaded.
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          description: The host whose ignition file should be downloaded.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: file
         "401":
           description: Unauthorized.
           schema:

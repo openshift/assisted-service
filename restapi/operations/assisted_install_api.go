@@ -328,6 +328,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		ManifestsV2DownloadClusterManifestHandler: manifests.V2DownloadClusterManifestHandlerFunc(func(params manifests.V2DownloadClusterManifestParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation manifests.V2DownloadClusterManifest has not yet been implemented")
 		}),
+		InstallerV2DownloadHostIgnitionHandler: installer.V2DownloadHostIgnitionHandlerFunc(func(params installer.V2DownloadHostIgnitionParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2DownloadHostIgnition has not yet been implemented")
+		}),
 		InstallerV2DownloadInfraEnvFilesHandler: installer.V2DownloadInfraEnvFilesHandlerFunc(func(params installer.V2DownloadInfraEnvFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DownloadInfraEnvFiles has not yet been implemented")
 		}),
@@ -666,6 +669,8 @@ type AssistedInstallAPI struct {
 	InstallerV2DeregisterHostHandler installer.V2DeregisterHostHandler
 	// ManifestsV2DownloadClusterManifestHandler sets the operation handler for the v2 download cluster manifest operation
 	ManifestsV2DownloadClusterManifestHandler manifests.V2DownloadClusterManifestHandler
+	// InstallerV2DownloadHostIgnitionHandler sets the operation handler for the v2 download host ignition operation
+	InstallerV2DownloadHostIgnitionHandler installer.V2DownloadHostIgnitionHandler
 	// InstallerV2DownloadInfraEnvFilesHandler sets the operation handler for the v2 download infra env files operation
 	InstallerV2DownloadInfraEnvFilesHandler installer.V2DownloadInfraEnvFilesHandler
 	// InstallerV2GetClusterHandler sets the operation handler for the v2 get cluster operation
@@ -1089,6 +1094,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.ManifestsV2DownloadClusterManifestHandler == nil {
 		unregistered = append(unregistered, "manifests.V2DownloadClusterManifestHandler")
+	}
+	if o.InstallerV2DownloadHostIgnitionHandler == nil {
+		unregistered = append(unregistered, "installer.V2DownloadHostIgnitionHandler")
 	}
 	if o.InstallerV2DownloadInfraEnvFilesHandler == nil {
 		unregistered = append(unregistered, "installer.V2DownloadInfraEnvFilesHandler")
@@ -1651,6 +1659,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters/{cluster_id}/manifests/files"] = manifests.NewV2DownloadClusterManifest(o.context, o.ManifestsV2DownloadClusterManifestHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition"] = installer.NewV2DownloadHostIgnition(o.context, o.InstallerV2DownloadHostIgnitionHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

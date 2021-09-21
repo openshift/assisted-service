@@ -932,6 +932,20 @@ func (mr *MockInstallerAPIMockRecorder) V2DownloadClusterLogs(arg0, arg1 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DownloadClusterLogs", reflect.TypeOf((*MockInstallerAPI)(nil).V2DownloadClusterLogs), arg0, arg1)
 }
 
+// V2DownloadHostIgnition mocks base method.
+func (m *MockInstallerAPI) V2DownloadHostIgnition(arg0 context.Context, arg1 installer.V2DownloadHostIgnitionParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2DownloadHostIgnition", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2DownloadHostIgnition indicates an expected call of V2DownloadHostIgnition.
+func (mr *MockInstallerAPIMockRecorder) V2DownloadHostIgnition(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DownloadHostIgnition", reflect.TypeOf((*MockInstallerAPI)(nil).V2DownloadHostIgnition), arg0, arg1)
+}
+
 // V2DownloadInfraEnvFiles mocks base method.
 func (m *MockInstallerAPI) V2DownloadInfraEnvFiles(arg0 context.Context, arg1 installer.V2DownloadInfraEnvFilesParams) middleware.Responder {
 	m.ctrl.T.Helper()

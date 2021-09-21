@@ -356,6 +356,18 @@ func (f fakeInventory) DownloadHostIgnition(ctx context.Context, params installe
 		0)
 }
 
+func (f fakeInventory) V2DownloadHostIgnition(ctx context.Context, params installer.V2DownloadHostIgnitionParams) middleware.Responder {
+	file, err := ioutil.TempFile("/tmp", "test.file")
+	if err != nil {
+		return installer.NewV2DownloadHostIgnitionInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, err))
+	}
+	return filemiddleware.NewResponder(
+		installer.NewV2DownloadHostIgnitionOK().WithPayload(io.ReadCloser(file)),
+		"test",
+		0)
+}
+
 func (f fakeInventory) UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder {
 	return installer.NewUpdateHostInstallerArgsCreated()
 }

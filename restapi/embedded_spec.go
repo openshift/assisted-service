@@ -2579,7 +2579,7 @@ func init() {
             "agentAuth": []
           }
         ],
-        "description": "Downloads the customized ignition file for this host",
+        "description": "Downloads the customized ignition file for this host, produces octet string",
         "produces": [
           "application/octet-stream"
         ],
@@ -2659,7 +2659,7 @@ func init() {
     },
     "/v1/clusters/{cluster_id}/hosts/{host_id}/ignition": {
       "get": {
-        "description": "Get the customized ignition file for this host",
+        "description": "Get the customized ignition file for this host as a string",
         "tags": [
           "installer"
         ],
@@ -6677,6 +6677,98 @@ func init() {
         }
       }
     },
+    "/v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Downloads the customized ignition file for this bound host, produces octet stream. For unbound host - error is returned",
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2DownloadHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra-env of the host whose ignition file should be downloaded.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose ignition file should be downloaded.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs": {
       "get": {
         "security": [
@@ -8188,7 +8280,7 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition": {
       "get": {
-        "description": "Fetch the ignition file for this host.",
+        "description": "Fetch the ignition file for this host as a string. In case of unbound host produces an error",
         "tags": [
           "installer"
         ],
@@ -15220,7 +15312,7 @@ func init() {
             "agentAuth": []
           }
         ],
-        "description": "Downloads the customized ignition file for this host",
+        "description": "Downloads the customized ignition file for this host, produces octet string",
         "produces": [
           "application/octet-stream"
         ],
@@ -15300,7 +15392,7 @@ func init() {
     },
     "/v1/clusters/{cluster_id}/hosts/{host_id}/ignition": {
       "get": {
-        "description": "Get the customized ignition file for this host",
+        "description": "Get the customized ignition file for this host as a string",
         "tags": [
           "installer"
         ],
@@ -19318,6 +19410,98 @@ func init() {
         }
       }
     },
+    "/v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Downloads the customized ignition file for this bound host, produces octet stream. For unbound host - error is returned",
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2DownloadHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra-env of the host whose ignition file should be downloaded.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose ignition file should be downloaded.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs": {
       "get": {
         "security": [
@@ -20829,7 +21013,7 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition": {
       "get": {
-        "description": "Fetch the ignition file for this host.",
+        "description": "Fetch the ignition file for this host as a string. In case of unbound host produces an error",
         "tags": [
           "installer"
         ],
