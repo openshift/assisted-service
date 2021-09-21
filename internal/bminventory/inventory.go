@@ -86,6 +86,7 @@ type Config struct {
 	ignition.IgnitionConfig
 	AgentDockerImg                  string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	ServiceBaseURL                  string            `envconfig:"SERVICE_BASE_URL"`
+	ImageServiceBaseURL             string            `envconfig:"IMAGE_SERVICE_BASE_URL"`
 	ServiceCACertPath               string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	S3EndpointURL                   string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
 	S3Bucket                        string            `envconfig:"S3_BUCKET" default:"test"`
@@ -964,7 +965,6 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infr
 				return errors.New("Failed to generate image: error generating URL")
 			}
 		} else {
-			// TODO(djzager): Needs to be updated with image-service work, MGMT-3934
 			var builder uriBuilder
 			if v2 {
 				builder = &installer.DownloadInfraEnvDiscoveryImageURL{InfraEnvID: infraEnv.ID}
@@ -1000,6 +1000,87 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infr
 	dbReply := b.db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		return errors.New("Failed to generate image: error updating image record")
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType) error {
+	updates := map[string]interface{}{}
+
+	// this is updated before now for the v2 (infraEnv) case, but not in the cluster ISO case so we need to check if we should save it here
+	if infraEnv.ProxyHash != infraEnvProxyHash {
+		updates["proxy_hash"] = infraEnvProxyHash
+		infraEnv.ProxyHash = infraEnvProxyHash
+	}
+
+	var (
+		prevType    string
+		prevVersion string
+		prevArch    string
+	)
+	if infraEnv.DownloadURL != "" {
+		currentURL, err := url.Parse(infraEnv.DownloadURL)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse current download URL")
+		}
+		vals := currentURL.Query()
+		prevType = vals.Get("type")
+		prevVersion = vals.Get("version")
+		prevArch = vals.Get("arch")
+	}
+
+	updates["type"] = imageType
+	infraEnv.Type = imageType
+
+	osImage, err := b.getOsImageOrLatest(&infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	if err != nil {
+		return err
+	}
+
+	var version string
+	if osImage.Version != nil {
+		version = *osImage.OpenshiftVersion
+	} else {
+		return errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage)
+	}
+
+	var arch string
+	if osImage.CPUArchitecture != nil {
+		arch = *osImage.CPUArchitecture
+	}
+
+	if string(imageType) != prevType || version != prevVersion || arch != prevArch || !infraEnv.Generated {
+		baseURL, urlErr := url.Parse(b.ImageServiceBaseURL)
+		if urlErr != nil {
+			return errors.Wrap(err, "failed to parse image service base URL")
+		}
+		downloadURL := url.URL{
+			Scheme: baseURL.Scheme,
+			Host:   baseURL.Host,
+			Path:   fmt.Sprintf("/images/%s", infraEnv.ID),
+		}
+		queryValues := url.Values{}
+		queryValues.Set("type", string(imageType))
+		queryValues.Set("version", version)
+		queryValues.Set("arch", arch)
+		downloadURL.RawQuery = queryValues.Encode()
+		infraEnv.DownloadURL = downloadURL.String()
+
+		if b.authHandler.AuthType() == auth.TypeLocal {
+			infraEnv.DownloadURL, err = gencrypto.SignURL(downloadURL.String(), infraEnv.ID.String(), gencrypto.InfraEnvKey)
+			if err != nil {
+				return errors.Wrap(err, "failed to sign image URL")
+			}
+		}
+		updates["download_url"] = infraEnv.DownloadURL
+		updates["generated"] = true
+		infraEnv.Generated = true
+	}
+
+	err = b.db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates).Error
+	if err != nil {
+		return errors.Wrap(err, "failed to update infraenv")
 	}
 
 	return nil
@@ -1086,10 +1167,13 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	/* We need to ensure that the metadata in the DB matches the image that will be uploaded to S3,
 	so we check that at least 10 seconds have past since the previous request to reduce the chance
 	of a race between two consecutive requests.
+
+	This is not relevant if we're using the image service as the image is never uploaded to s3, so skip the check
+	if the image service URL is set
 	*/
 	now := time.Now()
 	previousCreatedAt := time.Time(infraEnv.GeneratedAt)
-	if previousCreatedAt.Add(WindowBetweenRequestsInSeconds).After(now) {
+	if b.ImageServiceBaseURL == "" && previousCreatedAt.Add(WindowBetweenRequestsInSeconds).After(now) {
 		log.Error("request came too soon after previous request")
 		return nil, common.NewApiError(
 			http.StatusConflict,
@@ -1113,7 +1197,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		infraEnv.ProxyHash == infraEnvProxyHash &&
 		infraEnv.StaticNetworkConfig == staticNetworkConfig &&
 		infraEnv.Generated &&
-		infraEnv.Type == params.ImageCreateParams.ImageType {
+		infraEnv.Type == params.ImageCreateParams.ImageType &&
+		b.ImageServiceBaseURL == "" {
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
 		if err != nil {
@@ -1135,7 +1220,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	updates["proxy_no_proxy"] = cluster.NoProxy
 	//[TODO] - remove this code once we update ignition config override in InfraEnv via UpdateDiscoveryIgnitionInternal
 	updates["ignition_config_override"] = cluster.IgnitionConfigOverrides
-	if !imageExists {
+	if b.ImageServiceBaseURL == "" && !imageExists {
 		// set image-generated indicator to false before the attempt to genearate the image in order to have an explicit
 		// state of the image creation based on the cluster parameters which will be committed to the DB
 		updates["generated"] = false
@@ -1167,27 +1252,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 	txSuccess = true
-	if infraEnv, err = common.GetInfraEnvFromDB(b.db, params.ClusterID); err != nil {
-		log.WithError(err).Errorf("failed to get infra env %s after update", params.ClusterID)
-		msg := "Failed to generate image: error fetching updated infra env metadata"
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
-		return nil, err
-	}
 
-	if imageExists {
-		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, params.ImageCreateParams.ImageType, false, false); err != nil {
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
-
-		log.Infof("Re-used existing cluster <%s> image", params.ClusterID)
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
-			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`,
-				params.ImageCreateParams.ImageType),
-			time.Now())
-		return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: params.ClusterID})
-	}
-
-	err = b.createAndUploadNewImage(ctx, log, infraEnvProxyHash, infraEnv, params.ImageCreateParams.ImageType, false)
+	err = b.createAndUploadNewImage(ctx, log, infraEnvProxyHash, params.ClusterID, params.ImageCreateParams.ImageType, false, imageExists)
 	if err != nil {
 		return nil, err
 	}
@@ -1208,10 +1274,13 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 	/* We need to ensure that the metadata in the DB matches the image that will be uploaded to S3,
 	so we check that at least 10 seconds have past since the previous request to reduce the chance
 	of a race between two consecutive requests.
+
+	This is not relevant if we're using the image service as the image is never uploaded to s3, so skip the check
+	if the image service URL is set
 	*/
 	now := time.Now()
 	previousCreatedAt := time.Time(infraEnv.GeneratedAt)
-	if previousCreatedAt.Add(WindowBetweenRequestsInSeconds).After(now) {
+	if b.ImageServiceBaseURL == "" && previousCreatedAt.Add(WindowBetweenRequestsInSeconds).After(now) {
 		log.Error("request came too soon after previous request")
 		return common.NewApiError(
 			http.StatusConflict,
@@ -1223,7 +1292,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 	*/
 	var imageExists bool
 	var err error
-	if infraEnv.Generated {
+	if infraEnv.Generated && b.ImageServiceBaseURL == "" {
 		imgName := getImageName(infraEnv.ID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
 		if err != nil {
@@ -1235,7 +1304,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 	updates := map[string]interface{}{}
 	updates["generated_at"] = strfmt.DateTime(now)
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
-	if !imageExists {
+	if b.ImageServiceBaseURL == "" && !imageExists {
 		// set image-generated indicator to false before the attempt to genearate the image in order to have an explicit
 		// state of the image creation based on the cluster parameters which will be committed to the DB
 		updates["generated"] = false
@@ -1248,21 +1317,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 		return common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
-	if infraEnv, err = common.GetInfraEnvFromDB(b.db, infraEnv.ID); err != nil {
-		log.WithError(err).Errorf("failed to get infra env %s after update", infraEnv.ID)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	if imageExists {
-		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnv.ProxyHash, infraEnv.Type, false, true); err != nil {
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
-
-		log.Infof("Re-used existing InfraEnv <%s> image", infraEnv.ID)
-		return nil
-	}
-
-	err = b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, infraEnv, infraEnv.Type, true)
+	err = b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, infraEnv.ID, infraEnv.Type, true, imageExists)
 	if err != nil {
 		return err
 	}
@@ -1271,7 +1326,35 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 }
 
 func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log logrus.FieldLogger, infraEnvProxyHash string,
-	infraEnv *common.InfraEnv, imageType models.ImageType, v2 bool) error {
+	infraEnvID strfmt.UUID, imageType models.ImageType, v2 bool, imageExists bool) error {
+
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, infraEnvID)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get infra env %s after update", infraEnv.ID)
+		msg := "Failed to generate image: error fetching updated infra env metadata"
+		b.eventsHandler.AddEvent(ctx, infraEnvID, nil, models.EventSeverityError, msg, time.Now())
+		return err
+	}
+
+	// return without generating the image if we're using the image service or if the image has already been generated
+	if b.ImageServiceBaseURL != "" {
+		if err = b.updateExternalImageInfo(infraEnv, infraEnvProxyHash, imageType); err != nil {
+			return err
+		}
+
+		return nil
+	} else if imageExists {
+		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, imageType, false, v2); err != nil {
+			return err
+		}
+
+		log.Infof("Re-used existing image <%s>", infraEnv.ID)
+		b.eventsHandler.AddEvent(ctx, infraEnvID, nil, models.EventSeverityInfo,
+			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`, imageType),
+			time.Now())
+		return nil
+	}
+
 	// Setting ImageInfo.Type at this point in order to pass it to FormatDiscoveryIgnitionFile without saving it to the DB.
 	// Saving it to the DB will be done after a successful image generation by updateImageInfoPostUpload
 	infraEnv.Type = imageType

@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/go-openapi/swag"
@@ -90,11 +91,20 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 				Host: testHost,
 			},
 		}
+		imageRoute = &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      imageServiceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: fmt.Sprintf("%s.images", testHost),
+			},
+		}
 	)
 
 	BeforeEach(func() {
 		asc = newASCDefault()
-		ascr = newTestReconciler(asc, ingressCM, route)
+		ascr = newTestReconciler(asc, ingressCM, route, imageRoute)
 	})
 
 	It("reconcile should succeed", func() {
@@ -1011,18 +1021,33 @@ var _ = Describe("Default ConfigMap values", func() {
 				Host: testHost,
 			},
 		}
+		imageRoute = &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      imageServiceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: fmt.Sprintf("%s.images", testHost),
+			},
+		}
 	)
 
 	BeforeEach(func() {
 		asc := newASCDefault()
-		r := newTestReconciler(asc, route)
-		cm, mutateFn, _ := r.newAssistedCM(ctx, log, asc)
+		r := newTestReconciler(asc, route, imageRoute)
+		cm, mutateFn, err := r.newAssistedCM(ctx, log, asc)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(mutateFn()).ShouldNot(HaveOccurred())
 		configMap = cm.(*corev1.ConfigMap)
 	})
 
 	It("INSTALL_INVOKER", func() {
 		Expect(configMap.Data["INSTALL_INVOKER"]).To(Equal("assisted-installer-operator"))
+	})
+
+	It("sets the base URLs", func() {
+		Expect(configMap.Data["SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("https://%s", testHost)))
+		Expect(configMap.Data["IMAGE_SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("https://%s.images", testHost)))
 	})
 })
 
