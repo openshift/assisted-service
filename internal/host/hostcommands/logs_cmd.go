@@ -82,6 +82,7 @@ func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs stri
 		"BOOTSTRAP":              strconv.FormatBool(host.Bootstrap),
 		"INSTALLER_GATHER":       strconv.FormatBool(withInstallerGatherLogging),
 		"MASTERS_IPS":            mastersIPs,
+		"CACERTPATH":             common.HostCACertPath,
 	}
 	cmdArgsTmpl += "timeout 1h podman run --rm --privileged --net=host " +
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
@@ -89,7 +90,8 @@ func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs stri
 		"--env PULL_SECRET_TOKEN --name logs-sender --pid=host {{.AGENT_IMAGE}} logs_sender " +
 		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}} " +
 		"--insecure={{.SKIP_CERT_VERIFICATION}} -bootstrap={{.BOOTSTRAP}} -with-installer-gather-logging={{.INSTALLER_GATHER}}" +
-		"{{if .MASTERS_IPS}} -masters-ips={{.MASTERS_IPS}} {{end}}"
+		"{{if .MASTERS_IPS}} -masters-ips={{.MASTERS_IPS}} {{end}}" +
+		"{{if .CACERTPATH}} --cacert {{.CACERTPATH}} {{end}}"
 
 	if preservePreviousCommandReturnCode {
 		cmdArgsTmpl = cmdArgsTmpl + "; exit $returnCode; )"
