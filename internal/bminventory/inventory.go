@@ -4414,6 +4414,17 @@ func (b *bareMetalInventory) DownloadHostIgnition(ctx context.Context, params in
 	return filemiddleware.NewResponder(installer.NewDownloadHostIgnitionOK().WithPayload(respBody), fileName, contentLength)
 }
 
+func (b *bareMetalInventory) V2DownloadHostIgnition(ctx context.Context, params installer.V2DownloadHostIgnitionParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	fileName, respBody, contentLength, err := b.v2DownloadHostIgnition(ctx, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to download host %s ignition", params.HostID)
+		return common.GenerateErrorResponder(err)
+	}
+
+	return filemiddleware.NewResponder(installer.NewV2DownloadHostIgnitionOK().WithPayload(respBody), fileName, contentLength)
+}
+
 // v2DownloadHostIgnition returns the ignition file name, the content as an io.ReadCloser, and the file content length
 func (b *bareMetalInventory) v2DownloadHostIgnition(ctx context.Context, infraEnvID string, hostID string) (string, io.ReadCloser, int64, error) {
 	infraEnvHost, err := common.GetHostFromDB(b.db, infraEnvID, hostID)

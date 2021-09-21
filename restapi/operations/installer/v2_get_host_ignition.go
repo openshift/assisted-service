@@ -31,7 +31,7 @@ func NewV2GetHostIgnition(ctx *middleware.Context, handler V2GetHostIgnitionHand
 
 /*V2GetHostIgnition swagger:route GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition installer v2GetHostIgnition
 
-Fetch the ignition file for this host.
+Fetch the ignition file for this host as a string. In case of unbound host produces an error
 
 */
 type V2GetHostIgnition struct {

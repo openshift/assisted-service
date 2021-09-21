@@ -55,7 +55,7 @@ type API interface {
 	   DownloadClusterLogs Download cluster logs.*/
 	DownloadClusterLogs(ctx context.Context, params *DownloadClusterLogsParams, writer io.Writer) (*DownloadClusterLogsOK, error)
 	/*
-	   DownloadHostIgnition Downloads the customized ignition file for this host*/
+	   DownloadHostIgnition Downloads the customized ignition file for this host, produces octet string*/
 	DownloadHostIgnition(ctx context.Context, params *DownloadHostIgnitionParams, writer io.Writer) (*DownloadHostIgnitionOK, error)
 	/*
 	   DownloadHostLogs Download host logs.*/
@@ -107,7 +107,7 @@ type API interface {
 	   GetHost Retrieves the details of the OpenShift host.*/
 	GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error)
 	/*
-	   GetHostIgnition Get the customized ignition file for this host*/
+	   GetHostIgnition Get the customized ignition file for this host as a string*/
 	GetHostIgnition(ctx context.Context, params *GetHostIgnitionParams) (*GetHostIgnitionOK, error)
 	/*
 	   GetInfraEnv Retrieves the details of the InfraEnv.*/
@@ -232,6 +232,9 @@ type API interface {
 	   V2DeregisterHost Deregisters an OpenShift host.*/
 	V2DeregisterHost(ctx context.Context, params *V2DeregisterHostParams) (*V2DeregisterHostNoContent, error)
 	/*
+	   V2DownloadHostIgnition Downloads the customized ignition file for this bound host, produces octet stream. For unbound host - error is returned*/
+	V2DownloadHostIgnition(ctx context.Context, params *V2DownloadHostIgnitionParams, writer io.Writer) (*V2DownloadHostIgnitionOK, error)
+	/*
 	   V2DownloadInfraEnvFiles Downloads the customized ignition file for this host*/
 	V2DownloadInfraEnvFiles(ctx context.Context, params *V2DownloadInfraEnvFilesParams, writer io.Writer) (*V2DownloadInfraEnvFilesOK, error)
 	/*
@@ -244,7 +247,7 @@ type API interface {
 	   V2GetHost Retrieves the details of the OpenShift host.*/
 	V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2GetHostOK, error)
 	/*
-	   V2GetHostIgnition Fetch the ignition file for this host.*/
+	   V2GetHostIgnition Fetch the ignition file for this host as a string. In case of unbound host produces an error*/
 	V2GetHostIgnition(ctx context.Context, params *V2GetHostIgnitionParams) (*V2GetHostIgnitionOK, error)
 	/*
 	   V2GetNextSteps Retrieves the next operations that the host agent needs to perform.*/
@@ -629,7 +632,7 @@ func (a *Client) DownloadClusterLogs(ctx context.Context, params *DownloadCluste
 }
 
 /*
-DownloadHostIgnition Downloads the customized ignition file for this host
+DownloadHostIgnition Downloads the customized ignition file for this host, produces octet string
 */
 func (a *Client) DownloadHostIgnition(ctx context.Context, params *DownloadHostIgnitionParams, writer io.Writer) (*DownloadHostIgnitionOK, error) {
 
@@ -1039,7 +1042,7 @@ func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK
 }
 
 /*
-GetHostIgnition Get the customized ignition file for this host
+GetHostIgnition Get the customized ignition file for this host as a string
 */
 func (a *Client) GetHostIgnition(ctx context.Context, params *GetHostIgnitionParams) (*GetHostIgnitionOK, error) {
 
@@ -2066,6 +2069,31 @@ func (a *Client) V2DeregisterHost(ctx context.Context, params *V2DeregisterHostP
 }
 
 /*
+V2DownloadHostIgnition Downloads the customized ignition file for this bound host, produces octet stream. For unbound host - error is returned
+*/
+func (a *Client) V2DownloadHostIgnition(ctx context.Context, params *V2DownloadHostIgnitionParams, writer io.Writer) (*V2DownloadHostIgnitionOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2DownloadHostIgnition",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2DownloadHostIgnitionReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2DownloadHostIgnitionOK), nil
+
+}
+
+/*
 V2DownloadInfraEnvFiles Downloads the customized ignition file for this host
 */
 func (a *Client) V2DownloadInfraEnvFiles(ctx context.Context, params *V2DownloadInfraEnvFilesParams, writer io.Writer) (*V2DownloadInfraEnvFilesOK, error) {
@@ -2166,7 +2194,7 @@ func (a *Client) V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2Get
 }
 
 /*
-V2GetHostIgnition Fetch the ignition file for this host.
+V2GetHostIgnition Fetch the ignition file for this host as a string. In case of unbound host produces an error
 */
 func (a *Client) V2GetHostIgnition(ctx context.Context, params *V2GetHostIgnitionParams) (*V2GetHostIgnitionOK, error) {
 

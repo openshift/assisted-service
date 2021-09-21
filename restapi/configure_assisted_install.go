@@ -90,7 +90,7 @@ type InstallerAPI interface {
 	/* DownloadClusterLogs Download cluster logs. */
 	DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder
 
-	/* DownloadHostIgnition Downloads the customized ignition file for this host */
+	/* DownloadHostIgnition Downloads the customized ignition file for this host, produces octet string */
 	DownloadHostIgnition(ctx context.Context, params installer.DownloadHostIgnitionParams) middleware.Responder
 
 	/* DownloadHostLogs Download host logs. */
@@ -142,7 +142,7 @@ type InstallerAPI interface {
 	/* GetHost Retrieves the details of the OpenShift host. */
 	GetHost(ctx context.Context, params installer.GetHostParams) middleware.Responder
 
-	/* GetHostIgnition Get the customized ignition file for this host */
+	/* GetHostIgnition Get the customized ignition file for this host as a string */
 	GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder
 
 	/* GetInfraEnv Retrieves the details of the InfraEnv. */
@@ -265,6 +265,9 @@ type InstallerAPI interface {
 	/* V2DeregisterHost Deregisters an OpenShift host. */
 	V2DeregisterHost(ctx context.Context, params installer.V2DeregisterHostParams) middleware.Responder
 
+	/* V2DownloadHostIgnition Downloads the customized ignition file for this bound host, produces octet stream. For unbound host - error is returned */
+	V2DownloadHostIgnition(ctx context.Context, params installer.V2DownloadHostIgnitionParams) middleware.Responder
+
 	/* V2DownloadInfraEnvFiles Downloads the customized ignition file for this host */
 	V2DownloadInfraEnvFiles(ctx context.Context, params installer.V2DownloadInfraEnvFilesParams) middleware.Responder
 
@@ -277,7 +280,7 @@ type InstallerAPI interface {
 	/* V2GetHost Retrieves the details of the OpenShift host. */
 	V2GetHost(ctx context.Context, params installer.V2GetHostParams) middleware.Responder
 
-	/* V2GetHostIgnition Fetch the ignition file for this host. */
+	/* V2GetHostIgnition Fetch the ignition file for this host as a string. In case of unbound host produces an error */
 	V2GetHostIgnition(ctx context.Context, params installer.V2GetHostIgnitionParams) middleware.Responder
 
 	/* V2GetNextSteps Retrieves the next operations that the host agent needs to perform. */
@@ -976,6 +979,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.ManifestsAPI.V2DownloadClusterManifest(ctx, params)
+	})
+	api.InstallerV2DownloadHostIgnitionHandler = installer.V2DownloadHostIgnitionHandlerFunc(func(params installer.V2DownloadHostIgnitionParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2DownloadHostIgnition(ctx, params)
 	})
 	api.InstallerV2DownloadInfraEnvFilesHandler = installer.V2DownloadInfraEnvFilesHandlerFunc(func(params installer.V2DownloadInfraEnvFilesParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -31,7 +31,7 @@ func NewDownloadHostIgnition(ctx *middleware.Context, handler DownloadHostIgniti
 
 /*DownloadHostIgnition swagger:route GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition installer downloadHostIgnition
 
-Downloads the customized ignition file for this host
+Downloads the customized ignition file for this host, produces octet string
 
 */
 type DownloadHostIgnition struct {
