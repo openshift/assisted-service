@@ -117,7 +117,8 @@ spec:
 $(subscription_config)
   installPlanApproval: Automatic
   name: assisted-service-operator
-  source: ${catalog_source_name}
+  source: ${CATALOG_SOURCE_NAME:-${catalog_source_name}}
+  channel: ${CHANNEL:-alpha}
   sourceNamespace: openshift-marketplace
 EOCR
 
