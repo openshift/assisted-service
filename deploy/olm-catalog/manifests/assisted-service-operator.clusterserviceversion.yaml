@@ -521,6 +521,10 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
                 image: quay.io/ocpmetal/assisted-service:latest
                 livenessProbe:
                   httpGet:

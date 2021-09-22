@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -28,17 +29,21 @@ import (
 	"github.com/openshift/assisted-service/models"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 const (
 	NamespaceEnvVar string = "NAMESPACE"
+	PodNameEnvVar   string = "POD_NAME"
 )
 
 var (
@@ -108,12 +113,34 @@ func main() {
 		os.Exit(1)
 	}
 
+	var nodeSelector map[string]string
+	var tolerations []corev1.Toleration
+
+	podName, found := os.LookupEnv(PodNameEnvVar)
+	if found {
+		client, clientErr := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
+		if err != nil {
+			setupLog.Error(clientErr, "Unable to create new client")
+			os.Exit(1)
+		}
+
+		operatorPod := &corev1.Pod{}
+		if err = client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: ns}, operatorPod); err != nil {
+			setupLog.Error(err, "Unable to get Infrastructure Operator Pod")
+			os.Exit(1)
+		}
+		nodeSelector = operatorPod.Spec.NodeSelector
+		tolerations = operatorPod.Spec.Tolerations
+	}
+
 	if err = (&controllers.AgentServiceConfigReconciler{
-		Client:    mgr.GetClient(),
-		Log:       logrus.New(),
-		Scheme:    mgr.GetScheme(),
-		Recorder:  mgr.GetEventRecorderFor("agentserviceconfig-controller"),
-		Namespace: ns,
+		Client:       mgr.GetClient(),
+		Log:          logrus.New(),
+		Scheme:       mgr.GetScheme(),
+		Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
+		Namespace:    ns,
+		NodeSelector: nodeSelector,
+		Tolerations:  tolerations,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AgentServiceConfig")
 		os.Exit(1)

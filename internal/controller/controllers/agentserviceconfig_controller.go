@@ -94,6 +94,10 @@ type AgentServiceConfigReconciler struct {
 
 	// Namespace the operator is running in
 	Namespace string
+
+	// selector and tolerations the Operator runs in and propagates to its deployments
+	NodeSelector map[string]string
+	Tolerations  []corev1.Toleration
 }
 
 type NewComponentFn func(context.Context, logrus.FieldLogger, *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error)
@@ -813,6 +817,17 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{container}
 		deployment.Spec.Template.Spec.Volumes = volumes
 		deployment.Spec.Template.Spec.ServiceAccountName = imageServiceName
+
+		if r.NodeSelector != nil {
+			nodeSelector := make(map[string]string)
+			for key, value := range r.NodeSelector {
+				nodeSelector[key] = value
+			}
+			deployment.Spec.Template.Spec.NodeSelector = nodeSelector
+		}
+		if r.Tolerations != nil {
+			deployment.Spec.Template.Spec.Tolerations = append([]corev1.Toleration{}, r.Tolerations...)
+		}
 		return nil
 	}
 
@@ -1096,6 +1111,17 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{serviceContainer, postgresContainer}
 		deployment.Spec.Template.Spec.Volumes = volumes
 		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
+
+		if r.NodeSelector != nil {
+			nodeSelector := make(map[string]string)
+			for key, value := range r.NodeSelector {
+				nodeSelector[key] = value
+			}
+			deployment.Spec.Template.Spec.NodeSelector = nodeSelector
+		}
+		if r.Tolerations != nil {
+			deployment.Spec.Template.Spec.Tolerations = append([]corev1.Toleration{}, r.Tolerations...)
+		}
 
 		return nil
 	}
