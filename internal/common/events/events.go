@@ -1802,6 +1802,67 @@ func (e *ClusterDegradedFailedOLMOperatorsEvent) FormatMessage() string {
 }
 
 //
+// Event delete_expired_image
+//
+type DeleteExpiredImageEvent struct {
+    ClusterId strfmt.UUID
+}
+
+var DeleteExpiredImageEventName string = "delete_expired_image"
+
+func NewDeleteExpiredImageEvent(
+    clusterId strfmt.UUID,
+) *DeleteExpiredImageEvent {
+    return &DeleteExpiredImageEvent{
+        ClusterId: clusterId,
+    }
+}
+
+func SendDeleteExpiredImageEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,) {
+    ev := NewDeleteExpiredImageEvent(
+        clusterId,
+    )
+    eventsHandler.SendClusterEvent(ctx, ev)
+}
+
+func SendDeleteExpiredImageEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId strfmt.UUID,
+    eventTime time.Time) {
+    ev := NewDeleteExpiredImageEvent(
+        clusterId,
+    )
+    eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *DeleteExpiredImageEvent) GetName() string {
+    return "delete_expired_image"
+}
+
+func (e *DeleteExpiredImageEvent) GetSeverity() string {
+    return "info"
+}
+func (e *DeleteExpiredImageEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
+}
+
+func (e *DeleteExpiredImageEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+    )
+    return r.Replace(*message)
+}
+
+func (e *DeleteExpiredImageEvent) FormatMessage() string {
+    s := "Deleted image from backend because it expired. It may be generated again at any time"
+    return e.format(&s)
+}
+
+//
 // Event download_image_failed_fetch
 //
 type DownloadImageFailedFetchEvent struct {
