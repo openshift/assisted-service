@@ -2455,6 +2455,18 @@ func (b *bareMetalInventory) integrateWithAMSClusterUpdateName(ctx context.Conte
 func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger, interactivity Interactivity) error {
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
+
+	// We are checking if the cluster is requested to be a dual-stack cluster based on the Cluster
+	// Networks provided.
+	//
+	// TODO(mko) As updateNonDhcpNetworkParams is called before updateNetworks, this check looks
+	//           at the already configured networks and not the ones inside V2UpdateClusterParams.
+	//           An extension would be to check if V2UpdateClusterParams configures any of those
+	//           and if that's the case, instead of GetConfiguredAddressFamilies(cluster) we
+	//           should call something like GetRequestedAddressFamilies(cluster).
+	reqV4, reqV6, _ := network.GetConfiguredAddressFamilies(cluster)
+	reqDualStack := reqV4 && reqV6
+
 	if params.ClusterUpdateParams.APIVip != nil {
 		updates["api_vip"] = *params.ClusterUpdateParams.APIVip
 		apiVip = *params.ClusterUpdateParams.APIVip
@@ -2464,7 +2476,8 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		ingressVip = *params.ClusterUpdateParams.IngressVip
 	}
 	if params.ClusterUpdateParams.MachineNetworks != nil &&
-		common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) {
+		common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) &&
+		!reqDualStack {
 		err := errors.New("Setting Machine network CIDR is forbidden when cluster is not in vip-dhcp-allocation mode")
 		log.WithError(err).Warnf("Set Machine Network CIDR")
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -2500,6 +2513,20 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		if err != nil {
 			log.WithError(err).Warnf("Verify VIPs")
 			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		if params.ClusterUpdateParams.MachineNetworks != nil {
+			err = network.VerifyMachineNetworksDualStack(params.ClusterUpdateParams.MachineNetworks, reqDualStack)
+			if err != nil {
+				log.WithError(err).Warnf("Verify dual-stack machine networks")
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+		} else {
+			err = network.VerifyMachineNetworksDualStack(cluster.MachineNetworks, reqDualStack)
+			if err != nil {
+				log.WithError(err).Warnf("Verify dual-stack machine networks")
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
 		}
 	}
 
