@@ -36,6 +36,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -112,12 +113,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	client := mgr.GetClient()
 	var nodeSelector map[string]string
 	var tolerations []corev1.Toleration
 
 	podName, found := os.LookupEnv(PodNameEnvVar)
 	if found {
+		client, clientErr := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
+		if err != nil {
+			setupLog.Error(clientErr, "Unable to create new client")
+			os.Exit(1)
+		}
+
 		operatorPod := &corev1.Pod{}
 		if err = client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: ns}, operatorPod); err != nil {
 			setupLog.Error(err, "Unable to get Infrastructure Operator Pod")
@@ -128,7 +134,7 @@ func main() {
 	}
 
 	if err = (&controllers.AgentServiceConfigReconciler{
-		Client:       client,
+		Client:       mgr.GetClient(),
 		Log:          logrus.New(),
 		Scheme:       mgr.GetScheme(),
 		Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
