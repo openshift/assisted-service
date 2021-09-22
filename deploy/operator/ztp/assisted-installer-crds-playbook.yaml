@@ -25,13 +25,14 @@
     - cluster_host_prefix_additional: "{{ lookup('env', 'CLUSTER_HOST_PREFIX_ADDITIONAL') }}"
     - external_subnet_additional: "{{ lookup('env', 'EXTERNAL_SUBNET_ADDITIONAL') }}"
     - service_subnet_additional: "{{ lookup('env', 'SERVICE_SUBNET_ADDITIONAL') }}"
-    - extra_baremetalhosts: "{{ lookup('file', lookup('env', 'EXTRA_BAREMETALHOSTS_FILE')) | from_json }}"
+    - baremetalhosts: "{{ lookup('file', lookup('env', 'EXTRA_BAREMETALHOSTS_FILE')) | from_json }}"
 
   tasks:
   - name: create directory for generated CRDs
     file:
       name: generated
       state: directory
+
   - name: write the cluster image set crd
     template:
       src: "clusterImageSet.j2"
