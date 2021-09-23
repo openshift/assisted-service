@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"time"
 
 	"github.com/alessio/shellescape"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -250,13 +250,8 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 		isMmcblk := strings.Contains(disk.ByPath, "mmcblk") //mmc devices should be treated as removable
 		if disk.Bootable && !disk.Removable && !isMmcblk && !isFcIscsi && !disk.IsInstallationMedia {
 			formatCmds += fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=1 ; ", hostutil.GetDeviceIdentifier(disk))
-			i.eventsHandler.AddEvent(
-				ctx,
-				*host.ClusterID,
-				host.ID,
-				models.EventSeverityInfo,
-				fmt.Sprintf("%s: Performing quick format of disk %s(%s)", hostutil.GetHostnameForMsg(&host), disk.Name, hostutil.GetDeviceIdentifier(disk)),
-				time.Now())
+			eventgen.SendQuickDiskFormatEvent(ctx, i.eventsHandler, host.ClusterID, *host.ID, host.InfraEnvID,
+				hostutil.GetHostnameForMsg(&host), disk.Name, hostutil.GetDeviceIdentifier(disk))
 		}
 	}
 	return formatCmds, nil

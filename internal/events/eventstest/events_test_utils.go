@@ -1,14 +1,23 @@
 package eventstest
 
-import "github.com/openshift/assisted-service/internal/events"
+import (
+	"fmt"
+	"path/filepath"
+	"reflect"
+	"runtime"
+	"strings"
+
+	"github.com/openshift/assisted-service/internal/events"
+)
 
 type eventPartMatcher func(event interface{}) bool
 
-func NewEventMatcher(matcherGens ...eventPartMatcher) EventMatcher {
+func NewEventMatcher(matcherGens ...eventPartMatcher) *EventMatcher {
 	var matchers = make([]eventPartMatcher, 0, 5)
 	matchers = append(matchers, matcherGens...)
-	return EventMatcher{
+	return &EventMatcher{
 		matchers,
+		"",
 	}
 }
 
@@ -27,14 +36,17 @@ func WithNameMatcher(expected string) eventPartMatcher {
 
 func WithClusterIdMatcher(expected string) eventPartMatcher {
 	return func(event interface{}) bool {
-		e, ok := event.(events.ClusterEvent)
-		if !ok {
+		switch e := event.(type) {
+		case events.ClusterEvent:
+			return e.GetClusterId().String() == expected
+		case events.HostEvent:
+			if e.GetClusterId() == nil {
+				return false
+			}
+			return e.GetClusterId().String() == expected
+		default:
 			return false
 		}
-		if e.GetClusterId().String() == expected {
-			return true
-		}
-		return false
 	}
 }
 
@@ -92,22 +104,27 @@ func WithMessageMatcher(expected string) eventPartMatcher {
 
 type EventMatcher struct {
 	matchers []eventPartMatcher
+	message  string
 }
 
 // Matches implements gomock.Matcher
-func (e EventMatcher) Matches(input interface{}) bool {
+func (e *EventMatcher) Matches(input interface{}) bool {
 	event, ok := input.(events.BaseEvent)
 	if !ok {
+		e.message = "Unsupported event type"
 		return false
 	}
 	for _, matcher := range e.matchers {
 		if !matcher(event) {
+			matcherFunc := runtime.FuncForPC(reflect.ValueOf(matcher).Pointer()).Name()
+			matcherFuncName := filepath.Base(strings.TrimSuffix(matcherFunc, ".func1"))
+			e.message = fmt.Sprintf("Failed Mathcer: %s with %+v \n", matcherFuncName, event)
 			return false
 		}
 	}
 	return true
 }
 
-func (e EventMatcher) String() string {
-	return "verifies event fields"
+func (e *EventMatcher) String() string {
+	return e.message
 }

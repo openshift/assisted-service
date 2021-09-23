@@ -15,7 +15,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -165,7 +167,13 @@ var _ = Describe("installcmd", func() {
 		mockFormatEvent := func(disk *models.Disk, times int) {
 			eventStatusInfo := "%s: Performing quick format of disk %s(%s)"
 			message := fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), disk.Name, disk.ID)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *host.ClusterID, host.ID, models.EventSeverityInfo, message, gomock.Any()).Times(times)
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.QuickDiskFormatEventName),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				eventstest.WithMessageMatcher(message),
+				eventstest.WithHostIdMatcher(host.ID.String()))).Times(times)
+
 		}
 
 		prepareGetStep := func(disk *models.Disk) {
