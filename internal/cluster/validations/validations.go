@@ -404,12 +404,62 @@ func ValidateIPAddresses(ipV6Supported bool, obj interface{}) error {
 	if err != nil {
 		return err
 	}
-	networkTypes := []string{"ClusterNetworks", "ServiceNetworks", "MachineNetworks"}
-	for _, net := range networkTypes {
-		networks := common.GetNetworkCidrAttr(obj, net)
-		err = ValidateDualStackIPNetworksOrder(networks...)
+	err = validateDualStackNetworks(obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateDualStackNetworks(clusterParams interface{}) error {
+	var machineNetworks []*models.MachineNetwork
+	var serviceNetworks []*models.ServiceNetwork
+	var clusterNetworks []*models.ClusterNetwork
+	var err error
+	var ipv4, ipv6 bool
+	reqDualStack := false
+
+	machineNetworks = network.DerefMachineNetworks(funk.Get(clusterParams, "MachineNetworks"))
+	serviceNetworks = network.DerefServiceNetworks(funk.Get(clusterParams, "ServiceNetworks"))
+	clusterNetworks = network.DerefClusterNetworks(funk.Get(clusterParams, "ClusterNetworks"))
+
+	ipv4, ipv6, err = network.GetAddressFamilies(machineNetworks)
+	if err != nil {
+		return err
+	}
+	reqDualStack = reqDualStack || (ipv4 && ipv6)
+
+	if !reqDualStack {
+		ipv4, ipv6, err = network.GetAddressFamilies(serviceNetworks)
 		if err != nil {
 			return err
+		}
+		reqDualStack = ipv4 && ipv6
+	}
+
+	if !reqDualStack {
+		ipv4, ipv6, err = network.GetAddressFamilies(clusterNetworks)
+		if err != nil {
+			return err
+		}
+		reqDualStack = ipv4 && ipv6
+	}
+
+	if reqDualStack {
+		if common.IsSliceNonEmpty(machineNetworks) {
+			if err := network.VerifyMachineNetworksDualStack(machineNetworks, true); err != nil {
+				return err
+			}
+		}
+		if common.IsSliceNonEmpty(serviceNetworks) {
+			if err := network.VerifyServiceNetworksDualStack(serviceNetworks, true); err != nil {
+				return err
+			}
+		}
+		if common.IsSliceNonEmpty(clusterNetworks) {
+			if err := network.VerifyClusterNetworksDualStack(clusterNetworks, true); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -433,27 +483,6 @@ func ValidateIPAddressFamily(ipV6Supported bool, elements ...*string) error {
 	}
 	if ipv6 && !ipv4 {
 		return errors.Errorf("IPv6 is not supported in this setup")
-	}
-	return nil
-}
-
-// ValidateDualStackIPNetworksOrder returns an error if for the dual-stack cluster the first
-// network is not IPv4
-func ValidateDualStackIPNetworksOrder(elements ...*string) error {
-	ipv4 := false
-	ipv6 := false
-	ipv6BeforeV4 := false
-	for _, e := range elements {
-		if e == nil || *e == "" {
-			continue
-		}
-		currRecordIPv6Stack := strings.Contains(*e, ":")
-		ipv4 = ipv4 || !currRecordIPv6Stack
-		ipv6 = ipv6 || currRecordIPv6Stack
-		ipv6BeforeV4 = ipv6BeforeV4 || (strings.Contains(*e, ":") && !ipv4)
-	}
-	if ipv4 && ipv6BeforeV4 {
-		return errors.Errorf("IPv6 network provided before IPv4")
 	}
 	return nil
 }
