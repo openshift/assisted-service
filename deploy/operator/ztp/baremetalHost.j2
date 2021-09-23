@@ -1,4 +1,17 @@
-{% for host in baremetalhosts %}
+{% set ns = namespace(counter=1) %}
+{% set bmhs = [] %}
+{% if assisted_upgrade_operator|string == "true" %}
+## Use the first baremetalhost to install SNO before upgrading the operator
+      {{ bmhs.append( baremetalhosts[0] ) }}
+{% elif ( assisted_stop_after_agent_discovery|string == "true" ) and ( baremetalhosts|length > 1) %}
+## When operator has already been upgraded, use the other baremetalhost to install SNO after the operator upgrade
+      {{ bmhs.append( baremetalhosts[1] ) }}
+{% else %}
+      {% set bmhs = baremetalhosts %}
+{% endif %}
+{% for host in bmhs %}
+{% if ns.counter <= spoke_controlplane_agents|int %}
+
 ---
 apiVersion: v1
 kind: Secret
@@ -26,5 +39,6 @@ spec:
   bmc:
     address: '{{ host["driver_info"]["address"] }}'
     credentialsName: '{{ host["name"] }}-bmc-secret'
-
+{% endif %}
+{% set ns.counter = ns.counter + 1 %}
 {% endfor %}
