@@ -212,6 +212,16 @@ x-events:
   properties:
     cluster_id:  UUID
 
+- name: cluster_operator_status
+  message: "Operator {operator_name} status: {status} message: {status_info}"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    operator_name: string
+    status: string
+    status_info: string
+
 - name: download_image_failed_fetch
   message: "Failed to download image: error fetching from storage backend"
   event_type: infra_env

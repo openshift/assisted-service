@@ -13,7 +13,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/operators"
 	operatorsHandler "github.com/openshift/assisted-service/internal/operators/handler"
 	"github.com/openshift/assisted-service/internal/operators/lso"
@@ -143,7 +145,9 @@ var _ = Describe("Operators manager", func() {
 			operatorName := common.TestDefaultConfig.MonitoredOperator.Name
 			newStatus := models.OperatorStatusFailed
 
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
+			mockEvents.EXPECT().SendClusterEvent(context.TODO(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterOperatorStatusEventName),
+				eventstest.WithClusterIdMatcher(c.ID.String()))).Times(1)
 
 			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *c.ID, operatorName, newStatus, statusInfo, db)
 
