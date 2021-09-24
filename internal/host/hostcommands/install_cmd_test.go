@@ -53,6 +53,7 @@ var _ = Describe("installcmd", func() {
 		installCmd        *installCmd
 		clusterId         strfmt.UUID
 		infraEnvId        strfmt.UUID
+		infraEnv          common.InfraEnv
 		stepReply         []*models.Step
 		stepErr           error
 		ctrl              *gomock.Controller
@@ -74,7 +75,8 @@ var _ = Describe("installcmd", func() {
 		installCmd = NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions)
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeFull)
 		clusterId = *cluster.ID
-		infraEnvId = strfmt.UUID(uuid.New().String())
+		infraEnv = createInfraEnvInDb(db, clusterId)
+		infraEnvId = infraEnv.ID
 		host = createHostInDb(db, infraEnvId, clusterId, models.HostRoleMaster, false, "")
 	})
 
@@ -279,6 +281,7 @@ var _ = Describe("installcmd arguments", func() {
 		mockEvents   *events.MockHandler
 		mockVersions *versions.MockHandler
 		infraEnvId   strfmt.UUID
+		infraEnv     common.InfraEnv
 	)
 
 	mockImages := func() {
@@ -289,7 +292,8 @@ var _ = Describe("installcmd arguments", func() {
 	BeforeSuite(func() {
 		db, dbName = common.PrepareTestDB()
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
-		infraEnvId = strfmt.UUID(uuid.New().String())
+		infraEnv = createInfraEnvInDb(db, *cluster.ID)
+		infraEnvId = infraEnv.ID
 		host = createHostInDb(db, infraEnvId, *cluster.ID, models.HostRoleMaster, false, "")
 		ctrl = gomock.NewController(GinkgoT())
 		validator = hardware.NewMockValidator(ctrl)
@@ -441,7 +445,7 @@ var _ = Describe("installcmd arguments", func() {
 		})
 
 		It("empty installer args with static ip config", func() {
-			db.Model(&cluster).Update("static_network_configured", true)
+			db.Model(&infraEnv).Update("static_network_config", "{'test': 'test'}")
 			host.InstallerArgs = ""
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
@@ -450,7 +454,7 @@ var _ = Describe("installcmd arguments", func() {
 		})
 
 		It("non-empty installer args with static ip config", func() {
-			db.Model(&cluster).Update("static_network_configured", true)
+			db.Model(&infraEnv).Update("static_network_config", "{'test': 'test'}")
 			host.InstallerArgs = `["--append-karg","nameserver=8.8.8.8","-n"]`
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
@@ -556,9 +560,10 @@ var _ = Describe("installcmd arguments", func() {
 
 var _ = Describe("construct host install arguments", func() {
 	var (
-		cluster *common.Cluster
-		host    *models.Host
-		log     = common.GetTestLog()
+		cluster  *common.Cluster
+		host     *models.Host
+		infraEnv *common.InfraEnv
+		log      = common.GetTestLog()
 	)
 	BeforeEach(func() {
 		clusterID := strfmt.UUID(uuid.New().String())
@@ -568,10 +573,21 @@ var _ = Describe("construct host install arguments", func() {
 				ImageInfo: &models.ImageInfo{},
 			},
 		}
+
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		infraEnv = &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:        infraEnvID,
+				ClusterID: clusterID,
+			},
+		}
+
 		hostID := strfmt.UUID(uuid.New().String())
 		host = &models.Host{
-			ID: &hostID,
+			ID:         &hostID,
+			InfraEnvID: infraEnvID,
 		}
+
 	})
 	It("ip=<nic>:dhcp6 added when machine CIDR is IPv6", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/64"}}
@@ -583,7 +599,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth0:dhcp6"]`))
 	})
@@ -597,7 +613,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
@@ -611,7 +627,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth1:dhcp"]`))
 	})
@@ -625,7 +641,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth1:dhcp"]`))
 	})
@@ -643,7 +659,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth1:dhcp"]`))
 	})
@@ -657,7 +673,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
@@ -682,7 +698,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth0:dhcp6"]`))
 	})
@@ -707,7 +723,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
@@ -732,7 +748,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth1:dhcp"]`))
 	})
@@ -757,14 +773,14 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
 	It("ip=<nic>:dhcp and copy-network added with static config", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
+		infraEnv.StaticNetworkConfig = "something"
 		cluster.ImageInfo.StaticNetworkConfig = "something"
-		cluster.StaticNetworkConfigured = true
 		host.Inventory = `{
 			"interfaces":[
 				{
@@ -773,13 +789,14 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth1:dhcp","--copy-network"]`))
 	})
 	It("ip=<nic>:dhcp added with static config and copy-network set by the user", func() {
 		host.InstallerArgs = `["--copy-network"]`
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
+		infraEnv.StaticNetworkConfig = "something"
 		cluster.ImageInfo.StaticNetworkConfig = "something"
 		host.Inventory = `{
 			"interfaces":[
@@ -789,7 +806,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--copy-network","--append-karg","ip=eth0:dhcp"]`))
 	})
@@ -804,7 +821,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--copy-network","--append-karg","ip=ens3:dhcp"]`))
 	})
@@ -819,7 +836,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=eth1:dhcp6"]`))
 	})
@@ -834,7 +851,7 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=eth2:dhcp"]`))
 	})
@@ -842,7 +859,7 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := `["--append-karg","ip=dhcp"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/120"}}
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -850,7 +867,7 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := `["--append-karg","ip=dhcp6"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -858,7 +875,7 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := `["--append-karg","ip=eth0:any"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -866,7 +883,7 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := `["--delete-karg","ip=dhcp"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/120"}}
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -874,12 +891,12 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := `["--delete-karg","ip=dhcp6"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
 	It("error if machine CIDR not given and no hosts", func() {
-		_, err := constructHostInstallerArgs(cluster, host, log)
+		_, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).To(HaveOccurred())
 	})
 	It("error if machine CIDR not given and no bootsrap", func() {
@@ -889,7 +906,7 @@ var _ = Describe("construct host install arguments", func() {
 				Inventory: `{"interfaces":[{"ipv4_addresses":["192.186.10.12/24"]}]}`,
 			},
 		}
-		_, err := constructHostInstallerArgs(cluster, host, log)
+		_, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).To(HaveOccurred())
 	})
 	It("ip argument not set in day2 when ipv4", func() {
@@ -902,7 +919,7 @@ var _ = Describe("construct host install arguments", func() {
 					}
 				]
 			}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
@@ -916,7 +933,7 @@ var _ = Describe("construct host install arguments", func() {
 					}
 				]
 			}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
@@ -930,14 +947,14 @@ var _ = Describe("construct host install arguments", func() {
 					}
 				]
 			}`
-		args, err := constructHostInstallerArgs(cluster, host, log)
+		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
 	It("error when inventory corrupted", func() {
 		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
 		host.Inventory = ""
-		_, err := constructHostInstallerArgs(cluster, host, log)
+		_, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
 		Expect(err).To(HaveOccurred())
 	})
 })
@@ -996,6 +1013,18 @@ func createClusterInDb(db *gorm.DB, haMode string) common.Cluster {
 	}}
 	Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	return cluster
+}
+
+func createInfraEnvInDb(db *gorm.DB, clusterId strfmt.UUID) common.InfraEnv {
+	infraEnvId := strfmt.UUID(uuid.New().String())
+	infraEnv := common.InfraEnv{
+		InfraEnv: models.InfraEnv{
+			ID:        infraEnvId,
+			ClusterID: clusterId,
+		},
+	}
+	Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
+	return infraEnv
 }
 
 func createHostInDb(db *gorm.DB, infraEnvId, clusterId strfmt.UUID, role models.HostRole, bootstrap bool, hostname string) models.Host {
