@@ -73,7 +73,12 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	fullCmd, err := i.getFullInstallerCommand(cluster, host, bootdevice)
+	infraEnv, err := common.GetInfraEnvByClusterFromDB(i.db, *cluster.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	fullCmd, err := i.getFullInstallerCommand(cluster, host, infraEnv, bootdevice)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +98,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	return []*models.Step{step}, nil
 }
 
-func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, bootdevice string) (string, error) {
+func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, infraEnv *common.InfraEnv, bootdevice string) (string, error) {
 	role := host.Role
 	if host.Bootstrap {
 		role = models.HostRoleBootstrap
@@ -159,7 +164,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		installerCmd = append(installerCmd, "--cacert", common.HostCACertPath)
 	}
 
-	hostInstallerArgs, err := constructHostInstallerArgs(cluster, host, i.log)
+	hostInstallerArgs, err := constructHostInstallerArgs(cluster, host, infraEnv, i.log)
 	if err != nil {
 		return "", err
 	}
@@ -263,9 +268,10 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 	set --copy-network, function will set only one such argument. It also append an arg that
 	controls DHCP depending on the IP stack being used.
 */
-func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, log logrus.FieldLogger) (string, error) {
+func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
 
 	var installerArgs []string
+
 	if host.InstallerArgs != "" {
 		err := json.Unmarshal([]byte(host.InstallerArgs), &installerArgs)
 		if err != nil {
@@ -278,7 +284,7 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, log 
 		return "", err
 	}
 
-	if cluster.StaticNetworkConfigured && !funk.Contains(installerArgs, "--copy-network") {
+	if (cluster.StaticNetworkConfigured || infraEnv.StaticNetworkConfig != "") && !funk.Contains(installerArgs, "--copy-network") {
 		// network not configured statically or
 		// installer args already contain command for network configuration
 		installerArgs = append(installerArgs, "--copy-network")
