@@ -85,7 +85,7 @@ var _ = Describe("instruction_manager", func() {
 
 			infraEnv := common.InfraEnv{
 				InfraEnv: models.InfraEnv{
-					ID:        strfmt.UUID(uuid.New().String()),
+					ID:        infraEnvId,
 					ClusterID: clusterId,
 				},
 			}
@@ -174,7 +174,7 @@ var _ = Describe("instruction_manager", func() {
 
 			infraEnv := common.InfraEnv{
 				InfraEnv: models.InfraEnv{
-					ID:        strfmt.UUID(uuid.New().String()),
+					ID:        infraEnvId,
 					ClusterID: clusterId,
 				},
 			}
@@ -323,12 +323,11 @@ var _ = Describe("instruction_manager", func() {
 
 				infraEnv := common.InfraEnv{
 					InfraEnv: models.InfraEnv{
-						ID:        strfmt.UUID(uuid.New().String()),
+						ID:        infraEnvId,
 						ClusterID: clusterId,
 					},
 				}
 				Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
-
 			})
 			It("Should not filter out any step when: HostState=installing DisabledSteps=execute.", func() {
 				instMng = createInstMngWithDisabledSteps([]models.StepType{models.StepTypeExecute})

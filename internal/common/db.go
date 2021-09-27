@@ -265,16 +265,6 @@ func GetInfraEnvFromDB(db *gorm.DB, infraEnvID strfmt.UUID) (*InfraEnv, error) {
 	return &infraEnv, nil
 }
 
-func GetInfraEnvByClusterFromDB(db *gorm.DB, clusterId strfmt.UUID) (*InfraEnv, error) {
-	var infraEnv InfraEnv
-
-	err := db.First(&infraEnv, "cluster_id = ?", clusterId.String()).Error
-	if err != nil {
-		return nil, err
-	}
-	return &infraEnv, nil
-}
-
 func GetInfraEnvHostsFromDB(db *gorm.DB, infraEnvID strfmt.UUID) ([]*Host, error) {
 	return GetHostsFromDBWhere(db, "infra_env_id = ?", infraEnvID)
 }
