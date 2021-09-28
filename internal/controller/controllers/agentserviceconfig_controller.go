@@ -728,9 +728,8 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 	}
 
 	container := corev1.Container{
-		Name:            imageServiceName,
-		Image:           ImageServiceImage(),
-		ImagePullPolicy: corev1.PullIfNotPresent,
+		Name:  imageServiceName,
+		Image: ImageServiceImage(),
 		Ports: []corev1.ContainerPort{
 			{
 				ContainerPort: int32(imageHandlerPort.IntValue()),
@@ -933,9 +932,8 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	}
 
 	postgresContainer := corev1.Container{
-		Name:            databaseName,
-		Image:           DatabaseImage(),
-		ImagePullPolicy: corev1.PullIfNotPresent,
+		Name:  databaseName,
+		Image: DatabaseImage(),
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          databaseName,
