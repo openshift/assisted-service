@@ -73,9 +73,12 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	infraEnv, err := common.GetInfraEnvByClusterFromDB(i.db, *cluster.ID)
-	if err != nil {
-		return nil, err
+	var infraEnv *common.InfraEnv = nil
+	if host.InfraEnvID != "" {
+		infraEnv, err = common.GetInfraEnvFromDB(i.db, host.InfraEnvID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	fullCmd, err := i.getFullInstallerCommand(cluster, host, infraEnv, bootdevice)
@@ -284,7 +287,8 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, infr
 		return "", err
 	}
 
-	if (cluster.StaticNetworkConfigured || infraEnv.StaticNetworkConfig != "") && !funk.Contains(installerArgs, "--copy-network") {
+	hasStaticNetwork := (infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
+	if hasStaticNetwork && !funk.Contains(installerArgs, "--copy-network") {
 		// network not configured statically or
 		// installer args already contain command for network configuration
 		installerArgs = append(installerArgs, "--copy-network")
