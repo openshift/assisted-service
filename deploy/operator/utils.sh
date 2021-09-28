@@ -35,7 +35,7 @@ function wait_for_pod() {
     namespace="${2:-}"
     selector="${3:-}"
 
-    wait_for_condition "pod" "Ready" "22m" "${namespace}" "${selector}"
+    wait_for_condition "pod" "Ready" "30m" "${namespace}" "${selector}"
 }
 
 function hash() {
