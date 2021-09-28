@@ -30,7 +30,7 @@ var _ = Describe("CNV operator", func() {
 				"8086:158b": true,
 				"15b3:1015": true,
 			}}
-		operator = cnv.NewCNVOperator(log, cfg, nil)
+		operator = cnv.NewCNVOperator(log, cfg)
 	})
 
 	Context("host requirements", func() {

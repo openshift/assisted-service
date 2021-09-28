@@ -15,7 +15,7 @@ import (
 var _ = Describe("Ocs Operator", func() {
 	var (
 		ctx                 = context.TODO()
-		operator            = NewOcsOperator(common.GetTestLog(), nil)
+		operator            = NewOcsOperator(common.GetTestLog())
 		diskID1             = "/dev/disk/by-id/test-disk-1"
 		diskID2             = "/dev/disk/by-id/test-disk-2"
 		diskID3             = "/dev/disk/by-id/test-disk-3"

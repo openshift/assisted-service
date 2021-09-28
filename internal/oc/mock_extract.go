@@ -8,7 +8,6 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	logrus "github.com/sirupsen/logrus"
 )
 
 // MockExtracter is a mock of Extracter interface.
@@ -35,31 +34,31 @@ func (m *MockExtracter) EXPECT() *MockExtracterMockRecorder {
 }
 
 // Extract mocks base method.
-func (m *MockExtracter) Extract(log logrus.FieldLogger, imageIndexPath, openshiftVersion, filePath, pullSecret string, insecure bool) (string, error) {
+func (m *MockExtracter) Extract(imageIndexPath, openshiftVersion, filePath, pullSecret string, insecure bool) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Extract", log, imageIndexPath, openshiftVersion, filePath, pullSecret, insecure)
+	ret := m.ctrl.Call(m, "Extract", imageIndexPath, openshiftVersion, filePath, pullSecret, insecure)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Extract indicates an expected call of Extract.
-func (mr *MockExtracterMockRecorder) Extract(log, imageIndexPath, openshiftVersion, filePath, pullSecret, insecure interface{}) *gomock.Call {
+func (mr *MockExtracterMockRecorder) Extract(imageIndexPath, openshiftVersion, filePath, pullSecret, insecure interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockExtracter)(nil).Extract), log, imageIndexPath, openshiftVersion, filePath, pullSecret, insecure)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockExtracter)(nil).Extract), imageIndexPath, openshiftVersion, filePath, pullSecret, insecure)
 }
 
 // ExtractDatabaseIndex mocks base method.
-func (m *MockExtracter) ExtractDatabaseIndex(log logrus.FieldLogger, releaseImageMirror, openshiftVersion, pullSecret string) (string, error) {
+func (m *MockExtracter) ExtractDatabaseIndex(releaseImageMirror, openshiftVersion, pullSecret string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExtractDatabaseIndex", log, releaseImageMirror, openshiftVersion, pullSecret)
+	ret := m.ctrl.Call(m, "ExtractDatabaseIndex", releaseImageMirror, openshiftVersion, pullSecret)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ExtractDatabaseIndex indicates an expected call of ExtractDatabaseIndex.
-func (mr *MockExtracterMockRecorder) ExtractDatabaseIndex(log, releaseImageMirror, openshiftVersion, pullSecret interface{}) *gomock.Call {
+func (mr *MockExtracterMockRecorder) ExtractDatabaseIndex(releaseImageMirror, openshiftVersion, pullSecret interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractDatabaseIndex", reflect.TypeOf((*MockExtracter)(nil).ExtractDatabaseIndex), log, releaseImageMirror, openshiftVersion, pullSecret)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractDatabaseIndex", reflect.TypeOf((*MockExtracter)(nil).ExtractDatabaseIndex), releaseImageMirror, openshiftVersion, pullSecret)
 }

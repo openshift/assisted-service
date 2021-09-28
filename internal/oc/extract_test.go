@@ -7,6 +7,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/pkg/executer"
 )
 
@@ -22,7 +23,7 @@ var _ = Describe("oc extract", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockExecuter = executer.NewMockExecuter(ctrl)
 		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
-		oc = NewExtracter(mockExecuter, config)
+		oc = NewExtracter(mockExecuter, config, common.GetTestLog())
 		tempFilePath = "/tmp/pull-secret"
 		mockExecuter.EXPECT().TempFile(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(dir, pattern string) (*os.File, error) {
@@ -41,7 +42,7 @@ var _ = Describe("oc extract", func() {
 		It("extract db from 4.7 openshift version", func() {
 			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any()).Return("", "", 0).Times(1)
 
-			tempFile, err := oc.ExtractDatabaseIndex(log, "", "4.7", pullSecret)
+			tempFile, err := oc.ExtractDatabaseIndex("", "4.7", pullSecret)
 			Expect(tempFile).ShouldNot(BeEmpty())
 			Expect(err).ShouldNot(HaveOccurred())
 		})

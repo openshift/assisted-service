@@ -6258,6 +6258,9 @@ definitions:
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: Time at which the operator was last updated.
+      bundle_name:
+        type: string
+        description: Indicates the bundlename for the operator
 
   operator-monitor-report:
     type: object

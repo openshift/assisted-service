@@ -10,40 +10,40 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockQuery is a mock of Query interface.
-type MockQuery struct {
+// MockOperatorVersionReader is a mock of OperatorVersionReader interface.
+type MockOperatorVersionReader struct {
 	ctrl     *gomock.Controller
-	recorder *MockQueryMockRecorder
+	recorder *MockOperatorVersionReaderMockRecorder
 }
 
-// MockQueryMockRecorder is the mock recorder for MockQuery.
-type MockQueryMockRecorder struct {
-	mock *MockQuery
+// MockOperatorVersionReaderMockRecorder is the mock recorder for MockOperatorVersionReader.
+type MockOperatorVersionReaderMockRecorder struct {
+	mock *MockOperatorVersionReader
 }
 
-// NewMockQuery creates a new mock instance.
-func NewMockQuery(ctrl *gomock.Controller) *MockQuery {
-	mock := &MockQuery{ctrl: ctrl}
-	mock.recorder = &MockQueryMockRecorder{mock}
+// NewMockOperatorVersionReader creates a new mock instance.
+func NewMockOperatorVersionReader(ctrl *gomock.Controller) *MockOperatorVersionReader {
+	mock := &MockOperatorVersionReader{ctrl: ctrl}
+	mock.recorder = &MockOperatorVersionReaderMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockQuery) EXPECT() *MockQueryMockRecorder {
+func (m *MockOperatorVersionReader) EXPECT() *MockOperatorVersionReaderMockRecorder {
 	return m.recorder
 }
 
-// GetOperatorVersions mocks base method.
-func (m *MockQuery) GetOperatorVersions(bundleName string) ([]string, error) {
+// GetOperatorVersionsFromDB mocks base method.
+func (m *MockOperatorVersionReader) GetOperatorVersionsFromDB(dbFile, bundleName string) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOperatorVersions", bundleName)
+	ret := m.ctrl.Call(m, "GetOperatorVersionsFromDB", dbFile, bundleName)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetOperatorVersions indicates an expected call of GetOperatorVersions.
-func (mr *MockQueryMockRecorder) GetOperatorVersions(bundleName interface{}) *gomock.Call {
+// GetOperatorVersionsFromDB indicates an expected call of GetOperatorVersionsFromDB.
+func (mr *MockOperatorVersionReaderMockRecorder) GetOperatorVersionsFromDB(dbFile, bundleName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorVersions", reflect.TypeOf((*MockQuery)(nil).GetOperatorVersions), bundleName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorVersionsFromDB", reflect.TypeOf((*MockOperatorVersionReader)(nil).GetOperatorVersionsFromDB), dbFile, bundleName)
 }

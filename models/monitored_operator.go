@@ -17,6 +17,9 @@ import (
 // swagger:model monitored-operator
 type MonitoredOperator struct {
 
+	// Indicates the bundlename for the operator
+	BundleName string `json:"bundle_name,omitempty"`
+
 	// The cluster that this operator is associated with.
 	// Format: uuid
 	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primary_key;foreignkey:Cluster"`

@@ -16,24 +16,31 @@ func TestSqlite(t *testing.T) {
 
 var _ = Describe("sqllite", func() {
 
-	var query *MockQuery
+	var query *MockOperatorVersionReader
 
 	BeforeEach(func() {
 		ctrl := gomock.NewController(GinkgoT())
-		query = NewMockQuery(ctrl)
+		query = NewMockOperatorVersionReader(ctrl)
 	})
 
 	Context("Query operator bundle", func() {
 		It("Query kubevirt version", func() {
-			query.EXPECT().GetOperatorVersions("kubevirt").Return([]string{"2.6.5", "2.6.6"}, nil)
-			versions, err := query.GetOperatorVersions("kubevirt")
+			query.EXPECT().GetOperatorVersionsFromDB("index.db", "kubevirt").Return([]string{"2.6.5", "2.6.6"}, nil)
+			versions, err := query.GetOperatorVersionsFromDB("index.db", "kubevirt")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(versions).Should(ContainElement("2.6.5"))
 		})
 
 		It("Query with error", func() {
-			query.EXPECT().GetOperatorVersions("invalid").Return(nil, fmt.Errorf("The error"))
-			versions, err := query.GetOperatorVersions("invalid")
+			query.EXPECT().GetOperatorVersionsFromDB("index.db", "invalid").Return(nil, fmt.Errorf("the error"))
+			versions, err := query.GetOperatorVersionsFromDB("index.db", "invalid")
+			Expect(err).Should(HaveOccurred())
+			Expect(versions).To(BeNil())
+		})
+
+		It("File doesn't exists", func() {
+			query.EXPECT().GetOperatorVersionsFromDB("index.db", "invalid").Return(nil, fmt.Errorf("the error"))
+			versions, err := query.GetOperatorVersionsFromDB("index.db", "invalid")
 			Expect(err).Should(HaveOccurred())
 			Expect(versions).To(BeNil())
 		})

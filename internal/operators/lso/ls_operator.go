@@ -18,6 +18,7 @@ var Operator = models.MonitoredOperator{
 	Namespace:        "openshift-local-storage",
 	SubscriptionName: "local-storage-operator",
 	TimeoutSeconds:   70 * 60,
+	BundleName:       "local-storage-operator",
 }
 
 // New LSOperator creates new instance of a Local Storage Operator installation plugin

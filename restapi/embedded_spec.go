@@ -12261,6 +12261,10 @@ func init() {
     "monitored-operator": {
       "type": "object",
       "properties": {
+        "bundle_name": {
+          "description": "Indicates the bundlename for the operator",
+          "type": "string"
+        },
         "cluster_id": {
           "description": "The cluster that this operator is associated with.",
           "type": "string",
@@ -25545,6 +25549,10 @@ func init() {
     "monitored-operator": {
       "type": "object",
       "properties": {
+        "bundle_name": {
+          "description": "Indicates the bundlename for the operator",
+          "type": "string"
+        },
         "cluster_id": {
           "description": "The cluster that this operator is associated with.",
           "type": "string",
