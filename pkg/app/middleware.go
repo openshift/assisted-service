@@ -1,7 +1,9 @@
 package app
 
 import (
+	"bytes"
 	"net/http"
+	"runtime/pprof"
 	"time"
 
 	"github.com/openshift/assisted-service/pkg/thread"
@@ -22,6 +24,12 @@ func WithMetricsResponderMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func dumpStacks() string {
+	buf := bytes.NewBuffer(nil)
+	_ = pprof.Lookup("goroutine").WriteTo(buf, 2)
+	return buf.String()
+}
+
 // WithHealthMiddleware returns middleware which responds to the /health endpoint
 func WithHealthMiddleware(next http.Handler, threads []*thread.Thread, logger logrus.FieldLogger, timeout time.Duration) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +39,7 @@ func WithHealthMiddleware(next http.Handler, threads []*thread.Thread, logger lo
 				if time.Since(th.LastRunStartedAt()) > timeout {
 					logger.Errorf("thread %s live probe validation failed, last run timestamp "+
 						"is %v, current time %s", th.Name(), th.LastRunStartedAt(), time.Now())
+					logger.Errorf("Stacks:\n%s", dumpStacks())
 					status = http.StatusInternalServerError
 					break
 				}
