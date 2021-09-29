@@ -2392,6 +2392,97 @@ func (e *HostStatusUpdatedEvent) FormatMessage() string {
 }
 
 //
+// Event update_host_role
+//
+type UpdateHostRoleEvent struct {
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    HostName string
+    SuggestedRole string
+}
+
+var UpdateHostRoleEventName string = "update_host_role"
+
+func NewUpdateHostRoleEvent(
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+    suggestedRole string,
+) *UpdateHostRoleEvent {
+    return &UpdateHostRoleEvent{
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        HostName: hostName,
+        SuggestedRole: suggestedRole,
+    }
+}
+
+func SendUpdateHostRoleEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+    suggestedRole string,) {
+    ev := NewUpdateHostRoleEvent(
+        hostId,
+        infraEnvId,
+        hostName,
+        suggestedRole,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendUpdateHostRoleEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+    suggestedRole string,
+    eventTime time.Time) {
+    ev := NewUpdateHostRoleEvent(
+        hostId,
+        infraEnvId,
+        hostName,
+        suggestedRole,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *UpdateHostRoleEvent) GetName() string {
+    return "update_host_role"
+}
+
+func (e *UpdateHostRoleEvent) GetSeverity() string {
+    return "info"
+}
+func (e *UpdateHostRoleEvent) GetClusterId() *strfmt.UUID {
+    return nil
+}
+func (e *UpdateHostRoleEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *UpdateHostRoleEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+func (e *UpdateHostRoleEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{host_name}", fmt.Sprint(e.HostName),
+        "{suggested_role}", fmt.Sprint(e.SuggestedRole),
+    )
+    return r.Replace(*message)
+}
+
+func (e *UpdateHostRoleEvent) FormatMessage() string {
+    s := "Host {host_name}: calculated role is {suggested_role}"
+    return e.format(&s)
+}
+
+//
 // Event update_image_status
 //
 type UpdateImageStatusEvent struct {

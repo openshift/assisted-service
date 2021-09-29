@@ -272,7 +272,7 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 }
 
 // updateStatus is updating all the Agent Conditions.
-// In case that an error has occured when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
+// In case that an error has ocurred when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
 func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *models.Host, clusterId *strfmt.UUID, syncErr error, internal bool) (ctrl.Result, error) {
 
@@ -281,6 +281,9 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	if h != nil && h.Status != nil {
 		agent.Status.Bootstrap = h.Bootstrap
 		agent.Status.Role = h.Role
+		if h.SuggestedRole != "" && h.Role == models.HostRoleAutoAssign {
+			agent.Status.Role = h.SuggestedRole
+		}
 		agent.Status.DebugInfo.State = swag.StringValue(h.Status)
 		agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
 

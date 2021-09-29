@@ -271,6 +271,16 @@ x-events:
     new_status: string
     info: string
 
+- name: update_host_role
+  message: "Host {host_name}: calculated role is {suggested_role}"
+  event_type: host
+  severity: "info"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+    suggested_role: string
+
 - name: update_image_status
   message: "Host {host_name}: New image status {image_status}. result: {result}. {info}"
   event_type: host
