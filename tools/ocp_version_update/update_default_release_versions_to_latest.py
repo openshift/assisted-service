@@ -21,9 +21,9 @@ logging.getLogger("__main__").setLevel(logging.INFO)
 
 # Users / branch names / messages
 BRANCH_NAME = "{prefix}_update_assisted_service_versions"
-DEFAULT_ASSIGN = "oscohen"
-DEFAULT_WATCHERS = ["lgamliel", "yuvalgoldberg"]
-PR_MENTION = ["gamli75", "YuviGold"]
+DEFAULT_ASSIGN = "odepaz"
+DEFAULT_WATCHERS = ["odepaz", "lgamliel", "yuvalgoldberg"]
+PR_MENTION = ["osherdp", "gamli75", "YuviGold"]
 PR_MESSAGE = "{task}: Bump OCP versions {versions_string}"
 
 OCP_INFO_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=stable-{version}\&arch\={architecture} | jq '[.nodes[]] | sort_by(.version | split(".") | map(tonumber))[-1]'"""
@@ -285,7 +285,7 @@ def get_all_releases(openshift_version, cpu_architecture):
 def get_rchos_release_from_default_version_json(rhcos_image_url):
     # Fetch version from RHCOS image URL
     return rhcos_image_url.split('/')[-2]
-    
+
 
 def is_open_update_version_ticket(args):
     jira_client = get_jira_client(*get_login(args.jira_user_password))
@@ -395,7 +395,7 @@ def update_ocp_versions_json(default_version_json, updates_made, updates_made_st
                 rhcos_version_from_iso = "8888888"
             else:
                 minor_version = RHCOS_PRE_RELEASE if pre_release else release
-                rhcos_version_from_iso = get_rchos_version_from_iso(minor_version, rhcos_latest_release, CPU_ARCHITECTURE_X86_64)            
+                rhcos_version_from_iso = get_rchos_version_from_iso(minor_version, rhcos_latest_release, CPU_ARCHITECTURE_X86_64)
             updated_version_json[release]["rhcos_version"] = rhcos_version_from_iso
 
     if updates_made:

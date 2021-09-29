@@ -26,7 +26,7 @@ pipeline {
     post {
         failure {
             script {
-                def data = [text: "OCP version failed, see: ${BUILD_URL}"]
+                def data = [text: "'OCP version bump' job failed, see: ${BUILD_URL}"]
                 writeJSON(file: 'data.txt', json: data, pretty: 4)
             }
             sh '''curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt"  https://hooks.slack.com/services/$SLACK_TOKEN'''
