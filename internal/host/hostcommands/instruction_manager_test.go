@@ -82,6 +82,14 @@ var _ = Describe("instruction_manager", func() {
 					BaseDNSDomain:     "test.com",
 				}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			infraEnv := common.InfraEnv{
+				InfraEnv: models.InfraEnv{
+					ID:        infraEnvId,
+					ClusterID: clusterId,
+				},
+			}
+			Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
 		})
 		Context("get_next_steps", func() {
 			It("invalid_host_state", func() {
@@ -163,6 +171,14 @@ var _ = Describe("instruction_manager", func() {
 				BaseDNSDomain:     "test.com",
 			}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			infraEnv := common.InfraEnv{
+				InfraEnv: models.InfraEnv{
+					ID:        infraEnvId,
+					ClusterID: clusterId,
+				},
+			}
+			Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
 		})
 		Context("get_next_steps", func() {
 			It("invalid_host_state", func() {
@@ -304,6 +320,14 @@ var _ = Describe("instruction_manager", func() {
 					MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
 				}}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+				infraEnv := common.InfraEnv{
+					InfraEnv: models.InfraEnv{
+						ID:        infraEnvId,
+						ClusterID: clusterId,
+					},
+				}
+				Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
 			})
 			It("Should not filter out any step when: HostState=installing DisabledSteps=execute.", func() {
 				instMng = createInstMngWithDisabledSteps([]models.StepType{models.StepTypeExecute})
