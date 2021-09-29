@@ -3029,6 +3029,10 @@ paths:
           description: Success.
           schema:
             $ref: '#/definitions/openshift-versions'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
         "503":
           description: Unavailable.
           schema:
@@ -8389,14 +8393,6 @@ definitions:
 
   openshift-version:
     type: object
-    required:
-      - display_name
-      - release_image
-      - release_version
-      - rhcos_image
-      - rhcos_rootfs
-      - rhcos_version
-      - support_level
     properties:
       display_name:
         type: string
@@ -8418,11 +8414,16 @@ definitions:
         description: Build ID of the RHCOS image.
       support_level:
         type: string
-        enum: [beta, production, custom]
+        enum: [beta, production]
         description: Level of support of the version.
       default:
         type: boolean
         description: Indication that the version is the recommended one.
+      cpu_architectures:
+        type: array
+        items:
+          type: string
+        description: Available CPU architectures.
 
   os-image:
     type: object

@@ -60,6 +60,50 @@ func (o *ListSupportedOpenshiftVersionsOK) WriteResponse(rw http.ResponseWriter,
 	}
 }
 
+// ListSupportedOpenshiftVersionsInternalServerErrorCode is the HTTP code returned for type ListSupportedOpenshiftVersionsInternalServerError
+const ListSupportedOpenshiftVersionsInternalServerErrorCode int = 500
+
+/*ListSupportedOpenshiftVersionsInternalServerError Error.
+
+swagger:response listSupportedOpenshiftVersionsInternalServerError
+*/
+type ListSupportedOpenshiftVersionsInternalServerError struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListSupportedOpenshiftVersionsInternalServerError creates ListSupportedOpenshiftVersionsInternalServerError with default headers values
+func NewListSupportedOpenshiftVersionsInternalServerError() *ListSupportedOpenshiftVersionsInternalServerError {
+
+	return &ListSupportedOpenshiftVersionsInternalServerError{}
+}
+
+// WithPayload adds the payload to the list supported openshift versions internal server error response
+func (o *ListSupportedOpenshiftVersionsInternalServerError) WithPayload(payload *models.Error) *ListSupportedOpenshiftVersionsInternalServerError {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list supported openshift versions internal server error response
+func (o *ListSupportedOpenshiftVersionsInternalServerError) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListSupportedOpenshiftVersionsInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(500)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // ListSupportedOpenshiftVersionsServiceUnavailableCode is the HTTP code returned for type ListSupportedOpenshiftVersionsServiceUnavailable
 const ListSupportedOpenshiftVersionsServiceUnavailableCode int = 503
 

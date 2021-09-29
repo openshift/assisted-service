@@ -1250,10 +1250,10 @@ func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogg
 		}
 
 		openshiftVersion := models.OpenshiftVersion{
-			DisplayName:  &key,
-			RhcosVersion: &instance.Spec.OSImages[i].Version,
-			RhcosImage:   &instance.Spec.OSImages[i].Url,
-			RhcosRootfs:  &instance.Spec.OSImages[i].RootFSUrl,
+			DisplayName:  key,
+			RhcosVersion: instance.Spec.OSImages[i].Version,
+			RhcosImage:   instance.Spec.OSImages[i].Url,
+			RhcosRootfs:  instance.Spec.OSImages[i].RootFSUrl,
 		}
 
 		// the last entry for a particular OpenShift version takes precedence.

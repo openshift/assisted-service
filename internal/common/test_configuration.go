@@ -68,12 +68,12 @@ var TestDefaultConfig = &TestConfiguration{
 	ReleaseImageUrl:  ReleaseImage,
 	CPUArchitecture:  CPUArchitecture,
 	Version: &models.OpenshiftVersion{
-		DisplayName:    &OpenShiftVersion,
-		ReleaseImage:   &ReleaseImage,
-		ReleaseVersion: &ReleaseVersion,
-		RhcosImage:     &RhcosImage,
-		RhcosVersion:   &RhcosVersion,
-		SupportLevel:   &SupportLevel,
+		DisplayName:    OpenShiftVersion,
+		ReleaseImage:   ReleaseImage,
+		ReleaseVersion: ReleaseVersion,
+		RhcosImage:     RhcosImage,
+		RhcosVersion:   RhcosVersion,
+		SupportLevel:   SupportLevel,
 	},
 	ReleaseImage: &models.ReleaseImage{
 		CPUArchitecture:  &CPUArchitecture,

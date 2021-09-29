@@ -29,6 +29,12 @@ func (o *ListSupportedOpenshiftVersionsReader) ReadResponse(response runtime.Cli
 			return nil, err
 		}
 		return result, nil
+	case 500:
+		result := NewListSupportedOpenshiftVersionsInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 503:
 		result := NewListSupportedOpenshiftVersionsServiceUnavailable()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -66,6 +72,39 @@ func (o *ListSupportedOpenshiftVersionsOK) readResponse(response runtime.ClientR
 
 	// response payload
 	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewListSupportedOpenshiftVersionsInternalServerError creates a ListSupportedOpenshiftVersionsInternalServerError with default headers values
+func NewListSupportedOpenshiftVersionsInternalServerError() *ListSupportedOpenshiftVersionsInternalServerError {
+	return &ListSupportedOpenshiftVersionsInternalServerError{}
+}
+
+/*ListSupportedOpenshiftVersionsInternalServerError handles this case with default header values.
+
+Error.
+*/
+type ListSupportedOpenshiftVersionsInternalServerError struct {
+	Payload *models.Error
+}
+
+func (o *ListSupportedOpenshiftVersionsInternalServerError) Error() string {
+	return fmt.Sprintf("[GET /v1/openshift_versions][%d] listSupportedOpenshiftVersionsInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *ListSupportedOpenshiftVersionsInternalServerError) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ListSupportedOpenshiftVersionsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
