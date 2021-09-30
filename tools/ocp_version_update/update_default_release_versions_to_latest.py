@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import re
 import json
@@ -5,7 +6,7 @@ import copy
 import logging
 import argparse
 import tempfile
-import functools
+import textwrap
 import subprocess
 
 from bs4 import BeautifulSoup
@@ -61,11 +62,6 @@ ASSISTED_SERVICE_OPENSHIFT_TEMPLATE_YAML = f"{ASSISTED_SERVICE_CLONE_DIR}/opensh
 
 OCP_REPLACE_CONTEXT = ['"{version}"', "ocp-release:{version}"]
 
-# GitLab SSL
-REDHAT_CERT_URL = 'https://password.corp.redhat.com/RH-IT-Root-CA.crt'
-REDHAT_CERT_LOCATION = "/tmp/redhat.cert"
-GIT_SSH_COMMAND_WITH_KEY = "ssh -o StrictHostKeyChecking=accept-new -i '{key}'"
-
 # Jira
 JIRA_SERVER = "https://issues.redhat.com"
 JIRA_BROWSE_TICKET = f"{JIRA_SERVER}/browse/{{ticket_id}}"
@@ -105,11 +101,6 @@ def cmd(command, env=None, **kwargs):
 
     return stdout, stderr
 
-
-def cmd_with_git_ssh_key(key_file):
-    return functools.partial(cmd, env={
-        "GIT_SSH_COMMAND": GIT_SSH_COMMAND_WITH_KEY.format(key=key_file)
-    })
 
 def get_rchos_version_from_iso(minor_version, rhcos_latest_release, cpu_architecture):
     # RHCOS filename uses 'aarch64' naming
@@ -513,10 +504,8 @@ def create_github_pr(updates_made, title, task, args):
 
 
 def get_pr_body(updates_made):
-    body = " ".join([f"@{user}" for user in PR_MENTION])
-    release_notes = get_release_notes(updates_made)
-    body += "\n" + release_notes
-    return body
+    return (get_release_notes(updates_made) +
+            f'/cc {" ".join(f"@{user}" for user in PR_MENTION)}')
 
 
 def get_release_notes(updates_made):
