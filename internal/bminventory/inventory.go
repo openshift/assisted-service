@@ -2602,8 +2602,7 @@ func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClust
 }
 
 func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncryption *models.DiskEncryption, usages map[string]models.Usage) {
-
-	if c.DiskEncryption == nil {
+	if diskEncryption == nil || diskEncryption.EnableOn == nil {
 		return
 	}
 
@@ -2612,7 +2611,7 @@ func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncry
 		"mode":         *diskEncryption.Mode,
 		"tang_servers": diskEncryption.TangServers,
 	}
-	b.setUsage(*c.DiskEncryption.EnableOn != models.DiskEncryptionEnableOnNone, usage.DiskEncryption, &props, usages)
+	b.setUsage(*diskEncryption.EnableOn != models.DiskEncryptionEnableOnNone, usage.DiskEncryption, &props, usages)
 }
 
 func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {
