@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net"
-	reflect "reflect"
+	"reflect"
 	"strings"
 	"time"
 
@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/pkg/errors"
@@ -242,10 +243,11 @@ func boolValue(b bool) ValidationStatus {
 }
 
 type validator struct {
-	log            logrus.FieldLogger
-	hwValidatorCfg *hardware.ValidatorCfg
-	hwValidator    hardware.Validator
-	operatorsAPI   operators.API
+	log              logrus.FieldLogger
+	hwValidatorCfg   *hardware.ValidatorCfg
+	hwValidator      hardware.Validator
+	operatorsAPI     operators.API
+	providerRegistry registry.ProviderRegistry
 }
 
 func (v *validator) isConnected(c *validationContext) ValidationStatus {
@@ -318,12 +320,12 @@ func (v *validator) compatibleWithClusterPlatform(c *validationContext) Validati
 	if c.inventory == nil || c.cluster.Platform.Type == "" {
 		return ValidationPending
 	}
-	hostAvailablePlatforms := common.GetSupportedPlatformsFromInventory(*c.inventory)
-
-	for _, platform := range *hostAvailablePlatforms {
-		if c.cluster.Platform.Type == platform {
-			return ValidationSuccess
-		}
+	supported, err := v.providerRegistry.IsHostSupported(c.cluster.Platform.Type, c.host)
+	if err != nil {
+		return ValidationError
+	}
+	if supported {
+		return ValidationSuccess
 	}
 	return ValidationFailure
 }
@@ -333,9 +335,9 @@ func (v *validator) printCompatibleWithClusterPlatform(c *validationContext, sta
 	case ValidationSuccess:
 		return fmt.Sprintf("Host is compatible with cluster platform %s", c.cluster.Platform.Type)
 	case ValidationFailure:
-		hostAvailablePlatforms := common.GetSupportedPlatformsFromInventory(*c.inventory)
+		hostAvailablePlatforms, _ := v.providerRegistry.GetSupportedProvidersByHosts([]*models.Host{c.host})
 		return fmt.Sprintf("Host is not compatible with cluster platform %s; either disable this host or choose a compatible cluster platform (%v)",
-			c.cluster.Platform.Type, *hostAvailablePlatforms)
+			c.cluster.Platform.Type, hostAvailablePlatforms)
 	case ValidationPending:
 		return "Missing inventory or platform isn't set"
 	default:

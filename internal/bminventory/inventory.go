@@ -42,12 +42,13 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/internal/ignition"
-	"github.com/openshift/assisted-service/internal/installcfg"
+	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -190,6 +191,7 @@ type bareMetalInventory struct {
 	installConfigBuilder installcfg.InstallConfigBuilder
 	staticNetworkConfig  staticnetworkconfig.StaticNetworkConfig
 	gcConfig             garbagecollector.Config
+	providerRegistry     registry.ProviderRegistry
 }
 
 func NewBareMetalInventory(
@@ -218,6 +220,7 @@ func NewBareMetalInventory(
 	installConfigBuilder installcfg.InstallConfigBuilder,
 	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
 	gcConfig garbagecollector.Config,
+	providerRegistry registry.ProviderRegistry,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -245,6 +248,7 @@ func NewBareMetalInventory(
 		installConfigBuilder: installConfigBuilder,
 		staticNetworkConfig:  staticNetworkConfig,
 		gcConfig:             gcConfig,
+		providerRegistry:     providerRegistry,
 	}
 }
 
@@ -392,6 +396,54 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	return params
 }
 
+func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *installer.V2RegisterClusterParams, log logrus.FieldLogger) error {
+	var err error
+
+	if err = validateProxySettings(params.NewClusterParams.HTTPProxy,
+		params.NewClusterParams.HTTPSProxy,
+		params.NewClusterParams.NoProxy, params.NewClusterParams.OpenshiftVersion); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = validations.ValidateDiskEncryptionParams(params.NewClusterParams.DiskEncryption); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if swag.StringValue(params.NewClusterParams.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		// verify minimal OCP version
+		err = verifyMinimalOpenShiftVersionForSingleNode(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		log.Infof("HA mode is None, setting UserManagedNetworking to true and VipDhcpAllocation to false")
+		params.NewClusterParams.UserManagedNetworking = swag.Bool(true)
+		// in case of single node VipDhcpAllocation should be always false
+		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
+	}
+
+	if swag.BoolValue(params.NewClusterParams.UserManagedNetworking) {
+		if swag.BoolValue(params.NewClusterParams.VipDhcpAllocation) {
+			err = errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		if params.NewClusterParams.IngressVip != "" {
+			err = errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	if params.NewClusterParams.AdditionalNtpSource != nil {
+		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
+
+		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
+			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	return nil
+}
+
 func (b *bareMetalInventory) RegisterClusterInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
@@ -427,46 +479,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	params = b.setDefaultRegisterClusterParams(ctx, params)
 
-	if err = validateProxySettings(params.NewClusterParams.HTTPProxy,
-		params.NewClusterParams.HTTPSProxy,
-		params.NewClusterParams.NoProxy, params.NewClusterParams.OpenshiftVersion); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if err = validations.ValidateDiskEncryptionParams(params.NewClusterParams.DiskEncryption); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if swag.StringValue(params.NewClusterParams.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-		// verify minimal OCP version
-		err = verifyMinimalOpenShiftVersionForSingleNode(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
-		if err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-		log.Infof("HA mode is None, setting UserManagedNetworking to true and VipDhcpAllocation to false")
-		params.NewClusterParams.UserManagedNetworking = swag.Bool(true)
-		// in case of single node VipDhcpAllocation should be always false
-		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
-	}
-
-	if swag.BoolValue(params.NewClusterParams.UserManagedNetworking) {
-		if swag.BoolValue(params.NewClusterParams.VipDhcpAllocation) {
-			err = errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-		if params.NewClusterParams.IngressVip != "" {
-			err = errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
-
-	if params.NewClusterParams.AdditionalNtpSource != nil {
-		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
-
-		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
-			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
+	if err = b.validateRegisterClusterInternalParams(&params, log); err != nil {
+		return nil, err
 	}
 
 	cpuArchitecture, err := b.getNewClusterCPUArchitecture(params.NewClusterParams)
@@ -576,7 +590,9 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	setDiskEncryptionWithDefaultValues(&cluster.Cluster, params.NewClusterParams.DiskEncryption)
 
-	b.setDefaultUsage(&cluster.Cluster)
+	if err = b.setDefaultUsage(&cluster.Cluster); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
 
 	err = b.clusterApi.RegisterCluster(ctx, &cluster, v1Flag, models.ImageType(b.Config.ISOImageType))
 	if err != nil {
@@ -1941,13 +1957,22 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 	return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: clusterID})
 }
 
-func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error) {
+func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(
+	ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error) {
 	cluster, err := b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: params.ClusterID})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting cluster, error: %w", err)
 	}
-
-	return common.GetClusterSupportedPlatforms(*cluster)
+	// no hosts or SNO
+	if len(cluster.Hosts) == 0 || *cluster.HighAvailabilityMode != models.ClusterHighAvailabilityModeFull {
+		return &[]models.PlatformType{models.PlatformTypeBaremetal}, nil
+	}
+	hostSupportedPlatforms, err := b.providerRegistry.GetSupportedProvidersByHosts(cluster.Hosts)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"error while checking supported platforms, error: %w", err)
+	}
+	return &hostSupportedPlatforms, nil
 }
 
 func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder {
@@ -2568,38 +2593,6 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 	}
 	return nil
 }
-func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClusterParams, updates map[string]interface{}) {
-	platform := params.ClusterUpdateParams.Platform
-	if platform == nil || platform.Type == "" {
-		return
-	}
-
-	updates["platform_type"] = platform.Type
-	if platform.Type == models.PlatformTypeVsphere {
-		if platform.Vsphere != nil {
-			updates["platform_vsphere_username"] = platform.Vsphere.Username
-			updates["platform_vsphere_password"] = platform.Vsphere.Password
-			updates["platform_vsphere_datacenter"] = platform.Vsphere.Datacenter
-			updates["platform_vsphere_defaultDatastore"] = platform.Vsphere.DefaultDatastore
-			updates["platform_vsphere_cluster"] = platform.Vsphere.Cluster
-			updates["platform_vsphere_network"] = platform.Vsphere.Network
-			updates["platform_vsphere_vCenter"] = platform.Vsphere.VCenter
-			updates["platform_vsphere_folder"] = platform.Vsphere.Folder
-		}
-	}
-
-	if platform.Vsphere == nil {
-		updates["platform_vsphere"] = nil
-		updates["platform_vsphere_username"] = nil
-		updates["platform_vsphere_password"] = nil
-		updates["platform_vsphere_datacenter"] = nil
-		updates["platform_vsphere_defaultDatastore"] = nil
-		updates["platform_vsphere_cluster"] = nil
-		updates["platform_vsphere_network"] = nil
-		updates["platform_vsphere_vCenter"] = nil
-		updates["platform_vsphere_folder"] = nil
-	}
-}
 
 func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncryption *models.DiskEncryption, usages map[string]models.Usage) {
 
@@ -2628,11 +2621,14 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 
 	b.setProxyUsage(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy, params.ClusterUpdateParams.NoProxy, usages)
 
-	b.updatePlatformSources(params, updates, usages)
+	if err = b.updateProviderParams(params, updates, usages); err != nil {
+		return err
+	}
 
 	if err = updateNetworkParamsCompatiblityPropagation(params, cluster); err != nil {
 		return err
 	}
+
 	if err = b.updateNetworkParams(params, cluster, updates, usages, db, log, interactivity); err != nil {
 		return err
 	}
@@ -2831,6 +2827,22 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 	return nil
 }
 
+func (b *bareMetalInventory) updateProviderParams(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) error {
+	if params.ClusterUpdateParams.Platform != nil && params.ClusterUpdateParams.Platform.Type != "" {
+		err := b.providerRegistry.SetPlatformValuesInDBUpdates(
+			params.ClusterUpdateParams.Platform.Type, params.ClusterUpdateParams.Platform, updates)
+		if err != nil {
+			return fmt.Errorf("failed setting platform values, error is: %w", err)
+		}
+		err = b.providerRegistry.SetPlatformUsages(
+			params.ClusterUpdateParams.Platform.Type, params.ClusterUpdateParams.Platform, usages, b.usageApi)
+		if err != nil {
+			return fmt.Errorf("failed setting platform usages, error is: %w", err)
+		}
+	}
+	return nil
+}
+
 // createNetworkParamsCompatibilityPropagation is a backwards compatibility adapter adding ability
 // to configure clutster networking using the following structures
 //
@@ -3001,17 +3013,6 @@ func setCommonUserNetworkManagedParams(params *models.V2ClusterUpdateParams, sin
 	return nil, false
 }
 
-func (b *bareMetalInventory) updatePlatformSources(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) {
-	b.updatePlatformParams(params, updates)
-
-	if params.ClusterUpdateParams.Platform != nil {
-		isNonDefaultPlatform := params.ClusterUpdateParams.Platform.Type != models.PlatformTypeBaremetal
-		withCredentials := params.ClusterUpdateParams.Platform.Vsphere != nil && params.ClusterUpdateParams.Platform.Vsphere.VCenter != nil && params.ClusterUpdateParams.Platform.Vsphere.Password != nil && params.ClusterUpdateParams.Platform.Vsphere.Username != nil
-		b.setUsage(isNonDefaultPlatform, usage.PlatformSelectionUsage, &map[string]interface{}{
-			"platform_type": params.ClusterUpdateParams.Platform.Type, "with_credentials": withCredentials}, usages)
-	}
-}
-
 func (b *bareMetalInventory) updateNtpSources(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage, log logrus.FieldLogger) error {
 	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
 		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
@@ -3069,7 +3070,7 @@ func (b *bareMetalInventory) setUsage(enabled bool, name string, props *map[stri
 	}
 }
 
-func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) {
+func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	usages := make(map[string]models.Usage)
 	b.setUsage(swag.BoolValue(cluster.VipDhcpAllocation), usage.VipDhcpAllocationUsage, nil, usages)
 	b.setUsage(cluster.AdditionalNtpSource != "", usage.AdditionalNtpSourceUsage, &map[string]interface{}{
@@ -3082,13 +3083,15 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) {
 	}).([]*models.MonitoredOperator)
 	b.setOperatorsUsage(olmOperators, []*models.MonitoredOperator{}, usages)
 	b.setNetworkTypeUsage(cluster.NetworkType, usages)
-	withCredentials := cluster.Platform.Vsphere != nil && cluster.Platform.Vsphere.VCenter != nil && cluster.Platform.Vsphere.Password != nil && cluster.Platform.Vsphere.Username != nil
-	b.setUsage(cluster.Platform.Type != models.PlatformTypeBaremetal, usage.PlatformSelectionUsage, &map[string]interface{}{
-		"platform_type": cluster.Platform.Type, "with_credentials": withCredentials}, usages)
 	b.setDiskEncryptionUsage(cluster, cluster.DiskEncryption, usages)
 	//write all the usages to the cluster object
+	err := b.providerRegistry.SetPlatformUsages(cluster.Platform.Type, cluster.Platform, usages, b.usageApi)
+	if err != nil {
+		return fmt.Errorf("failed setting platform usages, error is: %w", err)
+	}
 	featusage, _ := json.Marshal(usages)
 	cluster.FeatureUsage = string(featusage)
+	return nil
 }
 
 func (b *bareMetalInventory) setNetworkTypeUsage(networkType *string, usages map[string]models.Usage) {

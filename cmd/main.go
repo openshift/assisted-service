@@ -33,7 +33,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/imgexpirer"
-	"github.com/openshift/assisted-service/internal/installcfg"
+	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -42,6 +42,7 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/handler"
+	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -257,7 +258,8 @@ func main() {
 	Options.InstructionConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.OperatorsConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.GeneratorConfig.ReleaseImageMirror = Options.ReleaseImageMirror
-
+	//Initialize Provider API
+	providerRegistry := registry.InitProviderRegistry(log.WithField("pkg", "provider"))
 	// Make sure that prepare for installation timeout is more than the timeouts of all underlying tools + 2m extra
 	Options.ClusterConfig.PrepareConfig.PrepareForInstallationTimeout = maxDuration(Options.ClusterConfig.PrepareConfig.PrepareForInstallationTimeout,
 		maxDuration(Options.InstructionConfig.DiskCheckTimeout, Options.InstructionConfig.ImageAvailabilityTimeout)+2*time.Minute)
@@ -278,7 +280,7 @@ func main() {
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
 	mirrorRegistriesBuilder := mirrorregistries.New()
 	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder)
-	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder)
+	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig)
 
 	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
@@ -352,7 +354,7 @@ func main() {
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
-		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager)
+		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager, providerRegistry)
 	dnsApi := dns.NewDNSHandler(Options.BMConfig.BaseDNSDomains, log)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
@@ -410,7 +412,7 @@ func main() {
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
-		Options.GCConfig)
+		Options.GCConfig, providerRegistry)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead, Options.EnableKubeAPI)
