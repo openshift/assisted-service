@@ -209,7 +209,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Name:      "infraEnvImage",
 		}
 		Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: internal error", aiv1beta1.ImageStateFailedToCreate)
+		expectedState := fmt.Sprintf("%s due to an internal error: server error", aiv1beta1.ImageStateFailedToCreate)
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
