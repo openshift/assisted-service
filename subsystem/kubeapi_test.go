@@ -1860,7 +1860,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      infraNsName.Name,
 		}
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
-		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, fmt.Sprintf("%s: internal error", v1beta1.ImageStateFailedToCreate))
+		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, fmt.Sprintf("%s due to an internal error: nmstate generated an empty NetworkManager config file content", v1beta1.ImageStateFailedToCreate))
 		infraEnvKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      infraNsName.Name,
