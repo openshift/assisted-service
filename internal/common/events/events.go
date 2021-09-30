@@ -3381,3 +3381,275 @@ func (e *QuickDiskFormatEvent) FormatMessage() string {
     return e.format(&s)
 }
 
+//
+// Event infra_env_registration_failed
+//
+type InfraEnvRegistrationFailedEvent struct {
+    InfraEnvId strfmt.UUID
+    Error string
+}
+
+var InfraEnvRegistrationFailedEventName string = "infra_env_registration_failed"
+
+func NewInfraEnvRegistrationFailedEvent(
+    infraEnvId strfmt.UUID,
+    error string,
+) *InfraEnvRegistrationFailedEvent {
+    return &InfraEnvRegistrationFailedEvent{
+        InfraEnvId: infraEnvId,
+        Error: error,
+    }
+}
+
+func SendInfraEnvRegistrationFailedEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    infraEnvId strfmt.UUID,
+    error string,) {
+    ev := NewInfraEnvRegistrationFailedEvent(
+        infraEnvId,
+        error,
+    )
+    eventsHandler.SendInfraEnvEvent(ctx, ev)
+}
+
+func SendInfraEnvRegistrationFailedEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    infraEnvId strfmt.UUID,
+    error string,
+    eventTime time.Time) {
+    ev := NewInfraEnvRegistrationFailedEvent(
+        infraEnvId,
+        error,
+    )
+    eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *InfraEnvRegistrationFailedEvent) GetName() string {
+    return "infra_env_registration_failed"
+}
+
+func (e *InfraEnvRegistrationFailedEvent) GetSeverity() string {
+    return "error"
+}
+func (e *InfraEnvRegistrationFailedEvent) GetClusterId() *strfmt.UUID {
+    return nil
+}
+func (e *InfraEnvRegistrationFailedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+func (e *InfraEnvRegistrationFailedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{error}", fmt.Sprint(e.Error),
+    )
+    return r.Replace(*message)
+}
+
+func (e *InfraEnvRegistrationFailedEvent) FormatMessage() string {
+    s := "Failed to register infra env. Error: {error}"
+    return e.format(&s)
+}
+
+//
+// Event registered_infra_env
+//
+type RegisteredInfraEnvEvent struct {
+    InfraEnvId strfmt.UUID
+}
+
+var RegisteredInfraEnvEventName string = "registered_infra_env"
+
+func NewRegisteredInfraEnvEvent(
+    infraEnvId strfmt.UUID,
+) *RegisteredInfraEnvEvent {
+    return &RegisteredInfraEnvEvent{
+        InfraEnvId: infraEnvId,
+    }
+}
+
+func SendRegisteredInfraEnvEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    infraEnvId strfmt.UUID,) {
+    ev := NewRegisteredInfraEnvEvent(
+        infraEnvId,
+    )
+    eventsHandler.SendInfraEnvEvent(ctx, ev)
+}
+
+func SendRegisteredInfraEnvEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    infraEnvId strfmt.UUID,
+    eventTime time.Time) {
+    ev := NewRegisteredInfraEnvEvent(
+        infraEnvId,
+    )
+    eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *RegisteredInfraEnvEvent) GetName() string {
+    return "registered_infra_env"
+}
+
+func (e *RegisteredInfraEnvEvent) GetSeverity() string {
+    return "info"
+}
+func (e *RegisteredInfraEnvEvent) GetClusterId() *strfmt.UUID {
+    return nil
+}
+func (e *RegisteredInfraEnvEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+func (e *RegisteredInfraEnvEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+    )
+    return r.Replace(*message)
+}
+
+func (e *RegisteredInfraEnvEvent) FormatMessage() string {
+    s := "Registered infra env"
+    return e.format(&s)
+}
+
+//
+// Event infra_env_deregister_failed
+//
+type InfraEnvDeregisterFailedEvent struct {
+    InfraEnvId strfmt.UUID
+    Error string
+}
+
+var InfraEnvDeregisterFailedEventName string = "infra_env_deregister_failed"
+
+func NewInfraEnvDeregisterFailedEvent(
+    infraEnvId strfmt.UUID,
+    error string,
+) *InfraEnvDeregisterFailedEvent {
+    return &InfraEnvDeregisterFailedEvent{
+        InfraEnvId: infraEnvId,
+        Error: error,
+    }
+}
+
+func SendInfraEnvDeregisterFailedEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    infraEnvId strfmt.UUID,
+    error string,) {
+    ev := NewInfraEnvDeregisterFailedEvent(
+        infraEnvId,
+        error,
+    )
+    eventsHandler.SendInfraEnvEvent(ctx, ev)
+}
+
+func SendInfraEnvDeregisterFailedEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    infraEnvId strfmt.UUID,
+    error string,
+    eventTime time.Time) {
+    ev := NewInfraEnvDeregisterFailedEvent(
+        infraEnvId,
+        error,
+    )
+    eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *InfraEnvDeregisterFailedEvent) GetName() string {
+    return "infra_env_deregister_failed"
+}
+
+func (e *InfraEnvDeregisterFailedEvent) GetSeverity() string {
+    return "error"
+}
+func (e *InfraEnvDeregisterFailedEvent) GetClusterId() *strfmt.UUID {
+    return nil
+}
+func (e *InfraEnvDeregisterFailedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+func (e *InfraEnvDeregisterFailedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{error}", fmt.Sprint(e.Error),
+    )
+    return r.Replace(*message)
+}
+
+func (e *InfraEnvDeregisterFailedEvent) FormatMessage() string {
+    s := "Failed to deregister infra env. Error: {error}"
+    return e.format(&s)
+}
+
+//
+// Event deregistered_infra_env
+//
+type DeregisteredInfraEnvEvent struct {
+    InfraEnvId strfmt.UUID
+}
+
+var DeregisteredInfraEnvEventName string = "deregistered_infra_env"
+
+func NewDeregisteredInfraEnvEvent(
+    infraEnvId strfmt.UUID,
+) *DeregisteredInfraEnvEvent {
+    return &DeregisteredInfraEnvEvent{
+        InfraEnvId: infraEnvId,
+    }
+}
+
+func SendDeregisteredInfraEnvEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    infraEnvId strfmt.UUID,) {
+    ev := NewDeregisteredInfraEnvEvent(
+        infraEnvId,
+    )
+    eventsHandler.SendInfraEnvEvent(ctx, ev)
+}
+
+func SendDeregisteredInfraEnvEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    infraEnvId strfmt.UUID,
+    eventTime time.Time) {
+    ev := NewDeregisteredInfraEnvEvent(
+        infraEnvId,
+    )
+    eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *DeregisteredInfraEnvEvent) GetName() string {
+    return "deregistered_infra_env"
+}
+
+func (e *DeregisteredInfraEnvEvent) GetSeverity() string {
+    return "info"
+}
+func (e *DeregisteredInfraEnvEvent) GetClusterId() *strfmt.UUID {
+    return nil
+}
+func (e *DeregisteredInfraEnvEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+func (e *DeregisteredInfraEnvEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+    )
+    return r.Replace(*message)
+}
+
+func (e *DeregisteredInfraEnvEvent) FormatMessage() string {
+    s := "Deregistered infra env"
+    return e.format(&s)
+}
+

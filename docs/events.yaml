@@ -380,3 +380,33 @@ x-events:
     host_name: string
     disk_name: string
     disk_id: string
+
+- name: infra_env_registration_failed
+  message: "Failed to register infra env. Error: {error}"
+  event_type: infra_env
+  severity: "error"
+  properties:
+    infra_env_id: UUID
+    error: string
+
+- name: registered_infra_env
+  message: "Registered infra env"
+  event_type: infra_env
+  severity: "info"
+  properties:
+    infra_env_id: UUID
+
+- name: infra_env_deregister_failed
+  message: "Failed to deregister infra env. Error: {error}"
+  event_type: infra_env
+  severity: "error"
+  properties:
+    infra_env_id: UUID
+    error: string
+
+- name: deregistered_infra_env
+  message: "Deregistered infra env"
+  event_type: infra_env
+  severity: "info"
+  properties:
+    infra_env_id: UUID
