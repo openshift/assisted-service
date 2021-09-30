@@ -25,9 +25,3 @@ oc get agentclusterinstall -n "${SPOKE_NAMESPACE}"
 oc get clusterdeployment -n "${SPOKE_NAMESPACE}"
 oc get cd assisted-test-cluster -n "${SPOKE_NAMESPACE}" -o template --template 'cluster.spec.installed = {{.spec.installed}} {{"\n"}}'
 oc get agentclusterinstall assisted-agent-cluster-install -n "${SPOKE_NAMESPACE}"  -o=jsonpath='{.status.debugInfo.eventsURL}'
-
-echo "## Cleanup to use the same extra worker for installing a SNO after the upgrade"
-virsh destroy ostest_extraworker_0
-qemu-img create -f qcow2 /opt/dev-scripts/pool/ostest_extraworker_0.qcow2 120G
-oc delete bmh ostest-extraworker-0 -n "${SPOKE_NAMESPACE}"
-oc delete agent --all -n "${SPOKE_NAMESPACE}"
