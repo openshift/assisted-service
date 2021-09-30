@@ -420,7 +420,7 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 		} else { // errors it may recover from
 			Requeue = true
 			RequeueAfter = defaultRequeueAfterPerRecoverableError
-			errMsg = ": internal error"
+			errMsg = " due to an internal error: " + err.Error()
 		}
 		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ImageCreatedCondition,
