@@ -3,7 +3,7 @@ pipeline {
     environment {
         SLACK_TOKEN = credentials('slack-token')
         JIRA_CREDS = credentials('Ronnie-jira')
-        GITHUB_CREDS = credentials('oshercc_github_cred')
+        GITHUB_CREDS = credentials('osherdp-github-creds')
     }
 
     triggers { cron('0 0 * * *') }
