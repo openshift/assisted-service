@@ -337,12 +337,12 @@ var _ = Describe("update_progress", func() {
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
 				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
-				updatedAt := hostFromDB.StageUpdatedAt.String()
+				updatedAt := hostFromDB.Progress.StageUpdatedAt.String()
 
 				Expect(state.UpdateInstallProgress(ctx, &hostFromDB.Host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = hostutil.GetHostFromDB(*hostFromDB.ID, host.InfraEnvID, db)
 				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
-				Expect(hostFromDB.StageUpdatedAt.String()).Should(Equal(updatedAt))
+				Expect(hostFromDB.Progress.StageUpdatedAt.String()).Should(Equal(updatedAt))
 			})
 
 			It("writing to disk", func() {

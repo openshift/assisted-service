@@ -1444,8 +1444,6 @@ var _ = Describe("Unbind", func() {
 		Expect(h.LogsInfo).Should(BeEmpty())
 		Expect(h.LogsStartedAt).Should(Equal(strfmt.DateTime(time.Time{})))
 		Expect(h.LogsCollectedAt).Should(Equal(strfmt.DateTime(time.Time{})))
-		Expect(h.StageStartedAt).Should(Equal(strfmt.DateTime(time.Time{})))
-		Expect(h.StageUpdatedAt).Should(Equal(strfmt.DateTime(time.Time{})))
 	}
 
 	failure := func(reply error, srcState string) {
@@ -1550,8 +1548,6 @@ var _ = Describe("Unbind", func() {
 			host.LogsInfo = models.LogsStateRequested
 			host.LogsStartedAt = strfmt.DateTime(time.Now())
 			host.LogsCollectedAt = strfmt.DateTime(time.Now())
-			host.StageStartedAt = strfmt.DateTime(time.Now())
-			host.StageUpdatedAt = strfmt.DateTime(time.Now())
 
 			dstState := models.HostStatusUnbinding
 
