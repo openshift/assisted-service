@@ -285,7 +285,7 @@ func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params in
 	infraEnv.Proxy = &proxy
 	infraEnv.IgnitionConfigOverride = cluster.IgnitionConfigOverrides
 
-	cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
+	cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
 	if err != nil {
 		log.WithError(err).Error("Failed to format ignition config")
 		return common.GenerateErrorResponder(err)
@@ -1106,7 +1106,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	}
 
 	if params.ImageCreateParams.StaticNetworkConfig != nil {
-		if err := b.staticNetworkConfig.ValidateStaticConfigParams(params.ImageCreateParams.StaticNetworkConfig); err != nil {
+		if err := b.staticNetworkConfig.ValidateStaticConfigParams(ctx, params.ImageCreateParams.StaticNetworkConfig); err != nil {
 			log.Error(err)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -1358,7 +1358,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 	// Setting ImageInfo.Type at this point in order to pass it to FormatDiscoveryIgnitionFile without saving it to the DB.
 	// Saving it to the DB will be done after a successful image generation by updateImageInfoPostUpload
 	infraEnv.Type = imageType
-	ignitionConfig, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
+	ignitionConfig, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
 	if err != nil {
 		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", infraEnv.ID)
 		msg := "Failed to generate image: error formatting ignition file"
@@ -1391,15 +1391,15 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 	if err := b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, imageType, true, v2); err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	msg := b.getIgnitionConfigForLogging(infraEnv, log, imageType)
+	msg := b.getIgnitionConfigForLogging(ctx, infraEnv, log, imageType)
 	b.eventsHandler.AddEvent(ctx, infraEnv.ID, nil, models.EventSeverityInfo, msg, time.Now())
 	log.Infof(msg)
 
 	return nil
 }
 
-func (b *bareMetalInventory) getIgnitionConfigForLogging(infraEnv *common.InfraEnv, log logrus.FieldLogger, imageType models.ImageType) string {
-	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, true, b.authHandler.AuthType())
+func (b *bareMetalInventory) getIgnitionConfigForLogging(ctx context.Context, infraEnv *common.InfraEnv, log logrus.FieldLogger, imageType models.ImageType) string {
+	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, true, b.authHandler.AuthType())
 	log.Infof("Generated infra env <%s> image with ignition config %s", infraEnv.ID, ignitionConfigForLogging)
 	msg := "Generated image"
 	var msgExtras []string
@@ -1439,7 +1439,7 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 
 	var netFiles []staticnetworkconfig.StaticNetworkConfigData
 	if infraEnv.StaticNetworkConfig != "" {
-		netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(infraEnv.StaticNetworkConfig)
+		netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to create static network config data")
 			return err
@@ -4286,7 +4286,7 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 
 	var netFiles []staticnetworkconfig.StaticNetworkConfigData
 	if infraEnv.StaticNetworkConfig != "" {
-		netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(infraEnv.StaticNetworkConfig)
+		netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to create static network config data")
 			return common.GenerateErrorResponder(err)
@@ -4321,7 +4321,7 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 			return common.GenerateErrorResponder(err)
 		}
 
-		cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
+		cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
 		if err != nil {
 			log.WithError(err).Error("Failed to format ignition config")
 			return common.GenerateErrorResponder(err)
@@ -5563,7 +5563,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	}
 
 	if params.InfraenvCreateParams.StaticNetworkConfig != nil {
-		if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParams(ctx, params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -5758,7 +5758,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 	}
 
 	if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
-		if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraEnvUpdateParams.StaticNetworkConfig); err != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParams(ctx, params.InfraEnvUpdateParams.StaticNetworkConfig); err != nil {
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -6429,7 +6429,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		return common.GenerateErrorResponder(err)
 	}
 	if params.FileName == "discovery.ign" {
-		cfg, err2 := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
+		cfg, err2 := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
 		if err2 != nil {
 			b.log.WithError(err).Error("Failed to format ignition config")
 			return common.GenerateErrorResponder(err)

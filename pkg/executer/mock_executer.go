@@ -5,6 +5,7 @@
 package executer
 
 import (
+	context "context"
 	os "os"
 	reflect "reflect"
 
@@ -53,6 +54,27 @@ func (mr *MockExecuterMockRecorder) Execute(arg0 interface{}, arg1 ...interface{
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockExecuter)(nil).Execute), varargs...)
+}
+
+// ExecuteWithContext mocks base method.
+func (m *MockExecuter) ExecuteWithContext(arg0 context.Context, arg1 string, arg2 ...string) (string, string, int) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ExecuteWithContext", varargs...)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(int)
+	return ret0, ret1, ret2
+}
+
+// ExecuteWithContext indicates an expected call of ExecuteWithContext.
+func (mr *MockExecuterMockRecorder) ExecuteWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteWithContext", reflect.TypeOf((*MockExecuter)(nil).ExecuteWithContext), varargs...)
 }
 
 // TempFile mocks base method.
