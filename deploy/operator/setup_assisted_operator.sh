@@ -117,7 +117,7 @@ spec:
 $(subscription_config)
   installPlanApproval: Automatic
   name: assisted-service-operator
-  source: ${CATALOG_SOURCE_NAME:-${catalog_source_name}}
+  source: ${catalog_source_name}
   channel: ${CHANNEL:-alpha}
   sourceNamespace: openshift-marketplace
 EOCR
@@ -255,7 +255,7 @@ function from_community_operators() {
       "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
     mirror_rhcos
   else
-    catalog_source_name="community-operators"
+    catalog_source_name="${ASSISTED_DEPLOYMENT_METHOD:-community-operators}"
   fi
 
   install_from_catalog_source "${catalog_source_name}"
@@ -274,6 +274,10 @@ function mirror_rhcos() {
 
 if [ -z "$@" ]; then
   from_index_image
+fi
+
+if [ "${ASSISTED_UPGRADE_OPERATOR}" = "true" ]; then
+  from_community_operators
 fi
 
 if ! declare -F "$@"; then
