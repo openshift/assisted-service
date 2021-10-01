@@ -388,6 +388,9 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
 		params.NewClusterParams.HTTPSProxy = params.NewClusterParams.HTTPProxy
 	}
+	if params.NewClusterParams.HighAvailabilityMode == nil {
+		params.NewClusterParams.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+	}
 
 	return params
 }
