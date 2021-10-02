@@ -12239,6 +12239,10 @@ func init() {
           "default": "x86_64",
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
+        "default": {
+          "description": "Indication that the version is the recommended one.",
+          "type": "boolean"
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
@@ -25018,6 +25022,10 @@ func init() {
           "type": "string",
           "default": "x86_64",
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
+        },
+        "default": {
+          "description": "Indication that the version is the recommended one.",
+          "type": "boolean"
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",

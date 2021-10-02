@@ -21,6 +21,9 @@ type ReleaseImage struct {
 	// Required: true
 	CPUArchitecture *string `json:"cpu_architecture" gorm:"default:'x86_64'"`
 
+	// Indication that the version is the recommended one.
+	Default bool `json:"default,omitempty"`
+
 	// Version of the OpenShift cluster.
 	// Required: true
 	OpenshiftVersion *string `json:"openshift_version"`
