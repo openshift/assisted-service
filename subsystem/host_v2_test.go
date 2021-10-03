@@ -77,52 +77,6 @@ var _ = Describe("Host tests v2", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 
-	var defaultInventory = func() string {
-		inventory := models.Inventory{
-			Interfaces: []*models.Interface{
-				{
-					Name: "eth0",
-					IPV4Addresses: []string{
-						"1.2.3.4/24",
-					},
-					SpeedMbps: 20,
-				},
-				{
-					Name: "eth1",
-					IPV4Addresses: []string{
-						"1.2.5.4/24",
-					},
-					SpeedMbps: 40,
-				},
-			},
-
-			// CPU, Disks, and Memory were added here to prevent the case that assisted-service crashes in case the monitor starts
-			// working in the middle of the test and this inventory is in the database.
-			CPU: &models.CPU{
-				Count: 4,
-			},
-			Disks: []*models.Disk{
-				{
-					ID:        "wwn-0x1111111111111111111111",
-					ByID:      "wwn-0x1111111111111111111111",
-					DriveType: "HDD",
-					Name:      "sda1",
-					SizeBytes: int64(120) * (int64(1) << 30),
-					Bootable:  true,
-				},
-			},
-			Memory: &models.Memory{
-				PhysicalBytes: int64(16) * (int64(1) << 30),
-				UsableBytes:   int64(16) * (int64(1) << 30),
-			},
-			SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
-			Timestamp:    1601845851,
-		}
-		b, err := json.Marshal(&inventory)
-		Expect(err).To(Not(HaveOccurred()))
-		return string(b)
-	}
-
 	It("infra-env host should reach know-unbound state", func() {
 		host := &registerHost(infraEnvID).Host
 		host = getHostV2(infraEnvID, *host.ID)
@@ -252,6 +206,64 @@ var _ = Describe("Host tests v2", func() {
 	})
 })
 
+var _ = Describe("Day2 Host tests v2", func() {
+	ctx := context.Background()
+	var infraEnv *installer.RegisterInfraEnvCreated
+	var infraEnvID strfmt.UUID
+	var cluster *installer.RegisterClusterCreated
+	var clusterID strfmt.UUID
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	BeforeEach(func() {
+		var err error
+		infraEnv, err = userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
+			InfraenvCreateParams: &models.InfraEnvCreateParams{
+				Name:             swag.String("test-infra-env"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHAuthorizedKey: swag.String(sshPublicKey),
+				ImageType:        models.ImageTypeFullIso,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		infraEnvID = infraEnv.GetPayload().ID
+
+		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		clusterID = *cluster.GetPayload().ID
+		Expect(db.Model(cluster.GetPayload()).Update("kind", swag.String(models.ClusterKindAddHostsCluster)).Error).NotTo(HaveOccurred())
+	})
+
+	It("bind host to day2 cluster", func() {
+		host := &registerHost(infraEnvID).Host
+		host = getHostV2(infraEnvID, *host.ID)
+		Expect(host).NotTo(BeNil())
+		Expect(*host.Status).Should(Equal("discovering-unbound"))
+		Expect(host.StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
+
+		waitForHostStateV2(ctx, models.HostStatusDiscoveringUnbound, defaultWaitForHostStateTimeout, host)
+		host = updateInventory(ctx, infraEnvID, *host.ID, defaultInventory())
+		waitForHostStateV2(ctx, models.HostStatusKnownUnbound, defaultWaitForHostStateTimeout, host)
+
+		host = bindHost(infraEnvID, *host.ID, clusterID)
+		Expect(swag.StringValue(host.Status)).Should(Equal("binding"))
+
+		host = &registerHostByUUID(infraEnvID, *host.ID).Host
+		host = getHostV2(host.InfraEnvID, *host.ID)
+		Expect(swag.StringValue(host.Status)).Should(Equal("discovering"))
+		Expect(swag.StringValue(host.Kind)).Should(Equal(models.HostKindAddToExistingClusterHost))
+	})
+})
+
 func updateHostV2(ctx context.Context, request *installer.V2UpdateHostParams) *models.Host {
 	response, error := userBMClient.Installer.V2UpdateHost(ctx, request)
 	Expect(error).ShouldNot(HaveOccurred())
@@ -285,4 +297,50 @@ func waitForHostStateV2(ctx context.Context, state string, timeout time.Duration
 		return fmt.Errorf("Host %s in Infra Env %s switched backed to state %s, state info %s.",
 			*host.ID, host.InfraEnvID, lastState, lastStatusInfo)
 	}, 10, 1)
+}
+
+func defaultInventory() string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				SpeedMbps: 20,
+			},
+			{
+				Name: "eth1",
+				IPV4Addresses: []string{
+					"1.2.5.4/24",
+				},
+				SpeedMbps: 40,
+			},
+		},
+
+		// CPU, Disks, and Memory were added here to prevent the case that assisted-service crashes in case the monitor starts
+		// working in the middle of the test and this inventory is in the database.
+		CPU: &models.CPU{
+			Count: 4,
+		},
+		Disks: []*models.Disk{
+			{
+				ID:        "wwn-0x1111111111111111111111",
+				ByID:      "wwn-0x1111111111111111111111",
+				DriveType: "HDD",
+				Name:      "sda1",
+				SizeBytes: int64(120) * (int64(1) << 30),
+				Bootable:  true,
+			},
+		},
+		Memory: &models.Memory{
+			PhysicalBytes: int64(16) * (int64(1) << 30),
+			UsableBytes:   int64(16) * (int64(1) << 30),
+		},
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Timestamp:    1601845851,
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
 }

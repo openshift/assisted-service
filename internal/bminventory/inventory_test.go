@@ -297,7 +297,7 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	It("success - infra-env", func() {
 		infraEnvID := strfmt.UUID(uuid.New().String())
-		infraEnv := createInfraEnvWithPullSecret(db, infraEnvID)
+		infraEnv := createInfraEnvWithPullSecret(db, infraEnvID, infraEnvID)
 		mockS3Client.EXPECT().IsAwsS3().Return(false)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -930,22 +930,22 @@ func createCluster(db *gorm.DB, status string) *common.Cluster {
 	return createClusterWithAvailability(db, status, models.ClusterCreateParamsHighAvailabilityModeFull)
 }
 
-func createInfraEnv(db *gorm.DB, id strfmt.UUID) *common.InfraEnv {
+func createInfraEnv(db *gorm.DB, id strfmt.UUID, clusterID strfmt.UUID) *common.InfraEnv {
 	infraEnv := &common.InfraEnv{
 		InfraEnv: models.InfraEnv{
 			ID:        id,
-			ClusterID: id,
+			ClusterID: clusterID,
 		},
 	}
 	Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
 	return infraEnv
 }
 
-func createInfraEnvWithPullSecret(db *gorm.DB, id strfmt.UUID) *common.InfraEnv {
+func createInfraEnvWithPullSecret(db *gorm.DB, id strfmt.UUID, clusterID strfmt.UUID) *common.InfraEnv {
 	infraEnv := &common.InfraEnv{
 		InfraEnv: models.InfraEnv{
 			ID:            id,
-			ClusterID:     id,
+			ClusterID:     clusterID,
 			PullSecretSet: true,
 		},
 		PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
@@ -1137,7 +1137,7 @@ var _ = Describe("RegisterHost", func() {
 	It("register host to a cluster while installation is in progress", func() {
 		By("creating the cluster")
 		cluster := createCluster(db, models.ClusterStatusInstalling)
-		_ = createInfraEnv(db, *cluster.ID)
+		_ = createInfraEnv(db, *cluster.ID, *cluster.ID)
 
 		allowedStates := []string{
 			models.ClusterStatusInsufficient, models.ClusterStatusReady,
@@ -1181,7 +1181,7 @@ var _ = Describe("RegisterHost", func() {
 			It(fmt.Sprintf("cluster availability mode %s expected default host role %s",
 				test.availability, test.expectedRole), func() {
 				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.availability)
-				infraEnv := createInfraEnv(db, *cluster.ID)
+				infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 
 				mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -1225,7 +1225,7 @@ var _ = Describe("RegisterHost", func() {
 
 	It("add_crd_failure", func() {
 		cluster := createCluster(db, models.ClusterStatusInsufficient)
-		infraEnv := createInfraEnv(db, *cluster.ID)
+		infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 		expectedErrMsg := "some-internal-error"
 
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
@@ -1257,7 +1257,7 @@ var _ = Describe("RegisterHost", func() {
 
 	It("host_api_failure", func() {
 		cluster := createCluster(db, models.ClusterStatusInsufficient)
-		_ = createInfraEnv(db, *cluster.ID)
+		_ = createInfraEnv(db, *cluster.ID, *cluster.ID)
 		expectedErrMsg := "some-internal-error"
 
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
@@ -1316,7 +1316,7 @@ var _ = Describe("v2RegisterHost", func() {
 	It("register host to a cluster while installation is in progress", func() {
 		By("creating the cluster")
 		cluster := createCluster(db, models.ClusterStatusInstalling)
-		_ = createInfraEnv(db, *cluster.ID)
+		_ = createInfraEnv(db, *cluster.ID, *cluster.ID)
 
 		allowedStates := []string{
 			models.ClusterStatusInsufficient, models.ClusterStatusReady,
@@ -1360,7 +1360,7 @@ var _ = Describe("v2RegisterHost", func() {
 			It(fmt.Sprintf("cluster availability mode %s expected default host role %s",
 				test.availability, test.expectedRole), func() {
 				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.availability)
-				infraEnv := createInfraEnv(db, *cluster.ID)
+				infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 
 				mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -1404,7 +1404,7 @@ var _ = Describe("v2RegisterHost", func() {
 
 	It("add_crd_failure", func() {
 		cluster := createCluster(db, models.ClusterStatusInsufficient)
-		infraEnv := createInfraEnv(db, *cluster.ID)
+		infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 		expectedErrMsg := "some-internal-error"
 
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
@@ -1436,7 +1436,7 @@ var _ = Describe("v2RegisterHost", func() {
 
 	It("host_api_failure", func() {
 		cluster := createCluster(db, models.ClusterStatusInsufficient)
-		_ = createInfraEnv(db, *cluster.ID)
+		_ = createInfraEnv(db, *cluster.ID, *cluster.ID)
 		expectedErrMsg := "some-internal-error"
 
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
@@ -1455,6 +1455,48 @@ var _ = Describe("v2RegisterHost", func() {
 		Expect(ok).Should(BeTrue())
 		Expect(err.StatusCode()).Should(Equal(int32(http.StatusBadRequest)))
 		Expect(err.Error()).Should(ContainSubstring(expectedErrMsg))
+	})
+
+	It("register day2 bound host", func() {
+		cluster := createCluster(db, models.ClusterStatusAddingHosts)
+		Expect(db.Model(&cluster).Update("kind", swag.String(models.ClusterKindAddHostsCluster)).Error).ShouldNot(HaveOccurred())
+		infraEnvId := strToUUID(uuid.New().String())
+		_ = createInfraEnv(db, *infraEnvId, "")
+
+		hostId := strToUUID(uuid.New().String())
+		host := models.Host{
+			ID:         hostId,
+			InfraEnvID: *infraEnvId,
+			ClusterID:  cluster.ID,
+			Status:     swag.String("binding"),
+			Kind:       swag.String(models.HostKindHost),
+		}
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+		mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
+				// validate that host kind was set to day2
+				Expect(swag.StringValue(h.Kind)).Should(Equal(models.HostKindAddToExistingClusterHost))
+				return nil
+			}).Times(1)
+		mockEvents.EXPECT().
+			AddEvent(gomock.Any(), *infraEnvId, hostId, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+			Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+		By("trying to register a host bound to day2 cluster")
+		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
+			InfraEnvID: *infraEnvId,
+			NewHostParams: &models.HostCreateParams{
+				DiscoveryAgentVersion: "v1",
+				HostID:                hostId,
+			},
+		})
+
+		By("verifying returned response")
+		_, ok := reply.(*installer.V2RegisterHostCreated)
+		Expect(ok).Should(BeTrue())
 	})
 })
 
