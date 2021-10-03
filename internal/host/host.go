@@ -100,6 +100,7 @@ type LogTimeoutConfig struct {
 type Config struct {
 	LogTimeoutConfig
 	EnableAutoReset         bool                    `envconfig:"ENABLE_AUTO_RESET" default:"false"`
+	EnableAutoAssign        bool                    `envconfig:"ENABLE_AUTO_ASSIGN" default:"true"`
 	ResetTimeout            time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 	MonitorBatchSize        int                     `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
 	DisabledHostvalidations DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:""` // Which host validations to disable (should not run in preprocess)
@@ -134,6 +135,7 @@ type API interface {
 	IsInstallable(h *models.Host) bool
 	// auto assign host role
 	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) (bool, error)
+	RefreshRole(ctx context.Context, h *models.Host, db *gorm.DB) error
 	IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
@@ -375,6 +377,28 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	}).Error
 }
 
+func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *gorm.DB, forceRefresh bool) error {
+	//update suggested role, if not yet set
+	var suggestedRole models.HostRole
+	var err error
+	if m.Config.EnableAutoAssign || forceRefresh {
+		//because of possible hw changes, suggested role should be calculated
+		//periodically even if the suggested role is already set
+		if h.Role == models.HostRoleAutoAssign &&
+			funk.ContainsString(hostStatusesBeforeInstallation[:], *h.Status) {
+			if suggestedRole, err = m.autoRoleSelection(ctx, h, db); err == nil {
+				if h.SuggestedRole != suggestedRole {
+					if err = updateRole(m.log, h, h.Role, suggestedRole, db, string(h.Role)); err == nil {
+						h.SuggestedRole = suggestedRole
+						m.log.Infof("suggested role for host %s is %s", *h.ID, suggestedRole)
+					}
+				}
+			}
+		}
+	}
+	return err
+}
+
 func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB) error {
 	if db == nil {
 		db = m.db
@@ -409,15 +433,6 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 		}
 	}
 
-	//update suggested role, if not yet set
-	var suggestedRole models.HostRole
-	if h.Role == models.HostRoleAutoAssign && h.SuggestedRole == models.HostRoleAutoAssign &&
-		funk.ContainsString(hostStatusesBeforeInstallation[:], *h.Status) {
-		if suggestedRole, err = m.autoRoleSelection(ctx, h, db); err == nil {
-			_ = updateRole(m.log, h, h.Role, suggestedRole, db, string(h.Role))
-		}
-	}
-
 	err = m.sm.Run(TransitionTypeRefresh, newStateHost(h), &TransitionArgsRefreshHost{
 		ctx:               ctx,
 		db:                db,
@@ -429,6 +444,13 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
+}
+
+func (m *Manager) RefreshRole(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	if db == nil {
+		db = m.db
+	}
+	return m.refreshRoleInternal(ctx, h, db, true)
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
@@ -1009,17 +1031,16 @@ func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.D
 	if h.Role == models.HostRoleAutoAssign {
 		log := logutil.FromContext(ctx, m.log)
 		// If role is auto-assigned calculate the suggested roles
-		// This logic will moved to the monitor soon
-		suggestedRole, err := m.autoRoleSelection(ctx, h, db)
-		if err != nil {
+		// to make sure the suggestion is fresh
+		if err := m.RefreshRole(ctx, h, db); err != nil { //force refresh
 			return false, err
 		}
 
 		//copy the suggested role into the role and update the host record
-		log.Infof("suggested role %s for host %s cluster %s", suggestedRole, h.ID.String(), h.ClusterID.String())
-		if err := updateRole(m.log, h, suggestedRole, suggestedRole, db, string(models.HostRoleAutoAssign)); err != nil {
+		log.Infof("suggested role %s for host %s cluster %s", h.SuggestedRole, h.ID.String(), h.ClusterID.String())
+		if err := updateRole(m.log, h, h.SuggestedRole, h.SuggestedRole, db, string(models.HostRoleAutoAssign)); err != nil {
 			log.WithError(err).Errorf("failed to update role %s for host %s cluster %s",
-				suggestedRole, h.ID.String(), h.ClusterID.String())
+				h.SuggestedRole, h.ID.String(), h.ClusterID.String())
 			return true, err
 		}
 
@@ -1061,15 +1082,15 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 			h.ID.String(), h.ClusterID.String())
 	}
 
-	// count already existing masters
-	mastersCount := 0
-	if err = db.Model(&models.Host{}).Where("cluster_id = ? and status != ? and role = ?",
-		h.ClusterID, models.HostStatusDisabled, models.HostRoleMaster).Count(&mastersCount).Error; err != nil {
+	// count already existing masters or hosts with suggested role of master
+	otherMastersCount := 0
+	if err = db.Model(&models.Host{}).Where("cluster_id = ? and id != ? and status != ? and (role = ? or suggested_role = ?)",
+		h.ClusterID, h.ID, models.HostStatusDisabled, models.HostRoleMaster, models.HostRoleMaster).Count(&otherMastersCount).Error; err != nil {
 		log.WithError(err).Errorf("failed to count masters in cluster %s", h.ClusterID.String())
 		return autoSelectedRole, err
 	}
 
-	if mastersCount < common.MinMasterHostsNeededForInstallation {
+	if otherMastersCount < common.MinMasterHostsNeededForInstallation {
 		h.Role = models.HostRoleMaster
 		vc, err = newValidationContext(h, nil, nil, db, m.hwValidator)
 		if err != nil {
@@ -1269,13 +1290,14 @@ func (m *Manager) captureConnectivityReportMetrics(ctx context.Context, openshif
 	}
 	for _, r := range connectivityReport.RemoteHosts {
 		for _, l3 := range r.L3Connectivity {
-			_, targetRole, err := GetHostnameAndRoleByIP(l3.RemoteIPAddress, hosts)
+			_, targetRole, err := GetHostnameAndEffectiveRoleByIP(l3.RemoteIPAddress, hosts)
 			if err != nil {
 				log.Warn(err)
 				continue
 			}
-			m.metricApi.NetworkLatencyBetweenHosts(openshiftVersion, h.Role, targetRole, l3.AverageRTTMs)
-			m.metricApi.PacketLossBetweenHosts(openshiftVersion, h.Role, targetRole, l3.PacketLossPercentage)
+			effectiveRole := common.GetEffectiveRole(h)
+			m.metricApi.NetworkLatencyBetweenHosts(openshiftVersion, effectiveRole, targetRole, l3.AverageRTTMs)
+			m.metricApi.PacketLossBetweenHosts(openshiftVersion, effectiveRole, targetRole, l3.PacketLossPercentage)
 		}
 	}
 }

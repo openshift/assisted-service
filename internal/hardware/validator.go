@@ -168,7 +168,7 @@ func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *com
 		return nil, err
 	}
 
-	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(cluster, host.Role)
+	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(cluster, common.GetEffectiveRole(host))
 	if err != nil {
 		return nil, err
 	}

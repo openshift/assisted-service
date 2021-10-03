@@ -80,6 +80,13 @@ func (m *Manager) clusterHostMonitoring() int64 {
 					if err != nil {
 						log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
 					}
+					//the refreshed role will be taken into account
+					//on the next monitor cycle. The force flag is a workaround
+					//until the feature flag is removed
+					err = m.refreshRoleInternal(ctx, host, m.db, false)
+					if err != nil {
+						log.WithError(err).Errorf("failed to refresh host %s role", *host.ID)
+					}
 				}
 			}
 		}

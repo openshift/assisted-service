@@ -139,7 +139,7 @@ var _ = Describe("Validations test", func() {
 			Expect(found).To(BeFalse())
 		})
 
-		It("un-allowed auto-assigned role", func() {
+		It("auto-assigned role", func() {
 
 			c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
 			c.DiskEncryption = &models.DiskEncryption{
@@ -152,13 +152,25 @@ var _ = Describe("Validations test", func() {
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNr20)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 
-			mockAndRefreshStatus(&h)
+			checkValidation := func(expectedStatus ValidationStatus, expectedMsg string) {
+				h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+				validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+				ExpectWithOffset(1, found).To(BeTrue())
+				ExpectWithOffset(1, validationStatus).To(Equal(expectedStatus))
+				ExpectWithOffset(1, validationMessage).To(Equal(expectedMsg))
+			}
 
+			By("effective role is auto-assign (no suggestion yet)")
+			mockAndRefreshStatus(&h)
+			checkValidation(ValidationPending, "Missing role assignment")
+
+			By("auto-assign node is effectively assigned to master")
+			err := m.RefreshRole(ctx, &h, db)
+			Expect(err).ToNot(HaveOccurred())
+
+			mockAndRefreshStatusWithoutEvents(&h)
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
-			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationFailure))
-			Expect(validationMessage).To(Equal("Host role auto assignment is supported only if encryption is enabled on all nodes or disabled"))
+			checkValidation(ValidationSuccess, "Installation disk can be encrypted using tpmv2")
 		})
 
 		It("missing inventory", func() {
@@ -260,28 +272,6 @@ var _ = Describe("Validations test", func() {
 			Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 
 			h := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleWorker)
-			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNr20)
-			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-
-			mockAndRefreshStatus(&h)
-
-			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
-			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationSuccess))
-			Expect(validationMessage).To(Equal(fmt.Sprintf("Installation disk can be encrypted using %s", models.DiskEncryptionModeTpmv2)))
-		})
-
-		It("happy flow - auto-assigned role", func() {
-
-			c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
-			c.DiskEncryption = &models.DiskEncryption{
-				EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
-				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
-			}
-			Expect(db.Create(&c).Error).ToNot(HaveOccurred())
-
-			h := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleAutoAssign)
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNr20)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 

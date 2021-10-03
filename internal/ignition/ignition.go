@@ -967,7 +967,7 @@ func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 		switch {
 		case hosts[i].Status != nil && *hosts[i].Status == models.HostStatusDisabled:
 			continue
-		case hosts[i].Role == models.HostRoleMaster:
+		case common.GetEffectiveRole(hosts[i]) == models.HostRoleMaster:
 			masters = append(masters, hosts[i])
 		default:
 			workers = append(workers, hosts[i])

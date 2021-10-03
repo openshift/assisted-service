@@ -100,7 +100,7 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, su
 		*h.ID, h.InfraEnvID, srcRole).Updates(fields).Error
 }
 
-func GetHostnameAndRoleByIP(ip string, hosts []*models.Host) (string, models.HostRole, error) {
+func GetHostnameAndEffectiveRoleByIP(ip string, hosts []*models.Host) (string, models.HostRole, error) {
 	for _, h := range hosts {
 		if h.Inventory == "" {
 			continue
@@ -117,7 +117,7 @@ func GetHostnameAndRoleByIP(ip string, hosts []*models.Host) (string, models.Hos
 					return "", "", err
 				}
 				if ip == parsedIP.String() {
-					return getRealHostname(h, inv), h.Role, nil
+					return getRealHostname(h, inv), common.GetEffectiveRole(h), nil
 				}
 			}
 		}

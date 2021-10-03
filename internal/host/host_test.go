@@ -41,6 +41,7 @@ var (
 	defaultConfig                  = &Config{
 		ResetTimeout:            3 * time.Minute,
 		EnableAutoReset:         true,
+		EnableAutoAssign:        true,
 		MonitorBatchSize:        100,
 		DisabledHostvalidations: defaultDisabledHostValidations,
 	}

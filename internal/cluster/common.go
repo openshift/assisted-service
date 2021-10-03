@@ -144,7 +144,7 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 
 	allowedStatuses := []string{models.HostStatusKnown, models.HostStatusPreparingForInstallation}
 	for _, host := range cluster.Hosts {
-		if host.Role == models.HostRoleMaster && funk.ContainsString(allowedStatuses, swag.StringValue(host.Status)) {
+		if common.GetEffectiveRole(host) == models.HostRoleMaster && funk.ContainsString(allowedStatuses, swag.StringValue(host.Status)) {
 			masterNodesIds = append(masterNodesIds, host.ID)
 		}
 	}
@@ -154,7 +154,7 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 func NumberOfWorkers(c *common.Cluster) int {
 	num := 0
 	for _, host := range c.Hosts {
-		if host.Role != models.HostRoleWorker || *host.Status == models.HostStatusDisabled {
+		if common.GetEffectiveRole(host) != models.HostRoleWorker || *host.Status == models.HostStatusDisabled {
 			continue
 		}
 		num += 1
@@ -173,7 +173,7 @@ func MapWorkersHostsByStatus(c *common.Cluster) map[string][]*models.Host {
 func mapHostsByStatus(c *common.Cluster, role models.HostRole) map[string][]*models.Host {
 	hostMap := make(map[string][]*models.Host)
 	for _, host := range c.Hosts {
-		if role != "" && host.Role != role {
+		if role != "" && common.GetEffectiveRole(host) != role {
 			continue
 		}
 		if _, ok := hostMap[swag.StringValue(host.Status)]; ok {

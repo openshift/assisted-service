@@ -91,8 +91,10 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"CPU does not have virtualization support "}}, nil
 	}
 
+	role := common.GetEffectiveRole(host)
+
 	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
-	if host.Role == models.HostRoleAutoAssign {
+	if role == models.HostRoleAutoAssign {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"All host roles must be assigned to enable CNV"}}, nil
 	}
 	requirements, err := o.GetHostRequirements(ctx, cluster, host)
@@ -143,7 +145,7 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 	preflightRequirements, err := o.GetPreflightRequirements(ctx, cluster)
 	masterRequirements := preflightRequirements.Requirements.Master.Quantitative
 	if err != nil {
-		log.WithError(err).Errorf("Cannot Retrieve prefligh requirements for cluster %s", cluster.ID)
+		log.WithError(err).Errorf("Cannot Retrieve preflight requirements for cluster %s", cluster.ID)
 		return nil, err
 	}
 
@@ -158,13 +160,14 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 		}, nil
 	}
 
-	switch host.Role {
+	role := common.GetEffectiveRole(host)
+	switch role {
 	case models.HostRoleMaster:
 		return masterRequirements, nil
 	case models.HostRoleWorker, models.HostRoleAutoAssign:
 		return o.getWorkerRequirements(ctx, cluster, host, preflightRequirements)
 	}
-	return nil, fmt.Errorf("unsupported role: %s", host.Role)
+	return nil, fmt.Errorf("unsupported role: %s", role)
 }
 
 func (o *operator) getWorkerRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host, preflightRequirements *models.OperatorHardwareRequirements) (*models.ClusterHostRequirementsDetails, error) {

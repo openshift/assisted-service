@@ -2833,7 +2833,7 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected: false,
 			},
 			{
-				name:             "disconnected to insufficient (1)",
+				name:             "disconnected to insufficient - auto-assign casted as worker (1)",
 				role:             models.HostRoleAutoAssign,
 				validCheckInTime: true,
 				srcState:         models.HostStatusDisconnected,
@@ -2842,7 +2842,7 @@ var _ = Describe("Refresh Host", func() {
 					"Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs",
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
 					"Require a disk of at least 120 GB",
-					"Require at least 8.00 GiB RAM for role auto-assign, found only 130 bytes",
+					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
 					"Host couldn't synchronize with any NTP server")),
 				inventory: insufficientHWInventory(),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -2852,8 +2852,8 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:                   {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes"},
 					HasMinValidDisks:               {status: ValidationFailure, messagePattern: "Require a disk of at least 120 GB"},
 					IsMachineCidrDefined:           {status: ValidationFailure, messagePattern: "Machine Network CIDR is undefined"},
-					HasCPUCoresForRole:             {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role auto-assign"},
-					HasMemoryForRole:               {status: ValidationFailure, messagePattern: "Require at least 8.00 GiB RAM for role auto-assign, found only 130 bytes"},
+					HasCPUCoresForRole:             {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:               {status: ValidationFailure, messagePattern: "Require at least 8.00 GiB RAM for role worker, found only 130 bytes"},
 					IsHostnameUnique:               {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr:           {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformNetworkSettingsValid: {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
@@ -2874,7 +2874,7 @@ var _ = Describe("Refresh Host", func() {
 					"Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs",
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
 					"Require a disk of at least 120 GB",
-					"Require at least 8.00 GiB RAM for role auto-assign, found only 130 bytes",
+					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
 					"Host couldn't synchronize with any NTP server")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:                    {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -2883,8 +2883,8 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:                   {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes"},
 					HasMinValidDisks:               {status: ValidationFailure, messagePattern: "Require a disk of at least 120 GB"},
 					IsMachineCidrDefined:           {status: ValidationFailure, messagePattern: "Machine Network CIDR is undefined"},
-					HasCPUCoresForRole:             {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role auto-assign"},
-					HasMemoryForRole:               {status: ValidationFailure, messagePattern: "Require at least 8.00 GiB RAM for role auto-assign, found only 130 bytes"},
+					HasCPUCoresForRole:             {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:               {status: ValidationFailure, messagePattern: "Require at least 8.00 GiB RAM for role worker, found only 130 bytes"},
 					IsHostnameUnique:               {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr:           {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformNetworkSettingsValid: {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
@@ -2897,7 +2897,7 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected: false,
 			},
 			{
-				name:             "discovering to insufficient (1)",
+				name:             "discovering to insufficient - auto-assign casted as worker (1)",
 				role:             models.HostRoleAutoAssign,
 				validCheckInTime: true,
 				srcState:         models.HostStatusDiscovering,
@@ -2906,7 +2906,7 @@ var _ = Describe("Refresh Host", func() {
 					"Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs",
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
 					"Require a disk of at least 120 GB",
-					"Require at least 8.00 GiB RAM for role auto-assign, found only 130 bytes",
+					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
 					"Host couldn't synchronize with any NTP server")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:                    {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -2916,7 +2916,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMinValidDisks:               {status: ValidationFailure, messagePattern: "Require a disk of at least 120 GB"},
 					IsMachineCidrDefined:           {status: ValidationFailure, messagePattern: "Machine Network CIDR is undefined"},
 					HasCPUCoresForRole:             {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role"},
-					HasMemoryForRole:               {status: ValidationFailure, messagePattern: "Require at least 8.00 GiB RAM for role auto-assign, found only 130 bytes"},
+					HasMemoryForRole:               {status: ValidationFailure, messagePattern: "Require at least 8.00 GiB RAM for role worker, found only 130 bytes"},
 					IsHostnameUnique:               {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr:           {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformNetworkSettingsValid: {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
@@ -2939,7 +2939,7 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:     true,
 			},
 			{
-				name:             "known to insufficient (1)",
+				name:             "known to insufficient - auto-assign casted as worker (1)",
 				role:             models.HostRoleAutoAssign,
 				validCheckInTime: true,
 				srcState:         models.HostStatusKnown,
@@ -2947,7 +2947,7 @@ var _ = Describe("Refresh Host", func() {
 				statusInfoChecker: makeValueChecker("Host does not meet the minimum hardware requirements: " +
 					"Host couldn't synchronize with any NTP server ; Machine Network CIDR is undefined; the Machine " +
 					"Network CIDR can be defined by setting either the API or Ingress virtual IPs ; Require a disk of at " +
-					"least 120 GB ; Require at least 8.00 GiB RAM for role auto-assign, found only 130 bytes ; " +
+					"least 120 GB ; Require at least 8.00 GiB RAM for role worker, found only 130 bytes ; " +
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for " +
 					"any role is 8.00 GiB, found only 130 bytes"),
 				inventory:     insufficientHWInventory(),

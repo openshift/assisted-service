@@ -3953,7 +3953,7 @@ var _ = Describe("disk encryption", func() {
 		waitForInstallationPreparationCompletionStatus(*c.ID, common.InstallationPreparationSucceeded)
 	})
 
-	It("host doesn't have minimal requirementes for disk-encryption, TPM mode", func() {
+	It("host doesn't have minimal requirements for disk-encryption, TPM mode", func() {
 
 		h := &registerHost(*c.ID).Host
 		nonValidTPMHwInfo := &models.Inventory{
@@ -3974,6 +3974,7 @@ var _ = Describe("disk encryption", func() {
 			TpmVersion:   models.InventoryTpmVersionNr12,
 		}
 		generateEssentialHostStepsWithInventory(ctx, h, "test-host", nonValidTPMHwInfo)
+		time.Sleep(60 * time.Second)
 		waitForHostState(ctx, *c.ID, models.HostStatusInsufficient, 60*time.Second, h)
 
 		h = getHost(*c.ID, *h.ID)

@@ -44,7 +44,7 @@ func NewInstallConfigBuilder(
 func (i *installConfigBuilder) countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
 	var count int
 	for _, host := range cluster.Hosts {
-		if swag.StringValue(host.Status) != models.HostStatusDisabled && host.Role == role {
+		if swag.StringValue(host.Status) != models.HostStatusDisabled && common.GetEffectiveRole(host) == role {
 			count += 1
 		}
 	}

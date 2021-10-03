@@ -295,6 +295,20 @@ func (mr *MockAPIMockRecorder) RefreshInventory(arg0, arg1, arg2, arg3 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshInventory", reflect.TypeOf((*MockAPI)(nil).RefreshInventory), arg0, arg1, arg2, arg3)
 }
 
+// RefreshRole mocks base method.
+func (m *MockAPI) RefreshRole(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshRole", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RefreshRole indicates an expected call of RefreshRole.
+func (mr *MockAPIMockRecorder) RefreshRole(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshRole", reflect.TypeOf((*MockAPI)(nil).RefreshRole), arg0, arg1, arg2)
+}
+
 // RefreshStatus mocks base method.
 func (m *MockAPI) RefreshStatus(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
 	m.ctrl.T.Helper()
