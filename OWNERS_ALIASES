@@ -12,7 +12,6 @@ aliases:
     - filanov
     - gamli75
     - ori-amizur
-    - oshercc
     - tsorya
     - yevgeny-shnaidman
     - yuvigold
@@ -34,8 +33,10 @@ aliases:
     - pawanpinjarkar
     - sagidayan
   ci-approvers:
+    - lranjbar
+    - osherdp
+    - eliorerz
     - yuvigold
-    - oshercc
   reviewers-only:
     - jakub-dzon
     - pkliczewski
