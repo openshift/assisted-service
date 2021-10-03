@@ -10911,6 +10911,18 @@ func init() {
         "role": {
           "$ref": "#/definitions/host-role"
         },
+        "stage_started_at": {
+          "description": "Time at which the current progress stage started.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "stage_updated_at": {
+          "description": "Time at which the current progress stage was last updated.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
         "status": {
           "type": "string",
           "enum": [
@@ -23699,6 +23711,18 @@ func init() {
         },
         "role": {
           "$ref": "#/definitions/host-role"
+        },
+        "stage_started_at": {
+          "description": "Time at which the current progress stage started.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "stage_updated_at": {
+          "description": "Time at which the current progress stage was last updated.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "status": {
           "type": "string",
