@@ -380,7 +380,11 @@ func checkAgentCondition(ctx context.Context, hostId string, conditionType condi
 		Name:      hostId,
 	}
 	Eventually(func() string {
-		return conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, hostkey).Status.Conditions, conditionType).Reason
+		condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, hostkey).Status.Conditions, conditionType)
+		if condition != nil {
+			return condition.Reason
+		}
+		return ""
 	}, "3m", "20s").Should(Equal(reason))
 }
 
