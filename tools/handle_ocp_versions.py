@@ -51,32 +51,13 @@ def main():
 
     if not args.skip_verify:
         print("Verifying that images match keys", file=sys.stderr)
-        verify_ocp_versions(ocp_versions)
-
-    if bool(args.single_version_only):
-        print("Using only single version of the RHCOS ISO", file=sys.stderr)
-        ocp_versions = update_openshift_versions_hashmap_to_single_only(ocp_versions, args.ocp_override)
+        verify_ocp_versions(ocp_versions, release_images=None)
 
     if args.dest:
         with Path(args.dest).open("w") as file_stream:
             json.dump(ocp_versions, file_stream, indent=4)
     else:
         print(json.dumps(ocp_versions, indent=4))
-
-
-def update_openshift_versions_hashmap_to_single_only(ocp_versions: dict, release_image: str):
-    key = os.getenv('OPENSHIFT_VERSION')
-    if key is None and release_image:
-        oc_version = get_oc_version(release_image)
-        major, minor, *_other_version_components = oc_version.split(".")
-        key = f"{major}.{minor}"
-
-    if key is None:
-        key = get_largest_version(list(ocp_versions.keys()))
-
-    single_version = dict()
-    single_version[key] = ocp_versions[key].copy()
-    return single_version
 
 
 def update_openshift_versions_hashmap(ocp_versions: dict, release_image: str, name_override: str, version_override: str):
@@ -94,13 +75,17 @@ def update_openshift_versions_hashmap(ocp_versions: dict, release_image: str, na
     ocp_versions[key]["display_name"] = oc_version if name_override is None else name_override
 
 
-def verify_ocp_versions(ocp_versions: dict):
-    for key, metadata in ocp_versions.items():
-        if "release_image" not in metadata:
-            # in hive cluster deployment scenario, the release image is specified within an imageset
-            continue
-        verify_image_version(key, metadata["release_image"], metadata["release_version"])
+def verify_ocp_versions(ocp_versions: dict, release_images: List[str]):
+    if ocp_versions is not None:
+        for key, metadata in ocp_versions.items():
+            if "release_image" not in metadata:
+                # in hive cluster deployment scenario, the release image is specified within an imageset
+                continue
+            verify_image_version(key, metadata["release_image"], metadata["release_version"])
 
+    if release_images is not None:
+        for release in release_images:
+            verify_image_version(release["openshift_version"], release["url"], release["version"])
 
 def verify_image_version(ocp_version: str, release_image: str, release_version: str):
     if release_image in SKIP_IMAGES:

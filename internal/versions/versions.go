@@ -382,8 +382,13 @@ func (h *handler) getSupportLevel(openshiftVersion string) string {
 
 // Ensure no missing values in OS images and Release images.
 func (h *handler) validateVersions() error {
+	openshiftVersions := h.GetOpenshiftVersions()
+	if len(openshiftVersions) == 0 {
+		return errors.Errorf("No OS images are available")
+	}
+
 	missingValueTemplate := "Missing value in OSImage for '%s' field (openshift_version: %s)"
-	for _, key := range h.GetOpenshiftVersions() {
+	for _, key := range openshiftVersions {
 		architectures, err := h.GetCPUArchitectures(key)
 		if err != nil {
 			return err
