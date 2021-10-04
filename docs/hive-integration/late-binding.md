@@ -22,6 +22,12 @@ An agent can be unbound from a Cluster Deployment as long as the installation di
 
 Note that the Pull Secret of the InfraEnv can be different from the one specified in the Cluster Deployment.
 
+## Teardown
+
+When an InfraEnv CR is deleted, the hosts related to it will be deleted if they are Unbound or Installed.
+If no more hosts are connected, the InfraEnv will be deleted.
+If there are still hosts connected, the InfraEnv CR will not be deleted until all the related hosts are deleted or Unbound.
+
 ## Unsupported flows
 
 The following operations are not supported:

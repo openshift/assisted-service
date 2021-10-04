@@ -35,18 +35,21 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const defaultRequeueAfterPerRecoverableError = 2 * bminventory.WindowBetweenRequestsInSeconds
+const InfraEnvFinalizerName = "infraenv." + aiv1beta1.Group + "/ai-deprovision"
 
 type InfraEnvConfig struct {
 	ImageType models.ImageType `envconfig:"ISO_IMAGE_TYPE" default:"minimal-iso"`
@@ -84,6 +87,36 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 	if err := r.Get(ctx, req.NamespacedName, infraEnv); err != nil {
 		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return r.deregisterInfraEnvIfNeeded(ctx, log, req.NamespacedName)
+	}
+
+	if infraEnv.ObjectMeta.DeletionTimestamp.IsZero() { // infraEnv not being deleted
+		// Register a finalizer if it is absent.
+		if !funk.ContainsString(infraEnv.GetFinalizers(), InfraEnvFinalizerName) {
+			controllerutil.AddFinalizer(infraEnv, InfraEnvFinalizerName)
+			if err := r.Update(ctx, infraEnv); err != nil {
+				log.WithError(err).Errorf("failed to add finalizer %s to infraEnv %s %s", InfraEnvFinalizerName, infraEnv.Name, infraEnv.Namespace)
+				return ctrl.Result{Requeue: true}, err
+			}
+		}
+	} else { // infraEnv is being deleted
+		if funk.ContainsString(infraEnv.GetFinalizers(), InfraEnvFinalizerName) {
+			// deletion finalizer found, deregister the backend hosts and the infraenv
+			cleanUpErr := r.deregisterInfraEnvWithHosts(ctx, log, req.NamespacedName)
+
+			if cleanUpErr != nil {
+				reply := ctrl.Result{RequeueAfter: longerRequeueAfterOnError}
+				log.WithError(cleanUpErr).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s", InfraEnvFinalizerName, infraEnv.Name, infraEnv.Namespace)
+				return reply, cleanUpErr
+			}
+			// remove our finalizer from the list and update it.
+			controllerutil.RemoveFinalizer(infraEnv, InfraEnvFinalizerName)
+			if err := r.Update(ctx, infraEnv); err != nil {
+				log.WithError(err).Errorf("failed to remove finalizer %s from infraEnv %s %s", InfraEnvFinalizerName, infraEnv.Name, infraEnv.Namespace)
+				return ctrl.Result{Requeue: true}, err
+			}
+		}
+		// Stop reconciliation as the item is being deleted
+		return ctrl.Result{}, nil
 	}
 
 	return r.ensureISO(ctx, log, infraEnv)
@@ -355,10 +388,71 @@ func (r *InfraEnvReconciler) deregisterInfraEnvIfNeeded(ctx context.Context, log
 	}); err != nil {
 		return buildReply(err)
 	}
-	//TODO delete agents?
 	log.Infof("InfraEnv resource deleted : %s", infraEnv.ID)
 
 	return buildReply(nil)
+}
+
+func (r *InfraEnvReconciler) deregisterInfraEnvWithHosts(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) error {
+	infraEnv, err := r.Installer.GetInfraEnvByKubeKey(key)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// return if from any reason infraEnv is already deleted from db (or never existed)
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+	allowedStatuses := []string{
+		models.HostStatusInsufficientUnbound,
+		models.HostStatusDisconnectedUnbound,
+		models.HostStatusDiscoveringUnbound,
+		models.HostStatusKnownUnbound,
+		models.HostStatusDisabledUnbound,
+		models.HostStatusInstalled,
+		models.HostStatusAddedToExistingCluster,
+		models.HostStatusUnbinding,
+	}
+	hosts, err := r.Installer.GetInfraEnvHostsInternal(ctx, *infraEnv.ID)
+	if err != nil {
+		return err
+	}
+	remainingHost := false
+	for _, h := range hosts {
+		status := swag.StringValue(h.Status)
+		if funk.ContainsString(allowedStatuses, status) {
+			hostId := *h.ID
+			err = r.Installer.V2DeregisterHostInternal(
+				ctx, installer.V2DeregisterHostParams{
+					InfraEnvID: h.InfraEnvID,
+					HostID:     hostId,
+				})
+
+			if err != nil {
+				if !errors.Is(err, gorm.ErrRecordNotFound) {
+					log.WithError(err).Errorf("failed to deregister host%s", *h.ID)
+					return err
+				}
+			}
+		} else {
+			remainingHost = true
+			log.Infof("Skipping host deletion : %s, Status: %s", *h.ID, status)
+		}
+	}
+
+	if !remainingHost {
+		if err = r.Installer.DeregisterInfraEnvInternal(ctx, installer.DeregisterInfraEnvParams{
+			InfraEnvID: *infraEnv.ID,
+		}); err != nil {
+			return err
+		}
+		log.Infof("InfraEnv resource deleted : %s", infraEnv.ID)
+	} else {
+		errReply := errors.New("Failed to delete infraEnv, existing hosts bound and not installed")
+		return errReply
+	}
+
+	return nil
 }
 
 func (r *InfraEnvReconciler) updateEnsureISOSuccess(

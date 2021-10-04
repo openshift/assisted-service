@@ -95,7 +95,7 @@ func (c *controllerEventsWrapper) NotifyKubeApiClusterEvent(clusterID strfmt.UUI
 }
 
 func (c *controllerEventsWrapper) NotifyKubeApiHostEvent(clusterID strfmt.UUID, hostID strfmt.UUID) {
-	host, err := common.GetHostFromDB(c.db, clusterID.String(), hostID.String())
+	host, err := common.GetHostFromDB(c.db.Unscoped(), clusterID.String(), hostID.String())
 	if err != nil {
 		return
 	}

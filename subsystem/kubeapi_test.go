@@ -877,9 +877,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("Create InfraEnv without ClusterDeployment and register Agent", func() {
-		defer func() {
-			Expect(kubeClient.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-		}()
 		By("Deploy InfraEnv")
 		infraEnvSpec.ClusterRef = nil
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
@@ -1772,9 +1769,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("Bind Agent to not existing ClusterDeployment", func() {
-		defer func() {
-			Expect(kubeClient.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-		}()
 		By("Deploy InfraEnv without cluster reference")
 		infraEnvSpec.ClusterRef = nil
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
@@ -1874,9 +1868,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("Unbind", func() {
-		defer func() {
-			Expect(kubeClient.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-		}()
 		By("Create InfraEnv - pool")
 		infraEnvSpec.ClusterRef = nil
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
@@ -1955,9 +1946,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("Move agent to different CD Unbind/bind", func() {
-		defer func() {
-			Expect(kubeClient.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-		}()
 		By("Create InfraEnv - pool")
 		infraEnvSpec.ClusterRef = nil
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
@@ -2061,6 +2049,87 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			agent := getAgentCRD(ctx, kubeClient, hostKey)
 			return agent.Status.DebugInfo.State == models.HostStatusKnown
 		}, "1m", "10s").Should(BeTrue())
+	})
+
+	It("Delete infraenv with bound agents", func() {
+		By("Create InfraEnv - pool")
+		infraEnvSpec.ClusterRef = nil
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		By("Register host to pool")
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		host := &registerHost(*infraEnv.ID).Host
+		hwInfo := validHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
+		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+
+		By("Create cluster")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+
+		hostKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		By("Bind Agent")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, hostKey)
+			agent.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{
+				Namespace: Options.Namespace,
+				Name:      clusterDeploymentSpec.ClusterName,
+			}
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, hostKey)
+			return agent.Spec.ClusterDeploymentName != nil
+		}, "30s", "1s").Should(BeTrue())
+
+		Eventually(func() bool {
+			agent := GetHostByKubeKey(ctx, db, hostKey, waitForReconcileTimeout)
+			return agent.ClusterID != nil
+		}, "30s", "1s").Should(BeTrue())
+
+		registerHostByUUID(host.InfraEnvID, *host.ID)
+		generateEssentialHostSteps(ctx, host, "hostname1", defaultCIDRv4)
+		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+
+		By("Wait for Agent to be Known Bound")
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, hostKey)
+			return agent.Status.DebugInfo.State == models.HostStatusKnown
+		}, "1m", "10s").Should(BeTrue())
+
+		By("Delete InfraEnv")
+		Expect(kubeClient.Delete(ctx, getInfraEnvCRD(ctx, kubeClient, infraEnvKey))).ShouldNot(HaveOccurred())
+
+		By("Verify InfraEnv not deleted")
+		Consistently(func() error {
+			infraEnv := &v1beta1.InfraEnv{}
+			return kubeClient.Get(ctx, infraEnvKey, infraEnv)
+		}, "30s", "2s").Should(BeNil())
+
+		By("Delete ClusterDeployment")
+		Expect(kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))).ShouldNot(HaveOccurred())
+
+		By("Verify InfraEnv deleted")
+		Eventually(func() bool {
+			infraEnv := &v1beta1.InfraEnv{}
+			err := kubeClient.Get(ctx, infraEnvKey, infraEnv)
+			return apierrors.IsNotFound(err)
+		}, "1m", "10s").Should(BeTrue())
+
 	})
 
 	It("Bind Agent from Infraenv and install SNO", func() {
