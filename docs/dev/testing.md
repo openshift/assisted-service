@@ -82,4 +82,4 @@ Depends on the job.
 
 ## How to run Assisted-service subsystem tests
 
-More information is available here: [Assisted Installer Testing](docs/dev/testing.md).
+More information is available here: [Assisted Installer Testing](/docs/dev/running-test.md).
