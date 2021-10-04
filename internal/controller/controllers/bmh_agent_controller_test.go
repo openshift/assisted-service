@@ -896,6 +896,22 @@ var _ = Describe("bmac reconcile", func() {
 		})
 
 		Context("when Agent installation has started", func() {
+			It("conditions list doesn't contain installed condition", func() {
+				agent.Status.Conditions = []conditionsv1.Condition{
+					{},
+				}
+				Expect(c.Update(ctx, agent)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).NotTo(Equal("assisted-service-controller"))
+			})
 			It("should set the detached annotation if agent is installed", func() {
 				agent.Status.Conditions = []conditionsv1.Condition{
 					{
