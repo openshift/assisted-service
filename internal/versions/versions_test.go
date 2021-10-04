@@ -28,26 +28,26 @@ func TestHandler_ListComponentVersions(t *testing.T) {
 
 var defaultOpenShiftVersions = models.OpenshiftVersions{
 	"4.5": models.OpenshiftVersion{
-		DisplayName:  swag.String("4.5.1"),
-		ReleaseImage: swag.String("release_4.5"), ReleaseVersion: swag.String("4.5.1"),
-		RhcosImage: swag.String("rhcos_4.5"), RhcosRootfs: swag.String("rhcos_rootfs_4.5"),
-		RhcosVersion: swag.String("version-45.123-0"),
-		SupportLevel: swag.String("oldie"),
+		DisplayName:  "4.5.1",
+		ReleaseImage: "release_4.5", ReleaseVersion: "4.5.1",
+		RhcosImage: "rhcos_4.5", RhcosRootfs: "rhcos_rootfs_4.5",
+		RhcosVersion: "version-45.123-0",
+		SupportLevel: "oldie",
 	},
 	"4.6": models.OpenshiftVersion{
-		DisplayName:  swag.String("4.6-candidate"),
-		ReleaseImage: swag.String("release_4.6"), ReleaseVersion: swag.String("4.6-candidate"),
-		RhcosImage: swag.String("rhcos_4.6"), RhcosRootfs: swag.String("rhcos_rootfs_4.6"),
-		RhcosVersion: swag.String("version-46.123-0"),
-		SupportLevel: swag.String("newbie"),
+		DisplayName:  "4.6-candidate",
+		ReleaseImage: "release_4.6", ReleaseVersion: "4.6-candidate",
+		RhcosImage: "rhcos_4.6", RhcosRootfs: "rhcos_rootfs_4.6",
+		RhcosVersion: "version-46.123-0",
+		SupportLevel: "newbie",
 	},
 }
 
 var newOpenShiftVersions = models.OpenshiftVersions{
 	"4.9": models.OpenshiftVersion{
-		DisplayName:  swag.String("4.9-candidate"),
-		ReleaseImage: swag.String("release_4.9"), ReleaseVersion: swag.String("4.9-candidate"),
-		SupportLevel: swag.String("newbie"),
+		DisplayName:  "4.9-candidate",
+		ReleaseImage: "release_4.9", ReleaseVersion: "4.9-candidate",
+		SupportLevel: "newbie",
 	},
 }
 
@@ -92,11 +92,11 @@ var defaultReleaseImages = models.ReleaseImages{
 
 var supportedCustomOpenShiftVersions = models.OpenshiftVersions{
 	"4.8": models.OpenshiftVersion{
-		DisplayName:  swag.String("4.8.0"),
-		ReleaseImage: swag.String("release_4.8"), ReleaseVersion: swag.String("4.8.0-fc.1"),
-		RhcosImage: swag.String("rhcos_4.8"), RhcosRootfs: swag.String("rhcos_rootfs_4.8"),
-		RhcosVersion: swag.String("version-48.123-0"),
-		SupportLevel: swag.String(models.OpenshiftVersionSupportLevelCustom),
+		DisplayName:  "4.8.0",
+		ReleaseImage: "release_4.8", ReleaseVersion: "4.8.0-fc.1",
+		RhcosImage: "rhcos_4.8", RhcosRootfs: "rhcos_rootfs_4.8",
+		RhcosVersion: "version-48.123-0",
+		SupportLevel: models.OpenshiftVersionSupportLevelBeta,
 	},
 }
 
@@ -178,14 +178,6 @@ var _ = Describe("list versions", func() {
 			Expect(val.Payload).Should(BeEmpty())
 		})
 
-		readDefaultOpenshiftVersions := func() {
-			var bytes []byte
-			bytes, err = ioutil.ReadFile("../../data/default_ocp_versions.json")
-			Expect(err).ShouldNot(HaveOccurred())
-			err = json.Unmarshal(bytes, openshiftVersions)
-			Expect(err).ShouldNot(HaveOccurred())
-		}
-
 		readDefaultOsImages := func() {
 			var bytes []byte
 			bytes, err = ioutil.ReadFile("../../data/default_os_images.json")
@@ -203,10 +195,8 @@ var _ = Describe("list versions", func() {
 		}
 
 		It("get_defaults", func() {
-			readDefaultOpenshiftVersions()
 			readDefaultOsImages()
 			readDefaultReleaseImages()
-			CURRENT_DEFAULT_VERSION := "4.8" //keep align with default_ocp_versions.json
 
 			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -214,12 +204,17 @@ var _ = Describe("list versions", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 
-			Expect(val.Payload).Should(HaveLen(len(*openshiftVersions)))
-
 			for key, version := range val.Payload {
-				Expect(version).Should(Equal((*openshiftVersions)[key]))
+				releaseImage, err1 := h.GetReleaseImage(key, common.DefaultCPUArchitecture)
+				Expect(err1).ShouldNot(HaveOccurred())
+				architectures, err1 := h.GetCPUArchitectures(key)
+				Expect(err1).ShouldNot(HaveOccurred())
+
+				Expect(version.CPUArchitectures).Should(Equal(architectures))
+				Expect(version.Default).Should(Equal(releaseImage.Default))
+				Expect(version.DisplayName).Should(Equal(*releaseImage.Version))
+				Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage.Version)))
 			}
-			Expect((*openshiftVersions)[CURRENT_DEFAULT_VERSION].Default).To(BeTrue())
 		})
 	})
 
@@ -249,9 +244,9 @@ var _ = Describe("list versions", func() {
 					ocpVersion := (*openshiftVersions)[currKey]
 					Expect(*osImage).Should(Equal(models.OsImage{
 						OpenshiftVersion: &currKey,
-						URL:              ocpVersion.RhcosImage,
-						RootfsURL:        ocpVersion.RhcosRootfs,
-						Version:          ocpVersion.RhcosVersion,
+						URL:              &ocpVersion.RhcosImage,
+						RootfsURL:        &ocpVersion.RhcosRootfs,
+						Version:          &ocpVersion.RhcosVersion,
 					}))
 				}
 			}
@@ -321,8 +316,8 @@ var _ = Describe("list versions", func() {
 					Expect(*releaseImage).Should(Equal(models.ReleaseImage{
 						CPUArchitecture:  &currArch,
 						OpenshiftVersion: &currKey,
-						URL:              ocpVersion.ReleaseImage,
-						Version:          ocpVersion.ReleaseVersion,
+						URL:              &ocpVersion.ReleaseImage,
+						Version:          &ocpVersion.ReleaseVersion,
 					}))
 				}
 			}
@@ -464,9 +459,9 @@ var _ = Describe("list versions", func() {
 			Expect(*releaseImage.Version).Should(Equal(customOcpVersion))
 			Expect(h.GetOsImage(customKeyVersion, common.TestDefaultConfig.CPUArchitecture)).Should(Equal(&models.OsImage{
 				OpenshiftVersion: &customKeyVersion,
-				URL:              versionFromCache.RhcosImage,
-				RootfsURL:        versionFromCache.RhcosRootfs,
-				Version:          versionFromCache.RhcosVersion,
+				URL:              &versionFromCache.RhcosImage,
+				RootfsURL:        &versionFromCache.RhcosRootfs,
+				Version:          &versionFromCache.RhcosVersion,
 			}))
 		})
 
@@ -524,7 +519,7 @@ var _ = Describe("list versions", func() {
 			releaseImage, err = h.GetReleaseImage(customKeyVersion, cpuArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			Expect(*versionFromCache.SupportLevel).Should(Equal(*h.openshiftVersions[customKeyVersion].SupportLevel))
+			Expect(versionFromCache.SupportLevel).Should(Equal(h.openshiftVersions[customKeyVersion].SupportLevel))
 		})
 
 		It("failed getting version from release", func() {
@@ -612,11 +607,11 @@ var _ = Describe("list versions", func() {
 		BeforeEach(func() {
 			openshiftVersions = &models.OpenshiftVersions{
 				"4.8": models.OpenshiftVersion{
-					DisplayName:  swag.String("4.8-candidate"),
-					ReleaseImage: swag.String("release_4.8"), ReleaseVersion: swag.String("4.8-candidate"),
-					RhcosImage: swag.String("rhcos_4.8"), RhcosRootfs: swag.String("rhcos_rootfs_4.8"),
-					RhcosVersion: swag.String("version-48.123-0"),
-					SupportLevel: swag.String("newbie"),
+					DisplayName:  "4.8-candidate",
+					ReleaseImage: "release_4.8", ReleaseVersion: "4.8-candidate",
+					RhcosImage: "rhcos_4.8", RhcosRootfs: "rhcos_rootfs_4.8",
+					RhcosVersion: "version-48.123-0",
+					SupportLevel: "newbie",
 				},
 			}
 

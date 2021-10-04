@@ -4330,6 +4330,12 @@ func init() {
               "$ref": "#/definitions/openshift-versions"
             }
           },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "503": {
             "description": "Unavailable.",
             "schema": {
@@ -11946,16 +11952,14 @@ func init() {
     },
     "openshift-version": {
       "type": "object",
-      "required": [
-        "display_name",
-        "release_image",
-        "release_version",
-        "rhcos_image",
-        "rhcos_rootfs",
-        "rhcos_version",
-        "support_level"
-      ],
       "properties": {
+        "cpu_architectures": {
+          "description": "Available CPU architectures.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "default": {
           "description": "Indication that the version is the recommended one.",
           "type": "boolean"
@@ -11989,8 +11993,7 @@ func init() {
           "type": "string",
           "enum": [
             "beta",
-            "production",
-            "custom"
+            "production"
           ]
         }
       }
@@ -17065,6 +17068,12 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "503": {
@@ -24742,16 +24751,14 @@ func init() {
     },
     "openshift-version": {
       "type": "object",
-      "required": [
-        "display_name",
-        "release_image",
-        "release_version",
-        "rhcos_image",
-        "rhcos_rootfs",
-        "rhcos_version",
-        "support_level"
-      ],
       "properties": {
+        "cpu_architectures": {
+          "description": "Available CPU architectures.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "default": {
           "description": "Indication that the version is the recommended one.",
           "type": "boolean"
@@ -24785,8 +24792,7 @@ func init() {
           "type": "string",
           "enum": [
             "beta",
-            "production",
-            "custom"
+            "production"
           ]
         }
       }

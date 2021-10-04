@@ -19,66 +19,38 @@ import (
 // swagger:model openshift-version
 type OpenshiftVersion struct {
 
+	// Available CPU architectures.
+	CPUArchitectures []string `json:"cpu_architectures"`
+
 	// Indication that the version is the recommended one.
 	Default bool `json:"default,omitempty"`
 
 	// Name of the version to be presented to the user.
-	// Required: true
-	DisplayName *string `json:"display_name"`
+	DisplayName string `json:"display_name,omitempty"`
 
 	// The installation image of the OpenShift cluster.
-	// Required: true
-	ReleaseImage *string `json:"release_image"`
+	ReleaseImage string `json:"release_image,omitempty"`
 
 	// OCP version from the release metadata.
-	// Required: true
-	ReleaseVersion *string `json:"release_version"`
+	ReleaseVersion string `json:"release_version,omitempty"`
 
 	// The base RHCOS image used for the discovery iso.
-	// Required: true
-	RhcosImage *string `json:"rhcos_image"`
+	RhcosImage string `json:"rhcos_image,omitempty"`
 
 	// The RHCOS rootfs url.
-	// Required: true
-	RhcosRootfs *string `json:"rhcos_rootfs"`
+	RhcosRootfs string `json:"rhcos_rootfs,omitempty"`
 
 	// Build ID of the RHCOS image.
-	// Required: true
-	RhcosVersion *string `json:"rhcos_version"`
+	RhcosVersion string `json:"rhcos_version,omitempty"`
 
 	// Level of support of the version.
-	// Required: true
-	// Enum: [beta production custom]
-	SupportLevel *string `json:"support_level"`
+	// Enum: [beta production]
+	SupportLevel string `json:"support_level,omitempty"`
 }
 
 // Validate validates this openshift version
 func (m *OpenshiftVersion) Validate(formats strfmt.Registry) error {
 	var res []error
-
-	if err := m.validateDisplayName(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateReleaseImage(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateReleaseVersion(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateRhcosImage(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateRhcosRootfs(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateRhcosVersion(formats); err != nil {
-		res = append(res, err)
-	}
 
 	if err := m.validateSupportLevel(formats); err != nil {
 		res = append(res, err)
@@ -90,65 +62,11 @@ func (m *OpenshiftVersion) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *OpenshiftVersion) validateDisplayName(formats strfmt.Registry) error {
-
-	if err := validate.Required("display_name", "body", m.DisplayName); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *OpenshiftVersion) validateReleaseImage(formats strfmt.Registry) error {
-
-	if err := validate.Required("release_image", "body", m.ReleaseImage); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *OpenshiftVersion) validateReleaseVersion(formats strfmt.Registry) error {
-
-	if err := validate.Required("release_version", "body", m.ReleaseVersion); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *OpenshiftVersion) validateRhcosImage(formats strfmt.Registry) error {
-
-	if err := validate.Required("rhcos_image", "body", m.RhcosImage); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *OpenshiftVersion) validateRhcosRootfs(formats strfmt.Registry) error {
-
-	if err := validate.Required("rhcos_rootfs", "body", m.RhcosRootfs); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *OpenshiftVersion) validateRhcosVersion(formats strfmt.Registry) error {
-
-	if err := validate.Required("rhcos_version", "body", m.RhcosVersion); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 var openshiftVersionTypeSupportLevelPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["beta","production","custom"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["beta","production"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -163,9 +81,6 @@ const (
 
 	// OpenshiftVersionSupportLevelProduction captures enum value "production"
 	OpenshiftVersionSupportLevelProduction string = "production"
-
-	// OpenshiftVersionSupportLevelCustom captures enum value "custom"
-	OpenshiftVersionSupportLevelCustom string = "custom"
 )
 
 // prop value enum
@@ -178,12 +93,12 @@ func (m *OpenshiftVersion) validateSupportLevelEnum(path, location string, value
 
 func (m *OpenshiftVersion) validateSupportLevel(formats strfmt.Registry) error {
 
-	if err := validate.Required("support_level", "body", m.SupportLevel); err != nil {
-		return err
+	if swag.IsZero(m.SupportLevel) { // not required
+		return nil
 	}
 
 	// value enum
-	if err := m.validateSupportLevelEnum("support_level", "body", *m.SupportLevel); err != nil {
+	if err := m.validateSupportLevelEnum("support_level", "body", m.SupportLevel); err != nil {
 		return err
 	}
 

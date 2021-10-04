@@ -1111,19 +1111,18 @@ func newASCWithOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, string) {
 		},
 	}
 
-	s := func(s string) *string { return &s }
 	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
 		"4.8": {
-			DisplayName:  s("4.8"),
-			RhcosVersion: s("48"),
-			RhcosImage:   s("4.8.iso"),
-			RhcosRootfs:  s("4.8.img"),
+			DisplayName:  "4.8",
+			RhcosVersion: "48",
+			RhcosImage:   "4.8.iso",
+			RhcosRootfs:  "4.8.img",
 		},
 		"4.9": {
-			DisplayName:  s("4.9"),
-			RhcosVersion: s("49"),
-			RhcosImage:   s("4.9.iso"),
-			RhcosRootfs:  s("4.9.img"),
+			DisplayName:  "4.9",
+			RhcosVersion: "49",
+			RhcosImage:   "4.9.iso",
+			RhcosRootfs:  "4.9.img",
 		},
 	})
 
@@ -1147,19 +1146,18 @@ func newASCWithMultipleOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, strin
 		},
 	}
 
-	s := func(s string) *string { return &s }
 	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
 		"4.7": {
-			DisplayName:  s("4.7"),
-			RhcosVersion: s("47"),
-			RhcosImage:   s("4.7.iso"),
-			RhcosRootfs:  s("4.7.img"),
+			DisplayName:  "4.7",
+			RhcosVersion: "47",
+			RhcosImage:   "4.7.iso",
+			RhcosRootfs:  "4.7.img",
 		},
 		"4.8": {
-			DisplayName:  s("4.8"),
-			RhcosVersion: s("48"),
-			RhcosImage:   s("4.8.iso"),
-			RhcosRootfs:  s("4.8.img"),
+			DisplayName:  "4.8",
+			RhcosVersion: "48",
+			RhcosImage:   "4.8.iso",
+			RhcosRootfs:  "4.8.img",
 		},
 	})
 
@@ -1189,19 +1187,18 @@ func newASCWithDuplicateOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, stri
 		},
 	}
 
-	s := func(s string) *string { return &s }
 	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
 		"4.7": {
-			DisplayName:  s("4.7"),
-			RhcosVersion: s("47"),
-			RhcosImage:   s("4.7.iso"),
-			RhcosRootfs:  s("4.7.img"),
+			DisplayName:  "4.7",
+			RhcosVersion: "47",
+			RhcosImage:   "4.7.iso",
+			RhcosRootfs:  "4.7.img",
 		},
 		"4.8": {
-			DisplayName:  s("4.8"),
-			RhcosVersion: s("48"),
-			RhcosImage:   s("4.8.iso"),
-			RhcosRootfs:  s("4.8.img"),
+			DisplayName:  "4.8",
+			RhcosVersion: "48",
+			RhcosImage:   "4.8.iso",
+			RhcosRootfs:  "4.8.img",
 		},
 	})
 
@@ -1235,13 +1232,12 @@ func newASCWithLongOpenshiftVersion() (*aiv1beta1.AgentServiceConfig, string) {
 		},
 	}
 
-	s := func(s string) *string { return &s }
 	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
 		"4.8": {
-			DisplayName:  s("4.8"),
-			RhcosVersion: s("48"),
-			RhcosImage:   s("4.8.iso"),
-			RhcosRootfs:  s("4.8.img"),
+			DisplayName:  "4.8",
+			RhcosVersion: "48",
+			RhcosImage:   "4.8.iso",
+			RhcosRootfs:  "4.8.img",
 		},
 	})
 

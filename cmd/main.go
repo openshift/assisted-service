@@ -306,8 +306,8 @@ func main() {
 	for _, ocpVersion := range openshiftVersionsMap {
 		// ReleaseImage is not necessarily specified when using the operator
 		// (fetched from ClusterImageSet instead)
-		if ocpVersion.ReleaseImage != nil {
-			images = append(images, *ocpVersion.ReleaseImage)
+		if ocpVersion.ReleaseImage != "" {
+			images = append(images, ocpVersion.ReleaseImage)
 		}
 	}
 
