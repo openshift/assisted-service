@@ -273,11 +273,11 @@ function mirror_rhcos() {
 }
 
 if [ -z "$@" ]; then
-  from_index_image
-fi
-
-if [ "${ASSISTED_UPGRADE_OPERATOR}" = "true" ]; then
-  from_community_operators
+  if [ "${ASSISTED_UPGRADE_OPERATOR}" = "true" ]; then
+    from_community_operators
+  else
+    from_index_image
+  fi 
 fi
 
 if ! declare -F "$@"; then
