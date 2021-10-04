@@ -8478,6 +8478,9 @@ definitions:
       version:
         type: string
         description: OCP version from the release metadata.
+      default:
+        type: boolean
+        description: Indication that the version is the recommended one.
 
   release-images:
     type: array
