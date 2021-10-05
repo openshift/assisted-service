@@ -255,7 +255,7 @@ function from_community_operators() {
       "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
     mirror_rhcos
   else
-    catalog_source_name="${ASSISTED_DEPLOYMENT_METHOD:-community-operators}"
+    catalog_source_name="community-operators"
   fi
 
   install_from_catalog_source "${catalog_source_name}"
