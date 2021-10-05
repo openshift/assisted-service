@@ -9774,6 +9774,19 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		Expect(len(platforms)).Should(Equal(1))
 		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
 	})
+
+	It("HighAvailabilityMode is nil with single host", func() {
+		c.HighAvailabilityMode = nil
+		db.Save(c)
+
+		addVsphereHost(clusterID, models.HostRoleMaster)
+		validateHostsInventory(1, 0)
+		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
+		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
+		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		Expect(len(platforms)).Should(Equal(1))
+		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+	})
 })
 
 func verifyApiError(responder middleware.Responder, expectedHttpStatus int32) {
