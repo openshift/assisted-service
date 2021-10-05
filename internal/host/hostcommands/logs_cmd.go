@@ -76,7 +76,8 @@ func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs stri
 	data := map[string]string{
 		"BASE_URL":               strings.TrimSpace(baseURL),
 		"CLUSTER_ID":             host.ClusterID.String(),
-		"HOST_ID":                string(*host.ID),
+		"HOST_ID":                host.ID.String(),
+		"INFRA_ENV_ID":           host.InfraEnvID.String(),
 		"AGENT_IMAGE":            strings.TrimSpace(agentImage),
 		"SKIP_CERT_VERIFICATION": strconv.FormatBool(skipCertVerification),
 		"BOOTSTRAP":              strconv.FormatBool(host.Bootstrap),
@@ -88,7 +89,7 @@ func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs stri
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 		"{{if .BOOTSTRAP}} -v /root/.ssh:/root/.ssh -v /tmp:/tmp {{end}}" +
 		"--env PULL_SECRET_TOKEN --name logs-sender --pid=host {{.AGENT_IMAGE}} logs_sender " +
-		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}} " +
+		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}} -infra-env-id {{.INFRA_ENV_ID}} " +
 		"--insecure={{.SKIP_CERT_VERIFICATION}} -bootstrap={{.BOOTSTRAP}} -with-installer-gather-logging={{.INSTALLER_GATHER}}" +
 		"{{if .MASTERS_IPS}} -masters-ips={{.MASTERS_IPS}} {{end}}" +
 		"{{if .CACERTPATH}} --cacert {{.CACERTPATH}} {{end}}"
