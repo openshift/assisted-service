@@ -319,7 +319,7 @@ type Generator interface {
 // IgnitionBuilder defines the ignition formatting methods for the various images
 //go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
 type IgnitionBuilder interface {
-	FormatDiscoveryIgnitionFile(infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
+	FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
 	FormatSecondDayWorkerIgnitionFile(address string, machineConfigPoolName string) ([]byte, error)
 }
 
@@ -1300,7 +1300,7 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 	return configBytes, nil
 }
 
-func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
+func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
 	pullSecretToken, err := clusterPkg.AgentToken(infraEnv, authType)
 	if err != nil {
 		return "", err
@@ -1357,7 +1357,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(infraEnv *common.InfraEnv
 	}
 
 	if infraEnv.StaticNetworkConfig != "" && infraEnv.Type == models.ImageTypeFullIso {
-		filesList, newErr := ib.prepareStaticNetworkConfigForIgnition(infraEnv)
+		filesList, newErr := ib.prepareStaticNetworkConfigForIgnition(ctx, infraEnv)
 		if newErr != nil {
 			ib.log.WithError(newErr).Errorf("Failed to add static network config to ignition for infra env  %s", infraEnv.ID)
 			return "", newErr
@@ -1402,8 +1402,8 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(infraEnv *common.InfraEnv
 	return res, nil
 }
 
-func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(infraEnv *common.InfraEnv) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
-	filesList, err := ib.staticNetworkConfig.GenerateStaticNetworkConfigData(infraEnv.StaticNetworkConfig)
+func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(ctx context.Context, infraEnv *common.InfraEnv) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
+	filesList, err := ib.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
 	if err != nil {
 		ib.log.WithError(err).Errorf("staticNetworkGenerator failed to produce the static network connection files for cluster %s", infraEnv.ID)
 		return nil, err
