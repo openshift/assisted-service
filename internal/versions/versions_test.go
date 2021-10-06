@@ -710,6 +710,7 @@ var _ = Describe("list versions", func() {
 		BeforeEach(func() {
 			h, err = NewHandler(logger, mockRelease, versions, defaultOpenShiftVersions, *osImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
+			osImages = &defaultOsImages
 		})
 
 		It("releaseImages not defined", func() {
@@ -732,6 +733,21 @@ var _ = Describe("list versions", func() {
 				architectures, err = h.GetCPUArchitectures(key)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(architectures).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture, "arm64"}))
+			}
+		})
+
+		It("empty architecture fallback to default", func() {
+			empty := ""
+			osImages = &defaultOsImages
+			(*osImages)[0].CPUArchitecture = &empty
+			(*osImages)[1].CPUArchitecture = nil
+			h, err = NewHandler(logger, mockRelease, versions, models.OpenshiftVersions{}, *osImages, models.ReleaseImages{}, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			for key := range newOpenShiftVersions {
+				architectures, err = h.GetCPUArchitectures(key)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(architectures).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture}))
 			}
 		})
 	})
