@@ -89,7 +89,23 @@ EOF
 
 function install_from_catalog_source() {
   catalog_source_name="${1}"
+  if [ "${ASSISTED_UPGRADE_OPERATOR}" = "true" ]; then
+   catalog_source=${ASSISTED_SERVICE_OPERATOR_CATALOG}
+  else
+    catalog_source=${catalog_source_name}
+  fi
   tee << EOCR >(oc apply -f -)
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ${catalog_source}
+  namespace: openshift-marketplace
+spec:
+  sourceType: grpc
+  image: ${INDEX_IMAGE}
+  displayName: Assisted Test Registry
+  publisher: Assisted Developer
+---
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -229,19 +245,7 @@ function from_index_image() {
         "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
     mirror_rhcos
   else
-    catalog_source_name="assisted-service-operator-catalog"
-    tee << EOCR >(oc apply -f -)
-apiVersion: operators.coreos.com/v1alpha1
-kind: CatalogSource
-metadata:
-  name: ${catalog_source_name}
-  namespace: openshift-marketplace
-spec:
-  sourceType: grpc
-  image: ${INDEX_IMAGE}
-  displayName: Assisted Test Registry
-  publisher: Assisted Developer
-EOCR
+    catalog_source_name=${ASSISTED_SERVICE_OPERATOR_CATALOG}
   fi
 
   install_from_catalog_source "${catalog_source_name}"
