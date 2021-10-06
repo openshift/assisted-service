@@ -108,6 +108,7 @@ with open("'${__root}/config/samples/agent-install.openshift.io_v1beta1_agentser
     doc = yaml.load(f, Loader=yaml.FullLoader)
     doc["spec"]["osImages"] = [
         {
+            "cpuArchitecture": v["cpu_architecture"],
             "openshiftVersion": v["openshift_version"],
             "version": v["version"],
             "url": v["url"],

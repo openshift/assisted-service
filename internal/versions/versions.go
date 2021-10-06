@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -290,10 +291,14 @@ func (h *handler) GetCPUArchitectures(openshiftVersion string) ([]string, error)
 			if release.OpenshiftVersion == nil {
 				return nil, errors.Errorf("Missing openshift_version in OsImage")
 			}
-			if release.CPUArchitecture == nil {
-				return nil, errors.Errorf("Missing cpu_architecture in OsImage")
+			if swag.StringValue(release.CPUArchitecture) == "" {
+				// Empty or missing property implies default CPU architecture
+				defaultArch := common.DefaultCPUArchitecture
+				release.CPUArchitecture = &defaultArch
 			}
-			cpuArchitectures = append(cpuArchitectures, *release.CPUArchitecture)
+			if !funk.Contains(cpuArchitectures, *release.CPUArchitecture) {
+				cpuArchitectures = append(cpuArchitectures, *release.CPUArchitecture)
+			}
 		}
 	}
 
