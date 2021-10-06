@@ -5749,7 +5749,19 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 	log := logutil.FromContext(ctx, b.log)
 	var infraEnv *common.InfraEnv
 	var err error
+	var pullSecretBackup string
+	pullSecretUpdated := false
+
+	if params.InfraEnvUpdateParams.PullSecret != "" {
+		pullSecretUpdated = true
+		pullSecretBackup = params.InfraEnvUpdateParams.PullSecret
+		params.InfraEnvUpdateParams.PullSecret = "pull secret was updated but will not be printed for security reasons."
+	}
 	log.Infof("update infraEnv %s with params: %+v", params.InfraEnvID, params.InfraEnvUpdateParams)
+
+	if pullSecretUpdated {
+		params.InfraEnvUpdateParams.PullSecret = pullSecretBackup
+	}
 
 	if params, err = b.validateAndUpdateInfraEnvParams(ctx, &params); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
