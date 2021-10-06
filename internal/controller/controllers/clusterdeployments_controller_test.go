@@ -581,7 +581,7 @@ var _ = Describe("cluster reconcile", func() {
 		}
 		backEndCluster.Hosts = hosts
 
-		expectedLogUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v1/clusters/%s/logs", serviceBaseURL, sId)
+		expectedLogUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v2/clusters/%s/logs", serviceBaseURL, sId)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&common.Host{Approved: true}, nil).Times(1)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -641,7 +641,7 @@ var _ = Describe("cluster reconcile", func() {
 				Status: swag.String(models.ClusterStatusInsufficient),
 			},
 		}
-		expectedLogUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v1/clusters/%s/logs", serviceBaseURL, sId)
+		expectedLogUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v2/clusters/%s/logs", serviceBaseURL, sId)
 		By("before installation")
 		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
