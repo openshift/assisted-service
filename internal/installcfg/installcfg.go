@@ -71,7 +71,7 @@ type MachineNetwork struct {
 type InstallerConfigBaremetal struct {
 	APIVersion string `yaml:"apiVersion"`
 	BaseDomain string `yaml:"baseDomain"`
-	Proxy      *Proxy `yaml:"Proxy,omitempty"`
+	Proxy      *Proxy `yaml:"proxy,omitempty"`
 	Networking struct {
 		NetworkType    string           `yaml:"networkType"`
 		ClusterNetwork []ClusterNetwork `yaml:"clusterNetwork"`
@@ -91,7 +91,7 @@ type InstallerConfigBaremetal struct {
 		Name           string `yaml:"name"`
 		Replicas       int    `yaml:"replicas"`
 	} `yaml:"controlPlane"`
-	Platform              Platform             `yaml:"Platform"`
+	Platform              Platform             `yaml:"platform"`
 	BootstrapInPlace      BootstrapInPlace     `yaml:"bootstrapInPlace,omitempty"`
 	FIPS                  bool                 `yaml:"fips"`
 	PullSecret            string               `yaml:"pullSecret"`
