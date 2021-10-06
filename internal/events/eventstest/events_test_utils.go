@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/thoas/go-funk"
 )
 
 type eventPartMatcher func(event interface{}) bool
@@ -65,14 +66,14 @@ func WithHostIdMatcher(expected string) eventPartMatcher {
 
 func WithInfraEnvIdMatcher(expected string) eventPartMatcher {
 	return func(event interface{}) bool {
-		e, ok := event.(events.HostEvent)
-		if !ok {
+		switch e := event.(type) {
+		case events.HostEvent:
+			return e.GetInfraEnvId().String() == expected
+		case events.InfraEnvEvent:
+			return e.GetInfraEnvId().String() == expected
+		default:
 			return false
 		}
-		if e.GetInfraEnvId().String() == expected {
-			return true
-		}
-		return false
 	}
 }
 
@@ -102,6 +103,16 @@ func WithMessageMatcher(expected string) eventPartMatcher {
 	}
 }
 
+func WithMessageContainsMatcher(expected string) eventPartMatcher {
+	return func(event interface{}) bool {
+		e, ok := event.(events.BaseEvent)
+		if !ok {
+			return false
+		}
+		return funk.Contains(e.FormatMessage(), expected)
+	}
+}
+
 type EventMatcher struct {
 	matchers []eventPartMatcher
 	message  string
@@ -118,7 +129,7 @@ func (e *EventMatcher) Matches(input interface{}) bool {
 		if !matcher(event) {
 			matcherFunc := runtime.FuncForPC(reflect.ValueOf(matcher).Pointer()).Name()
 			matcherFuncName := filepath.Base(strings.TrimSuffix(matcherFunc, ".func1"))
-			e.message = fmt.Sprintf("Failed Mathcer: %s with %+v \n", matcherFuncName, event)
+			e.message = fmt.Sprintf("Failed Matcher: %s for event type %s with \n\t%v\n", matcherFuncName, event.GetName(), event)
 			return false
 		}
 	}

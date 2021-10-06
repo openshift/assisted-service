@@ -7229,6 +7229,7 @@ var _ = Describe("infraEnvs", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
+
 	})
 
 	AfterEach(func() {
@@ -7252,6 +7253,9 @@ var _ = Describe("infraEnvs", func() {
 		Context("DeRegisterInfraEnv", func() {
 			It("success", func() {
 				mockInfraEnvDeRegisterSuccess()
+				mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.DeregisteredInfraEnvEventName),
+					eventstest.WithInfraEnvIdMatcher(infraEnvID.String()))).Times(1)
 				reply := bm.GetInfraEnv(ctx, installer.GetInfraEnvParams{
 					InfraEnvID: infraEnvID,
 				})
@@ -7273,6 +7277,9 @@ var _ = Describe("infraEnvs", func() {
 						InfraEnvID: infraEnvID,
 					}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
+				mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvDeregisterFailedEventName),
+					eventstest.WithInfraEnvIdMatcher(infraEnvID.String()))).Times(1)
 				reply := bm.DeregisterInfraEnv(ctx, installer.DeregisterInfraEnvParams{InfraEnvID: infraEnvID})
 				Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusConflict, errors.Errorf(""))))
 			})
@@ -7419,6 +7426,8 @@ var _ = Describe("infraEnvs", func() {
 		It("happy flow", func() {
 			mockInfraEnvRegisterSuccess()
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.RegisteredInfraEnvEventName))).Times(1)
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
@@ -7444,6 +7453,8 @@ var _ = Describe("infraEnvs", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			mockInfraEnvRegisterSuccess()
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.RegisteredInfraEnvEventName))).Times(1)
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
@@ -7468,7 +7479,8 @@ var _ = Describe("infraEnvs", func() {
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).AnyTimes()
-
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.RegisteredInfraEnvEventName))).Times(1)
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:       swag.String("some-infra-env-name"),
@@ -7493,6 +7505,10 @@ var _ = Describe("infraEnvs", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
+				eventstest.WithMessageContainsMatcher("Specified CPU architecture doesn't match the cluster"))).Times(1)
+
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
@@ -7509,6 +7525,9 @@ var _ = Describe("infraEnvs", func() {
 			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 			override := `{"ignition": {"wdd": "3.9.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
+				eventstest.WithMessageContainsMatcher("error parsing ignition: unsupported config version"))).Times(1)
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:                   swag.String("some-infra-env-name"),
@@ -7528,6 +7547,8 @@ var _ = Describe("infraEnvs", func() {
 				i *common.InfraEnv
 			)
 			BeforeEach(func() {
+				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.RegisteredInfraEnvEventName))).Times(1)
 				mockInfraEnvRegisterSuccess()
 				reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 					InfraenvCreateParams: &models.InfraEnvCreateParams{
