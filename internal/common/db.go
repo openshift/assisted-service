@@ -335,7 +335,7 @@ func CreateInfraEnvForCluster(db *gorm.DB, cluster *Cluster, imageType models.Im
 		NoProxy:    swag.String(cluster.NoProxy),
 	}
 	infraEnv := &InfraEnv{InfraEnv: models.InfraEnv{
-		ID:               *cluster.ID,
+		ID:               cluster.ID,
 		ClusterID:        *cluster.ID,
 		OpenshiftVersion: cluster.OpenshiftVersion,
 		PullSecretSet:    true,

@@ -28,7 +28,7 @@ var _ = Describe("AuthAgentAuth", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		infraEnvID := strfmt.UUID(uuid.New().String())
-		infraEnv = &common.InfraEnv{InfraEnv: models.InfraEnv{ID: infraEnvID}}
+		infraEnv = &common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}
 		Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
 
 		pubKey, privKey, err := gencrypto.ECDSAKeyPairPEM()

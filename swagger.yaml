@@ -8532,6 +8532,14 @@ definitions:
 
   infra-env:
     type: object
+    required:
+      - kind
+      - id
+      - href
+      - name
+      - type
+      - updated_at
+      - created_at
     properties:
       kind:
         type: string

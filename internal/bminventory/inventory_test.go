@@ -359,7 +359,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		err := bm.GenerateInfraEnvISOInternal(ctx, infraEnv)
 		Expect(err).ToNot(HaveOccurred())
 		getReply := bm.GetInfraEnv(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID}).(*installer.GetInfraEnvOK)
-		Expect(getReply.Payload.ID).To(Equal(infraEnvID))
+		Expect(*getReply.Payload.ID).To(Equal(infraEnvID))
 		Expect(getReply.Payload.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v2/infra-envs/" + infraEnvID.String() + "/downloads/image"))
 	})
 
@@ -440,7 +440,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		}
 		infraEnv := common.InfraEnv{
 			InfraEnv: models.InfraEnv{
-				ID:            clusterId,
+				ID:            &clusterId,
 				PullSecretSet: true,
 				Type:          models.ImageTypeFullIso,
 			},
@@ -480,7 +480,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		}
 		infraEnv := common.InfraEnv{
 			InfraEnv: models.InfraEnv{
-				ID:               clusterId,
+				ID:               &clusterId,
 				PullSecretSet:    true,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 				Type:             models.ImageTypeFullIso,
@@ -985,7 +985,7 @@ func createCluster(db *gorm.DB, status string) *common.Cluster {
 func createInfraEnv(db *gorm.DB, id strfmt.UUID, clusterID strfmt.UUID) *common.InfraEnv {
 	infraEnv := &common.InfraEnv{
 		InfraEnv: models.InfraEnv{
-			ID:        id,
+			ID:        &id,
 			ClusterID: clusterID,
 		},
 	}
@@ -996,7 +996,7 @@ func createInfraEnv(db *gorm.DB, id strfmt.UUID, clusterID strfmt.UUID) *common.
 func createInfraEnvWithPullSecret(db *gorm.DB, id strfmt.UUID, clusterID strfmt.UUID) *common.InfraEnv {
 	infraEnv := &common.InfraEnv{
 		InfraEnv: models.InfraEnv{
-			ID:            id,
+			ID:            &id,
 			ClusterID:     clusterID,
 			PullSecretSet: true,
 		},
@@ -1240,7 +1240,7 @@ var _ = Describe("RegisterHost", func() {
 					DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 						// validate that host is registered with auto-assign role
 						Expect(h.Role).Should(Equal(test.expectedRole))
-						Expect(h.InfraEnvID).Should(Equal(infraEnv.ID))
+						Expect(h.InfraEnvID).Should(Equal(*infraEnv.ID))
 						return nil
 					}).Times(1)
 				mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -1286,7 +1286,7 @@ var _ = Describe("RegisterHost", func() {
 			DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 				// validate that host is registered with auto-assign role
 				Expect(h.Role).Should(Equal(models.HostRoleAutoAssign))
-				Expect(h.InfraEnvID).Should(Equal(infraEnv.ID))
+				Expect(h.InfraEnvID).Should(Equal(*infraEnv.ID))
 				return nil
 			}).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
@@ -1419,7 +1419,7 @@ var _ = Describe("v2RegisterHost", func() {
 					DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 						// validate that host is registered with auto-assign role
 						Expect(h.Role).Should(Equal(test.expectedRole))
-						Expect(h.InfraEnvID).Should(Equal(infraEnv.ID))
+						Expect(h.InfraEnvID).Should(Equal(*infraEnv.ID))
 						return nil
 					}).Times(1)
 				mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -1465,7 +1465,7 @@ var _ = Describe("v2RegisterHost", func() {
 			DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 				// validate that host is registered with auto-assign role
 				Expect(h.Role).Should(Equal(models.HostRoleAutoAssign))
-				Expect(h.InfraEnvID).Should(Equal(infraEnv.ID))
+				Expect(h.InfraEnvID).Should(Equal(*infraEnv.ID))
 				return nil
 			}).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
@@ -7300,10 +7300,10 @@ var _ = Describe("infraEnvs", func() {
 		BeforeEach(func() {
 			infraEnvID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
-				ID:                   infraEnvID,
+				ID:                   &infraEnvID,
 				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 				AdditionalNtpSources: AdditionalNtpSources,
-				Href:                 HREF,
+				Href:                 swag.String(HREF),
 				DownloadURL:          DownloadUrl,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -7349,20 +7349,20 @@ var _ = Describe("infraEnvs", func() {
 		BeforeEach(func() {
 			infraEnvID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
-				ID:                   infraEnvID,
+				ID:                   &infraEnvID,
 				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 				AdditionalNtpSources: AdditionalNtpSources,
-				Href:                 HREF,
+				Href:                 swag.String(HREF),
 				DownloadURL:          DownloadUrl,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
 			infraEnvID = strfmt.UUID(uuid.New().String())
 			err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
-				ID:                   infraEnvID,
+				ID:                   &infraEnvID,
 				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 				AdditionalNtpSources: AdditionalNtpSources,
-				Href:                 HREF,
+				Href:                 swag.String(HREF),
 				DownloadURL:          DownloadUrl,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -7377,7 +7377,7 @@ var _ = Describe("infraEnvs", func() {
 				Expect(payload[1].ID.String()).Should(Equal(infraEnvID.String()))
 				Expect(payload[1].OpenshiftVersion).Should(Equal(common.TestDefaultConfig.OpenShiftVersion))
 				Expect(payload[1].AdditionalNtpSources).Should(Equal(AdditionalNtpSources))
-				Expect(payload[1].Href).Should(Equal(HREF))
+				Expect(*payload[1].Href).Should(Equal(HREF))
 			})
 		})
 	})
@@ -7389,10 +7389,10 @@ var _ = Describe("infraEnvs", func() {
 		BeforeEach(func() {
 			infraEnvId1 = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
-				ID:                   infraEnvId1,
+				ID:                   &infraEnvId1,
 				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 				AdditionalNtpSources: AdditionalNtpSources,
-				Href:                 HREF,
+				Href:                 swag.String(HREF),
 				DownloadURL:          DownloadUrl,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -7408,10 +7408,10 @@ var _ = Describe("infraEnvs", func() {
 
 			infraEnvId2 = strfmt.UUID(uuid.New().String())
 			err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
-				ID:                   infraEnvId2,
+				ID:                   &infraEnvId2,
 				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 				AdditionalNtpSources: AdditionalNtpSources,
-				Href:                 HREF,
+				Href:                 swag.String(HREF),
 				DownloadURL:          DownloadUrl,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -7445,10 +7445,10 @@ var _ = Describe("infraEnvs", func() {
 		BeforeEach(func() {
 			infraEnvID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
-				ID:                   infraEnvID,
+				ID:                   &infraEnvID,
 				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 				AdditionalNtpSources: AdditionalNtpSources,
-				Href:                 HREF,
+				Href:                 swag.String(HREF),
 				DownloadURL:          DownloadUrl,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -7464,7 +7464,7 @@ var _ = Describe("infraEnvs", func() {
 				Expect(actual.Payload.OpenshiftVersion).To(BeEquivalentTo(common.TestDefaultConfig.OpenShiftVersion))
 				Expect(actual.Payload.AdditionalNtpSources).To(Equal(AdditionalNtpSources))
 				Expect(actual.Payload.DownloadURL).To(Equal(DownloadUrl))
-				Expect(actual.Payload.Href).To(Equal(HREF))
+				Expect(actual.Payload.Href).To(Equal(swag.String(HREF)))
 			})
 
 			It("Unfamilliar ID", func() {
@@ -7496,7 +7496,7 @@ var _ = Describe("infraEnvs", func() {
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
 			actual := reply.(*installer.RegisterInfraEnvCreated)
-			Expect(actual.Payload.Name).To(Equal("some-infra-env-name"))
+			Expect(*actual.Payload.Name).To(Equal("some-infra-env-name"))
 		})
 
 		It("Create with ClusterID - CPU architecture match", func() {
@@ -7525,7 +7525,7 @@ var _ = Describe("infraEnvs", func() {
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
 			actual := reply.(*installer.RegisterInfraEnvCreated)
-			Expect(actual.Payload.Name).To(Equal("some-infra-env-name"))
+			Expect(*actual.Payload.Name).To(Equal("some-infra-env-name"))
 		})
 
 		It("No version specified", func() {
@@ -7548,7 +7548,7 @@ var _ = Describe("infraEnvs", func() {
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
 			actual := reply.(*installer.RegisterInfraEnvCreated)
-			Expect(actual.Payload.Name).To(Equal("some-infra-env-name"))
+			Expect(*actual.Payload.Name).To(Equal("some-infra-env-name"))
 		})
 
 		It("Create with ClusterID - CPU architecture mismatch", func() {
@@ -7619,7 +7619,7 @@ var _ = Describe("infraEnvs", func() {
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterInfraEnvCreated()))
 				actual := reply.(*installer.RegisterInfraEnvCreated)
 				var err error
-				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: actual.Payload.ID})
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *actual.Payload.ID})
 				Expect(err).ToNot(HaveOccurred())
 				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("generated_at", strfmt.DateTime(time.Now().AddDate(0, 0, -1))).Error
 				Expect(err).ToNot(HaveOccurred())
@@ -7628,14 +7628,14 @@ var _ = Describe("infraEnvs", func() {
 				mockInfraEnvUpdateSuccess()
 				Expect(i.AdditionalNtpSources).To(Equal(""))
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID: i.ID,
+					InfraEnvID: *i.ID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 						AdditionalNtpSources: swag.String("1.1.1.1"),
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
 				var err error
-				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.AdditionalNtpSources).ToNot(Equal(nil))
 				Expect(i.AdditionalNtpSources).To(Equal("1.1.1.1"))
@@ -7647,13 +7647,13 @@ var _ = Describe("infraEnvs", func() {
 				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("additional_ntp_sources", additionalNtpSources).Error
 				Expect(err).ToNot(HaveOccurred())
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID: i.ID,
+					InfraEnvID: *i.ID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 						AdditionalNtpSources: swag.String("1.1.1.1"),
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
-				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.AdditionalNtpSources).ToNot(Equal(nil))
 				Expect(i.AdditionalNtpSources).To(Equal("1.1.1.1"))
@@ -7662,14 +7662,14 @@ var _ = Describe("infraEnvs", func() {
 				mockInfraEnvUpdateSuccess()
 				override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID: i.ID,
+					InfraEnvID: *i.ID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 						IgnitionConfigOverride: override,
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
 				var err error
-				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.IgnitionConfigOverride).To(Equal(override))
 			})
@@ -7680,13 +7680,13 @@ var _ = Describe("infraEnvs", func() {
 				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("ignition_config_override", override).Error
 				Expect(err).ToNot(HaveOccurred())
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID: i.ID,
+					InfraEnvID: *i.ID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 						IgnitionConfigOverride: override,
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
-				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.IgnitionConfigOverride).To(Equal(override))
 			})
@@ -7696,13 +7696,13 @@ var _ = Describe("infraEnvs", func() {
 				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("type", models.ImageTypeMinimalIso).Error
 				Expect(err).ToNot(HaveOccurred())
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID: i.ID,
+					InfraEnvID: *i.ID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 						ImageType: models.ImageTypeFullIso,
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
-				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.Type).To(Equal(models.ImageTypeFullIso))
 			})
@@ -7711,13 +7711,13 @@ var _ = Describe("infraEnvs", func() {
 				var err error
 				mockInfraEnvUpdateSuccessNoImageGeneration()
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID: i.ID,
+					InfraEnvID: *i.ID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 						ImageType: models.ImageTypeFullIso,
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
-				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.Type).To(Equal(models.ImageTypeFullIso))
 			})
@@ -7745,21 +7745,21 @@ var _ = Describe("infraEnvs", func() {
 				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(gomock.Any(), staticNetworkConfig).Return(nil).Times(1)
 				mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes).Times(1)
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID: i.ID,
+					InfraEnvID: *i.ID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 						StaticNetworkConfig: staticNetworkConfig,
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
 				var err error
-				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.StaticNetworkConfig).To(Equal(staticNetworkFormatRes))
 			})
 			It("Update StaticNetwork same", func() {
 				mockInfraEnvUpdateSuccessNoImageGeneration()
 				var err error
-				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("static_network_config", "static network format result").Error
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", *i.ID).Update("static_network_config", "static network format result").Error
 				Expect(err).ToNot(HaveOccurred())
 				staticNetworkFormatRes := "static network format result"
 				map1 := models.MacInterfaceMap{
@@ -7782,13 +7782,13 @@ var _ = Describe("infraEnvs", func() {
 				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(gomock.Any(), staticNetworkConfig).Return(nil).Times(1)
 				mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes).Times(1)
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
-					InfraEnvID: i.ID,
+					InfraEnvID: *i.ID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 						StaticNetworkConfig: staticNetworkConfig,
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
-				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: i.ID})
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.StaticNetworkConfig).To(Equal(staticNetworkFormatRes))
 			})
@@ -7818,7 +7818,7 @@ var _ = Describe("infraEnvs", func() {
 				pullSecretWithNewline := pullSecret + " \n"
 				infraEnvID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
-					ID: infraEnvID,
+					ID: &infraEnvID,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
@@ -7837,7 +7837,7 @@ var _ = Describe("infraEnvs", func() {
 			err := db.Create(&common.InfraEnv{
 				PullSecret: "PULL_SECRET",
 				InfraEnv: models.InfraEnv{
-					ID:            infraEnvID,
+					ID:            &infraEnvID,
 					PullSecretSet: true,
 				}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -7879,8 +7879,9 @@ var _ = Describe("infraEnvs", func() {
 				err := db.Create(&common.InfraEnv{
 					PullSecret: "PULL_SECRET",
 					InfraEnv: models.InfraEnv{
-						ID:            infraEnvID,
-						PullSecretSet: true,
+						ID:               &infraEnvID,
+						PullSecretSet:    true,
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 					}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 			})
@@ -7916,7 +7917,7 @@ var _ = Describe("infraEnvs", func() {
 					GeneratedAt: strfmt.NewDateTime(),
 					PullSecret:  "PULL_SECRET",
 					InfraEnv: models.InfraEnv{
-						ID:               infraEnvID,
+						ID:               &infraEnvID,
 						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 						PullSecretSet:    true,
 					},
@@ -8092,7 +8093,7 @@ var _ = Describe("infraEnvs", func() {
 				err := db.Create(&common.InfraEnv{
 					PullSecret: "PULL_SECRET",
 					InfraEnv: models.InfraEnv{
-						ID:            infraEnvID,
+						ID:            &infraEnvID,
 						PullSecretSet: true,
 					}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
@@ -8175,9 +8176,9 @@ var _ = Describe("infraEnvs host", func() {
 
 		infraEnvID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
-			ID:                   infraEnvID,
+			ID:                   &infraEnvID,
 			OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
-			Href:                 HREF,
+			Href:                 swag.String(HREF),
 			AdditionalNtpSources: AdditionalNtpSources,
 			DownloadURL:          DownloadUrl,
 		}}).Error
@@ -8527,7 +8528,7 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 		bm = createInventory(db, cfg)
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
-				ID:            clusterID,
+				ID:            &clusterID,
 				PullSecretSet: true,
 				Type:          models.ImageTypeMinimalIso,
 			},
@@ -8552,7 +8553,7 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
-				ID:            clusterID,
+				ID:            &clusterID,
 				PullSecretSet: true,
 				Type:          models.ImageTypeFullIso,
 			},
@@ -8587,7 +8588,7 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
-				ID:            clusterID,
+				ID:            &clusterID,
 				PullSecretSet: true,
 				Type:          models.ImageTypeMinimalIso,
 				Proxy: &models.Proxy{
@@ -9538,7 +9539,7 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
-			ID:            clusterID,
+			ID:            &clusterID,
 			PullSecretSet: true,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		err = db.Create(&infraEnv).Error
@@ -9615,7 +9616,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
-		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{ID: clusterID}}
+		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{ID: &clusterID}}
 		err = db.Create(&infraEnv).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		mockUsageReports()
@@ -11863,7 +11864,7 @@ var _ = Describe("BindHost", func() {
 		bm = createInventory(db, cfg)
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
-		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: infraEnvID}}).Error
+		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		err = db.Create(&common.Host{Host: models.Host{ID: &hostID, InfraEnvID: infraEnvID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -11948,7 +11949,7 @@ var _ = Describe("BindHost", func() {
 	It("CPU architecture mismatch", func() {
 		infraEnvID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
-			ID:              infraEnvID,
+			ID:              &infraEnvID,
 			CPUArchitecture: "arm64",
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -11988,7 +11989,7 @@ var _ = Describe("UnbindHost", func() {
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: infraEnvID}}).Error
+		err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		err = db.Create(&common.Host{Host: models.Host{ID: &hostID, InfraEnvID: infraEnvID, ClusterID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())

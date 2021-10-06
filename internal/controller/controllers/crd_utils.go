@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
@@ -33,8 +34,8 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 	clusterName := ""
 	infraEnvCR := &aiv1beta1.InfraEnv{}
 	if infraenv.KubeKeyNamespace != "" {
-		if err = u.client.Get(ctx, types.NamespacedName{Name: infraenv.Name, Namespace: infraenv.KubeKeyNamespace}, infraEnvCR); err != nil {
-			return errors.Wrapf(err, "Failed to get infraEnv resource %s/%s", infraenv.KubeKeyNamespace, infraenv.Name)
+		if err = u.client.Get(ctx, types.NamespacedName{Name: *infraenv.Name, Namespace: infraenv.KubeKeyNamespace}, infraEnvCR); err != nil {
+			return errors.Wrapf(err, "Failed to get infraEnv resource %s/%s", infraenv.KubeKeyNamespace, swag.StringValue(infraenv.Name))
 		}
 	} else if cluster != nil && cluster.KubeKeyNamespace != "" {
 		clusterName = cluster.KubeKeyName
@@ -111,7 +112,7 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 				log.Infof("Agent CR %s already exists, same cluster %s", hostId, h.ClusterID)
 				return nil
 			}
-			if h.InfraEnvID == infraenv.ID {
+			if h.InfraEnvID == *infraenv.ID {
 				log.Infof("Agent CR %s already exists, same infraEnv %s", hostId, h.InfraEnvID)
 				return nil
 			}

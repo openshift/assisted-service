@@ -331,7 +331,7 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Custom discovery ignition config was applied to the cluster", time.Now())
 	log.Infof("Custom discovery ignition config was applied to cluster %s", params.ClusterID)
 
-	existed, err := b.objectHandler.DeleteObject(ctx, getImageName(*c.ID))
+	existed, err := b.objectHandler.DeleteObject(ctx, getImageName(c.ID))
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -983,9 +983,9 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infr
 		} else {
 			var builder uriBuilder
 			if v2 {
-				builder = &installer.DownloadInfraEnvDiscoveryImageURL{InfraEnvID: infraEnv.ID}
+				builder = &installer.DownloadInfraEnvDiscoveryImageURL{InfraEnvID: *infraEnv.ID}
 			} else {
-				builder = &installer.DownloadClusterISOURL{ClusterID: infraEnv.ID}
+				builder = &installer.DownloadClusterISOURL{ClusterID: *infraEnv.ID}
 			}
 			clusterISOURL, err := builder.Build()
 			if err != nil {
@@ -1215,7 +1215,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		infraEnv.Generated &&
 		infraEnv.Type == params.ImageCreateParams.ImageType &&
 		b.ImageServiceBaseURL == "" {
-		imgName := getImageName(params.ClusterID)
+		imgName := getImageName(&params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
 		if err != nil {
 			log.WithError(err).Errorf("failed to contact storage backend")
@@ -1333,7 +1333,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 		return common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
-	err = b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, infraEnv.ID, infraEnv.Type, true, imageExists)
+	err = b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, *infraEnv.ID, infraEnv.Type, true, imageExists)
 	if err != nil {
 		return err
 	}
@@ -1378,7 +1378,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 	if err != nil {
 		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", infraEnv.ID)
 		msg := "Failed to generate image: error formatting ignition file"
-		b.eventsHandler.AddEvent(ctx, infraEnv.ID, nil, models.EventSeverityError, msg, time.Now())
+		b.eventsHandler.AddEvent(ctx, *infraEnv.ID, nil, models.EventSeverityError, msg, time.Now())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
@@ -1387,7 +1387,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 	if imageType == models.ImageTypeMinimalIso {
 		if err := b.generateClusterMinimalISO(ctx, log, infraEnv, ignitionConfig, objectPrefix); err != nil {
 			log.WithError(err).Errorf("Failed to generate minimal ISO for cluster %s", infraEnv.ID)
-			b.eventsHandler.AddEvent(ctx, infraEnv.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", time.Now())
+			b.eventsHandler.AddEvent(ctx, *infraEnv.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", time.Now())
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	} else {
@@ -1399,7 +1399,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 
 		if err := b.objectHandler.UploadISO(ctx, ignitionConfig, baseISOName, objectPrefix); err != nil {
 			log.WithError(err).Errorf("Upload ISO failed for cluster %s", infraEnv.ID)
-			b.eventsHandler.AddEvent(ctx, infraEnv.ID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
+			b.eventsHandler.AddEvent(ctx, *infraEnv.ID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
@@ -1408,7 +1408,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	msg := b.getIgnitionConfigForLogging(ctx, infraEnv, log, imageType)
-	b.eventsHandler.AddEvent(ctx, infraEnv.ID, nil, models.EventSeverityInfo, msg, time.Now())
+	b.eventsHandler.AddEvent(ctx, *infraEnv.ID, nil, models.EventSeverityInfo, msg, time.Now())
 	log.Infof(msg)
 
 	return nil
@@ -1443,7 +1443,7 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 
 	baseISOName, err := b.objectHandler.GetMinimalIsoObjectName(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get source object name for infraEnv %s with ocp version %s", infraEnv.ID, infraEnv.OpenshiftVersion)
+		log.WithError(err).Errorf("Failed to get source object name for infraEnv %s with ocp version %s", infraEnv.ID.String(), infraEnv.OpenshiftVersion)
 		return err
 	}
 
@@ -1490,7 +1490,7 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 	return os.Remove(clusterISOPath)
 }
 
-func getImageName(infraEnvID strfmt.UUID) string {
+func getImageName(infraEnvID *strfmt.UUID) string {
 	return fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, infraEnvID.String()))
 }
 
@@ -5625,10 +5625,10 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	infraEnv := common.InfraEnv{
 		Generated: false,
 		InfraEnv: models.InfraEnv{
-			ID:                     id,
-			Href:                   url.String(),
-			Kind:                   models.InfraEnvKindInfraEnv,
-			Name:                   swag.StringValue(params.InfraenvCreateParams.Name),
+			ID:                     &id,
+			Href:                   swag.String(url.String()),
+			Kind:                   swag.String(models.InfraEnvKindInfraEnv),
+			Name:                   params.InfraenvCreateParams.Name,
 			UserName:               ocm.UserNameFromContext(ctx),
 			OrgID:                  ocm.OrgIDFromContext(ctx),
 			EmailDomain:            ocm.EmailDomainFromContext(ctx),
@@ -5636,7 +5636,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
 			StaticNetworkConfig:    b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraenvCreateParams.StaticNetworkConfig),
 			Type:                   params.InfraenvCreateParams.ImageType,
-			UpdatedAt:              strfmt.DateTime{},
+			UpdatedAt:              &strfmt.DateTime{},
 			AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
 			SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
 			CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
@@ -5690,7 +5690,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	}
 
 	success = true
-	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnv.ID})
+	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *infraEnv.ID})
 }
 
 func (b *bareMetalInventory) setDefaultRegisterInfraEnvParams(_ context.Context, params installer.RegisterInfraEnvParams) installer.RegisterInfraEnvParams {
@@ -5833,7 +5833,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		return nil, err
 	}
 
-	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnv.ID})
+	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *infraEnv.ID})
 }
 
 func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger) error {
@@ -6033,7 +6033,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
 		UserName:              ocm.UserNameFromContext(ctx),
 		Role:                  defaultRole,
-		InfraEnvID:            infraEnv.ID,
+		InfraEnvID:            *infraEnv.ID,
 	}
 
 	var cluster *common.Cluster
@@ -6095,7 +6095,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	}
 
 	if err := b.crdUtils.CreateAgentCR(ctx, log, params.NewHostParams.HostID.String(), infraEnv, cluster); err != nil {
-		log.WithError(err).Errorf("Fail to create Agent CR. Namespace: %s, InfraEnv: %s, HostID: %s", infraEnv.KubeKeyNamespace, infraEnv.Name, params.NewHostParams.HostID.String())
+		log.WithError(err).Errorf("Fail to create Agent CR. Namespace: %s, InfraEnv: %s, HostID: %s", infraEnv.KubeKeyNamespace, swag.StringValue(infraEnv.Name), params.NewHostParams.HostID.String())
 		return installer.NewV2RegisterHostInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}

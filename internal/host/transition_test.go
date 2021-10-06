@@ -5092,7 +5092,7 @@ var _ = Describe("Refresh Host", func() {
 			clusterId = strfmt.UUID(uuid.New().String())
 			infraEnv := &common.InfraEnv{
 				InfraEnv: models.InfraEnv{
-					ID: infraEnvId,
+					ID: &infraEnvId,
 				},
 			}
 			Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
@@ -5391,7 +5391,7 @@ var _ = Describe("Refresh Host", func() {
 					})
 					Expect(err).ToNot(HaveOccurred())
 					host.NtpSources = string(b)
-					Expect(db.Model(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: infraEnvId}}).Update("additional_ntp_sources", "source").Error).ToNot(HaveOccurred())
+					Expect(db.Model(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvId}}).Update("additional_ntp_sources", "source").Error).ToNot(HaveOccurred())
 				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 

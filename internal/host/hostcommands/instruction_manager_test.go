@@ -85,7 +85,7 @@ var _ = Describe("instruction_manager", func() {
 
 			infraEnv := common.InfraEnv{
 				InfraEnv: models.InfraEnv{
-					ID:        infraEnvId,
+					ID:        &infraEnvId,
 					ClusterID: clusterId,
 				},
 			}
@@ -174,7 +174,7 @@ var _ = Describe("instruction_manager", func() {
 
 			infraEnv := common.InfraEnv{
 				InfraEnv: models.InfraEnv{
-					ID:        infraEnvId,
+					ID:        &infraEnvId,
 					ClusterID: clusterId,
 				},
 			}
@@ -253,7 +253,7 @@ var _ = Describe("instruction_manager", func() {
 			Expect(db.Model(&common.Host{}).Select("cluster_id").Updates(map[string]interface{}{"cluster_id": nil}).Error).ShouldNot(HaveOccurred())
 			Expect(db.Create(&common.InfraEnv{
 				InfraEnv: models.InfraEnv{
-					ID:                   infraEnvId,
+					ID:                   &infraEnvId,
 					AdditionalNtpSources: UNBOUND_SOURCE,
 				},
 			}).Error).ToNot(HaveOccurred())
@@ -323,7 +323,7 @@ var _ = Describe("instruction_manager", func() {
 
 				infraEnv := common.InfraEnv{
 					InfraEnv: models.InfraEnv{
-						ID:        infraEnvId,
+						ID:        &infraEnvId,
 						ClusterID: clusterId,
 					},
 				}

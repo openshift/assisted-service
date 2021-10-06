@@ -50,8 +50,8 @@ var _ = Describe("create agent CR", func() {
 		infraEnv = &common.InfraEnv{
 			KubeKeyNamespace: infraEnvNamespace,
 			InfraEnv: models.InfraEnv{
-				Name: infraEnvName,
-				ID:   infraEnvId,
+				Name: &infraEnvName,
+				ID:   &infraEnvId,
 			},
 		}
 		cluster = &common.Cluster{
@@ -207,6 +207,7 @@ var _ = Describe("create agent CR", func() {
 			Expect(c.Create(ctx, infraEnvImage2)).ShouldNot(HaveOccurred())
 
 			id := strfmt.UUID(hostId)
+			infraEnvImage2Name := "infraEnvImage2"
 			h := common.Host{
 				Host: models.Host{
 					ID:         &id,
@@ -214,10 +215,12 @@ var _ = Describe("create agent CR", func() {
 					InfraEnvID: infraEnvId,
 				},
 			}
+			infraEnvId2 := strfmt.UUID(hostId)
 			infraEnv2 := &common.InfraEnv{
 				KubeKeyNamespace: infraEnvNamespace,
 				InfraEnv: models.InfraEnv{
-					Name: "infraEnvImage2",
+					ID:   &infraEnvId2,
+					Name: &infraEnvImage2Name,
 				},
 			}
 			mockHostApi.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&h, nil).Times(1)

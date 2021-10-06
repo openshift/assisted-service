@@ -91,7 +91,7 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 
 func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (*common.InfraEnv, error) {
 	updateParams := installer.UpdateInfraEnvParams{
-		InfraEnvID:           internalInfraEnv.ID,
+		InfraEnvID:           *internalInfraEnv.ID,
 		InfraEnvUpdateParams: &models.InfraEnvUpdateParams{},
 	}
 	if infraEnv.Spec.Proxy != nil {
@@ -351,7 +351,7 @@ func (r *InfraEnvReconciler) deregisterInfraEnvIfNeeded(ctx context.Context, log
 	}
 
 	if err = r.Installer.DeregisterInfraEnvInternal(ctx, installer.DeregisterInfraEnvParams{
-		InfraEnvID: infraEnv.ID,
+		InfraEnvID: *infraEnv.ID,
 	}); err != nil {
 		return buildReply(err)
 	}

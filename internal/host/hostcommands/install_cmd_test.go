@@ -76,7 +76,7 @@ var _ = Describe("installcmd", func() {
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeFull)
 		clusterId = *cluster.ID
 		infraEnv = createInfraEnvInDb(db, clusterId)
-		infraEnvId = infraEnv.ID
+		infraEnvId = *infraEnv.ID
 		host = createHostInDb(db, infraEnvId, clusterId, models.HostRoleMaster, false, "")
 	})
 
@@ -293,7 +293,7 @@ var _ = Describe("installcmd arguments", func() {
 		db, dbName = common.PrepareTestDB()
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
 		infraEnv = createInfraEnvInDb(db, *cluster.ID)
-		infraEnvId = infraEnv.ID
+		infraEnvId = *infraEnv.ID
 		host = createHostInDb(db, infraEnvId, *cluster.ID, models.HostRoleMaster, false, "")
 		ctrl = gomock.NewController(GinkgoT())
 		validator = hardware.NewMockValidator(ctrl)
@@ -577,7 +577,7 @@ var _ = Describe("construct host install arguments", func() {
 		infraEnvID := strfmt.UUID(uuid.New().String())
 		infraEnv = &common.InfraEnv{
 			InfraEnv: models.InfraEnv{
-				ID:        infraEnvID,
+				ID:        &infraEnvID,
 				ClusterID: clusterID,
 			},
 		}
@@ -1019,7 +1019,7 @@ func createInfraEnvInDb(db *gorm.DB, clusterId strfmt.UUID) common.InfraEnv {
 	infraEnvId := strfmt.UUID(uuid.New().String())
 	infraEnv := common.InfraEnv{
 		InfraEnv: models.InfraEnv{
-			ID:        infraEnvId,
+			ID:        &infraEnvId,
 			ClusterID: clusterId,
 		},
 	}

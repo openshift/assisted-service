@@ -45,7 +45,7 @@ func clearDB() {
 		infraEnvReply, err := userBMClient.Installer.ListInfraEnvs(context.Background(), &installer.ListInfraEnvsParams{})
 		Expect(err).ShouldNot(HaveOccurred())
 		for _, i := range infraEnvReply.GetPayload() {
-			if _, err = userBMClient.Installer.DeregisterInfraEnv(context.Background(), &installer.DeregisterInfraEnvParams{InfraEnvID: i.ID}); err != nil {
+			if _, err = userBMClient.Installer.DeregisterInfraEnv(context.Background(), &installer.DeregisterInfraEnvParams{InfraEnvID: *i.ID}); err != nil {
 				log.WithError(err).Debugf("InfraEnv %s couldn't be deleted via REST API", i.ID)
 			}
 		}

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
@@ -110,5 +111,5 @@ func (c *controllerEventsWrapper) NotifyKubeApiInfraEnvEvent(infraEnvId strfmt.U
 	}
 
 	c.log.Debugf("Pushing InfraEnv event %s %s", ie.Name, ie.KubeKeyNamespace)
-	c.crdEventsHandler.NotifyInfraEnvUpdates(ie.Name, ie.KubeKeyNamespace)
+	c.crdEventsHandler.NotifyInfraEnvUpdates(swag.StringValue(ie.Name), ie.KubeKeyNamespace)
 }
