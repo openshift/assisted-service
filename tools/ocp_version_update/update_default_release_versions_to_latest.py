@@ -6,7 +6,6 @@ import copy
 import logging
 import argparse
 import tempfile
-import textwrap
 import subprocess
 
 from bs4 import BeautifulSoup
@@ -23,8 +22,8 @@ logging.getLogger("__main__").setLevel(logging.INFO)
 # Users / branch names / messages
 BRANCH_NAME = "{prefix}_update_assisted_service_versions"
 DEFAULT_ASSIGN = "odepaz"
-DEFAULT_WATCHERS = ["odepaz", "lgamliel", "yuvalgoldberg"]
-PR_MENTION = ["osherdp", "gamli75", "YuviGold"]
+DEFAULT_WATCHERS = ["odepaz", "romfreiman", "asegurap", "lgamliel"]
+PR_MENTION = ["romfreiman", "celebdor", "gamli75"]
 PR_MESSAGE = "{task}: Bump OCP versions {versions_string}"
 
 OCP_INFO_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=stable-{version}\&arch\={architecture} | jq '[.nodes[]] | sort_by(.version | split(".") | map(tonumber))[-1]'"""
@@ -168,6 +167,7 @@ def add_watchers(jira_client, issue):
 def get_jira_client(username, password):
     logger.info("log-in with username: %s", username)
     return jira.JIRA(JIRA_SERVER, basic_auth=(username, password))
+
 
 def clone_assisted_service(github_user, github_password):
     cmd(["rm", "-rf", ASSISTED_SERVICE_CLONE_DIR])
@@ -493,7 +493,7 @@ def create_github_pr(updates_made, title, task, args):
 
     commit_message = title + '\n\n' + get_release_notes(updates_made)
 
-    branch = commit_and_push_version_update_changes(task, commit_message)
+    commit_and_push_version_update_changes(task, commit_message)
 
     github_pr = open_pr(args, task, title, body)
 
