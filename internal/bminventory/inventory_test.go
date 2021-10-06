@@ -310,6 +310,43 @@ var _ = Describe("GenerateClusterISO", func() {
 		Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
 	})
 
+	It("ImageInfo equal in Get and Update", func() {
+		cluster := createClusterInDB(true)
+		clusterId := cluster.ID
+		mockS3Client.EXPECT().IsAwsS3().Return(false)
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockUploadIso(cluster, nil)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+		Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
+
+		dummyName := "new-cluster-name"
+
+		mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
+		mockAccountsMgmt.EXPECT().UpdateSubscriptionDisplayName(ctx, gomock.Any(), dummyName).Return(nil)
+		mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+		mockUsageReports()
+		mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+		updateReply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+			ClusterID: *clusterId,
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				Name: &dummyName,
+			},
+		}).(*installer.UpdateClusterCreated)
+		Expect(getReply.Payload.ImageInfo).To(Equal(updateReply.Payload.ImageInfo))
+	})
+
 	It("success - infra-env", func() {
 		infraEnvID := strfmt.UUID(uuid.New().String())
 		infraEnv := createInfraEnvWithPullSecret(db, infraEnvID, infraEnvID)

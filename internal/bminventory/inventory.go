@@ -2346,12 +2346,18 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
-		if err := b.customizeHost(host); err != nil {
+		if err = b.customizeHost(host); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
 	}
+
+	imageInfo, err := b.getImageInfo(cluster.ID)
+	if err != nil {
+		return nil, err
+	}
+	cluster.ImageInfo = imageInfo
 
 	return cluster, nil
 }
@@ -3481,7 +3487,17 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 		host.FreeAddresses = ""
 	}
 
-	infraEnv, err := common.GetInfraEnvFromDB(b.db, *cluster.ID)
+	imageInfo, err := b.getImageInfo(cluster.ID)
+	if err != nil {
+		return nil, err
+	}
+	cluster.ImageInfo = imageInfo
+
+	return cluster, nil
+}
+
+func (b *bareMetalInventory) getImageInfo(clusterId *strfmt.UUID) (*models.ImageInfo, error) {
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, *clusterId)
 	if err == nil {
 		imageInfo := &models.ImageInfo{
 			DownloadURL:         infraEnv.DownloadURL,
@@ -3493,14 +3509,14 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 			StaticNetworkConfig: infraEnv.StaticNetworkConfig,
 			GeneratorVersion:    infraEnv.GeneratorVersion,
 		}
-		cluster.ImageInfo = imageInfo
+		return imageInfo, nil
 	} else {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 	}
 
-	return cluster, nil
+	return &models.ImageInfo{}, nil
 }
 
 func (b *bareMetalInventory) generateV2NextStepRunnerCommand(ctx context.Context, params *installer.V2RegisterHostParams) *models.HostRegistrationResponseAO1NextStepRunnerCommand {
