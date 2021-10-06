@@ -318,6 +318,7 @@ var _ = Describe("RegisterHost", func() {
 					InfraEnvID:            infraEnvId,
 					ClusterID:             &clusterId,
 					Status:                swag.String(t.srcState),
+					Kind:                  swag.String(t.kind),
 					DiscoveryAgentVersion: discoveryAgentVersion,
 				},
 					db)).ShouldNot(HaveOccurred())

@@ -5973,7 +5973,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		return common.GenerateErrorResponder(err)
 	}
 
-	_, err = common.GetHostFromDB(tx, params.InfraEnvID.String(), params.NewHostParams.HostID.String())
+	dbHost, err := common.GetHostFromDB(tx, params.InfraEnvID.String(), params.NewHostParams.HostID.String())
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.WithError(err).Errorf("failed to get host %s in infra-env: %s",
 			*params.NewHostParams.HostID, params.InfraEnvID.String())
@@ -6006,12 +6006,12 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	}
 
 	var cluster *common.Cluster
-	if infraEnv.ClusterID != "" {
-		cluster, err = common.GetClusterFromDB(tx, infraEnv.ClusterID, common.SkipEagerLoading)
-		if err != nil {
-			log.WithError(err).Errorf("Cluster get")
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
+	cluster, err = b.getBoundCluster(tx, infraEnv, dbHost)
+	if err != nil {
+		log.WithError(err).Errorf("Bound Cluster get")
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if cluster != nil {
 		if newRecord {
 			if err = b.clusterApi.AcceptRegistration(cluster); err != nil {
 				log.WithError(err).Errorf("failed to register host <%s> to infra-env %s due to: %s",
@@ -6028,7 +6028,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 			host.Kind = swag.String(models.HostKindAddToExistingClusterHost)
 		}
-		host.ClusterID = &infraEnv.ClusterID
+		host.ClusterID = cluster.ID
 	}
 
 	if err = b.hostApi.RegisterHost(ctx, host, tx); err != nil {
@@ -6695,4 +6695,22 @@ func (b *bareMetalInventory) refreshAfterUpdate(ctx context.Context, host *commo
 		log.WithError(err).Errorf("Failed to refresh host %s, infra env %s during update", host.ID, host.InfraEnvID)
 	}
 	return err
+}
+
+func (b *bareMetalInventory) getBoundCluster(db *gorm.DB, infraEnv *common.InfraEnv, host *common.Host) (*common.Cluster, error) {
+	var clusterID strfmt.UUID
+	if infraEnv.ClusterID != "" {
+		clusterID = infraEnv.ClusterID
+	} else if host != nil && host.Host.ClusterID != nil {
+		clusterID = *host.Host.ClusterID
+	}
+
+	if clusterID != "" {
+		cluster, err := common.GetClusterFromDB(db, clusterID, common.SkipEagerLoading)
+		if err != nil {
+			return nil, err
+		}
+		return cluster, nil
+	}
+	return nil, nil
 }
