@@ -1650,7 +1650,7 @@ func (r *ClusterDeploymentsReconciler) setControllerLogsDownloadURL(
 }
 
 func (r *ClusterDeploymentsReconciler) generateControllerLogsDownloadURL(cluster *common.Cluster) (string, error) {
-	downloadURL := fmt.Sprintf("%s%s/v1/clusters/%s/logs",
+	downloadURL := fmt.Sprintf("%s%s/v2/clusters/%s/logs",
 		r.ServiceBaseURL, restclient.DefaultBasePath, cluster.ID.String())
 
 	if r.AuthType != auth.TypeLocal {
