@@ -2341,6 +2341,10 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params
 		return nil, err
 	}
 
+	b.updateClusterNetworkVMUsage(cluster, v2Params.ClusterUpdateParams, usages, log)
+
+	b.updateClusterCPUFeatureUsage(cluster, usages)
+
 	b.usageApi.Save(tx, v2Params.ClusterID, usages)
 
 	newClusterName := swag.StringValue(v2Params.ClusterUpdateParams.Name)
@@ -2469,6 +2473,10 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		log.WithError(err).Errorf("failed to validate or update cluster %s state", cluster.ID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
+
+	b.updateClusterNetworkVMUsage(cluster, params.ClusterUpdateParams, usages, log)
+
+	b.updateClusterCPUFeatureUsage(cluster, usages)
 
 	b.usageApi.Save(tx, params.ClusterID, usages)
 
@@ -3298,6 +3306,34 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 	}
 
 	return nil
+}
+
+func (b *bareMetalInventory) updateClusterNetworkVMUsage(cluster *common.Cluster, updateParams *models.V2ClusterUpdateParams, usages map[string]models.Usage, log logrus.FieldLogger) {
+	vmHosts := make([]string, 0)
+	userManagedNetwork := cluster.UserManagedNetworking != nil && *cluster.UserManagedNetworking
+	if updateParams != nil && updateParams.UserManagedNetworking != nil {
+		userManagedNetwork = *updateParams.UserManagedNetworking
+	}
+	if userManagedNetwork {
+		for _, host := range cluster.Hosts {
+			hostInventory, err := common.UnmarshalInventory(host.Inventory)
+			if err != nil {
+				err = errors.Wrap(err, "Failed to update usage flag for 'User managed network with VMs'.")
+				log.Error(err)
+				return
+			}
+			isHostVirtual := hostInventory.SystemVendor != nil && hostInventory.SystemVendor.Virtual
+			if isHostVirtual {
+				vmHosts = append(vmHosts, string(*host.ID))
+			}
+		}
+	}
+	b.setUsage(len(vmHosts) > 0, usage.UserManagedNetworkWithVMs, &map[string]interface{}{"VM Hosts": vmHosts}, usages)
+}
+
+func (b *bareMetalInventory) updateClusterCPUFeatureUsage(cluster *common.Cluster, usages map[string]models.Usage) {
+	isARM64CPU := cluster.CPUArchitecture == "arm64"
+	b.setUsage(isARM64CPU, usage.CPUArchitectureARM64, nil, usages)
 }
 
 func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {

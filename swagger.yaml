@@ -6019,6 +6019,32 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/feature-support-levels:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      operationId: v2ListFeatureSupportLevels
+      description: Retrieves the support levels for features for each OpenShift version.
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/feature-support-levels'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   vsphere_platform:
     type: object
@@ -6164,6 +6190,29 @@ definitions:
     type: object
     additionalProperties:
       $ref: '#/definitions/openshift-version'
+
+  feature-support-levels:
+    type: array
+    items:
+      $ref: '#/definitions/feature-support-level'
+
+  feature-support-level:
+    type: object
+    properties:
+      openshift_version:
+        type: string
+        description: Version of the OpenShift cluster.
+      features:
+        type: array
+        items:
+          type: object
+          properties:
+            feature_id:
+              type: string
+              description: The ID of the feature
+            support_level:
+              type: string
+              enum: [supported, unsupported, tech-preview, dev-preview]
 
   preflight-hardware-requirements:
     type: object
@@ -8595,6 +8644,9 @@ definitions:
   usage:
     type: object
     properties:
+      id:
+        type: string
+        description: Unique idenftifier of the feature
       name:
         type: string
         description: name of the feature to track

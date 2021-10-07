@@ -213,6 +213,20 @@ func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallCon
 func mockGetInstallConfigSuccess(mockInstallConfigBuilder *installcfg.MockInstallConfigBuilder) {
 	mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("some string"), nil).Times(1)
 }
+func addVMToCluster(cluster *common.Cluster, db *gorm.DB) {
+	hostID := strfmt.UUID(uuid.New().String())
+	infraEnv := createInfraEnv(db, strfmt.UUID(uuid.New().String()), *cluster.ID)
+	inventory := models.Inventory{
+		SystemVendor: &models.SystemVendor{
+			Virtual: true,
+		},
+	}
+	inventoryByte, err := json.Marshal(inventory)
+	Expect(err).ToNot(HaveOccurred())
+	host := addHost(hostID, models.HostRoleAutoAssign, models.HostStatusKnown, models.HostKindHost,
+		*infraEnv.ID, *cluster.ID, string(inventoryByte), db)
+	cluster.Hosts = append(cluster.Hosts, &host)
+}
 
 var _ = Describe("GenerateClusterISO", func() {
 	var (
@@ -13143,3 +13157,103 @@ func validateNetworkConfiguration(cluster *models.Cluster, clusterNetworks *[]*m
 		}
 	}
 }
+
+var _ = Describe("Update cluster - feature usage flags", func() {
+	var (
+		bm      *bareMetalInventory
+		cfg     Config
+		db      *gorm.DB
+		cluster *common.Cluster
+		dbName  string
+		usages  = map[string]models.Usage{}
+	)
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		Expect(cfg.IPv6Support).Should(BeTrue())
+		cfg = Config{}
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+		cluster = createCluster(db, models.ClusterStatusPendingForInput)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Context("CPU Architecture usage", func() {
+		It("Add feature usage of ARM64 when cluster arch match", func() {
+			mockUsage.EXPECT().Add(usages, usage.CPUArchitectureARM64, nil).Times(1)
+			mockUsage.EXPECT().Remove(usages, usage.CPUArchitectureARM64).Times(0)
+			cluster.CPUArchitecture = "arm64"
+			bm.updateClusterCPUFeatureUsage(cluster, usages)
+		})
+
+		It("Remove feature usage of ARM64 when cluster arch match", func() {
+			mockUsage.EXPECT().Add(usages, usage.CPUArchitectureARM64, nil).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.CPUArchitectureARM64).Times(1)
+			bm.updateClusterCPUFeatureUsage(cluster, usages)
+		})
+	})
+
+	Context("Cluster managed network with VMs", func() {
+		It("Should Not add usage when network is not user managed", func() {
+			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(1)
+			bm.updateClusterNetworkVMUsage(cluster, nil, usages, common.GetTestLog())
+		})
+		It("Should not add usage when network is user managed but no VM hosts", func() {
+			userManagedNetwork := true
+			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(1)
+			bm.updateClusterNetworkVMUsage(cluster, &models.V2ClusterUpdateParams{
+				UserManagedNetworking: &userManagedNetwork,
+			}, usages, common.GetTestLog())
+		})
+		It("Should not add usage when network is not user managed and contains VMs", func() {
+			addVMToCluster(cluster, db)
+			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(1)
+			bm.updateClusterNetworkVMUsage(cluster, nil, usages, common.GetTestLog())
+		})
+		It("Should add usage when updating cluster userManagedNetworking nil->true", func() {
+			addVMToCluster(cluster, db)
+			userManagedNetwork := true
+			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(1)
+			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(0)
+			bm.updateClusterNetworkVMUsage(cluster, &models.V2ClusterUpdateParams{
+				UserManagedNetworking: &userManagedNetwork,
+			}, usages, common.GetTestLog())
+		})
+		It("Should add usage when updating cluster userManagedNetworking true->(no update value)", func() {
+			addVMToCluster(cluster, db)
+			userManagedNetwork := true
+			cluster.UserManagedNetworking = &userManagedNetwork
+			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(1)
+			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(0)
+			bm.updateClusterNetworkVMUsage(cluster, nil, usages, common.GetTestLog())
+		})
+		It("Should add usage when updating userManagedNetworking false -> true", func() {
+			addVMToCluster(cluster, db)
+			userManagedNetwork := false
+			updateTo := true
+			cluster.UserManagedNetworking = &userManagedNetwork
+			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(1)
+			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(0)
+			bm.updateClusterNetworkVMUsage(cluster, &models.V2ClusterUpdateParams{
+				UserManagedNetworking: &updateTo,
+			}, usages, common.GetTestLog())
+		})
+
+		It("Should remove usage when updating userManagedNetworking true -> false", func() {
+			addVMToCluster(cluster, db)
+			userManagedNetwork := false
+			updateTo := true
+			cluster.UserManagedNetworking = &userManagedNetwork
+			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(1)
+			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(1)
+			bm.updateClusterNetworkVMUsage(cluster, &models.V2ClusterUpdateParams{
+				UserManagedNetworking: &updateTo,
+			}, usages, common.GetTestLog())
+		})
+	})
+})

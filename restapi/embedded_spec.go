@@ -6777,6 +6777,50 @@ func init() {
         }
       }
     },
+    "/v2/feature-support-levels": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the support levels for features for each OpenShift version.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2ListFeatureSupportLevels",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/feature-support-levels"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition": {
       "get": {
         "security": [
@@ -10800,6 +10844,42 @@ func init() {
         "$ref": "#/definitions/event"
       }
     },
+    "feature-support-level": {
+      "type": "object",
+      "properties": {
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "feature_id": {
+                "description": "The ID of the feature",
+                "type": "string"
+              },
+              "support_level": {
+                "type": "string",
+                "enum": [
+                  "supported",
+                  "unsupported",
+                  "tech-preview",
+                  "dev-preview"
+                ]
+              }
+            }
+          }
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        }
+      }
+    },
+    "feature-support-levels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/feature-support-level"
+      }
+    },
     "free-addresses-list": {
       "type": "array",
       "items": {
@@ -12566,6 +12646,10 @@ func init() {
           "additionalProperties": {
             "type": "object"
           }
+        },
+        "id": {
+          "description": "Unique idenftifier of the feature",
+          "type": "string"
         },
         "name": {
           "description": "name of the feature to track",
@@ -19638,6 +19722,50 @@ func init() {
         }
       }
     },
+    "/v2/feature-support-levels": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the support levels for features for each OpenShift version.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2ListFeatureSupportLevels",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/feature-support-levels"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition": {
       "get": {
         "security": [
@@ -22098,6 +22226,24 @@ func init() {
       },
       "x-go-name": "DomainResolutionResponseDomain"
     },
+    "FeatureSupportLevelFeaturesItems0": {
+      "type": "object",
+      "properties": {
+        "feature_id": {
+          "description": "The ID of the feature",
+          "type": "string"
+        },
+        "support_level": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "unsupported",
+            "tech-preview",
+            "dev-preview"
+          ]
+        }
+      }
+    },
     "HostRegistrationResponseAO1NextStepRunnerCommand": {
       "description": "Command for starting the next step runner",
       "type": "object",
@@ -23727,6 +23873,27 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/event"
+      }
+    },
+    "feature-support-level": {
+      "type": "object",
+      "properties": {
+        "features": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FeatureSupportLevelFeaturesItems0"
+          }
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        }
+      }
+    },
+    "feature-support-levels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/feature-support-level"
       }
     },
     "free-addresses-list": {
@@ -25486,6 +25653,10 @@ func init() {
           "additionalProperties": {
             "type": "object"
           }
+        },
+        "id": {
+          "description": "Unique idenftifier of the feature",
+          "type": "string"
         },
         "name": {
           "description": "name of the feature to track",

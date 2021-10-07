@@ -18,6 +18,9 @@ type Usage struct {
 	// additional properties of the feature
 	Data map[string]interface{} `json:"data,omitempty"`
 
+	// Unique idenftifier of the feature
+	ID string `json:"id,omitempty"`
+
 	// name of the feature to track
 	Name string `json:"name,omitempty"`
 }

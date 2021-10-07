@@ -57,7 +57,7 @@ var _ = Describe("Feature Usage", func() {
 			"feat1": {Name: "feat1"},
 		}
 		manager.Add(usages, "feat2", nil)
-		Expect(usages).To(ContainElement(models.Usage{Name: "feat2", Data: nil}))
+		Expect(usages).To(ContainElement(models.Usage{Name: "feat2", Data: nil, ID: "FEAT2"}))
 		manager.Save(db, clusterID, usages)
 		Expect(len(readUsages())).To(Equal(2))
 	})
