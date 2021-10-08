@@ -818,14 +818,15 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 		deployment.Spec.Template.Spec.ServiceAccountName = imageServiceName
 
 		if r.NodeSelector != nil {
-			nodeSelector := make(map[string]string)
-			for key, value := range r.NodeSelector {
-				nodeSelector[key] = value
-			}
-			deployment.Spec.Template.Spec.NodeSelector = nodeSelector
+			deployment.Spec.Template.Spec.NodeSelector = r.NodeSelector
+		} else {
+			deployment.Spec.Template.Spec.NodeSelector = map[string]string{}
 		}
+
 		if r.Tolerations != nil {
-			deployment.Spec.Template.Spec.Tolerations = append([]corev1.Toleration{}, r.Tolerations...)
+			deployment.Spec.Template.Spec.Tolerations = r.Tolerations
+		} else {
+			deployment.Spec.Template.Spec.Tolerations = []corev1.Toleration{}
 		}
 		return nil
 	}
@@ -1111,14 +1112,15 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
 
 		if r.NodeSelector != nil {
-			nodeSelector := make(map[string]string)
-			for key, value := range r.NodeSelector {
-				nodeSelector[key] = value
-			}
-			deployment.Spec.Template.Spec.NodeSelector = nodeSelector
+			deployment.Spec.Template.Spec.NodeSelector = r.NodeSelector
+		} else {
+			deployment.Spec.Template.Spec.NodeSelector = map[string]string{}
 		}
+
 		if r.Tolerations != nil {
-			deployment.Spec.Template.Spec.Tolerations = append([]corev1.Toleration{}, r.Tolerations...)
+			deployment.Spec.Template.Spec.Tolerations = r.Tolerations
+		} else {
+			deployment.Spec.Template.Spec.Tolerations = []corev1.Toleration{}
 		}
 
 		return nil
