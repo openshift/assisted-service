@@ -476,6 +476,9 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	if err = validations.ValidateIPAddresses(b.IPv6Support, params.NewClusterParams); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
+	if err = validations.ValidateDualStackNetworks(params.NewClusterParams, false); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
 
 	params = b.setDefaultRegisterClusterParams(ctx, params)
 
@@ -2270,6 +2273,11 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
+	alreadyDualStack := network.CheckIfClusterIsDualStack(cluster)
+	if err = validations.ValidateDualStackNetworks(v2Params.ClusterUpdateParams, alreadyDualStack); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	if v2Params, err = b.validateAndUpdateProxyParams(ctx, &v2Params, &cluster.OpenshiftVersion); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -2397,6 +2405,11 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	if cluster, err = common.GetClusterFromDB(tx, params.ClusterID, common.UseEagerLoading); err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
 		return nil, common.NewApiError(http.StatusNotFound, err)
+	}
+
+	alreadyDualStack := network.CheckIfClusterIsDualStack(cluster)
+	if err = validations.ValidateDualStackNetworks(params.ClusterUpdateParams, alreadyDualStack); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if params, err = b.validateAndUpdateProxyParams(ctx, &params, &cluster.OpenshiftVersion); err != nil {

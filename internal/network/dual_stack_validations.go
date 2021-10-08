@@ -1,6 +1,7 @@
 package network
 
 import (
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
@@ -58,4 +59,41 @@ func VerifyClusterNetworksDualStack(networks []*models.ClusterNetwork, isDualSta
 	}
 
 	return nil
+}
+
+// Verify if the current Cluster configuration indicates that it is a dual-stack cluster. This
+// happens based on the following rule - if at least one of Machine, Service or Cluster Networks
+// is a list containing both IPv4 and IPv6 address, we mark the cluster as dual-stack.
+func CheckIfClusterIsDualStack(c *common.Cluster) bool {
+	var err error
+	var ipv4, ipv6 bool
+	dualStack := false
+
+	if c == nil {
+		return false
+	}
+
+	ipv4, ipv6, err = GetAddressFamilies(c.MachineNetworks)
+	if err != nil {
+		return false
+	}
+	dualStack = dualStack || (ipv4 && ipv6)
+
+	if !dualStack {
+		ipv4, ipv6, err = GetAddressFamilies(c.ServiceNetworks)
+		if err != nil {
+			return false
+		}
+		dualStack = ipv4 && ipv6
+	}
+
+	if !dualStack {
+		ipv4, ipv6, err = GetAddressFamilies(c.ClusterNetworks)
+		if err != nil {
+			return false
+		}
+		dualStack = ipv4 && ipv6
+	}
+
+	return dualStack
 }
