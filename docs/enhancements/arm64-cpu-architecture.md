@@ -48,46 +48,41 @@ have CPU architecture granularity for each API. So that OCP release images and R
 
 The assisted-service should support the arm64 variant of RHCOS images and OCP release image (for OpenShift >= 4.9).
 
-As a preparation for supporting multiple CPU architectures in Version, the RHCOS images information from OPENSHIFT_VERSIONS environment variable should be extracted into a new variable (e.g. RHCOS_VERSIONS).
+As a preparation for supporting multiple CPU architectures in Version, the RHCOS images and release images information from OPENSHIFT_VERSIONS environment variable should be extracted into new variables: OS_IMAGES and RELEASE_IMAGES.
 We should probably use a simple array structure instead of mapping, to align with the k8s API convention in [AgentServiceConfig](https://github.com/openshift/assisted-service/blob/77cb9d3348dafd2abd61fd7c8066e7e7a7805d95/config/samples/agent-install.openshift.io_v1beta1_agentserviceconfig.yaml#L18-L22) structure.
 
 To simplify backwards compatibility, we can still support the old format of OPENSHIFT_VERSIONS by keeping the current properties for old versions (<4.9).
 
-E.g. 
-
 #### OPENSHIFT_VERSIONS
+
+This environment variable should be deprecated and kept only for backwards compatibility.
+I.e. Instead, RELEASE_IMAGES and OS_IMAGES should be set (if missing, fallback to previous behavior).
+
+#### RELEASE_IMAGES
+
+A list of available release images (one for each minor OCP version and CPU architecture):
 ```json
-"4.8": {
-      "display_name": "4.8.2",
-      "release_version": "4.8.2",
-      "release_image": "quay.io/openshift-release-dev/ocp-release:4.8.2-x86_64",
-      "rhcos_image": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-4.8.2-x86_64-live.x86_64.iso",
-      "rhcos_rootfs": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-live-rootfs.x86_64.img",
-      "rhcos_version": "48.84.202107202156-0",
-      "support_level": "production",
-      "default": true
-},
-"4.9": {
-   "display_name": "4.9.0-0.nightly",
-   "support_level": "beta",
-   "release": {
-      "x86_64": {
-            "cpu_architecture": "x86_64",
-            "release_version": "4.9.0-0.nightly-2021-07-05-092650",
-            "release_image": "quay.io/openshift-release-dev/ocp-release-nightly:4.9.0-0.nightly-2021-07-05-092650"
-      },
-      "arm64": {
-            "cpu_architecture": "arm64",
-            "release_version": "4.9.0-0.nightly-arm64-2021-07-05-092650",
-            "release_image": "quay.io/openshift-release-dev/ocp-release-nightly@sha256:74493f2ad08a86f3f001ab398735965d0253755dbe4186ee7aa9e6d6a809ae3b"
-      }
-   }
-}
+[
+    {
+        "openshift_version": "4.9",
+        "cpu_architecture": "x86_64",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.9.0-rc.4-x86_64",
+        "version": "4.9.0-rc.4"
+    },
+    {
+        "openshift_version": "4.9",
+        "cpu_architecture": "arm64",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.9.0-rc.4-aarch64",
+        "version": "4.9.0-rc.4"
+    }
+]
 ```
 
-#### RHCOS_VERSIONS
+#### OS_IMAGES
+
+A list of available OS images (one for each minor OCP version and CPU architecture):
 ```json
-"os_images": [
+[
     {
       "openshift_version": "4.9",
       "cpu_architecture": "x86_64",
