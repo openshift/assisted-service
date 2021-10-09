@@ -8482,6 +8482,10 @@ definitions:
       default:
         type: boolean
         description: Indication that the version is the recommended one.
+      support_level:
+        type: string
+        enum: [beta, production]
+        description: Level of support of the version.
 
   release-images:
     type: array

@@ -119,7 +119,7 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 			CPUArchitectures: availableArchitectures,
 			Default:          releaseImage.Default,
 			DisplayName:      *releaseImage.Version,
-			SupportLevel:     h.getSupportLevel(*releaseImage.Version),
+			SupportLevel:     h.getSupportLevel(*releaseImage),
 		}
 		openshiftVersions[key] = openshiftVersion
 	}
@@ -374,10 +374,14 @@ func (h *handler) isOpenshiftVersionSupported(openshiftVersion string) bool {
 	return true
 }
 
-func (h *handler) getSupportLevel(openshiftVersion string) string {
+func (h *handler) getSupportLevel(releaseImage models.ReleaseImage) string {
+	if releaseImage.SupportLevel != "" {
+		return releaseImage.SupportLevel
+	}
+
 	preReleases := []string{"-fc", "-rc", "nightly"}
 	for _, preRelease := range preReleases {
-		if strings.Contains(openshiftVersion, preRelease) {
+		if strings.Contains(*releaseImage.Version, preRelease) {
 			return models.OpenshiftVersionSupportLevelBeta
 		}
 	}
