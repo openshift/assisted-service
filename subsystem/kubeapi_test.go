@@ -2970,7 +2970,7 @@ spec:
 		Consistently(func() []*common.Event {
 			cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, 1)
 			eventsHandler := events.New(db, logrus.New())
-			events, err := eventsHandler.GetEvents(*cluster.ID, nil)
+			events, err := eventsHandler.V2GetEvents(cluster.ID, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			return events
 		}, "15s", "5s").ShouldNot(ContainElement(eventMatcher{event: &common.Event{Event: models.Event{Message: &msg, ClusterID: cluster.ID}}}))
@@ -3121,7 +3121,7 @@ func (e eventMatcher) Match(input interface{}) (bool, error) {
 	if !ok {
 		return false, nil
 	}
-	if *e.event.ClusterID != *event.Event.ClusterID {
+	if e.event.ClusterID != event.Event.ClusterID {
 		return false, nil
 	}
 	if !strings.Contains(*event.Message, *e.event.Message) {

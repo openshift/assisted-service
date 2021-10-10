@@ -494,6 +494,10 @@ func (f fakeEventsAPI) ListEvents(
 	return eventsapi.NewListEventsOK()
 }
 
+func (f fakeEventsAPI) V2ListEvents(ctx context.Context, params eventsapi.V2ListEventsParams) middleware.Responder {
+	return eventsapi.NewListEventsOK()
+}
+
 type fakeVersionsAPI struct{}
 
 func (f fakeVersionsAPI) ListComponentVersions(

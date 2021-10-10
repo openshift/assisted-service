@@ -5953,6 +5953,67 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/events:
+    get:
+      tags:
+        - events
+      security:
+        - userAuth: [admin, read-only-admin, user]
+        - urlAuth: []
+      description: Lists events for a cluster.
+      operationId: v2ListEvents
+      parameters:
+        - in: query
+          name: cluster_id
+          description: The cluster to return events for.
+          type: string
+          format: uuid
+          required: False
+        - in: query
+          name: host_id
+          description: A host in the specified cluster to return events for.
+          type: string
+          format: uuid
+          required: false
+        - in: query
+          name: infra_env_id
+          description: The infra env to return events for.
+          type: string
+          format: uuid
+          required: false
+        - in: query
+          name: categories
+          description: A comma-separated list of event categories.
+          type: array
+          items:
+            type: string
+          required: false
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/event-list'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   vsphere_platform:
     type: object
@@ -6235,7 +6296,6 @@ definitions:
   event:
     type: object
     required:
-      - cluster_id
       - severity
       - message
       - event_time
@@ -6245,14 +6305,19 @@ definitions:
         format: uuid
         description: Unique identifier of the cluster this event relates to.
         x-go-custom-tag: gorm:"index"
+        x-nullable: true
       host_id:
         type: string
         format: uuid
         description: Unique identifier of the host this event relates to.
+        x-go-custom-tag: gorm:"index"
+        x-nullable: true
       infra_env_id:
         type: string
         format: uuid
         description: Unique identifier of the infra env this event relates to.
+        x-go-custom-tag: gorm:"index"
+        x-nullable: true
       severity:
         type: string
         enum: [info, warning, error, critical]

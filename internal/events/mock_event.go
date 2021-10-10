@@ -292,6 +292,26 @@ func (mr *MockHandlerMockRecorder) SendInfraEnvEventAtTime(ctx, event, eventTime
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendInfraEnvEventAtTime", reflect.TypeOf((*MockHandler)(nil).SendInfraEnvEventAtTime), ctx, event, eventTime)
 }
 
+// V2GetEvents mocks base method.
+func (m *MockHandler) V2GetEvents(clusterID, hostID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{clusterID, hostID, infraEnvID}
+	for _, a := range categories {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "V2GetEvents", varargs...)
+	ret0, _ := ret[0].([]*common.Event)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// V2GetEvents indicates an expected call of V2GetEvents.
+func (mr *MockHandlerMockRecorder) V2GetEvents(clusterID, hostID, infraEnvID interface{}, categories ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{clusterID, hostID, infraEnvID}, categories...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetEvents", reflect.TypeOf((*MockHandler)(nil).V2GetEvents), varargs...)
+}
+
 // MockBaseEvent is a mock of BaseEvent interface.
 type MockBaseEvent struct {
 	ctrl     *gomock.Controller
