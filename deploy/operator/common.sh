@@ -26,17 +26,30 @@ export ASSISTED_SERVICE_OPERATOR_CATALOG="assisted-service-operator-catalog"
 ############
 # Versions #
 ############
-export DEFAULT_OS_IMAGES="${DEFAULT_OS_IMAGES:-$(cat ${__root}/data/default_os_images.json)}"
-if [[ "${ASSISTED_UPGRADE_OPERATOR}" == "false" ]]; then
-    export RELEASE_IMAGE=$(echo ${DEFAULT_OS_IMAGES} | jq -rc '[.[].url]|max')
-    export VERSION=$(echo ${DEFAULT_OS_IMAGES} | jq -rc '[.[].openshift_version]|max')
-else
-    # Before the AI operator upgrade, we install the version prior to the most current one of OCP. 
-    # The most current version of OCP we are installing is 4.9, and the version previous to that is 4.8.
-    export RELEASE_IMAGE=$(echo ${DEFAULT_OS_IMAGES} | jq -rc '[.[].url][-2]')
-    export VERSION=$(echo ${DEFAULT_OS_IMAGES} | jq -rc '[.[].openshift_version][-2]')
+export OPENSHIFT_VERSIONS="${OPENSHIFT_VERSIONS:-$(cat ${__root}/data/default_ocp_versions.json)}"
+
+if [ -z "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-}" ]; then
+    export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE=$(echo ${OPENSHIFT_VERSIONS} | jq -rc '[.[].release_image]|max')
+    if [[ "${ASSISTED_UPGRADE_OPERATOR}" == "true" ]]; then
+        # Before the AI operator upgrade, we install the version prior to the most current one of OCP. 
+        # The most current version of OCP we are installing is 4.9, and the version previous to that is 4.8.
+        export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE=$(echo ${OPENSHIFT_VERSIONS} | jq -rc '[.[].release_image][-2]')
+    fi
 fi
 
-export ASSISTED_OPENSHIFT_VERSION="${ASSISTED_OPENSHIFT_VERSION:-openshift-v${VERSION}}"
-export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}}"
-export OS_IMAGES=$(echo ${DEFAULT_OS_IMAGES} | jq -rc 'map(select(.openshift_version>="4.8"))')
+export ASSISTED_OPENSHIFT_VERSION="${ASSISTED_OPENSHIFT_VERSION:-openshift-v4.9.0}"
+
+if [[ "${ASSISTED_UPGRADE_OPERATOR}" == "true" ]]; then
+    VERSION=openshift-v$(echo ${OPENSHIFT_VERSIONS} | jq -rc '[.[].display_name][-2]')
+    export ASSISTED_OPENSHIFT_VERSION="${ASSISTED_OPENSHIFT_VERSION:-${VERSION}}"
+fi
+
+OPENSHIFT_VERSIONS=$(echo ${OPENSHIFT_VERSIONS} |
+    jq -rc 'with_entries(select(.key != "4.6" and .key != "4.7")) | with_entries(
+    {
+        key: .key,
+        value: {rhcos_image:   .value.rhcos_image,
+                rhcos_version: .value.rhcos_version,
+                rhcos_rootfs:  .value.rhcos_rootfs}
+    }
+    )')

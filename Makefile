@@ -100,26 +100,23 @@ GO_TEST_FORMAT = pkgname
 DEFAULT_RELEASE_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_release_images.json))
 DEFAULT_OS_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_os_images.json))
 
-# Support all Release/OS images for CI
 ifeq ($(CI), true)
 	VERBOSE = true
-	RELEASE_IMAGES := $(or ${RELEASE_IMAGES},${DEFAULT_RELEASE_IMAGES})
-	OS_IMAGES := $(or ${OS_IMAGES},${DEFAULT_OS_IMAGES})
+	OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell hack/get_ocp_versions_for_testing.sh))
+else
+	OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell hack/get_ocp_versions_for_testing.sh | jq -c 'with_entries(select(.value.default))'))
+	ifneq ($(OPENSHIFT_VERSIONS), {})
+		DEFAULT_VERSION := $(shell (jq -n '$(OPENSHIFT_VERSIONS)' | jq 'keys[0]'))
+		RELEASE_IMAGES := $(or ${RELEASE_IMAGES}, $(shell (echo '$(DEFAULT_RELEASE_IMAGES)' | jq -c --arg v $(DEFAULT_VERSION) 'map(select(.openshift_version==$$v))')))
+		OS_IMAGES := $(or ${OS_IMAGES}, $(shell (echo '$(DEFAULT_OS_IMAGES)' | jq -c --arg v $(DEFAULT_VERSION) 'map(select(.openshift_version==$$v))')))
+	endif
 endif
 
-# Support default Release/OS image if lists not specified.
-# I.e. used on local deployments for using a single image,
-# instead of using all images as in CI.
-ifndef RELEASE_IMAGES
-ifndef OS_IMAGES
-	DEFAULT_VERSION := $(shell (echo '$(DEFAULT_RELEASE_IMAGES)' | jq -c 'map(select(.default))[0].openshift_version'))
-	RELEASE_IMAGES := $(shell (echo '$(DEFAULT_RELEASE_IMAGES)' | jq -c --arg v $(DEFAULT_VERSION) 'map(select(.openshift_version==$$v))'))
-	OS_IMAGES := $(shell (echo '$(DEFAULT_OS_IMAGES)' | jq -c --arg v $(DEFAULT_VERSION) 'map(select(.openshift_version==$$v))'))
-endif
-endif
-
-# Support all OS images if missing - for kube-api flow
+RELEASE_IMAGES := $(or ${RELEASE_IMAGES},${DEFAULT_RELEASE_IMAGES})
 OS_IMAGES := $(or ${OS_IMAGES},${DEFAULT_OS_IMAGES})
+
+# RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
+RHCOS_BASE_ISO := $(shell (jq -n '$(OPENSHIFT_VERSIONS)' | jq '[.[].rhcos_image]|max'))
 
 ifeq ($(VERBOSE), true)
 	GO_TEST_FORMAT=standard-verbose
@@ -331,6 +328,7 @@ deploy-ui-on-ocp-cluster:
 create-ocp-manifests:
 	export APPLY_MANIFEST=False && export APPLY_NAMESPACE=False && \
 	export ENABLE_KUBE_API=true && export TARGET=ocp && \
+	export OPENSHIFT_VERSIONS="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_ocp_versions.json | tr -d "\n\t "))" && \
 	export OS_IMAGES="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_os_images.json | tr -d "\n\t "))" && \
 	export RELEASE_IMAGES="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_release_images.json | tr -d "\n\t "))" && \
 	export MUST_GATHER_IMAGES="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_must_gather_versions.json | tr -d "\n\t "))" && \

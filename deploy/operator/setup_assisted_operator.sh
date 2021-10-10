@@ -15,7 +15,7 @@ function print_help() {
   if [ "${DISCONNECTED}" = "true" ]; then
     echo "Usage: DISCONNECTED=true LOCAL_REGISTRY=... AUTHFILE=... IRONIC_IMAGES_DIR=... MIRROR_BASE_URL=... bash ${0} (${ALL_FUNCS})"
   else
-    echo "Usage: OS_IMAGES=... bash ${0} (${ALL_FUNCS})"
+    echo "Usage: OPENSHIFT_VERSIONS=... bash ${0} (${ALL_FUNCS})"
   fi
 }
 
@@ -59,9 +59,9 @@ EOF
 }
 
 function configmap_config() {
-    if [ -n "${OS_IMAGES:-}" ]; then
+    if [ -n "${OPENSHIFT_VERSIONS:-}" ]; then
 cat <<EOF
-  OS_IMAGES: '${OS_IMAGES}'
+  OPENSHIFT_VERSIONS: '${OPENSHIFT_VERSIONS}'
 EOF
     fi
 
@@ -266,14 +266,14 @@ function from_community_operators() {
 }
 
 function mirror_rhcos() {
-    rhcos_image=$(echo ${OS_IMAGES} | jq -r '.[].url')
+    rhcos_image=$(echo ${OPENSHIFT_VERSIONS} | jq -r '.[].rhcos_image')
     mirror_rhcos_image=$(mirror_file "${rhcos_image}" "${IRONIC_IMAGES_DIR}" "${MIRROR_BASE_URL}")
 
-    rhcos_rootfs=$(echo ${OS_IMAGES} | jq -r '.[].rootfs_url')
+    rhcos_rootfs=$(echo ${OPENSHIFT_VERSIONS} | jq -r '.[].rhcos_rootfs')
     mirror_rhcos_rootfs=$(mirror_file "${rhcos_rootfs}" "${IRONIC_IMAGES_DIR}" "${MIRROR_BASE_URL}")
 
-    OS_IMAGES=$(echo ${OS_IMAGES} |
-      jq ".[].url=\"${mirror_rhcos_image}\" | .[].rootfs_url=\"${mirror_rhcos_rootfs}\"")
+    OPENSHIFT_VERSIONS=$(echo ${OPENSHIFT_VERSIONS} |
+      jq ".[].rhcos_image=\"${mirror_rhcos_image}\" | .[].rhcos_rootfs=\"${mirror_rhcos_rootfs}\"")
 }
 
 if [ -z "$@" ]; then

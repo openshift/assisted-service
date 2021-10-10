@@ -203,11 +203,10 @@ func main() {
 
 	var openshiftVersionsMap models.OpenshiftVersions
 	if Options.OpenshiftVersions == "" {
-		log.Info("OpenShift versions is empty - using values from OS_IMAGES and RELEASE_IMAGES")
-	} else {
-		failOnError(json.Unmarshal([]byte(Options.OpenshiftVersions), &openshiftVersionsMap),
-			"Failed to parse supported openshift versions JSON %s", Options.OpenshiftVersions)
+		log.Fatal("OpenShift versions is empty")
 	}
+	failOnError(json.Unmarshal([]byte(Options.OpenshiftVersions), &openshiftVersionsMap),
+		"Failed to parse supported openshift versions JSON %s", Options.OpenshiftVersions)
 
 	var osImagesArray models.OsImages
 	if Options.OsImages == "" {
