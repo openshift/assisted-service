@@ -711,7 +711,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		ips := hostutil.GenerateIPv6Addresses(3, defaultCIDRv6)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerIPv6MasterNode(ctx, infraEnv.ID, hostname, ips[i])
+			host := registerIPv6MasterNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
@@ -760,7 +760,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, infraEnv.ID, hostname, ips[i])
+			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -905,7 +905,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(infraEnv.ID).Host
+		host := &registerHost(*infraEnv.ID).Host
 		hwInfo := validHwInfo
 		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
 		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
@@ -944,7 +944,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, infraEnv.ID, hostname, ips[i])
+			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -992,7 +992,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1037,7 +1037,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1107,7 +1107,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1150,7 +1150,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1217,7 +1217,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1280,7 +1280,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1478,7 +1478,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: "default",
 			Name:      host.ID.String(),
@@ -1515,7 +1515,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return true
 		}, "1m", "2s").Should(BeTrue())
 
-		updateProgress(*host.ID, infraEnv.ID, models.HostStageDone)
+		updateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
 
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
@@ -1800,7 +1800,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(infraEnv.ID).Host
+		host := &registerHost(*infraEnv.ID).Host
 		hwInfo := validHwInfo
 		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
 		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
@@ -1888,7 +1888,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(infraEnv.ID).Host
+		host := &registerHost(*infraEnv.ID).Host
 		hwInfo := validHwInfo
 		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
 		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
@@ -1969,7 +1969,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(infraEnv.ID).Host
+		host := &registerHost(*infraEnv.ID).Host
 		hwInfo := validHwInfo
 		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
 		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
@@ -2089,7 +2089,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(infraEnv.ID).Host
+		host := &registerHost(*infraEnv.ID).Host
 		hwInfo := validHwInfo
 		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
 		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
@@ -2182,7 +2182,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2240,12 +2240,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		installProgress := models.HostStageDone
 		installInfo := "Great Success"
-		updateProgressWithInfo(*host.ID, infraEnv.ID, installProgress, installInfo)
+		updateProgressWithInfo(*host.ID, *infraEnv.ID, installProgress, installInfo)
 
 		kubeconfigFile, err := os.Open("test_kubeconfig")
 		Expect(err).NotTo(HaveOccurred())
 		_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
-			InfraEnvID: &infraEnv.ID, HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
+			InfraEnvID: infraEnv.ID, HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
 		Expect(err).NotTo(HaveOccurred())
 		kubeconfigFile.Close()
 
@@ -2281,7 +2281,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		kubeconfigFile, err1 := os.Open("test_kubeconfig")
 		Expect(err1).NotTo(HaveOccurred())
 		_, err1 = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
-			InfraEnvID: &infraEnv.ID, Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
+			InfraEnvID: infraEnv.ID, Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
 		Expect(err1).NotTo(HaveOccurred())
 		kubeconfigFile.Close()
 
@@ -2359,7 +2359,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
-		host := registerNode(ctx, infraEnv.ID, "hostname1", ips[0])
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", ips[0])
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2388,7 +2388,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv2 := getInfraEnvFromDBByKubeKey(ctx, db, infraEnv2Key, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv2.ID.String())
-		h := &registerHostByUUID(infraEnv2.ID, *host.ID).Host
+		h := &registerHostByUUID(*infraEnv2.ID, *host.ID).Host
 		generateEssentialHostSteps(ctx, h, "hostname2", ips[1])
 		generateEssentialPrepareForInstallationSteps(ctx, h)
 
@@ -2432,7 +2432,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2494,7 +2494,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, infraEnv.ID, hostname, ips[i])
+			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -2539,7 +2539,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 
 		for _, host := range hosts {
-			updateProgress(*host.ID, infraEnv.ID, models.HostStageDone)
+			updateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
 		}
 
 		By("Complete Installation")
@@ -2607,7 +2607,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		ips := hostutil.GenerateIPv4Addresses(5, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, infraEnv.ID, hostname, ips[i])
+			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
@@ -2651,12 +2651,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		By("Upload hosts logs during installation")
 		for _, host := range hosts {
-			updateProgress(*host.ID, infraEnv.ID, models.HostStageDone)
+			updateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
 
 			kubeconfigFile, err := os.Open("test_kubeconfig")
 			Expect(err).NotTo(HaveOccurred())
 			_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
-				InfraEnvID: &infraEnv.ID, HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
+				InfraEnvID: infraEnv.ID, HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
 			Expect(err).NotTo(HaveOccurred())
 			kubeconfigFile.Close()
 		}
@@ -2671,7 +2671,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		kubeconfigFile, err1 := os.Open("test_kubeconfig")
 		Expect(err1).NotTo(HaveOccurred())
 		_, err1 = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
-			InfraEnvID: &infraEnv.ID, Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
+			InfraEnvID: infraEnv.ID, Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
 		Expect(err1).NotTo(HaveOccurred())
 		kubeconfigFile.Close()
 
@@ -2713,12 +2713,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		By("Add Day 2 host")
 		configureLocalAgentClient(infraEnv.ID.String())
-		day2Host1 := registerNode(ctx, infraEnv.ID, "firsthostnameday2", ips[3])
+		day2Host1 := registerNode(ctx, *infraEnv.ID, "firsthostnameday2", ips[3])
 		generateApiVipPostStepReply(ctx, day2Host1, true)
 		generateDomainResolution(ctx, day2Host1, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Add a second Day 2 host")
-		day2Host2 := registerNode(ctx, infraEnv.ID, "secondhostnameday2", ips[4])
+		day2Host2 := registerNode(ctx, *infraEnv.ID, "secondhostnameday2", ips[4])
 		generateApiVipPostStepReply(ctx, day2Host2, true)
 		generateDomainResolution(ctx, day2Host2, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
@@ -2860,7 +2860,7 @@ spec:
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2929,7 +2929,7 @@ spec:
 
 		By("Register a Host and validate that an agent CR was created")
 		configureLocalAgentClient(infraEnv.ID.String())
-		registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		Eventually(func() int {
 			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
 		}, "2m", "2s").Should(Equal(1))
@@ -3062,7 +3062,7 @@ var _ = Describe("bmac reconcile flow", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		agentNsName = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),

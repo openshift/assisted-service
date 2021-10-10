@@ -41,7 +41,7 @@ var _ = Describe("Infra_Env", func() {
 	})
 
 	JustBeforeEach(func() {
-		infraEnvID = infraEnv.ID
+		infraEnvID = *infraEnv.ID
 	})
 
 	It("download full-iso image success", func() {

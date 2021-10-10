@@ -38,7 +38,7 @@ var _ = Describe("Host tests v2", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		infraEnvID = infraEnv.GetPayload().ID
+		infraEnvID = *infraEnv.GetPayload().ID
 
 		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -165,7 +165,7 @@ var _ = Describe("Host tests v2", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		infraEnvID2 := infraEnv2.GetPayload().ID
+		infraEnvID2 := *infraEnv2.GetPayload().ID
 
 		// register to infra env2
 		_ = registerHostByUUID(infraEnvID2, hostID)
@@ -229,7 +229,7 @@ var _ = Describe("Day2 Host tests v2", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		infraEnvID = infraEnv.GetPayload().ID
+		infraEnvID = *infraEnv.GetPayload().ID
 
 		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{

@@ -42,7 +42,7 @@ func GenerateTestClusterWithPlatform(clusterID strfmt.UUID, machineNetworks []*m
 func GenerateTestInfraEnv(infraEnvID strfmt.UUID) *common.InfraEnv {
 	return &common.InfraEnv{
 		InfraEnv: models.InfraEnv{
-			ID: infraEnvID,
+			ID: &infraEnvID,
 		},
 	}
 }

@@ -1,6 +1,7 @@
 package migrations
 
 import (
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -44,13 +45,13 @@ func populateInfraEnv() *gormigrate.Migration {
 					Generated:      cluster.ImageGenerated,
 					ProxyHash:      cluster.ProxyHash,
 					InfraEnv: models.InfraEnv{
-						ID:                     infraEnvID,
+						ID:                     &infraEnvID,
 						AdditionalNtpSources:   cluster.AdditionalNtpSource,
 						ClusterID:              *cluster.ID,
-						Href:                   *cluster.Href,
+						Href:                   cluster.Href,
 						IgnitionConfigOverride: cluster.IgnitionConfigOverrides,
-						Kind:                   models.InfraEnvKindInfraEnv,
-						Name:                   cluster.Name,
+						Kind:                   swag.String(models.InfraEnvKindInfraEnv),
+						Name:                   &cluster.Name,
 						Proxy: &models.Proxy{
 							HTTPProxy:  &cluster.HTTPProxy,
 							HTTPSProxy: &cluster.HTTPSProxy,

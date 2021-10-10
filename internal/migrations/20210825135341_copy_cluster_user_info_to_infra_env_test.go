@@ -40,7 +40,7 @@ var _ = Describe("copyClusterUserInfoToInfraEnv", func() {
 		infraEnvID := strfmt.UUID(uuid.New().String())
 		infraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{
 			ClusterID: clusterID,
-			ID:        infraEnvID,
+			ID:        &infraEnvID,
 		}}
 
 		err = db.Create(&infraEnv).Error
@@ -155,7 +155,7 @@ var _ = Describe("copyClusterUserInfoToInfraEnv", func() {
 
 		infraEnvID := strfmt.UUID(uuid.New().String())
 		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
-			ID:          infraEnvID,
+			ID:          &infraEnvID,
 			UserName:    "user@example.com",
 			EmailDomain: "example.com",
 			OrgID:       "111",

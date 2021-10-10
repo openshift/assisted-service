@@ -11309,6 +11309,15 @@ func init() {
     },
     "infra-env": {
       "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "href",
+        "name",
+        "type",
+        "updated_at",
+        "created_at"
+      ],
       "properties": {
         "additional_ntp_sources": {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
@@ -24118,6 +24127,15 @@ func init() {
     },
     "infra-env": {
       "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "href",
+        "name",
+        "type",
+        "updated_at",
+        "created_at"
+      ],
       "properties": {
         "additional_ntp_sources": {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",

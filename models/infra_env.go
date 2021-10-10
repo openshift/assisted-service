@@ -30,8 +30,9 @@ type InfraEnv struct {
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
 	// created at
+	// Required: true
 	// Format: date-time
-	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
+	CreatedAt *strfmt.DateTime `json:"created_at" gorm:"type:timestamp with time zone"`
 
 	// download url
 	DownloadURL string `json:"download_url,omitempty"`
@@ -47,21 +48,25 @@ type InfraEnv struct {
 	GeneratorVersion string `json:"generator_version,omitempty"`
 
 	// Self link.
-	Href string `json:"href,omitempty"`
+	// Required: true
+	Href *string `json:"href"`
 
 	// Unique identifier of the object.
+	// Required: true
 	// Format: uuid
-	ID strfmt.UUID `json:"id,omitempty" gorm:"primary_key"`
+	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
 
 	// Json formatted string containing the user overrides for the initial ignition config.
 	IgnitionConfigOverride string `json:"ignition_config_override,omitempty"`
 
 	// Indicates the type of this object.
+	// Required: true
 	// Enum: [InfraEnv]
-	Kind string `json:"kind,omitempty"`
+	Kind *string `json:"kind"`
 
 	// Name of the InfraEnv.
-	Name string `json:"name,omitempty"`
+	// Required: true
+	Name *string `json:"name"`
 
 	// Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
@@ -86,11 +91,13 @@ type InfraEnv struct {
 	StaticNetworkConfig string `json:"static_network_config,omitempty"`
 
 	// type
-	Type ImageType `json:"type,omitempty"`
+	// Required: true
+	Type ImageType `json:"type"`
 
 	// The last time that this infraenv was updated.
+	// Required: true
 	// Format: date-time
-	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
+	UpdatedAt *strfmt.DateTime `json:"updated_at" gorm:"type:timestamp with time zone"`
 
 	// user name
 	UserName string `json:"user_name,omitempty"`
@@ -112,11 +119,19 @@ func (m *InfraEnv) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateHref(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateID(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateKind(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateName(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -157,8 +172,8 @@ func (m *InfraEnv) validateClusterID(formats strfmt.Registry) error {
 
 func (m *InfraEnv) validateCreatedAt(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.CreatedAt) { // not required
-		return nil
+	if err := validate.Required("created_at", "body", m.CreatedAt); err != nil {
+		return err
 	}
 
 	if err := validate.FormatOf("created_at", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
@@ -181,10 +196,19 @@ func (m *InfraEnv) validateExpiresAt(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *InfraEnv) validateHref(formats strfmt.Registry) error {
+
+	if err := validate.Required("href", "body", m.Href); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *InfraEnv) validateID(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.ID) { // not required
-		return nil
+	if err := validate.Required("id", "body", m.ID); err != nil {
+		return err
 	}
 
 	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
@@ -222,12 +246,21 @@ func (m *InfraEnv) validateKindEnum(path, location string, value string) error {
 
 func (m *InfraEnv) validateKind(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Kind) { // not required
-		return nil
+	if err := validate.Required("kind", "body", m.Kind); err != nil {
+		return err
 	}
 
 	// value enum
-	if err := m.validateKindEnum("kind", "body", m.Kind); err != nil {
+	if err := m.validateKindEnum("kind", "body", *m.Kind); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *InfraEnv) validateName(formats strfmt.Registry) error {
+
+	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
 	}
 
@@ -267,10 +300,6 @@ func (m *InfraEnv) validateSizeBytes(formats strfmt.Registry) error {
 
 func (m *InfraEnv) validateType(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Type) { // not required
-		return nil
-	}
-
 	if err := m.Type.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("type")
@@ -283,8 +312,8 @@ func (m *InfraEnv) validateType(formats strfmt.Registry) error {
 
 func (m *InfraEnv) validateUpdatedAt(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.UpdatedAt) { // not required
-		return nil
+	if err := validate.Required("updated_at", "body", m.UpdatedAt); err != nil {
+		return err
 	}
 
 	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {

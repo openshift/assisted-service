@@ -882,7 +882,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
-			ID:            infraEnvID,
+			ID:            &infraEnvID,
 			PullSecretSet: false,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		//cluster.ImageInfo = &models.ImageInfo{}
@@ -894,7 +894,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		It("ignition_file_fails_missing_Pull_Secret_token", func() {
 			infraEnvID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
 			infraEnvWithoutToken := common.InfraEnv{InfraEnv: models.InfraEnv{
-				ID:            infraEnvID,
+				ID:            &infraEnvID,
 				PullSecretSet: false,
 			}, PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 
@@ -1144,7 +1144,7 @@ var _ = Describe("Ignition SSH key building", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
-				ID:            infraEnvID,
+				ID:            &infraEnvID,
 				PullSecretSet: false,
 			},
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",

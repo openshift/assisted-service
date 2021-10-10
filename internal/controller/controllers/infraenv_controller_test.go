@@ -74,7 +74,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		ctx                   = context.Background()
 		sId                   strfmt.UUID
 		backEndCluster        = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
-		backendInfraEnv       = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: sId}}
+		backendInfraEnv       = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId}}
 		downloadURL           = "downloadurl"
 	)
 
@@ -121,10 +121,10 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-				Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+				Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 				Expect(params.InfraEnvUpdateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
 			}).Return(
-			&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: sId, DownloadURL: downloadURL}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+			&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef:    &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 			PullSecretRef: &corev1.LocalObjectReference{Name: "pull-secret"},
@@ -155,10 +155,10 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-				Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+				Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 				Expect(params.InfraEnvUpdateParams.ImageType).To(Equal(models.ImageTypeFullIso))
 			}).Return(
-			&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: sId, DownloadURL: downloadURL}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+			&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
 
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef:    &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
@@ -191,7 +191,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-				Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+				Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 			}).Return(nil, expectedError).Times(1)
 
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
@@ -275,7 +275,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-				Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+				Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 			}).Return(nil, expectedError).Times(1)
 
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
@@ -307,7 +307,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil).Times(2)
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-				Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+				Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 			}).Return(nil, expectedClientError).Times(1)
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef:    &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
@@ -332,7 +332,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		expectedConflictError := common.NewApiError(http.StatusConflict, errors.New("Another request to generate an image has been recently submitted. Please wait a few seconds and try again."))
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-				Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+				Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 			}).Return(nil, expectedConflictError).Times(1)
 		res, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 
@@ -349,7 +349,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-				Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+				Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 			}).Return(nil, expectedError).Times(1)
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef:    &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
@@ -417,10 +417,10 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-				Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+				Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 				Expect(swag.StringValue(params.InfraEnvUpdateParams.Proxy.HTTPProxy)).To(Equal("http://192.168.1.2"))
 				Expect(swag.StringValue(params.InfraEnvUpdateParams.AdditionalNtpSources)).To(Equal("foo.com,bar.com"))
-			}).Return(&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: sId, DownloadURL: downloadURL}}, nil).Times(1)
+			}).Return(&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL}}, nil).Times(1)
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
@@ -444,9 +444,9 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-				Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+				Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 				Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(ignitionConfigOverride))
-			}).Return(&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: sId, DownloadURL: downloadURL}}, nil).Times(1)
+			}).Return(&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL}}, nil).Times(1)
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
@@ -470,7 +470,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-				Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+				Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 				Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(ignitionConfigOverride))
 			}).Return(nil, errors.Errorf("error")).Times(1)
 
@@ -545,11 +545,11 @@ var _ = Describe("infraEnv reconcile", func() {
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-					Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(params.InfraEnvUpdateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
 					Expect(params.InfraEnvUpdateParams.StaticNetworkConfig).To(Equal([]*models.HostStaticNetworkConfig{hostStaticNetworkConfig}))
 				}).Return(
-				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: sId, DownloadURL: downloadURL}}, nil).Times(1)
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL}}, nil).Times(1)
 
 			infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 				NMStateConfigLabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}},
@@ -589,7 +589,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
-					Expect(params.InfraEnvID).To(Equal(backendInfraEnv.ID))
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(params.InfraEnvUpdateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
 				}).Return(nil, expectedError).Times(1)
 

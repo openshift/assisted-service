@@ -62,10 +62,11 @@ var _ = Describe("Controller events wrapper", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvName := "infraEnv1"
 		infraEnv1 = &common.InfraEnv{
 			InfraEnv: models.InfraEnv{
-				ID:   infraEnvId,
-				Name: "infraEnv1",
+				ID:   &infraEnvId,
+				Name: &infraEnvName,
 			},
 			KubeKeyNamespace: "infraEnv1Nm",
 		}
@@ -219,7 +220,7 @@ var _ = Describe("Controller events wrapper", func() {
 			host1 := common.Host{
 				Host: models.Host{
 					ID:         &hostID1,
-					InfraEnvID: infraEnv1.ID,
+					InfraEnvID: *infraEnv1.ID,
 					Status:     swag.String(models.HostStatusKnown),
 					Kind:       swag.String(models.HostKindHost),
 				},
@@ -230,9 +231,9 @@ var _ = Describe("Controller events wrapper", func() {
 
 			mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
 			cEventsWrapper.SendHostEvent(context.TODO(),
-				eventgen.NewGenericHostEvent(*host1.ID, infraEnv1.ID, "event1", models.EventSeverityInfo))
+				eventgen.NewGenericHostEvent(*host1.ID, *infraEnv1.ID, "event1", models.EventSeverityInfo))
 			Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(0))
-			Expect(numOfEvents(infraEnv1.ID, host1.ID)).Should(Equal(1))
+			Expect(numOfEvents(*infraEnv1.ID, host1.ID)).Should(Equal(1))
 
 		})
 	})
@@ -242,7 +243,7 @@ var _ = Describe("Controller events wrapper", func() {
 		host1 := common.Host{
 			Host: models.Host{
 				ID:         &hostID1,
-				InfraEnvID: infraEnv1.ID,
+				InfraEnvID: *infraEnv1.ID,
 				Status:     swag.String(models.HostStatusKnown),
 				Kind:       swag.String(models.HostKindHost),
 			},
@@ -253,9 +254,9 @@ var _ = Describe("Controller events wrapper", func() {
 
 		mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
 		cEventsWrapper.SendHostEventAtTime(context.TODO(),
-			eventgen.NewGenericHostEvent(*host1.ID, infraEnv1.ID, "event1", models.EventSeverityInfo), time.Now())
+			eventgen.NewGenericHostEvent(*host1.ID, *infraEnv1.ID, "event1", models.EventSeverityInfo), time.Now())
 		Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(0))
-		Expect(numOfEvents(infraEnv1.ID, host1.ID)).Should(Equal(1))
+		Expect(numOfEvents(*infraEnv1.ID, host1.ID)).Should(Equal(1))
 	})
 
 	AfterEach(func() {
