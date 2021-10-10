@@ -10,8 +10,12 @@ See full enhancement document [here](../enhancements/agent-late-binding.md).
 - The version of the base RHCOS live ISO is selected automatically to the latest available.
 - The Agent CR created from an host booted from this ISO will not have a Cluster Deployment reference set in it. (`spec.clusterDeploymentName`)
 - The user creates a Cluster Deployment and Agent Cluster Install CR.
-- The user updates the Agent's Cluster Deployment reference to the CD name.
-- The process of the agent binding can be followed on the `Bound` condition available on the Agent CR. See [here](kube-api-conditions.md#agent-conditions))
+- The user updates the Agent's Cluster Deployment reference to the CD name:
+```bash
+kubectl -n assisted-installer patch agents.agent-install.openshift.io 039d72c2-f15a-4a67-977e-b25fd1dfea07 -p '{"spec":{"clusterDeploymentName":{"name":"single-node","namespace":"assisted-installer"}}}' --type merge
+```
+- The process of the agent binding can be followed on the `Bound` condition available on the Agent CR. See [here]
+(kube-api-conditions.md#agent-conditions)
 - Once the agent is bound, the flow for installation is as before.
 
 An agent can be unbound from a Cluster Deployment as long as the installation did not start.
