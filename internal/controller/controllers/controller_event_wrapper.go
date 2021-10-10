@@ -44,6 +44,10 @@ func (c *controllerEventsWrapper) GetEvents(clusterID strfmt.UUID, hostID *strfm
 	return c.events.GetEvents(clusterID, hostID, categories...)
 }
 
+func (c *controllerEventsWrapper) V2GetEvents(clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+	return c.events.V2GetEvents(clusterID, hostID, infraEnvID, categories...)
+}
+
 func (c *controllerEventsWrapper) SendClusterEvent(ctx context.Context, event events.ClusterEvent) {
 	c.events.SendClusterEvent(ctx, event)
 

@@ -3,6 +3,8 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -38,6 +40,7 @@ type Handler interface {
 	Sender
 	//Get a list of events. Events can be filtered by category. if no filter is specified, events with the default category are returned
 	GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error)
+	V2GetEvents(clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error)
 }
 
 var _ Handler = &Events{}
@@ -80,7 +83,7 @@ func (e *Events) saveEvent(ctx context.Context, clusterID strfmt.UUID, hostID *s
 		},
 	}
 	if hostID != nil {
-		event.HostID = *hostID
+		event.HostID = hostID
 	}
 
 	//each event is saved in its own embedded transaction
@@ -100,12 +103,62 @@ func (e *Events) saveEvent(ctx context.Context, clusterID strfmt.UUID, hostID *s
 	return dberr
 }
 
+func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, category string, severity string, message string, t time.Time, requestID string, props ...interface{}) {
+	log := logutil.FromContext(ctx, e.log)
+	tt := strfmt.DateTime(t)
+	rid := strfmt.UUID(requestID)
+	errMsg := make([]string, 0)
+	additionalProps, err := toProps(props...)
+	if err != nil {
+		log.WithError(err).Error("failed to parse event's properties field")
+	}
+	event := common.Event{
+		Event: models.Event{
+			EventTime: &tt,
+			Severity:  &severity,
+			Category:  category,
+			Message:   &message,
+			RequestID: rid,
+			Props:     additionalProps,
+		},
+	}
+	if clusterID != nil {
+		event.ClusterID = clusterID
+		errMsg = append(errMsg, fmt.Sprintf("cluster_id = %s", clusterID.String()))
+	}
+
+	if hostID != nil {
+		event.HostID = hostID
+		errMsg = append(errMsg, fmt.Sprintf("host_id = %s", hostID.String()))
+	}
+
+	if infraEnvID != nil {
+		event.InfraEnvID = infraEnvID
+		errMsg = append(errMsg, fmt.Sprintf("infra_env_id = %s", infraEnvID.String()))
+	}
+
+	//each event is saved in its own embedded transaction
+	var dberr error
+	tx := e.db.Begin()
+	defer func() {
+		if dberr != nil {
+			log.WithError(err).Errorf("failed to add event. Rolling back transaction on event=%s resources: %s",
+				message, strings.Join(errMsg, " "))
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+	dberr = tx.Create(&event).Error
+}
+
 func (e *Events) SendClusterEvent(ctx context.Context, event ClusterEvent) {
 	e.SendClusterEventAtTime(ctx, event, time.Now())
 }
 
 func (e *Events) SendClusterEventAtTime(ctx context.Context, event ClusterEvent, eventTime time.Time) {
-	e.AddEvent(ctx, event.GetClusterId(), nil, event.GetSeverity(), event.FormatMessage(), eventTime)
+	cID := event.GetClusterId()
+	e.V2AddEvent(ctx, &cID, nil, nil, event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
 func (e *Events) SendHostEvent(ctx context.Context, event HostEvent) {
@@ -114,11 +167,8 @@ func (e *Events) SendHostEvent(ctx context.Context, event HostEvent) {
 
 func (e *Events) SendHostEventAtTime(ctx context.Context, event HostEvent, eventTime time.Time) {
 	hostID := event.GetHostId()
-	if event.GetClusterId() == nil {
-		e.AddEvent(ctx, event.GetInfraEnvId(), &hostID, event.GetSeverity(), event.FormatMessage(), eventTime)
-	} else {
-		e.AddEvent(ctx, *event.GetClusterId(), &hostID, event.GetSeverity(), event.FormatMessage(), eventTime)
-	}
+	infraEnvID := event.GetInfraEnvId()
+	e.V2AddEvent(ctx, event.GetClusterId(), &hostID, &infraEnvID, event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
 func (e *Events) SendInfraEnvEvent(ctx context.Context, event InfraEnvEvent) {
@@ -126,7 +176,8 @@ func (e *Events) SendInfraEnvEvent(ctx context.Context, event InfraEnvEvent) {
 }
 
 func (e *Events) SendInfraEnvEventAtTime(ctx context.Context, event InfraEnvEvent, eventTime time.Time) {
-	e.AddEvent(ctx, event.GetInfraEnvId(), nil, event.GetSeverity(), event.FormatMessage(), eventTime)
+	infraEnvID := event.GetInfraEnvId()
+	e.V2AddEvent(ctx, event.GetClusterId(), nil, &infraEnvID, event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
 func (e *Events) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
@@ -137,6 +188,16 @@ func (e *Events) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *st
 func (e *Events) AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	requestID := requestid.FromContext(ctx)
 	_ = e.saveEvent(ctx, clusterID, hostID, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
+}
+
+func (e *Events) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	requestID := requestid.FromContext(ctx)
+	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, models.EventCategoryUser, severity, msg, eventTime, requestID, props...)
+}
+
+func (e *Events) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	requestID := requestid.FromContext(ctx)
+	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
 }
 
 func (e Events) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
@@ -167,6 +228,36 @@ func (e Events) clusterEventsQuery(events *[]*common.Event, selectedCategories [
 func (e Events) hostEventsQuery(events *[]*common.Event, selectedCategories []string, clusterID strfmt.UUID, hostID *strfmt.UUID) *gorm.DB {
 	return e.db.Where("category IN (?)", selectedCategories).Order("event_time").
 		Find(events, "cluster_id = ? AND host_id = ?", clusterID.String(), (*hostID).String())
+}
+
+func (e Events) eventsQuery(events *[]*common.Event, selectedCategories []string, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) *gorm.DB {
+	whereCondition := make([]string, 0)
+	if clusterID != nil {
+		whereCondition = append(whereCondition, fmt.Sprintf("cluster_id = '%s'", clusterID.String()))
+	}
+	if hostID != nil {
+		whereCondition = append(whereCondition, fmt.Sprintf("host_id = '%s'", hostID.String()))
+	}
+	if infraEnvID != nil {
+		whereCondition = append(whereCondition, fmt.Sprintf("infra_env_id = '%s'", infraEnvID.String()))
+	}
+	return e.db.Where("category IN (?)", selectedCategories).Order("event_time").Find(&events, strings.Join(whereCondition, " AND "))
+}
+
+func (e Events) V2GetEvents(clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+	var err error
+	var events []*common.Event
+
+	//initialize the selectedCategories either from the filter, if exists, or from the default values
+	selectedCategories := make([]string, 0)
+	if len(categories) > 0 {
+		selectedCategories = categories[:]
+	} else {
+		selectedCategories = append(selectedCategories, DefaultEventCategories...)
+	}
+
+	err = e.eventsQuery(&events, selectedCategories, clusterID, hostID, infraEnvID).Error
+	return events, err
 }
 
 func toProps(attrs ...interface{}) (result string, err error) {

@@ -247,7 +247,7 @@ var _ = Describe("Transition tests", func() {
 		}
 
 		checkCompleteInstallationUpdate := func(eventSeverity string, eventMessage string) {
-			events, err := eventsHandler.GetEvents(clusterId, nil)
+			events, err := eventsHandler.V2GetEvents(&clusterId, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]

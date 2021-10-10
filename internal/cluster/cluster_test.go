@@ -1304,7 +1304,7 @@ var _ = Describe("CancelInstallation", func() {
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusCancelled, models.ClusterStatusInstalling, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.GetEvents(*c.ID, nil)
+			events, err := eventsHandler.V2GetEvents(c.ID, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -1317,7 +1317,7 @@ var _ = Describe("CancelInstallation", func() {
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusCancelled, models.ClusterStatusError, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.GetEvents(*c.ID, nil)
+			events, err := eventsHandler.V2GetEvents(c.ID, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -1335,7 +1335,7 @@ var _ = Describe("CancelInstallation", func() {
 		It("nothing_to_cancel", func() {
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusCancelled, models.ClusterStatusInsufficient, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).Should(HaveOccurred())
-			events, err := eventsHandler.GetEvents(*c.ID, nil)
+			events, err := eventsHandler.V2GetEvents(c.ID, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -1378,7 +1378,7 @@ var _ = Describe("ResetCluster", func() {
 		Expect(state.ResetCluster(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
 		db.First(&c, "id = ?", c.ID)
 		Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
-		events, err := eventsHandler.GetEvents(*c.ID, nil)
+		events, err := eventsHandler.V2GetEvents(c.ID, nil, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(events)).ShouldNot(Equal(0))
 		resetEvent := events[len(events)-1]
@@ -1398,7 +1398,7 @@ var _ = Describe("ResetCluster", func() {
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 		reply := state.ResetCluster(ctx, &c, "some reason", db)
 		Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
-		events, err := eventsHandler.GetEvents(*c.ID, nil)
+		events, err := eventsHandler.V2GetEvents(c.ID, nil, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(events)).ShouldNot(Equal(0))
 		resetEvent := events[len(events)-1]
@@ -2572,7 +2572,7 @@ var _ = Describe("Permanently delete clusters", func() {
 	verifyClusterSubComponentsDeletion := func(clusterID strfmt.UUID, isDeleted bool) {
 		Expect(db.Unscoped().Where("id = ?", clusterID).Find(&common.Cluster{}).RowsAffected == 0).Should(Equal(isDeleted))
 
-		clusterEvents, err := eventsHandler.GetEvents(clusterID, nil)
+		clusterEvents, err := eventsHandler.V2GetEvents(&clusterID, nil, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(clusterEvents) == 0).Should(Equal(isDeleted))
 

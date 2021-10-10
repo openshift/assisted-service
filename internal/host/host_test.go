@@ -657,7 +657,7 @@ var _ = Describe("cancel installation", func() {
 			h.Status = swag.String(models.HostStatusInstalling)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -670,7 +670,7 @@ var _ = Describe("cancel installation", func() {
 			h.Status = swag.String(models.HostStatusError)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -688,7 +688,7 @@ var _ = Describe("cancel installation", func() {
 	Context("invalid cancel installation", func() {
 		It("nothing to cancel", func() {
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).Should(HaveOccurred())
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -704,7 +704,7 @@ var _ = Describe("cancel installation", func() {
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
-			events, err := eventsHandler.GetEvents(h.InfraEnvID, h.ID)
+			events, err := eventsHandler.V2GetEvents(&h.InfraEnvID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).Should(Equal(0))
 		})
@@ -745,7 +745,7 @@ var _ = Describe("reset host", func() {
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResetting))
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -778,7 +778,7 @@ var _ = Describe("reset host", func() {
 			Expect(state.ResetPendingUserAction(ctx, &h, db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
-			events, err := eventsHandler.GetEvents(clusterId, h.ID)
+			events, err := eventsHandler.V2GetEvents(&clusterId, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -798,7 +798,7 @@ var _ = Describe("reset host", func() {
 			Expect(state.ResetPendingUserAction(ctx, &h, db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -816,7 +816,7 @@ var _ = Describe("reset host", func() {
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
-			events, err := eventsHandler.GetEvents(*h.ClusterID, h.ID)
+			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).Should(Equal(0))
 		})
@@ -830,7 +830,7 @@ var _ = Describe("reset host", func() {
 			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDiscovering)
 			reply := state.ResetHost(ctx, &h, "some reason", db)
 			Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
-			events, err := eventsHandler.GetEvents(clusterId, h.ID)
+			events, err := eventsHandler.V2GetEvents(&clusterId, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
