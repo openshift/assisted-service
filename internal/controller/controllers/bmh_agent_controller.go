@@ -362,10 +362,11 @@ func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(c
 		return reconcileComplete{}
 	}
 
-	if agent.Status.Conditions == nil {
+	c := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.InstalledCondition)
+	if c == nil {
 		return reconcileComplete{}
 	}
-	installConditionReason := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.InstalledCondition).Reason
+	installConditionReason := c.Reason
 
 	// Do nothing if InstalledCondition is not in Installed, InProgress, or Failed
 	if installConditionReason != aiv1beta1.InstallationInProgressReason &&
