@@ -43,6 +43,12 @@ var _ = Describe("upload_logs", func() {
 		Expect(stepErr).ShouldNot(HaveOccurred())
 		Expect(stepReply[0].Command).Should(Equal("timeout"))
 		Expect(stepReply[0].Args).Should(ContainElement("podman"))
+		Expect(stepReply[0].Args).Should(ContainElement("-cluster-id"))
+		Expect(stepReply[0].Args).Should(ContainElement("-host-id"))
+		Expect(stepReply[0].Args).Should(ContainElement("-infra-env-id"))
+		Expect(stepReply[0].Args).Should(ContainElement(clusterId.String()))
+		Expect(stepReply[0].Args).Should(ContainElement(id.String()))
+		Expect(stepReply[0].Args).Should(ContainElement(infraEnvId.String()))
 	})
 	It("get_step without logs", func() {
 		host.LogsCollectedAt = strfmt.DateTime(time.Now())
