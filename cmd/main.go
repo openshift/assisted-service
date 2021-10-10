@@ -133,7 +133,7 @@ var Options struct {
 	HTTPSKeyFile                string        `envconfig:"HTTPS_KEY_FILE" default:""`
 	HTTPSCertFile               string        `envconfig:"HTTPS_CERT_FILE" default:""`
 	MaxIdleConns                int           `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"50"`
-	MaxOpenConns                int           `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"100"`
+	MaxOpenConns                int           `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"90"`
 	ConnMaxLifetime             time.Duration `envconfig:"DB_CONNECTIONS_MAX_LIFETIME" default:"30m"`
 	FileSystemUsageThreshold    int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
 	EnableElasticAPM            bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
