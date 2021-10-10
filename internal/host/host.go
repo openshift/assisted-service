@@ -1083,14 +1083,18 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 	}
 
 	// count already existing masters or hosts with suggested role of master
-	otherMastersCount := 0
-	if err = db.Model(&models.Host{}).Where("cluster_id = ? and id != ? and status != ? and (role = ? or suggested_role = ?)",
-		h.ClusterID, h.ID, models.HostStatusDisabled, models.HostRoleMaster, models.HostRoleMaster).Count(&otherMastersCount).Error; err != nil {
+	// since aggregated functions can not run within a FOR UPDATE transaction
+	// we are now calculating the master count with SELECT query (Bug 2012570)
+	var masters []string
+	reply := db.Model(&models.Host{}).Where("cluster_id = ? and id != ? and status != ? and (role = ? or suggested_role = ?)",
+		h.ClusterID, h.ID, models.HostStatusDisabled, models.HostRoleMaster, models.HostRoleMaster).Pluck("id", &masters)
+
+	if err = reply.Error; err != nil {
 		log.WithError(err).Errorf("failed to count masters in cluster %s", h.ClusterID.String())
 		return autoSelectedRole, err
 	}
 
-	if otherMastersCount < common.MinMasterHostsNeededForInstallation {
+	if len(masters) < common.MinMasterHostsNeededForInstallation {
 		h.Role = models.HostRoleMaster
 		vc, err = newValidationContext(h, nil, nil, db, m.hwValidator)
 		if err != nil {
