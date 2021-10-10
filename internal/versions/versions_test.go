@@ -202,8 +202,32 @@ var _ = Describe("list versions", func() {
 				Expect(version.CPUArchitectures).Should(Equal(architectures))
 				Expect(version.Default).Should(Equal(releaseImage.Default))
 				Expect(version.DisplayName).Should(Equal(*releaseImage.Version))
-				Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage.Version)))
+				Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage)))
 			}
+		})
+
+		It("getSupportLevel", func() {
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			releaseImage := models.ReleaseImage{
+				CPUArchitecture:  &cpuArchitecture,
+				OpenshiftVersion: &common.TestDefaultConfig.OpenShiftVersion,
+				URL:              &common.TestDefaultConfig.ReleaseImageUrl,
+				Version:          &common.TestDefaultConfig.ReleaseVersion,
+			}
+
+			// Production release version
+			releaseImage.Version = swag.String("4.8.12")
+			Expect(h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
+
+			// Beta release version
+			releaseImage.Version = swag.String("4.9.0-rc.4")
+			Expect(h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelBeta))
+
+			// Support level specified in release image
+			releaseImage.SupportLevel = models.OpenshiftVersionSupportLevelProduction
+			Expect(h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
 		})
 	})
 

@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -28,6 +30,10 @@ type ReleaseImage struct {
 	// Required: true
 	OpenshiftVersion *string `json:"openshift_version"`
 
+	// Level of support of the version.
+	// Enum: [beta production]
+	SupportLevel string `json:"support_level,omitempty"`
+
 	// The installation image of the OpenShift cluster.
 	// Required: true
 	URL *string `json:"url"`
@@ -46,6 +52,10 @@ func (m *ReleaseImage) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSupportLevel(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -75,6 +85,49 @@ func (m *ReleaseImage) validateCPUArchitecture(formats strfmt.Registry) error {
 func (m *ReleaseImage) validateOpenshiftVersion(formats strfmt.Registry) error {
 
 	if err := validate.Required("openshift_version", "body", m.OpenshiftVersion); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var releaseImageTypeSupportLevelPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["beta","production"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		releaseImageTypeSupportLevelPropEnum = append(releaseImageTypeSupportLevelPropEnum, v)
+	}
+}
+
+const (
+
+	// ReleaseImageSupportLevelBeta captures enum value "beta"
+	ReleaseImageSupportLevelBeta string = "beta"
+
+	// ReleaseImageSupportLevelProduction captures enum value "production"
+	ReleaseImageSupportLevelProduction string = "production"
+)
+
+// prop value enum
+func (m *ReleaseImage) validateSupportLevelEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, releaseImageTypeSupportLevelPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *ReleaseImage) validateSupportLevel(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.SupportLevel) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateSupportLevelEnum("support_level", "body", m.SupportLevel); err != nil {
 		return err
 	}
 

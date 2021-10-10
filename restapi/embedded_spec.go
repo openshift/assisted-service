@@ -12271,6 +12271,14 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
         },
+        "support_level": {
+          "description": "Level of support of the version.",
+          "type": "string",
+          "enum": [
+            "beta",
+            "production"
+          ]
+        },
         "url": {
           "description": "The installation image of the OpenShift cluster.",
           "type": "string"
@@ -25078,6 +25086,14 @@ func init() {
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
+        },
+        "support_level": {
+          "description": "Level of support of the version.",
+          "type": "string",
+          "enum": [
+            "beta",
+            "production"
+          ]
         },
         "url": {
           "description": "The installation image of the OpenShift cluster.",
