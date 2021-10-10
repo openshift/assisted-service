@@ -380,12 +380,12 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) V
 	candidates := make([]*models.Host, 0)
 
 	for _, host := range hosts {
-		switch role := host.Role; role {
+		switch role := common.GetEffectiveRole(host); role {
 		case models.HostRoleMaster:
-			//add pre-assigned master hosts to the masters list
+			//add pre-assigned/suggested master hosts to the masters list
 			masters = append(masters, host)
 		case models.HostRoleWorker:
-			//add pre-assigned worker hosts to the worker list
+			//add pre-assigned/suggested worker hosts to the worker list
 			workers = append(workers, host)
 		default:
 			//auto-assign hosts and other types go to the candidate list
@@ -397,7 +397,8 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) V
 		//if allocated masters count is less than the desired count, find eligable hosts
 		//from the candidate pool to match the master count criteria, up to 3
 		if len(masters) < minMastersNeededForInstallation {
-			if isValid, err := v.hostAPI.IsValidMasterCandidate(h, c.cluster, c.db, v.log); isValid && err == nil {
+			candidate := *h
+			if isValid, err := v.hostAPI.IsValidMasterCandidate(&candidate, c.cluster, c.db, v.log); isValid && err == nil {
 				masters = append(masters, h)
 				continue
 			}

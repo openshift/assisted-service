@@ -144,7 +144,7 @@ func GetDiskByInstallationPath(disks []*models.Disk, installationPath string) *m
 }
 
 func IgnitionFileName(host *models.Host) string {
-	return fmt.Sprintf("%s-%s.ign", host.Role, host.ID)
+	return fmt.Sprintf("%s-%s.ign", common.GetEffectiveRole(host), host.ID)
 }
 
 var allowedFlags = []string{"--append-karg", "--delete-karg", "-n", "--copy-network", "--network-dir", "--save-partlabel", "--save-partindex", "--image-url"}

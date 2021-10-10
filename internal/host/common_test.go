@@ -18,7 +18,7 @@ type hostNetProfile struct {
 	ip       string
 }
 
-var _ = Describe("GetHostnameAndRoleByIP", func() {
+var _ = Describe("GetHostnameAndEffectiveRoleByIP", func() {
 
 	hostRolesIpv4 := []hostNetProfile{{role: models.HostRoleMaster, hostname: "master-0", ip: "1.2.3.1"}, {role: models.HostRoleWorker, hostname: "worker-0", ip: "1.2.3.2"}}
 	hostrolesIpv6 := []hostNetProfile{{role: models.HostRoleMaster, hostname: "master-1", ip: "1001:db8::11"}, {role: models.HostRoleWorker, hostname: "worker-1", ip: "1001:db8::12"}}
@@ -80,7 +80,7 @@ var _ = Describe("GetHostnameAndRoleByIP", func() {
 					h := hostutil.GenerateTestHostWithNetworkAddress(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, v.role, models.HostStatusKnown, netAddr)
 					hosts = append(hosts, h)
 				}
-				hostname, role, err := GetHostnameAndRoleByIP(test.targetIP, hosts)
+				hostname, role, err := GetHostnameAndEffectiveRoleByIP(test.targetIP, hosts)
 				if test.expectedError != nil {
 					Expect(err).To(Equal(test.expectedError))
 				} else {

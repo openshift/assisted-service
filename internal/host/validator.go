@@ -121,11 +121,11 @@ func (v *validator) getBootDeviceInfo(host *models.Host) (*models.DiskInfo, erro
 }
 
 func (c *validationContext) validateRole() error {
-	switch c.host.Role {
+	switch common.GetEffectiveRole(c.host) {
 	case models.HostRoleMaster, models.HostRoleWorker, models.HostRoleAutoAssign:
 		return nil
 	default:
-		return errors.Errorf("Illegal role defined: %s", c.host.Role)
+		return errors.Errorf("Illegal role defined: %s", common.GetEffectiveRole(c.host))
 	}
 }
 
@@ -345,36 +345,36 @@ func (v *validator) printCompatibleWithClusterPlatform(c *validationContext, sta
 	}
 }
 
-func isDiskEncryptionRelevantForHost(c *validationContext) bool {
-	switch *c.cluster.DiskEncryption.EnableOn {
+func isDiskEncryptionEnabledForRole(encryption models.DiskEncryption, role models.HostRole) bool {
+	switch swag.StringValue(encryption.EnableOn) {
 	case models.DiskEncryptionEnableOnAll:
 		return true
 	case models.DiskEncryptionEnableOnMasters:
-		return c.host.Role == models.HostRoleMaster || c.host.Role == models.HostRoleBootstrap || c.host.Role == models.HostRoleAutoAssign
+		return role == models.HostRoleMaster || role == models.HostRoleBootstrap
 	case models.DiskEncryptionEnableOnWorkers:
-		return c.host.Role == models.HostRoleWorker || c.host.Role == models.HostRoleAutoAssign
-	default: // models.DiskEncryptionEnableOnNone
+		return role == models.HostRoleWorker
+	default:
 		return false
 	}
 }
 
-func isAutoAassignAllowed(c *validationContext) bool {
-	return *c.cluster.DiskEncryption.EnableOn == models.DiskEncryptionEnableOnAll ||
-		*c.cluster.DiskEncryption.EnableOn == models.DiskEncryptionEnableOnNone
-}
-
 func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) ValidationStatus {
 
-	if c.infraEnv != nil || reflect.DeepEqual(c.cluster.DiskEncryption, &models.DiskEncryption{}) || !isDiskEncryptionRelevantForHost(c) {
+	if c.infraEnv != nil || reflect.DeepEqual(c.cluster.DiskEncryption, &models.DiskEncryption{}) {
 		return ValidationSuccessSuppressOutput
-	}
-
-	if c.host.Role == models.HostRoleAutoAssign && !isAutoAassignAllowed(c) {
-		return ValidationFailure
 	}
 
 	if c.inventory == nil {
 		return ValidationPending
+	}
+
+	role := common.GetEffectiveRole(c.host)
+	if role == models.HostRoleAutoAssign {
+		return ValidationPending
+	}
+
+	if !isDiskEncryptionEnabledForRole(*c.cluster.DiskEncryption, role) {
+		return ValidationSuccessSuppressOutput
 	}
 
 	if *c.cluster.DiskEncryption.Mode != models.DiskEncryptionModeTpmv2 {
@@ -389,9 +389,6 @@ func (v *validator) printDiskEncryptionRequirementsSatisfied(c *validationContex
 	case ValidationSuccess:
 		return fmt.Sprintf("Installation disk can be encrypted using %s", *c.cluster.DiskEncryption.Mode)
 	case ValidationFailure:
-		if c.host.Role == models.HostRoleAutoAssign && !isAutoAassignAllowed(c) {
-			return "Host role auto assignment is supported only if encryption is enabled on all nodes or disabled"
-		}
 		if c.inventory.TpmVersion == models.InventoryTpmVersionNone {
 			return "TPM version could not be found, make sure TPM is enalbed in host's BIOS"
 		} else {
@@ -399,7 +396,10 @@ func (v *validator) printDiskEncryptionRequirementsSatisfied(c *validationContex
 				models.InventoryTpmVersionNr20, c.inventory.TpmVersion)
 		}
 	case ValidationPending:
-		return "Missing host inventory"
+		if c.inventory == nil {
+			return "Missing host inventory"
+		}
+		return "Missing role assignment"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
@@ -479,9 +479,9 @@ func (v *validator) hasCPUCoresForRole(c *validationContext) ValidationStatus {
 func (v *validator) printHasCPUCoresForRole(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return fmt.Sprintf("Sufficient CPU cores for role %s", c.host.Role)
+		return fmt.Sprintf("Sufficient CPU cores for role %s", common.GetEffectiveRole(c.host))
 	case ValidationFailure:
-		return fmt.Sprintf("Require at least %d CPU cores for %s role, found only %d", c.clusterHostRequirements.Total.CPUCores, c.host.Role, c.inventory.CPU.Count)
+		return fmt.Sprintf("Require at least %d CPU cores for %s role, found only %d", c.clusterHostRequirements.Total.CPUCores, common.GetEffectiveRole(c.host), c.inventory.CPU.Count)
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
@@ -532,10 +532,10 @@ func (v *validator) printValidPlatformNetworkSettings(c *validationContext, stat
 func (v *validator) printHasMemoryForRole(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return fmt.Sprintf("Sufficient RAM for role %s", c.host.Role)
+		return fmt.Sprintf("Sufficient RAM for role %s", common.GetEffectiveRole(c.host))
 	case ValidationFailure:
 		return fmt.Sprintf("Require at least %s RAM for role %s, found only %s",
-			conversions.BytesToString(conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)), c.host.Role, conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
+			conversions.BytesToString(conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)), common.GetEffectiveRole(c.host), conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
@@ -919,7 +919,7 @@ func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationC
 		return ValidationSuccessSuppressOutput
 	}
 
-	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.NetworkLatencyThresholdMs == nil || c.host.Role == models.HostRoleAutoAssign || hostutil.IsDay2Host(c.host) {
+	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.NetworkLatencyThresholdMs == nil || common.GetEffectiveRole(c.host) == models.HostRoleAutoAssign || hostutil.IsDay2Host(c.host) {
 		// Single Node use case || no requirements defined || role is auto assign
 		return ValidationSuccess
 	}
@@ -944,12 +944,12 @@ func (v *validator) validateNetworkLatencyForRole(host *models.Host, clusterRole
 		for _, l3 := range r.L3Connectivity {
 			if l3.AverageRTTMs > *clusterRoleReqs.Total.NetworkLatencyThresholdMs {
 				if _, ok := failedHostIPs[l3.RemoteIPAddress]; !ok {
-					hostname, role, err := GetHostnameAndRoleByIP(l3.RemoteIPAddress, hosts)
+					hostname, role, err := GetHostnameAndEffectiveRoleByIP(l3.RemoteIPAddress, hosts)
 					if err != nil {
 						v.log.Error(err)
 						return ValidationFailure, nil, err
 					}
-					if role == host.Role {
+					if role == common.GetEffectiveRole(host) {
 						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
 						failedHostLatencies = append(failedHostLatencies, fmt.Sprintf(" %s (%.2f ms)", hostname, l3.AverageRTTMs))
 					}
@@ -999,7 +999,7 @@ func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationConte
 		return ValidationSuccessSuppressOutput
 	}
 
-	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.PacketLossPercentage == nil || c.host.Role == models.HostRoleAutoAssign || hostutil.IsDay2Host(c.host) {
+	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.PacketLossPercentage == nil || common.GetEffectiveRole(c.host) == models.HostRoleAutoAssign || hostutil.IsDay2Host(c.host) {
 		// Single Node use case || no requirements defined || role is auto assign
 		return ValidationSuccess
 	}
@@ -1024,12 +1024,12 @@ func (v *validator) validatePacketLossForRole(host *models.Host, clusterRoleReqs
 		for _, l3 := range r.L3Connectivity {
 			if l3.PacketLossPercentage > *clusterRoleReqs.Total.PacketLossPercentage {
 				if _, ok := failedHostIPs[l3.RemoteIPAddress]; !ok {
-					hostname, role, err := GetHostnameAndRoleByIP(l3.RemoteIPAddress, hosts)
+					hostname, role, err := GetHostnameAndEffectiveRoleByIP(l3.RemoteIPAddress, hosts)
 					if err != nil {
 						v.log.Error(err)
 						return ValidationFailure, nil, err
 					}
-					if role == host.Role {
+					if role == common.GetEffectiveRole(host) {
 						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
 						failedHostPacketLoss = append(failedHostPacketLoss, fmt.Sprintf(" %s (%.2f%%)", hostname, l3.PacketLossPercentage))
 					}

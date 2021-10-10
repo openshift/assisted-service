@@ -80,7 +80,7 @@ var _ = Describe("Ocs Operator", func() {
 					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
 					{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2},
 				}})}
-		autoAssignHost = &models.Host{Role: models.HostRoleAutoAssign, InstallationDiskID: diskID1,
+		autoAssignHost = &models.Host{Role: models.HostRoleAutoAssign, SuggestedRole: models.HostRoleAutoAssign, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},

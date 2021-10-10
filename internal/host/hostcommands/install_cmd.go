@@ -102,7 +102,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 }
 
 func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, infraEnv *common.InfraEnv, bootdevice string) (string, error) {
-	role := host.Role
+	role := common.GetEffectiveRole(host)
 	if host.Bootstrap {
 		role = models.HostRoleBootstrap
 	}

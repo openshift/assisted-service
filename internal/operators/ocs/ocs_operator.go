@@ -145,13 +145,14 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 		diskCount, _ = o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
 	}
 
+	role := common.GetEffectiveRole(host)
 	if numOfHosts <= 3 { // Compact Mode
 		var reqDisks int64 = 1
 		if diskCount > 0 {
 			reqDisks = diskCount
 		}
 		// for each disk ocs requires 2 CPUs and 5 GiB RAM
-		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
+		if role == models.HostRoleMaster || role == models.HostRoleAutoAssign {
 			return &models.ClusterHostRequirementsDetails{
 				CPUCores: o.config.OCSPerHostCPUCompactMode + (reqDisks * o.config.OCSPerDiskCPUCount),
 				RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBCompactMode + (reqDisks * o.config.OCSPerDiskRAMGiB)),
@@ -165,7 +166,7 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 	}
 
 	// In standard mode, OCS does not run on master nodes so return zero
-	if host.Role == models.HostRoleMaster {
+	if role == models.HostRoleMaster {
 		return &models.ClusterHostRequirementsDetails{CPUCores: 0, RAMMib: 0}, nil
 	}
 

@@ -75,13 +75,14 @@ func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, ocsClusterR
 		As OCS will use only worker nodes for non-compact deployments, the OCS validations cannot be performed as it cannot know which nodes will be worker nodes.
 		We ignore the role check for a cluster of 3 nodes as they will all be master nodes. OCS validations will proceed as for a compact deployment.
 		*/
+		role := common.GetEffectiveRole(host)
 		if !compactMode {
-			if host.Role == models.HostRoleAutoAssign {
+			if role == models.HostRoleAutoAssign {
 				status = "For OCS Standard Mode, all host roles must be assigned to master or worker."
 				err = errors.New("Role is set to auto-assign for host ")
 				return status, err
 			}
-			if host.Role == models.HostRoleWorker {
+			if role == models.HostRoleWorker {
 				status, err = o.computeNodeResourceUtil(host, ocsClusterResources)
 				if err != nil {
 					return status, err
