@@ -60,7 +60,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
-	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/pkg/transaction"
@@ -1648,7 +1647,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 
 	go func() {
 		var err error
-		asyncCtx := requestid.ToContext(context.Background(), requestid.FromContext(ctx))
+		asyncCtx := ctxparams.Copy(ctx)
 
 		defer func() {
 			if err != nil {
