@@ -57,7 +57,7 @@ var _ = Describe("AssistedServiceISO", func() {
 		})
 
 		It("success", func() {
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey:     sshPublicKey,
 				PullSecret:       pullSecret,
@@ -70,7 +70,7 @@ var _ = Describe("AssistedServiceISO", func() {
 		})
 
 		It("failure when pull-secret is missing", func() {
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey: sshPublicKey,
 				PullSecret:   "",
@@ -82,7 +82,7 @@ var _ = Describe("AssistedServiceISO", func() {
 		})
 
 		It("failure when pull-secret is wrong format", func() {
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("bad pull secret")).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("bad pull secret")).Times(1)
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey: sshPublicKey,
 				PullSecret:   "not-correct-format",
@@ -94,7 +94,7 @@ var _ = Describe("AssistedServiceISO", func() {
 		})
 
 		It("ssh public key is not required and request should be successful if it is missing", func() {
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey:     "",
 				PullSecret:       pullSecret,
@@ -107,7 +107,7 @@ var _ = Describe("AssistedServiceISO", func() {
 		})
 
 		It("multiple creates", func() {
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey:     sshPublicKey,
 				PullSecret:       pullSecret,
@@ -120,7 +120,7 @@ var _ = Describe("AssistedServiceISO", func() {
 			Expect(generateReply).Should(BeAssignableToTypeOf(assisted_service_iso.NewCreateISOAndUploadToS3Created()))
 			// second
 			uploadIsoSuccess()
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			generateReply = api.CreateISOAndUploadToS3(ctx, assisted_service_iso.CreateISOAndUploadToS3Params{
 				AssistedServiceIsoCreateParams: &ignitionParams,
 			})

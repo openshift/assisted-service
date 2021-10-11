@@ -29,6 +29,7 @@ import (
 type Config struct {
 	ImageExpirationTime        time.Duration `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
 	IgnitionConfigBaseFilename string        `envconfig:"IGNITION_CONFIG_BASE_FILENAME" default:"/data/onprem-iso-config.ign"`
+	IPv6Support                bool          `envconfig:"IPV6_SUPPORT" default:"true"`
 }
 
 var _ restapi.AssistedServiceIsoAPI = &assistedServiceISOApi{}
@@ -65,7 +66,7 @@ func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, para
 
 	pullSecret := params.AssistedServiceIsoCreateParams.PullSecret
 	if pullSecret != "" {
-		err := a.pullSecretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), a.authHandler)
+		err := a.pullSecretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), a.authHandler, a.config.IPv6Support)
 		if err != nil {
 			log.WithError(err).Errorf("Pull-secret for Assisted Service ISO has invalid format")
 			return assisted_service_iso.NewCreateISOAndUploadToS3BadRequest().

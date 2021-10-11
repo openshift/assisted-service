@@ -564,7 +564,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
-	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
+	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler, b.IPv6Support)
 	if err != nil {
 		err = errors.Wrap(secretValidationToUserError(err), "pull secret for new cluster is invalid")
 		return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -2129,7 +2129,7 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 	log := logutil.FromContext(ctx, b.log)
 
 	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
-		if err := b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler); err != nil {
+		if err := b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler, b.IPv6Support); err != nil {
 			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
 			return installer.V2UpdateClusterParams{}, err
 		}
@@ -5665,7 +5665,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	}
 
 	pullSecret := swag.StringValue(params.InfraenvCreateParams.PullSecret)
-	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
+	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler, b.IPv6Support)
 	if err != nil {
 		err = errors.Wrap(secretValidationToUserError(err), "pull secret for new infraEnv is invalid")
 		return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -5897,7 +5897,7 @@ func (b *bareMetalInventory) validateAndUpdateInfraEnvParams(ctx context.Context
 	log := logutil.FromContext(ctx, b.log)
 
 	if params.InfraEnvUpdateParams.PullSecret != "" {
-		if err := b.secretValidator.ValidatePullSecret(params.InfraEnvUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler); err != nil {
+		if err := b.secretValidator.ValidatePullSecret(params.InfraEnvUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler, b.IPv6Support); err != nil {
 			log.WithError(err).Errorf("Pull secret for infraEnv %s is invalid", params.InfraEnvID)
 			return installer.UpdateInfraEnvParams{}, err
 		}

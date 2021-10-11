@@ -118,7 +118,7 @@ var (
 )
 
 func mockClusterRegisterSteps() {
-	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 	mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -139,7 +139,7 @@ func mockClusterRegisterSuccess(bm *bareMetalInventory, withEvents bool) {
 func mockInfraEnvRegisterSuccess() {
 	mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 	mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(2)
 	mockS3Client.EXPECT().GetBaseIsoObject(gomock.Any(), gomock.Any()).Return("rhcos", nil).Times(1)
 	mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), "rhcos", gomock.Any()).Return(nil).Times(1)
@@ -7531,7 +7531,7 @@ var _ = Describe("infraEnvs", func() {
 		It("No version specified", func() {
 			mockVersions.EXPECT().GetLatestOsImage(gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(2)
 			mockS3Client.EXPECT().GetBaseIsoObject(gomock.Any(), gomock.Any()).Return("rhcos", nil).Times(1)
 			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), "rhcos", gomock.Any()).Return(nil).Times(1)
@@ -8078,7 +8078,7 @@ var _ = Describe("infraEnvs", func() {
 						prevURL = newURL
 
 						By("updating pull secret")
-						mockSecretValidator.EXPECT().ValidatePullSecret("mypullsecret", gomock.Any(), gomock.Any()).Return(nil)
+						mockSecretValidator.EXPECT().ValidatePullSecret("mypullsecret", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 						params.PullSecret = "mypullsecret"
 						newURL = updateInfraEnv(params)
 						Expect(newURL).ToNot(Equal(prevURL))
@@ -10759,7 +10759,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("cluster api failed to register with invalid pull secret", func() {
-		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).
+		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(errors.New("error")).Times(1)
 		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
@@ -12896,6 +12896,15 @@ var _ = Describe("Platform tests", func() {
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(cluster.Platform.Type).Should(BeEquivalentTo(models.PlatformTypeVsphere))
 			Expect(cluster.Platform.Vsphere).ShouldNot(BeNil())
+		})
+
+		It("Skip registry.redhat.io auth validation for IPv6 cluster", func() {
+			var params installer.RegisterClusterParams = installer.RegisterClusterParams{
+				NewClusterParams: getDefaultClusterCreateParams(),
+			}
+			params.NewClusterParams.PullSecret = swag.String("abcd")
+			reply := bm.RegisterCluster(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 		})
 	})
 })

@@ -50,7 +50,7 @@ func init() {
 // it verifies the format of the pull secrete and access to required image registries
 //go:generate mockgen -source=validations.go -package=validations -destination=mock_validations.go
 type PullSecretValidator interface {
-	ValidatePullSecret(secret string, username string, authHandler auth.Authenticator) error
+	ValidatePullSecret(secret string, username string, authHandler auth.Authenticator, IPv6Support bool) error
 }
 
 type registryPullSecretValidator struct {
@@ -156,7 +156,7 @@ func NewPullSecretValidator(config Config, images ...string) (PullSecretValidato
 }
 
 // ValidatePullSecret validates that a pull secret is well formed and contains all required data
-func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string, authHandler auth.Authenticator) error {
+func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string, authHandler auth.Authenticator, IPv6Support bool) error {
 	creds, err := ParsePullSecret(secret)
 	if err != nil {
 		return err
@@ -194,7 +194,7 @@ func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username
 			continue
 		}
 
-		if _, ok := creds[registry]; !ok {
+		if _, ok := creds[registry]; !ok && !IPv6Support {
 			return &PullSecretError{Msg: fmt.Sprintf("pull secret must contain auth for %q", registry)}
 		}
 	}
