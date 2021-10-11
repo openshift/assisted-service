@@ -10561,6 +10561,24 @@ var _ = Describe("TestRegisterCluster", func() {
 		verifyApiError(reply, http.StatusBadRequest)
 	})
 
+	It("Fail openshift version support level is maintenance", func() {
+		clusterParams := getDefaultClusterCreateParams()
+		openShiftVersionWithMaintenanceSupportLevel := "4.7.0"
+		clusterParams.OpenshiftVersion = swag.String(openShiftVersionWithMaintenanceSupportLevel)
+		releaseImage := &models.ReleaseImage{
+			CPUArchitecture:  common.TestDefaultConfig.ReleaseImage.CPUArchitecture,
+			OpenshiftVersion: &openShiftVersionWithMaintenanceSupportLevel,
+			URL:              common.TestDefaultConfig.ReleaseImage.URL,
+			Version:          &openShiftVersionWithMaintenanceSupportLevel,
+			SupportLevel:     models.OpenshiftVersionSupportLevelMaintenance,
+		}
+		mockVersions.EXPECT().GetReleaseImage(*releaseImage.OpenshiftVersion, *releaseImage.CPUArchitecture).Return(releaseImage, nil).Times(1)
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: clusterParams,
+		})
+		verifyApiError(reply, http.StatusBadRequest)
+	})
+
 	Context("Disk encryption", func() {
 
 		It("Using tang mode without tang_servers", func() {
