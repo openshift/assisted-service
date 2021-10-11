@@ -184,8 +184,8 @@ func getMetricRecord(name string) (string, error) {
 }
 
 func getMetricEvents(ctx context.Context, clusterID strfmt.UUID) []*models.Event {
-	eventsReply, err := userBMClient.Events.ListEvents(ctx, &events.ListEventsParams{
-		ClusterID:  clusterID,
+	eventsReply, err := userBMClient.Events.V2ListEvents(ctx, &events.V2ListEventsParams{
+		ClusterID:  &clusterID,
 		Categories: []string{"metrics"},
 	})
 	Expect(err).NotTo(HaveOccurred())
@@ -195,7 +195,7 @@ func getMetricEvents(ctx context.Context, clusterID strfmt.UUID) []*models.Event
 func filterMetricEvents(in []*models.Event, hostID strfmt.UUID, message string) []*models.Event {
 	events := make([]*models.Event, 0)
 	for _, ev := range in {
-		if ev.HostID == hostID && *ev.Message == message {
+		if ev.HostID.String() == hostID.String() && *ev.Message == message {
 			events = append(events, ev)
 		}
 	}
@@ -204,8 +204,8 @@ func filterMetricEvents(in []*models.Event, hostID strfmt.UUID, message string) 
 
 func assertHostValidationEvent(ctx context.Context, clusterID strfmt.UUID, hostName string, validationID models.HostValidationID, isFailure bool) {
 
-	eventsReply, err := userBMClient.Events.ListEvents(ctx, &events.ListEventsParams{
-		ClusterID: clusterID,
+	eventsReply, err := userBMClient.Events.V2ListEvents(ctx, &events.V2ListEventsParams{
+		ClusterID: &clusterID,
 	})
 	Expect(err).NotTo(HaveOccurred())
 
@@ -226,8 +226,8 @@ func assertHostValidationEvent(ctx context.Context, clusterID strfmt.UUID, hostN
 
 func assertClusterValidationEvent(ctx context.Context, clusterID strfmt.UUID, validationID models.ClusterValidationID, isFailure bool) {
 
-	eventsReply, err := userBMClient.Events.ListEvents(ctx, &events.ListEventsParams{
-		ClusterID: clusterID,
+	eventsReply, err := userBMClient.Events.V2ListEvents(ctx, &events.V2ListEventsParams{
+		ClusterID: &clusterID,
 	})
 	Expect(err).NotTo(HaveOccurred())
 
@@ -248,8 +248,8 @@ func assertClusterValidationEvent(ctx context.Context, clusterID strfmt.UUID, va
 
 func assertNoValidationEvent(ctx context.Context, clusterID strfmt.UUID, hostName string, validationID models.HostValidationID) {
 
-	eventsReply, err := userBMClient.Events.ListEvents(ctx, &events.ListEventsParams{
-		ClusterID: clusterID,
+	eventsReply, err := userBMClient.Events.V2ListEvents(ctx, &events.V2ListEventsParams{
+		ClusterID: &clusterID,
 	})
 	Expect(err).NotTo(HaveOccurred())
 

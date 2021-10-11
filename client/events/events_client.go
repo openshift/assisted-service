@@ -20,6 +20,9 @@ type API interface {
 	/*
 	   ListEvents Lists events for a cluster.*/
 	ListEvents(ctx context.Context, params *ListEventsParams) (*ListEventsOK, error)
+	/*
+	   V2ListEvents Lists events for a cluster.*/
+	V2ListEvents(ctx context.Context, params *V2ListEventsParams) (*V2ListEventsOK, error)
 }
 
 // New creates a new events API client.
@@ -62,5 +65,30 @@ func (a *Client) ListEvents(ctx context.Context, params *ListEventsParams) (*Lis
 		return nil, err
 	}
 	return result.(*ListEventsOK), nil
+
+}
+
+/*
+V2ListEvents Lists events for a cluster.
+*/
+func (a *Client) V2ListEvents(ctx context.Context, params *V2ListEventsParams) (*V2ListEventsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2ListEvents",
+		Method:             "GET",
+		PathPattern:        "/v2/events",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ListEventsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ListEventsOK), nil
 
 }
