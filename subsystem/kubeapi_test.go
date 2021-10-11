@@ -736,6 +736,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("verify validations are failing")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterValidatedCondition, hiveext.ClusterValidationsFailingReason)
 		aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+		Expect(aci.Status.ValidationsInfo).ToNot(BeNil())
 		condition := controllers.FindStatusCondition(aci.Status.Conditions, hiveext.ClusterValidatedCondition)
 		if condition != nil {
 			Expect(condition.Message).Should(ContainSubstring("use OVNKubernetes instead"))
@@ -765,6 +766,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		for _, host := range hosts {
 			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, h := range hosts {

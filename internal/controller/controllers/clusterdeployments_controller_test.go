@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	common_api "github.com/openshift/assisted-service/api/common"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
@@ -392,6 +394,60 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+		})
+	})
+
+	Context("Add validationsInfo to agentclusterinstall", func() {
+		BeforeEach(func() {
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
+			Expect(c.Create(ctx, imageSet)).To(BeNil())
+		})
+
+		It("Update agentclusterinstall::validationsInfo", func() {
+			cluster := newClusterDeployment(clusterName, testNamespace,
+				getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, ""))
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName), cluster)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+			validationInfoKey := "some-check"
+			var validationInfoId = "checking1"
+
+			validationInfo := common_api.ValidationsStatus{
+				validationInfoKey: common_api.ValidationResults{
+					{
+						ID:      validationInfoId,
+						Status:  "success",
+						Message: "check1 is okay",
+					},
+				},
+			}
+			var bytesValidationInfo []byte
+			var err error
+			bytesValidationInfo, err = json.Marshal(validationInfo)
+			Expect(err).To(BeNil())
+			stringifiedValidationInfo := string(bytesValidationInfo)
+
+			dbCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ValidationsInfo: stringifiedValidationInfo,
+				},
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(dbCluster, nil)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+
+			aci = getTestClusterInstall()
+			Expect(aci.Status.ValidationsInfo).ToNot(BeNil())
+			Expect(aci.Status.ValidationsInfo[validationInfoKey]).ToNot(BeNil())
+			Expect(len(aci.Status.ValidationsInfo[validationInfoKey])).To(Equal(1))
+			Expect(aci.Status.ValidationsInfo[validationInfoKey][0].ID).To(Equal(validationInfoId))
 		})
 	})
 

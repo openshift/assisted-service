@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	"github.com/openshift/assisted-service/api/common"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -174,6 +175,10 @@ type AgentClusterInstallStatus struct {
 	// DebugInfo includes information for debugging the installation process.
 	// +optional
 	DebugInfo DebugInfo `json:"debugInfo"`
+
+	// ValidationsInfo is a JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
+	// +optional
+	ValidationsInfo common.ValidationsStatus `json:"validationsInfo,omitempty"`
 }
 
 type DebugInfo struct {

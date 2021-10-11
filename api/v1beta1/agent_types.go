@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"github.com/openshift/assisted-service/api/common"
 	"github.com/openshift/assisted-service/models"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -215,6 +216,10 @@ type AgentStatus struct {
 	// DebugInfo includes information for debugging the installation process.
 	// +optional
 	DebugInfo DebugInfo `json:"debugInfo"`
+
+	// ValidationsInfo is a JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
+	// +optional
+	ValidationsInfo common.ValidationsStatus `json:"validationsInfo,omitempty"`
 }
 
 type DebugInfo struct {

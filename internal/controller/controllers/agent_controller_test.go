@@ -15,6 +15,7 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	common_api "github.com/openshift/assisted-service/api/common"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
@@ -193,6 +194,71 @@ var _ = Describe("agent reconcile", func() {
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 		Expect(agent.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
+	})
+
+	It("Agent ValidationInfo update", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
+
+		validationInfoKey := "some-check"
+		var validationInfoId = "checking1"
+
+		validationInfo := common_api.ValidationsStatus{
+			validationInfoKey: common_api.ValidationResults{
+				{
+					ID:      validationInfoId,
+					Status:  "success",
+					Message: "check1 is okay",
+				},
+			},
+		}
+		var bytesValidationInfo []byte
+		var err error
+		bytesValidationInfo, err = json.Marshal(validationInfo)
+		Expect(err).To(BeNil())
+		stringifiedValidationInfo := string(bytesValidationInfo)
+
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:              &hostId,
+				ClusterID:       &sId,
+				Inventory:       common.GenerateTestDefaultInventory(),
+				Status:          swag.String(models.HostStatusKnown),
+				StatusInfo:      swag.String("Some status info"),
+				InfraEnvID:      infraEnvId,
+				ValidationsInfo: stringifiedValidationInfo,
+			},
+		}
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				&commonHost.Host,
+			}}}
+
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+
+		Expect(c.Create(ctx, host)).To(BeNil())
+
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		agent := &v1beta1.Agent{}
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
+		Expect(agent.Status.ValidationsInfo[validationInfoKey]).ToNot(BeNil())
+		Expect(len(agent.Status.ValidationsInfo[validationInfoKey])).To(Equal(1))
+		Expect(agent.Status.ValidationsInfo[validationInfoKey][0].ID).To(Equal(validationInfoId))
 	})
 
 	It("Agent update", func() {
