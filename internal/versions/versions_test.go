@@ -207,7 +207,7 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("getSupportLevel", func() {
-			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, *osImages, *releaseImages, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, *openshiftVersions, defaultOsImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
 
 			releaseImage := models.ReleaseImage{
