@@ -27,6 +27,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
+	. "github.com/openshift/assisted-service/api/common"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	restclient "github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/internal/bminventory"
@@ -282,6 +283,17 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		agent.Status.Role = h.Role
 		agent.Status.DebugInfo.State = swag.StringValue(h.Status)
 		agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
+
+		if h.ValidationsInfo != "" {
+			newValidationsInfo := ValidationsStatus{}
+			err := json.Unmarshal([]byte(h.ValidationsInfo), &newValidationsInfo)
+			if err != nil {
+				log.WithError(err).Error("failed to umarshed ValidationsInfo")
+				return ctrl.Result{}, err
+			}
+			agent.Status.ValidationsInfo = newValidationsInfo
+		}
+
 		if h.Progress != nil && h.Progress.CurrentStage != "" {
 			agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
 			agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo

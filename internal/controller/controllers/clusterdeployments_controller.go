@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -29,6 +30,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
+	. "github.com/openshift/assisted-service/api/common"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	restclient "github.com/openshift/assisted-service/client"
@@ -1218,6 +1220,16 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo), c.MonitoredOperators)
 			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
 			clusterStopped(clusterInstall, status)
+		}
+
+		if c.ValidationsInfo != "" {
+			newValidationsInfo := ValidationsStatus{}
+			err := json.Unmarshal([]byte(c.ValidationsInfo), &newValidationsInfo)
+			if err != nil {
+				log.WithError(err).Error("failed to umarshed ValidationsInfo")
+				return ctrl.Result{}, err
+			}
+			clusterInstall.Status.ValidationsInfo = newValidationsInfo
 		}
 	} else {
 		setClusterConditionsUnknown(clusterInstall)

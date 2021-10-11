@@ -338,6 +338,26 @@ spec:
                   - cidr
                   type: object
                 type: array
+              validationsInfo:
+                additionalProperties:
+                  items:
+                    properties:
+                      id:
+                        type: string
+                      message:
+                        type: string
+                      status:
+                        type: string
+                    required:
+                    - id
+                    - message
+                    - status
+                    type: object
+                  type: array
+                description: ValidationsInfo is a JSON-formatted string containing
+                  the validation results for each validation id grouped by category
+                  (network, hosts-data, etc.)
+                type: object
               workerAgentsDiscovered:
                 description: WorkerAgentsDiscovered is the number of worker Agents
                   currently linked to this ClusterDeployment.
