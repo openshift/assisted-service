@@ -12097,7 +12097,8 @@ func init() {
           "type": "string",
           "enum": [
             "beta",
-            "production"
+            "production",
+            "maintenance"
           ]
         }
       }
@@ -25008,7 +25009,8 @@ func init() {
           "type": "string",
           "enum": [
             "beta",
-            "production"
+            "production",
+            "maintenance"
           ]
         }
       }
