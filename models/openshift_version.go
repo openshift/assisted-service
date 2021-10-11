@@ -44,7 +44,7 @@ type OpenshiftVersion struct {
 	RhcosVersion string `json:"rhcos_version,omitempty"`
 
 	// Level of support of the version.
-	// Enum: [beta production]
+	// Enum: [beta production maintenance]
 	SupportLevel string `json:"support_level,omitempty"`
 }
 
@@ -66,7 +66,7 @@ var openshiftVersionTypeSupportLevelPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["beta","production"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["beta","production","maintenance"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -81,6 +81,9 @@ const (
 
 	// OpenshiftVersionSupportLevelProduction captures enum value "production"
 	OpenshiftVersionSupportLevelProduction string = "production"
+
+	// OpenshiftVersionSupportLevelMaintenance captures enum value "maintenance"
+	OpenshiftVersionSupportLevelMaintenance string = "maintenance"
 )
 
 // prop value enum

@@ -498,6 +498,11 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			swag.StringValue(params.NewClusterParams.OpenshiftVersion), cpuArchitecture)
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
+	if models.OpenshiftVersionSupportLevelMaintenance == releaseImage.SupportLevel {
+		return nil, common.NewApiError(http.StatusBadRequest, errors.Errorf(
+			"Openshift version %s support level is: %s, and can't be used for creating a new cluster",
+			swag.StringValue(params.NewClusterParams.OpenshiftVersion), releaseImage.SupportLevel))
+	}
 
 	if kubeKey == nil {
 		kubeKey = &types.NamespacedName{}

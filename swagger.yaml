@@ -8479,7 +8479,7 @@ definitions:
         description: Build ID of the RHCOS image.
       support_level:
         type: string
-        enum: [beta, production]
+        enum: [beta, production, maintenance]
         description: Level of support of the version.
       default:
         type: boolean
