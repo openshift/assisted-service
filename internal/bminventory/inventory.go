@@ -159,6 +159,7 @@ type InstallerInternals interface {
 	DeregisterInfraEnvInternal(ctx context.Context, params installer.DeregisterInfraEnvParams) error
 	UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams) (*common.Host, error)
 	BindHostInternal(ctx context.Context, params installer.BindHostParams) (*common.Host, error)
+	GetInfraEnvHostsInternal(ctx context.Context, infraEnvId strfmt.UUID) ([]*common.Host, error)
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -5504,6 +5505,10 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 	}
 	success = true
 	return nil
+}
+
+func (b *bareMetalInventory) GetInfraEnvHostsInternal(ctx context.Context, infraEnvId strfmt.UUID) ([]*common.Host, error) {
+	return common.GetInfraEnvHostsFromDB(b.db, infraEnvId)
 }
 
 func (b *bareMetalInventory) DownloadInfraEnvDiscoveryImage(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageParams) middleware.Responder {
