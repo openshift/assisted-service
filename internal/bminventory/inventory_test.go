@@ -6607,7 +6607,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "IPv6 network provided before IPv4")
+					verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
 				})
 			})
 			Context("Advanced networking validations", func() {
@@ -12524,7 +12524,6 @@ var _ = Describe("IPv6 support disabled", func() {
 	})
 
 	Context("Register cluster", func() {
-
 		var params installer.RegisterClusterParams
 
 		BeforeEach(func() {
@@ -12682,19 +12681,26 @@ var _ = Describe("[V2UpdateCluster] IPv6 support disabled", func() {
 var _ = Describe("Dual-stack cluster", func() {
 
 	var (
-		bm  *bareMetalInventory
-		cfg Config
-		db  *gorm.DB
-		ctx = context.Background()
+		bm                                *bareMetalInventory
+		cfg                               Config
+		db                                *gorm.DB
+		ctx                               = context.Background()
+		TestDualStackNetworkingWrongOrder = common.TestNetworking{
+			ClusterNetworks: append(common.TestIPv4Networking.ClusterNetworks, common.TestIPv6Networking.ClusterNetworks...),
+			ServiceNetworks: append(common.TestIPv4Networking.ServiceNetworks, common.TestIPv6Networking.ServiceNetworks...),
+			MachineNetworks: append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
+			APIVip:          common.TestIPv4Networking.APIVip,
+			IngressVip:      common.TestIPv4Networking.IngressVip,
+		}
 	)
 
-	clusterNetworksWrongOrder := common.TestDualStackNetworking.ClusterNetworks
+	clusterNetworksWrongOrder := TestDualStackNetworkingWrongOrder.ClusterNetworks
 	clusterNetworksWrongOrder[0], clusterNetworksWrongOrder[1] = clusterNetworksWrongOrder[1], clusterNetworksWrongOrder[0]
 
-	serviceNetworksWrongOrder := common.TestDualStackNetworking.ServiceNetworks
+	serviceNetworksWrongOrder := TestDualStackNetworkingWrongOrder.ServiceNetworks
 	serviceNetworksWrongOrder[0], serviceNetworksWrongOrder[1] = serviceNetworksWrongOrder[1], serviceNetworksWrongOrder[0]
 
-	machineNetworksWrongOrder := common.TestDualStackNetworking.MachineNetworks
+	machineNetworksWrongOrder := TestDualStackNetworkingWrongOrder.MachineNetworks
 	machineNetworksWrongOrder[0], machineNetworksWrongOrder[1] = machineNetworksWrongOrder[1], machineNetworksWrongOrder[0]
 
 	BeforeEach(func() {
@@ -12718,31 +12724,46 @@ var _ = Describe("Dual-stack cluster", func() {
 		})
 
 		Context("Cluster with wrong network order", func() {
-
-			const errorMsg = "IPv6 network provided before IPv4"
-
 			It("v6-first in cluster networks rejected", func() {
-				params.NewClusterParams.ClusterNetworks = clusterNetworksWrongOrder
+				params.NewClusterParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
 				reply := bm.RegisterCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First cluster network has to be IPv4 subnet")
 			})
-
 			It("v6-first in service networks rejected", func() {
-				params.NewClusterParams.ServiceNetworks = serviceNetworksWrongOrder
+				params.NewClusterParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
 				reply := bm.RegisterCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First service network has to be IPv4 subnet")
 			})
-
 			It("v6-first in machine networks rejected", func() {
-				params.NewClusterParams.MachineNetworks = machineNetworksWrongOrder
+				params.NewClusterParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
 				reply := bm.RegisterCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
+			})
+		})
+
+		Context("Cluster with single network when two required", func() {
+			It("Single service network", func() {
+				params.NewClusterParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
+				params.NewClusterParams.ServiceNetworks = common.TestIPv4Networking.ServiceNetworks
+				reply := bm.RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, "Expected 2 service networks, found 1")
+			})
+			It("Single cluster network", func() {
+				params.NewClusterParams.ClusterNetworks = common.TestIPv4Networking.ClusterNetworks
+				params.NewClusterParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
+				reply := bm.RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, "Expected 2 cluster networks, found 1")
+			})
+			It("Single machine network", func() {
+				params.NewClusterParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
+				params.NewClusterParams.MachineNetworks = common.TestIPv4Networking.MachineNetworks
+				reply := bm.RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, "Expected 2 machine networks, found 1")
 			})
 		})
 	})
 
 	Context("Update cluster", func() {
-
 		var params installer.UpdateClusterParams
 
 		BeforeEach(func() {
@@ -12753,31 +12774,46 @@ var _ = Describe("Dual-stack cluster", func() {
 		})
 
 		Context("Cluster with wrong network order", func() {
-
-			const errorMsg = "IPv6 network provided before IPv4"
-
 			It("v6-first in cluster networks rejected", func() {
-				params.ClusterUpdateParams.ClusterNetworks = clusterNetworksWrongOrder
+				params.ClusterUpdateParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
 				reply := bm.UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First cluster network has to be IPv4 subnet")
 			})
-
 			It("v6-first in service networks rejected", func() {
-				params.ClusterUpdateParams.ServiceNetworks = serviceNetworksWrongOrder
+				params.ClusterUpdateParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
 				reply := bm.UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First service network has to be IPv4 subnet")
 			})
-
 			It("v6-first in machine networks rejected", func() {
-				params.ClusterUpdateParams.MachineNetworks = machineNetworksWrongOrder
+				params.ClusterUpdateParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
 				reply := bm.UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
+			})
+		})
+
+		Context("Cluster with single network when two required", func() {
+			It("Single service network", func() {
+				params.ClusterUpdateParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
+				params.ClusterUpdateParams.ServiceNetworks = common.TestIPv4Networking.ServiceNetworks
+				reply := bm.UpdateCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, "Expected 2 service networks, found 1")
+			})
+			It("Single cluster network", func() {
+				params.ClusterUpdateParams.ClusterNetworks = common.TestIPv4Networking.ClusterNetworks
+				params.ClusterUpdateParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
+				reply := bm.UpdateCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, "Expected 2 cluster networks, found 1")
+			})
+			It("Single machine network", func() {
+				params.ClusterUpdateParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
+				params.ClusterUpdateParams.MachineNetworks = common.TestIPv4Networking.MachineNetworks
+				reply := bm.UpdateCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, "Expected 2 machine networks, found 1")
 			})
 		})
 	})
 
 	Context("[V2] Update cluster", func() {
-
 		var params installer.V2UpdateClusterParams
 
 		BeforeEach(func() {
@@ -12788,25 +12824,20 @@ var _ = Describe("Dual-stack cluster", func() {
 		})
 
 		Context("Cluster with wrong network order", func() {
-
-			const errorMsg = "IPv6 network provided before IPv4"
-
 			It("v6-first in cluster networks rejected", func() {
-				params.ClusterUpdateParams.ClusterNetworks = clusterNetworksWrongOrder
+				params.ClusterUpdateParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
 				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First cluster network has to be IPv4 subnet")
 			})
-
 			It("v6-first in service networks rejected", func() {
-				params.ClusterUpdateParams.ServiceNetworks = serviceNetworksWrongOrder
+				params.ClusterUpdateParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
 				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First service network has to be IPv4 subnet")
 			})
-
 			It("v6-first in machine networks rejected", func() {
-				params.ClusterUpdateParams.MachineNetworks = machineNetworksWrongOrder
+				params.ClusterUpdateParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
 				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
 			})
 		})
 	})

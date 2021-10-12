@@ -10,6 +10,8 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/models"
 	auth "github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/patrickmn/go-cache"
@@ -679,35 +681,38 @@ var _ = Describe("IPv6 support", func() {
 	}
 })
 
-var _ = Describe("Network amount and order", func() {
+var _ = Describe("Machine Network amount and order", func() {
 	tests := []struct {
-		element []*string
+		element []*models.MachineNetwork
 		valid   bool
 	}{
 		{
-			element: []*string{swag.String("1.2.5.0/24"), swag.String("1002:db8::/119")},
+			element: []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1002:db8::/119"}},
 			valid:   true,
 		},
 		{
-			element: []*string{swag.String("1002:db8::/119"), swag.String("1.2.5.0/24")},
+			// Invalid because violates the "IPv4 subnet as the first one" constraint
+			element: []*models.MachineNetwork{{Cidr: "1002:db8::/119"}, {Cidr: "1.2.5.0/24"}},
 			valid:   false,
 		},
 		{
-			element: []*string{swag.String("1.2.5.0/24"), swag.String("1002:db8::/119"), swag.String("1.2.6.0/24"), swag.String("1.2.7.0/24")},
-			valid:   true,
+			// Invalid because violates the "exactly 2 networks" constraint
+			element: []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1002:db8::/119"}, {Cidr: "1.2.6.0/24"}, {Cidr: "1.2.7.0/24"}},
+			valid:   false,
 		},
 		{
-			element: []*string{swag.String("1002:db8::/119"), swag.String("1.2.5.0/24"), swag.String("1.2.6.0/24"), swag.String("1.2.7.0/24")},
+			// Invalid because violates the "exactly 2 networks" constraint
+			element: []*models.MachineNetwork{{Cidr: "1002:db8::/119"}, {Cidr: "1.2.5.0/24"}, {Cidr: "1.2.6.0/24"}, {Cidr: "1.2.7.0/24"}},
 			valid:   false,
 		},
 	}
-	for _, t := range tests {
-		t := t
-		It(fmt.Sprintf("Dual-stack network order validation. IP addresses/CIDRs: %v", t.element), func() {
+	for _, test := range tests {
+		t := test
+		It(fmt.Sprintf("Dual-stack machine network order validation. IP addresses/CIDRs: %v", t.element), func() {
 			if t.valid {
-				Expect(ValidateDualStackIPNetworksOrder(t.element...)).ToNot(HaveOccurred())
+				Expect(network.VerifyMachineNetworksDualStack(t.element, true)).ToNot(HaveOccurred())
 			} else {
-				Expect(ValidateDualStackIPNetworksOrder(t.element...)).To(HaveOccurred())
+				Expect(network.VerifyMachineNetworksDualStack(t.element, true)).To(HaveOccurred())
 			}
 		})
 	}
