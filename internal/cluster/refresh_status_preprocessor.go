@@ -218,5 +218,9 @@ func newConditions(v *clusterValidator) []condition {
 			id: ClusterPreparationFailed,
 			fn: v.isClusterPreparationFailed,
 		},
+		{
+			id: FailedPreparingtHostsExist,
+			fn: v.isFailedPreparingHostExist,
+		},
 	}
 }

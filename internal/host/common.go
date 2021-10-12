@@ -29,6 +29,7 @@ const (
 	statusInfoResettingPendingUserAction                       = "Host requires booting into the discovery image to complete resetting the installation"
 	statusInfoPreparingForInstallation                         = "Host is preparing for installation"
 	statusInfoHostPreparationSuccessful                        = "Host finished successfully to prepare for installation"
+	statusInfoHostPreparationFailure                           = "Host failed to prepare for installation due to following failing validation(s): $FAILING_VALIDATIONS"
 	statusInfoAbortingDueClusterErrors                         = "Host is part of a cluster that failed to install"
 	statusInfoInstallationTimedOut                             = "Host failed to install due to timeout while starting installation"
 	statusInfoConnectionTimedOut                               = "Host failed to install due to timeout while connecting to host"

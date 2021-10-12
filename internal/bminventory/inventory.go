@@ -3721,6 +3721,12 @@ func (b *bareMetalInventory) handleReplyError(params installer.V2PostStepReplyPa
 		}
 		//if it's install step - need to move host to error
 		return b.hostApi.HandleInstallationFailure(ctx, h)
+	case models.StepTypeContainerImageAvailability:
+		stepReply, err := filterReplyByType(params)
+		if err != nil {
+			return err
+		}
+		return b.processImageAvailabilityResponse(ctx, h, stepReply)
 	case models.StepTypeInstallationDiskSpeedCheck:
 		stepReply, err := filterReplyByType(params)
 		if err != nil {

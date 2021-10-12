@@ -2439,6 +2439,7 @@ var _ = Describe("Refresh Host", func() {
 
 			// Host fields
 			dstState    string
+			srcState    string
 			disksInfo   string
 			imageStatus string
 
@@ -2492,17 +2493,44 @@ var _ = Describe("Refresh Host", func() {
 				disksInfo: createDiskInfo("/dev/sda", 0, -1),
 			},
 			{
-				name:              "Image pull failed",
+				name:              "Disk speed check failed after image availability",
 				validCheckInTime:  true,
 				dstState:          models.HostStatusInsufficient,
 				clusterState:      models.ClusterStatusPreparingForInstallation,
-				statusInfoChecker: makeRegexChecker("Host cannot be installed due to following failing validation.*Failed to fetch container images needed for installation from abc"),
+				statusInfoChecker: makeRegexChecker("Host cannot be installed due to following failing validation.*While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationFailure, messagePattern: "While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from"},
+				}),
+				disksInfo:   createDiskInfo("/dev/sda", 0, -1),
+				imageStatus: createFailedImageStatuses(),
+			},
+			{
+				name:              "Image pull failed",
+				validCheckInTime:  true,
+				dstState:          models.HostStatusPreparingFailed,
+				clusterState:      models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker: makeRegexChecker("Host failed to prepare for installation due to following failing validation.*Failed to fetch container images needed for installation from abc"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from"},
 				}),
 				imageStatus: createFailedImageStatuses(),
 			},
+			{
+				name:              "Image pull failed and cluster moved to Ready",
+				validCheckInTime:  true,
+				srcState:          models.HostStatusPreparingFailed,
+				dstState:          models.HostStatusKnown,
+				clusterState:      models.ClusterStatusReady,
+				statusInfoChecker: makeRegexChecker("Host is ready to be installed"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from"},
+				}),
+				imageStatus: createFailedImageStatuses(),
+			},
+
 			{
 				name:              "Disk speed check succeeded",
 				validCheckInTime:  true,
@@ -2540,7 +2568,11 @@ var _ = Describe("Refresh Host", func() {
 					// Timeout for checkin is 3 minutes so subtract 4 minutes from the current time
 					hostCheckInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
 				}
-				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusPreparingForInstallation)
+				srcState := models.HostStatusPreparingForInstallation
+				if t.srcState != "" {
+					srcState = t.srcState
+				}
+				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
 				host.StatusInfo = swag.String(statusInfoPreparingForInstallation)
 				host.Inventory = hostutil.GenerateMasterInventoryWithHostname("master-0")
 				host.CheckedInAt = hostCheckInAt

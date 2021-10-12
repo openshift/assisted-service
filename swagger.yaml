@@ -6441,6 +6441,7 @@ definitions:
           - insufficient
           - disabled
           - preparing-for-installation
+          - preparing-failed
           - preparing-successful
           - pending-for-input
           - installing
