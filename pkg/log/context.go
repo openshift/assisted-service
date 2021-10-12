@@ -2,8 +2,6 @@ package log
 
 import (
 	"context"
-	"runtime"
-	"strings"
 
 	params "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/requestid"
@@ -24,38 +22,10 @@ type Config struct {
 // FromContext equip a given logger with values from the given context
 func FromContext(ctx context.Context, inner logrus.FieldLogger) logrus.FieldLogger {
 	requestID := requestid.FromContext(ctx)
-	return requestid.RequestIDLogger(inner, requestID).WithFields(getFields(ctx))
+	return requestid.RequestIDLogger(inner, requestID).WithFields(params.GetContextParams(ctx))
 }
 
 func EntryFromContext(ctx context.Context, inner logrus.FieldLogger) *logrus.Entry {
 	requestID := requestid.FromContext(ctx)
-	return requestid.RequestIDLogger(inner, requestID).WithFields(getFields(ctx))
-}
-
-//values to be added to the decorated log
-func getFields(ctx context.Context) logrus.Fields {
-	var fields = make(map[string]interface{})
-	fields["go-id"] = goid()
-
-	cluster_id := params.GetParam(ctx, params.ClusterId)
-	if cluster_id != "" {
-		fields[params.ClusterId] = cluster_id
-	}
-
-	host_id := params.GetParam(ctx, params.HostId)
-	if host_id != "" {
-		fields[params.HostId] = host_id
-	}
-	return fields
-}
-
-// get the low-level gorouting id
-// This has been taken from:
-// https://groups.google.com/d/msg/golang-nuts/Nt0hVV_nqHE/bwndAYvxAAAJ
-// This is hacky and should not be used for anything but logging
-func goid() string {
-	var buf [64]byte
-	n := runtime.Stack(buf[:], false)
-	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
-	return idField
+	return requestid.RequestIDLogger(inner, requestID).WithFields(params.GetContextParams(ctx))
 }

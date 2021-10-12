@@ -3,6 +3,8 @@ package context
 import (
 	"context"
 	"net/http"
+	"runtime"
+	"strings"
 
 	"github.com/go-openapi/runtime/middleware"
 )
@@ -23,6 +25,52 @@ func GetParam(ctx context.Context, key string) string {
 	} else {
 		return val.(string)
 	}
+}
+
+func SetParam(ctx context.Context, key string, value interface{}) context.Context {
+	return context.WithValue(ctx, contextKey(key), value)
+}
+
+func Copy(ctx context.Context) context.Context {
+	newContext := context.Background()
+	for k, v := range GetContextParams(ctx) {
+		newContext = SetParam(newContext, k, v)
+	}
+	return newContext
+}
+
+//return the values of interest (goid and path parameters) that we
+//are saving on the context
+func GetContextParams(ctx context.Context) map[string]interface{} {
+	var fields = make(map[string]interface{})
+	fields["go-id"] = goid()
+
+	cluster_id := GetParam(ctx, ClusterId)
+	if cluster_id != "" {
+		fields[ClusterId] = cluster_id
+	}
+
+	host_id := GetParam(ctx, HostId)
+	if host_id != "" {
+		fields[HostId] = host_id
+	}
+
+	infra_env := GetParam(ctx, InfraEnvId)
+	if infra_env != "" {
+		fields[InfraEnvId] = infra_env
+	}
+	return fields
+}
+
+// get the low-level gorouting id
+// This has been taken from:
+// https://groups.google.com/d/msg/golang-nuts/Nt0hVV_nqHE/bwndAYvxAAAJ
+// This is hacky and should not be used for anything but logging
+func goid() string {
+	var buf [64]byte
+	n := runtime.Stack(buf[:], false)
+	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
+	return idField
 }
 
 //openapi middleware handler that takes matched params from the route and put them
