@@ -4736,6 +4736,7 @@ paths:
       security:
         - userAuth: [user]
         - urlAuth: []
+        - agentAuth: []
       description: Downloads credentials relating to the installed/installing cluster.
       operationId: V2DownloadClusterCredentials
       produces:
