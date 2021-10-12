@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	reflect "reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -392,6 +393,13 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	if params.NewClusterParams.HTTPProxy != nil &&
 		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
 		params.NewClusterParams.HTTPSProxy = params.NewClusterParams.HTTPProxy
+	}
+
+	if params.NewClusterParams.DiskEncryption == nil {
+		params.NewClusterParams.DiskEncryption = &models.DiskEncryption{
+			EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+			Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+		}
 	}
 
 	return params
@@ -2303,6 +2311,7 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params
 	}
 
 	if err = validations.ValidateDiskEncryptionParams(v2Params.ClusterUpdateParams.DiskEncryption); err != nil {
+		log.WithError(err).Errorf("failed to validate disk-encryption params: %v", *v2Params.ClusterUpdateParams.DiskEncryption)
 		return nil, err
 	}
 
@@ -2621,16 +2630,19 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 
 func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncryption *models.DiskEncryption, usages map[string]models.Usage) {
 
-	if c.DiskEncryption == nil {
+	if c.DiskEncryption == nil || reflect.DeepEqual(c.DiskEncryption, &models.DiskEncryption{}) {
 		return
 	}
 
-	props := map[string]interface{}{
-		"enable_on":    *diskEncryption.EnableOn,
-		"mode":         *diskEncryption.Mode,
-		"tang_servers": diskEncryption.TangServers,
+	props := map[string]interface{}{}
+	if diskEncryption.EnableOn != nil {
+		props["enable_on"] = swag.StringValue(diskEncryption.EnableOn)
 	}
-	b.setUsage(*c.DiskEncryption.EnableOn != models.DiskEncryptionEnableOnNone, usage.DiskEncryption, &props, usages)
+	if diskEncryption.Mode != nil {
+		props["mode"] = swag.StringValue(diskEncryption.Mode)
+		props["tang_servers"] = diskEncryption.TangServers
+	}
+	b.setUsage(swag.StringValue(c.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone, usage.DiskEncryption, &props, usages)
 }
 
 func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {

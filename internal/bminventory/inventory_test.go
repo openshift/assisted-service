@@ -10717,6 +10717,82 @@ var _ = Describe("TestRegisterCluster", func() {
 			Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnNone)))
 		})
 
+		It("updating cluster with disk encryption", func() {
+
+			var c *models.Cluster
+			diskEncryptionBm := createInventory(db, cfg)
+			diskEncryptionBm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, mockOperatorManager, nil, nil, nil)
+
+			By("Register cluster", func() {
+
+				mockClusterRegisterSuccess(diskEncryptionBm, true)
+				mockUsageReports()
+				mockAMSSubscription(ctx)
+
+				reply := diskEncryptionBm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+				c = reply.(*installer.RegisterClusterCreated).Payload
+				Expect(swag.StringValue(c.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnNone))
+				Expect(swag.StringValue(c.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTpmv2))
+			})
+
+			By("Update cluster with full object", func() {
+
+				mockOperatorManager.EXPECT().ValidateCluster(ctx, gomock.Any())
+				mockEvents.EXPECT().SendClusterEvent(ctx, gomock.Any())
+
+				reply := diskEncryptionBm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: *c.ID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+							Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+						},
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				c = reply.(*installer.UpdateClusterCreated).Payload
+				Expect(swag.StringValue(c.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnAll))
+				Expect(swag.StringValue(c.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTpmv2))
+			})
+
+			By("Update cluster with partial object", func() {
+
+				mockOperatorManager.EXPECT().ValidateCluster(ctx, gomock.Any())
+
+				reply := diskEncryptionBm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: *c.ID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+						},
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				c = reply.(*installer.UpdateClusterCreated).Payload
+				Expect(swag.StringValue(c.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnMasters))
+				Expect(swag.StringValue(c.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTpmv2))
+			})
+
+			By("Update cluster with emtpy object", func() {
+
+				mockOperatorManager.EXPECT().ValidateCluster(ctx, gomock.Any())
+
+				reply := diskEncryptionBm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: *c.ID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{},
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				c = reply.(*installer.UpdateClusterCreated).Payload
+				Expect(swag.StringValue(c.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnMasters))
+				Expect(swag.StringValue(c.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTpmv2))
+			})
+		})
 	})
 
 	Context("NTPSource", func() {
