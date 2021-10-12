@@ -697,7 +697,6 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 			"CONTROLLER_IMAGE":       ControllerImage(),
 			"INSTALLER_IMAGE":        InstallerImage(),
 			"SELF_VERSION":           ServiceImage(),
-			"OPENSHIFT_VERSIONS":     r.getOpenshiftVersions(log, instance),
 			"OS_IMAGES":              r.getOSImages(log, instance),
 			"MUST_GATHER_IMAGES":     r.getMustGatherImages(log, instance),
 			"ISO_IMAGE_TYPE":         "minimal-iso",
@@ -1254,58 +1253,6 @@ func (r *AgentServiceConfigReconciler) getOSImages(log logrus.FieldLogger, insta
 	}
 
 	return string(encodedOSImages)
-}
-
-// getOpenshiftVersions returns the value of OPENSHIFT_VERSIONS variable
-// to be stored in the service's ConfigMap
-//
-// 1. If osImages field is not present in the AgentServiceConfig's Spec
-//    it returns the value of OPENSHIFT_VERSIONS env variable. This is
-//    also the fallback behavior in case there are no valid versions
-//    in the Spec
-//
-// 2. if osImages field is present in the AgentServiceConfig's Spec it
-//    converts the structure to the one that can be recognize by the service
-//    and returns it as a JSON string
-//
-// 3. In case both sources are present, the Spec values overrides the env
-//    values
-func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) string {
-	if instance.Spec.OSImages == nil {
-		return OpenshiftVersions()
-	}
-
-	openshiftVersions := make(models.OpenshiftVersions)
-	for i, image := range instance.Spec.OSImages {
-		key, err := getVersionKey(image.OpenshiftVersion)
-		if err != nil {
-			log.WithError(err).Error(fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", image.OpenshiftVersion))
-			continue
-		}
-
-		openshiftVersion := models.OpenshiftVersion{
-			DisplayName:  key,
-			RhcosVersion: instance.Spec.OSImages[i].Version,
-			RhcosImage:   instance.Spec.OSImages[i].Url,
-			RhcosRootfs:  instance.Spec.OSImages[i].RootFSUrl,
-		}
-
-		// the last entry for a particular OpenShift version takes precedence.
-		openshiftVersions[key] = openshiftVersion
-	}
-
-	if len(openshiftVersions) == 0 {
-		log.Info("No valid OS Image specified, returning default", "OpenShift Versions", OpenshiftVersions())
-		return OpenshiftVersions()
-	}
-
-	encodedVersions, err := json.Marshal(openshiftVersions)
-	if err != nil {
-		log.WithError(err).Error(fmt.Sprintf("Problem marshaling versions (%v) to string, returning default %v", openshiftVersions, OpenshiftVersions()))
-		return OpenshiftVersions()
-	}
-
-	return string(encodedVersions)
 }
 
 func (r *AgentServiceConfigReconciler) getCMHash(ctx context.Context, namespacedName types.NamespacedName) (string, error) {

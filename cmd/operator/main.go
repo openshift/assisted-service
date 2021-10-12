@@ -98,21 +98,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	// must have openshift versions specified on the operator
+	// must have OS images specified on the operator
 	// this prevents us from having to include the full json in source
 	// ie. this should ALWAYS be specified on the CSV, until a proper
 	// API is provided for it
-	// I think it's reasonable to check that the OPENSHIFT_VERSIONS is
+	// I think it's reasonable to check that the OS_IMAGES is
 	// legit before we go passing it down to the assisted-service deployment
 	// and letting it fail there.
-	var openshiftVersionsMap models.OpenshiftVersions
-	openshiftVersions, found := os.LookupEnv(controllers.OpenshiftVersionsEnvVar)
-	if !found || openshiftVersions == "" {
-		setupLog.Error(fmt.Errorf("%s environment variable must be set (commonly set automatically in every Pod) to a non-empty value.", controllers.OpenshiftVersionsEnvVar), "unable to get OpenShift Versions")
+	var osImagesArray models.OsImages
+	osImages, found := os.LookupEnv(controllers.OsImagesEnvVar)
+	if !found || osImages == "" {
+		setupLog.Error(fmt.Errorf("%s environment variable must be set (commonly set automatically in every Pod) to a non-empty value", controllers.OsImagesEnvVar), "unable to get OS images")
 		os.Exit(1)
 	}
-	if err = json.Unmarshal([]byte(openshiftVersions), &openshiftVersionsMap); err != nil {
-		setupLog.Error(fmt.Errorf("OpenShift versions (%v) specified in %s are not valid", openshiftVersions, controllers.OpenshiftVersionsEnvVar), "invalid OpenShift Versions")
+	if err = json.Unmarshal([]byte(osImages), &osImagesArray); err != nil {
+		setupLog.Error(fmt.Errorf("OS images (%v) specified in %s are not valid", osImages, controllers.OsImagesEnvVar), "invalid OS images")
 		os.Exit(1)
 	}
 

@@ -39,7 +39,6 @@ RCHOS_LIVE_ISO_URL = "https://mirror.openshift.com/pub/openshift-v4/{architectur
 RCHOS_VERSION_FROM_ISO_REGEX = re.compile("coreos.liveiso=rhcos-(.*) ")
 DOWNLOAD_LIVE_ISO_CMD = "curl {live_iso_url} -o {out_file}"
 
-DEFAULT_VERSIONS_FILES = os.path.join("data", "default_ocp_versions.json")
 DEFAULT_OS_IMAGES_FILE = os.path.join("data", "default_os_images.json")
 DEFAULT_RELEASE_IMAGES_FILE = os.path.join("data", "default_release_images.json")
 
@@ -52,8 +51,6 @@ ASSISTED_SERVICE_GITHUB_FORK_REPO = "{github_user}/assisted-service"
 ASSISTED_SERVICE_CLONE_URL = "https://{github_user}:{github_password}@github.com/{ASSISTED_SERVICE_GITHUB_FORK_REPO}.git"
 ASSISTED_SERVICE_UPSTREAM_URL = f"https://github.com/{ASSISTED_SERVICE_GITHUB_REPO}.git"
 
-ASSISTED_SERVICE_MASTER_DEFAULT_OCP_VERSIONS_JSON_URL = \
-    f"{ASSISTED_SERVICE_GITHUB_REPO_URL_MASTER}/{DEFAULT_VERSIONS_FILES}"
 ASSISTED_SERVICE_MASTER_DEFAULT_OS_IMAGES_JSON_URL = \
     f"{ASSISTED_SERVICE_GITHUB_REPO_URL_MASTER}/{DEFAULT_OS_IMAGES_FILE}"
 ASSISTED_SERVICE_MASTER_DEFAULT_RELEASE_IMAGES_JSON_URL = \
@@ -301,14 +298,12 @@ def main(args):
 
     default_release_images_json = request_json_file(ASSISTED_SERVICE_MASTER_DEFAULT_RELEASE_IMAGES_JSON_URL)
     default_os_images_json = request_json_file(ASSISTED_SERVICE_MASTER_DEFAULT_OS_IMAGES_JSON_URL)
-    default_version_json = request_json_file(ASSISTED_SERVICE_MASTER_DEFAULT_OCP_VERSIONS_JSON_URL)
 
     updates_made = set()
     updates_made_str = set()
 
     update_release_images_json(default_release_images_json, updates_made, updates_made_str, dry_run)
     update_os_images_json(default_os_images_json, updates_made, updates_made_str, dry_run)
-    update_ocp_versions_json(default_version_json, updates_made, updates_made_str, dry_run)
 
     if updates_made:
         verify_latest_config()
@@ -320,85 +315,6 @@ def main(args):
 
         title, task = create_jira_task(updates_made_str, dry_run, args)
         create_github_pr(updates_made, title, task, args)
-
-
-def update_ocp_versions_json(default_version_json, updates_made, updates_made_str, dry_run):
-    updated_version_json = copy.deepcopy(default_version_json)
-
-    for release in default_version_json:
-
-        if release in SKIPPED_MAJOR_RELEASE:
-            logger.info(f"Skipping {release} listed in the skip list")
-            continue
-
-        latest_ocp_release = get_latest_release_from_minor(release, CPU_ARCHITECTURE_AMD64)
-        if not latest_ocp_release:
-            logger.info(f"No release found for {release}, continuing")
-            continue
-
-        current_default_ocp_release = default_version_json.get(release).get("display_name")
-
-        if current_default_ocp_release != latest_ocp_release:
-
-            updates_made.add(release)
-            updates_made_str.add(f"release {current_default_ocp_release} -> {latest_ocp_release}")
-
-            logger.info(f"New latest ocp release available for {release}, {current_default_ocp_release} -> {latest_ocp_release}")
-            updated_version_release = updated_version_json[release]
-            updated_version_release["display_name"] = latest_ocp_release
-
-            # 'release_version' and 'release_image' are optional (used as a fallback if missing in default_release_images json)
-            if "release_version" in updated_version_release:
-                updated_version_release["release_version"] = latest_ocp_release
-            if "release_image" in updated_version_release:
-                updated_version_release["release_image"] = updated_version_json[release]["release_image"].replace(current_default_ocp_release, latest_ocp_release)
-
-
-        # rhcos_image/rhcos_rootfs/rhcos_version are optional (used as a fallback if missing in default_os_images json)
-        if not all (k in updated_version_json[release] for k in ("rhcos_image","rhcos_rootfs","rhcos_version")):
-            continue
-
-        rhcos_image_url = updated_version_json[release]['rhcos_image']
-        rhcos_default_release = get_rchos_release_from_default_version_json(rhcos_image_url)
-
-        # Get all releases for minor versions. If not available, fallback to pre-releases.
-        rhcos_latest_of_releases = get_all_releases(release, CPU_ARCHITECTURE_X86_64)
-        pre_release = False
-        if not rhcos_latest_of_releases:
-            rhcos_latest_of_releases = get_all_releases(RHCOS_PRE_RELEASE, CPU_ARCHITECTURE_X86_64)
-            pre_release = True
-        rhcos_latest_release = get_latest_rhcos_release_from_minor(release, rhcos_latest_of_releases, pre_release)
-
-        if rhcos_default_release != rhcos_latest_release:
-
-            updates_made.add(release)
-            updates_made_str.add(f"rhcos {rhcos_default_release} -> {rhcos_latest_release}")
-
-            logger.info(f"New latest rhcos release available, {rhcos_default_release} -> {rhcos_latest_release}")
-
-            # Update rhcos image/rootfs with latest version
-            rhcos_image = updated_version_json[release]["rhcos_image"].replace(rhcos_default_release, rhcos_latest_release)
-            rhcos_rootfs = updated_version_json[release]["rhcos_rootfs"].replace(rhcos_default_release, rhcos_latest_release)
-            if not pre_release:
-                # Replace 'pre-release' with minor version
-                rhcos_image = rhcos_image.replace(RHCOS_PRE_RELEASE, release)
-                rhcos_rootfs = rhcos_rootfs.replace(RHCOS_PRE_RELEASE, release)
-            # Update json
-            updated_version_json[release]["rhcos_image"] = rhcos_image
-            updated_version_json[release]["rhcos_rootfs"] = rhcos_rootfs
-
-            if dry_run:
-                rhcos_version_from_iso = "8888888"
-            else:
-                minor_version = RHCOS_PRE_RELEASE if pre_release else release
-                rhcos_version_from_iso = get_rchos_version_from_iso(minor_version, rhcos_latest_release, CPU_ARCHITECTURE_X86_64)
-            updated_version_json[release]["rhcos_version"] = rhcos_version_from_iso
-
-    if updates_made:
-        with open(os.path.join(ASSISTED_SERVICE_CLONE_DIR, DEFAULT_VERSIONS_FILES), 'w') as outfile:
-            json.dump(updated_version_json, outfile, indent=4)
-
-    return updates_made, updates_made_str
 
 
 def update_release_images_json(default_release_images_json, updates_made, updates_made_str, dry_run):

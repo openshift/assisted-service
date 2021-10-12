@@ -940,7 +940,7 @@ var _ = Describe("getOSImages", func() {
 	}
 })
 
-var _ = Describe("getOpenshiftVersions", func() {
+var _ = Describe("getOSImages", func() {
 	var (
 		asc         *aiv1beta1.AgentServiceConfig
 		ascr        *AgentServiceConfigReconciler
@@ -948,60 +948,46 @@ var _ = Describe("getOpenshiftVersions", func() {
 		expectedEnv string
 	)
 
-	Context("with OpenShift versions not specified", func() {
-		It("should return the default OpenShift versions", func() {
+	Context("with OS images not specified", func() {
+		It("should return the default OS images", func() {
 			expectedEnv = `{"x.y": { "foo": "bar" }}`
 			// Sensible defaults are handled via operator packaging (ie in CSV).
 			// Here we just need to ensure the env var is taken when
-			// OpenShift versions are not specified on the AgentServiceConfig.
-			os.Setenv(OpenshiftVersionsEnvVar, expectedEnv)
-			defer os.Unsetenv(OpenshiftVersionsEnvVar)
+			// OS images are not specified on the AgentServiceConfig.
+			os.Setenv(OsImagesEnvVar, expectedEnv)
+			defer os.Unsetenv(OsImagesEnvVar)
 
 			asc = newASCDefault()
 			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
+			Expect(ascr.getOSImages(log, asc)).To(MatchJSON(expectedEnv))
 		})
 	})
-	Context("with OpenShift versions specified", func() {
-		It("should build OpenShift versions", func() {
-			asc, expectedEnv = newASCWithOpenshiftVersions()
+	Context("with OS images specified", func() {
+		It("should build OS images", func() {
+			asc, expectedEnv = newASCWithOSImages()
 			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
+			Expect(ascr.getOSImages(log, asc)).To(MatchJSON(expectedEnv))
 		})
 	})
-	Context("with multiple OpenShift versions specified", func() {
-		It("should build OpenShift versions with multiple keys", func() {
+	Context("with multiple OS images specified", func() {
+		It("should build OS images with multiple keys", func() {
 			asc, expectedEnv = newASCWithMultipleOpenshiftVersions()
 			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
+			Expect(ascr.getOSImages(log, asc)).To(MatchJSON(expectedEnv))
 		})
 	})
-	Context("with duplicate OpenShift versions specified", func() {
+	Context("with duplicate OS images specified", func() {
 		It("should take the last specified version", func() {
 			asc, expectedEnv = newASCWithDuplicateOpenshiftVersions()
 			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
+			Expect(ascr.getOSImages(log, asc)).To(MatchJSON(expectedEnv))
 		})
 	})
-	Context("with invalid OpenShift versions specified", func() {
-		It("should return the default OpenShift versions", func() {
-			expectedEnv = `{"x.y": { "foo": "bar" }}`
-			// Sensible defaults are handled via operator packaging (ie in CSV).
-			// Here we just need to ensure the env var is taken when
-			// OpenShift versions are not specified on the AgentServiceConfig.
-			os.Setenv(OpenshiftVersionsEnvVar, expectedEnv)
-			defer os.Unsetenv(OpenshiftVersionsEnvVar)
-
-			asc = newASCWithInvalidOpenshiftVersion()
-			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
-		})
-	})
-	Context("with OpenShift version x.y.z specified", func() {
+	Context("with OS images x.y.z specified", func() {
 		It("should only specify x.y", func() {
 			asc, expectedEnv = newASCWithLongOpenshiftVersion()
 			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
+			Expect(ascr.getOSImages(log, asc)).To(MatchJSON(expectedEnv))
 		})
 	})
 })
@@ -1093,7 +1079,7 @@ func newASCWithMirrorRegistryConfig() *aiv1beta1.AgentServiceConfig {
 	return asc
 }
 
-func newASCWithOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, string) {
+func newASCWithOSImages() (*aiv1beta1.AgentServiceConfig, string) {
 	asc := newASCDefault()
 
 	asc.Spec.OSImages = []aiv1beta1.OSImage{
@@ -1111,22 +1097,24 @@ func newASCWithOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, string) {
 		},
 	}
 
-	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
-		"4.8": {
-			DisplayName:  "4.8",
-			RhcosVersion: "48",
-			RhcosImage:   "4.8.iso",
-			RhcosRootfs:  "4.8.img",
+	encoded, _ := json.Marshal(models.OsImages{
+		&models.OsImage{
+			CPUArchitecture:  swag.String(""),
+			OpenshiftVersion: swag.String("4.8"),
+			Version:          swag.String("48"),
+			URL:              swag.String("4.8.iso"),
+			RootfsURL:        swag.String("4.8.img"),
 		},
-		"4.9": {
-			DisplayName:  "4.9",
-			RhcosVersion: "49",
-			RhcosImage:   "4.9.iso",
-			RhcosRootfs:  "4.9.img",
+		&models.OsImage{
+			CPUArchitecture:  swag.String(""),
+			OpenshiftVersion: swag.String("4.9"),
+			Version:          swag.String("49"),
+			URL:              swag.String("4.9.iso"),
+			RootfsURL:        swag.String("4.9.img"),
 		},
 	})
 
-	return asc, string(encodedVersions)
+	return asc, string(encoded)
 }
 
 func newASCWithMultipleOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, string) {
@@ -1146,22 +1134,24 @@ func newASCWithMultipleOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, strin
 		},
 	}
 
-	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
-		"4.7": {
-			DisplayName:  "4.7",
-			RhcosVersion: "47",
-			RhcosImage:   "4.7.iso",
-			RhcosRootfs:  "4.7.img",
+	encoded, _ := json.Marshal(models.OsImages{
+		&models.OsImage{
+			CPUArchitecture:  swag.String(""),
+			OpenshiftVersion: swag.String("4.7"),
+			Version:          swag.String("47"),
+			URL:              swag.String("4.7.iso"),
+			RootfsURL:        swag.String("4.7.img"),
 		},
-		"4.8": {
-			DisplayName:  "4.8",
-			RhcosVersion: "48",
-			RhcosImage:   "4.8.iso",
-			RhcosRootfs:  "4.8.img",
+		&models.OsImage{
+			CPUArchitecture:  swag.String(""),
+			OpenshiftVersion: swag.String("4.8"),
+			Version:          swag.String("48"),
+			URL:              swag.String("4.8.iso"),
+			RootfsURL:        swag.String("4.8.img"),
 		},
 	})
 
-	return asc, string(encodedVersions)
+	return asc, string(encoded)
 }
 
 func newASCWithDuplicateOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, string) {
@@ -1187,37 +1177,31 @@ func newASCWithDuplicateOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, stri
 		},
 	}
 
-	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
-		"4.7": {
-			DisplayName:  "4.7",
-			RhcosVersion: "47",
-			RhcosImage:   "4.7.iso",
-			RhcosRootfs:  "4.7.img",
+	encoded, _ := json.Marshal(models.OsImages{
+		&models.OsImage{
+			CPUArchitecture:  swag.String(""),
+			OpenshiftVersion: swag.String("4.7"),
+			Version:          swag.String("47"),
+			URL:              swag.String("4.7.iso"),
+			RootfsURL:        swag.String("4.7.img"),
 		},
-		"4.8": {
-			DisplayName:  "4.8",
-			RhcosVersion: "48",
-			RhcosImage:   "4.8.iso",
-			RhcosRootfs:  "4.8.img",
+		&models.OsImage{
+			CPUArchitecture:  swag.String(""),
+			OpenshiftVersion: swag.String("4.8"),
+			Version:          swag.String("loser"),
+			URL:              swag.String("loser"),
+			RootfsURL:        swag.String("loser"),
+		},
+		&models.OsImage{
+			CPUArchitecture:  swag.String(""),
+			OpenshiftVersion: swag.String("4.8"),
+			Version:          swag.String("48"),
+			URL:              swag.String("4.8.iso"),
+			RootfsURL:        swag.String("4.8.img"),
 		},
 	})
 
-	return asc, string(encodedVersions)
-}
-
-func newASCWithInvalidOpenshiftVersion() *aiv1beta1.AgentServiceConfig {
-	asc := newASCDefault()
-
-	asc.Spec.OSImages = []aiv1beta1.OSImage{
-		{
-			OpenshiftVersion: "invalidVersion",
-			Version:          "48",
-			Url:              "4.8.iso",
-			RootFSUrl:        "4.8.img",
-		},
-	}
-
-	return asc
+	return asc, string(encoded)
 }
 
 func newASCWithLongOpenshiftVersion() (*aiv1beta1.AgentServiceConfig, string) {
@@ -1232,14 +1216,15 @@ func newASCWithLongOpenshiftVersion() (*aiv1beta1.AgentServiceConfig, string) {
 		},
 	}
 
-	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
-		"4.8": {
-			DisplayName:  "4.8",
-			RhcosVersion: "48",
-			RhcosImage:   "4.8.iso",
-			RhcosRootfs:  "4.8.img",
+	encoded, _ := json.Marshal(models.OsImages{
+		&models.OsImage{
+			CPUArchitecture:  swag.String(""),
+			OpenshiftVersion: swag.String("4.8.0"),
+			Version:          swag.String("48"),
+			URL:              swag.String("4.8.iso"),
+			RootfsURL:        swag.String("4.8.img"),
 		},
 	})
 
-	return asc, string(encodedVersions)
+	return asc, string(encoded)
 }
