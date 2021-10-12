@@ -31,7 +31,7 @@ type ReleaseImage struct {
 	OpenshiftVersion *string `json:"openshift_version"`
 
 	// Level of support of the version.
-	// Enum: [beta production]
+	// Enum: [beta production maintenance]
 	SupportLevel string `json:"support_level,omitempty"`
 
 	// The installation image of the OpenShift cluster.
@@ -95,7 +95,7 @@ var releaseImageTypeSupportLevelPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["beta","production"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["beta","production","maintenance"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -110,6 +110,9 @@ const (
 
 	// ReleaseImageSupportLevelProduction captures enum value "production"
 	ReleaseImageSupportLevelProduction string = "production"
+
+	// ReleaseImageSupportLevelMaintenance captures enum value "maintenance"
+	ReleaseImageSupportLevelMaintenance string = "maintenance"
 )
 
 // prop value enum
