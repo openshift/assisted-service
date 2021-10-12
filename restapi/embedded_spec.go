@@ -9816,6 +9816,10 @@ func init() {
         "ram_mib": {
           "description": "Required number of RAM in MiB",
           "type": "integer"
+        },
+        "tpm_enabled_in_bios": {
+          "description": "Whether TPM module should be enabled in host's BIOS.",
+          "type": "boolean"
         }
       }
     },
@@ -22817,6 +22821,10 @@ func init() {
         "ram_mib": {
           "description": "Required number of RAM in MiB",
           "type": "integer"
+        },
+        "tpm_enabled_in_bios": {
+          "description": "Whether TPM module should be enabled in host's BIOS.",
+          "type": "boolean"
         }
       }
     },
