@@ -5211,6 +5211,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "agentAuth": []
           }
         ],
         "description": "Downloads credentials relating to the installed/installing cluster.",
@@ -18039,6 +18042,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "agentAuth": []
           }
         ],
         "description": "Downloads credentials relating to the installed/installing cluster.",
