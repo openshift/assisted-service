@@ -12,7 +12,7 @@ See full enhancement document [here](../enhancements/agent-late-binding.md).
 - The user creates a Cluster Deployment and Agent Cluster Install CR.
 - The user updates the Agent's Cluster Deployment reference to the CD name:
 ```bash
-kubectl -n assisted-installer patch agents.agent-install.openshift.io 039d72c2-f15a-4a67-977e-b25fd1dfea07 -p '{"spec":{"clusterDeploymentName":{"name":"single-node","namespace":"assisted-installer"}}}' --type merge
+kubectl -n my_namespace patch agents.agent-install.openshift.io my_agent -p '{"spec":{"clusterDeploymentName":{"name":"my_cd","namespace":"my_cd_ns"}}}' --type merge
 ```
 - The process of the agent binding can be followed on the `Bound` condition available on the Agent CR. See [here]
 (kube-api-conditions.md#agent-conditions)
