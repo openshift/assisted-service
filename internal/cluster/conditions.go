@@ -17,6 +17,7 @@ const (
 	VipDhcpAllocationSet         = conditionId("vip-dhcp-allocation-set")
 	AllHostsPreparedSuccessfully = conditionId("all-hosts-prepared-successfully")
 	UnPreparingtHostsExist       = conditionId("unpreparing-hosts-exist")
+	FailedPreparingtHostsExist   = conditionId("failed-preparing-hosts-exist")
 	ClusterPreparationSucceeded  = conditionId("cluster-preparation-succeeded")
 	ClusterPreparationFailed     = conditionId("cluster-preparation-failed")
 )
@@ -43,10 +44,20 @@ func (v *clusterValidator) isUnPreparingHostsExist(c *clusterPreprocessContext) 
 		models.HostStatusPreparingForInstallation,
 		models.HostStatusPreparingSuccessful,
 		models.HostStatusDisabled,
+		models.HostStatusPreparingFailed,
 		models.HostStatusKnown,
 	}
 	for _, h := range c.cluster.Hosts {
 		if !funk.ContainsString(validStates, swag.StringValue(h.Status)) {
+			return true
+		}
+	}
+	return false
+}
+
+func (v *clusterValidator) isFailedPreparingHostExist(c *clusterPreprocessContext) bool {
+	for _, h := range c.cluster.Hosts {
+		if models.HostStatusPreparingFailed == swag.StringValue(h.Status) {
 			return true
 		}
 	}
