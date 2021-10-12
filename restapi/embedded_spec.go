@@ -12372,7 +12372,8 @@ func init() {
           "type": "string",
           "enum": [
             "beta",
-            "production"
+            "production",
+            "maintenance"
           ]
         },
         "url": {
@@ -25284,7 +25285,8 @@ func init() {
           "type": "string",
           "enum": [
             "beta",
-            "production"
+            "production",
+            "maintenance"
           ]
         },
         "url": {
