@@ -2405,10 +2405,12 @@ var _ = Describe("AutoAssignRole", func() {
 		db              *gorm.DB
 		ctrl            *gomock.Controller
 		mockHwValidator *hardware.MockValidator
+		mockEvents      *events.MockHandler
 		dbName          string
 	)
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -2420,7 +2422,7 @@ var _ = Describe("AutoAssignRole", func() {
 		hapi = NewManager(
 			common.GetTestLog(),
 			db,
-			nil,
+			mockEvents,
 			mockHwValidator,
 			nil,
 			createValidatorCfg(),
@@ -2477,7 +2479,18 @@ var _ = Describe("AutoAssignRole", func() {
 		ctrl.Finish()
 	})
 
+	mockRoleSuggestionEvent := func(h *models.Host) {
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.UpdateHostRoleEventName),
+			eventstest.WithHostIdMatcher(h.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
+		))
+	}
+
 	verifyAutoAssignRole := func(host *models.Host, success bool, isSelected bool) {
+		if isSelected {
+			mockRoleSuggestionEvent(host)
+		}
 		selected, err := hapi.AutoAssignRole(ctx, host, db)
 		Expect(selected).To(Equal(isSelected))
 		if success {
@@ -2540,6 +2553,7 @@ var _ = Describe("AutoAssignRole", func() {
 				h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvId, clusterId, models.HostStatusKnown)
 				h.Inventory = t.inventory
 				h.Role = t.srcRole
+				h.SuggestedRole = ""
 				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 				verifyAutoAssignRole(&h, t.success, t.selected)
 				Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(t.expectedRole))
@@ -2552,6 +2566,7 @@ var _ = Describe("AutoAssignRole", func() {
 			h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvId, clusterId, models.HostStatusKnown)
 			h.Inventory = hostutil.GenerateMasterInventory()
 			h.Role = models.HostRoleAutoAssign
+			h.SuggestedRole = ""
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			verifyAutoAssignRole(&h, true, true)
 			Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleMaster))
@@ -2560,6 +2575,7 @@ var _ = Describe("AutoAssignRole", func() {
 		h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvId, clusterId, models.HostStatusKnown)
 		h.Inventory = hostutil.GenerateMasterInventory()
 		h.Role = models.HostRoleAutoAssign
+		h.SuggestedRole = ""
 		Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 		verifyAutoAssignRole(&h, true, true)
 		Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleWorker))

@@ -165,6 +165,11 @@ var _ = Describe("Validations test", func() {
 			checkValidation(ValidationPending, "Missing role assignment")
 
 			By("auto-assign node is effectively assigned to master")
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.UpdateHostRoleEventName),
+				eventstest.WithHostIdMatcher(h.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
+			))
 			err := m.RefreshRole(ctx, &h, db)
 			Expect(err).ToNot(HaveOccurred())
 

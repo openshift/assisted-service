@@ -996,6 +996,45 @@ var _ = Describe("agent reconcile", func() {
 		Expect(agent.Status.Bootstrap).To(Equal(bootStrap))
 	})
 
+	It("Agent auto-assign to master role status", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:            &hostId,
+				ClusterID:     &sId,
+				Role:          models.HostRoleAutoAssign,
+				SuggestedRole: models.HostRoleMaster,
+				Status:        swag.String(models.HostStatusKnown),
+				StatusInfo:    swag.String("Some status info"),
+			},
+		}
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				&commonHost.Host,
+			}}}
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		Expect(c.Create(ctx, host)).To(BeNil())
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent := &v1beta1.Agent{}
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(agent.Status.Role).To(Equal(models.HostRoleMaster))
+	})
+
 	It("Agent progress status", func() {
 		hostId := strfmt.UUID(uuid.New().String())
 		progress := &models.HostProgressInfo{

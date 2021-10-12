@@ -10,7 +10,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -75,24 +77,28 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		inventory      string
 		srcState       string
 		suggested_role models.HostRole
+		eventTypes     []string
 	}{
 		{
 			name:           "insufficient worker memory --> suggested as worker",
 			inventory:      hostutil.GenerateInventoryWithResourcesWithBytes(4, conversions.MibToBytes(150), conversions.MibToBytes(150), "worker"),
 			srcState:       models.HostStatusDiscovering,
 			suggested_role: models.HostRoleWorker,
+			eventTypes:     []string{eventgen.UpdateHostRoleEventName},
 		},
 		{
 			name:           "sufficient master memory --> suggested as master when masters < 3",
 			inventory:      hostutil.GenerateMasterInventory(),
 			srcState:       models.HostStatusInsufficient,
 			suggested_role: models.HostRoleMaster,
+			eventTypes:     []string{eventgen.UpdateHostRoleEventName},
 		},
 		{
 			name:           "sufficient worker memory --> suggested as worker",
 			inventory:      workerInventory(),
 			srcState:       models.HostStatusKnown,
 			suggested_role: models.HostRoleWorker,
+			eventTypes:     []string{eventgen.UpdateHostRoleEventName},
 		},
 	}
 
@@ -109,6 +115,13 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 			host.SuggestedRole = models.HostRoleAutoAssign
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			mockDefaultClusterHostRequirements(mockHwValidator)
+			for _, ev := range t.eventTypes {
+				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(ev),
+					eventstest.WithHostIdMatcher(host.ID.String()),
+					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				))
+			}
 
 			err := hapi.RefreshRole(ctx, &host, db)
 			Expect(err).ToNot(HaveOccurred())
