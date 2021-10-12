@@ -170,15 +170,18 @@ spec:
     - openshiftVersion: "4.6"
       version: "46.82.202012051820-0"
       url: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso"
-      rootFSUrl: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-live-rootfs.x86_64.img"
+      rootFSUrl: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-live-rootfs.x86_64.img",
+      cpuArchitecture: "x86_64"
     - openshiftVersion: "4.7"
       version: "47.83.202103251640-0"
       url: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso"
-      rootFSUrl: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img"
+      rootFSUrl: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
+      cpuArchitecture: "x86_64"
     - openshiftVersion: "4.8"
       version: "47.83.202103251640-0"
       url: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso"
-      rootFSUrl: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img"
+      rootFSUrl: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
+      cpuArchitecture: "x86_64"
 ```
 
 ### Available Olm Operators Must Gather Images
