@@ -79,6 +79,8 @@ function generate_configuration() {
     sed -i "s|value: '.*' # release images|value: '${RELEASE_IMAGES}' # release images|" ${__root}/openshift/template.yaml
     sed -i "s|value: '.*' # must-gather images|value: '${MUST_GATHER_IMAGES}' # must-gather images|" ${__root}/openshift/template.yaml
 
+    sed -i "s|value: '.*' # os images|value: '${OS_IMAGES}' # os images|" ${__root}/openshift/template-image-service.yaml
+
     sed -i "s|OPENSHIFT_VERSIONS=.*|OPENSHIFT_VERSIONS=${OPENSHIFT_VERSIONS}|" ${__root}/onprem-environment
     sed -i "s|OS_IMAGES=.*|OS_IMAGES=${OS_IMAGES}|" ${__root}/onprem-environment
     sed -i "s|RELEASE_IMAGES=.*|RELEASE_IMAGES=${RELEASE_IMAGES}|" ${__root}/onprem-environment
