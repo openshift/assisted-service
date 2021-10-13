@@ -12125,6 +12125,18 @@ var _ = Describe("UnbindHost", func() {
 		verifyApiError(response, http.StatusConflict)
 	})
 
+	It("unbound when infraenv is bound", func() {
+		params := installer.UnbindHostParams{
+			HostID:     hostID,
+			InfraEnvID: infraEnvID,
+		}
+		var infraEnvObj models.InfraEnv
+		Expect(db.First(&infraEnvObj, "id = ?", infraEnvID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&infraEnvObj).Update("cluster_id", clusterID).Error).ShouldNot(HaveOccurred())
+		response := bm.UnbindHost(ctx, params)
+		verifyApiError(response, http.StatusConflict)
+	})
+
 	It("transition failed", func() {
 		params := installer.UnbindHostParams{
 			HostID:     hostID,
