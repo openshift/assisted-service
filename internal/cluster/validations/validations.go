@@ -404,14 +404,14 @@ func ValidateIPAddresses(ipV6Supported bool, obj interface{}) error {
 	if err != nil {
 		return err
 	}
-	err = validateDualStackNetworks(obj)
+	err = ValidateDualStackNetworks(obj, false)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func validateDualStackNetworks(clusterParams interface{}) error {
+func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool) error {
 	var machineNetworks []*models.MachineNetwork
 	var serviceNetworks []*models.ServiceNetwork
 	var clusterNetworks []*models.ClusterNetwork
@@ -443,6 +443,15 @@ func validateDualStackNetworks(clusterParams interface{}) error {
 			return err
 		}
 		reqDualStack = ipv4 && ipv6
+	}
+
+	// When creating a cluster, we are always first creating an object with empty Machine Networks
+	// and only afterwards we update it with requested Machine Networks. Because of this, the
+	// creation cluster payload never contains both Cluster/Service and Machine Networks. In order
+	// to overcome this, we are checking for dual-stackness in the current payload as well as
+	// in the current cluster object.
+	if len(serviceNetworks) == 0 && len(clusterNetworks) == 0 && !reqDualStack {
+		reqDualStack = alreadyDualStack
 	}
 
 	if reqDualStack {
