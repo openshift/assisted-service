@@ -696,6 +696,7 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 			"CHECK_CLUSTER_VERSION":       "True",
 			"CREATE_S3_BUCKET":            "False",
 			"ENABLE_KUBE_API":             "True",
+			"ENABLE_AUTO_ASSIGN":          "True",
 			"ENABLE_SINGLE_NODE_DNSMASQ":  "True",
 			"IPV6_SUPPORT":                "True",
 			"JWKS_URL":                    "https://api.openshift.com/.well-known/jwks.json",
