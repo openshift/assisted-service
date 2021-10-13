@@ -423,10 +423,11 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		if err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
-		log.Infof("HA mode is None, setting UserManagedNetworking to true and VipDhcpAllocation to false")
-		params.NewClusterParams.UserManagedNetworking = swag.Bool(true)
-		// in case of single node VipDhcpAllocation should be always false
-		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
+
+		err = validateAndUpdateSingleNodeParams(params.NewClusterParams, log)
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 
 	if swag.BoolValue(params.NewClusterParams.UserManagedNetworking) {
@@ -487,12 +488,11 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	if err = validations.ValidateDualStackNetworks(params.NewClusterParams, false); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
-
-	params = b.setDefaultRegisterClusterParams(ctx, params)
-
 	if err = b.validateRegisterClusterInternalParams(&params, log); err != nil {
 		return nil, err
 	}
+
+	params = b.setDefaultRegisterClusterParams(ctx, params)
 
 	cpuArchitecture, err := b.getNewClusterCPUArchitecture(params.NewClusterParams)
 	if err != nil {
@@ -715,6 +715,28 @@ func verifyMinimalOpenShiftVersionForSingleNode(requestedOpenshiftVersion string
 	if ocpVersion.LessThan(minimalVersionForSno) {
 		return errors.Errorf("Invalid OCP version (%s) for Single node, Single node OpenShift is supported for version 4.8 and above", requestedOpenshiftVersion)
 	}
+	return nil
+}
+
+func validateAndUpdateSingleNodeParams(newClusterParams *models.ClusterCreateParams, log logrus.FieldLogger) error {
+	if newClusterParams.UserManagedNetworking == nil {
+		log.Infof("HA mode is None, setting UserManagedNetworking to true")
+		// in case of single node UserManagedNetworking should be true
+		newClusterParams.UserManagedNetworking = swag.Bool(true)
+	}
+	if newClusterParams.VipDhcpAllocation == nil {
+		log.Infof("HA mode is None, setting VipDhcpAllocation to false")
+		// in case of single node VipDhcpAllocation should be false
+		newClusterParams.VipDhcpAllocation = swag.Bool(false)
+	}
+
+	if !swag.BoolValue(newClusterParams.UserManagedNetworking) {
+		return errors.Errorf("User Managed Networking must be enabled on single node OpenShift")
+	}
+	if swag.BoolValue(newClusterParams.VipDhcpAllocation) {
+		return errors.Errorf("VIP DHCP Allocation cannot be enabled on single node OpenShift")
+	}
+
 	return nil
 }
 

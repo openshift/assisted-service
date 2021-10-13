@@ -3391,7 +3391,6 @@ var _ = Describe("cluster", func() {
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
-			clusterParams.VipDhcpAllocation = swag.Bool(true)
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
@@ -3399,7 +3398,6 @@ var _ = Describe("cluster", func() {
 			actual := reply.(*installer.RegisterClusterCreated)
 			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
-			// verify VipDhcpAllocation was set to false even though it was sent as true
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 		})
 		It("create non ha cluster fail, release version is lower than minimal", func() {
@@ -3445,7 +3443,6 @@ var _ = Describe("cluster", func() {
 			actual := reply.(*installer.RegisterClusterCreated)
 			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
-			// verify VipDhcpAllocation was set to false even though it was sent as true
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 		})
 		It("create non ha cluster success, release version is pre-release and greater than minimal", func() {
@@ -3458,7 +3455,6 @@ var _ = Describe("cluster", func() {
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
-			clusterParams.VipDhcpAllocation = swag.Bool(true)
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
@@ -3466,8 +3462,37 @@ var _ = Describe("cluster", func() {
 			actual := reply.(*installer.RegisterClusterCreated)
 			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
-			// verify VipDhcpAllocation was set to false even though it was sent as true
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+		})
+		It("create non ha cluster fail, explicitly disabled UserManagedNetworking", func() {
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
+			noneHaMode := models.ClusterHighAvailabilityModeNone
+			openShiftVersionForNoneHA := "4.8.0-fc.2"
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
+			clusterParams.HighAvailabilityMode = &noneHaMode
+			clusterParams.UserManagedNetworking = swag.Bool(false)
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: clusterParams,
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest,
+				"User Managed Networking must be enabled on single node OpenShift")
+		})
+		It("create non ha cluster fail, explicitly enabled VipDhcpAllocation", func() {
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
+			noneHaMode := models.ClusterHighAvailabilityModeNone
+			openShiftVersionForNoneHA := "4.8.0-fc.2"
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
+			clusterParams.HighAvailabilityMode = &noneHaMode
+			clusterParams.VipDhcpAllocation = swag.Bool(true)
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: clusterParams,
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest,
+				"VIP DHCP Allocation cannot be enabled on single node OpenShift")
 		})
 	})
 	It("create non ha cluster success, release version is ci-release and greater than minimal", func() {
@@ -3480,7 +3505,6 @@ var _ = Describe("cluster", func() {
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 		clusterParams.HighAvailabilityMode = &noneHaMode
-		clusterParams.VipDhcpAllocation = swag.Bool(true)
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
@@ -3488,7 +3512,6 @@ var _ = Describe("cluster", func() {
 		actual := reply.(*installer.RegisterClusterCreated)
 		Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
 		Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
-		// verify VipDhcpAllocation was set to false even though it was sent as true
 		Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 	})
 
