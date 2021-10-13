@@ -6721,9 +6721,6 @@ definitions:
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
-      ocp_release_image:
-        type: string
-        description: OpenShift release image URI.
       base_dns_domain:
         type: string
         description: Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.

@@ -84,9 +84,6 @@ type ClusterCreateParams struct {
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
 
-	// OpenShift release image URI.
-	OcpReleaseImage string `json:"ocp_release_image,omitempty"`
-
 	// List of OLM operators to be installed.
 	OlmOperators []*OperatorCreateParams `json:"olm_operators"`
 

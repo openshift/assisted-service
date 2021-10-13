@@ -9699,10 +9699,6 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "ocp_release_image": {
-          "description": "OpenShift release image URI.",
-          "type": "string"
-        },
         "olm_operators": {
           "description": "List of OLM operators to be installed.",
           "type": "array",
@@ -22703,10 +22699,6 @@ func init() {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
-        },
-        "ocp_release_image": {
-          "description": "OpenShift release image URI.",
-          "type": "string"
         },
         "olm_operators": {
           "description": "List of OLM operators to be installed.",
