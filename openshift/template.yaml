@@ -39,6 +39,9 @@ parameters:
   required: false
 - name: S3_USE_SSL
   value: "true"
+- name: ENABLE_AUTO_ASSIGN
+  value: "true"
+  required: false
 - name: HW_VALIDATOR_REQUIREMENTS
   value: ''
   required: true
@@ -295,6 +298,8 @@ objects:
                 value: ${DISABLED_HOST_VALIDATIONS}
               - name: DISABLED_STEPS
                 value: ${DISABLED_STEPS}
+              - name: ENABLE_AUTO_ASSIGN
+                value: ${ENABLE_AUTO_ASSIGN}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
