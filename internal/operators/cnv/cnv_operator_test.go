@@ -234,6 +234,24 @@ var _ = Describe("CNV operator", func() {
 			Expect(requirements.Requirements.Master.Qualitative).To(BeEquivalentTo(requirements.Requirements.Worker.Qualitative))
 		})
 	})
+
+	Context("cluster requirements", func() {
+		It("only x86_64 is supported for CNV operator", func() {
+			cluster := common.Cluster{}
+
+			cluster.CPUArchitecture = common.DefaultCPUArchitecture
+			validation, err := operator.ValidateCluster(context.TODO(), &cluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(validation.Status).To(Equal(api.Success))
+
+			cluster.CPUArchitecture = "arm64"
+			validation, err = operator.ValidateCluster(context.TODO(), &cluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(validation.Status).To(Equal(api.Failure))
+			Expect(validation.Reasons).To(ContainElements(
+				"OpenShift Virtualization is supported only for x86_64 CPU architecture."))
+		})
+	})
 })
 
 func getInventoryWithGPUs(gpus []*models.Gpu) string {

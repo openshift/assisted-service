@@ -69,10 +69,19 @@ func (o *operator) GetHostValidationID() string {
 	return string(models.HostValidationIDCnvRequirementsSatisfied)
 }
 
-// ValidateCluster always return "valid" result
-func (o *operator) ValidateCluster(_ context.Context, _ *common.Cluster) (api.ValidationResult, error) {
-	// No need to validate cluster because it will be validate on per host basis
-	return api.ValidationResult{Status: api.Success, ValidationId: o.GetClusterValidationID()}, nil
+// ValidateCluster verifies whether this operator is valid for given cluster
+func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
+	status, message := o.validateRequirements(&cluster.Cluster)
+	return api.ValidationResult{Status: status, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
+}
+
+func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
+	if cluster.CPUArchitecture != common.DefaultCPUArchitecture {
+		return api.Failure, fmt.Sprintf(
+			"OpenShift Virtualization is supported only for %s CPU architecture.",
+			common.DefaultCPUArchitecture)
+	}
+	return api.Success, ""
 }
 
 // ValidateHost returns validationResult based on node type requirements such as memory and cpu
