@@ -2598,6 +2598,97 @@ func (e *HostInstallationCancelledEvent) FormatMessage() string {
 }
 
 //
+// Event host_installation_started
+//
+type HostInstallationStartedEvent struct {
+    ClusterId *strfmt.UUID
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    HostName string
+}
+
+var HostInstallationStartedEventName string = "host_installation_started"
+
+func NewHostInstallationStartedEvent(
+    clusterId *strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+) *HostInstallationStartedEvent {
+    return &HostInstallationStartedEvent{
+        ClusterId: clusterId,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        HostName: hostName,
+    }
+}
+
+func SendHostInstallationStartedEvent(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId *strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,) {
+    ev := NewHostInstallationStartedEvent(
+        clusterId,
+        hostId,
+        infraEnvId,
+        hostName,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendHostInstallationStartedEventAtTime(
+    ctx context.Context,
+    eventsHandler events.Sender,
+    clusterId *strfmt.UUID,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+    eventTime time.Time) {
+    ev := NewHostInstallationStartedEvent(
+        clusterId,
+        hostId,
+        infraEnvId,
+        hostName,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *HostInstallationStartedEvent) GetName() string {
+    return "host_installation_started"
+}
+
+func (e *HostInstallationStartedEvent) GetSeverity() string {
+    return "info"
+}
+func (e *HostInstallationStartedEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
+}
+func (e *HostInstallationStartedEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *HostInstallationStartedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+func (e *HostInstallationStartedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{host_name}", fmt.Sprint(e.HostName),
+    )
+    return r.Replace(*message)
+}
+
+func (e *HostInstallationStartedEvent) FormatMessage() string {
+    s := "Host {host_name} starting installation as a worker node"
+    return e.format(&s)
+}
+
+//
 // Event host_cancel_installation_failed
 //
 type HostCancelInstallationFailedEvent struct {
