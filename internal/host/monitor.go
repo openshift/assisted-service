@@ -27,6 +27,7 @@ func (m *Manager) initMonitoringQueryGenerator() {
 			models.HostStatusInsufficient,
 			models.HostStatusPendingForInput,
 			models.HostStatusPreparingForInstallation,
+			models.HostStatusPreparingFailed,
 			models.HostStatusPreparingSuccessful,
 			models.HostStatusInstalling,
 			models.HostStatusInstallingInProgress,

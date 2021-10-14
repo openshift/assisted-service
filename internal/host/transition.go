@@ -381,6 +381,29 @@ func (th *transitionHandler) PostUnbindHost(sw stateswitch.StateSwitch, args sta
 }
 
 ////////////////////////////////////////////////////////////////////////////
+// Preparing for installation host
+////////////////////////////////////////////////////////////////////////////
+
+func (th *transitionHandler) PostPreparingForInstallationHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostPreparingForInstallationHost incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshHost)
+	if !ok {
+		return errors.New("PostPreparingForInstallationHost invalid argument")
+	}
+
+	var extra []interface{}
+	if validationFailed(params, string(models.HostValidationIDContainerImagesAvailable)) {
+		extra = append(extra, "images_status", "")
+	}
+
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoHostPreparationSuccessful,
+		extra...)
+}
+
+////////////////////////////////////////////////////////////////////////////
 // Resetting pending user action
 ////////////////////////////////////////////////////////////////////////////
 
@@ -648,6 +671,17 @@ func getFailedValidations(params *TransitionArgsRefreshHost) []string {
 		}
 	}
 	return failedValidations
+}
+
+func validationFailed(params *TransitionArgsRefreshHost, validationId string) bool {
+	for _, validations := range params.validationResults {
+		for _, validation := range validations {
+			if string(validation.ID) == validationId {
+				return validation.Status == ValidationFailure
+			}
+		}
+	}
+	return false
 }
 
 func hostIsResponsive(host *models.Host) bool {

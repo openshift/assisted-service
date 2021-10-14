@@ -184,7 +184,7 @@ x-events:
     error: string
 
 - name: cluster_prepare_installation
-  message: "Cluster was prepared successfully for installation"
+  message: "Cluster starting to prepare for installation"
   event_type: cluster
   severity: "info"
   properties:

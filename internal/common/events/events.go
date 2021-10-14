@@ -1667,7 +1667,7 @@ func (e *ClusterPrepareInstallationEvent) format(message *string) string {
 }
 
 func (e *ClusterPrepareInstallationEvent) FormatMessage() string {
-    s := "Cluster was prepared successfully for installation"
+    s := "Cluster starting to prepare for installation"
     return e.format(&s)
 }
 
