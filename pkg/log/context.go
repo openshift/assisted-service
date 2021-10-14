@@ -15,7 +15,7 @@ const (
 )
 
 type Config struct {
-	LogLevel  string `envconfig:"LOG_LEVEL" default:"info"`
+	LogLevel  string `envconfig:"LOG_LEVEL" default:"debug"`
 	LogFormat string `envconfig:"LOG_FORMAT" default:"text"`
 }
 

@@ -304,6 +304,16 @@ x-events:
     infra_env_id: UUID
     host_name: string
 
+- name: host_installation_started
+  message: "Host {host_name} starting installation as a worker node"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID_PTR
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
 - name: host_cancel_installation_failed
   message: "Failed to cancel installation of host {host_name}: {error}"
   event_type: host

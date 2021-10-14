@@ -470,6 +470,7 @@ func (m *Manager) Install(ctx context.Context, h *models.Host, db *gorm.DB) erro
 		ctx: ctx,
 		db:  cdb,
 	})
+
 }
 
 func (m *Manager) EnableHost(ctx context.Context, h *models.Host, db *gorm.DB) error {

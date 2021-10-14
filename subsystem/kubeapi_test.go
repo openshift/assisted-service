@@ -381,6 +381,11 @@ func checkAgentCondition(ctx context.Context, hostId string, conditionType condi
 	}
 	Eventually(func() string {
 		condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, hostkey).Status.Conditions, conditionType)
+		host, _ := common.GetHostFromDBWhere(db, "id = ? and kube_key_namespace = ?", hostId, Options.Namespace)
+		//TODO before merge: remove
+		if condition != nil {
+			logrus.Infof("XXXXX: subsystem debug for host %s, want reason: %s  actual reason: %s , host status_info %s", hostId, reason, swag.StringValue(&condition.Reason), swag.StringValue(host.StatusInfo))
+		}
 		if condition != nil {
 			return condition.Reason
 		}
@@ -2547,7 +2552,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	})
 
-	It("None SNO deploy clusterDeployment full install and validate MetaData", func() {
+	It("ABCD None SNO deploy clusterDeployment full install and validate MetaData", func() {
 		By("Create cluster")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)

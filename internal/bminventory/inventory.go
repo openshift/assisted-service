@@ -1751,6 +1751,8 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 		return err
 	}
 	txSuccess = true
+	//TODO before merge: uncomment
+	//eventgen.SendHostInstallationStartedEvent(ctx, b.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(&h.Host))
 
 	return nil
 }
