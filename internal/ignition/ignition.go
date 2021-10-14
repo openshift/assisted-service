@@ -171,7 +171,7 @@ const discoveryIgnitionConfigFormat = `{
     {
         "name": "pre-network-manager-config.service",
         "enabled": true,
-        "contents": "[Unit]\nDescription=Prepare network manager config content\nBefore=dracut-initqueue.service\nAfter=dracut-cmdline.service\nDefaultDependencies=no\n[Service]\nUser=root\nType=oneshot\nTimeoutSec=10\nExecStart=/bin/bash /usr/local/bin/pre-network-manager-config.sh\nPrivateTmp=true\nRemainAfterExit=no\n[Install]\nWantedBy=multi-user.target"
+        "contents": "[Unit]\nDescription=Prepare network manager config content\nBefore=dracut-initqueue.service\nAfter=dracut-cmdline.service\nDefaultDependencies=no\n[Service]\nUser=root\nType=oneshot\nTimeoutSec=60\nExecStart=/bin/bash /usr/local/bin/pre-network-manager-config.sh\nPrivateTmp=true\nRemainAfterExit=no\n[Install]\nWantedBy=multi-user.target"
     }{{end}}
     ]
   },
