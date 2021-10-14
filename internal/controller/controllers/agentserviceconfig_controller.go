@@ -766,6 +766,16 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 				},
 			},
 		},
+		LivenessProbe: &corev1.Probe{
+			InitialDelaySeconds: 30,
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path:   "/live",
+					Port:   imageHandlerPort,
+					Scheme: corev1.URISchemeHTTPS,
+				},
+			},
+		},
 	}
 
 	volumes := []corev1.Volume{
