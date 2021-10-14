@@ -29,4 +29,8 @@ const (
 	CustomManifest string = "Custom manifest"
 	// usage of disk encryption
 	DiskEncryption string = "Disk encryption"
+	// User managed networking with VMs
+	UserManagedNetworkWithVMs string = "User managed networking with VMs"
+	// ARM64 Architecture usage
+	CPUArchitectureARM64 string = "arm64 architecture"
 )

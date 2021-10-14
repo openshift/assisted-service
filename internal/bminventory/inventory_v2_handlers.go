@@ -12,6 +12,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
@@ -389,4 +390,9 @@ func (b *bareMetalInventory) V2GetCredentials(ctx context.Context, params instal
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2GetCredentialsOK().WithPayload(c)
+}
+
+func (b *bareMetalInventory) V2ListFeatureSupportLevels(ctx context.Context, params installer.V2ListFeatureSupportLevelsParams) middleware.Responder {
+	payload := featuresupport.SupportLevelsList
+	return installer.NewV2ListFeatureSupportLevelsOK().WithPayload(payload)
 }

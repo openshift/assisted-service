@@ -36,15 +36,15 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 }
 
 // Add mocks base method.
-func (m *MockAPI) Add(usages FeatureUsage, name string, data *map[string]interface{}) {
+func (m *MockAPI) Add(usages FeatureUsage, Name string, data *map[string]interface{}) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Add", usages, name, data)
+	m.ctrl.Call(m, "Add", usages, Name, data)
 }
 
 // Add indicates an expected call of Add.
-func (mr *MockAPIMockRecorder) Add(usages, name, data interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) Add(usages, Name, data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockAPI)(nil).Add), usages, name, data)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockAPI)(nil).Add), usages, Name, data)
 }
 
 // Remove mocks base method.

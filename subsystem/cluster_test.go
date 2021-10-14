@@ -1375,19 +1375,25 @@ var _ = Describe("cluster install", func() {
 			verifyUsageSet(getReply.Payload.FeatureUsage,
 				models.Usage{Name: usage.HighAvailabilityModeUsage})
 			verifyUsageSet(getReply.Payload.FeatureUsage, models.Usage{Name: usage.OVNNetworkTypeUsage})
-			verifyUsageNotSet(getReply.Payload.FeatureUsage, strings.ToUpper("console"), usage.VipDhcpAllocationUsage)
+			verifyUsageNotSet(getReply.Payload.FeatureUsage, strings.ToUpper("console"), usage.VipDhcpAllocationUsage, usage.CPUArchitectureARM64)
 		})
 
 		It("report usage on update cluster", func() {
 			clusterID := *cluster.ID
 			h := &registerHost(clusterID).Host
+			inventory, err := common.UnmarshalInventory(defaultInventory())
+			Expect(err).ToNot(HaveOccurred())
+			inventory.SystemVendor.Virtual = true
+			inventoryStr, err := common.MarshalInventory(inventory)
+			Expect(err).ToNot(HaveOccurred())
+			h = updateInventory(ctx, clusterID, *h.ID, inventoryStr)
 			ntpSources := "1.1.1.1,2.2.2.2"
 			proxy := "http://1.1.1.1:8080"
 			no_proxy := "a.redhat.com"
 			ovn := "OVNKubernetes"
-			_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 				ClusterUpdateParams: &models.ClusterUpdateParams{
-					VipDhcpAllocation:   swag.Bool(true),
+					VipDhcpAllocation:   swag.Bool(false),
 					AdditionalNtpSource: &ntpSources,
 					HTTPProxy:           &proxy,
 					HTTPSProxy:          &proxy,
@@ -1396,6 +1402,7 @@ var _ = Describe("cluster install", func() {
 					HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
 						{ID: *h.ID, Hostname: "h1"},
 					},
+					UserManagedNetworking: swag.Bool(true),
 				},
 				ClusterID: clusterID,
 			})
@@ -1403,8 +1410,15 @@ var _ = Describe("cluster install", func() {
 			getReply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			verifyUsageSet(getReply.Payload.FeatureUsage,
-				models.Usage{Name: usage.VipDhcpAllocationUsage},
 				models.Usage{Name: usage.OVNNetworkTypeUsage},
+				models.Usage{
+					Name: usage.UserManagedNetworkWithVMs,
+					Data: map[string]interface{}{
+						"VM Hosts": []interface{}{
+							h.ID.String(),
+						},
+					},
+				},
 				models.Usage{
 					Name: usage.AdditionalNtpSourceUsage,
 					Data: map[string]interface{}{

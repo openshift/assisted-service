@@ -74,52 +74,6 @@ var _ = Describe("Host tests", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 
-	var defaultInventory = func() string {
-		inventory := models.Inventory{
-			Interfaces: []*models.Interface{
-				{
-					Name: "eth0",
-					IPV4Addresses: []string{
-						"1.2.3.4/24",
-					},
-					SpeedMbps: 20,
-				},
-				{
-					Name: "eth1",
-					IPV4Addresses: []string{
-						"1.2.5.4/24",
-					},
-					SpeedMbps: 40,
-				},
-			},
-
-			// CPU, Disks, and Memory were added here to prevent the case that assisted-service crashes in case the monitor starts
-			// working in the middle of the test and this inventory is in the database.
-			CPU: &models.CPU{
-				Count: 4,
-			},
-			Disks: []*models.Disk{
-				{
-					ID:        "wwn-0x1111111111111111111111",
-					ByID:      "wwn-0x1111111111111111111111",
-					DriveType: "HDD",
-					Name:      "sda1",
-					SizeBytes: int64(120) * (int64(1) << 30),
-					Bootable:  true,
-				},
-			},
-			Memory: &models.Memory{
-				PhysicalBytes: int64(16) * (int64(1) << 30),
-				UsableBytes:   int64(16) * (int64(1) << 30),
-			},
-			SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
-			Timestamp:    1601845851,
-		}
-		b, err := json.Marshal(&inventory)
-		Expect(err).To(Not(HaveOccurred()))
-		return string(b)
-	}
-
 	It("should update host installation disk id successfully", func() {
 		host := &registerHost(clusterID).Host
 		host = getHost(clusterID, *host.ID)

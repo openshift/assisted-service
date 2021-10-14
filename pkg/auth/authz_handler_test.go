@@ -505,6 +505,11 @@ var _ = Describe("authz", func() {
 			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
 			apiCall:      updateDiscoveryIgnition,
 		},
+		{
+			name:         "List support features",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole, ocm.ReadOnlyAdminRole},
+			apiCall:      v2ListFeatureSupportLevels,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1013,5 +1018,10 @@ func updateDiscoveryIgnition(ctx context.Context, cli *client.AssistedInstall) e
 				Config: "",
 			},
 		})
+	return err
+}
+
+func v2ListFeatureSupportLevels(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.V2ListFeatureSupportLevels(ctx, &installer.V2ListFeatureSupportLevelsParams{})
 	return err
 }

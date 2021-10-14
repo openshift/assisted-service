@@ -2,6 +2,7 @@ package usage
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
@@ -16,7 +17,7 @@ type FeatureUsage map[string]models.Usage
 
 //go:generate mockgen -source=manager.go -package=usage -destination=mock_usage_manager.go
 type API interface {
-	Add(usages FeatureUsage, name string, data *map[string]interface{})
+	Add(usages FeatureUsage, Name string, data *map[string]interface{})
 	Remove(usages FeatureUsage, name string)
 	Save(db *gorm.DB, clusterId strfmt.UUID, usages FeatureUsage)
 }
@@ -32,8 +33,10 @@ func NewManager(log logrus.FieldLogger) *UsageManager {
 }
 
 func (m *UsageManager) Add(usages FeatureUsage, name string, data *map[string]interface{}) {
+	id := UsageNameToID(name)
 	usage := models.Usage{
 		Name: name,
+		ID:   id,
 	}
 	if data != nil {
 		usage.Data = *data
@@ -63,4 +66,11 @@ func Unmarshal(str string) (FeatureUsage, error) {
 	}
 	err := json.Unmarshal([]byte(str), &result)
 	return result, err
+}
+
+func UsageNameToID(featureKey string) string {
+	name := featureKey
+	r := strings.NewReplacer(" ", "_", ".", "")
+	id := strings.ToUpper(r.Replace(name))
+	return id
 }

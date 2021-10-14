@@ -15,6 +15,7 @@ import (
 	operatorsClient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	usageMgr "github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -486,6 +487,7 @@ func verifyUsageSet(featureUsage string, candidates ...models.Usage) {
 	err := json.Unmarshal([]byte(featureUsage), &usages)
 	Expect(err).NotTo(HaveOccurred())
 	for _, usage := range candidates {
+		usage.ID = usageMgr.UsageNameToID(usage.Name)
 		Expect(usages[usage.Name]).To(Equal(usage))
 	}
 }
