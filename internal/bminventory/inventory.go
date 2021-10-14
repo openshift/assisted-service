@@ -6423,6 +6423,16 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 	if host.ClusterID == nil {
 		return nil, common.NewApiError(http.StatusConflict, errors.Errorf("Host %s is already unbound", params.HostID))
 	}
+
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
+	if err != nil {
+		b.log.WithError(err).Errorf("Failed to get infra env %s", params.InfraEnvID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if infraEnv.ClusterID != "" {
+		return nil, common.NewApiError(http.StatusConflict, errors.Errorf("Cannot unbind Host %s. InfraEnv %s is bound to Cluster %s", params.HostID, params.InfraEnvID, infraEnv.ClusterID))
+	}
+
 	if err = b.hostApi.UnbindHost(ctx, &host.Host, b.db); err != nil {
 		log.WithError(err).Errorf("Failed to unbind host <%s>", params.HostID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
