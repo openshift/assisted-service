@@ -1279,7 +1279,6 @@ var _ = Describe("RegisterHost", func() {
 		cluster := createCluster(db, models.ClusterStatusInsufficient)
 		infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 		expectedErrMsg := "some-internal-error"
-
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -1293,6 +1292,7 @@ var _ = Describe("RegisterHost", func() {
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 			Times(1)
+		mockHostApi.EXPECT().UnRegisterHost(ctx, hostID.String(), infraEnv.ID.String()).Return(nil).Times(1)
 		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
 			InfraEnvID: *cluster.ID,
 			NewHostParams: &models.HostCreateParams{
@@ -1468,6 +1468,7 @@ var _ = Describe("v2RegisterHost", func() {
 				Expect(h.InfraEnvID).Should(Equal(*infraEnv.ID))
 				return nil
 			}).Times(1)
+		mockHostApi.EXPECT().UnRegisterHost(ctx, hostID.String(), infraEnv.ID.String()).Return(nil).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
