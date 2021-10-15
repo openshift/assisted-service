@@ -10316,6 +10316,11 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 	It("Install Single Day2 Host", func() {
 		hostId := strfmt.UUID(uuid.New().String())
 		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostInstallationStartedEventName),
+			eventstest.WithHostIdMatcher(hostId.String()),
+			eventstest.WithInfraEnvIdMatcher(clusterID.String()),
+			eventstest.WithClusterIdMatcher(clusterID.String())))
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
