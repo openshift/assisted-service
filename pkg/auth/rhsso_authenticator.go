@@ -14,7 +14,6 @@ import (
 	"github.com/go-openapi/runtime/security"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
-	params "github.com/openshift/assisted-service/pkg/context"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/patrickmn/go-cache"
@@ -256,27 +255,6 @@ func (a *RHSSOAuthenticator) isReadOnlyAdmin(username string) (bool, error) {
 	return isAllowed, err
 }
 
-func (a *RHSSOAuthenticator) isObjectOwnedByUser(id string, obj interface{}, payload *ocm.AuthPayload) (bool, error) {
-	role, _ := a.getRole(payload)
-	if role != ocm.UserRole {
-		return true, nil //admins always have access
-	}
-
-	if a.db != nil {
-		err := a.db.First(obj, "id = ? and user_name = ?", id, payload.Username).Error
-		if err != nil {
-			//if user is not the owner of the object return false
-			if err == gorm.ErrRecordNotFound {
-				return false, nil
-			}
-			//in case of a real db error, indicate it to the caller
-			return false, err
-		}
-	}
-
-	return true, nil
-}
-
 func (a *RHSSOAuthenticator) AuthURLAuth(_ string) (interface{}, error) {
 	return nil, errors.Errorf("URL Authentication not allowed for rhsso auth")
 }
@@ -298,21 +276,6 @@ func (a *RHSSOAuthenticator) CreateAuthenticator() func(name, in string, authent
 					return true, nil, err
 				}
 				return true, nil, common.NewInfraError(http.StatusUnauthorized, err)
-			}
-			//this code is part of the authorization process and should move to authz_handler
-			//after https://github.com/go-openapi/runtime/issues/158 is resolved
-			ownedBy := true
-			if clusterID := params.GetParam(r.Context(), params.ClusterId); clusterID != "" {
-				ownedBy, err = a.isObjectOwnedByUser(clusterID, &common.Cluster{}, p.(*ocm.AuthPayload))
-			} else if infraEnvID := params.GetParam(r.Context(), params.InfraEnvId); infraEnvID != "" {
-				ownedBy, err = a.isObjectOwnedByUser(infraEnvID, &common.InfraEnv{}, p.(*ocm.AuthPayload))
-			}
-			if err != nil {
-				log.Errorf("Faied to verify access to object. Error %v", err)
-				return true, nil, common.NewApiError(http.StatusInternalServerError, err)
-			}
-			if !ownedBy {
-				return true, nil, common.NewApiError(http.StatusNotFound, errors.New("Object Not Found"))
 			}
 
 			return true, p, nil

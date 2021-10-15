@@ -38,15 +38,15 @@ import (
 var _ = Describe("NewAuthzHandler", func() {
 	It("Is disabled unless auth type is rhsso", func() {
 		cfg := &Config{AuthType: TypeRHSSO}
-		handler := NewAuthzHandler(cfg, nil, logrus.New())
+		handler := NewAuthzHandler(cfg, nil, logrus.New(), nil)
 		Expect(handler.Enabled).To(BeTrue())
 
 		cfg = &Config{}
-		handler = NewAuthzHandler(cfg, nil, logrus.New())
+		handler = NewAuthzHandler(cfg, nil, logrus.New(), nil)
 		Expect(handler.Enabled).To(BeFalse())
 
 		cfg = &Config{AuthType: TypeNone}
-		handler = NewAuthzHandler(cfg, nil, logrus.New())
+		handler = NewAuthzHandler(cfg, nil, logrus.New(), nil)
 		Expect(handler.Enabled).To(BeFalse())
 	})
 })
@@ -217,7 +217,7 @@ var _ = Describe("authz", func() {
 					Authorization: mockOcmAuthz,
 					Cache:         authzCache,
 				},
-				log.WithField("pkg", "auth")).CreateAuthorizer(),
+				log.WithField("pkg", "auth"), nil).CreateAuthorizer(),
 			InstallerAPI:          fakeInventory{},
 			AssistedServiceIsoAPI: fakeAssistedServiceIsoAPI{},
 			EventsAPI:             &fakeEventsAPI{},
