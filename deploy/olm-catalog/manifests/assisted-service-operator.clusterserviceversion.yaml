@@ -59,9 +59,9 @@ metadata:
               {
                 "cpuArchitecture": "x86_64",
                 "openshiftVersion": "4.9",
-                "rootFSUrl": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-rc.0/rhcos-live-rootfs.x86_64.img",
-                "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-rc.0/rhcos-4.9.0-rc.0-x86_64-live.x86_64.iso",
-                "version": "49.84.202109041651-0"
+                "rootFSUrl": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-live-rootfs.x86_64.img",
+                "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-x86_64-live.x86_64.iso",
+                "version": "49.84.202110081407-0"
               }
             ]
           }
@@ -69,7 +69,7 @@ metadata:
       ]
     capabilities: Basic Install
     categories: OpenShift Optional
-    containerImage: quay.io/ocpmetal/assisted-service:latest
+    containerImage: quay.io/edge-infrastructure/assisted-service:ocm-2.4
     createdAt: ""
     description: The Infrastructure Operator for Red Hat OpenShift is responsible
       for managing the deployment of the Assisted Service.
@@ -500,21 +500,21 @@ spec:
                 - /assisted-service-operator
                 env:
                 - name: SERVICE_IMAGE
-                  value: quay.io/ocpmetal/assisted-service:latest
+                  value: quay.io/edge-infrastructure/assisted-service:ocm-2.4
                 - name: IMAGE_SERVICE_IMAGE
-                  value: quay.io/app-sre/assisted-image-service:latest
+                  value: quay.io/edge-infrastructure/assisted-image-service:ocm-2.4
                 - name: DATABASE_IMAGE
-                  value: quay.io/ocpmetal/postgresql-12-centos7:latest
+                  value: quay.io/edge-infrastructure/postgresql-12-centos7:latest
                 - name: AGENT_IMAGE
-                  value: quay.io/ocpmetal/assisted-installer-agent:latest
+                  value: quay.io/edge-infrastructure/assisted-installer-agent:ocm-2.4
                 - name: CONTROLLER_IMAGE
-                  value: quay.io/ocpmetal/assisted-installer-controller:latest
+                  value: quay.io/edge-infrastructure/assisted-installer-controller:ocm-2.4
                 - name: INSTALLER_IMAGE
-                  value: quay.io/ocpmetal/assisted-installer:latest
+                  value: quay.io/edge-infrastructure/assisted-installer:ocm-2.4
                 - name: OPENSHIFT_VERSIONS
-                  value: '{"4.8":{"display_name":"4.8.10","release_version":"4.8.10","release_image":"quay.io/openshift-release-dev/ocp-release:4.8.10-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-4.8.2-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-live-rootfs.x86_64.img","rhcos_version":"48.84.202107202156-0","support_level":"production","default":true},"4.9":{"display_name":"4.9.0-rc.0","release_version":"4.9.0-rc.0","release_image":"quay.io/openshift-release-dev/ocp-release:4.9.0-rc.0-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-rc.0/rhcos-4.9.0-rc.0-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-rc.0/rhcos-live-rootfs.x86_64.img","rhcos_version":"49.84.202109041651-0","support_level":"beta"}}'
+                  value: '{"4.8":{"display_name":"4.8.10","release_version":"4.8.10","release_image":"quay.io/openshift-release-dev/ocp-release:4.8.10-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-4.8.2-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-live-rootfs.x86_64.img","rhcos_version":"48.84.202107202156-0","support_level":"production","default":true},"4.9":{"display_name":"4.9.0","release_version":"4.9.0","release_image":"quay.io/openshift-release-dev/ocp-release:4.9.0-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-live-rootfs.x86_64.img","rhcos_version":"49.84.202110081407-0","support_level":"production"}}'
                 - name: OS_IMAGES
-                  value: '[{"openshift_version":"4.8","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-4.8.2-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-live-rootfs.x86_64.img","version":"48.84.202107202156-0"},{"openshift_version":"4.9","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-rc.0/rhcos-4.9.0-rc.0-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-rc.0/rhcos-live-rootfs.x86_64.img","version":"49.84.202109041651-0"}]'
+                  value: '[{"openshift_version":"4.8","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-4.8.2-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.2/rhcos-live-rootfs.x86_64.img","version":"48.84.202107202156-0"},{"openshift_version":"4.9","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-live-rootfs.x86_64.img","version":"49.84.202110081407-0"}]'
                 - name: SERVICE_ACCOUNT_NAME
                   valueFrom:
                     fieldRef:
@@ -527,7 +527,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: quay.io/ocpmetal/assisted-service:latest
+                image: quay.io/edge-infrastructure/assisted-service:ocm-2.4
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -643,17 +643,17 @@ spec:
   provider:
     name: Red Hat
   relatedImages:
-  - image: quay.io/ocpmetal/assisted-service:latest
+  - image: quay.io/edge-infrastructure/assisted-service:ocm-2.4
     name: controller
-  - image: quay.io/app-sre/assisted-image-service:latest
+  - image: quay.io/edge-infrastructure/assisted-image-service:ocm-2.4
     name: image-service
-  - image: quay.io/ocpmetal/postgresql-12-centos7:latest
+  - image: quay.io/edge-infrastructure/postgresql-12-centos7:latest
     name: postgresql
-  - image: quay.io/ocpmetal/assisted-installer:latest
+  - image: quay.io/edge-infrastructure/assisted-installer:ocm-2.4
     name: installer
-  - image: quay.io/ocpmetal/assisted-installer-agent:latest
+  - image: quay.io/edge-infrastructure/assisted-installer-agent:ocm-2.4
     name: agent
-  - image: quay.io/ocpmetal/assisted-installer-controller:latest
+  - image: quay.io/edge-infrastructure/assisted-installer-controller:ocm-2.4
     name: reporter
   skips:
   - assisted-service-operator.v0.0.1

@@ -43,6 +43,13 @@ cat <<EOF
 EOF
     fi
 
+    if [ -n "${IMAGE_SERVICE_IMAGE:-}" ]; then
+cat <<EOF
+    - name: IMAGE_SERVICE_IMAGE
+      value: '${IMAGE_SERVICE_IMAGE}'
+EOF
+    fi
+
     if [ -n "${INSTALLER_IMAGE:-}" ]; then
 cat <<EOF
     - name: INSTALLER_IMAGE
@@ -118,7 +125,7 @@ $(subscription_config)
   installPlanApproval: Automatic
   name: assisted-service-operator
   source: ${CATALOG_SOURCE_NAME:-${catalog_source_name}}
-  channel: ${CHANNEL:-alpha}
+  channel: ${CHANNEL:-ocm-2.4}
   sourceNamespace: openshift-marketplace
 EOCR
 
