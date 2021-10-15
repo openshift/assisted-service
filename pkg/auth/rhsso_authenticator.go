@@ -14,7 +14,6 @@ import (
 	"github.com/go-openapi/runtime/security"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
-	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
@@ -174,7 +173,7 @@ func (a *RHSSOAuthenticator) AuthUserAuth(token string) (interface{}, error) {
 		// is released and we start using it, this validation-skip can be removed.
 		if !isValidationErrorIssuedAt(err) {
 			a.log.WithError(err).Errorf("Error parsing token or token is invalid")
-			return nil, errors.Errorf("Error parsing token or token is invalid")
+			return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("Error parsing token or token is invalid"))
 		}
 	}
 
@@ -259,26 +258,6 @@ func (a *RHSSOAuthenticator) AuthURLAuth(_ string) (interface{}, error) {
 	return nil, errors.Errorf("URL Authentication not allowed for rhsso auth")
 }
 
-func (a *RHSSOAuthenticator) CreateAuthenticator() func(name, in string, authenticate security.TokenAuthentication) runtime.Authenticator {
-	return func(name string, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
-		getToken := func(r *http.Request) string { return r.Header.Get(name) }
-
-		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
-			log := logutil.FromContext(r.Context(), a.log)
-			token := getToken(r)
-			if token == "" {
-				return false, nil, nil
-			}
-			p, err := authenticate(token)
-			if err != nil {
-				log.Errorf("Fail to authenticate. Error %v", err)
-				if common.IsKnownError(err) {
-					return true, nil, err
-				}
-				return true, nil, common.NewInfraError(http.StatusUnauthorized, err)
-			}
-
-			return true, p, nil
-		})
-	}
+func (a *RHSSOAuthenticator) CreateAuthenticator() func(_, _ string, _ security.TokenAuthentication) runtime.Authenticator {
+	return security.APIKeyAuth
 }

@@ -93,7 +93,7 @@ func (a *AuthzHandler) Authorizer(request *http.Request) error {
 
 	if !isAuthorized {
 		return common.NewInfraError(
-			http.StatusUnauthorized,
+			http.StatusForbidden,
 			fmt.Errorf(
 				"%s: Unauthorized to access route (access review failed)",
 				username))
