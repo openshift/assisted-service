@@ -5533,7 +5533,7 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 		return err
 	}
 	if len(hosts) > 0 {
-		msg := fmt.Sprintf("failed to deregister infraEnv %s, hosts are still associated", params.InfraEnvID)
+		msg := fmt.Sprintf("failed to deregister infraEnv %s, %d hosts are still associated", params.InfraEnvID, len(hosts))
 		log.Error(msg)
 		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
 	}
@@ -6171,8 +6171,13 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
+	// Create AgentCR if needed, after commit in DB as KubeKey will be updated.
 	if err := b.crdUtils.CreateAgentCR(ctx, log, params.NewHostParams.HostID.String(), infraEnv, cluster); err != nil {
-		log.WithError(err).Errorf("Fail to create Agent CR. Namespace: %s, InfraEnv: %s, HostID: %s", infraEnv.KubeKeyNamespace, swag.StringValue(infraEnv.Name), params.NewHostParams.HostID.String())
+		log.WithError(err).Errorf("Fail to create Agent CR, deleting host. Namespace: %s, InfraEnv: %s, HostID: %s", infraEnv.KubeKeyNamespace, swag.StringValue(infraEnv.Name), params.NewHostParams.HostID.String())
+		if err2 := b.hostApi.UnRegisterHost(ctx, params.NewHostParams.HostID.String(), params.InfraEnvID.String()); err2 != nil {
+			return installer.NewV2RegisterHostInternalServerError().
+				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
 		return installer.NewV2RegisterHostInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
