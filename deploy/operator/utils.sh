@@ -132,5 +132,5 @@ function nth_ip() {
   network=$1
   idx=$2
 
-  python -c "from ansible.plugins.filter import ipaddr; print(ipaddr.nthhost('"$network"', $idx))"
+  python -c "from ansible_collections.ansible.netcommon.plugins.filter import ipaddr; print(ipaddr.nthhost('"$network"', $idx))"
 }
