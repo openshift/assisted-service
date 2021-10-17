@@ -195,7 +195,7 @@ func getMetricEvents(ctx context.Context, clusterID strfmt.UUID) []*models.Event
 func filterMetricEvents(in []*models.Event, hostID strfmt.UUID, message string) []*models.Event {
 	events := make([]*models.Event, 0)
 	for _, ev := range in {
-		if ev.HostID.String() == hostID.String() && *ev.Message == message {
+		if ev.HostID != nil && ev.HostID.String() == hostID.String() && *ev.Message == message {
 			events = append(events, ev)
 		}
 	}
