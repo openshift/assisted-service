@@ -36,6 +36,7 @@ type transitionHandler struct {
 	db                  *gorm.DB
 	prepareConfig       PrepareConfig
 	installationTimeout time.Duration
+	finalizingTimeout   time.Duration
 	eventsHandler       events.Handler
 }
 
@@ -419,6 +420,19 @@ func (th *transitionHandler) IsInstallationTimedOut(sw stateswitch.StateSwitch, 
 	if time.Since(time.Time(sCluster.cluster.InstallStartedAt)) > th.installationTimeout {
 		return true, nil
 	}
+	return false, nil
+}
+
+//check if finalizing reach to timeout
+func (th *transitionHandler) IsFinalizingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return false, errors.New("IsFinalizingTimedOut incompatible type of StateSwitch")
+	}
+	if time.Since(time.Time(sCluster.cluster.StatusUpdatedAt)) > th.finalizingTimeout {
+		return true, nil
+	}
+
 	return false, nil
 }
 

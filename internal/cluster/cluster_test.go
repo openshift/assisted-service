@@ -154,6 +154,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 					BaseDNSDomain:      "test.com",
 					PullSecretSet:      true,
 					MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
+					StatusUpdatedAt:    strfmt.DateTime(time.Now()),
 				},
 				TriggerMonitorTimestamp: time.Now(),
 			}
