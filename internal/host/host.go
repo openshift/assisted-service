@@ -586,7 +586,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	case models.HostStageRebooting:
 		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
 			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
-				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfo,
+				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfoRebootingDay2,
 				h.Progress.CurrentStage, models.HostStageDone, progress.ProgressInfo, extra...)
 			break
 		}
