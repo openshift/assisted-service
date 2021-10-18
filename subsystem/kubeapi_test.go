@@ -2,12 +2,9 @@ package subsystem
 
 import (
 	"context"
-	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"reflect"
 	"strings"
@@ -16,7 +13,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	"github.com/hashicorp/go-multierror"
+	"github.com/jinzhu/gorm"
 	bmhv1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,7 +33,6 @@ import (
 	agentv1 "github.com/openshift/hive/apis/hive/v1/agent"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -129,21 +125,6 @@ func updateAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 	}, "30s", "10s").Should(BeNil())
 }
 
-func deploySecret(ctx context.Context, client k8sclient.Client, secretName string, secretData map[string]string) {
-	err := client.Create(ctx, &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: Options.Namespace,
-			Name:      secretName,
-		},
-		StringData: secretData,
-	})
-	Expect(err).To(BeNil())
-}
-
 func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, spec *hiveext.AgentClusterInstallSpec,
 	clusterAgentClusterInstallName string) {
 	err := client.Create(ctx, &hiveext.AgentClusterInstall{
@@ -161,7 +142,7 @@ func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 }
 
 func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, spec *hivev1.ClusterDeploymentSpec) {
-	GinkgoLogger(fmt.Sprintf("test '%s' creating cluster deployment '%s'", GinkgoT().Name(), spec.ClusterName))
+	By(fmt.Sprintf("test '%s' creating cluster deployment '%s'", GinkgoT().Name(), spec.ClusterName))
 	err := client.Create(ctx, &hivev1.ClusterDeployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterDeployment",
@@ -199,7 +180,7 @@ func addAnnotationToAgentClusterInstall(ctx context.Context, client k8sclient.Cl
 	}, "30s", "10s").Should(BeNil())
 }
 
-func deployClusterImageSetCRD(ctx context.Context, client k8sclient.Client, imageSetRef *hivev1.ClusterImageSetReference) {
+func deployClusterImageSetCRD(ctx context.Context, client k8sclient.Client, imageSetRef hivev1.ClusterImageSetReference) {
 	err := client.Create(ctx, &hivev1.ClusterImageSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterImageSet",
@@ -452,7 +433,7 @@ func checkInfraEnvCondition(ctx context.Context, key types.NamespacedName, condi
 			return condition.Message
 		}
 		return ""
-	}, "2m", "1s").Should(ContainSubstring(message))
+	}, "2m", "1s").Should(Equal(message))
 }
 
 func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hivev1.ClusterDeploymentSpec {
@@ -484,35 +465,13 @@ func getDefaultAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.Ag
 			NetworkType:    models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		SSHPublicKey: sshPublicKey,
-		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
+		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 3,
 			WorkerAgents:       0,
 		},
 		APIVIP:               "1.2.3.8",
 		IngressVIP:           "1.2.3.9",
-		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterDeploymentName},
-	}
-}
-
-func getDefaultNonePlatformAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.AgentClusterInstallSpec {
-	return &hiveext.AgentClusterInstallSpec{
-		Networking: hiveext.Networking{
-			MachineNetwork: []hiveext.MachineNetworkEntry{},
-			ClusterNetwork: []hiveext.ClusterNetworkEntry{{
-				CIDR:       "10.128.0.0/14",
-				HostPrefix: 23,
-			}},
-			ServiceNetwork:        []string{"172.30.0.0/16"},
-			NetworkType:           models.ClusterNetworkTypeOpenShiftSDN,
-			UserManagedNetworking: true,
-		},
-		SSHPublicKey: sshPublicKey,
-		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
-		ProvisionRequirements: hiveext.ProvisionRequirements{
-			ControlPlaneAgents: 3,
-			WorkerAgents:       0,
-		},
 		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterDeploymentName},
 	}
 }
@@ -529,7 +488,7 @@ func getDefaultSNOAgentClusterInstallSpec(clusterDeploymentName string) *hiveext
 			NetworkType:    models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		SSHPublicKey: sshPublicKey,
-		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
+		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 1,
 			WorkerAgents:       0,
@@ -552,7 +511,7 @@ func getDefaultAgentClusterIPv6InstallSpec(clusterDeploymentName string) *hiveex
 			NetworkType:    models.ClusterNetworkTypeOVNKubernetes,
 		},
 		SSHPublicKey: sshPublicKey,
-		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
+		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 3,
 			WorkerAgents:       0,
@@ -605,44 +564,6 @@ func randomNameSuffix() string {
 	return fmt.Sprintf("-%s", strings.Split(uuid.New().String(), "-")[0])
 }
 
-func printCRs(ctx context.Context, client k8sclient.Client) {
-	if GinkgoT().Failed() {
-		var (
-			multiErr              *multierror.Error
-			aciList               hiveext.AgentClusterInstallList
-			agentList             v1beta1.AgentList
-			infraEnvList          v1beta1.InfraEnvList
-			bareMetalHostList     bmhv1alpha1.BareMetalHostList
-			nmStateConfigList     v1beta1.NMStateConfigList
-			clusterImageSetList   hivev1.ClusterImageSetList
-			clusterDeploymentList hivev1.ClusterDeploymentList
-		)
-
-		multiErr = multierror.Append(multiErr, client.List(ctx, &agentList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("Agent", agentList))
-
-		multiErr = multierror.Append(multiErr, client.List(ctx, &aciList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("AgentClusterInstall", aciList))
-
-		multiErr = multierror.Append(multiErr, client.List(ctx, &clusterDeploymentList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("ClusterDeployment", clusterDeploymentList))
-
-		multiErr = multierror.Append(multiErr, client.List(ctx, &clusterImageSetList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("ClusterImageSet", clusterImageSetList))
-
-		multiErr = multierror.Append(multiErr, client.List(ctx, &infraEnvList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("InfraEnv", infraEnvList))
-
-		multiErr = multierror.Append(multiErr, client.List(ctx, &nmStateConfigList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("NMStateConfig", nmStateConfigList))
-
-		multiErr = multierror.Append(multiErr, client.List(ctx, &bareMetalHostList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("BareMetalHost", bareMetalHostList))
-
-		Expect(multiErr.ErrorOrNil()).To(BeNil())
-	}
-}
-
 func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 	Eventually(func() error {
 		return client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace)) // Should also delete all agents
@@ -660,8 +581,6 @@ func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 	Eventually(func() error {
 		return client.DeleteAllOf(ctx, &bmhv1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))
 	}, "1m", "2s").Should(BeNil())
-
-	// Check if tests pull secret exists and needs to be deleted
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -673,18 +592,9 @@ func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 		},
 		Type: corev1.SecretTypeDockerConfigJson,
 	}
-
-	psKey := types.NamespacedName{
-		Namespace: Options.Namespace,
-		Name:      pullSecretName,
-	}
-
-	err := kubeClient.Get(ctx, psKey, &corev1.Secret{})
-	if !apierrors.IsNotFound(err) {
-		Eventually(func() error {
-			return client.Delete(ctx, secret)
-		}, "1m", "2s").Should(BeNil())
-	}
+	Eventually(func() error {
+		return client.Delete(ctx, secret)
+	}, "1m", "2s").Should(BeNil())
 }
 
 func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
@@ -759,7 +669,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnvSpec          *v1beta1.InfraEnvSpec
 		infraNsName           types.NamespacedName
 		aciSpec               *hiveext.AgentClusterInstallSpec
-		aciSpecNonePlatform   *hiveext.AgentClusterInstallSpec
 		aciSNOSpec            *hiveext.AgentClusterInstallSpec
 		aciV6Spec             *hiveext.AgentClusterInstallSpec
 		secretRef             *corev1.LocalObjectReference
@@ -769,7 +678,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef = deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec = getDefaultClusterDeploymentSpec(secretRef)
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
-		aciSpecNonePlatform = getDefaultNonePlatformAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSNOSpec = getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciV6Spec = getDefaultAgentClusterIPv6InstallSpec(clusterDeploymentSpec.ClusterName)
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
@@ -779,6 +687,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 		}
 		infraEnvSpec = getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+	})
+
+	AfterEach(func() {
+		cleanUpCRs(ctx, kubeClient)
+		verifyCleanUP(ctx, kubeClient)
+		clearDB()
 	})
 
 	It("Verify NetworkType configuration with IPv6", func() {
@@ -895,154 +809,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() int {
 			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
 		}, "2m", "2s").Should(Equal(0))
-	})
-
-	It("deploy None platform CD with ACI and agents - wait for ready, delete CD and verify ACI and agents deletion", func() {
-		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpecNonePlatform, clusterDeploymentSpec.ClusterInstallRef.Name)
-		clusterKey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterName,
-		}
-		infraEnvKey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      infraNsName.Name,
-		}
-		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
-		configureLocalAgentClient(infraEnv.ID.String())
-		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
-		for i := 0; i < 3; i++ {
-			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
-			hosts = append(hosts, host)
-		}
-		for _, host := range hosts {
-			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
-			hostkey := types.NamespacedName{
-				Namespace: Options.Namespace,
-				Name:      host.ID.String(),
-			}
-			agent := getAgentCRD(ctx, kubeClient, hostkey)
-			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
-		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
-		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
-			generateCommonDomainReply(ctx, h, clusterDeploymentSpec.ClusterName, clusterDeploymentSpec.BaseDomain)
-		}
-
-		By("Approve Agents")
-		for _, host := range hosts {
-			hostkey := types.NamespacedName{
-				Namespace: Options.Namespace,
-				Name:      host.ID.String(),
-			}
-			Eventually(func() error {
-				agent := getAgentCRD(ctx, kubeClient, hostkey)
-				agent.Spec.Approved = true
-				return kubeClient.Update(ctx, agent)
-			}, "30s", "10s").Should(BeNil())
-		}
-		installkey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
-		}
-		By("Verify ClusterDeployment ReadyForInstallation")
-		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
-		By("Delete ClusterDeployment")
-		err := kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))
-		Expect(err).To(BeNil())
-		By("Verify AgentClusterInstall was deleted")
-		Eventually(func() bool {
-			aci := &hiveext.AgentClusterInstall{}
-			err := kubeClient.Get(ctx, installkey, aci)
-			return apierrors.IsNotFound(err)
-		}, "30s", "10s").Should(Equal(true))
-		By("Verify ClusterDeployment Agents were deleted")
-		Eventually(func() int {
-			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
-		}, "2m", "2s").Should(Equal(0))
-	})
-
-	It("deploy CD with ACI and agents with ignitionEndpoint", func() {
-		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
-		caCertificateSecretName := "ca-certificate"
-		caCertificate := "abc"
-		deploySecret(ctx, kubeClient, caCertificateSecretName, map[string]string{corev1.TLSCertKey: caCertificate})
-		caSec := &corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: Options.Namespace,
-				Name:      caCertificateSecretName,
-			},
-		}
-		defer func() {
-			_ = kubeClient.Delete(ctx, caSec)
-		}()
-		aciSNOSpec.IgnitionEndpoint = &hiveext.IgnitionEndpoint{
-			Url: "https://example.com",
-			CaCertificateReference: &hiveext.CaCertificateReference{
-				Namespace: Options.Namespace,
-				Name:      caCertificateSecretName,
-			},
-		}
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
-		clusterKey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterName,
-		}
-		b64Ca := b64.StdEncoding.EncodeToString([]byte(caCertificate))
-		Eventually(func() bool {
-			dbCluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-			return dbCluster != nil && *dbCluster.IgnitionEndpoint.CaCertificate == b64Ca
-		}, "1m", "10s").Should(BeTrue())
-		infraEnvKey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      infraNsName.Name,
-		}
-		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
-		configureLocalAgentClient(infraEnv.ID.String())
-		ignitionTokenSecretName := "ignition-token"
-		ignitionEndpointToken := "abcdef"
-		deploySecret(ctx, kubeClient, ignitionTokenSecretName, map[string]string{"ignition-token": ignitionEndpointToken})
-		tokenSec := &corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: Options.Namespace,
-				Name:      ignitionTokenSecretName,
-			},
-		}
-		defer func() {
-			_ = kubeClient.Delete(ctx, tokenSec)
-		}()
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-
-		hostkey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      host.ID.String(),
-		}
-		agent := getAgentCRD(ctx, kubeClient, hostkey)
-		agent.Spec.IgnitionEndpointTokenReference = &v1beta1.IgnitionEndpointTokenReference{
-			Namespace: Options.Namespace,
-			Name:      ignitionTokenSecretName,
-		}
-		err := kubeClient.Update(ctx, agent)
-		Expect(err).To(BeNil())
-
-		By("Verify Ignition Token in DB")
-		Eventually(func() bool {
-			dbHost := GetHostByKubeKey(ctx, db, hostkey, waitForReconcileTimeout)
-			return dbHost != nil && dbHost.IgnitionEndpointToken == ignitionEndpointToken
-		}, "30s", "1s").Should(BeTrue())
 	})
 
 	It("verify InfraEnv ISODownloadURL and image CreatedTime are not changing - update Annotations", func() {
@@ -1688,10 +1454,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(kubeClient.Create(ctx, s)).To(BeNil())
 
 		// Deploy InfraEnv in default namespace
-		infraEnvKey := types.NamespacedName{
-			Namespace: "default",
-			Name:      infraNsName.Name,
-		}
 		err := kubeClient.Create(ctx, &v1beta1.InfraEnv{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "InfraEnv",
@@ -1709,23 +1471,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Expect(kubeClient.Delete(ctx, s)).To(BeNil())
 		}()
 
-		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
-
-		By("Check InfraEnv Event URL exists")
-		Eventually(func() string {
-			infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
-			return infraEnv.Status.InfraEnvDebugInfo.EventsURL
-		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*infra_env_id=%s", infraEnv.ID.String())))
-
-		infraEnvCr := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
-		_, err = testEventUrl(infraEnvCr.Status.InfraEnvDebugInfo.EventsURL)
-		Expect(err).To(BeNil())
-
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		infraEnvKey := types.NamespacedName{
+			Namespace: "default",
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
@@ -1745,15 +1500,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return kubeClient.Update(ctx, agent)
 		}, "30s", "10s").Should(BeNil())
 
-		By("Check that Agent Event URL is valid")
+		By("Check Agent Event URL exists")
 		Eventually(func() string {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Status.DebugInfo.EventsURL
-		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*host_id=%s", host.ID.String())))
-
-		agent := getAgentCRD(ctx, kubeClient, key)
-		_, err = testEventUrl(agent.Status.DebugInfo.EventsURL)
-		Expect(err).To(BeNil())
+		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Wait for installing")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstallationInProgressReason)
@@ -2163,7 +1914,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      infraNsName.Name,
 		}
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
-		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, "nmstate generated an empty NetworkManager config file content")
+		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, fmt.Sprintf("%s due to an internal error: nmstate generated an empty NetworkManager config file content", v1beta1.ImageStateFailedToCreate))
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		Expect(infraEnv.Generated).Should(Equal(false))
 	})
 
 	It("Unbind", func() {
@@ -2684,15 +2441,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
-		By("Check that ACI Event URL is valid")
+		By("Check ACI Event URL exists")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.EventsURL
-		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*cluster_id=%s", cluster.ID.String())))
-
-		acicr := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-		_, err := testEventUrl(acicr.Status.DebugInfo.EventsURL)
-		Expect(err).To(BeNil())
+		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Check ACI Logs URL is empty")
 		// Should not show the URL since no logs were collected
@@ -2715,15 +2468,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return kubeClient.Update(ctx, agent)
 		}, "30s", "10s").Should(BeNil())
 
-		By("Check that Agent Event URL is valid")
+		By("Check Agent Event URL exists")
 		Eventually(func() string {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Status.DebugInfo.EventsURL
-		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*host_id=%s", host.ID.String())))
-
-		agent := getAgentCRD(ctx, kubeClient, key)
-		_, err = testEventUrl(agent.Status.DebugInfo.EventsURL)
-		Expect(err).To(BeNil())
+		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Wait for installing")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstallationInProgressReason)
@@ -2738,36 +2487,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return true
 		}, "1m", "2s").Should(BeTrue())
 
-		By("verify cluster progress on installation start")
-		Eventually(func() int64 {
-			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-			return aci.Status.Progress.TotalPercentage
-		}, "30s", "10s").Should(Equal(int64(10)))
-
-		By("verify cluster and host progress after hosts are installed")
 		installProgress := models.HostStageDone
 		installInfo := "Great Success"
-		stages := []models.HostStage{
-			models.HostStageStartingInstallation, models.HostStageInstalling,
-			models.HostStageWaitingForBootkube, models.HostStageWritingImageToDisk,
-			models.HostStageRebooting, models.HostStageDone,
-		}
-		updateHostProgressWithInfo(*host.ID, *infraEnv.ID, installProgress, installInfo)
+		updateProgressWithInfo(*host.ID, *infraEnv.ID, installProgress, installInfo)
 
-		Eventually(func() bool {
-			agent := getAgentCRD(ctx, kubeClient, key)
-			return agent.Status.Progress.ProgressInfo == installInfo &&
-				agent.Status.Progress.CurrentStage == installProgress &&
-				agent.Status.Progress.InstallationPercentage == int64(100) &&
-				reflect.DeepEqual(agent.Status.Progress.ProgressStages, stages)
-		}, "30s", "10s").Should(BeTrue())
-
-		Eventually(func() int64 {
-			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-			return aci.Status.Progress.TotalPercentage
-		}, "30s", "10s").Should(Equal(int64(80)))
-
-		By("Check ACI Logs URL exists")
 		kubeconfigFile, err := os.Open("test_kubeconfig")
 		Expect(err).NotTo(HaveOccurred())
 		_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
@@ -2775,6 +2498,14 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(err).NotTo(HaveOccurred())
 		kubeconfigFile.Close()
 
+		By("Verify Agent Progress Info")
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Status.Progress.ProgressInfo == installInfo &&
+				agent.Status.Progress.CurrentStage == installProgress
+		}, "30s", "10s").Should(BeTrue())
+
+		By("Check ACI Logs URL exists")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.LogsURL
@@ -2833,15 +2564,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configSecret = getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
 
-		By("Check that Event URL is still valid")
+		By("Check Event URL still exist")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.EventsURL
-		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*cluster_id=%s", cluster.ID.String())))
-
-		acicr = getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-		_, err = testEventUrl(acicr.Status.DebugInfo.EventsURL)
-		Expect(err).To(BeNil())
+		}, "1m", "10s").ShouldNot(Equal(""))
 
 		By("Check ACI Logs URL still exists")
 		Eventually(func() string {
@@ -2887,16 +2614,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      host.ID.String(),
 		}
 
-		By("Check that Agent Event URL is valid")
+		By("Check Agent Event URL exists")
 		Eventually(func() string {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Status.DebugInfo.EventsURL
-		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*host_id=%s", host.ID.String())))
+		}, "30s", "10s").ShouldNot(Equal(""))
 		firstAgentEventsURL := getAgentCRD(ctx, kubeClient, key).Status.DebugInfo.EventsURL
-
-		agent := getAgentCRD(ctx, kubeClient, key)
-		_, err := testEventUrl(agent.Status.DebugInfo.EventsURL)
-		Expect(err).To(BeNil())
 
 		By("Create New Infraenv")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
@@ -2924,11 +2647,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return agent.Spec.ClusterDeploymentName.Name
 		}, "30s", "10s").Should(Equal(clusterDeploymentSpec2.ClusterName))
 
-		By("Check Agent event URL has not changed")
+		By("Check Agent event URL changed")
 		Eventually(func() string {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Status.DebugInfo.EventsURL
-		}, "30s", "10s").Should(Equal(firstAgentEventsURL))
+		}, "30s", "10s").Should(Not(Equal(firstAgentEventsURL)))
 
 		By("Check host is removed from first backend cluster")
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
@@ -3225,15 +2948,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 		Expect(*cluster.Status).Should(Equal(models.ClusterStatusAddingHosts))
 
-		By("Check that ACI Event URL is valid")
+		By("Check ACI Event URL exists")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.EventsURL
-		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*cluster_id=%s", cluster.ID.String())))
-
-		aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-		_, err = testEventUrl(aci.Status.DebugInfo.EventsURL)
-		Expect(err).To(BeNil())
+		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Verify ClusterDeployment Agents were not deleted")
 
@@ -3558,29 +3277,9 @@ spec:
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
 		checkAgentClusterInstallConditionConsistency(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
 	})
-
-	It("import installed cluster", func() {
-		By("deploy installed cluster deployment")
-		clusterDeploymentSpec.Installed = true
-		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		By("deploy agent cluster install")
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
-
-		By("check ACI conditions")
-		installkey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
-		}
-		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
-		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterStoppedCompletedReason)
-		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
-		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterValidatedCondition, hiveext.ClusterValidationsPassingReason)
-		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterFailedCondition, hiveext.ClusterNotFailedReason)
-	})
-
 })
 
-var _ = Describe("bmac reconcile flow", func() {
+var _ = Describe("bmac reconcile ztp flow", func() {
 	if !Options.EnableKubeAPI {
 		return
 	}
@@ -3588,71 +3287,208 @@ var _ = Describe("bmac reconcile flow", func() {
 	ctx := context.Background()
 
 	var (
-		bmh         *bmhv1alpha1.BareMetalHost
-		bmhNsName   types.NamespacedName
-		agentNsName types.NamespacedName
-		infraNsName types.NamespacedName
+		clusterDeploymentSpec *hivev1.ClusterDeploymentSpec
+		infraEnvSpec          *v1beta1.InfraEnvSpec
+		infraNsName           types.NamespacedName
+		aciSpec               *hiveext.AgentClusterInstallSpec
+		secretRef             *corev1.LocalObjectReference
+		bmh                   *bmhv1alpha1.BareMetalHost
+		//bmhNsName             types.NamespacedName
+		//agentNsName           types.NamespacedName
 	)
 
 	BeforeEach(func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-
+		secretRef = deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec = getDefaultClusterDeploymentSpec(secretRef)
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		infraNsName = types.NamespacedName{
 			Name:      "infraenv",
 			Namespace: Options.Namespace,
 		}
-		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
-		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
-
-		infraEnvKey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      infraNsName.Name,
-		}
-		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
-		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		agentNsName = types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      host.ID.String(),
-		}
-
-		bmhSpec := bmhv1alpha1.BareMetalHostSpec{}
-		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
-		bmhNsName = types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      host.ID.String(),
-		}
+		infraEnvSpec = getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 	})
 
-	Context("sno reconcile flow", func() {
-		It("reconciles the infraenv", func() {
-			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
-			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
-			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
+	AfterEach(func() {
+		cleanUpCRs(ctx, kubeClient)
+		verifyCleanUP(ctx, kubeClient)
+		clearDB()
+	})
 
+	Context("bmac reconcile flow", func() {
+		It("create spoke cluster and make it day2 adding new bmh using ztp flow", func() {
+			By("Create cluster")
+			deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+			deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+			time.Sleep(time.Second * 10)
+			deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+			clusterKey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      clusterDeploymentSpec.ClusterName,
+			}
+			cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+			infraEnvKey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      infraNsName.Name,
+			}
+			infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+			configureLocalAgentClient(infraEnv.ID.String())
+			hosts := make([]*models.Host, 0)
+			ips := hostutil.GenerateIPv4Addresses(5, defaultCIDRv4)
+			for i := 0; i < 3; i++ {
+				hostname := fmt.Sprintf("h%d", i)
+				host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
+				hosts = append(hosts, host)
+			}
+			generateFullMeshConnectivity(ctx, ips[0], hosts...)
+			for _, h := range hosts {
+				generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			}
+			By("Check ACI Logs URL is empty")
+			// Should not show the URL since no logs yet to be collected
+			installkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+			}
+			Eventually(func() string {
+				aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+				return aci.Status.DebugInfo.LogsURL
+			}, "30s", "10s").Should(Equal(""))
+			By("Approve Agents")
+			for _, host := range hosts {
+				hostkey := types.NamespacedName{
+					Namespace: Options.Namespace,
+					Name:      host.ID.String(),
+				}
+				Eventually(func() error {
+					agent := getAgentCRD(ctx, kubeClient, hostkey)
+					agent.Spec.Approved = true
+					return kubeClient.Update(ctx, agent)
+				}, "30s", "10s").Should(BeNil())
+			}
+
+			By("Wait for installing")
+			checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstallationInProgressReason)
 			Eventually(func() bool {
-				bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
-				return bmh.Spec.Image != nil && bmh.Spec.Image.URL != ""
-			}, "30s", "10s").Should(Equal(true))
+				c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+				for _, h := range c.Hosts {
+					if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
+						return false
+					}
+				}
+				return true
+			}, "1m", "2s").Should(BeTrue())
 
-			Expect(bmh.Spec.AutomatedCleaningMode).To(Equal(bmhv1alpha1.CleaningModeDisabled))
-			Expect(bmh.ObjectMeta.Annotations).To(HaveKey(controllers.BMH_INSPECT_ANNOTATION))
-			Expect(bmh.ObjectMeta.Annotations[controllers.BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
+			By("Upload hosts logs during installation")
+			for _, host := range hosts {
+				updateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
+
+				kubeconfigFile, err := os.Open("test_kubeconfig")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
+					InfraEnvID: infraEnv.ID, HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
+				Expect(err).NotTo(HaveOccurred())
+				kubeconfigFile.Close()
+			}
+
+			By("Check ACI Logs URL exists")
+			Eventually(func() string {
+				aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+				return aci.Status.DebugInfo.LogsURL
+			}, "30s", "10s").ShouldNot(Equal(""))
+
+			By("Upload cluster logs")
+			kubeconfigFile, err1 := os.Open("test_kubeconfig")
+			Expect(err1).NotTo(HaveOccurred())
+			_, err1 = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
+				InfraEnvID: infraEnv.ID, Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
+			Expect(err1).NotTo(HaveOccurred())
+			kubeconfigFile.Close()
+
+			By("Check ACI Logs URL still exists")
+			Eventually(func() string {
+				aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+				return aci.Status.DebugInfo.LogsURL
+			}, "30s", "10s").ShouldNot(Equal(""))
+
+			By("Complete Installation")
+			completeInstallation(agentBMClient, *cluster.ID)
+			isSuccess := true
+			_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+				ClusterID: *cluster.ID,
+				CompletionParams: &models.CompletionParams{
+					IsSuccess: &isSuccess,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Verify cluster transformed from day 1 to day 2")
+			oldClusterID := cluster.ID
+			checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstalledReason)
+			cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+			Expect(cluster.ID.String()).Should(Equal(oldClusterID.String()))
+			Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
+			Expect(*cluster.Status).Should(Equal(models.ClusterStatusAddingHosts))
+
+			By("Check ACI Event URL exists")
+			Eventually(func() string {
+				aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+				return aci.Status.DebugInfo.EventsURL
+			}, "30s", "10s").ShouldNot(Equal(""))
+
+			By("Verify ClusterDeployment Agents were not deleted")
+
+			Eventually(func() int {
+				return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+			}, "2m", "2s").Should(Equal(3))
+
+			By("Verify infraenv has iso before create day2 host")
+			//Verify infraenv isoURL before change created date to avoid a race condition
+			Eventually(func() string {
+				infra := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+				return infra.Status.ISODownloadURL
+			}, "30s", "10s").ShouldNot(Equal(""))
+
+			By("Change Infraenv creation time to be available and reconciled for the new host day2")
+			//set the creation time infraenv 2 min before creating bmh crd to pass the time control for infraenv queueing
+			Eventually(func() error {
+				infra := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+				infra.Status.CreatedTime = &metav1.Time{Time: time.Now().Add(-2 * time.Minute)}
+				return kubeClient.Update(ctx, infra)
+			}, "1m", "10s").Should(BeNil())
+
+			By("Creation new BMH host")
+			uuidNewHost := strToUUID(uuid.New().String())
+			configureLocalAgentClient(infraEnv.ID.String())
+
+			key := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      uuidNewHost.String(),
+			}
+
+			bmhSpec := bmhv1alpha1.BareMetalHostSpec{}
+			deployBMHCRD(ctx, kubeClient, uuidNewHost.String(), &bmhSpec)
+
+			By("Verify BMH step is passing the online step")
+			Eventually(func() error {
+				bmh = getBmhCRD(ctx, kubeClient, key)
+				bmh.Status.Provisioning.State = bmhv1alpha1.StateReady
+				return kubeClient.Update(ctx, bmh)
+			}, "1m", "10s").Should(BeNil())
+
+			By("Verify the new BMH host is discovered and added as agent into day2 cluster")
+			day2Host1 := registerNodeWithUUID(ctx, *infraEnv.ID, "newBMH", ips[3], string(*uuidNewHost))
+			generateApiVipPostStepReply(ctx, day2Host1, true)
+			generateDomainResolution(ctx, day2Host1, clusterDeploymentSpec.ClusterName, "hive.example.com")
+
+			Eventually(func() error {
+				bmh = getBmhCRD(ctx, kubeClient, key)
+				bmh.Spec.BootMACAddress = getAgentMac(ctx, kubeClient, key)
+				return kubeClient.Update(ctx, bmh)
+			}, "1m", "10s").Should(BeNil())
+
 		})
 
-		It("reconciles the agent", func() {
-			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
-			bmh.Spec.BootMACAddress = getAgentMac(ctx, kubeClient, agentNsName)
-			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
-			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
-
-			Eventually(func() bool {
-				bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
-				return bmh.ObjectMeta.Annotations != nil && bmh.ObjectMeta.Annotations[controllers.BMH_HARDWARE_DETAILS_ANNOTATION] != ""
-			}, "60s", "10s").Should(Equal(true))
-		})
 	})
 })
 
@@ -3681,22 +3517,4 @@ func (e eventMatcher) FailureMessage(actual interface{}) string {
 
 func (e eventMatcher) NegatedFailureMessage(actual interface{}) string {
 	return "event matches"
-}
-
-func testEventUrl(url string) (models.EventList, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	list := models.EventList{}
-	err = json.Unmarshal(body, &list)
-	if err != nil {
-		return nil, err
-	}
-	Expect(list).NotTo(BeEmpty())
-	return list, nil
 }

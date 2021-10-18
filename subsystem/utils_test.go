@@ -10,9 +10,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	"github.com/hashicorp/go-multierror"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	operatorsClient "github.com/openshift/assisted-service/client/operators"
@@ -77,6 +75,15 @@ func deregisterResources() {
 		if _, err = userBMClient.Installer.DeregisterInfraEnv(context.Background(), &installer.DeregisterInfraEnvParams{InfraEnvID: *i.ID}); err != nil {
 			log.WithError(err).Debugf("InfraEnv %s couldn't be deleted via REST API", i.ID)
 		}
+		// Delete host env
+		hostReply, err := userBMClient.Installer.ListHosts(context.Background(), &installer.ListHostsParams{})
+		Expect(err).ShouldNot(HaveOccurred())
+		for _, h := range hostReply.GetPayload() {
+			if _, err = userBMClient.Installer.DeregisterHost(context.Background(), &installer.DeregisterHostParams{HostID: *h.ID}); err != nil {
+				log.WithError(err).Debugf("Host %s couldn't be deleted via REST API", h.ID)
+			}
+		}
+
 	}
 	Expect(multiErr.ErrorOrNil()).To(BeNil())
 }
@@ -444,6 +451,13 @@ func generateEssentialPrepareForInstallationSteps(ctx context.Context, hosts ...
 
 func registerNode(ctx context.Context, clusterID strfmt.UUID, name, ip string) *models.Host {
 	h := &registerHost(clusterID).Host
+	generateEssentialHostSteps(ctx, h, name, ip)
+	generateEssentialPrepareForInstallationSteps(ctx, h)
+	return h
+}
+
+func registerNodeWithUUID(ctx context.Context, clusterID strfmt.UUID, name, ip, newUUID string) *models.Host {
+	h := &registerHostByUUID(clusterID, strfmt.UUID(newUUID)).Host
 	generateEssentialHostSteps(ctx, h, name, ip)
 	generateEssentialPrepareForInstallationSteps(ctx, h)
 	return h
