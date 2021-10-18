@@ -379,8 +379,16 @@ def update_ocp_versions_json(default_version_json, updates_made, updates_made_st
 
             logger.info(f"New latest rhcos release available, {rhcos_default_release} -> {rhcos_latest_release}")
 
-            updated_version_json[release]["rhcos_image"] = updated_version_json[release]["rhcos_image"].replace(rhcos_default_release, rhcos_latest_release)
-            updated_version_json[release]["rhcos_rootfs"] = updated_version_json[release]["rhcos_rootfs"].replace(rhcos_default_release, rhcos_latest_release)
+            # Update rhcos image/rootfs with latest version
+            rhcos_image = updated_version_json[release]["rhcos_image"].replace(rhcos_default_release, rhcos_latest_release)
+            rhcos_rootfs = updated_version_json[release]["rhcos_rootfs"].replace(rhcos_default_release, rhcos_latest_release)
+            if not pre_release:
+                # Replace 'pre-release' with minor version
+                rhcos_image = rhcos_image.replace(RHCOS_PRE_RELEASE, release)
+                rhcos_rootfs = rhcos_rootfs.replace(RHCOS_PRE_RELEASE, release)
+            # Update json
+            updated_version_json[release]["rhcos_image"] = rhcos_image
+            updated_version_json[release]["rhcos_rootfs"] = rhcos_rootfs
 
             if dry_run:
                 rhcos_version_from_iso = "8888888"
@@ -455,8 +463,16 @@ def update_os_images_json(default_os_images_json, updates_made, updates_made_str
             updates_made_str.add(f"rhcos {rhcos_default_release} -> {rhcos_latest_release}")
 
             logger.info(f"New latest rhcos release available, {rhcos_default_release} -> {rhcos_latest_release}")
-            updated_version_json[index]["url"] = updated_version_json[index]["url"].replace(rhcos_default_release, rhcos_latest_release)
-            updated_version_json[index]["rootfs_url"] = updated_version_json[index]["rootfs_url"].replace(rhcos_default_release, rhcos_latest_release)
+            # Update rhcos image/rootfs with latest version
+            rhcos_image = updated_version_json[index]["url"].replace(rhcos_default_release, rhcos_latest_release)
+            rhcos_rootfs = updated_version_json[index]["rootfs_url"].replace(rhcos_default_release, rhcos_latest_release)
+            if not pre_release:
+                # Replace 'pre-release' with minor version
+                rhcos_image = rhcos_image.replace(RHCOS_PRE_RELEASE, openshift_version)
+                rhcos_rootfs = rhcos_rootfs.replace(RHCOS_PRE_RELEASE, openshift_version)
+            # Update json
+            updated_version_json[index]["url"] = rhcos_image
+            updated_version_json[index]["rootfs_url"] = rhcos_rootfs
 
             if dry_run:
                 rhcos_version_from_iso = "8888888"
