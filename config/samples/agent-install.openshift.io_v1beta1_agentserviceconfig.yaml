@@ -33,11 +33,11 @@ spec:
     version: 48.84.202109241901-0
   - cpuArchitecture: x86_64
     openshiftVersion: '4.9'
-    rootFSUrl: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-rc.7/rhcos-live-rootfs.x86_64.img
-    url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.9.0-rc.7/rhcos-4.9.0-rc.7-x86_64-live.x86_64.iso
+    rootFSUrl: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-live-rootfs.x86_64.img
+    url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-x86_64-live.x86_64.iso
     version: 49.84.202110081407-0
   - cpuArchitecture: arm64
     openshiftVersion: '4.9'
-    rootFSUrl: https://mirror.openshift.com/pub/openshift-v4/arm64/dependencies/rhcos/pre-release/4.9.0-rc.7/rhcos-4.9.0-rc.7-aarch64-live-rootfs.aarch64.img
-    url: https://mirror.openshift.com/pub/openshift-v4/arm64/dependencies/rhcos/pre-release/4.9.0-rc.7/rhcos-4.9.0-rc.7-aarch64-live.aarch64.iso
+    rootFSUrl: https://mirror.openshift.com/pub/openshift-v4/arm64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live-rootfs.aarch64.img
+    url: https://mirror.openshift.com/pub/openshift-v4/arm64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live.aarch64.iso
     version: 49.84.202110080947-0
