@@ -463,6 +463,9 @@ type Config struct {
 	// AuthAgentAuth Applies when the "X-Secret-Key" header is set
 	AuthAgentAuth func(token string) (interface{}, error)
 
+	// AuthImageAuth Applies when the "Image-Token" header is set
+	AuthImageAuth func(token string) (interface{}, error)
+
 	// AuthURLAuth Applies when the "api_key" query is set
 	AuthURLAuth func(token string) (interface{}, error)
 
@@ -515,6 +518,13 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 			return token, nil
 		}
 		return c.AuthAgentAuth(token)
+	}
+
+	api.ImageAuthAuth = func(token string) (interface{}, error) {
+		if c.AuthImageAuth == nil {
+			return token, nil
+		}
+		return c.AuthImageAuth(token)
 	}
 
 	api.URLAuthAuth = func(token string) (interface{}, error) {

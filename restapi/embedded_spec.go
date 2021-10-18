@@ -7449,6 +7449,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "imageAuth": []
           }
         ],
         "description": "Downloads the customized ignition file for this host",
@@ -7722,6 +7725,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "imageAuth": []
           }
         ],
         "description": "Get the initial ramdisk for minimal ISO based installations.\n",
@@ -13276,6 +13282,11 @@ func init() {
     "agentAuth": {
       "type": "apiKey",
       "name": "X-Secret-Key",
+      "in": "header"
+    },
+    "imageAuth": {
+      "type": "apiKey",
+      "name": "Image-Token",
       "in": "header"
     },
     "urlAuth": {
@@ -20764,6 +20775,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "imageAuth": []
           }
         ],
         "description": "Downloads the customized ignition file for this host",
@@ -21037,6 +21051,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "imageAuth": []
           }
         ],
         "description": "Get the initial ramdisk for minimal ISO based installations.\n",
@@ -26653,6 +26670,11 @@ func init() {
     "agentAuth": {
       "type": "apiKey",
       "name": "X-Secret-Key",
+      "in": "header"
+    },
+    "imageAuth": {
+      "type": "apiKey",
+      "name": "Image-Token",
       "in": "header"
     },
     "urlAuth": {

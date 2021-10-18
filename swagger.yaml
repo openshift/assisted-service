@@ -47,6 +47,10 @@ securityDefinitions:
     type: apiKey
     in: query
     name: api_key
+  imageAuth:
+    type: apiKey
+    in: header
+    name: Image-Token
 
 security:
   - userAuth: [admin, user]
@@ -4488,6 +4492,7 @@ paths:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
         - urlAuth: []
+        - imageAuth: []
       description: Downloads the customized ignition file for this host
       operationId: v2DownloadInfraEnvFiles
       produces:
@@ -4934,6 +4939,7 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - urlAuth: []
+        - imageAuth: []
       description: |
         Get the initial ramdisk for minimal ISO based installations.
       operationId: DownloadMinimalInitrd
