@@ -1362,7 +1362,7 @@ var _ = Describe("cluster install", func() {
 					OpenshiftVersion:     swag.String(snoVersion),
 					PullSecret:           swag.String(pullSecret),
 					SSHPublicKey:         sshPublicKey,
-					VipDhcpAllocation:    swag.Bool(true),
+					VipDhcpAllocation:    swag.Bool(false),
 					NetworkType:          swag.String("OVNKubernetes"),
 					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
 				},
