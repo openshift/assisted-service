@@ -34,6 +34,7 @@ const (
 	StatusInfoDegraded                        = "Cluster is installed but degraded"
 	statusInfoPreparingForInstallation        = "Preparing cluster for installation"
 	statusInfoPreparingForInstallationTimeout = "Preparing cluster for installation timeout"
+	statusInfoFinalizingTimeout               = "Cluster installation timeout while finalizing"
 	statusInfoPendingForInput                 = "User input required"
 	statusInfoError                           = "cluster has hosts in error"
 	statusInfoTimeout                         = "cluster installation timed out while pending user action (a manual booting from installation disk)"

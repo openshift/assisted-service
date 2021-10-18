@@ -272,6 +272,7 @@ var _ = Describe("Transition tests", func() {
 						ID:                 &clusterId,
 						Status:             swag.String(models.ClusterStatusFinalizing),
 						MonitoredOperators: t.operators,
+						StatusUpdatedAt:    strfmt.DateTime(time.Now()),
 					},
 					IsAmsSubscriptionConsoleUrlSet: true,
 				}
@@ -1292,6 +1293,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 						ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
 						ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
 						NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						StatusUpdatedAt: strfmt.DateTime(time.Now()),
 					},
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -2976,6 +2978,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 						ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
 						ServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
 						NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						StatusUpdatedAt:   strfmt.DateTime(time.Now()),
 					},
 				}
 				if t.setMachineCidrUpdatedAt {
@@ -3250,6 +3253,21 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				statusInfoChecker: makeValueChecker(statusInfoError),
 			},
 			{
+				name:          "finalizing to error due to timeout",
+				srcState:      models.ClusterStatusFinalizing,
+				srcStatusInfo: statusInfoFinalizingTimeout,
+				dstState:      models.ClusterStatusError,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker:   makeValueChecker(statusInfoFinalizingTimeout),
+				installationTimeout: true,
+			},
+			{
 				name:          "finalizing to finalizing",
 				srcState:      models.ClusterStatusFinalizing,
 				srcStatusInfo: statusInfoFinalizing,
@@ -3315,6 +3333,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 						BaseDNSDomain:      "test.com",
 						PullSecretSet:      t.pullSecretSet,
 						MonitoredOperators: t.operators,
+						StatusUpdatedAt:    strfmt.DateTime(time.Now()),
 					},
 				}
 				if t.withOCMClient {
@@ -3327,9 +3346,12 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					}
 				}
 				cluster.MachineNetworkCidrUpdatedAt = time.Now().Add(-3 * time.Minute)
-				if t.installationTimeout {
+				if t.installationTimeout && t.srcState != models.ClusterStatusFinalizing {
 					// adjust the cluster InstallStartedAt to trigger a timeout
 					cluster.InstallStartedAt = strfmt.DateTime(time.Now().Add(-25 * time.Hour))
+				} else if t.installationTimeout && t.srcState == models.ClusterStatusFinalizing {
+					// adjust the cluster StatusUpdatedAt to trigger a timeout
+					cluster.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-6 * time.Hour))
 				} else {
 					cluster.InstallStartedAt = strfmt.DateTime(time.Now().Add(-time.Hour))
 				}
@@ -3345,7 +3367,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 						eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
 						eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 				}
-				if t.srcState == models.ClusterStatusFinalizing && !t.requiresAMSUpdate {
+				if t.srcState == models.ClusterStatusFinalizing && !t.requiresAMSUpdate && !t.installationTimeout {
 					mockS3Api.EXPECT().DoesObjectExist(ctx, fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)).Return(false, nil)
 				}
 				reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusInstallingPendingUserAction}

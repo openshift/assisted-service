@@ -131,6 +131,7 @@ type PrepareConfig struct {
 type Config struct {
 	PrepareConfig           PrepareConfig
 	InstallationTimeout     time.Duration `envconfig:"INSTALLATION_TIMEOUT" default:"24h"`
+	FinalizingTimeout       time.Duration `envconfig:"FINALIZING_TIMEOUT" default:"5h"`
 	MonitorBatchSize        int           `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
 	EnableSingleNodeDnsmasq bool          `envconfig:"ENABLE_SINGLE_NODE_DNSMASQ" default:"false"`
 }
@@ -163,6 +164,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		db:                  db,
 		prepareConfig:       cfg.PrepareConfig,
 		installationTimeout: cfg.InstallationTimeout,
+		finalizingTimeout:   cfg.FinalizingTimeout,
 		eventsHandler:       eventsHandler,
 	}
 	return &Manager{
