@@ -1238,8 +1238,9 @@ func GetServiceIPHostnames(serviceIPs string) string {
 }
 
 func firstN(s string, n int) string {
-	if len(s) > n {
-		return s[:n]
+	const suffix string = " <TRUNCATED>"
+	if len(s) > n+len(suffix) {
+		return s[:(n-len(suffix))] + suffix
 	}
 	return s
 }
@@ -1255,7 +1256,7 @@ func (g *installerGenerator) runCreateCommand(ctx context.Context, installerPath
 	if err != nil {
 		log.WithError(err).
 			Errorf("error running openshift-install create %s, stdout: %s", command, out.String())
-		return errors.Wrapf(err, "error running openshift-install %s,  %s", command, firstN(out.String(), 140))
+		return errors.Wrapf(err, "error running openshift-install %s,  %s", command, firstN(out.String(), 512))
 	}
 	return nil
 }
