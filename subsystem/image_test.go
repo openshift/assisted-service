@@ -174,7 +174,7 @@ var _ = Describe("image tests", func() {
 		Expect(err).To(BeAssignableToTypeOf(installer.NewDownloadClusterISOHeadersNotFound()))
 
 		// test that an event was added
-		msg := "Deleted image from backend because its ignition was updated. The image may be regenerated at any time."
+		msg := "Deleted image from backend because its ignition was updated. The image may be regenerated at any time"
 		verifyEventExistence(clusterID, msg)
 	})
 

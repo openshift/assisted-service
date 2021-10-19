@@ -430,3 +430,231 @@ x-events:
   severity: "info"
   properties:
     infra_env_id: UUID
+
+- name: discovery_ignition_config_applied
+  message: "Custom discovery ignition config was applied to the cluster"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+
+- name: image_deleted_after_ignition_update
+  message: "Deleted image from backend because its ignition was updated. The image may be regenerated at any time"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+
+- name: download_image_failed_not_found
+  message: "Failed to download image: the image was not found (perhaps it expired) - please generate the image and try again"
+  event_type: infra_env
+  severity: "error"
+  properties:
+    infra_env_id: UUID
+
+- name: download_image_started
+  message: "Started image download (image type is '{image_type}')"
+  event_type: infra_env
+  severity: "info"
+  properties:
+    infra_env_id: UUID
+    image_type: string
+
+- name: generate_image_failed_start
+  message: "Failed to generate image: error starting DB transaction"
+  event_type: cluster
+  severity: "error"
+  properties:
+    cluster_id: UUID
+
+- name: generate_image_failed_contact_storage_backend
+  message: "Failed to generate image: error contacting storage backend"
+  event_type: cluster
+  severity: "error"
+  properties:
+    cluster_id: UUID
+
+- name: generate_image_failed_update_metadata
+  message: "Failed to generate image: error updating metadata"
+  event_type: cluster
+  severity: "error"
+  properties:
+    cluster_id: UUID
+
+- name: generate_image_failed_commit_transaction
+  message: "Failed to generate image: error committing the transaction"
+  event_type: cluster
+  severity: "error"
+  properties:
+    cluster_id: UUID
+
+- name: generate_image_failed_fetch
+  message: "Failed to generate image: error fetching updated infra env metadata"
+  event_type: infra_env
+  severity: "error"
+  properties:
+    infra_env_id: UUID
+
+- name: existing_image_reused
+  message: "Re-used existing image rather than generating a new one (image type is '{image_type}')"
+  event_type: infra_env
+  severity: "info"
+  properties:
+    infra_env_id: UUID
+    image_type: string
+
+- name: install_config_applied
+  message: "Custom install config was applied to the cluster"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+
+- name: proxy_settings_changed
+  message: "Proxy settings changed"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+
+- name: disk_slower_supported_speed
+  message: "Host's disk {host_disk} is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: {fdatasync_duration} ms)"
+  event_type: host
+  severity: "warning"
+  properties:
+    cluster_id: UUID_PTR
+    host_id: UUID
+    infra_env_id: UUID
+    host_disk: string
+    fdatasync_duration: int64
+
+- name: disable_host_failed_fetch
+  message: "Failed to disable host: error fetching host from DB"
+  event_type: host
+  severity: "error"
+  properties:
+    cluster_id: UUID_PTR
+    host_id: UUID
+    infra_env_id: UUID
+
+- name: disable_host_failed_disable
+  message: "Failed to disable host: error disabling host in current status"
+  event_type: host
+  severity: "error"
+  properties:
+    cluster_id: UUID_PTR
+    host_id: UUID
+    infra_env_id: UUID
+
+- name: host_disabled_by_user
+  message: "Host {host_name} disabled by user"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID_PTR
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
+- name: enable_host_failed_fetch
+  message: "Failed to enable host: error fetching host from DB"
+  event_type: host
+  severity: "error"
+  properties:
+    cluster_id: UUID_PTR
+    host_id: UUID
+    infra_env_id: UUID
+
+- name: enable_host_failed_disable
+  message: "Failed to enable host {host_name}: error disabling host in current status"
+  event_type: host
+  severity: "error"
+  properties:
+    cluster_id: UUID_PTR
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
+- name: host_enabled_by_user
+  message: "Host {host_name} enabled by user"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID_PTR
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
+- name: host_discovery_ignition_config_applied
+  message: "Host {host_name}: custom discovery ignition config was applied"
+  event_type: host
+  severity: "info"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
+- name: host_reset_failed_fetch
+  message: "Failed to reset host: error fetching host from DB"
+  event_type: host
+  severity: "error"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+
+- name: host_logs_uploaded
+  message: "Uploaded logs for host {host_name} cluster {cluster_id}"
+  event_type: host
+  severity: "info"
+  properties:
+    cluster_id: UUID_PTR
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
+- name: cluster_logs_uploaded
+  message: "Uploaded logs for the cluster"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+
+- name: host_updated_approved
+  message: "Host {host_name}: updated approved to {approved_value}"
+  event_type: host
+  severity: "info"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+    approved_value: bool
+
+- name: host_registered_cluster
+  message: "Host {host_name}: registered to cluster"
+  event_type: host
+  severity: "info"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
+- name: generate_image_failed_format
+  message: "Failed to generate image: error formatting ignition file"
+  event_type: infra_env
+  severity: "error"
+  properties:
+    infra_env_id: UUID
+
+- name: generate_minimal_iso_failed
+  message: "Failed to generate minimal ISO"
+  event_type: infra_env
+  severity: "error"
+  properties:
+    infra_env_id: UUID
+
+- name: upload_image_failed
+  message: "Failed to upload image"
+  event_type: infra_env
+  severity: "error"
+  properties:
+    infra_env_id: UUID
