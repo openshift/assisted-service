@@ -7760,6 +7760,77 @@ var _ = Describe("infraEnvs", func() {
 				Expect(i.Type).To(Equal(models.ImageTypeFullIso))
 			})
 
+			It("Update proxy", func() {
+				var err error
+				mockInfraEnvUpdateSuccess()
+				proxyURL := "http://[1001:db9::1]:3129"
+				noProxy := ".test-infra-cluster-b0cea5e8.redhat.com,1001:db9::/120,2002:db8::/53,2003:db8::/112"
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: *i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						Proxy: &models.Proxy{
+							HTTPProxy:  swag.String(proxyURL),
+							HTTPSProxy: swag.String(proxyURL),
+							NoProxy:    swag.String(noProxy),
+						},
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.Proxy).ToNot(BeNil())
+				Expect(swag.StringValue(i.Proxy.HTTPProxy)).To(Equal(proxyURL))
+				Expect(swag.StringValue(i.Proxy.HTTPSProxy)).To(Equal(proxyURL))
+				Expect(swag.StringValue(i.Proxy.NoProxy)).To(Equal(noProxy))
+			})
+			It("Update proxy - יhttps missing", func() {
+				var err error
+				mockInfraEnvUpdateSuccess()
+				proxyURL := "http://[1001:db9::1]:3129"
+				noProxy := ".test-infra-cluster-b0cea5e8.redhat.com,1001:db9::/120,2002:db8::/53,2003:db8::/112"
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: *i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						Proxy: &models.Proxy{
+							HTTPProxy: swag.String(proxyURL),
+							NoProxy:   swag.String(noProxy),
+						},
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.Proxy).ToNot(BeNil())
+				Expect(swag.StringValue(i.Proxy.HTTPProxy)).To(Equal(proxyURL))
+				Expect(swag.StringValue(i.Proxy.HTTPSProxy)).To(Equal(proxyURL))
+				Expect(swag.StringValue(i.Proxy.NoProxy)).To(Equal(noProxy))
+			})
+
+			It("Update proxy - יhttps different", func() {
+				var err error
+				mockInfraEnvUpdateSuccess()
+				proxyURL1 := "http://[1001:db9::1]:3129"
+				proxyURL2 := "http://[1001:db9::1]:3130"
+				noProxy := ".test-infra-cluster-b0cea5e8.redhat.com,1001:db9::/120,2002:db8::/53,2003:db8::/112"
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: *i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						Proxy: &models.Proxy{
+							HTTPProxy:  swag.String(proxyURL1),
+							HTTPSProxy: swag.String(proxyURL2),
+							NoProxy:    swag.String(noProxy),
+						},
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.Proxy).ToNot(BeNil())
+				Expect(swag.StringValue(i.Proxy.HTTPProxy)).To(Equal(proxyURL1))
+				Expect(swag.StringValue(i.Proxy.HTTPSProxy)).To(Equal(proxyURL2))
+				Expect(swag.StringValue(i.Proxy.NoProxy)).To(Equal(noProxy))
+			})
+
 			It("Update StaticNetwork", func() {
 				mockInfraEnvUpdateSuccess()
 				staticNetworkFormatRes := "static network format result"

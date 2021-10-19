@@ -23,7 +23,7 @@ type Proxy struct {
 	// A proxy URL to use for creating HTTPS connections outside the cluster.
 	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
 	//
-	HTTPSProxy *string `json:"https_proxy,omitempty"`
+	HTTPSProxy *string `json:"https_proxy,omitempty" gorm:"column:https_proxy"`
 
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
