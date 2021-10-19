@@ -5814,6 +5814,12 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		kubeKey = &types.NamespacedName{}
 	}
 
+	// generate key for signing rhsso image auth tokens
+	imageTokenKey, err := gencrypto.HMACKey(32)
+	if err != nil {
+		return nil, err
+	}
+
 	infraEnv := common.InfraEnv{
 		Generated: false,
 		InfraEnv: models.InfraEnv{
@@ -5833,6 +5839,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
 		},
 		KubeKeyNamespace: kubeKey.Namespace,
+		ImageTokenKey:    imageTokenKey,
 	}
 
 	if params.InfraenvCreateParams.ClusterID != nil {

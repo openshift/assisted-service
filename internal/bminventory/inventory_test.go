@@ -7662,6 +7662,10 @@ var _ = Describe("infraEnvs", func() {
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
 			actual := reply.(*installer.RegisterInfraEnvCreated)
 			Expect(*actual.Payload.Name).To(Equal("some-infra-env-name"))
+
+			var dbInfraEnv common.InfraEnv
+			Expect(db.First(&dbInfraEnv, "id = ?", actual.Payload.ID.String()).Error).To(Succeed())
+			Expect(dbInfraEnv.ImageTokenKey).NotTo(Equal(""))
 		})
 
 		It("Create with ClusterID - CPU architecture match", func() {

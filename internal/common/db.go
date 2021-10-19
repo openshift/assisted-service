@@ -8,6 +8,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
@@ -107,6 +108,8 @@ type InfraEnv struct {
 	// Hosts relationship
 	// TODO Add a helper function(s) to load InfraEnv(s) with eager-loading parameter
 	Hosts []*Host `json:"hosts" gorm:"foreignkey:InfraEnvID;association_foreignkey:ID"`
+
+	ImageTokenKey string `json:"image_token_key"`
 }
 
 type EagerLoadingState bool
@@ -338,6 +341,12 @@ func ToSqlList(strs []string) string {
 }
 
 func CreateInfraEnvForCluster(db *gorm.DB, cluster *Cluster, imageType models.ImageType) error {
+	// generate key for signing rhsso image auth tokens
+	imageTokenKey, err := gencrypto.HMACKey(32)
+	if err != nil {
+		return err
+	}
+
 	proxy := models.Proxy{
 		HTTPProxy:  swag.String(cluster.HTTPProxy),
 		HTTPSProxy: swag.String(cluster.HTTPSProxy),
@@ -355,9 +364,9 @@ func CreateInfraEnvForCluster(db *gorm.DB, cluster *Cluster, imageType models.Im
 		UserName:         cluster.UserName,
 		Type:             ImageTypePtr(imageType),
 	},
-		PullSecret: cluster.PullSecret,
-		Generated:  false,
+		PullSecret:    cluster.PullSecret,
+		Generated:     false,
+		ImageTokenKey: imageTokenKey,
 	}
-	err := db.Create(infraEnv).Error
-	return err
+	return db.Create(infraEnv).Error
 }
