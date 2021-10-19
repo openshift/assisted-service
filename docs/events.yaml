@@ -658,3 +658,64 @@ x-events:
   severity: "error"
   properties:
     infra_env_id: UUID
+
+- name: generated_image_with_ignition_config
+  message: "Generated image ({details})"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    details: string
+
+- name: refresh_host_or_cluster_statuses_failed
+  message: "{message}"
+  event_type: host
+  severity: "error"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    message: string
+
+- name: update_host_install_progress
+  message: "Host: {host_name}, {event}"
+  event_type: host
+  severity: "info"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+    event: string
+
+- name: register_host_to_infra_env_failed
+  message: "{message}"
+  event_type: host
+  severity: "error"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    message: string
+
+- name: host_registration_failed
+  message: "{message}"
+  event_type: host
+  severity: "error"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    message: string
+
+- name: deregister_inactive_clusters
+  message: "{message}"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    message: string
+
+- name: permanently_delete_clusters
+  message: "{message}"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    message: string

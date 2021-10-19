@@ -1438,9 +1438,9 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 	if err := b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, imageType, true, v2); err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	msg := b.getIgnitionConfigForLogging(ctx, infraEnv, log, imageType)
-	eventgen.SendGenericClusterEvent(ctx, b.eventsHandler, *infraEnv.ID, msg, models.EventSeverityInfo)
-	log.Infof(msg)
+	details := b.getIgnitionConfigForLogging(ctx, infraEnv, log, imageType)
+	eventgen.SendGeneratedImageWithIgnitionConfigEvent(ctx, b.eventsHandler, *infraEnv.ID, details)
+	log.Infof("Generated image %s", details)
 
 	return nil
 }
@@ -1448,25 +1448,23 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 func (b *bareMetalInventory) getIgnitionConfigForLogging(ctx context.Context, infraEnv *common.InfraEnv, log logrus.FieldLogger, imageType models.ImageType) string {
 	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, true, b.authHandler.AuthType())
 	log.Infof("Generated infra env <%s> image with ignition config %s", infraEnv.ID, ignitionConfigForLogging)
-	msg := "Generated image"
-	var msgExtras []string
+	var msgDetails []string
 
 	httpProxy, _, _ := common.GetProxyConfigs(infraEnv.Proxy)
 	if httpProxy != "" {
-		msgExtras = append(msgExtras, fmt.Sprintf(`proxy URL is "%s"`, httpProxy))
+		msgDetails = append(msgDetails, fmt.Sprintf(`proxy URL is "%s"`, httpProxy))
 	}
 
-	msgExtras = append(msgExtras, fmt.Sprintf(`Image type is "%s"`, string(imageType)))
+	msgDetails = append(msgDetails, fmt.Sprintf(`Image type is "%s"`, string(imageType)))
 
 	sshExtra := "SSH public key is not set"
 	if infraEnv.SSHAuthorizedKey != "" {
 		sshExtra = "SSH public key is set"
 	}
 
-	msgExtras = append(msgExtras, sshExtra)
+	msgDetails = append(msgDetails, sshExtra)
 
-	msg = fmt.Sprintf("%s (%s)", msg, strings.Join(msgExtras, ", "))
-	return msg
+	return strings.Join(msgDetails, ", ")
 }
 
 func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log logrus.FieldLogger,
@@ -4245,7 +4243,7 @@ func (b *bareMetalInventory) refreshHostAndClusterStatuses(
 		}
 		logger.WithError(err).Errorf("%s:", eventName)
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			eventgen.SendGenericHostEvent(ctx, b.eventsHandler, *hostID, *clusterID, err.Error(), models.EventSeverityError)
+			eventgen.SendRefreshHostOrClusterStatusesFailedEvent(ctx, b.eventsHandler, *hostID, *clusterID, err.Error())
 		}
 	}()
 	err = b.setMajorityGroupForCluster(clusterID, db)
@@ -4765,8 +4763,7 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 		}
 
 		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-		msg := fmt.Sprintf("Host %s: %s", hostutil.GetHostnameForMsg(&host.Host), event)
-		eventgen.SendGenericHostEvent(ctx, b.eventsHandler, *host.ID, *host.ClusterID, msg, models.EventSeverityInfo)
+		eventgen.SendUpdateHostInstallProgressEvent(ctx, b.eventsHandler, *host.ID, *host.ClusterID, hostutil.GetHostnameForMsg(&host.Host), event)
 
 		if err := b.clusterApi.UpdateInstallProgress(ctx, params.ClusterID); err != nil {
 			log.WithError(err).Errorf("failed to update cluster %s progress", params.ClusterID)
@@ -6126,8 +6123,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 				log.WithError(err).Errorf("failed to register host <%s> to infra-env %s due to: %s",
 					params.NewHostParams.HostID, params.InfraEnvID.String(), err.Error())
 				// TODO Need event for infra-env instead of cluster
-				eventgen.SendGenericHostEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID,
-					err.Error(), models.EventSeverityError)
+				eventgen.SendRegisterHostToInfraEnvFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, err.Error())
 
 				return common.NewApiError(http.StatusConflict, err)
 			}
@@ -6147,8 +6143,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		uerr := errors.Wrap(err, fmt.Sprintf("Failed to register host %s", hostutil.GetHostnameForMsg(host)))
 
 		// TODO event for infra-env
-		eventgen.SendGenericHostEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID,
-			uerr.Error(), models.EventSeverityError)
+		eventgen.SendHostRegistrationFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, uerr.Error())
 		return returnRegisterHostTransitionError(http.StatusBadRequest, err)
 	}
 
@@ -6351,8 +6346,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 		}
 
 		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-		msg := fmt.Sprintf("Host %s: %s", hostutil.GetHostnameForMsg(&host.Host), event)
-		eventgen.SendGenericHostEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, msg, models.EventSeverityInfo)
+		eventgen.SendUpdateHostInstallProgressEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, hostutil.GetHostnameForMsg(&host.Host), event)
 		if err := b.clusterApi.UpdateInstallProgress(ctx, *host.ClusterID); err != nil {
 			log.WithError(err).Errorf("failed to update cluster %s progress", host.ClusterID)
 			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
