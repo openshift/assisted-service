@@ -3,6 +3,7 @@ package gencrypto
 import (
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
@@ -42,18 +43,32 @@ func LocalJWTForKey(id string, private_key_pem string, keyType LocalJWTKeyType) 
 }
 
 func SignURL(urlString string, id string, keyType LocalJWTKeyType) (string, error) {
-	u, err := url.Parse(urlString)
-	if err != nil {
-		return "", err
-	}
-
 	tok, err := LocalJWT(id, keyType)
 	if err != nil {
 		return "", err
 	}
 
+	return SignURLWithToken(urlString, "api_key", tok)
+}
+
+func JWTForSymmetricKey(key []byte, expiration time.Duration, sub string) (string, error) {
+	exp := time.Now().Add(expiration).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"exp": exp,
+		"sub": sub,
+	})
+
+	return token.SignedString(key)
+}
+
+func SignURLWithToken(urlString string, queryKey string, token string) (string, error) {
+	u, err := url.Parse(urlString)
+	if err != nil {
+		return "", err
+	}
+
 	q := u.Query()
-	q.Set("api_key", tok)
+	q.Set(queryKey, token)
 	u.RawQuery = q.Encode()
 
 	return u.String(), nil
