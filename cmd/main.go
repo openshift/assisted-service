@@ -270,7 +270,7 @@ func main() {
 	var autoMigrationLeader leader.ElectorInterface
 	authHandler, err := auth.NewAuthenticator(&Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
 	failOnError(err, "failed to create authenticator")
-	authzHandler := auth.NewAuthzHandler(&Options.Auth, ocmClient, log.WithField("pkg", "authz"))
+	authzHandler := auth.NewAuthzHandler(&Options.Auth, ocmClient, log.WithField("pkg", "authz"), db)
 	releaseHandler := oc.NewRelease(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},

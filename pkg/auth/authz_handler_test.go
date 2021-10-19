@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/security"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -26,7 +24,6 @@ import (
 	"github.com/openshift/assisted-service/client/versions"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/patrickmn/go-cache"
@@ -38,15 +35,15 @@ import (
 var _ = Describe("NewAuthzHandler", func() {
 	It("Is disabled unless auth type is rhsso", func() {
 		cfg := &Config{AuthType: TypeRHSSO}
-		handler := NewAuthzHandler(cfg, nil, logrus.New())
+		handler := NewAuthzHandler(cfg, nil, logrus.New(), nil)
 		Expect(handler.Enabled).To(BeTrue())
 
 		cfg = &Config{}
-		handler = NewAuthzHandler(cfg, nil, logrus.New())
+		handler = NewAuthzHandler(cfg, nil, logrus.New(), nil)
 		Expect(handler.Enabled).To(BeFalse())
 
 		cfg = &Config{AuthType: TypeNone}
-		handler = NewAuthzHandler(cfg, nil, logrus.New())
+		handler = NewAuthzHandler(cfg, nil, logrus.New(), nil)
 		Expect(handler.Enabled).To(BeFalse())
 	})
 })
@@ -178,35 +175,11 @@ var _ = Describe("authz", func() {
 		return payload, nil
 	}
 
-	mockCreateAuthenticator := func(
-		name,
-		in string,
-		authenticate security.TokenAuthentication) runtime.Authenticator {
-
-		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
-			log := logutil.FromContext(r.Context(), log)
-			token := r.Header.Get(name)
-			if token == "" {
-				return false, nil, nil
-			}
-			p, err := authenticate(token)
-			if err != nil {
-				log.Errorf("Fail to authenticate. Error %v", err)
-				if common.IsKnownError(err) {
-					return true, nil, err
-				}
-				return true, nil, common.NewInfraError(http.StatusUnauthorized, err)
-			}
-			return true, p, nil
-		})
-	}
-
 	userToken, JwkCert := GetTokenAndCert(false)
 	h, err := restapi.Handler(
 		restapi.Config{
-			AuthAgentAuth:       mockAgentAuth,
-			AuthUserAuth:        mockUserAuth,
-			APIKeyAuthenticator: mockCreateAuthenticator,
+			AuthAgentAuth: mockAgentAuth,
+			AuthUserAuth:  mockUserAuth,
 			Authorizer: NewAuthzHandler(
 				&Config{
 					AuthType:   TypeRHSSO,
@@ -217,7 +190,7 @@ var _ = Describe("authz", func() {
 					Authorization: mockOcmAuthz,
 					Cache:         authzCache,
 				},
-				log.WithField("pkg", "auth")).CreateAuthorizer(),
+				log.WithField("pkg", "auth"), nil).CreateAuthorizer(),
 			InstallerAPI:          fakeInventory{},
 			AssistedServiceIsoAPI: fakeAssistedServiceIsoAPI{},
 			EventsAPI:             &fakeEventsAPI{},

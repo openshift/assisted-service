@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	oAPIErrors "github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
@@ -51,6 +52,8 @@ type ApiErrorResponse struct {
 	err        error
 }
 
+var _ oAPIErrors.Error = &ApiErrorResponse{}
+
 func (a *ApiErrorResponse) Error() string {
 	return a.err.Error()
 }
@@ -66,6 +69,10 @@ func (a *ApiErrorResponse) StatusCode() int32 {
 	return a.statusCode
 }
 
+func (a *ApiErrorResponse) Code() int32 {
+	return a.StatusCode()
+}
+
 func NewApiError(statusCode int32, err error) *ApiErrorResponse {
 	return &ApiErrorResponse{
 		statusCode: statusCode,
@@ -76,6 +83,8 @@ func NewApiError(statusCode int32, err error) *ApiErrorResponse {
 type InfraErrorResponse struct {
 	*ApiErrorResponse
 }
+
+var _ oAPIErrors.Error = &InfraErrorResponse{}
 
 func (i *InfraErrorResponse) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 	rw.WriteHeader(int(i.statusCode))
