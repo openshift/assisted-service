@@ -39,7 +39,7 @@ import (
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/garbagecollector"
 	"github.com/openshift/assisted-service/internal/gencrypto"
@@ -75,7 +75,7 @@ var (
 	ctrl                     *gomock.Controller
 	mockClusterApi           *cluster.MockAPI
 	mockHostApi              *host.MockAPI
-	mockEvents               *events.MockHandler
+	mockEvents               *eventsapi.MockHandler
 	mockS3Client             *s3wrapper.MockAPI
 	mockSecretValidator      *validations.MockPullSecretValidator
 	mockIsoEditorFactory     *isoeditor.MockFactory
@@ -12701,7 +12701,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockClusterApi = cluster.NewMockAPI(ctrl)
 	mockHostApi = host.NewMockAPI(ctrl)
 	mockGenerator = generator.NewMockISOInstallConfigGenerator(ctrl)
-	mockEvents = events.NewMockHandler(ctrl)
+	mockEvents = eventsapi.NewMockHandler(ctrl)
 	mockS3Client = s3wrapper.NewMockAPI(ctrl)
 	mockMetric = metrics.NewMockAPI(ctrl)
 	mockUsage = usage.NewMockAPI(ctrl)

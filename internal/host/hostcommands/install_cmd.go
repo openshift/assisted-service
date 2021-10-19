@@ -13,7 +13,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
@@ -31,7 +31,7 @@ type installCmd struct {
 	hwValidator       hardware.Validator
 	ocRelease         oc.Release
 	instructionConfig InstructionConfig
-	eventsHandler     events.Handler
+	eventsHandler     eventsapi.Handler
 	versionsHandler   versions.Handler
 }
 
@@ -45,7 +45,7 @@ var podmanBaseCmd = [...]string{
 }
 
 func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
-	instructionConfig InstructionConfig, eventsHandler events.Handler, versionsHandler versions.Handler) *installCmd {
+	instructionConfig InstructionConfig, eventsHandler eventsapi.Handler, versionsHandler versions.Handler) *installCmd {
 	return &installCmd{
 		baseCmd:           baseCmd{log: log},
 		db:                db,

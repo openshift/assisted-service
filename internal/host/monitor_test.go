@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -34,7 +34,7 @@ var _ = Describe("monitor_disconnection", func() {
 		state         API
 		host          models.Host
 		ctrl          *gomock.Controller
-		mockEvents    *events.MockHandler
+		mockEvents    *eventsapi.MockHandler
 		dbName        string
 		mockMetricApi *metrics.MockAPI
 	)
@@ -42,7 +42,7 @@ var _ = Describe("monitor_disconnection", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		mockMetricApi = metrics.NewMockAPI(ctrl)
@@ -153,7 +153,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 		host          models.Host
 		ctrl          *gomock.Controller
 		cfg           Config
-		mockEvents    *events.MockHandler
+		mockEvents    *eventsapi.MockHandler
 		dbName        string
 		clusterID     = strfmt.UUID(uuid.New().String())
 		infraEnvID    = strfmt.UUID(uuid.New().String())
@@ -163,7 +163,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), gomock.Any()).AnyTimes()
 
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
@@ -250,7 +250,7 @@ var _ = Describe("TestHostMonitoring - with infra-env", func() {
 		host          models.Host
 		ctrl          *gomock.Controller
 		cfg           Config
-		mockEvents    *events.MockHandler
+		mockEvents    *eventsapi.MockHandler
 		dbName        string
 		infraEnvID    = strfmt.UUID(uuid.New().String())
 		mockMetricApi *metrics.MockAPI
@@ -259,7 +259,7 @@ var _ = Describe("TestHostMonitoring - with infra-env", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), gomock.Any()).AnyTimes()
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		mockMetricApi = metrics.NewMockAPI(ctrl)

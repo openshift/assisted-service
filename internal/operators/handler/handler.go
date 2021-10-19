@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -26,12 +26,12 @@ type Handler struct {
 	operatorsAPI       operators.API
 	db                 *gorm.DB
 	log                logrus.FieldLogger
-	eventsHandler      events.Handler
+	eventsHandler      eventsapi.Handler
 	clusterProgressAPI cluster.ProgressAPI
 }
 
 // NewHandler creates new handler
-func NewHandler(operatorsAPI operators.API, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, clusterProgressAPI cluster.ProgressAPI) *Handler {
+func NewHandler(operatorsAPI operators.API, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, clusterProgressAPI cluster.ProgressAPI) *Handler {
 	return &Handler{operatorsAPI: operatorsAPI, log: log, db: db, eventsHandler: eventsHandler, clusterProgressAPI: clusterProgressAPI}
 }
 

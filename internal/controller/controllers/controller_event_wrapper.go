@@ -8,20 +8,20 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/sirupsen/logrus"
 )
 
 type controllerEventsWrapper struct {
-	events           *events.Events
+	events           eventsapi.Handler
 	crdEventsHandler CRDEventsHandler
 	db               *gorm.DB
 	log              logrus.FieldLogger
 }
 
-var _ events.Handler = &controllerEventsWrapper{}
+var _ eventsapi.Handler = &controllerEventsWrapper{}
 
-func NewControllerEventsWrapper(crdEventsHandler CRDEventsHandler, events *events.Events, db *gorm.DB, log logrus.FieldLogger) *controllerEventsWrapper {
+func NewControllerEventsWrapper(crdEventsHandler CRDEventsHandler, events eventsapi.Handler, db *gorm.DB, log logrus.FieldLogger) *controllerEventsWrapper {
 	return &controllerEventsWrapper{crdEventsHandler: crdEventsHandler,
 		events: events, db: db, log: log}
 }
@@ -36,49 +36,56 @@ func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt
 	}
 }
 
+func (c *controllerEventsWrapper) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	//TODO: Implement this instead of v1 AddEvent() when it get removed.
+}
+
 func (c *controllerEventsWrapper) AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	// Disable metrics event for the controller since the current operator installations do not work with ELK
 }
 
+func (c *controllerEventsWrapper) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	// Disable metrics event for the controller since the current operator installations do not work with ELK
+}
 func (c *controllerEventsWrapper) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
 	return c.events.GetEvents(clusterID, hostID, categories...)
 }
 
-func (c *controllerEventsWrapper) V2GetEvents(clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
-	return c.events.V2GetEvents(clusterID, hostID, infraEnvID, categories...)
+func (c *controllerEventsWrapper) V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+	return c.events.V2GetEvents(ctx, clusterID, hostID, infraEnvID, categories...)
 }
 
-func (c *controllerEventsWrapper) SendClusterEvent(ctx context.Context, event events.ClusterEvent) {
+func (c *controllerEventsWrapper) SendClusterEvent(ctx context.Context, event eventsapi.ClusterEvent) {
 	c.events.SendClusterEvent(ctx, event)
 
 	c.NotifyKubeApiClusterEvent(event.GetClusterId())
 }
 
-func (c *controllerEventsWrapper) SendClusterEventAtTime(ctx context.Context, event events.ClusterEvent, eventTime time.Time) {
+func (c *controllerEventsWrapper) SendClusterEventAtTime(ctx context.Context, event eventsapi.ClusterEvent, eventTime time.Time) {
 	c.events.SendClusterEventAtTime(ctx, event, eventTime)
 
 	c.NotifyKubeApiClusterEvent(event.GetClusterId())
 }
 
-func (c *controllerEventsWrapper) SendHostEvent(ctx context.Context, event events.HostEvent) {
+func (c *controllerEventsWrapper) SendHostEvent(ctx context.Context, event eventsapi.HostEvent) {
 	c.events.SendHostEvent(ctx, event)
 
 	c.NotifyKubeApiHostEvent(event.GetInfraEnvId(), event.GetHostId())
 }
 
-func (c *controllerEventsWrapper) SendHostEventAtTime(ctx context.Context, event events.HostEvent, eventTime time.Time) {
+func (c *controllerEventsWrapper) SendHostEventAtTime(ctx context.Context, event eventsapi.HostEvent, eventTime time.Time) {
 	c.events.SendHostEventAtTime(ctx, event, eventTime)
 
 	c.NotifyKubeApiHostEvent(event.GetInfraEnvId(), event.GetHostId())
 }
 
-func (c *controllerEventsWrapper) SendInfraEnvEvent(ctx context.Context, event events.InfraEnvEvent) {
+func (c *controllerEventsWrapper) SendInfraEnvEvent(ctx context.Context, event eventsapi.InfraEnvEvent) {
 	c.events.SendInfraEnvEvent(ctx, event)
 
 	c.NotifyKubeApiInfraEnvEvent(event.GetInfraEnvId())
 }
 
-func (c *controllerEventsWrapper) SendInfraEnvEventAtTime(ctx context.Context, event events.InfraEnvEvent, eventTime time.Time) {
+func (c *controllerEventsWrapper) SendInfraEnvEventAtTime(ctx context.Context, event eventsapi.InfraEnvEvent, eventTime time.Time) {
 	c.events.SendInfraEnvEventAtTime(ctx, event, eventTime)
 
 	c.NotifyKubeApiInfraEnvEvent(event.GetInfraEnvId())

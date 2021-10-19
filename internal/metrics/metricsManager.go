@@ -7,7 +7,7 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/prometheus/client_golang/prometheus"
@@ -120,7 +120,7 @@ type API interface {
 
 type MetricsManager struct {
 	registry prometheus.Registerer
-	handler  events.Handler
+	handler  eventsapi.Handler
 
 	serviceLogicClusterCreation                        *prometheus.CounterVec
 	serviceLogicClusterInstallationStarted             *prometheus.CounterVec
@@ -149,7 +149,7 @@ type MetricsManager struct {
 
 var _ API = &MetricsManager{}
 
-func NewMetricsManager(registry prometheus.Registerer, eventsHandler events.Handler) *MetricsManager {
+func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.Handler) *MetricsManager {
 
 	m := &MetricsManager{
 		registry: registry,

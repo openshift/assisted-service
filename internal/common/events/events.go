@@ -6,7 +6,7 @@ import (
     "fmt"
     "strings"
     "time"
-    "github.com/openshift/assisted-service/internal/events"
+    eventsapi "github.com/openshift/assisted-service/internal/events/api"
 
     "github.com/go-openapi/strfmt"
 )
@@ -30,7 +30,7 @@ func NewCancelInstallFailedStartEvent(
 
 func SendCancelInstallFailedStartEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewCancelInstallFailedStartEvent(
         clusterId,
@@ -40,7 +40,7 @@ func SendCancelInstallFailedStartEvent(
 
 func SendCancelInstallFailedStartEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewCancelInstallFailedStartEvent(
@@ -91,7 +91,7 @@ func NewCancelInstallFailedCommitEvent(
 
 func SendCancelInstallFailedCommitEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewCancelInstallFailedCommitEvent(
         clusterId,
@@ -101,7 +101,7 @@ func SendCancelInstallFailedCommitEvent(
 
 func SendCancelInstallFailedCommitEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewCancelInstallFailedCommitEvent(
@@ -155,7 +155,7 @@ func NewHostRegistrationFailedSettingPropertiesEvent(
 
 func SendHostRegistrationFailedSettingPropertiesEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,) {
     ev := NewHostRegistrationFailedSettingPropertiesEvent(
@@ -167,7 +167,7 @@ func SendHostRegistrationFailedSettingPropertiesEvent(
 
 func SendHostRegistrationFailedSettingPropertiesEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
@@ -233,7 +233,7 @@ func NewClusterRegistrationFailedEvent(
 
 func SendClusterRegistrationFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     error string,
     clusterKind string,) {
@@ -247,7 +247,7 @@ func SendClusterRegistrationFailedEvent(
 
 func SendClusterRegistrationFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     error string,
     clusterKind string,
@@ -304,7 +304,7 @@ func NewClusterRegistrationSucceededEvent(
 
 func SendClusterRegistrationSucceededEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewClusterRegistrationSucceededEvent(
         clusterId,
@@ -314,7 +314,7 @@ func SendClusterRegistrationSucceededEvent(
 
 func SendClusterRegistrationSucceededEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewClusterRegistrationSucceededEvent(
@@ -368,7 +368,7 @@ func NewRegisteredClusterEvent(
 
 func SendRegisteredClusterEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     clusterKind string,) {
     ev := NewRegisteredClusterEvent(
@@ -380,7 +380,7 @@ func SendRegisteredClusterEvent(
 
 func SendRegisteredClusterEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     clusterKind string,
     eventTime time.Time) {
@@ -437,7 +437,7 @@ func NewClusterDeregisterFailedEvent(
 
 func SendClusterDeregisterFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     error string,) {
     ev := NewClusterDeregisterFailedEvent(
@@ -449,7 +449,7 @@ func SendClusterDeregisterFailedEvent(
 
 func SendClusterDeregisterFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     error string,
     eventTime time.Time) {
@@ -503,7 +503,7 @@ func NewDeregisteredClusterEvent(
 
 func SendDeregisteredClusterEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewDeregisteredClusterEvent(
         clusterId,
@@ -513,7 +513,7 @@ func SendDeregisteredClusterEvent(
 
 func SendDeregisteredClusterEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewDeregisteredClusterEvent(
@@ -570,7 +570,7 @@ func NewClusterValidationFallingEvent(
 
 func SendClusterValidationFallingEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     validationId string,
     validationMsg string,) {
@@ -584,7 +584,7 @@ func SendClusterValidationFallingEvent(
 
 func SendClusterValidationFallingEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     validationId string,
     validationMsg string,
@@ -647,7 +647,7 @@ func NewClusterValidationFixedEvent(
 
 func SendClusterValidationFixedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     validationId string,
     validationMsg string,) {
@@ -661,7 +661,7 @@ func SendClusterValidationFixedEvent(
 
 func SendClusterValidationFixedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     validationId string,
     validationMsg string,
@@ -718,7 +718,7 @@ func NewClusterDeregisteredAfterInactivityEvent(
 
 func SendClusterDeregisteredAfterInactivityEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewClusterDeregisteredAfterInactivityEvent(
         clusterId,
@@ -728,7 +728,7 @@ func SendClusterDeregisteredAfterInactivityEvent(
 
 func SendClusterDeregisteredAfterInactivityEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewClusterDeregisteredAfterInactivityEvent(
@@ -779,7 +779,7 @@ func NewClusterInstallingFinishedEvent(
 
 func SendClusterInstallingFinishedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewClusterInstallingFinishedEvent(
         clusterId,
@@ -789,7 +789,7 @@ func SendClusterInstallingFinishedEvent(
 
 func SendClusterInstallingFinishedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewClusterInstallingFinishedEvent(
@@ -843,7 +843,7 @@ func NewClusterInstallingFailedEvent(
 
 func SendClusterInstallingFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     failureReason string,) {
     ev := NewClusterInstallingFailedEvent(
@@ -855,7 +855,7 @@ func SendClusterInstallingFailedEvent(
 
 func SendClusterInstallingFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     failureReason string,
     eventTime time.Time) {
@@ -909,7 +909,7 @@ func NewClusterCancelInstallationEvent(
 
 func SendClusterCancelInstallationEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewClusterCancelInstallationEvent(
         clusterId,
@@ -919,7 +919,7 @@ func SendClusterCancelInstallationEvent(
 
 func SendClusterCancelInstallationEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewClusterCancelInstallationEvent(
@@ -973,7 +973,7 @@ func NewCancelInstallationFailedEvent(
 
 func SendCancelInstallationFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     error string,) {
     ev := NewCancelInstallationFailedEvent(
@@ -985,7 +985,7 @@ func SendCancelInstallationFailedEvent(
 
 func SendCancelInstallationFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     error string,
     eventTime time.Time) {
@@ -1045,7 +1045,7 @@ func NewClusterStatusUpdatedEvent(
 
 func SendClusterStatusUpdatedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     clusterStatus string,
     statusInfo string,) {
@@ -1059,7 +1059,7 @@ func SendClusterStatusUpdatedEvent(
 
 func SendClusterStatusUpdatedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     clusterStatus string,
     statusInfo string,
@@ -1116,7 +1116,7 @@ func NewClusterResetInstallationEvent(
 
 func SendClusterResetInstallationEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewClusterResetInstallationEvent(
         clusterId,
@@ -1126,7 +1126,7 @@ func SendClusterResetInstallationEvent(
 
 func SendClusterResetInstallationEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewClusterResetInstallationEvent(
@@ -1180,7 +1180,7 @@ func NewResetInstallationFailedEvent(
 
 func SendResetInstallationFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     error string,) {
     ev := NewResetInstallationFailedEvent(
@@ -1192,7 +1192,7 @@ func SendResetInstallationFailedEvent(
 
 func SendResetInstallationFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     error string,
     eventTime time.Time) {
@@ -1252,7 +1252,7 @@ func NewApiIngressVipUpdateEvent(
 
 func SendApiIngressVipUpdateEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     apiVip string,
     ingressVip string,) {
@@ -1266,7 +1266,7 @@ func SendApiIngressVipUpdateEvent(
 
 func SendApiIngressVipUpdateEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     apiVip string,
     ingressVip string,
@@ -1326,7 +1326,7 @@ func NewApiIngressVipTimedOutEvent(
 
 func SendApiIngressVipTimedOutEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     timeoutInterval int,) {
     ev := NewApiIngressVipTimedOutEvent(
@@ -1338,7 +1338,7 @@ func SendApiIngressVipTimedOutEvent(
 
 func SendApiIngressVipTimedOutEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     timeoutInterval int,
     eventTime time.Time) {
@@ -1395,7 +1395,7 @@ func NewPrepareInstallationFailedEvent(
 
 func SendPrepareInstallationFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     error string,) {
     ev := NewPrepareInstallationFailedEvent(
@@ -1407,7 +1407,7 @@ func SendPrepareInstallationFailedEvent(
 
 func SendPrepareInstallationFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     error string,
     eventTime time.Time) {
@@ -1461,7 +1461,7 @@ func NewClusterPrepareInstallationEvent(
 
 func SendClusterPrepareInstallationEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewClusterPrepareInstallationEvent(
         clusterId,
@@ -1471,7 +1471,7 @@ func SendClusterPrepareInstallationEvent(
 
 func SendClusterPrepareInstallationEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewClusterPrepareInstallationEvent(
@@ -1522,7 +1522,7 @@ func NewInstallationPreparingTimedOutEvent(
 
 func SendInstallationPreparingTimedOutEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewInstallationPreparingTimedOutEvent(
         clusterId,
@@ -1532,7 +1532,7 @@ func SendInstallationPreparingTimedOutEvent(
 
 func SendInstallationPreparingTimedOutEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewInstallationPreparingTimedOutEvent(
@@ -1586,7 +1586,7 @@ func NewClusterDegradedFailedOLMOperatorsEvent(
 
 func SendClusterDegradedFailedOLMOperatorsEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     failedOperators string,) {
     ev := NewClusterDegradedFailedOLMOperatorsEvent(
@@ -1598,7 +1598,7 @@ func SendClusterDegradedFailedOLMOperatorsEvent(
 
 func SendClusterDegradedFailedOLMOperatorsEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     failedOperators string,
     eventTime time.Time) {
@@ -1652,7 +1652,7 @@ func NewDeleteExpiredImageEvent(
 
 func SendDeleteExpiredImageEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewDeleteExpiredImageEvent(
         clusterId,
@@ -1662,7 +1662,7 @@ func SendDeleteExpiredImageEvent(
 
 func SendDeleteExpiredImageEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewDeleteExpiredImageEvent(
@@ -1722,7 +1722,7 @@ func NewClusterOperatorStatusEvent(
 
 func SendClusterOperatorStatusEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     operatorName string,
     status string,
@@ -1738,7 +1738,7 @@ func SendClusterOperatorStatusEvent(
 
 func SendClusterOperatorStatusEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     operatorName string,
     status string,
@@ -1798,7 +1798,7 @@ func NewDownloadImageFailedFetchEvent(
 
 func SendDownloadImageFailedFetchEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
     ev := NewDownloadImageFailedFetchEvent(
         infraEnvId,
@@ -1808,7 +1808,7 @@ func SendDownloadImageFailedFetchEvent(
 
 func SendDownloadImageFailedFetchEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
     ev := NewDownloadImageFailedFetchEvent(
@@ -1871,7 +1871,7 @@ func NewHostDeregisteredClusterEvent(
 
 func SendHostDeregisteredClusterEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -1887,7 +1887,7 @@ func SendHostDeregisteredClusterEvent(
 
 func SendHostDeregisteredClusterEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -1962,7 +1962,7 @@ func NewHostInstallerArgsAppliedEvent(
 
 func SendHostInstallerArgsAppliedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -1978,7 +1978,7 @@ func SendHostInstallerArgsAppliedEvent(
 
 func SendHostInstallerArgsAppliedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2053,7 +2053,7 @@ func NewHostSetBootstrapEvent(
 
 func SendHostSetBootstrapEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2069,7 +2069,7 @@ func SendHostSetBootstrapEvent(
 
 func SendHostSetBootstrapEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2153,7 +2153,7 @@ func NewHostStatusUpdatedEvent(
 
 func SendHostStatusUpdatedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     severity string,
@@ -2175,7 +2175,7 @@ func SendHostStatusUpdatedEvent(
 
 func SendHostStatusUpdatedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     severity string,
@@ -2259,7 +2259,7 @@ func NewUpdateHostRoleEvent(
 
 func SendUpdateHostRoleEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
@@ -2275,7 +2275,7 @@ func SendUpdateHostRoleEvent(
 
 func SendUpdateHostRoleEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
@@ -2359,7 +2359,7 @@ func NewUpdateImageStatusEvent(
 
 func SendUpdateImageStatusEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2381,7 +2381,7 @@ func SendUpdateImageStatusEvent(
 
 func SendUpdateImageStatusEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2465,7 +2465,7 @@ func NewHostInstallationCancelledEvent(
 
 func SendHostInstallationCancelledEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2481,7 +2481,7 @@ func SendHostInstallationCancelledEvent(
 
 func SendHostInstallationCancelledEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2556,7 +2556,7 @@ func NewHostInstallationStartedEvent(
 
 func SendHostInstallationStartedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2572,7 +2572,7 @@ func SendHostInstallationStartedEvent(
 
 func SendHostInstallationStartedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2650,7 +2650,7 @@ func NewHostCancelInstallationFailedEvent(
 
 func SendHostCancelInstallationFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2668,7 +2668,7 @@ func SendHostCancelInstallationFailedEvent(
 
 func SendHostCancelInstallationFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2746,7 +2746,7 @@ func NewHostResetInstallationEvent(
 
 func SendHostResetInstallationEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2762,7 +2762,7 @@ func SendHostResetInstallationEvent(
 
 func SendHostResetInstallationEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2840,7 +2840,7 @@ func NewHostResetInstallationFailedEvent(
 
 func SendHostResetInstallationFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2858,7 +2858,7 @@ func SendHostResetInstallationFailedEvent(
 
 func SendHostResetInstallationFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2936,7 +2936,7 @@ func NewUserRequiredCompleteInstallationResetEvent(
 
 func SendUserRequiredCompleteInstallationResetEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2952,7 +2952,7 @@ func SendUserRequiredCompleteInstallationResetEvent(
 
 func SendUserRequiredCompleteInstallationResetEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -3030,7 +3030,7 @@ func NewHostSetStatusFailedEvent(
 
 func SendHostSetStatusFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -3048,7 +3048,7 @@ func SendHostSetStatusFailedEvent(
 
 func SendHostSetStatusFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -3129,7 +3129,7 @@ func NewHostValidationFallingEvent(
 
 func SendHostValidationFallingEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -3147,7 +3147,7 @@ func SendHostValidationFallingEvent(
 
 func SendHostValidationFallingEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -3228,7 +3228,7 @@ func NewHostValidationFixedEvent(
 
 func SendHostValidationFixedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -3246,7 +3246,7 @@ func SendHostValidationFixedEvent(
 
 func SendHostValidationFixedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -3330,7 +3330,7 @@ func NewQuickDiskFormatEvent(
 
 func SendQuickDiskFormatEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -3350,7 +3350,7 @@ func SendQuickDiskFormatEvent(
 
 func SendQuickDiskFormatEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -3425,7 +3425,7 @@ func NewInfraEnvRegistrationFailedEvent(
 
 func SendInfraEnvRegistrationFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     error string,) {
     ev := NewInfraEnvRegistrationFailedEvent(
@@ -3437,7 +3437,7 @@ func SendInfraEnvRegistrationFailedEvent(
 
 func SendInfraEnvRegistrationFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     error string,
     eventTime time.Time) {
@@ -3494,7 +3494,7 @@ func NewRegisteredInfraEnvEvent(
 
 func SendRegisteredInfraEnvEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
     ev := NewRegisteredInfraEnvEvent(
         infraEnvId,
@@ -3504,7 +3504,7 @@ func SendRegisteredInfraEnvEvent(
 
 func SendRegisteredInfraEnvEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
     ev := NewRegisteredInfraEnvEvent(
@@ -3561,7 +3561,7 @@ func NewInfraEnvDeregisterFailedEvent(
 
 func SendInfraEnvDeregisterFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     error string,) {
     ev := NewInfraEnvDeregisterFailedEvent(
@@ -3573,7 +3573,7 @@ func SendInfraEnvDeregisterFailedEvent(
 
 func SendInfraEnvDeregisterFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     error string,
     eventTime time.Time) {
@@ -3630,7 +3630,7 @@ func NewDeregisteredInfraEnvEvent(
 
 func SendDeregisteredInfraEnvEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
     ev := NewDeregisteredInfraEnvEvent(
         infraEnvId,
@@ -3640,7 +3640,7 @@ func SendDeregisteredInfraEnvEvent(
 
 func SendDeregisteredInfraEnvEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
     ev := NewDeregisteredInfraEnvEvent(
@@ -3694,7 +3694,7 @@ func NewDiscoveryIgnitionConfigAppliedEvent(
 
 func SendDiscoveryIgnitionConfigAppliedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewDiscoveryIgnitionConfigAppliedEvent(
         clusterId,
@@ -3704,7 +3704,7 @@ func SendDiscoveryIgnitionConfigAppliedEvent(
 
 func SendDiscoveryIgnitionConfigAppliedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewDiscoveryIgnitionConfigAppliedEvent(
@@ -3755,7 +3755,7 @@ func NewImageDeletedAfterIgnitionUpdateEvent(
 
 func SendImageDeletedAfterIgnitionUpdateEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewImageDeletedAfterIgnitionUpdateEvent(
         clusterId,
@@ -3765,7 +3765,7 @@ func SendImageDeletedAfterIgnitionUpdateEvent(
 
 func SendImageDeletedAfterIgnitionUpdateEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewImageDeletedAfterIgnitionUpdateEvent(
@@ -3816,7 +3816,7 @@ func NewDownloadImageFailedNotFoundEvent(
 
 func SendDownloadImageFailedNotFoundEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
     ev := NewDownloadImageFailedNotFoundEvent(
         infraEnvId,
@@ -3826,7 +3826,7 @@ func SendDownloadImageFailedNotFoundEvent(
 
 func SendDownloadImageFailedNotFoundEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
     ev := NewDownloadImageFailedNotFoundEvent(
@@ -3883,7 +3883,7 @@ func NewDownloadImageStartedEvent(
 
 func SendDownloadImageStartedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     imageType string,) {
     ev := NewDownloadImageStartedEvent(
@@ -3895,7 +3895,7 @@ func SendDownloadImageStartedEvent(
 
 func SendDownloadImageStartedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     imageType string,
     eventTime time.Time) {
@@ -3952,7 +3952,7 @@ func NewGenerateImageFailedStartEvent(
 
 func SendGenerateImageFailedStartEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewGenerateImageFailedStartEvent(
         clusterId,
@@ -3962,7 +3962,7 @@ func SendGenerateImageFailedStartEvent(
 
 func SendGenerateImageFailedStartEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewGenerateImageFailedStartEvent(
@@ -4013,7 +4013,7 @@ func NewGenerateImageFailedContactStorageBackendEvent(
 
 func SendGenerateImageFailedContactStorageBackendEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewGenerateImageFailedContactStorageBackendEvent(
         clusterId,
@@ -4023,7 +4023,7 @@ func SendGenerateImageFailedContactStorageBackendEvent(
 
 func SendGenerateImageFailedContactStorageBackendEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewGenerateImageFailedContactStorageBackendEvent(
@@ -4074,7 +4074,7 @@ func NewGenerateImageFailedUpdateMetadataEvent(
 
 func SendGenerateImageFailedUpdateMetadataEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewGenerateImageFailedUpdateMetadataEvent(
         clusterId,
@@ -4084,7 +4084,7 @@ func SendGenerateImageFailedUpdateMetadataEvent(
 
 func SendGenerateImageFailedUpdateMetadataEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewGenerateImageFailedUpdateMetadataEvent(
@@ -4135,7 +4135,7 @@ func NewGenerateImageFailedCommitTransactionEvent(
 
 func SendGenerateImageFailedCommitTransactionEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewGenerateImageFailedCommitTransactionEvent(
         clusterId,
@@ -4145,7 +4145,7 @@ func SendGenerateImageFailedCommitTransactionEvent(
 
 func SendGenerateImageFailedCommitTransactionEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewGenerateImageFailedCommitTransactionEvent(
@@ -4196,7 +4196,7 @@ func NewGenerateImageFailedFetchEvent(
 
 func SendGenerateImageFailedFetchEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
     ev := NewGenerateImageFailedFetchEvent(
         infraEnvId,
@@ -4206,7 +4206,7 @@ func SendGenerateImageFailedFetchEvent(
 
 func SendGenerateImageFailedFetchEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
     ev := NewGenerateImageFailedFetchEvent(
@@ -4263,7 +4263,7 @@ func NewExistingImageReusedEvent(
 
 func SendExistingImageReusedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     imageType string,) {
     ev := NewExistingImageReusedEvent(
@@ -4275,7 +4275,7 @@ func SendExistingImageReusedEvent(
 
 func SendExistingImageReusedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     imageType string,
     eventTime time.Time) {
@@ -4332,7 +4332,7 @@ func NewInstallConfigAppliedEvent(
 
 func SendInstallConfigAppliedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewInstallConfigAppliedEvent(
         clusterId,
@@ -4342,7 +4342,7 @@ func SendInstallConfigAppliedEvent(
 
 func SendInstallConfigAppliedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewInstallConfigAppliedEvent(
@@ -4393,7 +4393,7 @@ func NewProxySettingsChangedEvent(
 
 func SendProxySettingsChangedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewProxySettingsChangedEvent(
         clusterId,
@@ -4403,7 +4403,7 @@ func SendProxySettingsChangedEvent(
 
 func SendProxySettingsChangedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewProxySettingsChangedEvent(
@@ -4466,7 +4466,7 @@ func NewDiskSlowerSupportedSpeedEvent(
 
 func SendDiskSlowerSupportedSpeedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -4484,7 +4484,7 @@ func SendDiskSlowerSupportedSpeedEvent(
 
 func SendDiskSlowerSupportedSpeedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -4562,7 +4562,7 @@ func NewDisableHostFailedFetchEvent(
 
 func SendDisableHostFailedFetchEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -4578,7 +4578,7 @@ func SendDisableHostFailedFetchEvent(
 
 func SendDisableHostFailedFetchEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -4653,7 +4653,7 @@ func NewDisableHostFailedDisableEvent(
 
 func SendDisableHostFailedDisableEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -4669,7 +4669,7 @@ func SendDisableHostFailedDisableEvent(
 
 func SendDisableHostFailedDisableEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -4744,7 +4744,7 @@ func NewHostDisabledByUserEvent(
 
 func SendHostDisabledByUserEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -4760,7 +4760,7 @@ func SendHostDisabledByUserEvent(
 
 func SendHostDisabledByUserEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -4835,7 +4835,7 @@ func NewEnableHostFailedFetchEvent(
 
 func SendEnableHostFailedFetchEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -4851,7 +4851,7 @@ func SendEnableHostFailedFetchEvent(
 
 func SendEnableHostFailedFetchEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -4926,7 +4926,7 @@ func NewEnableHostFailedDisableEvent(
 
 func SendEnableHostFailedDisableEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -4942,7 +4942,7 @@ func SendEnableHostFailedDisableEvent(
 
 func SendEnableHostFailedDisableEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -5017,7 +5017,7 @@ func NewHostEnabledByUserEvent(
 
 func SendHostEnabledByUserEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -5033,7 +5033,7 @@ func SendHostEnabledByUserEvent(
 
 func SendHostEnabledByUserEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -5105,7 +5105,7 @@ func NewHostDiscoveryIgnitionConfigAppliedEvent(
 
 func SendHostDiscoveryIgnitionConfigAppliedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
@@ -5119,7 +5119,7 @@ func SendHostDiscoveryIgnitionConfigAppliedEvent(
 
 func SendHostDiscoveryIgnitionConfigAppliedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
@@ -5188,7 +5188,7 @@ func NewHostResetFailedFetchEvent(
 
 func SendHostResetFailedFetchEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
@@ -5202,7 +5202,7 @@ func SendHostResetFailedFetchEvent(
 
 func SendHostResetFailedFetchEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
@@ -5274,7 +5274,7 @@ func NewHostLogsUploadedEvent(
 
 func SendHostLogsUploadedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -5290,7 +5290,7 @@ func SendHostLogsUploadedEvent(
 
 func SendHostLogsUploadedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -5356,7 +5356,7 @@ func NewClusterLogsUploadedEvent(
 
 func SendClusterLogsUploadedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
     ev := NewClusterLogsUploadedEvent(
         clusterId,
@@ -5366,7 +5366,7 @@ func SendClusterLogsUploadedEvent(
 
 func SendClusterLogsUploadedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
     ev := NewClusterLogsUploadedEvent(
@@ -5426,7 +5426,7 @@ func NewHostUpdatedApprovedEvent(
 
 func SendHostUpdatedApprovedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
@@ -5442,7 +5442,7 @@ func SendHostUpdatedApprovedEvent(
 
 func SendHostUpdatedApprovedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
@@ -5514,7 +5514,7 @@ func NewHostRegisteredClusterEvent(
 
 func SendHostRegisteredClusterEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
@@ -5528,7 +5528,7 @@ func SendHostRegisteredClusterEvent(
 
 func SendHostRegisteredClusterEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
@@ -5591,7 +5591,7 @@ func NewGenerateImageFailedFormatEvent(
 
 func SendGenerateImageFailedFormatEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
     ev := NewGenerateImageFailedFormatEvent(
         infraEnvId,
@@ -5601,7 +5601,7 @@ func SendGenerateImageFailedFormatEvent(
 
 func SendGenerateImageFailedFormatEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
     ev := NewGenerateImageFailedFormatEvent(
@@ -5655,7 +5655,7 @@ func NewGenerateMinimalIsoFailedEvent(
 
 func SendGenerateMinimalIsoFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
     ev := NewGenerateMinimalIsoFailedEvent(
         infraEnvId,
@@ -5665,7 +5665,7 @@ func SendGenerateMinimalIsoFailedEvent(
 
 func SendGenerateMinimalIsoFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
     ev := NewGenerateMinimalIsoFailedEvent(
@@ -5719,7 +5719,7 @@ func NewUploadImageFailedEvent(
 
 func SendUploadImageFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
     ev := NewUploadImageFailedEvent(
         infraEnvId,
@@ -5729,7 +5729,7 @@ func SendUploadImageFailedEvent(
 
 func SendUploadImageFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
     ev := NewUploadImageFailedEvent(
@@ -5786,7 +5786,7 @@ func NewGeneratedImageWithIgnitionConfigEvent(
 
 func SendGeneratedImageWithIgnitionConfigEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     details string,) {
     ev := NewGeneratedImageWithIgnitionConfigEvent(
@@ -5798,7 +5798,7 @@ func SendGeneratedImageWithIgnitionConfigEvent(
 
 func SendGeneratedImageWithIgnitionConfigEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     details string,
     eventTime time.Time) {
@@ -5858,7 +5858,7 @@ func NewRefreshHostOrClusterStatusesFailedEvent(
 
 func SendRefreshHostOrClusterStatusesFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     message string,) {
@@ -5872,7 +5872,7 @@ func SendRefreshHostOrClusterStatusesFailedEvent(
 
 func SendRefreshHostOrClusterStatusesFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     message string,
@@ -5944,7 +5944,7 @@ func NewUpdateHostInstallProgressEvent(
 
 func SendUpdateHostInstallProgressEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
@@ -5960,7 +5960,7 @@ func SendUpdateHostInstallProgressEvent(
 
 func SendUpdateHostInstallProgressEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
@@ -6032,7 +6032,7 @@ func NewRegisterHostToInfraEnvFailedEvent(
 
 func SendRegisterHostToInfraEnvFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     message string,) {
@@ -6046,7 +6046,7 @@ func SendRegisterHostToInfraEnvFailedEvent(
 
 func SendRegisterHostToInfraEnvFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     message string,
@@ -6115,7 +6115,7 @@ func NewHostRegistrationFailedEvent(
 
 func SendHostRegistrationFailedEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     message string,) {
@@ -6129,7 +6129,7 @@ func SendHostRegistrationFailedEvent(
 
 func SendHostRegistrationFailedEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     message string,
@@ -6195,7 +6195,7 @@ func NewDeregisterInactiveClustersEvent(
 
 func SendDeregisterInactiveClustersEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     message string,) {
     ev := NewDeregisterInactiveClustersEvent(
@@ -6207,7 +6207,7 @@ func SendDeregisterInactiveClustersEvent(
 
 func SendDeregisterInactiveClustersEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     message string,
     eventTime time.Time) {
@@ -6264,7 +6264,7 @@ func NewPermanentlyDeleteClustersEvent(
 
 func SendPermanentlyDeleteClustersEvent(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     message string,) {
     ev := NewPermanentlyDeleteClustersEvent(
@@ -6276,7 +6276,7 @@ func SendPermanentlyDeleteClustersEvent(
 
 func SendPermanentlyDeleteClustersEventAtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     message string,
     eventTime time.Time) {

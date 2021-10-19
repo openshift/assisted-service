@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/models"
 )
@@ -25,7 +25,7 @@ var _ = Describe("update_host_state", func() {
 		ctx             = context.Background()
 		ctrl            *gomock.Controller
 		db              *gorm.DB
-		mockEvents      *events.MockHandler
+		mockEvents      *eventsapi.MockHandler
 		host            models.Host
 		lastUpdatedTime strfmt.DateTime
 		returnedHost    *common.Host
@@ -36,7 +36,7 @@ var _ = Describe("update_host_state", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		infraEnvId := strfmt.UUID(uuid.New().String())

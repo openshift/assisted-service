@@ -15,7 +15,7 @@ import (
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
@@ -37,7 +37,7 @@ type transitionHandler struct {
 	prepareConfig       PrepareConfig
 	installationTimeout time.Duration
 	finalizingTimeout   time.Duration
-	eventsHandler       events.Handler
+	eventsHandler       eventsapi.Handler
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -152,7 +152,7 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 	}
 }
 
-func createClusterCompletionStatusInfo(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster, eventHandler events.Handler) string {
+func createClusterCompletionStatusInfo(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster, eventHandler eventsapi.Handler) string {
 	_, statuses := getClusterMonitoringOperatorsStatus(cluster)
 	log.Infof("Cluster %s Monitoring status: %s", *cluster.ID, statuses)
 
@@ -276,7 +276,7 @@ func (th *transitionHandler) updateTransitionCluster(ctx context.Context, log lo
 
 type TransitionArgsRefreshCluster struct {
 	ctx               context.Context
-	eventHandler      events.Handler
+	eventHandler      eventsapi.Handler
 	metricApi         metrics.API
 	hostApi           host.API
 	conditions        map[string]bool

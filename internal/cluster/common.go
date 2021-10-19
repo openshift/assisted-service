@@ -10,7 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
@@ -45,7 +45,7 @@ const (
 )
 
 func updateClusterStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
-	newStatus string, statusInfo string, events events.Handler, extra ...interface{}) (*common.Cluster, error) {
+	newStatus string, statusInfo string, events eventsapi.Handler, extra ...interface{}) (*common.Cluster, error) {
 	var cluster *common.Cluster
 	var err error
 	extra = append(append(make([]interface{}, 0), "status", newStatus, "status_info", statusInfo), extra...)

@@ -6,11 +6,11 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/sirupsen/logrus"
 )
 
-func NewInstaller(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler) *installer {
+func NewInstaller(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler) *installer {
 	return &installer{
 		log:           log,
 		db:            db,
@@ -21,7 +21,7 @@ func NewInstaller(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Hand
 type installer struct {
 	log           logrus.FieldLogger
 	db            *gorm.DB
-	eventsHandler events.Handler
+	eventsHandler eventsapi.Handler
 }
 
 func (i *installer) GetMasterNodesIds(ctx context.Context, cluster *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {

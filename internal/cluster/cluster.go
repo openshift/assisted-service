@@ -23,7 +23,7 @@ import (
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -142,7 +142,7 @@ type Manager struct {
 	db                    *gorm.DB
 	registrationAPI       RegistrationAPI
 	installationAPI       InstallationAPI
-	eventsHandler         events.Handler
+	eventsHandler         eventsapi.Handler
 	sm                    stateswitch.StateMachine
 	metricAPI             metrics.API
 	manifestsGeneratorAPI network.ManifestsGeneratorAPI
@@ -156,7 +156,7 @@ type Manager struct {
 	monitorQueryGenerator *common.MonitorClusterQueryGenerator
 }
 
-func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler,
+func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler,
 	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
 	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API, dnsApi dns.DNSApi) *Manager {
 	th := &transitionHandler{

@@ -13,7 +13,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -26,7 +26,7 @@ type transitionHandler struct {
 	db            *gorm.DB
 	log           logrus.FieldLogger
 	config        *Config
-	eventsHandler events.Handler
+	eventsHandler eventsapi.Handler
 }
 
 var resetFields = [...]interface{}{"inventory", "", "bootstrap", false}
@@ -462,7 +462,7 @@ func (th *transitionHandler) updateTransitionHost(ctx context.Context, log logru
 
 type TransitionArgsRefreshHost struct {
 	ctx               context.Context
-	eventHandler      events.Handler
+	eventHandler      eventsapi.Handler
 	conditions        map[string]bool
 	validationResults ValidationsStatus
 	db                *gorm.DB

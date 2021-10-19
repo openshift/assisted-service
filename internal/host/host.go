@@ -16,7 +16,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -174,7 +174,7 @@ type Manager struct {
 	db                            *gorm.DB
 	instructionApi                hostcommands.InstructionApi
 	hwValidator                   hardware.Validator
-	eventsHandler                 events.Handler
+	eventsHandler                 eventsapi.Handler
 	sm                            stateswitch.StateMachine
 	rp                            *refreshPreprocessor
 	metricApi                     metrics.API
@@ -184,7 +184,7 @@ type Manager struct {
 	monitorInfraEnvQueryGenerator *common.MonitorInfraEnvQueryGenerator
 }
 
-func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
+func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
 	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry) *Manager {
 	th := &transitionHandler{
 		db:            db,

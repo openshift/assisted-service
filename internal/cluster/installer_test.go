@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -24,7 +25,7 @@ var _ = Describe("installer", func() {
 		cluster          common.Cluster
 		hostsIds         []strfmt.UUID
 		dbName           string
-		eventsHandler    events.Handler
+		eventsHandler    eventsapi.Handler
 	)
 
 	BeforeEach(func() {

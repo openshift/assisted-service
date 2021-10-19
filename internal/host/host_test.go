@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -274,7 +275,7 @@ var _ = Describe("update_progress", func() {
 		state      API
 		host       models.Host
 		ctrl       *gomock.Controller
-		mockEvents *events.MockHandler
+		mockEvents *eventsapi.MockHandler
 		mockMetric *metrics.MockAPI
 		dbName     string
 	)
@@ -286,7 +287,7 @@ var _ = Describe("update_progress", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		dummy := &leader.DummyElector{}
 		state = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, dummy, nil, nil)
@@ -522,7 +523,7 @@ var _ = Describe("update progress special cases", func() {
 		state      API
 		host       models.Host
 		ctrl       *gomock.Controller
-		mockEvents *events.MockHandler
+		mockEvents *eventsapi.MockHandler
 		mockMetric *metrics.MockAPI
 		dbName     string
 		clusterId  strfmt.UUID
@@ -536,7 +537,7 @@ var _ = Describe("update progress special cases", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		dummy := &leader.DummyElector{}
 		setDefaultReportHostInstallationMetrics(mockMetric)
@@ -634,7 +635,7 @@ var _ = Describe("cancel installation", func() {
 		db            *gorm.DB
 		state         API
 		h             models.Host
-		eventsHandler events.Handler
+		eventsHandler eventsapi.Handler
 		dbName        string
 	)
 
@@ -655,10 +656,16 @@ var _ = Describe("cancel installation", func() {
 
 	Context("cancel installation", func() {
 		It("cancel installation success", func() {
+			c := common.Cluster{Cluster: models.Cluster{
+				ID:                 h.ClusterID,
+				Status:             swag.String(models.ClusterStatusError),
+				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
+			}}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			h.Status = swag.String(models.HostStatusInstalling)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
+			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -668,10 +675,16 @@ var _ = Describe("cancel installation", func() {
 		})
 
 		It("cancel failed installation", func() {
+			c := common.Cluster{Cluster: models.Cluster{
+				ID:                 h.ClusterID,
+				Status:             swag.String(models.ClusterStatusError),
+				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
+			}}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			h.Status = swag.String(models.HostStatusError)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
+			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -688,8 +701,14 @@ var _ = Describe("cancel installation", func() {
 
 	Context("invalid cancel installation", func() {
 		It("nothing to cancel", func() {
+			c := common.Cluster{Cluster: models.Cluster{
+				ID:                 h.ClusterID,
+				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
+			}}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).Should(HaveOccurred())
-			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
+			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -700,12 +719,18 @@ var _ = Describe("cancel installation", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
 			infraEnvId := strfmt.UUID(uuid.New().String())
+			c := common.Cluster{Cluster: models.Cluster{
+				ID:                 &clusterId,
+				Status:             swag.String(models.ClusterStatusError),
+				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
+			}}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDisabled)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
-			events, err := eventsHandler.V2GetEvents(&h.InfraEnvID, h.ID, nil)
+			events, err := eventsHandler.V2GetEvents(ctx, &clusterId, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).Should(Equal(0))
 		})
@@ -718,7 +743,7 @@ var _ = Describe("reset host", func() {
 		db            *gorm.DB
 		state         API
 		h             models.Host
-		eventsHandler events.Handler
+		eventsHandler eventsapi.Handler
 		dbName        string
 		config        Config
 	)
@@ -739,6 +764,12 @@ var _ = Describe("reset host", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
 			infraEnvId := strfmt.UUID(uuid.New().String())
+			c := common.Cluster{Cluster: models.Cluster{
+				ID:                 &clusterId,
+				Status:             swag.String(models.ClusterStatusError),
+				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
+			}}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusError)
 			h.LogsCollectedAt = strfmt.DateTime(time.Now())
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
@@ -746,7 +777,7 @@ var _ = Describe("reset host", func() {
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResetting))
-			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
+			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -771,6 +802,12 @@ var _ = Describe("reset host", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
 			infraEnvId := strfmt.UUID(uuid.New().String())
+			c := common.Cluster{Cluster: models.Cluster{
+				ID:                 &clusterId,
+				Status:             swag.String(models.ClusterStatusError),
+				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
+			}}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusResetting)
 			then := time.Now().Add(-config.ResetTimeout)
 			h.StatusUpdatedAt = strfmt.DateTime(then)
@@ -779,7 +816,7 @@ var _ = Describe("reset host", func() {
 			Expect(state.ResetPendingUserAction(ctx, &h, db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
-			events, err := eventsHandler.V2GetEvents(&clusterId, h.ID, nil)
+			events, err := eventsHandler.V2GetEvents(ctx, &clusterId, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -792,6 +829,12 @@ var _ = Describe("reset host", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
 			infraEnvId := strfmt.UUID(uuid.New().String())
+			c := common.Cluster{Cluster: models.Cluster{
+				ID:                 &clusterId,
+				Status:             swag.String(models.ClusterStatusError),
+				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
+			}}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusResetting)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			h.Progress.CurrentStage = models.HostStageRebooting
@@ -799,7 +842,7 @@ var _ = Describe("reset host", func() {
 			Expect(state.ResetPendingUserAction(ctx, &h, db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
-			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
+			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -812,12 +855,18 @@ var _ = Describe("reset host", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
 			infraEnvId := strfmt.UUID(uuid.New().String())
+			c := common.Cluster{Cluster: models.Cluster{
+				ID:                 &clusterId,
+				Status:             swag.String(models.ClusterStatusError),
+				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
+			}}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDisabled)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
-			events, err := eventsHandler.V2GetEvents(h.ClusterID, h.ID, nil)
+			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).Should(Equal(0))
 		})
@@ -828,10 +877,16 @@ var _ = Describe("reset host", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
 			infraEnvId := strfmt.UUID(uuid.New().String())
+			c := common.Cluster{Cluster: models.Cluster{
+				ID:                 &clusterId,
+				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
+			}}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDiscovering)
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			reply := state.ResetHost(ctx, &h, "some reason", db)
 			Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
-			events, err := eventsHandler.V2GetEvents(&clusterId, h.ID, nil)
+			events, err := eventsHandler.V2GetEvents(ctx, &clusterId, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -848,7 +903,7 @@ var _ = Describe("register host", func() {
 		ctrl          *gomock.Controller
 		state         API
 		h             models.Host
-		eventsHandler *events.MockHandler
+		eventsHandler *eventsapi.MockHandler
 		dbName        string
 		config        Config
 	)
@@ -856,7 +911,7 @@ var _ = Describe("register host", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		eventsHandler = events.NewMockHandler(ctrl)
+		eventsHandler = eventsapi.NewMockHandler(ctrl)
 		config = *defaultConfig
 		dummy := &leader.DummyElector{}
 		state = NewManager(common.GetTestLog(), db, eventsHandler, nil, nil, nil, nil, &config, dummy, nil, nil)
@@ -1451,7 +1506,7 @@ var _ = Describe("Bind host", func() {
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		dbName                        string
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		ctrl                          *gomock.Controller
 	)
 
@@ -1459,7 +1514,7 @@ var _ = Describe("Bind host", func() {
 		db, dbName = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -1604,7 +1659,7 @@ var _ = Describe("Unbind host", func() {
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		dbName                        string
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		ctrl                          *gomock.Controller
 	)
 
@@ -1612,7 +1667,7 @@ var _ = Describe("Unbind host", func() {
 		db, dbName = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -1911,7 +1966,7 @@ var _ = Describe("SetBootstrap", func() {
 		hapi                          API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		dbName                        string
@@ -1920,7 +1975,7 @@ var _ = Describe("SetBootstrap", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
 		hostId = strfmt.UUID(uuid.New().String())
@@ -1973,7 +2028,7 @@ var _ = Describe("UpdateNTP", func() {
 		hapi                          API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		dbName                        string
@@ -1982,7 +2037,7 @@ var _ = Describe("UpdateNTP", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
 		hostId = strfmt.UUID(uuid.New().String())
@@ -2036,7 +2091,7 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 		hapi                          API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		dbName                        string
@@ -2045,7 +2100,7 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
 		hostId = strfmt.UUID(uuid.New().String())
@@ -2190,7 +2245,7 @@ var _ = Describe("UpdateImageStatus", func() {
 		hapi                          API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		mockMetric                    *metrics.MockAPI
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
@@ -2200,7 +2255,7 @@ var _ = Describe("UpdateImageStatus", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		dummy := &leader.DummyElector{}
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, dummy, nil, nil)
@@ -2341,7 +2396,7 @@ var _ = Describe("UpdateKubeKeyNS", func() {
 		hostApi                       API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
 		dbName                        string
 		host                          common.Host
@@ -2350,7 +2405,7 @@ var _ = Describe("UpdateKubeKeyNS", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
 		hostApi = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
 		hostId = strfmt.UUID(uuid.New().String())
@@ -2406,12 +2461,12 @@ var _ = Describe("AutoAssignRole", func() {
 		db              *gorm.DB
 		ctrl            *gomock.Controller
 		mockHwValidator *hardware.MockValidator
-		mockEvents      *events.MockHandler
+		mockEvents      *eventsapi.MockHandler
 		dbName          string
 	)
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -2707,7 +2762,7 @@ var _ = Describe("Validation metrics and events", func() {
 		ctx             = context.Background()
 		db              *gorm.DB
 		dbName          string
-		mockEvents      *events.MockHandler
+		mockEvents      *eventsapi.MockHandler
 		mockHwValidator *hardware.MockValidator
 		mockMetric      *metrics.MockAPI
 		validatorCfg    *hardware.ValidatorCfg
@@ -2760,7 +2815,7 @@ var _ = Describe("Validation metrics and events", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		validatorCfg = createValidatorCfg()
@@ -2839,7 +2894,7 @@ var _ = Describe("SetDiskSpeed", func() {
 		ctx             = context.Background()
 		db              *gorm.DB
 		dbName          string
-		mockEvents      *events.MockHandler
+		mockEvents      *eventsapi.MockHandler
 		mockHwValidator *hardware.MockValidator
 		validatorCfg    *hardware.ValidatorCfg
 		m               *Manager
@@ -2861,7 +2916,7 @@ var _ = Describe("SetDiskSpeed", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		validatorCfg = createValidatorCfg()
 		m = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, nil, nil)
@@ -2929,7 +2984,7 @@ var _ = Describe("ResetHostValidation", func() {
 		ctx             = context.Background()
 		db              *gorm.DB
 		dbName          string
-		mockEvents      *events.MockHandler
+		mockEvents      *eventsapi.MockHandler
 		mockHwValidator *hardware.MockValidator
 		validatorCfg    *hardware.ValidatorCfg
 		m               *Manager
@@ -2961,7 +3016,7 @@ var _ = Describe("ResetHostValidation", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		validatorCfg = createValidatorCfg()
 		mockMetric := metrics.NewMockAPI(ctrl)
@@ -3085,7 +3140,7 @@ var _ = Describe("Get host by Kube key", func() {
 		key              types.NamespacedName
 		kubeKeyNamespace = "test-kube-namespace"
 		dbName           string
-		mockEvents       *events.MockHandler
+		mockEvents       *eventsapi.MockHandler
 		mockHwValidator  *hardware.MockValidator
 		validatorCfg     *hardware.ValidatorCfg
 		id               strfmt.UUID
@@ -3095,7 +3150,7 @@ var _ = Describe("Get host by Kube key", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		validatorCfg = createValidatorCfg()
 		mockMetric := metrics.NewMockAPI(ctrl)
@@ -3142,7 +3197,7 @@ var _ = Describe("Installation stages", func() {
 		dbName       string
 		ctrl         *gomock.Controller
 		config       Config
-		mockEventApi *events.MockHandler
+		mockEventApi *eventsapi.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -3150,7 +3205,7 @@ var _ = Describe("Installation stages", func() {
 		config = *defaultConfig
 		dummy := &leader.DummyElector{}
 		ctrl = gomock.NewController(GinkgoT())
-		mockEventApi = events.NewMockHandler(ctrl)
+		mockEventApi = eventsapi.NewMockHandler(ctrl)
 		api = NewManager(common.GetTestLog(), db, mockEventApi, nil, nil, nil, nil, &config, dummy, nil, nil)
 	})
 

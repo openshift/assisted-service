@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -30,7 +30,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		clusterId, infraEnvId strfmt.UUID
 		host                  models.Host
 		cluster               common.Cluster
-		mockEvents            *events.MockHandler
+		mockEvents            *eventsapi.MockHandler
 		ctrl                  *gomock.Controller
 		dbName                string
 		mockHwValidator       *hardware.MockValidator
@@ -64,7 +64,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		initHwValidator()
 		pr := registry.NewMockProviderRegistry(ctrl)

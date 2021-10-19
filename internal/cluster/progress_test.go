@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/dns"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -31,7 +31,7 @@ var _ = Describe("Progress bar test", func() {
 		dbName          string
 		ctrl            *gomock.Controller
 		clusterApi      *Manager
-		mockEvents      *events.MockHandler
+		mockEvents      *eventsapi.MockHandler
 		mockHostAPI     *host.MockAPI
 		mockMetric      *metrics.MockAPI
 		mockOperatorApi *operators.MockAPI
@@ -41,7 +41,7 @@ var _ = Describe("Progress bar test", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockOperatorApi = operators.NewMockAPI(ctrl)

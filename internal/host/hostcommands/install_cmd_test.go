@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -61,7 +61,7 @@ var _ = Describe("installcmd", func() {
 		mockRelease       *oc.MockRelease
 		instructionConfig InstructionConfig
 		dbName            string
-		mockEvents        *events.MockHandler
+		mockEvents        *eventsapi.MockHandler
 		mockVersions      *versions.MockHandler
 	)
 	BeforeEach(func() {
@@ -69,7 +69,7 @@ var _ = Describe("installcmd", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
 		instructionConfig = DefaultInstructionConfig
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		installCmd = NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions)
@@ -278,7 +278,7 @@ var _ = Describe("installcmd arguments", func() {
 		mockRelease  *oc.MockRelease
 		dbName       string
 		ctrl         *gomock.Controller
-		mockEvents   *events.MockHandler
+		mockEvents   *eventsapi.MockHandler
 		mockVersions *versions.MockHandler
 		infraEnvId   strfmt.UUID
 		infraEnv     common.InfraEnv
@@ -298,7 +298,7 @@ var _ = Describe("installcmd arguments", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		validator = hardware.NewMockValidator(ctrl)
 		validator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).AnyTimes()
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).AnyTimes()

@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/domains"
 	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/garbagecollector"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
@@ -764,7 +765,7 @@ func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.D
 	})
 }
 
-func createEventsHandler(crdEventsHandler controllers.CRDEventsHandler, db *gorm.DB, log logrus.FieldLogger) events.Handler {
+func createEventsHandler(crdEventsHandler controllers.CRDEventsHandler, db *gorm.DB, log logrus.FieldLogger) eventsapi.Handler {
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
 
 	if crdEventsHandler != nil {

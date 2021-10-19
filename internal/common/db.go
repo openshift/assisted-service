@@ -221,6 +221,15 @@ func GetHostFromDB(db *gorm.DB, infraEnvId, hostId string) (*Host, error) {
 	return &host, nil
 }
 
+func GetHostFromDBbyHostId(db *gorm.DB, hostId strfmt.UUID) (*Host, error) {
+	var host Host
+
+	err := db.First(&host, "id = ?", hostId.String()).Error
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get host %s", hostId)
+	}
+	return &host, nil
+}
 func GetClusterHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) {
 	var host Host
 

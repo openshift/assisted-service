@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/operators"
 	operatorsHandler "github.com/openshift/assisted-service/internal/operators/handler"
@@ -31,7 +31,7 @@ var _ = Describe("Operators manager", func() {
 		log                    = logrus.New()
 		ctrl                   *gomock.Controller
 		mockApi                *operators.MockAPI
-		mockEvents             *events.MockHandler
+		mockEvents             *eventsapi.MockHandler
 		mockClusterProgressApi *cluster.MockProgressAPI
 		handler                *operatorsHandler.Handler
 		lastUpdatedTime        strfmt.DateTime
@@ -41,7 +41,7 @@ var _ = Describe("Operators manager", func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockApi = operators.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockClusterProgressApi = cluster.NewMockProgressAPI(ctrl)
 		handler = operatorsHandler.NewHandler(mockApi, log, db, mockEvents, mockClusterProgressApi)
 
