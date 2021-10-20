@@ -4848,10 +4848,10 @@ var _ = Describe("Refresh Host", func() {
 				IPAddressPool:          hostutil.GenerateIPv4Addresses(3, common.IncrementCidrIP(string(common.TestIPv4Networking.MachineNetworks[0].Cidr))),
 				machineNetworks:        common.TestIPv4Networking.MachineNetworks,
 				ipType:                 ipv4,
-				statusInfoChecker:      makeRegexChecker("Host cannot be installed due to following failing validation\\(s\\): Network latency requirements of less than or equals 100.00 ms not met for connectivity between.*Packet loss percentage requirement of equals 0.00% not met for connectivity between.*"),
+				statusInfoChecker:      makeRegexChecker("Host cannot be installed due to following failing validation\\(s\\): Network latency requirements of less than or equals 100.00 ms not met for connectivity between.*Packet loss percentage requirement of equals 0.00% not met for connectivity with the host.*"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationFailure, messagePattern: "Network latency requirements of less than or equals 100.00 ms not met for connectivity between .*? and master-1 \\(200.00 ms\\), master-2 \\(200.00 ms\\)."},
-					HasSufficientPacketLossRequirementForRole:     {status: ValidationFailure, messagePattern: "Packet loss percentage requirement of equals 0.00% not met for connectivity between .*? and master-1 \\(1.00%\\), master-2 \\(1.00%\\)."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationFailure, messagePattern: "Packet loss percentage requirement of equals 0.00% not met for connectivity with the host.*? for interface pairs.*\\(1.00%\\).*\\(1.00%\\).*"},
 				}),
 			}, {name: "insufficient with IPv6 and 3 masters with high latency and packet loss",
 				srcState:               models.HostStatusDiscovering,
@@ -4862,17 +4862,17 @@ var _ = Describe("Refresh Host", func() {
 				IPAddressPool:          hostutil.GenerateIPv6Addresses(3, common.IncrementCidrIP(string(common.TestIPv4Networking.MachineNetworks[0].Cidr))),
 				machineNetworks:        common.TestIPv4Networking.MachineNetworks,
 				ipType:                 ipv6,
-				statusInfoChecker:      makeRegexChecker("Host cannot be installed due to following failing validation\\(s\\): Network latency requirements of less than or equals 100.00 ms not met for connectivity between.*Packet loss percentage requirement of equals 0.00% not met for connectivity between.*"),
+				statusInfoChecker:      makeRegexChecker("Host cannot be installed due to following failing validation\\(s\\): Network latency requirements of less than or equals 100.00 ms not met for connectivity between.*Packet loss percentage requirement of equals 0.00% not met for connectivity with the host.*"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationFailure, messagePattern: "Network latency requirements of less than or equals 100.00 ms not met for connectivity between .*? and master-1 \\(200.00 ms\\), master-2 \\(200.00 ms\\)."},
-					HasSufficientPacketLossRequirementForRole:     {status: ValidationFailure, messagePattern: "Packet loss percentage requirement of equals 0.00% not met for connectivity between .*? and master-1 \\(1.00%\\), master-2 \\(1.00%\\)."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationFailure, messagePattern: "Packet loss percentage requirement of equals 0.00% not met for connectivity with the host.*? for interface pairs.*\\(1.00%\\).*\\(1.00%\\).*"},
 				}),
 			},
 		}
 
 		for i := range tests {
 			t := tests[i]
-			It(t.name, func() {
+			FIt(t.name, func() {
 				hosts := []*models.Host{}
 				for n := 0; n < len(t.IPAddressPool); n++ {
 					netAddr := common.NetAddress{Hostname: fmt.Sprintf("%s-%d", t.hostRole, n)}
@@ -4910,7 +4910,7 @@ var _ = Describe("Refresh Host", func() {
 					tmpHosts := []*models.Host{}
 					tmpHosts = append(tmpHosts, hosts[:n]...)
 					tmpHosts = append(tmpHosts, hosts[n+1:]...)
-					rep := hostutil.GenerateL3ConnectivityReport(tmpHosts, t.latencyInMs, t.packetLossInPercentage)
+					rep := hostutil.GenerateL3ConnectivityReport(h, tmpHosts, t.latencyInMs, t.packetLossInPercentage)
 					b, err := json.Marshal(&rep)
 					Expect(err).ShouldNot(HaveOccurred())
 					h.Connectivity = string(b)

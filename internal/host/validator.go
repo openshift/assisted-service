@@ -1024,14 +1024,61 @@ func (v *validator) validatePacketLossForRole(host *models.Host, clusterRoleReqs
 		for _, l3 := range r.L3Connectivity {
 			if l3.PacketLossPercentage > *clusterRoleReqs.Total.PacketLossPercentage {
 				if _, ok := failedHostIPs[l3.RemoteIPAddress]; !ok {
-					hostname, role, err := GetHostnameAndEffectiveRoleByIP(l3.RemoteIPAddress, hosts)
+					targetHostname, role, err := GetHostnameAndEffectiveRoleByIP(l3.RemoteIPAddress, hosts)
 					if err != nil {
 						v.log.Error(err)
 						return ValidationFailure, nil, err
 					}
+					outgoingNic := l3.OutgoingNic
+					targetHost, err := GetHostByIP(l3.RemoteIPAddress, hosts)
+					if err != nil {
+						v.log.Error(err)
+						return ValidationFailure, nil, err
+					}
+					targetInv, err := common.UnmarshalInventory(targetHost.Inventory)
+					if err != nil {
+						v.log.Error(err)
+						return ValidationFailure, nil, err
+					}
+					targetIntf, err := GetInterfaceByIp(l3.RemoteIPAddress, targetInv)
+					if err != nil {
+						v.log.Error(err)
+						return ValidationFailure, nil, err
+					}
+
+					inv, err := common.UnmarshalInventory(host.Inventory)
+					if err != nil {
+						v.log.Error(err)
+						return ValidationFailure, nil, err
+					}
+
+					outgoingInterface, err := GetInterfaceByName(l3.OutgoingNic, inv)
+					if err != nil {
+						v.log.Error(err)
+						return ValidationFailure, nil, err
+					}
+					outgoingNicIPs := make([]string, len(outgoingInterface.IPV4Addresses)+len(outgoingInterface.IPV6Addresses))
+					for i, cidr := range outgoingInterface.IPV4Addresses {
+						parsedAddr, _, err := net.ParseCIDR(cidr)
+						if err != nil {
+							v.log.Error(err)
+							return ValidationFailure, nil, err
+						}
+						outgoingNicIPs[i] = parsedAddr.String()
+					}
+					for i, cidr := range outgoingInterface.IPV6Addresses {
+						parsedAddr, _, err := net.ParseCIDR(cidr)
+						if err != nil {
+							v.log.Error(err)
+							return ValidationFailure, nil, err
+						}
+						outgoingNicIPs[len(outgoingInterface.IPV4Addresses)+i] = parsedAddr.String()
+					}
+					formattedOutgoingNicIPs := fmt.Sprintf("[%s]", strings.Join(outgoingNicIPs, ","))
+
 					if role == common.GetEffectiveRole(host) {
 						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
-						failedHostPacketLoss = append(failedHostPacketLoss, fmt.Sprintf(" %s (%.2f%%)", hostname, l3.PacketLossPercentage))
+						failedHostPacketLoss = append(failedHostPacketLoss, fmt.Sprintf(" %s:%s -> %s:%s:%s (%.2f%%)", outgoingNic, formattedOutgoingNicIPs, targetHostname, targetIntf.Name, l3.RemoteIPAddress, l3.PacketLossPercentage))
 					}
 				}
 			}
@@ -1052,7 +1099,7 @@ func (v *validator) printSufficientPacketLossRequirementForRole(c *validationCon
 		if err != nil {
 			return fmt.Sprintf("Error while attempting to validate packet loss validation: %s", err)
 		}
-		return fmt.Sprintf("Packet loss percentage requirement of %s %.2f%% not met for connectivity between %s and%s.", comparisonBuilder(*c.clusterHostRequirements.Total.PacketLossPercentage), *c.clusterHostRequirements.Total.PacketLossPercentage, c.host.ID, strings.Join(hostPacketLoss, ","))
+		return fmt.Sprintf("Packet loss percentage requirement of %s %.2f%% not met for connectivity with the host %s for interface pairs %s.", comparisonBuilder(*c.clusterHostRequirements.Total.PacketLossPercentage), *c.clusterHostRequirements.Total.PacketLossPercentage, c.host.ID, strings.Join(hostPacketLoss, ","))
 	case ValidationPending:
 		return "Missing packet loss information."
 	case ValidationError:

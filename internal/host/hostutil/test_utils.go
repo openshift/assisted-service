@@ -128,7 +128,7 @@ func GenerateTestConnectivityReport() string {
 	return string(b)
 }
 
-func GenerateL3ConnectivityReport(hosts []*models.Host, latency float64, packetLoss float64) *models.ConnectivityReport {
+func GenerateL3ConnectivityReport(srcHost *models.Host, hosts []*models.Host, latency float64, packetLoss float64) *models.ConnectivityReport {
 	con := models.ConnectivityReport{}
 	for _, h := range hosts {
 		var inv models.Inventory
@@ -144,7 +144,8 @@ func GenerateL3ConnectivityReport(hosts []*models.Host, latency float64, packetL
 			ipAddr = ip.String()
 		}
 		Expect(ipAddr).NotTo(BeEmpty())
-		l3 := models.L3Connectivity{Successful: true, AverageRTTMs: latency, PacketLossPercentage: packetLoss, RemoteIPAddress: ipAddr}
+		srcInv, _ := common.UnmarshalInventory(srcHost.Inventory)
+		l3 := models.L3Connectivity{Successful: true, AverageRTTMs: latency, PacketLossPercentage: packetLoss, RemoteIPAddress: ipAddr, OutgoingNic: srcInv.Interfaces[0].Name}
 		con.RemoteHosts = append(con.RemoteHosts, &models.ConnectivityRemoteHost{HostID: strfmt.UUID(uuid.New().String()), L3Connectivity: []*models.L3Connectivity{&l3}})
 	}
 	return &con

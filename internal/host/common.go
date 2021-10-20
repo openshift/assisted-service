@@ -102,6 +102,64 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, su
 		*h.ID, h.InfraEnvID, srcRole).Updates(fields).Error
 }
 
+func GetInterfaceByName(name string, inventory *models.Inventory) (*models.Interface, error) {
+	for _, intf := range inventory.Interfaces {
+		if intf.Name == name {
+			return intf, nil
+		}
+	}
+	return nil, fmt.Errorf("unable to find interface for name %s", name)
+}
+
+func GetInterfaceByIp(ip string, inventory *models.Inventory) (*models.Interface, error) {
+	for _, intf := range inventory.Interfaces {
+		for _, cidr := range intf.IPV4Addresses {
+			parsedAddr, _, err := net.ParseCIDR(cidr)
+			if err != nil {
+				return nil, err
+			}
+			if parsedAddr.String() == ip {
+				return intf, nil
+			}
+		}
+		for _, cidr := range intf.IPV6Addresses {
+			parsedAddr, _, err := net.ParseCIDR(cidr)
+			if err != nil {
+				return nil, err
+			}
+			if parsedAddr.String() == ip {
+				return intf, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("unable to find interface for ip %s", ip)
+}
+
+func GetHostByIP(ip string, hosts []*models.Host) (*models.Host, error) {
+	for _, h := range hosts {
+		if h.Inventory == "" {
+			continue
+		}
+		inv, err := common.UnmarshalInventory(h.Inventory)
+		if err != nil {
+			return nil, fmt.Errorf("unable to unmarshall cluster inventory for host %s: %s", h.RequestedHostname, err)
+		}
+		for _, i := range inv.Interfaces {
+			ips := append(i.IPV4Addresses, i.IPV6Addresses...)
+			for _, cidr := range ips {
+				parsedIP, _, err := net.ParseCIDR(cidr)
+				if err != nil {
+					return nil, err
+				}
+				if ip == parsedIP.String() {
+					return h, nil
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("host with IP %s not found in inventory", ip)
+}
+
 func GetHostnameAndEffectiveRoleByIP(ip string, hosts []*models.Host) (string, models.HostRole, error) {
 	for _, h := range hosts {
 		if h.Inventory == "" {
