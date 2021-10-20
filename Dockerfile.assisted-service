@@ -21,6 +21,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator cmd/operator/main.go
+RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission cmd/webadmission/main.go
 
 FROM quay.io/ocpmetal/oc-image:bug-1823143-multi-arch as oc-image
 
@@ -40,6 +41,7 @@ COPY --from=oc-image /oc /usr/local/bin/
 
 COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /build/assisted-service-operator /assisted-service-operator
+COPY --from=builder /build/assisted-service-admission /assisted-service-admission
 COPY --from=pybuilder /assisted-service-client/assisted-service-client-*.tar.gz /clients/
 COPY /config/onprem-iso-config.ign /data/onprem-iso-config.ign
 ENV GODEBUG=madvdontneed=1
