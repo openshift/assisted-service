@@ -34,32 +34,6 @@ function install_lso() {
       "${index_image}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
   fi
 
-  OC_VERSION_MAJOR_MINOR=$(oc version -o json | jq --raw-output '.openshiftVersion' | cut -d'.' -f1-2)
-  if [[ ${OC_VERSION_MAJOR_MINOR} == "4.9" ]]; then
-      # LSO has not been published to the 4.9 redhat-operators catalog, so
-      # it cannot be installed on OpenShift 4.9. Until this is resolved,
-      # we explicitly install the 4.8 catalog as redhat-operators-v48
-      # and then subscribe to the LSO version from the 4.8 rather than the 4.9 catalog.
-      # TODO: Remove this once LSO is published to the 4.9 catalog.
-      catalog_source_name="redhat-operators-v48"
-      tee << EOCR >(oc apply -f -)
-kind: CatalogSource
-apiVersion: operators.coreos.com/v1alpha1
-metadata:
-  name: redhat-operators-v48
-  namespace: openshift-marketplace
-spec:
-  displayName: Red Hat Operators v48
-  image: registry.redhat.io/redhat/redhat-operator-index:v4.8
-  priority: -100
-  publisher: Red Hat
-  sourceType: grpc
-  updateStrategy:
-    registryPoll:
-      interval: 10m0s
-EOCR
-  fi
-
   tee << EOCR >(oc apply -f -)
 apiVersion: operators.coreos.com/v1alpha2
 kind: OperatorGroup
