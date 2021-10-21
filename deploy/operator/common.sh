@@ -26,15 +26,20 @@ export ASSISTED_SERVICE_OPERATOR_CATALOG="assisted-service-operator-catalog"
 ############
 # Versions #
 ############
-export DEFAULT_OS_IMAGES="${DEFAULT_OS_IMAGES:-$(cat ${__root}/data/default_os_images.json)}"
+DEFAULT_OS_IMAGES="${DEFAULT_OS_IMAGES:-$(cat ${__root}/data/default_os_images.json)}"
+DEFAULT_RELEASE_IMAGES="${DEFAULT_RELEASE_IMAGES:-$(cat ${__root}/data/default_release_images.json)}"
+
+# Get sorted release images relevant for the operator (only default cpu architecture)
+SORTED_RELEASE_IMAGES=$(echo ${DEFAULT_RELEASE_IMAGES} | jq -rc 'map(select(.cpu_architecture=="x86_64")) | sort_by(.openshift_version)')
+
 if [[ "${ASSISTED_UPGRADE_OPERATOR}" == "false" ]]; then
-    export RELEASE_IMAGE=$(echo ${DEFAULT_OS_IMAGES} | jq -rc '[.[].url]|max')
-    export VERSION=$(echo ${DEFAULT_OS_IMAGES} | jq -rc '[.[].openshift_version]|max')
+    RELEASE_IMAGE=$(echo ${SORTED_RELEASE_IMAGES} | jq -rc '[.[].url][-1]')
+    VERSION=$(echo ${SORTED_RELEASE_IMAGES} | jq -rc '[.[].openshift_version][-1]')
 else
     # Before the AI operator upgrade, we install the version prior to the most current one of OCP. 
-    # The most current version of OCP we are installing is 4.9, and the version previous to that is 4.8.
-    export RELEASE_IMAGE=$(echo ${DEFAULT_OS_IMAGES} | jq -rc '[.[].url][-2]')
-    export VERSION=$(echo ${DEFAULT_OS_IMAGES} | jq -rc '[.[].openshift_version][-2]')
+    # E.g. the most current version of OCP we are installing is 4.9, and the version previous to that is 4.8.
+    RELEASE_IMAGE=$(echo ${SORTED_RELEASE_IMAGES} | jq -rc '[.[].url][-2]')
+    VERSION=$(echo ${SORTED_RELEASE_IMAGES} | jq -rc '[.[].openshift_version][-2]')
 fi
 
 export ASSISTED_OPENSHIFT_VERSION="${ASSISTED_OPENSHIFT_VERSION:-openshift-v${VERSION}}"
