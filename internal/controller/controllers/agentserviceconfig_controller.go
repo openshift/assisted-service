@@ -35,8 +35,10 @@ import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
+	admregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,6 +46,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
+	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -61,6 +64,7 @@ const (
 	agentServiceConfigName        = "agent"
 	serviceName            string = "assisted-service"
 	imageServiceName       string = "assisted-image-service"
+	webhookServiceName     string = "agentinstalladmission"
 	databaseName           string = "postgres"
 
 	databasePasswordLength   int = 16
@@ -114,6 +118,13 @@ type NewComponentFn func(context.Context, logrus.FieldLogger, *aiv1beta1.AgentSe
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups="apiregistration.k8s.io",resources=apiservices,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := addRequestIdIfNeeded(origCtx)
@@ -174,6 +185,13 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, r.newAssistedCM},
 		{"ImageServiceDeployment", aiv1beta1.ReasonImageHandlerDeploymentFailure, r.newImageServiceDeployment},
 		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, r.newAssistedServiceDeployment},
+		{"ValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newACIWebHook},
+		{"WebHookService", aiv1beta1.ReasonWebHookServiceFailure, r.newWebHookService},
+		{"WebHookServiceDeployment", aiv1beta1.ReasonWebHookDeploymentFailure, r.newWebHookDeployment},
+		{"WebHookServiceAccount", aiv1beta1.ReasonWebHookServiceAccountFailure, r.newWebHookServiceAccount},
+		{"WebHookClusterRole", aiv1beta1.ReasonWebHookClusterRoleFailure, r.newWebHookClusterRole},
+		{"WebHookClusterRoleBinding", aiv1beta1.ReasonWebHookClusterRoleBindingFailure, r.newWebHookClusterRoleBinding},
+		{"WebHookAPIService", aiv1beta1.ReasonWebHookAPIServiceFailure, r.newWebHookAPIService},
 	} {
 		obj, mutateFn, err := component.fn(ctx, log, instance)
 		if err != nil {
@@ -244,6 +262,9 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Owns(&routev1.Route{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&rbacv1.ClusterRoleBinding{}).
+		Owns(&rbacv1.ClusterRole{}).
+		Owns(&apiregv1.APIService{}).
 		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, ingressCMHandler, ingressCMPredicates).
 		Complete(r)
 }
@@ -1317,4 +1338,314 @@ func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 			},
 		},
 	}
+}
+
+func (r *AgentServiceConfigReconciler) newACIWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	fp := admregv1.Fail
+	se := admregv1.SideEffectClassNone
+	path := "/apis/admission.agentinstall.openshift.io/v1/agentclusterinstallvalidators"
+	webhooks := []admregv1.ValidatingWebhook{
+		{
+			Name:          "agentclusterinstallvalidators.admission.agentinstall.openshift.io",
+			FailurePolicy: &fp,
+			SideEffects:   &se,
+			AdmissionReviewVersions: []string{
+				"v1",
+			},
+			ClientConfig: admregv1.WebhookClientConfig{
+				Service: &admregv1.ServiceReference{
+					Namespace: "default",
+					Name:      "kubernetes",
+					Path:      &path,
+				},
+			},
+			Rules: []admregv1.RuleWithOperations{
+				{
+					Operations: []admregv1.OperationType{
+						admregv1.Update,
+					},
+					Rule: admregv1.Rule{
+						APIGroups: []string{
+							"extensions.hive.openshift.io",
+						},
+						APIVersions: []string{
+							"v1beta1",
+						},
+						Resources: []string{
+							"agentclusterinstalls",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	aci := admregv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "agentclusterinstallvalidators.admission.agentinstall.openshift.io",
+		},
+		Webhooks: webhooks,
+	}
+
+	mutateFn := func() error {
+		aci.Webhooks = webhooks
+		return nil
+	}
+	return &aci, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newWebHookServiceAccount(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	sa := corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "agentinstalladmission",
+			Namespace: r.Namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		return nil
+	}
+	return &sa, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newWebHookClusterRoleBinding(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	roleRef := rbacv1.RoleRef{
+		APIGroup: "rbac.authorization.k8s.io",
+		Kind:     "ClusterRole",
+		Name:     "system:openshift:assisted-installer:agentinstalladmission",
+	}
+	subjects := []rbacv1.Subject{
+		{
+			Kind:      "ServiceAccount",
+			Namespace: r.Namespace,
+			Name:      "agentinstalladmission",
+		},
+	}
+	crb := rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "agentinstalladmission-agentinstall-agentinstalladmission",
+		},
+		RoleRef:  roleRef,
+		Subjects: subjects,
+	}
+
+	mutateFn := func() error {
+		crb.Subjects = subjects
+		crb.RoleRef = roleRef
+		return nil
+	}
+	return &crb, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newWebHookClusterRole(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	rules := []rbacv1.PolicyRule{
+		{
+			APIGroups: []string{
+				"",
+			},
+			Resources: []string{
+				"configmaps",
+			},
+			Verbs: []string{
+				"get",
+				"list",
+				"watch",
+			},
+		},
+		{
+			APIGroups: []string{
+				"admissionregistration.k8s.io",
+			},
+			Resources: []string{
+				"validatingwebhookconfigurations",
+			},
+			Verbs: []string{
+				"get",
+				"list",
+				"watch",
+			},
+		},
+		{
+			APIGroups: []string{
+				"",
+			},
+			Resources: []string{
+				"namespaces",
+			},
+			Verbs: []string{
+				"get",
+				"list",
+				"watch",
+			},
+		},
+		{
+			APIGroups: []string{
+				"authorization.k8s.io",
+			},
+			Resources: []string{
+				"subjectaccessreviews",
+			},
+			Verbs: []string{
+				"create",
+			},
+		},
+	}
+	cr := rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "system:openshift:assisted-installer:agentinstalladmission",
+		},
+		Rules: rules,
+	}
+
+	mutateFn := func() error {
+		cr.Rules = rules
+		return nil
+	}
+	return &cr, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newWebHookService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      webhookServiceName,
+			Namespace: r.Namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, svc, r.Scheme); err != nil {
+			return err
+		}
+		addAppLabel(webhookServiceName, &svc.ObjectMeta)
+		if svc.ObjectMeta.Annotations == nil {
+			svc.ObjectMeta.Annotations = make(map[string]string)
+		}
+		svc.ObjectMeta.Annotations[servingCertAnnotation] = webhookServiceName
+		if len(svc.Spec.Ports) == 0 {
+			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
+		}
+		svc.Spec.Ports[0].Name = webhookServiceName
+		svc.Spec.Ports[0].Port = 443
+		svc.Spec.Ports[0].TargetPort = intstr.IntOrString{Type: intstr.Int, IntVal: 9443}
+		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
+		svc.Spec.Selector = map[string]string{"app": webhookServiceName}
+		svc.Spec.Type = corev1.ServiceTypeClusterIP
+		return nil
+	}
+
+	return svc, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	as := apiregv1.APIService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "v1.admission.agentinstall.openshift.io",
+		},
+	}
+
+	mutateFn := func() error {
+		if as.ObjectMeta.Annotations == nil {
+			as.ObjectMeta.Annotations = make(map[string]string)
+		}
+		as.ObjectMeta.Annotations["service.beta.openshift.io/inject-cabundle"] = "true"
+		as.Spec.Group = "admission.agentinstall.openshift.io"
+		as.Spec.GroupPriorityMinimum = 1000
+		as.Spec.VersionPriority = 15
+		as.Spec.Version = "v1"
+		as.Spec.Service = &apiregv1.ServiceReference{
+			Name:      "agentinstalladmission",
+			Namespace: r.Namespace,
+		}
+		return nil
+	}
+	return &as, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newWebHookDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	serviceContainer := corev1.Container{
+		Name:  "agentinstalladmission",
+		Image: ServiceImage(),
+		Command: []string{
+			"/assisted-service-admission",
+			"--secure-port=9443",
+			"--audit-log-path=-",
+			"--tls-cert-file=/var/serving-cert/tls.crt",
+			"--tls-private-key-file=/var/serving-cert/tls.key",
+			"--v=2",
+		},
+		Ports: []corev1.ContainerPort{
+			{
+				ContainerPort: 9443,
+				Protocol:      corev1.ProtocolTCP,
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: "serving-cert", MountPath: "/var/serving-cert"},
+		},
+		ReadinessProbe: &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path:   "/healthz",
+					Port:   intstr.FromInt(int(9443)),
+					Scheme: corev1.URISchemeHTTPS,
+				},
+			},
+		},
+	}
+
+	volumes := []corev1.Volume{
+		{
+			Name: "serving-cert",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: "agentinstalladmission",
+				},
+			},
+		},
+	}
+
+	deploymentLabels := map[string]string{
+		"app":                   "agentinstalladmission",
+		"agentinstalladmission": "true",
+	}
+
+	deploymentStrategy := appsv1.DeploymentStrategy{
+		Type: appsv1.RecreateDeploymentStrategyType,
+	}
+
+	serviceAccountName := "agentinstalladmission"
+
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "agentinstalladmission",
+			Namespace: r.Namespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: deploymentLabels,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: deploymentLabels,
+					Name:   "agentinstalladmission",
+				},
+			},
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, deployment, r.Scheme); err != nil {
+			return err
+		}
+		var replicas int32 = 2
+		deployment.Spec.Replicas = &replicas
+		deployment.Spec.Strategy = deploymentStrategy
+
+		deployment.Spec.Template.Spec.Containers = []corev1.Container{serviceContainer}
+		deployment.Spec.Template.Spec.Volumes = volumes
+		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
+
+		return nil
+	}
+	return deployment, mutateFn, nil
 }

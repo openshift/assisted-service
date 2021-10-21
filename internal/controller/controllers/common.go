@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -184,6 +185,7 @@ func GetKubeClientSchemes() *runtime.Scheme {
 	utilruntime.Must(machinev1beta1.AddToScheme(schemes))
 	utilruntime.Must(monitoringv1.AddToScheme(schemes))
 	utilruntime.Must(routev1.AddToScheme(schemes))
+	utilruntime.Must(apiregv1.AddToScheme(schemes))
 	return schemes
 }
 

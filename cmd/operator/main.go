@@ -35,6 +35,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -60,6 +61,8 @@ func init() {
 	utilruntime.Must(routev1.AddToScheme(scheme))
 
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
+
+	utilruntime.Must(apiregv1.AddToScheme(scheme))
 }
 
 func main() {
