@@ -154,6 +154,7 @@ func InitLogs() *logrus.Entry {
 
 	logger := log.WithFields(logrus.Fields{})
 
+	panic("Oh man, oh no...")
 	//set log format according to configuration
 	logger.Info("Setting log format: ", Options.LogConfig.LogFormat)
 	if Options.LogConfig.LogFormat == logconfig.LogFormatJson {
@@ -198,6 +199,8 @@ func main() {
 
 	port := flag.String("port", "8090", "define port that the service will listen to")
 	flag.Parse()
+
+	panic("Oh man, oh shoot")
 
 	log.Println("Starting bm service")
 
