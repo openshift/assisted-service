@@ -63,6 +63,7 @@ func init() {
 }
 
 func main() {
+	panic("Oh man, oh no...")
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
