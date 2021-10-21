@@ -2,11 +2,13 @@ package host
 
 import (
 	"context"
+	"sort"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/commonutils"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/thoas/go-funk"
 )
@@ -48,6 +50,58 @@ func (m *Manager) initMonitoringQueryGenerator() {
 	}
 }
 
+func sortHosts(hosts []*models.Host) []*models.Host {
+	diskCapacityGiB := func(disks []*models.Disk) int64 {
+		return funk.Reduce(disks, func(acc int64, d *models.Disk) int64 {
+			if d.InstallationEligibility.Eligible {
+				return acc + conversions.BytesToGiB(d.SizeBytes)
+			} else {
+				return acc
+			}
+		}, int64(0)).(int64)
+	}
+
+	cpuCount := func(inventory *models.Inventory) int64 {
+		if inventory.CPU != nil {
+			return inventory.CPU.Count
+		} else {
+			return 0
+		}
+	}
+
+	memInGib := func(inventory *models.Inventory) int64 {
+		if inventory.Memory != nil {
+			return conversions.BytesToGiB(inventory.Memory.UsableBytes)
+		} else {
+			return 0
+		}
+	}
+
+	sort.SliceStable(hosts, func(i, j int) bool {
+		inventory_i, _ := common.UnmarshalInventory(hosts[i].Inventory)
+		if inventory_i == nil {
+			return false
+		}
+
+		inventory_j, _ := common.UnmarshalInventory(hosts[j].Inventory)
+		if inventory_j == nil {
+			return true
+		}
+
+		//(host_cores - 4) + ((host_ram_gb - 16) * 0.1) + ((host_disk_capacity_gb - 100) * 0.004)
+		wi := 1.0*(float64(cpuCount(inventory_i))-HostWeightMinimumCpuCores) +
+			HostWeightMemWeight*(float64(memInGib(inventory_i))-HostWeightMinimumMemGib) +
+			HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_i.Disks))-HostWeightMinimumDiskCapacityGib)
+
+		wj := 1.0*(float64(cpuCount(inventory_j))-HostWeightMinimumCpuCores) +
+			HostWeightMemWeight*(float64(memInGib(inventory_j))-HostWeightMinimumMemGib) +
+			HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_j.Disks))-HostWeightMinimumDiskCapacityGib)
+
+		return wi < wj
+	})
+	return hosts
+}
+
 func (m *Manager) clusterHostMonitoring() int64 {
 	var (
 		monitored int64
@@ -70,7 +124,7 @@ func (m *Manager) clusterHostMonitoring() int64 {
 		}
 
 		for _, c := range clusters {
-			for _, host := range c.Hosts {
+			for _, host := range sortHosts(c.Hosts) {
 				if !m.leaderElector.IsLeader() {
 					m.log.Debugf("Not a leader, exiting cluster HostMonitoring")
 					return monitored

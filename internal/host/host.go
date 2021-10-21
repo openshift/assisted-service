@@ -92,6 +92,15 @@ var InstallationTimeout = 20 * time.Minute
 
 var MaxHostDisconnectionTime = 3 * time.Minute
 
+//Weights for sorting hosts in the monitor
+const (
+	HostWeightMinimumCpuCores        float64 = 4
+	HostWeightMinimumMemGib          float64 = 16
+	HostWeightMinimumDiskCapacityGib float64 = 100
+	HostWeightMemWeight              float64 = 0.1
+	HostWeightDiskWeight             float64 = 0.004
+)
+
 type LogTimeoutConfig struct {
 	LogCollectionTimeout time.Duration `envconfig:"HOST_LOG_COLLECTION_TIMEOUT" default:"10m"`
 	LogPendingTimeout    time.Duration `envconfig:"HOST_LOG_PENDING_TIMEOUT" default:"2m"`

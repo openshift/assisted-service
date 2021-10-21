@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -3305,5 +3306,170 @@ var _ = Describe("Installation stages", func() {
 			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
 			Expect(*h.Status).To(Equal(models.HostStatusAddedToExistingCluster))
 		})
+	})
+})
+
+var _ = Describe("sortHost by hardware", func() {
+	var (
+		ctrl    *gomock.Controller
+		diskID1 = "/dev/disk/by-id/test-disk-1"
+		diskID2 = "/dev/disk/by-id/test-disk-2"
+		diskID3 = "/dev/disk/by-id/test-disk-3"
+	)
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	hwSpecifications := []struct {
+		description string
+		Cpus        int64
+		Ram         int64
+		Disks       []*models.Disk
+	}{
+		{
+			description: "minimal master with 3 disks (total of 120 GB)",
+			Cpus:        4,
+			Ram:         16,
+			Disks: []*models.Disk{
+				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+			},
+		},
+		{
+			description: "minimal master with no disks",
+			Cpus:        4,
+			Ram:         16,
+			Disks:       []*models.Disk{},
+		},
+		{
+			description: "minimal master with 3 disks (total of 80 GB)",
+			Cpus:        4,
+			Ram:         16,
+			Disks: []*models.Disk{
+				{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+				{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+			},
+		},
+		{
+			description: "ocs master with 3 disks (total of 120 GB)",
+			Cpus:        12,
+			Ram:         32,
+			Disks: []*models.Disk{
+				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+			},
+		},
+		{
+			description: "sno master with 3 disks (total of 120 GB)",
+			Cpus:        8,
+			Ram:         32,
+			Disks: []*models.Disk{
+				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+			},
+		},
+		{
+			description: "insufficient for both master and worker",
+			Cpus:        2,
+			Ram:         4,
+			Disks: []*models.Disk{
+				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+			},
+		},
+		{
+			description: "minimal worker with 3 disks (total of 120 GB)",
+			Cpus:        2,
+			Ram:         8,
+			Disks: []*models.Disk{
+				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+			},
+		},
+		{
+			description: "ocs worker with 3 disks (total of 120 GB)",
+			Cpus:        12,
+			Ram:         64,
+			Disks: []*models.Disk{
+				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+			},
+		},
+		{
+			description: "ocs worker with 1 disk of 40 GB",
+			Cpus:        12,
+			Ram:         64,
+			Disks: []*models.Disk{
+				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
+			},
+		},
+		{
+			description: "ocs worker with 3 disks (total of 80 GB)",
+			Cpus:        12,
+			Ram:         64,
+			Disks: []*models.Disk{
+				{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+				{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2},
+				{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID3},
+			},
+		},
+	}
+
+	generateHosts := func() []*models.Host {
+		hosts := make([]*models.Host, 0)
+		for _, spec := range hwSpecifications {
+			inventory := &models.Inventory{
+				CPU: &models.CPU{
+					Count: spec.Cpus,
+				},
+				Memory: &models.Memory{
+					UsableBytes: conversions.GibToBytes(spec.Ram),
+				},
+				Disks: funk.Map(spec.Disks, func(d *models.Disk) *models.Disk {
+					d.InstallationEligibility = models.DiskInstallationEligibility{
+						Eligible: true,
+					}
+					return d
+				}).([]*models.Disk),
+			}
+			b, _ := json.Marshal(inventory)
+			id := strfmt.UUID(uuid.New().String())
+			hosts = append(hosts, &models.Host{
+				ID:                &id,
+				RequestedHostname: spec.description,
+				Inventory:         string(b),
+			})
+		}
+		return hosts
+	}
+
+	It("verify host order", func() {
+		sorted := sortHosts(generateHosts())
+		expected := []string{
+			"insufficient for both master and worker",
+			"minimal worker with 3 disks (total of 120 GB)",
+			"minimal master with no disks",
+			"minimal master with 3 disks (total of 80 GB)",
+			"minimal master with 3 disks (total of 120 GB)",
+			"sno master with 3 disks (total of 120 GB)",
+			"ocs master with 3 disks (total of 120 GB)",
+			"ocs worker with 1 disk of 40 GB",
+			"ocs worker with 3 disks (total of 80 GB)",
+			"ocs worker with 3 disks (total of 120 GB)",
+		}
+		for i, h := range sorted {
+			Expect(h.RequestedHostname).To(Equal(expected[i]))
+		}
 	})
 })
