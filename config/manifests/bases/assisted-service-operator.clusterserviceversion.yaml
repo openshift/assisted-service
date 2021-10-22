@@ -5,7 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     categories: OpenShift Optional
-    containerImage: quay.io/ocpmetal/assisted-service:latest
+    containerImage: quay.io/edge-infrastructure/assisted-service:latest
     createdAt: ""
     description: The Infrastructure Operator for Red Hat OpenShift is responsible
       for managing the deployment of the Assisted Service.
@@ -110,17 +110,17 @@ spec:
   provider:
     name: Red Hat
   relatedImages:
-  - image: quay.io/ocpmetal/assisted-service:latest
+  - image: quay.io/edge-infrastructure/assisted-service:latest
     name: controller
-  - image: quay.io/app-sre/assisted-image-service:latest
+  - image: quay.io/edge-infrastructure/assisted-image-service:latest
     name: image-service
   - image: quay.io/ocpmetal/postgresql-12-centos7:latest
     name: postgresql
-  - image: quay.io/ocpmetal/assisted-installer:latest
+  - image: quay.io/edge-infrastructure/assisted-installer:latest
     name: installer
-  - image: quay.io/ocpmetal/assisted-installer-agent:latest
+  - image: quay.io/edge-infrastructure/assisted-installer-agent:latest
     name: agent
-  - image: quay.io/ocpmetal/assisted-installer-controller:latest
+  - image: quay.io/edge-infrastructure/assisted-installer-controller:latest
     name: reporter
   skips:
   - assisted-service-operator.v0.0.1
