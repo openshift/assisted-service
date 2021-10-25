@@ -16,6 +16,9 @@ import (
 // swagger:model platform
 type Platform struct {
 
+	// ovirt
+	Ovirt *OvirtPlatform `json:"ovirt,omitempty" gorm:"embedded;embedded_prefix:ovirt_"`
+
 	// type
 	// Required: true
 	Type PlatformType `json:"type"`
@@ -28,6 +31,10 @@ type Platform struct {
 func (m *Platform) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateOvirt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateType(formats); err != nil {
 		res = append(res, err)
 	}
@@ -39,6 +46,24 @@ func (m *Platform) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Platform) validateOvirt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Ovirt) { // not required
+		return nil
+	}
+
+	if m.Ovirt != nil {
+		if err := m.Ovirt.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("ovirt")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
