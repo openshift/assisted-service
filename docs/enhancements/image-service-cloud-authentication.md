@@ -3,7 +3,7 @@ title: image-service-cloud-authentication
 authors:
   - "@carbonin"
 creation-date: 2021-10-07
-last-updated: 2021-10-18
+last-updated: 2021-10-20
 ---
 
 # Image Service Cloud Authentication
@@ -43,9 +43,10 @@ which will be included directly in a download URL
 
 The new authentication mechanism will be a JWT signed by the assisted service
 using a randomly generated key stored with the infraEnv. The JWT will include
-an `exp` claim as defined in RFC7519. A token will be included as a parameter
-in the image download URL and assisted service authentication will pass if the
-token in the URL is not expired and validates using the key in the infraEnv record.
+an `exp` claim as defined in RFC7519 and a `sub` claim containing the infraEnv
+ID. A token will be included as a parameter in the image download URL and
+assisted service authentication will pass if the token in the URL is not expired
+and validates using the key in the infraEnv record.
 
 Managing the signed URL and key will require a few API changes. The REST API will no
 longer return a `download_url` as a part of an infraEnv as the token in the URL could
@@ -105,6 +106,15 @@ These new endpoints and will be protected by SSO user credential authentication 
 
 The image service will accept a new URL parameter, `image_token`, which will
 then be forwarded to assisted service in the `Image-Token` header key.
+
+#### Assisted Service Authentication and Authorization Flow
+
+1. Request arrives to one of the infraEnv download endpoints with an `Image-Token` header
+2. Assisted service middleware stores infraEnv ID from the request path in the request context
+3. Authentication validates the token using the key associated with the infraEnv for the id in the token `sub` claim
+4. If a token is valid, authentication stores the `sub` claim in the request context
+5. Authorization ensures the infraEnv ID from the `sub` claim in the request context matches the infraEnv ID in the request path (also from the context)
+6. Request is processed
 
 ### Risks and Mitigations
 
