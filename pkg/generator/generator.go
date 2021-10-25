@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -35,19 +36,21 @@ type Config struct {
 
 type installGenerator struct {
 	Config
-	log          logrus.FieldLogger
-	s3Client     s3wrapper.API
-	operatorsApi operators.API
-	workDir      string
+	log              logrus.FieldLogger
+	s3Client         s3wrapper.API
+	operatorsApi     operators.API
+	workDir          string
+	providerRegistry registry.ProviderRegistry
 }
 
-func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string, operatorsApi operators.API) *installGenerator {
+func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string, operatorsApi operators.API, providerRegistry registry.ProviderRegistry) *installGenerator {
 	return &installGenerator{
-		Config:       cfg,
-		log:          log,
-		s3Client:     s3Client,
-		operatorsApi: operatorsApi,
-		workDir:      filepath.Join(workDir, "install-config-generate"),
+		Config:           cfg,
+		log:              log,
+		s3Client:         s3Client,
+		operatorsApi:     operatorsApi,
+		workDir:          filepath.Join(workDir, "install-config-generate"),
+		providerRegistry: providerRegistry,
 	}
 }
 
@@ -91,7 +94,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	if k.Config.DummyIgnition {
 		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror, k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi)
+		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror, k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry)
 	}
 	err = generator.Generate(ctx, cfg, k.getClusterPlatformType(cluster))
 	if err != nil {

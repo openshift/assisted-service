@@ -1,8 +1,12 @@
 package common
 
 import (
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/models"
 )
 
 const redHatIntermediateChain string = `
@@ -136,3 +140,116 @@ var _ = Describe("test PEM CA bundle verification", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 })
+
+var _ = Describe("get hosts by role", func() {
+	It("no hosts", func() {
+		hosts := make([]*models.Host, 0)
+		cluster := createClusterFromHosts(hosts)
+		masters := GetHostsByRole(&cluster, models.HostRoleMaster)
+		Expect(masters).Should(HaveLen(0))
+	})
+	It("3 masters 2 workers", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleWorker, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleWorker, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+		masters := GetHostsByRole(&cluster, models.HostRoleMaster)
+		workers := GetHostsByRole(&cluster, models.HostRoleWorker)
+		Expect(masters).Should(HaveLen(3))
+		Expect(workers).Should(HaveLen(2))
+	})
+	It("3 masters 2 workers - 1 master disabled", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusDisabled))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleWorker, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleWorker, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+		masters := GetHostsByRole(&cluster, models.HostRoleMaster)
+		workers := GetHostsByRole(&cluster, models.HostRoleWorker)
+		Expect(masters).Should(HaveLen(2))
+		Expect(workers).Should(HaveLen(2))
+	})
+	It("5 workers", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleWorker, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleWorker, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleWorker, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleWorker, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleWorker, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+		masters := GetHostsByRole(&cluster, models.HostRoleMaster)
+		workers := GetHostsByRole(&cluster, models.HostRoleWorker)
+		Expect(masters).Should(HaveLen(0))
+		Expect(workers).Should(HaveLen(5))
+	})
+	It("5 masters", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+		masters := GetHostsByRole(&cluster, models.HostRoleMaster)
+		workers := GetHostsByRole(&cluster, models.HostRoleWorker)
+		Expect(masters).Should(HaveLen(5))
+		Expect(workers).Should(HaveLen(0))
+	})
+	It("5 nodes autoassign", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleAutoAssign, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleAutoAssign, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleAutoAssign, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleAutoAssign, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleAutoAssign, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+		masters := GetHostsByRole(&cluster, models.HostRoleMaster)
+		workers := GetHostsByRole(&cluster, models.HostRoleWorker)
+		Expect(masters).Should(HaveLen(3))
+		Expect(workers).Should(HaveLen(2))
+	})
+	It("5 nodes autoassign - 1 disabled", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleAutoAssign, models.HostStatusDisabled))
+		hosts = append(hosts, createHost(models.HostRoleAutoAssign, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleAutoAssign, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleAutoAssign, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleAutoAssign, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+		masters := GetHostsByRole(&cluster, models.HostRoleMaster)
+		workers := GetHostsByRole(&cluster, models.HostRoleWorker)
+		Expect(masters).Should(HaveLen(3))
+		Expect(workers).Should(HaveLen(1))
+	})
+})
+
+func createHost(hostRole models.HostRole, state string) *models.Host {
+	hostId := strfmt.UUID(uuid.New().String())
+	clusterId := strfmt.UUID(uuid.New().String())
+	infraEnvId := strfmt.UUID(uuid.New().String())
+	host := models.Host{
+		ID:         &hostId,
+		InfraEnvID: infraEnvId,
+		ClusterID:  &clusterId,
+		Kind:       swag.String(models.HostKindHost),
+		Status:     swag.String(state),
+		Role:       hostRole,
+	}
+	return &host
+}
+
+func createClusterFromHosts(hosts []*models.Host) Cluster {
+	return Cluster{
+		Cluster: models.Cluster{
+			APIVip:           "192.168.10.10",
+			Hosts:            hosts,
+			IngressVip:       "192.168.10.11",
+			OpenshiftVersion: "4.9",
+		},
+	}
+}

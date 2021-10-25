@@ -13,4 +13,11 @@ const (
 	DbFieldVnicProfileID   = "platform_ovirt_vnic_profile_id"
 
 	OvirtManufacturer string = "oVirt"
+
+	engineURLStrFmt               = "https://%s/ovirt-engine/api"
+	vmNamePatternStrFmt           = "name: %s-([b-df-hj-np-tv-z0-9]){5}-master-[012]"
+	vmNameReplacementStrFmt       = "name: %s"
+	templateNamePatternStr        = "template_name: +.*"
+	templateNameReplacementStrFmt = "template_name: %s"
+	manifestFileNameStrFmt        = "99_openshift-cluster-api_master-machines-%d.yaml"
 )
