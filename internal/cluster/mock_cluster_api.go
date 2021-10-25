@@ -55,7 +55,7 @@ func (mr *MockRegistrationAPIMockRecorder) DeregisterCluster(ctx, c interface{})
 }
 
 // RegisterAddHostsCluster mocks base method.
-func (m *MockRegistrationAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag bool, v1ISOType models.ImageType) error {
+func (m *MockRegistrationAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterAddHostsCluster", ctx, c, v1Flag, v1ISOType)
 	ret0, _ := ret[0].(error)
@@ -83,7 +83,7 @@ func (mr *MockRegistrationAPIMockRecorder) RegisterAddHostsOCPCluster(c, db inte
 }
 
 // RegisterCluster mocks base method.
-func (m *MockRegistrationAPI) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag bool, v1ISOType models.ImageType) error {
+func (m *MockRegistrationAPI) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterCluster", ctx, c, v1Flag, v1ISOType)
 	ret0, _ := ret[0].(error)
@@ -475,7 +475,7 @@ func (mr *MockAPIMockRecorder) RefreshStatus(ctx, c, db interface{}) *gomock.Cal
 }
 
 // RegisterAddHostsCluster mocks base method.
-func (m *MockAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag bool, v1ISOType models.ImageType) error {
+func (m *MockAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterAddHostsCluster", ctx, c, v1Flag, v1ISOType)
 	ret0, _ := ret[0].(error)
@@ -503,7 +503,7 @@ func (mr *MockAPIMockRecorder) RegisterAddHostsOCPCluster(c, db interface{}) *go
 }
 
 // RegisterCluster mocks base method.
-func (m *MockAPI) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag bool, v1ISOType models.ImageType) error {
+func (m *MockAPI) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterCluster", ctx, c, v1Flag, v1ISOType)
 	ret0, _ := ret[0].(error)

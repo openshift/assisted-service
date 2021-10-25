@@ -292,6 +292,9 @@ type InstallerAPI interface {
 	/* V2GetPreflightRequirements Get preflight requirements for a cluster. */
 	V2GetPreflightRequirements(ctx context.Context, params installer.V2GetPreflightRequirementsParams) middleware.Responder
 
+	/* V2ImportCluster Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster */
+	V2ImportCluster(ctx context.Context, params installer.V2ImportClusterParams) middleware.Responder
+
 	/* V2InstallCluster Installs the OpenShift cluster. */
 	V2InstallCluster(ctx context.Context, params installer.V2InstallClusterParams) middleware.Responder
 
@@ -1025,6 +1028,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetPreflightRequirements(ctx, params)
+	})
+	api.InstallerV2ImportClusterHandler = installer.V2ImportClusterHandlerFunc(func(params installer.V2ImportClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2ImportCluster(ctx, params)
 	})
 	api.InstallerV2InstallClusterHandler = installer.V2InstallClusterHandlerFunc(func(params installer.V2InstallClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -216,6 +216,10 @@ func (f fakeInventory) RegisterAddHostsCluster(ctx context.Context, params insta
 	return installer.NewRegisterAddHostsClusterCreated()
 }
 
+func (f fakeInventory) V2ImportCluster(ctx context.Context, params installer.V2ImportClusterParams) middleware.Responder {
+	return installer.NewV2ImportClusterCreated()
+}
+
 func (f fakeInventory) ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder {
 	return installer.NewResetClusterAccepted()
 }

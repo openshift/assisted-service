@@ -271,8 +271,8 @@ var _ = Describe("cluster reconcile", func() {
 			}
 
 			It("create new cluster", func() {
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), false).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ bool) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*releaseImage.Version))
 					}).Return(clusterReply, nil)
 				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
@@ -285,8 +285,8 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create sno cluster", func() {
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), false).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ bool) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(ocpReleaseVersion))
 					}).Return(clusterReply, nil)
 				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
@@ -303,8 +303,8 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create single node cluster", func() {
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), false).
-					Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams, _ bool) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
+					Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
 						Expect(swag.StringValue(params.NewClusterParams.HighAvailabilityMode)).
 							To(Equal(HighAvailabilityModeNone))
 					}).Return(clusterReply, nil)
@@ -374,7 +374,7 @@ var _ = Describe("cluster reconcile", func() {
 
 		It("create new cluster backend failure", func() {
 			errString := "internal error"
-			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), false).
+			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
 				Return(nil, errors.Errorf(errString))
 			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
@@ -886,7 +886,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).Should(Equal(ctrl.Result{}))
 
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
-			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), false).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).Return(backEndCluster, nil)
 
 			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cd)
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
@@ -1267,7 +1267,7 @@ var _ = Describe("cluster reconcile", func() {
 					Status: swag.String(models.ClusterStatusAddingHosts),
 				},
 			}
-			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(clusterReply, nil)
+			mockInstallerInternal.EXPECT().V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), common.DoInfraEnvCreation).Return(clusterReply, nil)
 			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
 				Type:    hiveext.ClusterCompletedCondition,

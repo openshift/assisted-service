@@ -993,15 +993,14 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
 	}
 
-	clusterParams := &models.AddHostsClusterCreateParams{
+	clusterParams := &models.ImportClusterParams{
 		APIVipDnsname:    swag.String(apiVipDnsname),
 		Name:             swag.String(spec.ClusterName),
 		OpenshiftVersion: swag.String(*releaseImage.Version),
-		ID:               &id,
 	}
 
-	c, err := r.Installer.RegisterAddHostsClusterInternal(ctx, &key, installer.RegisterAddHostsClusterParams{
-		NewAddHostsClusterParams: clusterParams,
+	c, err := r.Installer.V2ImportClusterInternal(ctx, &key, &id, installer.V2ImportClusterParams{
+		NewImportClusterParams: clusterParams,
 	}, true)
 	if err != nil {
 		log.WithError(err).Error("failed to create day2 cluster")

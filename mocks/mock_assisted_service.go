@@ -1086,6 +1086,20 @@ func (mr *MockInstallerAPIMockRecorder) V2GetPresignedForClusterFiles(arg0, arg1
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetPresignedForClusterFiles", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetPresignedForClusterFiles), arg0, arg1)
 }
 
+// V2ImportCluster mocks base method.
+func (m *MockInstallerAPI) V2ImportCluster(arg0 context.Context, arg1 installer.V2ImportClusterParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2ImportCluster", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2ImportCluster indicates an expected call of V2ImportCluster.
+func (mr *MockInstallerAPIMockRecorder) V2ImportCluster(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ImportCluster", reflect.TypeOf((*MockInstallerAPI)(nil).V2ImportCluster), arg0, arg1)
+}
+
 // V2InstallCluster mocks base method.
 func (m *MockInstallerAPI) V2InstallCluster(arg0 context.Context, arg1 installer.V2InstallClusterParams) middleware.Responder {
 	m.ctrl.T.Helper()

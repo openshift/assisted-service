@@ -6045,6 +6045,41 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/import:
+    post:
+      tags:
+        - installer
+      description: Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
+      operationId: v2ImportCluster
+      parameters:
+        - in: body
+          name: new-import-cluster-params
+          description: Parameters for importing a OCP cluster for adding nodes.
+          required: true
+          schema:
+            $ref: '#/definitions/import-cluster-params'
+      responses:
+        "201":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   vsphere_platform:
     type: object
@@ -7243,6 +7278,28 @@ definitions:
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
+
+  import-cluster-params:
+    type: object
+    required:
+      - name
+      - api_vip_dnsname
+      - openshift_version
+      - openshift_cluster_id
+    properties:
+      name:
+        type: string
+        description: OpenShift cluster name.
+      api_vip_dnsname:
+        type: string
+        description: The domain name used to reach the OpenShift cluster API.
+      openshift_version:
+        type: string
+        description: Version of the OpenShift cluster.
+      openshift_cluster_id:
+        type: string
+        format: uuid
+        description: The id of the OCP cluster, that hosts will be added to
 
   cluster:
     type: object

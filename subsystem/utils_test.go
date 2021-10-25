@@ -211,11 +211,11 @@ func updateClusterLogProgress(clusterID strfmt.UUID, progress models.LogsState) 
 	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateClusterLogsProgressNoContent()))
 }
 
-func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, current_step models.HostStage) {
-	updateProgressWithInfo(hostID, clusterID, current_step, "")
+func updateProgress(hostID strfmt.UUID, infraEnvID strfmt.UUID, current_step models.HostStage) {
+	updateProgressWithInfo(hostID, infraEnvID, current_step, "")
 }
 
-func updateProgressWithInfo(hostID strfmt.UUID, clusterID strfmt.UUID, current_step models.HostStage, info string) {
+func updateProgressWithInfo(hostID strfmt.UUID, infraEnvID strfmt.UUID, current_step models.HostStage, info string) {
 	ctx := context.Background()
 
 	installProgress := &models.HostProgress{
@@ -223,7 +223,7 @@ func updateProgressWithInfo(hostID strfmt.UUID, clusterID strfmt.UUID, current_s
 		ProgressInfo: info,
 	}
 	updateReply, err := agentBMClient.Installer.V2UpdateHostInstallProgress(ctx, &installer.V2UpdateHostInstallProgressParams{
-		InfraEnvID:   clusterID,
+		InfraEnvID:   infraEnvID,
 		HostProgress: installProgress,
 		HostID:       hostID,
 	})
