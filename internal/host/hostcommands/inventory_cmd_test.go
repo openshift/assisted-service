@@ -19,7 +19,7 @@ var _ = Describe("inventory", func() {
 	var host models.Host
 	var db *gorm.DB
 	var invCmd *inventoryCmd
-	var id, clusterId, infraEnvId strfmt.UUID
+	var hostId, clusterId, infraEnvId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
 	var dbName string
@@ -28,10 +28,10 @@ var _ = Describe("inventory", func() {
 		db, dbName = common.PrepareTestDB()
 		invCmd = NewInventoryCmd(common.GetTestLog(), "quay.io/ocpmetal/inventory:latest")
 
-		id = strfmt.UUID(uuid.New().String())
+		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDiscovering)
+		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusDiscovering)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 
@@ -51,10 +51,15 @@ var _ = Describe("inventory", func() {
 		Expect(step.Command).To(Equal("sh"))
 		Expect(step.Args[0]).To(Equal("-c"))
 		Expect(step.Args[1]).To(ContainSubstring("&&"))
-		Expect(step.Args[1]).To(ContainSubstring("cp /etc/mtab /root/mtab"))
+
+		mtabFile := fmt.Sprintf("/root/mtab-%s", hostId)
+		mtabCopy := fmt.Sprintf("cp /etc/mtab %s", mtabFile)
+		mtabMount := fmt.Sprintf("%s:/host/etc/mtab:ro", mtabFile)
+
+		Expect(step.Args[1]).To(ContainSubstring(mtabCopy))
 
 		By("verifying mounts to host's filesystem")
-		Expect(step.Args[1]).To(ContainSubstring("/root/mtab:/host/etc/mtab:ro"))
+		Expect(step.Args[1]).To(ContainSubstring(mtabMount))
 		paths := []string{
 			"/proc/meminfo",
 			"/sys/kernel/mm/hugepages",
