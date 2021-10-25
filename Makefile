@@ -79,8 +79,8 @@ ifeq ($(ENABLE_KUBE_API),true)
 	STORAGE = filesystem
 endif
 
-# Operator Vars
-BUNDLE_CHANNELS ?= alpha,ocm-2.4
+# Operator Vars - these must be kept up to date
+BUNDLE_CHANNELS ?= alpha,ocm-2.5
 BUNDLE_OUTPUT_DIR ?= deploy/olm-catalog
 BUNDLE_METADATA_OPTS ?= --channels=$(BUNDLE_CHANNELS) --default-channel=alpha
 
