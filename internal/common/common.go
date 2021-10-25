@@ -259,6 +259,20 @@ func GetHostNTPSources(db *gorm.DB, host *models.Host) (string, error) {
 	return infraEnv.AdditionalNtpSources, nil
 }
 
+// GetHostsByRole returns the list of hosts with the required role.
+func GetHostsByRole(cluster *Cluster, role models.HostRole) []models.Host {
+	var hosts []models.Host
+	if cluster == nil {
+		return hosts
+	}
+	for _, host := range cluster.Hosts {
+		if swag.StringValue(host.Status) != models.HostStatusDisabled && GetEffectiveRole(host) == role {
+			hosts = append(hosts, *host)
+		}
+	}
+	return hosts
+}
+
 // ParsePemCerts returns a list of certificate objects extracted from a byte array
 // The certificates within the byte array must be PEM encoded
 func ParsePemCerts(pemCerts []byte) ([]x509.Certificate, bool) {

@@ -112,6 +112,34 @@ func (mr *MockProviderRegistryMockRecorder) IsHostSupported(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsHostSupported", reflect.TypeOf((*MockProviderRegistry)(nil).IsHostSupported), arg0, arg1)
 }
 
+// PostCreateManifestsHook mocks base method.
+func (m *MockProviderRegistry) PostCreateManifestsHook(arg0 *common.Cluster, arg1 *[]string, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostCreateManifestsHook", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PostCreateManifestsHook indicates an expected call of PostCreateManifestsHook.
+func (mr *MockProviderRegistryMockRecorder) PostCreateManifestsHook(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostCreateManifestsHook", reflect.TypeOf((*MockProviderRegistry)(nil).PostCreateManifestsHook), arg0, arg1, arg2)
+}
+
+// PreCreateManifestsHook mocks base method.
+func (m *MockProviderRegistry) PreCreateManifestsHook(arg0 *common.Cluster, arg1 *[]string, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PreCreateManifestsHook", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PreCreateManifestsHook indicates an expected call of PreCreateManifestsHook.
+func (mr *MockProviderRegistryMockRecorder) PreCreateManifestsHook(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreCreateManifestsHook", reflect.TypeOf((*MockProviderRegistry)(nil).PreCreateManifestsHook), arg0, arg1, arg2)
+}
+
 // Register mocks base method.
 func (m *MockProviderRegistry) Register(arg0 provider.Provider) {
 	m.ctrl.T.Helper()

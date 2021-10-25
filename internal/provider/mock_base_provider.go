@@ -109,6 +109,34 @@ func (mr *MockProviderMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockProvider)(nil).Name))
 }
 
+// PostCreateManifestsHook mocks base method.
+func (m *MockProvider) PostCreateManifestsHook(arg0 *common.Cluster, arg1 *[]string, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostCreateManifestsHook", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PostCreateManifestsHook indicates an expected call of PostCreateManifestsHook.
+func (mr *MockProviderMockRecorder) PostCreateManifestsHook(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostCreateManifestsHook", reflect.TypeOf((*MockProvider)(nil).PostCreateManifestsHook), arg0, arg1, arg2)
+}
+
+// PreCreateManifestsHook mocks base method.
+func (m *MockProvider) PreCreateManifestsHook(arg0 *common.Cluster, arg1 *[]string, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PreCreateManifestsHook", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PreCreateManifestsHook indicates an expected call of PreCreateManifestsHook.
+func (mr *MockProviderMockRecorder) PreCreateManifestsHook(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreCreateManifestsHook", reflect.TypeOf((*MockProvider)(nil).PreCreateManifestsHook), arg0, arg1, arg2)
+}
+
 // SetPlatformUsages mocks base method.
 func (m *MockProvider) SetPlatformUsages(arg0 *models.Platform, arg1 map[string]models.Usage, arg2 usage.API) error {
 	m.ctrl.T.Helper()
