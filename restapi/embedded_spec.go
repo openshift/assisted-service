@@ -12527,6 +12527,63 @@ func init() {
         "$ref": "#/definitions/os-image"
       }
     },
+    "ovirt-platform": {
+      "description": "oVirt platform-specific configuration upon which to perform the installation.",
+      "type": "object",
+      "properties": {
+        "ca_bundle": {
+          "description": "The CA Bundle of the oVirt's engine certificate.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "cluster_id": {
+          "description": "The oVirt cluster ID.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true
+        },
+        "fqdn": {
+          "description": "The oVirt's engine fully qualified domain name.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "insecure": {
+          "description": "Verify oVirt engine certificate.",
+          "type": "boolean",
+          "default": true,
+          "x-nullable": true
+        },
+        "network_name": {
+          "description": "The oVirt network the VMs will be attached to.",
+          "type": "string",
+          "default": "ovirtmgmt",
+          "x-nullable": true
+        },
+        "password": {
+          "description": "The password for the oVirt user name.",
+          "type": "string",
+          "format": "password",
+          "x-nullable": true
+        },
+        "storage_domain_id": {
+          "description": "The oVirt storage domain ID.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true
+        },
+        "username": {
+          "description": "The user name to use to connect to the oVirt instance.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "vnic_profile_id": {
+          "description": "The oVirt VNIC profile ID.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true
+        }
+      }
+    },
     "platform": {
       "description": "The configuration for the specific platform upon which to perform the installation.",
       "type": "object",
@@ -12534,6 +12591,12 @@ func init() {
         "type"
       ],
       "properties": {
+        "ovirt": {
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ovirt_\"",
+          "x-nullable": true,
+          "$ref": "#/definitions/ovirt-platform"
+        },
         "type": {
           "$ref": "#/definitions/platform_type"
         },
@@ -12550,6 +12613,7 @@ func init() {
       "enum": [
         "baremetal",
         "vsphere",
+        "ovirt",
         "none"
       ]
     },
@@ -25704,6 +25768,63 @@ func init() {
         "$ref": "#/definitions/os-image"
       }
     },
+    "ovirt-platform": {
+      "description": "oVirt platform-specific configuration upon which to perform the installation.",
+      "type": "object",
+      "properties": {
+        "ca_bundle": {
+          "description": "The CA Bundle of the oVirt's engine certificate.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "cluster_id": {
+          "description": "The oVirt cluster ID.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true
+        },
+        "fqdn": {
+          "description": "The oVirt's engine fully qualified domain name.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "insecure": {
+          "description": "Verify oVirt engine certificate.",
+          "type": "boolean",
+          "default": true,
+          "x-nullable": true
+        },
+        "network_name": {
+          "description": "The oVirt network the VMs will be attached to.",
+          "type": "string",
+          "default": "ovirtmgmt",
+          "x-nullable": true
+        },
+        "password": {
+          "description": "The password for the oVirt user name.",
+          "type": "string",
+          "format": "password",
+          "x-nullable": true
+        },
+        "storage_domain_id": {
+          "description": "The oVirt storage domain ID.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true
+        },
+        "username": {
+          "description": "The user name to use to connect to the oVirt instance.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "vnic_profile_id": {
+          "description": "The oVirt VNIC profile ID.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true
+        }
+      }
+    },
     "platform": {
       "description": "The configuration for the specific platform upon which to perform the installation.",
       "type": "object",
@@ -25711,6 +25832,12 @@ func init() {
         "type"
       ],
       "properties": {
+        "ovirt": {
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ovirt_\"",
+          "x-nullable": true,
+          "$ref": "#/definitions/ovirt-platform"
+        },
         "type": {
           "$ref": "#/definitions/platform_type"
         },
@@ -25727,6 +25854,7 @@ func init() {
       "enum": [
         "baremetal",
         "vsphere",
+        "ovirt",
         "none"
       ]
     },
