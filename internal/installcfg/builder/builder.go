@@ -176,9 +176,7 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 
 	if swag.BoolValue(cluster.UserManagedNetworking) {
 		cfg.Platform = installcfg.Platform{
-			Baremetal: nil,
-			Vsphere:   nil,
-			None:      &installcfg.PlatformNone{},
+			None: &installcfg.PlatformNone{},
 		}
 
 		bootstrapCidr := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, i.log)

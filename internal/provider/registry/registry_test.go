@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/provider/ovirt"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
@@ -25,9 +26,52 @@ var (
 const dummy = "dummy"
 const invalidInventory = "{\"system_vendor\": \"invalid\"}"
 
+const ovirtFqdn = "ovirt.example.com"
+const ovirtUsername = "admin@internal"
+const ovirtPassword = "redhat"
+const ovirtClusterID = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+const ovirtStorageDomainID = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+const ovirtNetworkName = "ovirtmgmt"
+const ovirtVnicProfileID = "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz"
+const ovirtInsecure = false
+const ovirtCaBundle = `
+subject=C = US, ST = North Carolina, L = Raleigh, O = "Red Hat, Inc.",\
+OU = Red Hat IT, CN = Red Hat IT Root CA, emailAddress = infosec@redhat.com
+
+issuer=C = US, ST = North Carolina, L = Raleigh, O = "Red Hat, Inc.",\
+OU = Red Hat IT, CN = Red Hat IT Root CA, emailAddress = infosec@redhat.com
+
+-----BEGIN CERTIFICATE-----
+MIIENDCCAxygAwIBAgIJANunI0D662cnMA0GCSqGSIb3DQEBCwUAMIGlMQswCQYD
+VQQGEwJVUzEXMBUGA1UECAwOTm9ydGggQ2Fyb2xpbmExEDAOBgNVBAcMB1JhbGVp
+Z2gxFjAUBgNVBAoMDVJlZCBIYXQsIEluYy4xEzARBgNVBAsMClJlZCBIYXQgSVQx
+GzAZBgNVBAMMElJlZCBIYXQgSVQgUm9vdCBDQTEhMB8GCSqGSIb3DQEJARYSaW5m
+b3NlY0ByZWRoYXQuY29tMCAXDTE1MDcwNjE3MzgxMVoYDzIwNTUwNjI2MTczODEx
+WjCBpTELMAkGA1UEBhMCVVMxFzAVBgNVBAgMDk5vcnRoIENhcm9saW5hMRAwDgYD
+VQQHDAdSYWxlaWdoMRYwFAYDVQQKDA1SZWQgSGF0LCBJbmMuMRMwEQYDVQQLDApS
+ZWQgSGF0IElUMRswGQYDVQQDDBJSZWQgSGF0IElUIFJvb3QgQ0ExITAfBgkqhkiG
+9w0BCQEWEmluZm9zZWNAcmVkaGF0LmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEP
+ADCCAQoCggEBALQt9OJQh6GC5LT1g80qNh0u50BQ4sZ/yZ8aETxt+5lnPVX6MHKz
+bfwI6nO1aMG6j9bSw+6UUyPBHP796+FT/pTS+K0wsDV7c9XvHoxJBJJU38cdLkI2
+c/i7lDqTfTcfLL2nyUBd2fQDk1B0fxrskhGIIZ3ifP1Ps4ltTkv8hRSob3VtNqSo
+GxkKfvD2PKjTPxDPWYyruy9irLZioMffi3i/gCut0ZWtAyO3MVH5qWF/enKwgPES
+X9po+TdCvRB/RUObBaM761EcrLSM1GqHNueSfqnho3AjLQ6dBnPWlo638Zm1VebK
+BELyhkLWMSFkKwDmne0jQ02Y4g075vCKvCsCAwEAAaNjMGEwHQYDVR0OBBYEFH7R
+4yC+UehIIPeuL8Zqw3PzbgcZMB8GA1UdIwQYMBaAFH7R4yC+UehIIPeuL8Zqw3Pz
+bgcZMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgGGMA0GCSqGSIb3DQEB
+CwUAA4IBAQBDNvD2Vm9sA5A9AlOJR8+en5Xz9hXcxJB5phxcZQ8jFoG04Vshvd0e
+LEnUrMcfFgIZ4njMKTQCM4ZFUPAieyLx4f52HuDopp3e5JyIMfW+KFcNIpKwCsak
+oSoKtIUOsUJK7qBVZxcrIyeQV2qcYOeZhtS5wBqIwOAhFwlCET7Ze58QHmS48slj
+S9K0JAcps2xdnGu0fkzhSQxY8GPQNFTlr6rYld5+ID/hHeS76gq0YG3q6RLWRkHf
+4eTkRjivAlExrFzKcljC4axKQlnOvVAzz+Gm32U0xPBF4ByePVxCJUHw1TsyTmel
+RxNEp7yHoXcwn+fXna+t5JWh1gxUZty3
+-----END CERTIFICATE-----
+`
+
 var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 	bmInventory := getBaremetalInventoryStr("hostname0", "bootMode", true, false)
 	vsphereInventory := getVsphereInventoryStr("hostname0", "bootMode", true, false)
+	ovirtInventory := getOvirtInventoryStr("hostname0", "bootMode", true, false)
 	BeforeEach(func() {
 		providerRegistry = InitProviderRegistry(common.GetTestLog())
 		ctrl = gomock.NewController(GinkgoT())
@@ -87,6 +131,50 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(true, models.HostStatusKnown, vsphereInventory))
 		hosts = append(hosts, createHost(true, models.HostStatusKnown, vsphereInventory))
 		hosts = append(hosts, createHost(true, models.HostStatusKnown, vsphereInventory))
+		hosts = append(hosts, createHost(false, models.HostStatusKnown, bmInventory))
+		hosts = append(hosts, createHost(false, models.HostStatusKnown, bmInventory))
+		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
+		Expect(err).To(BeNil())
+		Expect(len(platforms)).Should(Equal(1))
+		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+	})
+	It("single ovirt host", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
+		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
+		Expect(err).To(BeNil())
+		Expect(len(platforms)).Should(Equal(2))
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeOvirt}
+		Expect(platforms).Should(ContainElements(supportedPlatforms))
+	})
+	It("5 ovirt hosts - 3 masters, 2 workers", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
+		hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
+		hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
+		hosts = append(hosts, createHost(false, models.HostStatusKnown, ovirtInventory))
+		hosts = append(hosts, createHost(false, models.HostStatusKnown, ovirtInventory))
+		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
+		Expect(err).To(BeNil())
+		Expect(len(platforms)).Should(Equal(2))
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeOvirt}
+		Expect(platforms).Should(ContainElements(supportedPlatforms))
+	})
+	It("2 ovirt hosts 1 generic host", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(true, models.HostStatusKnown, bmInventory))
+		hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
+		hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
+		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
+		Expect(err).To(BeNil())
+		Expect(len(platforms)).Should(Equal(1))
+		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+	})
+	It("3 ovirt masters 2 generic workers", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
+		hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
+		hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
 		hosts = append(hosts, createHost(false, models.HostStatusKnown, bmInventory))
 		hosts = append(hosts, createHost(false, models.HostStatusKnown, bmInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
@@ -197,6 +285,44 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			})
 		})
 	})
+	Context("ovirt", func() {
+		It("with cluster params", func() {
+			cfg := getInstallerConfigBaremetal()
+			hosts := make([]*models.Host, 0)
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getOvirtInventoryStr("hostname0", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getOvirtInventoryStr("hostname1", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getOvirtInventoryStr("hostname2", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getOvirtInventoryStr("hostname3", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getOvirtInventoryStr("hostname4", "bootMode", true, false)))
+			cluster := createClusterFromHosts(hosts)
+			cluster.Platform = createOvirtPlatformParams()
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeOvirt, &cfg, &cluster)
+			Expect(err).To(BeNil())
+			Expect(cfg.Platform.Ovirt).ToNot(BeNil())
+			Expect(cfg.Platform.Ovirt.APIVIP).To(Equal(cluster.Cluster.APIVip))
+			Expect(cfg.Platform.Ovirt.IngressVIP).To(Equal(cluster.Cluster.IngressVip))
+			Expect(cfg.Platform.Ovirt.ClusterID.String()).To(Equal(ovirtClusterID))
+			Expect(cfg.Platform.Ovirt.StorageDomainID.String()).To(Equal(ovirtStorageDomainID))
+			Expect(cfg.Platform.Ovirt.NetworkName).To(Equal(ovirtNetworkName))
+			Expect(cfg.Platform.Ovirt.VnicProfileID.String()).To(Equal(ovirtVnicProfileID))
+		})
+		It("without cluster params", func() {
+			cfg := getInstallerConfigBaremetal()
+			hosts := make([]*models.Host, 0)
+			ovirtInventory := getOvirtInventoryStr("hostname0", "bootMode", true, false)
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, ovirtInventory))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getOvirtInventoryStr("hostname4", "bootMode", true, false)))
+			cluster := createClusterFromHosts(hosts)
+			cluster.Platform = createOvirtPlatformParams()
+			cluster.Platform.Ovirt = nil
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeOvirt, &cfg, &cluster)
+			Expect(err).To(BeNil())
+			Expect(cfg.Platform.Ovirt).To(BeNil())
+		})
+	})
 })
 
 var _ = Describe("Test SetPlatformValuesInDBUpdates", func() {
@@ -233,6 +359,28 @@ var _ = Describe("Test SetPlatformValuesInDBUpdates", func() {
 			Expect(updates[vsphere.DbFieldUsername]).To(BeNil())
 		})
 	})
+	Context("ovirt", func() {
+		It("set from empty updates", func() {
+			platformParams := createOvirtPlatformParams()
+			updates := make(map[string]interface{})
+			err := providerRegistry.SetPlatformValuesInDBUpdates(models.PlatformTypeOvirt, platformParams, updates)
+			Expect(err).To(BeNil())
+			Expect(updates).ShouldNot(BeNil())
+			Expect(updates[ovirt.DbFieldUsername]).To(Equal(platformParams.Ovirt.Username))
+		})
+		It("switch from ovirt to bare metal", func() {
+			platformParams := createOvirtPlatformParams()
+			updates := make(map[string]interface{})
+			err := providerRegistry.SetPlatformValuesInDBUpdates(models.PlatformTypeOvirt, platformParams, updates)
+			Expect(err).To(BeNil())
+			Expect(updates).ShouldNot(BeNil())
+			Expect(updates[ovirt.DbFieldUsername]).To(Equal(platformParams.Ovirt.Username))
+			err = providerRegistry.SetPlatformValuesInDBUpdates(models.PlatformTypeBaremetal, platformParams, updates)
+			Expect(err).To(BeNil())
+			Expect(updates).ShouldNot(BeNil())
+			Expect(updates[ovirt.DbFieldUsername]).To(BeNil())
+		})
+	})
 })
 
 var _ = Describe("Test SetPlatformUsages", func() {
@@ -263,6 +411,14 @@ var _ = Describe("Test SetPlatformUsages", func() {
 			usageApi.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			platformParams := createVspherePlatformParams()
 			err := providerRegistry.SetPlatformUsages(models.PlatformTypeVsphere, platformParams, nil, usageApi)
+			Expect(err).To(BeNil())
+		})
+	})
+	Context("ovirt", func() {
+		It("success", func() {
+			usageApi.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			platformParams := createOvirtPlatformParams()
+			err := providerRegistry.SetPlatformUsages(models.PlatformTypeOvirt, platformParams, nil, usageApi)
 			Expect(err).To(BeNil())
 		})
 	})
@@ -321,6 +477,18 @@ func getVsphereInventoryStr(hostname, bootMode string, ipv4, ipv6 bool) string {
 	return string(ret)
 }
 
+func getOvirtInventoryStr(hostname, bootMode string, ipv4, ipv6 bool) string {
+	inventory := getInventory(hostname, bootMode, ipv4, ipv6)
+	inventory.SystemVendor = &models.SystemVendor{
+		Manufacturer: "oVirt",
+		ProductName:  "oVirt",
+		SerialNumber: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+		Virtual:      true,
+	}
+	ret, _ := json.Marshal(&inventory)
+	return string(ret)
+}
+
 func getBaremetalInventoryStr(hostname, bootMode string, ipv4, ipv6 bool) string {
 	inventory := getInventory(hostname, bootMode, ipv4, ipv6)
 	inventory.SystemVendor = &models.SystemVendor{
@@ -349,6 +517,29 @@ func createVspherePlatformParams() *models.Platform {
 	return &models.Platform{
 		Type:    models.PlatformTypeVsphere,
 		Vsphere: &vspherePlatform,
+	}
+}
+
+func createOvirtPlatformParams() *models.Platform {
+	Password := strfmt.Password(ovirtPassword)
+	ClusterID := strfmt.UUID(ovirtClusterID)
+	StorageDomainID := strfmt.UUID(ovirtStorageDomainID)
+	VnicProfileID := strfmt.UUID(ovirtVnicProfileID)
+
+	ovirtPlatform := models.OvirtPlatform{
+		Fqdn:            swag.String(ovirtFqdn),
+		Insecure:        swag.Bool(ovirtInsecure),
+		CaBundle:        swag.String(ovirtCaBundle),
+		Username:        swag.String(ovirtUsername),
+		Password:        &Password,
+		ClusterID:       &ClusterID,
+		StorageDomainID: &StorageDomainID,
+		NetworkName:     swag.String(ovirtNetworkName),
+		VnicProfileID:   &VnicProfileID,
+	}
+	return &models.Platform{
+		Type:  models.PlatformTypeOvirt,
+		Ovirt: &ovirtPlatform,
 	}
 }
 
