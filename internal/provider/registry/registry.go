@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/baremetal"
+	"github.com/openshift/assisted-service/internal/provider/ovirt"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
@@ -147,6 +148,7 @@ func (r *registry) GetSupportedProvidersByHosts(hosts []*models.Host) ([]models.
 
 func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
 	providerRegistry := NewProviderRegistry()
+	providerRegistry.Register(ovirt.NewOvirtProvider(log))
 	providerRegistry.Register(vsphere.NewVsphereProvider(log))
 	providerRegistry.Register(baremetal.NewBaremetalProvider(log))
 	return providerRegistry
