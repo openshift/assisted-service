@@ -1,5 +1,5 @@
 boto3==1.19.3
-mkdocs==1.2.2
+mkdocs==1.2.3
 requests==2.22.0
 setuptools==58.3.0
 twine==3.4.2
