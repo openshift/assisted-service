@@ -12,6 +12,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
+	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -256,6 +257,34 @@ func (a *RHSSOAuthenticator) isReadOnlyAdmin(username string) (bool, error) {
 
 func (a *RHSSOAuthenticator) AuthURLAuth(_ string) (interface{}, error) {
 	return nil, errors.Errorf("URL Authentication not allowed for rhsso auth")
+}
+
+func (a *RHSSOAuthenticator) getInfraEnvKey(token *jwt.Token) (interface{}, error) {
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.Errorf("malformed token claims")
+	}
+
+	infraEnvID, ok := claims["sub"].(string)
+	if !ok {
+		return nil, errors.Errorf("token missing 'sub' claim")
+	}
+
+	infraEnv, err := common.GetInfraEnvFromDB(a.db, strfmt.UUID(infraEnvID))
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(infraEnv.ImageTokenKey), nil
+}
+
+func (a *RHSSOAuthenticator) AuthImageAuth(token string) (interface{}, error) {
+	parsedToken, err := jwt.Parse(token, a.getInfraEnvKey)
+	if err != nil {
+		return nil, common.NewInfraError(http.StatusUnauthorized, err)
+	}
+
+	return parsedToken.Claims, nil
 }
 
 func (a *RHSSOAuthenticator) CreateAuthenticator() func(_, _ string, _ security.TokenAuthentication) runtime.Authenticator {

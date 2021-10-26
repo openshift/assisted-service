@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	params "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/openshift/assisted-service/restapi"
 	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -60,9 +62,46 @@ func (a *AuthzHandler) isObjectOwnedByUser(id string, obj interface{}, username 
 	return true, nil
 }
 
+func (a *AuthzHandler) Authorizer(request *http.Request) error {
+	route := middleware.MatchedRouteFrom(request)
+	switch authScheme := route.Authenticator.Schemes[0]; authScheme {
+	case "imageAuth":
+		return a.imageTokenAuthorizer(request.Context())
+	default:
+		return a.ocmAuthorizer(request)
+	}
+}
+
+func (a *AuthzHandler) imageTokenAuthorizer(ctx context.Context) error {
+	payload := ctx.Value(restapi.AuthKey)
+	if payload == nil {
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("payload missing from authenticated context"))
+	}
+
+	claims, ok := payload.(jwt.MapClaims)
+	if !ok {
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("malformed claims payload"))
+	}
+
+	claimID, ok := claims["sub"].(string)
+	if !ok {
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("malformed sub claim"))
+	}
+
+	requestID := params.GetParam(ctx, params.InfraEnvId)
+	if claimID == "" || requestID == "" {
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("infraEnv ID missing from claim or request"))
+	}
+	if claimID != requestID {
+		return common.NewInfraError(http.StatusForbidden, fmt.Errorf("Token for infraEnv ID %s, is unauthorized to access infraEnv ID %s", claimID, requestID))
+	}
+
+	return nil
+}
+
 // Authorizer is used to authorize a request after the Auth function was called using the "Auth*" functions
 // and the principal was stored in the context in the "AuthKey" context value.
-func (a *AuthzHandler) Authorizer(request *http.Request) error {
+func (a *AuthzHandler) ocmAuthorizer(request *http.Request) error {
 	payload := ocm.PayloadFromContext(request.Context())
 	username := payload.Username
 

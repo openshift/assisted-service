@@ -108,6 +108,10 @@ func (a *LocalAuthenticator) AuthURLAuth(token string) (interface{}, error) {
 	return a.AuthAgentAuth(token)
 }
 
+func (a *LocalAuthenticator) AuthImageAuth(_ string) (interface{}, error) {
+	return nil, common.NewInfraError(401, errors.Errorf("Image Authentication not allowed for local auth"))
+}
+
 func (a *LocalAuthenticator) CreateAuthenticator() func(_, _ string, _ security.TokenAuthentication) runtime.Authenticator {
 	return security.APIKeyAuth
 }

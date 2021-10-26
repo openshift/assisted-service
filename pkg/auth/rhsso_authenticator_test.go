@@ -7,16 +7,20 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/openshift/assisted-service/client"
 	clientInstaller "github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -226,3 +230,88 @@ var mockOcmAuthSuccess = func(a *ocm.MockOCMAuthentication) {
 			return &ocm.AuthPayload{}, nil
 		}).Times(1)
 }
+
+var _ = Describe("AuthImageAuth", func() {
+	var (
+		a        *RHSSOAuthenticator
+		infraEnv *common.InfraEnv
+		db       *gorm.DB
+		dbName   string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+
+		key, err := gencrypto.HMACKey(32)
+		Expect(err).ToNot(HaveOccurred())
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		infraEnv = &common.InfraEnv{
+			InfraEnv:      models.InfraEnv{ID: &infraEnvID},
+			ImageTokenKey: key,
+		}
+		Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
+
+		a = &RHSSOAuthenticator{
+			log: logrus.New(),
+			db:  db,
+		}
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("approves a valid token", func() {
+		token, err := gencrypto.JWTForSymmetricKey([]byte(infraEnv.ImageTokenKey), 1*time.Hour, infraEnv.ID.String())
+		Expect(err).NotTo(HaveOccurred())
+		claims, err := a.AuthImageAuth(token)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(claims.(jwt.MapClaims)["sub"].(string)).To(Equal(infraEnv.ID.String()))
+	})
+
+	It("rejects an expired token", func() {
+		token, err := gencrypto.JWTForSymmetricKey([]byte(infraEnv.ImageTokenKey), -1*time.Hour, infraEnv.ID.String())
+		Expect(err).NotTo(HaveOccurred())
+		_, err = a.AuthImageAuth(token)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("rejects an incorrectly signed token", func() {
+		token, err := gencrypto.JWTForSymmetricKey([]byte(infraEnv.ImageTokenKey), 1*time.Hour, infraEnv.ID.String())
+		Expect(err).NotTo(HaveOccurred())
+		_, err = a.AuthImageAuth(token + "asdf")
+		Expect(err).To(BeAssignableToTypeOf(&common.InfraErrorResponse{}))
+		Expect(err.(*common.InfraErrorResponse).StatusCode()).To(Equal(int32(http.StatusUnauthorized)))
+	})
+
+	It("rejects a token without the `sub` claim", func() {
+		t := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"exp": time.Now().Add(1 * time.Hour).Unix(),
+		})
+		token, err := t.SignedString([]byte(infraEnv.ImageTokenKey))
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = a.AuthImageAuth(token)
+		Expect(err).To(BeAssignableToTypeOf(&common.InfraErrorResponse{}))
+		Expect(err.(*common.InfraErrorResponse).StatusCode()).To(Equal(int32(http.StatusUnauthorized)))
+	})
+
+	It("rejects a token with a missing infraEnv in the `sub` claim", func() {
+		token, err := gencrypto.JWTForSymmetricKey([]byte(infraEnv.ImageTokenKey), 1*time.Hour, uuid.New().String())
+		Expect(err).NotTo(HaveOccurred())
+		_, err = a.AuthImageAuth(token)
+		Expect(err).To(BeAssignableToTypeOf(&common.InfraErrorResponse{}))
+		Expect(err.(*common.InfraErrorResponse).StatusCode()).To(Equal(int32(http.StatusUnauthorized)))
+	})
+
+	It("rejects a token signed with a different key", func() {
+		otherKey, err := gencrypto.HMACKey(32)
+		Expect(err).ToNot(HaveOccurred())
+
+		token, err := gencrypto.JWTForSymmetricKey([]byte(otherKey), 1*time.Hour, infraEnv.ID.String())
+		Expect(err).NotTo(HaveOccurred())
+		_, err = a.AuthImageAuth(token)
+		Expect(err).To(BeAssignableToTypeOf(&common.InfraErrorResponse{}))
+		Expect(err.(*common.InfraErrorResponse).StatusCode()).To(Equal(int32(http.StatusUnauthorized)))
+	})
+})
