@@ -40,6 +40,9 @@ const (
 	statusRebootTimeout                                        = "Host failed to reboot within timeout, please boot the host from the the OpenShift installation disk $INSTALLATION_DISK. The installation will resume once the host reboot"
 	statusInfoUnbinding                                        = "Host is waiting to be unbound from the cluster"
 	statusInfoRebootingDay2                                    = "Host has rebooted and no further updates will be posted. Please check console for progress and to possibly approve pending CSRs"
+
+	nilInventoryErrorTemplate       = "inventory must not be nil"
+	noInterfaceForNameErrorTemplate = "unable to find interface for name %s"
 )
 
 var hostStatusesBeforeInstallation = [...]string{
@@ -103,15 +106,21 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, su
 }
 
 func GetInterfaceByName(name string, inventory *models.Inventory) (*models.Interface, error) {
+	if inventory == nil {
+		return nil, fmt.Errorf(nilInventoryErrorTemplate)
+	}
 	for _, intf := range inventory.Interfaces {
 		if intf.Name == name {
 			return intf, nil
 		}
 	}
-	return nil, fmt.Errorf("unable to find interface for name %s", name)
+	return nil, fmt.Errorf(noInterfaceForNameErrorTemplate, name)
 }
 
 func GetInterfaceByIp(ip string, inventory *models.Inventory) (*models.Interface, error) {
+	if inventory == nil {
+		return nil, fmt.Errorf(nilInventoryErrorTemplate)
+	}
 	for _, intf := range inventory.Interfaces {
 		for _, cidr := range intf.IPV4Addresses {
 			parsedAddr, _, err := net.ParseCIDR(cidr)
@@ -127,7 +136,7 @@ func GetInterfaceByIp(ip string, inventory *models.Inventory) (*models.Interface
 			if err != nil {
 				return nil, err
 			}
-			if parsedAddr.String() == ip {
+			if parsedAddr.Equal(net.ParseIP(ip)) {
 				return intf, nil
 			}
 		}
@@ -136,6 +145,9 @@ func GetInterfaceByIp(ip string, inventory *models.Inventory) (*models.Interface
 }
 
 func GetHostByIP(ip string, hosts []*models.Host) (*models.Host, error) {
+	if hosts == nil {
+		return nil, fmt.Errorf(nilInventoryErrorTemplate)
+	}
 	for _, h := range hosts {
 		if h.Inventory == "" {
 			continue
@@ -151,7 +163,7 @@ func GetHostByIP(ip string, hosts []*models.Host) (*models.Host, error) {
 				if err != nil {
 					return nil, err
 				}
-				if ip == parsedIP.String() {
+				if parsedIP.Equal(net.ParseIP(ip)) {
 					return h, nil
 				}
 			}
@@ -176,7 +188,7 @@ func GetHostnameAndEffectiveRoleByIP(ip string, hosts []*models.Host) (string, m
 				if err != nil {
 					return "", "", err
 				}
-				if ip == parsedIP.String() {
+				if parsedIP.Equal(net.ParseIP(ip)) {
 					return getRealHostname(h, inv), common.GetEffectiveRole(h), nil
 				}
 			}
