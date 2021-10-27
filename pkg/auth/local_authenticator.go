@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto"
+	"net/http"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -54,13 +55,13 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 	t, err := validateToken(token, a.publicKey)
 	if err != nil {
 		a.log.WithError(err).Error("failed to validate token")
-		return nil, common.NewInfraError(401, err)
+		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
 	claims, ok := t.Claims.(jwt.MapClaims)
 	if !ok {
 		err := errors.Errorf("failed to parse JWT token claims")
 		a.log.Error(err)
-		return nil, common.NewInfraError(401, err)
+		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
 
 	infraEnvID, infraEnvOk := claims[string(gencrypto.InfraEnvKey)].(string)
@@ -68,7 +69,7 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 	if !infraEnvOk && !clusterOk {
 		err := errors.Errorf("claims are incorrectly formatted")
 		a.log.Error(err)
-		return nil, common.NewInfraError(401, err)
+		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
 
 	if infraEnvOk {
@@ -79,7 +80,7 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 			} else {
 				err := errors.Errorf("infraEnv %s does not exist", infraEnvID)
 				a.log.Error(err)
-				return nil, common.NewInfraError(401, err)
+				return nil, common.NewInfraError(http.StatusUnauthorized, err)
 			}
 		}
 		a.log.Debugf("Authenticating infraEnv %s JWT", infraEnvID)
@@ -91,7 +92,7 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 			} else {
 				err := errors.Errorf("Cluster %s does not exist", clusterID)
 				a.log.Error(err)
-				return nil, common.NewInfraError(401, err)
+				return nil, common.NewInfraError(http.StatusUnauthorized, err)
 			}
 		}
 		a.log.Debugf("Authenticating Cluster %s JWT", clusterID)
@@ -101,7 +102,7 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 }
 
 func (a *LocalAuthenticator) AuthUserAuth(_ string) (interface{}, error) {
-	return nil, common.NewInfraError(401, errors.Errorf("User Authentication not allowed for local auth"))
+	return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("User Authentication not allowed for local auth"))
 }
 
 func (a *LocalAuthenticator) AuthURLAuth(token string) (interface{}, error) {
@@ -109,7 +110,7 @@ func (a *LocalAuthenticator) AuthURLAuth(token string) (interface{}, error) {
 }
 
 func (a *LocalAuthenticator) AuthImageAuth(_ string) (interface{}, error) {
-	return nil, common.NewInfraError(401, errors.Errorf("Image Authentication not allowed for local auth"))
+	return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("Image Authentication not allowed for local auth"))
 }
 
 func (a *LocalAuthenticator) CreateAuthenticator() func(_, _ string, _ security.TokenAuthentication) runtime.Authenticator {
