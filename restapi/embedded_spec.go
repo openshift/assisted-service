@@ -10215,6 +10215,24 @@ func init() {
           },
           "x-nullable": true
         },
+        "host_labels": {
+          "description": "The desired nodes which should be labeled for OCS.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "label": {
+                "description": "Indicate if label should be set.",
+                "type": "boolean"
+              }
+            }
+          },
+          "x-nullable": true
+        },
         "hosts_machine_config_pool_names": {
           "description": "The desired machine config pool for hosts associated with the cluster.",
           "type": "array",
@@ -11343,6 +11361,11 @@ func init() {
             "Host",
             "AddToExistingClusterHost"
           ]
+        },
+        "labels": {
+          "description": "Json containing host's labels.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "logs_collected_at": {
           "type": "string",
@@ -22796,6 +22819,19 @@ func init() {
         }
       }
     },
+    "ClusterUpdateParamsHostLabelsItems0": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "label": {
+          "description": "Indicate if label should be set.",
+          "type": "boolean"
+        }
+      }
+    },
     "ClusterUpdateParamsHostsMachineConfigPoolNamesItems0": {
       "type": "object",
       "properties": {
@@ -23765,6 +23801,14 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/ClusterUpdateParamsDisksSelectedConfigItems0"
+          },
+          "x-nullable": true
+        },
+        "host_labels": {
+          "description": "The desired nodes which should be labeled for OCS.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ClusterUpdateParamsHostLabelsItems0"
           },
           "x-nullable": true
         },
@@ -24800,6 +24844,11 @@ func init() {
             "Host",
             "AddToExistingClusterHost"
           ]
+        },
+        "labels": {
+          "description": "Json containing host's labels.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "logs_collected_at": {
           "type": "string",

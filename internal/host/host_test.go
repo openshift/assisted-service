@@ -184,6 +184,19 @@ var _ = Describe("update_role", func() {
 		Expect(h.Role).To(Equal(models.HostRoleWorker))
 	})
 
+	It("update label to a host", func() {
+		labels := map[string]string{
+			"cluster.ocs.openshift.io/openshift-storage": "",
+		}
+		host = hostutil.GenerateTestHost(id, infraEnvID, clusterID, models.HostStatusKnown)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		Expect(state.UpdateLabels(ctx, &host, labels, nil)).NotTo(HaveOccurred())
+
+		h := hostutil.GetHostFromDB(id, infraEnvID, db)
+		jsonLables, _ := json.Marshal(labels)
+		Expect(string(jsonLables)).To(Equal(h.Labels))
+	})
+
 	Context("update machine config pool", func() {
 		tests := []struct {
 			name                      string

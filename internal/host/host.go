@@ -158,6 +158,7 @@ type API interface {
 
 	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
 	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
+	UpdateLabels(ctx context.Context, h *models.Host, labels map[string]string, db *gorm.DB) error
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
 	RefreshInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, db *gorm.DB) error
 	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
@@ -775,6 +776,23 @@ func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 		cdb = db
 	}
 	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"requested_hostname": hostname, "trigger_monitor_timestamp": time.Now()}).Error
+}
+
+func (m *Manager) UpdateLabels(ctx context.Context, h *models.Host, labels map[string]string, db *gorm.DB) error {
+	hostStatus := swag.StringValue(h.Status)
+	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, label can be set only in one of %s states",
+				hostStatus, hostStatusesBeforeInstallation[:]))
+	}
+
+	jsonLabels, _ := json.Marshal(labels)
+	h.Labels = string(jsonLabels)
+	cdb := m.db
+	if db != nil {
+		cdb = db
+	}
+	return cdb.Model(common.Host{Host: *h}).Updates(map[string]string{"labels": string(jsonLabels)}).Error
 }
 
 func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error {

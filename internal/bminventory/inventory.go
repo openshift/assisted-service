@@ -3339,6 +3339,27 @@ func (b *bareMetalInventory) updateHostNames(ctx context.Context, params install
 	return nil
 }
 
+func (b *bareMetalInventory) updateHostLabels(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+	for i := range params.ClusterUpdateParams.HostLabels {
+		hostLabels := params.ClusterUpdateParams.HostLabels[i]
+		if !hostLabels.Label {
+			continue
+		}
+		log.Infof("Update host %s with OCS label", hostLabels.ID)
+		host, err := common.GetHostFromDB(db, params.ClusterID.String(), hostLabels.ID.String())
+		if err != nil {
+			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>", hostLabels.ID, params.ClusterID)
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		err = b.hostApi.UpdateLabels(ctx, &host.Host, map[string]string{"cluster.ocs.openshift.io/openshift-storage": ""}, db)
+		if err != nil {
+			log.WithError(err).Errorf("failed to set OCS label host <%s> in cluster <%s>", hostLabels.ID, params.ClusterID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+	return nil
+}
+
 func (b *bareMetalInventory) updateHostsDiskSelection(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	for i := range params.ClusterUpdateParams.DisksSelectedConfig {
 		disksConfig := params.ClusterUpdateParams.DisksSelectedConfig[i]
@@ -3403,6 +3424,10 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 	}
 
 	if err := b.updateHostNames(ctx, params, usages, db, log); err != nil {
+		return err
+	}
+
+	if err := b.updateHostLabels(ctx, params, db, log); err != nil {
 		return err
 	}
 

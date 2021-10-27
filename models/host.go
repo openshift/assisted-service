@@ -105,6 +105,9 @@ type Host struct {
 	// Enum: [Host AddToExistingClusterHost]
 	Kind *string `json:"kind"`
 
+	// Json containing host's labels.
+	Labels string `json:"labels,omitempty" gorm:"type:text"`
+
 	// logs collected at
 	// Format: datetime
 	LogsCollectedAt strfmt.DateTime `json:"logs_collected_at,omitempty" gorm:"type:timestamp with time zone"`

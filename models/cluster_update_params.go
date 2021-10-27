@@ -52,6 +52,9 @@ type ClusterUpdateParams struct {
 	// disks selected config
 	DisksSelectedConfig []*ClusterUpdateParamsDisksSelectedConfigItems0 `json:"disks_selected_config"`
 
+	// The desired nodes which should be labeled for OCS.
+	HostLabels []*ClusterUpdateParamsHostLabelsItems0 `json:"host_labels"`
+
 	// The desired machine config pool for hosts associated with the cluster.
 	HostsMachineConfigPoolNames []*ClusterUpdateParamsHostsMachineConfigPoolNamesItems0 `json:"hosts_machine_config_pool_names"`
 
@@ -155,6 +158,10 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateDisksSelectedConfig(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateHostLabels(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -321,6 +328,31 @@ func (m *ClusterUpdateParams) validateDisksSelectedConfig(formats strfmt.Registr
 					return ve.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
 				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *ClusterUpdateParams) validateHostLabels(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.HostLabels) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.HostLabels); i++ {
+		if swag.IsZero(m.HostLabels[i]) { // not required
+			continue
+		}
+
+		if m.HostLabels[i] != nil {
+			if err := m.HostLabels[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("host_labels" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -1061,6 +1093,64 @@ func (m *ClusterUpdateParamsDisksSelectedConfigItems0) MarshalBinary() ([]byte, 
 // UnmarshalBinary interface implementation
 func (m *ClusterUpdateParamsDisksSelectedConfigItems0) UnmarshalBinary(b []byte) error {
 	var res ClusterUpdateParamsDisksSelectedConfigItems0
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// ClusterUpdateParamsHostLabelsItems0 cluster update params host labels items0
+//
+// swagger:model ClusterUpdateParamsHostLabelsItems0
+type ClusterUpdateParamsHostLabelsItems0 struct {
+
+	// id
+	// Format: uuid
+	ID strfmt.UUID `json:"id,omitempty"`
+
+	// Indicate if label should be set.
+	Label bool `json:"label,omitempty"`
+}
+
+// Validate validates this cluster update params host labels items0
+func (m *ClusterUpdateParamsHostLabelsItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ClusterUpdateParamsHostLabelsItems0) validateID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *ClusterUpdateParamsHostLabelsItems0) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *ClusterUpdateParamsHostLabelsItems0) UnmarshalBinary(b []byte) error {
+	var res ClusterUpdateParamsHostLabelsItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

@@ -6840,6 +6840,10 @@ definitions:
         type: string
       user_name:
         type: string
+      labels:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
+        description: Json containing host's labels.
       deleted_at:
         type: string
         format: date-time
@@ -7235,6 +7239,19 @@ definitions:
               format: uuid
             role:
               $ref: '#/definitions/host-role-update-params'
+      host_labels:
+        type: array
+        description: The desired nodes which should be labeled for OCS.
+        x-nullable: true
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            label:
+              description: Indicate if label should be set.
+              type: boolean
       hosts_names:
         type: array
         description: The desired hostname for hosts associated with the cluster.
