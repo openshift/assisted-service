@@ -147,9 +147,8 @@ type AgentServiceConfigStatus struct {
 // +kubebuilder:resource:scope=Cluster
 
 // AgentServiceConfig represents an Assisted Service deployment.
-// Only an AgentServiceConfig with name="agent" will be reconciled, for all other
-// names a "Warning" event will be emitted + message logged and it will be ignored
-// forever.
+// Only an AgentServiceConfig with name="agent" will be reconciled. All other
+// names will be rejected.
 // +operator-sdk:csv:customresourcedefinitions:displayName="Agent Service Config"
 // +operator-sdk:csv:customresourcedefinitions:order=1
 type AgentServiceConfig struct {
