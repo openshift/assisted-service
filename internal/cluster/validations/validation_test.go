@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/swag"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/network"

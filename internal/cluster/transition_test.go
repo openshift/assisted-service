@@ -11,7 +11,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -30,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 var _ = Describe("Transition tests", func() {
@@ -4257,6 +4257,6 @@ var _ = Describe("ValidationResult sort", func() {
 
 func getClusterFromDB(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {
 	c, err := common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
-	Expect(err).ShouldNot(HaveOccurred())
+	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
 	return *c
 }

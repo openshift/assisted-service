@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 func (m *Manager) SkipMonitoring(h *models.Host) bool {
@@ -22,28 +23,31 @@ func (m *Manager) SkipMonitoring(h *models.Host) bool {
 
 func (m *Manager) initMonitoringQueryGenerator() {
 	if m.monitorClusterQueryGenerator == nil {
-		monitorStates := []string{
-			models.HostStatusDiscovering,
-			models.HostStatusKnown,
-			models.HostStatusDisconnected,
-			models.HostStatusInsufficient,
-			models.HostStatusPendingForInput,
-			models.HostStatusPreparingForInstallation,
-			models.HostStatusPreparingFailed,
-			models.HostStatusPreparingSuccessful,
-			models.HostStatusInstalling,
-			models.HostStatusInstallingInProgress,
-			models.HostStatusInstalled,
-			models.HostStatusInstallingPendingUserAction,
-			models.HostStatusResettingPendingUserAction,
-			models.HostStatusCancelled, // for limited time, until log collection finished or timed-out
-			models.HostStatusError,     // for limited time, until log collection finished or timed-out
-		}
+		buildInitialQuery := func(db *gorm.DB) *gorm.DB {
+			monitorStates := []string{
+				models.HostStatusDiscovering,
+				models.HostStatusKnown,
+				models.HostStatusDisconnected,
+				models.HostStatusInsufficient,
+				models.HostStatusPendingForInput,
+				models.HostStatusPreparingForInstallation,
+				models.HostStatusPreparingFailed,
+				models.HostStatusPreparingSuccessful,
+				models.HostStatusInstalling,
+				models.HostStatusInstallingInProgress,
+				models.HostStatusInstalled,
+				models.HostStatusInstallingPendingUserAction,
+				models.HostStatusResettingPendingUserAction,
+				models.HostStatusCancelled, // for limited time, until log collection finished or timed-out
+				models.HostStatusError,     // for limited time, until log collection finished or timed-out
+			}
 
-		dbWithCondition := common.LoadTableFromDB(m.db, common.HostsTable, "status in (?)", monitorStates)
-		dbWithCondition = common.LoadClusterTablesFromDB(dbWithCondition, common.HostsTable)
-		dbWithCondition = dbWithCondition.Where("exists (select 1 from hosts where clusters.id = hosts.cluster_id)")
-		m.monitorClusterQueryGenerator = common.NewMonitorQueryGenerator(m.db, dbWithCondition, m.Config.MonitorBatchSize)
+			dbWithCondition := common.LoadTableFromDB(db, common.HostsTable, "status in (?)", monitorStates)
+			dbWithCondition = common.LoadClusterTablesFromDB(dbWithCondition, common.HostsTable)
+			dbWithCondition = dbWithCondition.Where("exists (select 1 from hosts where clusters.id = hosts.cluster_id)")
+			return dbWithCondition
+		}
+		m.monitorClusterQueryGenerator = common.NewMonitorQueryGenerator(m.db, buildInitialQuery, m.Config.MonitorBatchSize)
 	}
 	if m.monitorInfraEnvQueryGenerator == nil {
 		m.monitorInfraEnvQueryGenerator = common.NewInfraEnvMonitorQueryGenerator(m.db, m.Config.MonitorBatchSize)

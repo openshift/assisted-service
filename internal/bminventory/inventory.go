@@ -26,7 +26,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
-	"github.com/jinzhu/gorm"
 	"github.com/kennygrant/sanitize"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
@@ -68,6 +67,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -1686,9 +1686,6 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 
 	// prepare cluster and hosts for installation
 	err = b.db.Transaction(func(tx *gorm.DB) error {
-		// in case host monitor already updated the state we need to use FOR UPDATE option
-		tx = transaction.AddForUpdateQueryOption(tx)
-
 		if err = b.clusterApi.PrepareForInstallation(ctx, cluster, tx); err != nil {
 			return err
 		}
@@ -1791,9 +1788,7 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 	}()
 
 	// in case host monitor already updated the state we need to use FOR UPDATE option
-	tx = transaction.AddForUpdateQueryOption(tx)
-
-	if cluster, err = common.GetClusterFromDB(tx, clusterId, common.UseEagerLoading); err != nil {
+	if cluster, err = common.GetClusterFromDBForUpdate(tx, clusterId, common.UseEagerLoading); err != nil {
 		return err
 	}
 
@@ -1929,9 +1924,7 @@ func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.
 	}()
 
 	// in case host monitor already updated the state we need to use FOR UPDATE option
-	tx = transaction.AddForUpdateQueryOption(tx)
-
-	if cluster, err = common.GetClusterFromDB(tx, params.ClusterID, common.UseEagerLoading); err != nil {
+	if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -1972,7 +1965,7 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 		}
 	}
 
-	masterNodesIds, err := b.clusterApi.GetMasterNodesIds(ctx, &cluster, db)
+	masterNodesIds, err := b.clusterApi.GetMasterNodesIds(ctx, &cluster, transaction.AddForUpdateQueryOption(db))
 	if err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s master node id's", cluster.ID)
 		return errors.Wrapf(err, "Failed to get cluster %s master node id's", cluster.ID)
@@ -2348,9 +2341,7 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params
 	}
 
 	// in case host monitor already updated the state we need to use FOR UPDATE option
-	tx = transaction.AddForUpdateQueryOption(tx)
-
-	if cluster, err = common.GetClusterFromDB(tx, v2Params.ClusterID, common.UseEagerLoading); err != nil {
+	if cluster, err = common.GetClusterFromDBForUpdate(tx, v2Params.ClusterID, common.UseEagerLoading); err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", v2Params.ClusterID)
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
@@ -2491,9 +2482,7 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	}
 
 	// in case host monitor already updated the state we need to use FOR UPDATE option
-	tx = transaction.AddForUpdateQueryOption(tx)
-
-	if cluster, err = common.GetClusterFromDB(tx, params.ClusterID, common.UseEagerLoading); err != nil {
+	if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
@@ -4203,7 +4192,6 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 
 	txSuccess := false
 	tx := b.db.Begin()
-	tx = transaction.AddForUpdateQueryOption(tx)
 
 	defer func() {
 		if !txSuccess {
@@ -4216,7 +4204,7 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 		}
 	}()
 
-	host, err := common.GetHostFromDB(b.db, params.ClusterID.String(), params.HostID.String())
+	host, err := common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.ClusterID.String(), params.HostID.String())
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.WithError(err).Errorf("host %s not found", params.HostID)
@@ -4263,7 +4251,6 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 
 	txSuccess := false
 	tx := b.db.Begin()
-	tx = transaction.AddForUpdateQueryOption(tx)
 
 	defer func() {
 		if !txSuccess {
@@ -4276,7 +4263,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 		}
 	}()
 
-	host, err := common.GetHostFromDB(tx, params.ClusterID.String(), params.HostID.String())
+	host, err := common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.ClusterID.String(), params.HostID.String())
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.WithError(err).Errorf("host %s not found", params.HostID)
@@ -4949,7 +4936,6 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 
 	txSuccess := false
 	tx := b.db.Begin()
-	tx = transaction.AddForUpdateQueryOption(tx)
 	defer func() {
 		if !txSuccess {
 			log.Error("cancel installation failed")
@@ -4969,7 +4955,7 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 	}
 
 	var err error
-	if cluster, err = common.GetClusterFromDB(tx, params.ClusterID, common.UseEagerLoading); err != nil {
+	if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
 		log.WithError(err).Errorf("Failed to cancel installation: could not find cluster %s", params.ClusterID)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.NewApiError(http.StatusNotFound, err)
@@ -6172,7 +6158,6 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 	txSuccess := false
 	tx := b.db.Begin()
-	tx = transaction.AddForUpdateQueryOption(tx)
 	defer func() {
 		if !txSuccess {
 			log.Error("RegisterHost failed")
@@ -6184,13 +6169,13 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		}
 	}()
 
-	infraEnv, err := common.GetInfraEnvFromDB(tx, params.InfraEnvID)
+	infraEnv, err := common.GetInfraEnvFromDB(transaction.AddForUpdateQueryOption(tx), params.InfraEnvID)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get infra env: %s", params.InfraEnvID)
 		return common.GenerateErrorResponder(err)
 	}
 
-	dbHost, err := common.GetHostFromDB(tx, params.InfraEnvID.String(), params.NewHostParams.HostID.String())
+	dbHost, err := common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.InfraEnvID.String(), params.NewHostParams.HostID.String())
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.WithError(err).Errorf("failed to get host %s in infra-env: %s",
 			*params.NewHostParams.HostID, params.InfraEnvID.String())
@@ -6224,7 +6209,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 	var cluster *common.Cluster
 	var c *models.Cluster
-	cluster, err = b.getBoundCluster(tx, infraEnv, dbHost)
+	cluster, err = b.getBoundCluster(transaction.AddForUpdateQueryOption(tx), infraEnv, dbHost)
 	if err != nil {
 		log.WithError(err).Errorf("Bound Cluster get")
 		return common.NewApiError(http.StatusInternalServerError, err)
@@ -6769,7 +6754,6 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 
 	txSuccess := false
 	tx := b.db.Begin()
-	tx = transaction.AddForUpdateQueryOption(tx)
 
 	defer func() {
 		if !txSuccess {

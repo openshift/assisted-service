@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
@@ -18,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 const (
@@ -93,7 +93,7 @@ func updateLogsProgress(log logrus.FieldLogger, db *gorm.DB, c *common.Cluster, 
 		}
 	}
 
-	err := db.Model(c).Update(updates).Error
+	err := db.Model(c).Updates(updates).Error
 	if err != nil {
 		log.WithError(err).Errorf("could not update log progress %v on cluster %s", updates, *c.ID)
 		return err

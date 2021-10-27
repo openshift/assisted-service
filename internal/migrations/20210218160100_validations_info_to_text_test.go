@@ -1,14 +1,16 @@
 package migrations
 
 import (
+	"strings"
+
+	"github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	"gopkg.in/gormigrate.v1"
+	"gorm.io/gorm"
 )
 
 const clusterValidationsInfo = `{"configuration":[{"id":"pull-secret-set","status":"success","message":"The pull secret is set."}]}`
@@ -43,30 +45,33 @@ var _ = Describe("ChangeValidationsInfoToText", func() {
 	It("Migrates down and up", func() {
 		t, err := getColumnType(db, &common.Cluster{}, "validations_info")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(t).To(Equal("TEXT"))
-		expectValidationsInfo(db, clusterID.String(), clusterValidationsInfo)
+		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
+		expectValidationsInfo(dbName, clusterID.String(), clusterValidationsInfo)
 
 		err = gm.RollbackMigration(changeClusterValidationsInfoToText())
 		Expect(err).ToNot(HaveOccurred())
 
 		t, err = getColumnType(db, &common.Cluster{}, "validations_info")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(t).To(Equal("VARCHAR"))
-		expectValidationsInfo(db, clusterID.String(), clusterValidationsInfo)
+		Expect(strings.ToUpper(t)).To(Equal("VARCHAR"))
+		expectValidationsInfo(dbName, clusterID.String(), clusterValidationsInfo)
 
 		err = gm.MigrateTo("20210218160100")
 		Expect(err).ToNot(HaveOccurred())
 
 		t, err = getColumnType(db, &common.Cluster{}, "validations_info")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(t).To(Equal("TEXT"))
-		expectValidationsInfo(db, clusterID.String(), clusterValidationsInfo)
+		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
+		expectValidationsInfo(dbName, clusterID.String(), clusterValidationsInfo)
 	})
 })
 
-func expectValidationsInfo(db *gorm.DB, clusterID string, validationsInfo string) {
+func expectValidationsInfo(dbName string, clusterID string, validationsInfo string) {
 	var c common.Cluster
-	err := db.First(&c, "id = ?", clusterID).Error
+	db, err := common.OpenTestDBConn(dbName)
+	Expect(err).ShouldNot(HaveOccurred())
+	defer common.CloseDB(db)
+	err = db.First(&c, "id = ?", clusterID).Error
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(c.ValidationsInfo).To(Equal(validationsInfo))
 }

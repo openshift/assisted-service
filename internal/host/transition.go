@@ -11,7 +11,6 @@ import (
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -20,6 +19,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 type transitionHandler struct {
@@ -37,7 +37,7 @@ var resetFields = append(resetProgressFields, "inventory", "", "bootstrap", fals
 var restFieldsOnUnbind = append(append(resetProgressFields, resetLogsField...), "cluster_id", nil, "kind", swag.String(models.HostKindHost), "connectivity", "", "domain_name_resolutions", "",
 	"free_addresses", "", "images_status", "", "installation_disk_id", "", "installation_disk_path", "", "machine_config_pool_name", "",
 	"role", "auto-assign", "api_vip_connectivity", "", "suggested_role", "",
-	"progress_stages", nil, "stage_started_at", strfmt.DateTime(time.Time{}), "stage_updated_at", strfmt.DateTime(time.Time{}))
+	"stage_started_at", strfmt.DateTime(time.Time{}), "stage_updated_at", strfmt.DateTime(time.Time{}))
 
 ////////////////////////////////////////////////////////////////////////////
 // RegisterHost
@@ -259,7 +259,7 @@ func (th *transitionHandler) PostResetHost(sw stateswitch.StateSwitch, args stat
 		return errors.New("PostResetHost invalid argument")
 	}
 
-	extra := append(append(make([]interface{}, 0), "StatusUpdatedAt", strfmt.DateTime(time.Now())), resetLogsField...)
+	extra := append(make([]interface{}, 0), resetLogsField...)
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		params.reason, extra...)
 }
@@ -439,7 +439,7 @@ func (th *transitionHandler) PostResettingPendingUserAction(sw stateswitch.State
 	}
 
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		statusInfoResettingPendingUserAction, "StatusUpdatedAt", strfmt.DateTime(time.Now()))
+		statusInfoResettingPendingUserAction)
 }
 
 ////////////////////////////////////////////////////////////////////////////

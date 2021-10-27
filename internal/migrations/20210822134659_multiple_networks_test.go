@@ -1,14 +1,14 @@
 package migrations
 
 import (
+	gormigrate "github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	gormigrate "gopkg.in/gormigrate.v1"
+	"gorm.io/gorm"
 )
 
 var _ = Describe("multipleNetworks", func() {

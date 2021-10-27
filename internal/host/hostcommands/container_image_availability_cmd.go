@@ -6,12 +6,12 @@ import (
 	"fmt"
 
 	"github.com/alessio/shellescape"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type imageAvailabilityCmd struct {

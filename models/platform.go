@@ -20,14 +20,14 @@ import (
 type Platform struct {
 
 	// ovirt
-	Ovirt *OvirtPlatform `json:"ovirt,omitempty" gorm:"embedded;embedded_prefix:ovirt_"`
+	Ovirt *OvirtPlatform `json:"ovirt,omitempty" gorm:"embedded;embeddedPrefix:ovirt_"`
 
 	// type
 	// Required: true
 	Type *PlatformType `json:"type"`
 
 	// vsphere
-	Vsphere *VspherePlatform `json:"vsphere,omitempty" gorm:"embedded;embedded_prefix:vsphere_"`
+	Vsphere *VspherePlatform `json:"vsphere,omitempty" gorm:"embedded;embeddedPrefix:vsphere_"`
 }
 
 // Validate validates this platform

@@ -4,10 +4,10 @@ import (
 	context "context"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 func NewInstaller(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler) *installer {

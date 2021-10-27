@@ -21,10 +21,10 @@ type MonitoredOperator struct {
 
 	// The cluster that this operator is associated with.
 	// Format: uuid
-	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primary_key;foreignkey:Cluster"`
+	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primaryKey"`
 
 	// Unique name of the operator.
-	Name string `json:"name,omitempty" gorm:"primary_key"`
+	Name string `json:"name,omitempty" gorm:"primaryKey"`
 
 	// Namespace where to deploy an operator. Only some operators require a namespace.
 	Namespace string `json:"namespace,omitempty"`

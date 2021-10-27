@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -21,6 +19,8 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/sirupsen/logrus"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"k8s.io/client-go/kubernetes/scheme"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -115,9 +115,8 @@ func init() {
 	agentBMClient2 = client.New(agentClientCfg2)
 	badAgentBMClient = client.New(badAgentClientCfg)
 
-	db, err = gorm.Open("postgres",
-		fmt.Sprintf("host=%s port=%s user=admin dbname=installer password=admin sslmode=disable",
-			Options.DBHost, Options.DBPort))
+	db, err = gorm.Open(postgres.Open(fmt.Sprintf("host=%s port=%s user=admin database=installer password=admin sslmode=disable",
+		Options.DBHost, Options.DBPort)), &gorm.Config{})
 	if err != nil {
 		logrus.Fatal("Fail to connect to DB, ", err)
 	}

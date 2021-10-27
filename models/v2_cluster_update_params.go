@@ -47,7 +47,7 @@ type V2ClusterUpdateParams struct {
 	ClusterNetworks []*ClusterNetwork `json:"cluster_networks"`
 
 	// Installation disks encryption mode and host roles to be applied.
-	DiskEncryption *DiskEncryption `json:"disk_encryption,omitempty" gorm:"embedded;embedded_prefix:disk_encryption_"`
+	DiskEncryption *DiskEncryption `json:"disk_encryption,omitempty" gorm:"embedded;embeddedPrefix:disk_encryption_"`
 
 	// A proxy URL to use for creating HTTP connections outside the cluster.
 	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
@@ -64,7 +64,7 @@ type V2ClusterUpdateParams struct {
 	Hyperthreading *string `json:"hyperthreading,omitempty"`
 
 	// Explicit ignition endpoint overrides the default ignition endpoint.
-	IgnitionEndpoint *IgnitionEndpoint `json:"ignition_endpoint,omitempty" gorm:"embedded;embedded_prefix:ignition_endpoint_"`
+	IgnitionEndpoint *IgnitionEndpoint `json:"ignition_endpoint,omitempty" gorm:"embedded;embeddedPrefix:ignition_endpoint_"`
 
 	// The virtual IP used for cluster ingress traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$
@@ -93,7 +93,7 @@ type V2ClusterUpdateParams struct {
 	OlmOperators []*OperatorCreateParams `json:"olm_operators"`
 
 	// platform
-	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embedded_prefix:platform_"`
+	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embeddedPrefix:platform_"`
 
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
 	PullSecret *string `json:"pull_secret,omitempty"`

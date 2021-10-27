@@ -1,14 +1,16 @@
 package migrations
 
 import (
+	"strings"
+
+	gormigrate "github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	gormigrate "gopkg.in/gormigrate.v1"
+	"gorm.io/gorm"
 )
 
 var _ = Describe("changeOverridesToText", func() {
@@ -47,21 +49,21 @@ var _ = Describe("changeOverridesToText", func() {
 	It("Migrates down and up", func() {
 		t, err := getColumnType(db, &common.Cluster{}, "image_ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(t).To(Equal("TEXT"))
+		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 
 		err = gm.RollbackMigration(changeImageSSHKeyToText())
 		Expect(err).ToNot(HaveOccurred())
 
 		t, err = getColumnType(db, &common.Cluster{}, "image_ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(t).To(Equal("VARCHAR"))
+		Expect(strings.ToUpper(t)).To(Equal("VARCHAR"))
 
 		err = gm.MigrateTo("20201202140700")
 		Expect(err).ToNot(HaveOccurred())
 
 		t, err = getColumnType(db, &common.Cluster{}, "image_ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(t).To(Equal("TEXT"))
+		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 
 		cluster := &common.Cluster{}
 		Expect(db.First(cluster).Error).ShouldNot(HaveOccurred())

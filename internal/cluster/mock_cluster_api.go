@@ -10,10 +10,10 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
-	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
+	gorm "gorm.io/gorm"
 	types "k8s.io/apimachinery/pkg/types"
 )
 

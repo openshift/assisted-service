@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/identity"
@@ -18,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 var DefaultEventCategories = []string{

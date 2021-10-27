@@ -8,7 +8,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/cluster"
@@ -21,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 var _ = Describe("Operators manager", func() {
@@ -109,6 +109,10 @@ var _ = Describe("Operators manager", func() {
 		It("should return all monitored operators", func() {
 			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, nil, db)
 			Expect(err).ToNot(HaveOccurred())
+			for _, o := range operators {
+				// Ignore the status-updated-at
+				o.StatusUpdatedAt = strfmt.DateTime{}
+			}
 			Expect(operators).To(ConsistOf(c.MonitoredOperators))
 		})
 

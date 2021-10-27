@@ -1,18 +1,18 @@
 package migrations
 
 import (
+	gormigrate "github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	gormigrate "gopkg.in/gormigrate.v1"
+	"gorm.io/gorm"
 )
 
 func populateInfraEnv() *gormigrate.Migration {
 	migrate := func(tx *gorm.DB) error {
 
-		if tx.HasTable(&common.Host{}) {
+		if tx.Migrator().HasTable(&common.Host{}) {
 			// Generate the infra_env_id column
 			if err := tx.Exec("ALTER TABLE hosts ADD COLUMN IF NOT EXISTS infra_env_id text NULL;").Error; err != nil {
 				return err
@@ -23,13 +23,13 @@ func populateInfraEnv() *gormigrate.Migration {
 			}
 		}
 
-		if tx.HasTable(&common.Cluster{}) {
+		if tx.Migrator().HasTable(&common.Cluster{}) {
 			// Generate the InfraEnv table
-			if err := tx.AutoMigrate(&common.InfraEnv{}).Error; err != nil {
+			if err := tx.AutoMigrate(&common.InfraEnv{}); err != nil {
 				return err
 			}
 
-			if err := tx.AutoMigrate(&common.Cluster{}).Error; err != nil {
+			if err := tx.AutoMigrate(&common.Cluster{}); err != nil {
 				return err
 			}
 

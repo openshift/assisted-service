@@ -13,7 +13,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -24,9 +23,9 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	logutil "github.com/openshift/assisted-service/pkg/log"
-	"github.com/openshift/assisted-service/pkg/transaction"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
+	"gorm.io/gorm"
 )
 
 func (b *bareMetalInventory) V2UpdateHost(ctx context.Context, params installer.V2UpdateHostParams) middleware.Responder {
@@ -114,7 +113,6 @@ func (b *bareMetalInventory) V2ResetCluster(ctx context.Context, params installe
 
 	txSuccess := false
 	tx := b.db.Begin()
-	tx = transaction.AddForUpdateQueryOption(tx)
 	defer func() {
 		if !txSuccess {
 			log.Error("reset cluster failed")
@@ -133,7 +131,7 @@ func (b *bareMetalInventory) V2ResetCluster(ctx context.Context, params installe
 	}
 
 	var err error
-	if cluster, err = common.GetClusterFromDB(tx, params.ClusterID, common.UseEagerLoading); err != nil {
+	if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return installer.NewV2ResetClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))

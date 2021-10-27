@@ -20,11 +20,11 @@ import (
 type ClusterNetwork struct {
 
 	// The IP block address pool.
-	Cidr Subnet `json:"cidr,omitempty" gorm:"primary_key"`
+	Cidr Subnet `json:"cidr,omitempty" gorm:"primaryKey"`
 
 	// The cluster that this network is associated with.
 	// Format: uuid
-	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primary_key;foreignkey:Cluster"`
+	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primaryKey"`
 
 	// The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.
 	// Maximum: 128

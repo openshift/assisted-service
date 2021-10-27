@@ -6,11 +6,11 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"gorm.io/gorm"
 )
 
 var newStatus = "newStatus"
@@ -69,7 +69,7 @@ var _ = Describe("update_cluster_state", func() {
 		})
 
 		It("db_failure", func() {
-			db.Close()
+			common.CloseDB(db)
 			_, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, *cluster.Status, "status", newStatus)
 			Expect(err).Should(HaveOccurred())
 		})

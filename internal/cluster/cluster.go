@@ -17,7 +17,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
-	"github.com/jinzhu/gorm"
 	"github.com/kennygrant/sanitize"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -39,6 +38,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -481,14 +481,17 @@ func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
 
 func (m *Manager) initMonitorQueryGenerator() {
 	if m.monitorQueryGenerator == nil {
-		noNeedToMonitorInStates := []string{
-			models.ClusterStatusInstalled,
-		}
+		buildInitialQuery := func(db *gorm.DB) *gorm.DB {
+			noNeedToMonitorInStates := []string{
+				models.ClusterStatusInstalled,
+			}
 
-		dbWithCondition := common.LoadTableFromDB(m.db, common.HostsTable, "status <> ?", models.HostStatusDisabled)
-		dbWithCondition = common.LoadClusterTablesFromDB(dbWithCondition, common.HostsTable)
-		dbWithCondition = dbWithCondition.Where("status NOT IN (?)", noNeedToMonitorInStates)
-		m.monitorQueryGenerator = common.NewMonitorQueryGenerator(m.db, dbWithCondition, m.MonitorBatchSize)
+			dbWithCondition := common.LoadTableFromDB(db, common.HostsTable, "status <> ?", models.HostStatusDisabled)
+			dbWithCondition = common.LoadClusterTablesFromDB(dbWithCondition, common.HostsTable)
+			dbWithCondition = dbWithCondition.Where("status NOT IN (?)", noNeedToMonitorInStates)
+			return dbWithCondition
+		}
+		m.monitorQueryGenerator = common.NewMonitorQueryGenerator(m.db, buildInitialQuery, m.MonitorBatchSize)
 	}
 }
 
@@ -799,7 +802,7 @@ func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster,
 func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, installErr error) {
 	log := logutil.FromContext(ctx, m.log)
 	log.WithError(installErr).Warnf("Failed to prepare installation of cluster %s", c.ID.String())
-	err := m.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Update(&common.Cluster{
+	err := m.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Updates(&common.Cluster{
 		InstallationPreparationCompletionStatus: common.InstallationPreparationFailed,
 	}).Error
 	if err != nil {
@@ -812,7 +815,7 @@ func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, 
 
 func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster) {
 	log := logutil.FromContext(ctx, m.log)
-	err := m.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Update(&common.Cluster{
+	err := m.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Updates(&common.Cluster{
 		InstallationPreparationCompletionStatus: common.InstallationPreparationSucceeded,
 	}).Error
 	if err != nil {
@@ -977,7 +980,7 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 
 	marshalledMajorityGroups := string(b)
 	if marshalledMajorityGroups != cluster.ConnectivityMajorityGroups {
-		err = db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(&common.Cluster{
+		err = db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(&common.Cluster{
 			Cluster: models.Cluster{
 				ConnectivityMajorityGroups: marshalledMajorityGroups,
 			},
@@ -997,7 +1000,7 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	cluster, err := common.GetClusterFromDBWithoutDisabledHosts(db, clusterID)
 	if err != nil {
 		var statusCode int32 = http.StatusInternalServerError
-		if gorm.IsRecordNotFoundError(err) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			statusCode = http.StatusNotFound
 		}
 		return common.NewApiError(statusCode, errors.Wrapf(err, "Getting cluster %s", clusterID.String()))
@@ -1072,12 +1075,10 @@ func (m Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPer
 
 func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error {
 	var clusters []*common.Cluster
-	db := m.db.Unscoped()
-	if reply := db.Where("deleted_at < ?", olderThan).Find(&clusters); reply.Error != nil {
+	if reply := m.db.Unscoped().Where("deleted_at < ?", olderThan).Find(&clusters); reply.Error != nil {
 		return reply.Error
 	}
 	for i := range clusters {
-
 		c := clusters[i]
 		m.log.Infof("Permanently deleting cluster %s that was de-registered before %s", c.ID.String(), olderThan)
 
@@ -1101,22 +1102,23 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt
 		if !deleteFromDB {
 			continue
 		}
-
-		cluster := c // Avoid passing loop variable by ref
-		if reply := db.Delete(&cluster); reply.Error != nil {
-			m.log.WithError(reply.Error).Warnf("Failed deleting cluster from db %s", c.ID.String())
-		} else if reply.RowsAffected > 0 {
-			m.log.Debugf("Deleted %s cluster from db", reply.RowsAffected)
-		}
-
-		if err := common.DeleteRecordsByClusterID(db, *c.ID, []interface{}{
+		modelsToDelete := []interface{}{
 			&models.Event{},
 			&models.MonitoredOperator{},
 			&models.ClusterNetwork{},
 			&models.ServiceNetwork{},
 			&models.MachineNetwork{},
-		}); err != nil {
-			m.log.WithError(err).Warnf("Failed deleting cluster records from db for cluster %s", c.ID.String())
+		}
+		for _, model := range modelsToDelete {
+			if err := common.DeleteRecordsByClusterID(m.db.Unscoped(), *c.ID, []interface{}{model}); err != nil {
+				m.log.WithError(err).Warnf("Failed deleting cluster records from db for cluster %s", c.ID.String())
+			}
+		}
+
+		if reply := m.db.Unscoped().Delete(&common.Cluster{}, "id = ?", c.ID.String()); reply.Error != nil {
+			m.log.WithError(reply.Error).Warnf("Failed deleting cluster from db %s", c.ID.String())
+		} else if reply.RowsAffected > 0 {
+			m.log.Debugf("Deleted %s cluster from db", reply.RowsAffected)
 		}
 	}
 	return nil

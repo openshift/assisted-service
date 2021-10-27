@@ -13,7 +13,6 @@ import (
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
@@ -30,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -384,7 +384,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	// If there is substantial change in the inventory that might cause the state machine to move to a new status
 	// or one of the validations to change, then the updated_at field has to be modified.  Otherwise, we just
 	// perform update with touching the updated_at field
-	return db.Model(h).Update(map[string]interface{}{
+	return db.Model(h).Updates(map[string]interface{}{
 		"inventory":              inventoryStr,
 		"installation_disk_path": installationDiskPath,
 		"installation_disk_id":   installationDiskID,
@@ -1211,7 +1211,7 @@ func (m *Manager) resetDiskSpeedValidation(host *models.Host, log logrus.FieldLo
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, errors.New("Reset disk speed"))
 	}
-	return db.Model(&models.Host{}).Where("cluster_id = ? and id = ?", host.ClusterID.String(), host.ID.String()).Update(&updatedHost).Error
+	return db.Model(&models.Host{}).Where("cluster_id = ? and id = ?", host.ClusterID.String(), host.ID.String()).Updates(&updatedHost).Error
 }
 
 func (m *Manager) resetContainerImagesValidation(host *models.Host, db *gorm.DB) error {

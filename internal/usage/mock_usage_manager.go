@@ -9,7 +9,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
-	gorm "github.com/jinzhu/gorm"
+	gorm "gorm.io/gorm"
 )
 
 // MockAPI is a mock of API interface.

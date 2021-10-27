@@ -1,11 +1,14 @@
 package transaction
 
-import "github.com/jinzhu/gorm"
+import (
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
 
 func AddForUpdateQueryOption(db *gorm.DB) *gorm.DB {
-	if db.Dialect().GetName() != "sqlite3" {
+	if db.Name() != "sqlite3" {
 		// return a new object and not overwrite pointer value because GORM have a pointer to parent
-		return db.Set("gorm:query_option", "FOR UPDATE")
+		return db.Clauses(clause.Locking{Strength: "UPDATE"})
 	}
 	return db
 }

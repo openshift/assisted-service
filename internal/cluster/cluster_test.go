@@ -14,8 +14,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -35,6 +33,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -596,11 +595,11 @@ var _ = Describe("TestClusterMonitoring", func() {
 
 			clusterApi.ClusterMonitoring()
 
-			var count int
+			var count int64
 			err = db.Model(&common.Cluster{}).Where("status = ?", models.ClusterStatusInsufficient).
 				Count(&count).Error
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(count).Should(Equal(nClusters))
+			Expect(count).Should(Equal(int64(nClusters)))
 		}
 
 		It("10 clusters monitor", func() {
@@ -1609,7 +1608,7 @@ var _ = Describe("PrepareForInstallation", func() {
 		Expect(capi.PrepareForInstallation(ctx, cluster, db)).NotTo(HaveOccurred())
 		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.Status)).To(Equal(models.ClusterStatusPreparingForInstallation))
-		Expect(cluster.ControllerLogsCollectedAt).To(Equal(strfmt.DateTime(time.Time{})))
+		Expect(time.Time(cluster.ControllerLogsCollectedAt).Equal(time.Time{})).To(BeTrue())
 	}
 
 	// status should not change
@@ -2228,7 +2227,7 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 	})
 
 	AfterEach(func() {
-		db.Close()
+		common.CloseDB(db)
 	})
 
 	AfterEach(func() {
@@ -2457,7 +2456,7 @@ var _ = Describe("Deregister inactive clusters", func() {
 	wasDeregisterd := func(db *gorm.DB, clusterId strfmt.UUID) bool {
 		c, err := common.GetClusterFromDBWhere(db, common.UseEagerLoading, true, "id = ?", clusterId.String())
 		Expect(err).ShouldNot(HaveOccurred())
-		return c.DeletedAt != nil
+		return c.DeletedAt.Valid
 	}
 
 	BeforeEach(func() {
@@ -2575,7 +2574,7 @@ var _ = Describe("Permanently delete clusters", func() {
 	}
 
 	verifyClusterSubComponentsDeletion := func(clusterID strfmt.UUID, isDeleted bool) {
-		Expect(db.Unscoped().Where("id = ?", clusterID).Find(&common.Cluster{}).RowsAffected == 0).Should(Equal(isDeleted))
+		ExpectWithOffset(1, db.Unscoped().Where("id = ?", clusterID).Find(&common.Cluster{}).RowsAffected == 0).Should(Equal(isDeleted))
 
 		clusterEvents, err := eventsHandler.V2GetEvents(ctx, &clusterID, nil, nil)
 		if isDeleted {
@@ -2633,6 +2632,7 @@ var _ = Describe("Permanently delete clusters", func() {
 		Expect(state.PermanentClustersDeletion(ctx, strfmt.DateTime(time.Now()), mockS3Api)).ShouldNot(HaveOccurred())
 
 		verifyClusterSubComponentsDeletion(*c1.ID, true)
+
 		verifyClusterSubComponentsDeletion(*c2.ID, true)
 		verifyClusterSubComponentsDeletion(*c3.ID, false)
 	})
@@ -3023,7 +3023,7 @@ var _ = Describe("Console-operator's availability", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
 	})

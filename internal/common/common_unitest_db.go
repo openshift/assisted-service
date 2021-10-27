@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/gomega"
 	"github.com/ory/dockertest/v3"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 const (
@@ -61,11 +61,11 @@ func InitializeDBTest() {
 	err = gDbCtx.pool.Retry(func() error {
 		var er error
 
-		dbTemp, er = gorm.Open("postgres", fmt.Sprintf("host=127.0.0.1 port=%s user=postgres password=admin sslmode=disable", gDbCtx.GetPort()))
+		dbTemp, er = openTopTestDBConn()
 		return er
 	})
 	Expect(err).ShouldNot(HaveOccurred())
-	dbTemp.Close()
+	CloseDB(dbTemp)
 }
 
 func TerminateDBTest() {
@@ -87,15 +87,14 @@ func randomDBName() string {
 
 func PrepareTestDB(extrasSchemas ...interface{}) (*gorm.DB, string) {
 	dbName := randomDBName()
-	dbTemp, err := gorm.Open("postgres", fmt.Sprintf("host=127.0.0.1 port=%s user=postgres password=admin sslmode=disable", gDbCtx.GetPort()))
+	dbTemp, err := openTopTestDBConn()
 	Expect(err).ShouldNot(HaveOccurred())
-	defer dbTemp.Close()
+	defer CloseDB(dbTemp)
 
 	dbTemp = dbTemp.Exec(fmt.Sprintf("CREATE DATABASE %s;", dbName))
 	Expect(dbTemp.Error).ShouldNot(HaveOccurred())
 
-	db, err := gorm.Open("postgres",
-		fmt.Sprintf("host=127.0.0.1 port=%s dbname=%s user=postgres password=admin sslmode=disable", gDbCtx.GetPort(), dbName))
+	db, err := OpenTestDBConn(dbName)
 	Expect(err).ShouldNot(HaveOccurred())
 	// db = db.Debug()
 	err = AutoMigrate(db)
@@ -103,21 +102,37 @@ func PrepareTestDB(extrasSchemas ...interface{}) (*gorm.DB, string) {
 
 	if len(extrasSchemas) > 0 {
 		for _, schema := range extrasSchemas {
-			db.AutoMigrate(schema)
-			Expect(db.Error).ShouldNot(HaveOccurred())
+			Expect(db.AutoMigrate(schema)).ToNot(HaveOccurred())
 		}
 	}
 	return db, dbName
 }
 
 func DeleteTestDB(db *gorm.DB, dbName string) {
-	db.Close()
+	CloseDB(db)
 
-	db, err := gorm.Open("postgres",
-		fmt.Sprintf("host=127.0.0.1 port=%s user=postgres password=admin sslmode=disable", gDbCtx.GetPort()))
+	db, err := openTopTestDBConn()
 	Expect(err).ShouldNot(HaveOccurred())
-	defer db.Close()
+	defer CloseDB(db)
 	db = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s;", dbName))
 
 	Expect(db.Error).ShouldNot(HaveOccurred())
+}
+
+func openTestDB(dbName string) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("host=127.0.0.1 port=%s user=postgres password=admin sslmode=disable", gDbCtx.GetPort())
+	if dbName != "" {
+		dsn = dsn + fmt.Sprintf(" database=%s", dbName)
+	}
+	return gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
+}
+
+func openTopTestDBConn() (*gorm.DB, error) {
+	return openTestDB("")
+}
+
+func OpenTestDBConn(dbName string) (*gorm.DB, error) {
+	return openTestDB(dbName)
 }

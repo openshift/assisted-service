@@ -7,7 +7,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -15,6 +14,7 @@ import (
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/models"
+	"gorm.io/gorm"
 )
 
 var newStatus = "newStatus"
@@ -87,7 +87,7 @@ var _ = Describe("update_host_state", func() {
 		})
 
 		It("db_failure", func() {
-			db.Close()
+			common.CloseDB(db)
 			_, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status,
 				newStatus, newStatusInfo)
 			Expect(err).Should(HaveOccurred())

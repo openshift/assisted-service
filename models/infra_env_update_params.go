@@ -29,7 +29,7 @@ type InfraEnvUpdateParams struct {
 	ImageType ImageType `json:"image_type,omitempty"`
 
 	// proxy
-	Proxy *Proxy `json:"proxy,omitempty" gorm:"embedded;embedded_prefix:proxy_"`
+	Proxy *Proxy `json:"proxy,omitempty" gorm:"embedded;embeddedPrefix:proxy_"`
 
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
 	PullSecret string `json:"pull_secret,omitempty"`

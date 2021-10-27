@@ -5,12 +5,12 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/jinzhu/gorm"
+	gormigrate "github.com/go-gormigrate/gormigrate/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/pkg/errors"
-	gormigrate "gopkg.in/gormigrate.v1"
+	"gorm.io/gorm"
 )
 
 func TestMigrations(t *testing.T) {
@@ -47,13 +47,7 @@ func migrateTo(db *gorm.DB, migratoinID string) error {
 }
 
 func getColumnType(db *gorm.DB, model interface{}, column string) (string, error) {
-	rows, err := db.Model(model).Rows()
-	Expect(err).NotTo(HaveOccurred())
-	defer func() {
-		Expect(rows.Close()).To(Succeed())
-	}()
-
-	colTypes, err := rows.ColumnTypes()
+	colTypes, err := db.Migrator().ColumnTypes(model)
 	Expect(err).NotTo(HaveOccurred())
 
 	for _, colType := range colTypes {

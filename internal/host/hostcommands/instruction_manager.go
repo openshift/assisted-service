@@ -8,7 +8,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/connectivity"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -18,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 //go:generate mockgen -package=hostcommands -destination=mock_instruction_api.go . InstructionApi

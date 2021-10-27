@@ -11,7 +11,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -25,6 +24,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 const (
@@ -460,7 +460,7 @@ var _ = Describe("installcmd arguments", func() {
 			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", `["--append-karg","nameserver=8.8.8.8","-n","--copy-network"]`), 1)
 		})
 		It("non-empty installer args with copy network with static ip config", func() {
-			db.Model(&cluster).Update("image_static_ips_config", "rkhkjgdfd")
+			db.Model(&cluster).Update("image_static_network_config", "rkhkjgdfd")
 			host.InstallerArgs = `["--append-karg","nameserver=8.8.8.8","-n","--copy-network"]`
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())

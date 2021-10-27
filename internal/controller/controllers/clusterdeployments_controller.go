@@ -29,7 +29,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/openshift/assisted-service/api/common"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
@@ -52,6 +51,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1683,7 +1683,7 @@ func (r *ClusterDeploymentsReconciler) ensureOwnerRef(ctx context.Context, log l
 }
 
 func (r *ClusterDeploymentsReconciler) areLogsCollected(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) (bool, error) {
-	if !swag.IsZero(cluster.ControllerLogsCollectedAt) { // timestamp update, meaning logs were collected from a controller
+	if !time.Time(cluster.ControllerLogsCollectedAt).Equal(time.Time{}) { // timestamp update, meaning logs were collected from a controller
 		return true, nil
 	}
 	for _, h := range cluster.Hosts {
@@ -1692,7 +1692,7 @@ func (r *ClusterDeploymentsReconciler) areLogsCollected(ctx context.Context, log
 			log.WithError(err).Errorf("Failed to get common host %s from cluster %s", h.ID.String(), cluster.ID.String())
 			return false, err
 		}
-		if !swag.IsZero(commonh.LogsCollectedAt) { // timestamp update, meaning logs were collected from a host
+		if !time.Time(commonh.LogsCollectedAt).Equal(time.Time{}) { // timestamp update, meaning logs were collected from a host
 			return true, nil
 		}
 	}

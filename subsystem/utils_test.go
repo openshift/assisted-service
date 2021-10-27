@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	usageMgr "github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
+	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -63,7 +64,7 @@ func clearDB() {
 		&models.ServiceNetwork{},
 		&models.MachineNetwork{},
 	} {
-		db.Unscoped().Delete(model)
+		db.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(model)
 	}
 }
 

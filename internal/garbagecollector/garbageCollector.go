@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/jinzhu/gorm"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type Config struct {
