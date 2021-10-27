@@ -99,9 +99,8 @@ spec:
       name: agents.agent-install.openshift.io
       version: v1beta1
     - description: AgentServiceConfig represents an Assisted Service deployment. Only
-        an AgentServiceConfig with name="agent" will be reconciled, for all other
-        names a "Warning" event will be emitted + message logged and it will be ignored
-        forever.
+        an AgentServiceConfig with name="agent" will be reconciled. All other names
+        will be rejected.
       displayName: Agent Service Config
       kind: AgentServiceConfig
       name: agentserviceconfigs.agent-install.openshift.io
