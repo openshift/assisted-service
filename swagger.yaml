@@ -8758,6 +8758,7 @@ definitions:
           A proxy URL to use for creating HTTPS connections outside the cluster.
           http://\<username\>:\<pswd\>@\<ip\>:\<port\>
         x-nullable: true
+        x-go-custom-tag: gorm:"column:https_proxy"
       no_proxy:
         type: string
         description: An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.

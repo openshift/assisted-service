@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: quay.io/ocpmetal/assisted-service
+  newName: quay.io/edge-infrastructure/assisted-service
   newTag: latest
 resources:
 - manager.yaml

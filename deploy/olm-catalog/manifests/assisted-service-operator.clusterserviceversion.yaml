@@ -66,8 +66,8 @@ metadata:
               {
                 "cpuArchitecture": "arm64",
                 "openshiftVersion": "4.9",
-                "rootFSUrl": "https://mirror.openshift.com/pub/openshift-v4/arm64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live-rootfs.aarch64.img",
-                "url": "https://mirror.openshift.com/pub/openshift-v4/arm64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live.aarch64.iso",
+                "rootFSUrl": "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live-rootfs.aarch64.img",
+                "url": "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live.aarch64.iso",
                 "version": "49.84.202110080947-0"
               }
             ]
@@ -76,7 +76,7 @@ metadata:
       ]
     capabilities: Basic Install
     categories: OpenShift Optional
-    containerImage: quay.io/ocpmetal/assisted-service:latest
+    containerImage: quay.io/edge-infrastructure/assisted-service:latest
     createdAt: ""
     description: The Infrastructure Operator for Red Hat OpenShift is responsible
       for managing the deployment of the Assisted Service.
@@ -151,8 +151,8 @@ spec:
     baremetal OpenShift installations.
 
     When creating the AgentServiceConfig CR. It is important to note that the
-    controller will only ever reconcile an AgentServiceConfig named "agent".
-    No other name will be accepted.
+    controller will only ever reconcile an AgentServiceConfig named "agent",
+    any other name will be ignored.
   displayName: Infrastructure Operator for Red Hat OpenShift
   icon:
   - base64data: PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4=
@@ -233,11 +233,43 @@ spec:
         - apiGroups:
           - ""
           resources:
+          - namespaces
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
           - secrets
           verbs:
           - create
           - get
           - list
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - admissionregistration.k8s.io
+          resources:
+          - validatingwebhookconfigurations
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
           - update
           - watch
         - apiGroups:
@@ -321,6 +353,18 @@ spec:
           - list
           - watch
         - apiGroups:
+          - apiregistration.k8s.io
+          resources:
+          - apiservices
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
           - apps
           resources:
           - deployments
@@ -332,6 +376,12 @@ spec:
           - patch
           - update
           - watch
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
         - apiGroups:
           - ""
           resources:
@@ -475,6 +525,30 @@ spec:
           - update
           - watch
         - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
           - route.openshift.io
           resources:
           - routes
@@ -507,21 +581,21 @@ spec:
                 - /assisted-service-operator
                 env:
                 - name: SERVICE_IMAGE
-                  value: quay.io/ocpmetal/assisted-service:latest
+                  value: quay.io/edge-infrastructure/assisted-service:latest
                 - name: IMAGE_SERVICE_IMAGE
-                  value: quay.io/app-sre/assisted-image-service:latest
+                  value: quay.io/edge-infrastructure/assisted-image-service:latest
                 - name: DATABASE_IMAGE
                   value: quay.io/ocpmetal/postgresql-12-centos7:latest
                 - name: AGENT_IMAGE
-                  value: quay.io/ocpmetal/assisted-installer-agent:latest
+                  value: quay.io/edge-infrastructure/assisted-installer-agent:latest
                 - name: CONTROLLER_IMAGE
-                  value: quay.io/ocpmetal/assisted-installer-controller:latest
+                  value: quay.io/edge-infrastructure/assisted-installer-controller:latest
                 - name: INSTALLER_IMAGE
-                  value: quay.io/ocpmetal/assisted-installer:latest
+                  value: quay.io/edge-infrastructure/assisted-installer:latest
                 - name: OPENSHIFT_VERSIONS
-                  value: '{"4.8":{"display_name":"4.8.13","release_version":"4.8.13","release_image":"quay.io/openshift-release-dev/ocp-release:4.8.13-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-live-rootfs.x86_64.img","rhcos_version":"48.84.202109241901-0","support_level":"production","default":true},"4.9":{"display_name":"4.9.0","release_version":"4.9.0","release_image":"quay.io/openshift-release-dev/ocp-release:4.9.0-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-live-rootfs.x86_64.img","rhcos_version":"49.84.202110081407-0","support_level":"production"}}'
+                  value: '{"4.8":{"display_name":"4.8.14","release_version":"4.8.14","release_image":"quay.io/openshift-release-dev/ocp-release:4.8.14-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-live-rootfs.x86_64.img","rhcos_version":"48.84.202109241901-0","support_level":"production","default":true},"4.9":{"display_name":"4.9.0","release_version":"4.9.0","release_image":"quay.io/openshift-release-dev/ocp-release:4.9.0-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-live-rootfs.x86_64.img","rhcos_version":"49.84.202110081407-0","support_level":"production"}}'
                 - name: OS_IMAGES
-                  value: '[{"openshift_version":"4.8","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-live-rootfs.x86_64.img","version":"48.84.202109241901-0"},{"openshift_version":"4.9","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-live-rootfs.x86_64.img","version":"49.84.202110081407-0"},{"openshift_version":"4.9","cpu_architecture":"arm64","url":"https://mirror.openshift.com/pub/openshift-v4/arm64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live.aarch64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/arm64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live-rootfs.aarch64.img","version":"49.84.202110080947-0"}]'
+                  value: '[{"openshift_version":"4.8","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-live-rootfs.x86_64.img","version":"48.84.202109241901-0"},{"openshift_version":"4.9","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-live-rootfs.x86_64.img","version":"49.84.202110081407-0"},{"openshift_version":"4.9","cpu_architecture":"arm64","url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live.aarch64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live-rootfs.aarch64.img","version":"49.84.202110080947-0"}]'
                 - name: SERVICE_ACCOUNT_NAME
                   valueFrom:
                     fieldRef:
@@ -534,7 +608,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: quay.io/ocpmetal/assisted-service:latest
+                image: quay.io/edge-infrastructure/assisted-service:latest
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -650,26 +724,16 @@ spec:
   provider:
     name: Red Hat
   relatedImages:
-  - image: quay.io/ocpmetal/assisted-service:latest
+  - image: quay.io/edge-infrastructure/assisted-service:latest
     name: controller
-  - image: quay.io/app-sre/assisted-image-service:latest
+  - image: quay.io/edge-infrastructure/assisted-image-service:latest
     name: image-service
   - image: quay.io/ocpmetal/postgresql-12-centos7:latest
     name: postgresql
-  - image: quay.io/ocpmetal/assisted-installer:latest
+  - image: quay.io/edge-infrastructure/assisted-installer:latest
     name: installer
-  - image: quay.io/ocpmetal/assisted-installer-agent:latest
+  - image: quay.io/edge-infrastructure/assisted-installer-agent:latest
     name: agent
-  - image: quay.io/ocpmetal/assisted-installer-controller:latest
+  - image: quay.io/edge-infrastructure/assisted-installer-controller:latest
     name: reporter
-  skips:
-  - assisted-service-operator.v0.0.1
-  - assisted-service-operator.v0.0.2
-  - assisted-service-operator.v0.0.3
-  - assisted-service-operator.v0.0.4
-  - assisted-service-operator.v0.0.5-rc.1
-  - assisted-service-operator.v0.0.5
-  - assisted-service-operator.v0.0.6
-  - assisted-service-operator.v0.0.7
-  - assisted-service-operator.v0.1.0
   version: 99.0.0-unreleased

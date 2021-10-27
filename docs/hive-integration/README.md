@@ -25,6 +25,8 @@ In the AgentClusterInstall, the user can specify requirements like Networking, n
 
 The installation will start automatically if the required number of hosts is available, the hosts are ready to be installed and the Agents are approved.
 
+Once the installation started, changes to the AgentClusterInstall Spec will be revoked.
+
 Selecting a specific OCP release version is done using a ClusterImageSet, see documentation [here](kube-api-select-ocp-versions.md).
 
 The AgentClusterInstall reflects the Cluster/Installation status through Conditions.

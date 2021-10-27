@@ -29,6 +29,7 @@ require (
 	github.com/go-openapi/validate v0.19.10
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/mock v1.5.0
+	github.com/google/go-cmp v0.5.5
 	github.com/google/renameio v0.1.0
 	github.com/google/uuid v1.1.2
 	github.com/hashicorp/go-multierror v1.1.0
@@ -46,6 +47,7 @@ require (
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
 	github.com/openshift/custom-resource-status v1.1.0
+	github.com/openshift/generic-admission-server v1.14.1-0.20210422140326-da96454c926d
 	github.com/openshift/hive/apis v0.0.0-20210506000654-5c038fb05190
 	github.com/openshift/machine-api-operator v0.2.1-0.20201002104344-6abfb5440597
 	github.com/ory/dockertest/v3 v3.6.3
@@ -74,15 +76,24 @@ require (
 	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v12.0.0+incompatible
+	k8s.io/kube-aggregator v0.20.0
 	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
 	sigs.k8s.io/controller-runtime v0.9.0
 	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (
+	github.com/coreos/etcd => github.com/coreos/etcd v3.3.13+incompatible
+	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20210409032903-31b989a197eb // Use OpenShift fork
+	go.etcd.io/bbolt => go.etcd.io/bbolt v1.3.5
+	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489 // ae9734ed278b is the SHA for git tag v3.4.13
+	google.golang.org/grpc => google.golang.org/grpc v1.27.1
 	k8s.io/api => k8s.io/api v0.21.1
+	k8s.io/apiserver => k8s.io/apiserver v0.21.1 // indirect
 	k8s.io/client-go => k8s.io/client-go v0.21.1
+	k8s.io/component-base => k8s.io/component-base v0.21.1
+	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd
 	sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20201022175424-d30c7a274820
 	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
 )

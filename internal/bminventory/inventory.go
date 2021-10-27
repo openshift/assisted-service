@@ -1266,7 +1266,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
 	updates["static_network_config"] = staticNetworkConfig
 	updates["proxy_http_proxy"] = cluster.HTTPProxy
-	updates["proxy_http_s_proxy"] = cluster.HTTPSProxy
+	updates["proxy_https_proxy"] = cluster.HTTPSProxy
 	updates["proxy_no_proxy"] = cluster.NoProxy
 	//[TODO] - remove this code once we update ignition config override in InfraEnv via UpdateDiscoveryIgnitionInternal
 	updates["ignition_config_override"] = cluster.IgnitionConfigOverrides

@@ -6,6 +6,7 @@ import copy
 import logging
 import argparse
 import tempfile
+import textwrap
 import subprocess
 
 from bs4 import BeautifulSoup
@@ -77,12 +78,14 @@ CPU_ARCHITECTURE_X86_64 = "x86_64"
 CPU_ARCHITECTURE_ARM64 = "arm64"
 CPU_ARCHITECTURE_AARCH64 = "aarch64"
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-jup",  "--jira-user-password",    help="JIRA Username and password in the format of user:pass", required=True)
     parser.add_argument("-gup",  "--github-user-password",  help="GITHUB Username and password in the format of user:pass", required=True)
     parser.add_argument("--dry-run", action='store_true',   help="test run")
     return parser.parse_args()
+
 
 def cmd(command, env=None, **kwargs):
     logging.info(f"Running command {command} with env {env} kwargs {kwargs}")
@@ -121,6 +124,7 @@ def get_rchos_version_from_iso(minor_version, rhcos_latest_release, cpu_architec
         rchos_version_from_iso = result.group(1)
         logger.info(f"Found rchos_version_from_iso: {rchos_version_from_iso}")
     return rchos_version_from_iso.split()[0]
+
 
 def create_task(args, description: str):
     jira_client = get_jira_client(*get_login(args.jira_user_password))
@@ -211,16 +215,8 @@ def open_pr(args, task, title, body):
         head=f"{github_client.get_user().login}:{branch}",
         base="master"
     )
-    hold_pr(pr)
     logging.info(f"new PR opened {pr.url}")
     return pr
-
-
-def hold_pr(pr):
-    pr.create_issue_comment('/hold')
-
-def unhold_pr(pr):
-    pr.create_issue_comment('/unhold')
 
 
 def get_latest_release_from_minor(minor_release, cpu_architecture: str):
@@ -319,6 +315,7 @@ def main(args):
 
         if dry_run:
             logger.info(f"Bump OCP versions: {updates_made_str}")
+            logger.info(f"GitHub PR description:\n{get_pr_body(updates_made)}")
             return
 
         title, task = create_jira_task(updates_made_str, dry_run, args)
@@ -491,7 +488,7 @@ def update_os_images_json(default_os_images_json, updates_made, updates_made_str
 def create_jira_task(updates_made_str, dry_run, args):
     logger.info(f"changes were made on the following versions: {updates_made_str}")
 
-    versions_str = ", ".join(updates_made_str)
+    versions_str = ", ".join(sorted(updates_made_str))
 
     if dry_run:
         _, task = None, "TEST-8888"
@@ -511,17 +508,18 @@ def create_github_pr(updates_made, title, task, args):
 
     commit_and_push_version_update_changes(task, commit_message)
 
-    github_pr = open_pr(args, task, title, body)
-
-    github_pr.create_issue_comment(f"Running all tests")
-    github_pr.create_issue_comment(f"/test all")
-
-    unhold_pr(github_pr)
+    open_pr(args, task, title, body)
 
 
 def get_pr_body(updates_made):
-    return (get_release_notes(updates_made) +
-            f'/cc {" ".join(f"@{user}" for user in PR_MENTION)}')
+    return (
+        get_release_notes(updates_made) +
+        textwrap.dedent(f"""
+            /cc {" ".join(f"@{user}" for user in PR_MENTION)}
+            /test all
+            /hold
+        """)
+    )
 
 
 def get_release_notes(updates_made):
