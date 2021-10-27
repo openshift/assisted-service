@@ -146,7 +146,7 @@ func mockInfraEnvRegisterSuccess() {
 	mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 	mockS3Client.EXPECT().IsAwsS3().Return(false)
 	mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-		eventstest.WithNameMatcher(eventgen.GenericClusterEventName))).AnyTimes()
+		eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName))).AnyTimes()
 }
 
 func mockInfraEnvUpdateSuccess() {
@@ -156,7 +156,7 @@ func mockInfraEnvUpdateSuccess() {
 	mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 	mockS3Client.EXPECT().IsAwsS3().Return(false)
 	mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-		eventstest.WithNameMatcher(eventgen.GenericClusterEventName))).AnyTimes()
+		eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName))).AnyTimes()
 }
 
 func mockInfraEnvUpdateSuccessNoImageGeneration() {
@@ -315,7 +315,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockUploadIso(cluster, nil)
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+			eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 			eventstest.WithClusterIdMatcher(clusterId.String()),
 			eventstest.WithMessageMatcher("Generated image (Image type is \"full-iso\", SSH public key is not set)")))
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -339,7 +339,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockUploadIso(cluster, nil)
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+			eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 			eventstest.WithClusterIdMatcher(clusterId.String()),
 			eventstest.WithMessageMatcher("Generated image (Image type is \"full-iso\", SSH public key is not set)")))
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -378,7 +378,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockUploadIsoInfraEnv(infraEnv, nil)
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+			eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 			eventstest.WithClusterIdMatcher(infraEnvID.String()),
 			eventstest.WithMessageMatcher("Generated image (Image type is \"\", SSH public key is not set)")))
 		err := bm.GenerateInfraEnvISOInternal(ctx, infraEnv)
@@ -398,7 +398,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockUploadIso(cluster, nil)
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+			eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 			eventstest.WithClusterIdMatcher(clusterId.String()),
 			eventstest.WithMessageMatcher("Generated image (proxy URL is \"http://1.1.1.1:1234\", Image type is \"full-iso\", SSH public key is not set)")))
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -434,7 +434,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockUploadIso(cluster, nil)
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+			eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 			eventstest.WithClusterIdMatcher(clusterId.String()),
 			eventstest.WithMessageMatcher("Generated image (Image type is \"full-iso\", SSH public key is not set)")))
 		bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -530,7 +530,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+			eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 			eventstest.WithClusterIdMatcher(clusterId.String()),
 			eventstest.WithMessageMatcher("Generated image (Image type is \"full-iso\", SSH public key is not set)")))
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -553,7 +553,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+			eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 			eventstest.WithClusterIdMatcher(clusterId.String()),
 			eventstest.WithMessageMatcher("Generated image (Image type is \"full-iso\", SSH public key is not set)")))
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -658,7 +658,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockUploadIso(cluster, nil)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes).Times(1)
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+				eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 				eventstest.WithClusterIdMatcher(clusterId.String()),
 				eventstest.WithMessageMatcher("Generated image (Image type is \"full-iso\", SSH public key is not set)")))
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -690,7 +690,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockUploadIso(cluster, nil)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes).Times(1)
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+				eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 				eventstest.WithClusterIdMatcher(clusterId.String()),
 				eventstest.WithMessageMatcher("Generated image (Image type is \"full-iso\", SSH public key is not set)")))
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -729,7 +729,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+				eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 				eventstest.WithClusterIdMatcher(clusterId.String()),
 				eventstest.WithMessageMatcher("Generated image (Image type is \"full-iso\", SSH public key is not set)")))
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -754,7 +754,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockUploadIso(cluster, nil)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(newStaticNetworkConfig).Return("new static network res").Times(1)
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+				eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 				eventstest.WithClusterIdMatcher(clusterId.String()),
 				eventstest.WithMessageMatcher("Generated image (Image type is \"full-iso\", SSH public key is not set)")))
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -822,7 +822,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+				eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 				eventstest.WithClusterIdMatcher(cluster.ID.String()),
 				eventstest.WithMessageMatcher("Generated image (Image type is \"minimal-iso\", SSH public key is not set)")))
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -842,7 +842,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			// Generate full-iso
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+				eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 				eventstest.WithClusterIdMatcher(cluster.ID.String()),
 				eventstest.WithMessageMatcher("Generated image (Image type is \"full-iso\", SSH public key is not set)")))
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -863,7 +863,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion, gomock.Any()).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+				eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 				eventstest.WithClusterIdMatcher(cluster.ID.String()),
 				eventstest.WithMessageMatcher("Generated image (Image type is \"minimal-iso\", SSH public key is not set)")))
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -1273,7 +1273,7 @@ var _ = Describe("RegisterHost", func() {
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(err).Times(1)
 
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericHostEventName),
+			eventstest.WithNameMatcher(eventgen.RegisterHostToInfraEnvFailedEventName),
 			eventstest.WithHostIdMatcher(hostID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
@@ -1390,7 +1390,7 @@ var _ = Describe("RegisterHost", func() {
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericHostEventName),
+			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
 			eventstest.WithHostIdMatcher(hostID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
@@ -1456,7 +1456,7 @@ var _ = Describe("v2RegisterHost", func() {
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(err).Times(1)
 
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericHostEventName),
+			eventstest.WithNameMatcher(eventgen.RegisterHostToInfraEnvFailedEventName),
 			eventstest.WithHostIdMatcher(hostID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
@@ -1574,7 +1574,7 @@ var _ = Describe("v2RegisterHost", func() {
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericHostEventName),
+			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
 			eventstest.WithHostIdMatcher(hostID.String()),
 			eventstest.WithInfraEnvIdMatcher(cluster.ID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
@@ -3021,7 +3021,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 
 			By("update with new data", func() {
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.GenericHostEventName),
+					eventstest.WithNameMatcher(eventgen.UpdateHostInstallProgressEventName),
 					eventstest.WithHostIdMatcher(hostID.String()),
 					eventstest.WithInfraEnvIdMatcher(clusterID.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -3118,7 +3118,7 @@ var _ = Describe("V2UpdateHostInstallProgress", func() {
 
 			By("update with new data", func() {
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.GenericHostEventName),
+					eventstest.WithNameMatcher(eventgen.UpdateHostInstallProgressEventName),
 					eventstest.WithHostIdMatcher(hostID.String()),
 					eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -5573,7 +5573,7 @@ var _ = Describe("cluster", func() {
 			mockClusterDeleteLogsSuccess(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+				eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 				eventstest.WithClusterIdMatcher(clusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
 
@@ -5705,7 +5705,7 @@ var _ = Describe("cluster", func() {
 			mockHandlePreInstallationSuccess(mockClusterApi, DoneChannel)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.GenericClusterEventName),
+				eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName),
 				eventstest.WithClusterIdMatcher(clusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).MinTimes(0)
 
@@ -7658,7 +7658,7 @@ var _ = Describe("infraEnvs", func() {
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.GenericClusterEventName)))
+				eventstest.WithNameMatcher(eventgen.GeneratedImageWithIgnitionConfigEventName)))
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.RegisteredInfraEnvEventName)))
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
@@ -12192,7 +12192,7 @@ var _ = Describe("BindHost", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericHostEventName),
+			eventstest.WithNameMatcher(eventgen.RegisterHostToInfraEnvFailedEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -12279,7 +12279,7 @@ var _ = Describe("BindHost", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericHostEventName),
+			eventstest.WithNameMatcher(eventgen.RegisterHostToInfraEnvFailedEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -12324,7 +12324,7 @@ var _ = Describe("UnbindHost", func() {
 			InfraEnvID: infraEnvID,
 		}
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.GenericHostEventName),
+			eventstest.WithNameMatcher(eventgen.RegisterHostToInfraEnvFailedEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))

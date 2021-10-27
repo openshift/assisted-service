@@ -2443,7 +2443,7 @@ var _ = Describe("Deregister inactive clusters", func() {
 
 	registerCluster := func() common.Cluster {
 		id := strfmt.UUID(uuid.New().String())
-		eventgen.SendGenericClusterEvent(ctx, eventsHandler, id, "", "")
+		eventgen.SendDeregisterInactiveClustersEvent(ctx, eventsHandler, id, "")
 		cl := common.Cluster{Cluster: models.Cluster{
 			ID:                 &id,
 			MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
@@ -2551,7 +2551,7 @@ var _ = Describe("Permanently delete clusters", func() {
 
 	registerCluster := func() common.Cluster {
 		id := strfmt.UUID(uuid.New().String())
-		eventgen.SendGenericClusterEvent(ctx, eventsHandler, id, "", models.EventSeverityInfo)
+		eventgen.SendPermanentlyDeleteClustersEvent(ctx, eventsHandler, id, "")
 		c := common.Cluster{Cluster: models.Cluster{
 			ID:                 &id,
 			MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
