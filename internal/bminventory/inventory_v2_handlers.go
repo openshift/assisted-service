@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -340,10 +340,8 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 		if err != nil {
 			return err
 		}
-
-		b.eventsHandler.AddEvent(ctx, dbHost.InfraEnvID, params.HostID, models.EventSeverityInfo,
-			fmt.Sprintf("Uploaded logs for host %s cluster %s",
-				hostutil.GetHostnameForMsg(&dbHost.Host), params.ClusterID.String()), time.Now())
+		eventgen.SendHostLogsUploadedEvent(ctx, b.eventsHandler, &params.ClusterID, *params.HostID, dbHost.InfraEnvID,
+			hostutil.GetHostnameForMsg(&dbHost.Host))
 		return nil
 	}
 
@@ -374,9 +372,7 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 		if firstClusterLogCollectionEvent { // Issue an event only for the very first cluster log collection event.
-			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
-				fmt.Sprintf("Uploaded logs for cluster %s",
-					params.ClusterID.String()), time.Now())
+			eventgen.SendClusterLogsUploadedEvent(ctx, b.eventsHandler, params.ClusterID)
 		}
 	}
 
