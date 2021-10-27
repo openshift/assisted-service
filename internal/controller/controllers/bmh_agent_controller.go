@@ -708,10 +708,9 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileError{err}
 	}
 
-	machine, err := r.ensureSpokeMachine(ctx, log, spokeClient, bmh, cd, checksum, url)
-	if err != nil {
-		log.WithError(err).Errorf("failed to create or update spoke Machine")
-		return reconcileError{err}
+	machineNSName := types.NamespacedName{
+		Name:      fmt.Sprintf("%s-%s", cd.Name, bmh.Name),
+		Namespace: OPENSHIFT_MACHINE_API_NAMESPACE,
 	}
 
 	key = types.NamespacedName{
@@ -724,10 +723,15 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileError{err}
 	}
 
-	_, err = r.ensureSpokeBMH(ctx, log, spokeClient, bmh, machine, agent)
-
+	_, err = r.ensureSpokeBMH(ctx, log, spokeClient, bmh, machineNSName, agent)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create or update spoke BareMetalHost")
+		return reconcileError{err}
+	}
+
+	_, err = r.ensureSpokeMachine(ctx, log, spokeClient, bmh, cd, machineNSName, checksum, url)
+	if err != nil {
+		log.WithError(err).Errorf("failed to create or update spoke Machine")
 		return reconcileError{err}
 	}
 
@@ -960,8 +964,8 @@ func (r *BMACReconciler) findBMHByInfraEnv(ctx context.Context, infraEnv *aiv1be
 	return bmhs, nil
 }
 
-func (r *BMACReconciler) ensureSpokeBMH(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, machine *machinev1beta1.Machine, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
-	bmhSpoke, mutateFn := r.newSpokeBMH(log, bmh, machine, agent)
+func (r *BMACReconciler) ensureSpokeBMH(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, machineName types.NamespacedName, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
+	bmhSpoke, mutateFn := r.newSpokeBMH(log, bmh, machineName, agent)
 	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, bmhSpoke, mutateFn); err != nil {
 		return nil, err
 	} else if result != controllerutil.OperationResultNone {
@@ -991,8 +995,8 @@ func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, log logrus.Field
 	return checksum, url, err
 }
 
-func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, checksum string, URL string) (*machinev1beta1.Machine, error) {
-	machineSpoke, mutateFn := r.newSpokeMachine(bmh, clusterDeployment, checksum, URL)
+func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, checksum string, URL string) (*machinev1beta1.Machine, error) {
+	machineSpoke, mutateFn := r.newSpokeMachine(bmh, clusterDeployment, machineName, checksum, URL)
 	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, machineSpoke, mutateFn); err != nil {
 		return nil, err
 	} else if result != controllerutil.OperationResultNone {
@@ -1111,7 +1115,7 @@ func (r *BMACReconciler) ensureSpokeBMHSecret(ctx context.Context, log logrus.Fi
 	return secretSpoke, nil
 }
 
-func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, machine *machinev1beta1.Machine, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, controllerutil.MutateFn) {
+func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, machineName types.NamespacedName, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, controllerutil.MutateFn) {
 	bmhSpoke := &bmh_v1alpha1.BareMetalHost{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      bmh.Name,
@@ -1125,10 +1129,10 @@ func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.B
 		bmhSpoke.Spec.ExternallyProvisioned = true
 		bmhSpoke.Spec.Image = bmh.Spec.Image
 		bmhSpoke.Spec.ConsumerRef = &corev1.ObjectReference{
-			APIVersion: machine.APIVersion,
-			Kind:       machine.Kind,
-			Name:       machine.Name,
-			Namespace:  machine.Namespace,
+			APIVersion: machinev1beta1.SchemeGroupVersion.String(),
+			Kind:       "Machine",
+			Name:       machineName.Name,
+			Namespace:  machineName.Namespace,
 		}
 		// copy annotations. hardwaredetails annotations is needed for automatic csr approval
 		// We don't copy all annotations because there are some annotations that should not be
@@ -1164,12 +1168,11 @@ func (r *BMACReconciler) newSpokeBMHSecret(secret *corev1.Secret) (*corev1.Secre
 	return secretSpoke, mutateFn
 }
 
-func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, checksum string, URL string) (*machinev1beta1.Machine, controllerutil.MutateFn) {
-	machineName := fmt.Sprintf("%s-%s", clusterDeployment.Name, bmh.Name)
+func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, checksum string, URL string) (*machinev1beta1.Machine, controllerutil.MutateFn) {
 	machine := &machinev1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      machineName,
-			Namespace: OPENSHIFT_MACHINE_API_NAMESPACE,
+			Name:      machineName.Name,
+			Namespace: machineName.Namespace,
 		},
 	}
 	mutateFn := func() error {

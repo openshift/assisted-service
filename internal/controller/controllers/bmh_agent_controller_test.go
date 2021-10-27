@@ -805,6 +805,8 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
 
+				machineName := fmt.Sprintf("%s-%s", cluster.Name, host.Name)
+
 				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
 				spokeClient := bmhr.spokeClient
 				err = spokeClient.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)
@@ -813,9 +815,12 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(spokeBMH.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]).To(Equal(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]))
 				Expect(spokeBMH.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
 				Expect(spokeBMH.Spec.Image).To(Equal(updatedHost.Spec.Image))
+				Expect(spokeBMH.Spec.ConsumerRef.Kind).To(Equal("Machine"))
+				Expect(spokeBMH.Spec.ConsumerRef.Name).To(Equal(machineName))
+				Expect(spokeBMH.Spec.ConsumerRef.Namespace).To(Equal(OPENSHIFT_MACHINE_API_NAMESPACE))
+				Expect(spokeBMH.Spec.ConsumerRef.APIVersion).To(Equal(machinev1beta1.SchemeGroupVersion.String()))
 
 				spokeMachine := &machinev1beta1.Machine{}
-				machineName := fmt.Sprintf("%s-%s", cluster.Name, spokeBMH.Name)
 				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeMachine)
 				Expect(err).To(BeNil())
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(machinev1beta1.MachineClusterIDLabel))
