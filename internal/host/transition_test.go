@@ -4872,7 +4872,7 @@ var _ = Describe("Refresh Host", func() {
 
 		for i := range tests {
 			t := tests[i]
-			FIt(t.name, func() {
+			It(t.name, func() {
 				hosts := []*models.Host{}
 				for n := 0; n < len(t.IPAddressPool); n++ {
 					netAddr := common.NetAddress{Hostname: fmt.Sprintf("%s-%d", t.hostRole, n)}
