@@ -71,12 +71,11 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    usageNameToID(usage.VipDhcpAllocationUsage),
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelTechPreview,
 			},
-			// Dev-Preview
+			// Unsupported features
 			{
 				FeatureID:    usageNameToID(usage.CPUArchitectureARM64),
-				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
-			// Unsupported features
 			{
 				FeatureID:    usageNameToID(usage.UserManagedNetworkWithVMs),
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
