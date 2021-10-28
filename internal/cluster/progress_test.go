@@ -18,24 +18,28 @@ import (
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/sqllite"
 	"github.com/openshift/assisted-service/models"
 )
 
 var _ = Describe("Progress bar test", func() {
 
 	var (
-		ctx             = context.Background()
-		db              *gorm.DB
-		dbName          string
-		ctrl            *gomock.Controller
-		clusterApi      *Manager
-		mockEvents      *eventsapi.MockHandler
-		mockHostAPI     *host.MockAPI
-		mockMetric      *metrics.MockAPI
-		mockOperatorApi *operators.MockAPI
-		mockDnsApi      *dns.MockDNSApi
+		ctx                       = context.Background()
+		db                        *gorm.DB
+		dbName                    string
+		ctrl                      *gomock.Controller
+		clusterApi                *Manager
+		mockEvents                *eventsapi.MockHandler
+		mockHostAPI               *host.MockAPI
+		mockMetric                *metrics.MockAPI
+		mockOperatorApi           *operators.MockAPI
+		mockDnsApi                *dns.MockDNSApi
+		mockExtracter             *oc.MockExtracter
+		mockOperatorVersionReader *sqllite.MockOperatorVersionReader
 	)
 
 	BeforeEach(func() {
@@ -46,8 +50,10 @@ var _ = Describe("Progress bar test", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockOperatorApi = operators.NewMockAPI(ctrl)
 		mockDnsApi = dns.NewMockDNSApi(ctrl)
+		mockExtracter = oc.NewMockExtracter(ctrl)
+		mockOperatorVersionReader = sqllite.NewMockOperatorVersionReader(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, mockOperatorApi, nil, nil, mockDnsApi)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, mockOperatorApi, nil, nil, mockDnsApi, mockExtracter, mockOperatorVersionReader)
 	})
 
 	AfterEach(func() {
@@ -289,6 +295,9 @@ var _ = Describe("Progress bar test", func() {
 			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
 				eventstest.WithClusterIdMatcher(clusterId.String())))
+
+			mockExtracter.EXPECT().ExtractDatabaseIndex(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
+			mockOperatorVersionReader.EXPECT().GetOperatorVersionsFromDB(gomock.Any(), gomock.Any()).Return([]string{"", ""}, nil).AnyTimes()
 
 			cAfterRefresh, err := clusterApi.RefreshStatus(ctx, &c, db)
 			Expect(err).NotTo(HaveOccurred())

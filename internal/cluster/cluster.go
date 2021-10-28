@@ -28,7 +28,9 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/sqllite"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/pkg/leader"
@@ -154,11 +156,13 @@ type Manager struct {
 	objectHandler         s3wrapper.API
 	dnsApi                dns.DNSApi
 	monitorQueryGenerator *common.MonitorClusterQueryGenerator
+	extracter             oc.Extracter
+	operatorVersionReader sqllite.OperatorVersionReader
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler,
 	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
-	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API, dnsApi dns.DNSApi) *Manager {
+	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API, dnsApi dns.DNSApi, extracter oc.Extracter, operatorVersionReader sqllite.OperatorVersionReader) *Manager {
 	th := &transitionHandler{
 		log:                 log,
 		db:                  db,
@@ -184,6 +188,8 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		ocmClient:             ocmClient,
 		objectHandler:         objectHandler,
 		dnsApi:                dnsApi,
+		extracter:             extracter,
+		operatorVersionReader: operatorVersionReader,
 	}
 }
 
@@ -350,6 +356,12 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 		newValidationRes map[string][]ValidationResult
 	)
 	vc = newClusterValidationContext(c, db)
+
+	err = m.getOperatorVersions(vc)
+	if err != nil {
+		return nil, err
+	}
+
 	conditions, newValidationRes, err = m.rp.preprocess(ctx, vc)
 	if err != nil {
 		return c, err
@@ -1233,6 +1245,26 @@ func (m *Manager) TransformClusterToDay2(ctx context.Context, cluster *common.Cl
 		err := errors.Errorf("failed to update cluster: %s", cluster.ID.String())
 		log.Error(err)
 		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return nil
+}
+
+// getOperatorVersions is used to get the versions all the monitored operators
+func (m *Manager) getOperatorVersions(vc *clusterPreprocessContext) error {
+
+	// extracting db file form extracter
+	dbFileName, err := m.extracter.ExtractDatabaseIndex("", vc.cluster.OpenshiftVersion, vc.cluster.PullSecret)
+	if err != nil {
+		return err
+	}
+
+	// querying the db for every monitored operator
+	for _, operator := range vc.cluster.MonitoredOperators {
+		versions, err := m.operatorVersionReader.GetOperatorVersionsFromDB(dbFileName, operator.BundleName)
+		if err != nil {
+			return err
+		}
+		vc.cluster.OperatorVersions = common.OperatorVersion{OperatorName: operator.Name, Versions: versions}
 	}
 	return nil
 }

@@ -63,8 +63,15 @@ type Cluster struct {
 
 	// StaticNetworkConfigured indicates if static network configuration was set for the ISO used by clusters' nodes
 	StaticNetworkConfigured bool `json:"static_network_configured"`
+
+	// OperatorVersions
+	OperatorVersions OperatorVersion `json:"operator_versions"`
 }
 
+type OperatorVersion struct {
+	OperatorName string   `json:"operator_name"`
+	Versions     []string `json:"versions"`
+}
 type Event struct {
 	gorm.Model
 	models.Event

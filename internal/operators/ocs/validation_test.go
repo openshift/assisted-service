@@ -17,8 +17,10 @@ import (
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/sqllite"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
@@ -88,6 +90,8 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockHostAPI                                   *host.MockAPI
 		mockMetric                                    *metrics.MockAPI
 		ctrl                                          *gomock.Controller
+		mockExtracter                                 *oc.MockExtracter
+		mockOperatorVersionReader                     *sqllite.MockOperatorVersionReader
 		dbName                                        string
 		diskID1                                       = "/dev/disk/by-id/test-disk-1"
 		diskID2                                       = "/dev/disk/by-id/test-disk-2"
@@ -107,11 +111,13 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
+		mockExtracter = oc.NewMockExtracter(ctrl)
+		mockOperatorVersionReader = sqllite.NewMockOperatorVersionReader(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		var cfg clust.Config
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		clusterApi = clust.NewManager(cfg, common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, mockExtracter, mockOperatorVersionReader)
 
 		hid1 = strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d")
 		hid2 = strfmt.UUID("514c8480-cda5-46e5-afce-e146def2066f")
@@ -825,6 +831,10 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			if t.srcState != t.dstState {
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 			}
+
+			mockExtracter.EXPECT().ExtractDatabaseIndex(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
+			mockOperatorVersionReader.EXPECT().GetOperatorVersionsFromDB(gomock.Any(), gomock.Any()).Return([]string{}, nil).AnyTimes()
+
 			clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 			if t.errorExpected {
 				Expect(err).To(HaveOccurred())

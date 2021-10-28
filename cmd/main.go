@@ -45,6 +45,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/handler"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/spec"
+	"github.com/openshift/assisted-service/internal/sqllite"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -358,8 +359,11 @@ func main() {
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager, providerRegistry)
 	dnsApi := dns.NewDNSHandler(Options.BMConfig.BaseDNSDomains, log)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig)
+	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
+		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}, log)
+	operatorVersionHandler := sqllite.NewOperatorVersionReader(log)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi)
+		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi, extracterHandler, operatorVersionHandler)
 
 	clusterStateMonitor := thread.New(
 		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
