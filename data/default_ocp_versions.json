@@ -9,18 +9,18 @@
         "support_level": "production"
     },
     "4.7": {
-        "display_name": "4.7.33",
-        "release_version": "4.7.33",
-        "release_image": "quay.io/openshift-release-dev/ocp-release:4.7.33-x86_64",
+        "display_name": "4.7.34",
+        "release_version": "4.7.34",
+        "release_image": "quay.io/openshift-release-dev/ocp-release:4.7.34-x86_64",
         "rhcos_image": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.33/rhcos-4.7.33-x86_64-live.x86_64.iso",
         "rhcos_rootfs": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.33/rhcos-live-rootfs.x86_64.img",
         "rhcos_version": "47.84.202109241831-0",
         "support_level": "production"
     },
     "4.8": {
-        "display_name": "4.8.14",
-        "release_version": "4.8.14",
-        "release_image": "quay.io/openshift-release-dev/ocp-release:4.8.14-x86_64",
+        "display_name": "4.8.15",
+        "release_version": "4.8.15",
+        "release_image": "quay.io/openshift-release-dev/ocp-release:4.8.15-x86_64",
         "rhcos_image": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso",
         "rhcos_rootfs": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-live-rootfs.x86_64.img",
         "rhcos_version": "48.84.202109241901-0",
