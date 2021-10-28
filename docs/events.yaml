@@ -211,13 +211,14 @@ x-events:
     infra_env_id: UUID
 
 - name: host_deregistered_cluster
-  message: "Host deregistered from cluster"
+  message: "Host {host_name} deregistered"
   event_type: host
   severity: "info"
   properties:
     cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    host_name: string
 
 - name: host_installer_args_applied
   message: "Host {host_name}: custom installer arguments were applied"
@@ -510,22 +511,24 @@ x-events:
     fdatasync_duration: int64
 
 - name: disable_host_failed_fetch
-  message: "Failed to disable host: error fetching host from DB"
+  message: "Failed to disable host {host_name}: error fetching host from DB"
   event_type: host
   severity: "error"
   properties:
     cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    host_name: string
 
 - name: disable_host_failed_disable
-  message: "Failed to disable host: error disabling host in current status"
+  message: "Failed to disable host {host_name}: error disabling host in current status"
   event_type: host
   severity: "error"
   properties:
     cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    host_name: string
 
 - name: host_disabled_by_user
   message: "Host {host_name} disabled by user"
@@ -538,13 +541,14 @@ x-events:
     host_name: string
 
 - name: enable_host_failed_fetch
-  message: "Failed to enable host: error fetching host from DB"
+  message: "Failed to enable host {host_name}: error fetching host from DB"
   event_type: host
   severity: "error"
   properties:
     cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    host_name: string
 
 - name: enable_host_failed_disable
   message: "Failed to enable host {host_name}: error disabling host in current status"
@@ -576,12 +580,13 @@ x-events:
     host_name: string
 
 - name: host_reset_failed_fetch
-  message: "Failed to reset host: error fetching host from DB"
+  message: "Failed to reset host {host_name}: error fetching host from DB"
   event_type: host
   severity: "error"
   properties:
     host_id: UUID
     infra_env_id: UUID
+    host_name: string
 
 - name: host_logs_uploaded
   message: "Uploaded logs for host {host_name} cluster {cluster_id}"

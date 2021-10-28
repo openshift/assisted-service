@@ -3659,13 +3659,18 @@ func (b *bareMetalInventory) DeregisterHostInternal(ctx context.Context, params 
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Deregister host: %s cluster %s", params.HostID, params.ClusterID)
 
+	h, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	if err := b.hostApi.UnRegisterHost(ctx, params.HostID.String(), params.ClusterID.String()); err != nil {
 		// TODO: check error type
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	// TODO: need to check that host can be deleted from the cluster
-	eventgen.SendHostDeregisteredClusterEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID)
+	eventgen.SendHostDeregisteredClusterEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
 	return nil
 }
 
@@ -3673,7 +3678,11 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Deregister host: %s infra env %s", params.HostID, params.InfraEnvID)
 
-	if err := b.hostApi.UnRegisterHost(ctx, params.HostID.String(), params.InfraEnvID.String()); err != nil {
+	h, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if err = b.hostApi.UnRegisterHost(ctx, params.HostID.String(), params.InfraEnvID.String()); err != nil {
 		// TODO: check error type
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -3686,7 +3695,7 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 		return err
 	}
 	clusterID = infraEnv.ClusterID
-	eventgen.SendHostDeregisteredClusterEvent(ctx, b.eventsHandler, &clusterID, params.HostID, params.InfraEnvID)
+	eventgen.SendHostDeregisteredClusterEvent(ctx, b.eventsHandler, &clusterID, params.HostID, params.InfraEnvID, hostutil.GetHostnameForMsg(&h.Host))
 	return nil
 }
 
@@ -4135,13 +4144,13 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", params.HostID)
-		eventgen.SendDisableHostFailedFetchEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID)
+		eventgen.SendDisableHostFailedFetchEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&host.Host))
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if err = b.hostApi.DisableHost(ctx, &host.Host, tx); err != nil {
 		log.WithError(err).Errorf("failed to disable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
-		eventgen.SendDisableHostFailedDisableEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID)
+		eventgen.SendDisableHostFailedDisableEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&host.Host))
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
 
@@ -4193,7 +4202,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", params.HostID)
-		eventgen.SendEnableHostFailedFetchEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID)
+		eventgen.SendEnableHostFailedFetchEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&host.Host))
 
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -5000,7 +5009,7 @@ func (b *bareMetalInventory) resetHost(ctx context.Context, hostId, infraEnvId s
 			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", hostId)
-		eventgen.SendHostResetFailedFetchEvent(ctx, b.eventsHandler, hostId, infraEnvId)
+		eventgen.SendHostResetFailedFetchEvent(ctx, b.eventsHandler, hostId, infraEnvId, hostutil.GetHostnameForMsg(&host.Host))
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
