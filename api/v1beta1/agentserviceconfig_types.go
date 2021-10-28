@@ -55,17 +55,14 @@ type AgentServiceConfigSpec struct {
 	// FileSystemStorage defines the spec of the PersistentVolumeClaim to be
 	// created for the assisted-service's filesystem (logs, etc).
 	// With respect to the resource requests, the amount of filesystem storage
-	// consumer will depend largely on the number of clusters you intend to create.
-	// Approximate storage requiremens include:
-	//   - ~200 MB per cluster
-	//   - ~2-3 GB per supported OpenShift version
-	// 20Gi is the recommended minimum for development/testing and 100Gi is recommended
-	// for everything else.
+	// consumed will depend largely on the number of clusters created (~200MB
+	// per cluster and ~2-3GiB per supported OpenShift version). Minimum 100GiB
+	// recommended.
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Storage for service filesystem"
 	FileSystemStorage corev1.PersistentVolumeClaimSpec `json:"filesystemStorage"`
 	// DatabaseStorage defines the spec of the PersistentVolumeClaim to be
 	// created for the database's filesystem.
-	// With respect to the resource requests, a minimum of 10Gi is recommended.
+	// With respect to the resource requests, minimum 10GiB is recommended.
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Storage for database"
 	DatabaseStorage corev1.PersistentVolumeClaimSpec `json:"databaseStorage"`
 	// MirrorRegistryRef is the reference to the configmap that contains mirror registry configuration
