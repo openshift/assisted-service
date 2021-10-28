@@ -36,7 +36,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: AgentServiceConfigSpec defines the desired state of AgentServiceConfig
+            description: AgentServiceConfigSpec defines the desired state of AgentServiceConfig.
             properties:
               databaseStorage:
                 description: DatabaseStorage defines the spec of the PersistentVolumeClaim
