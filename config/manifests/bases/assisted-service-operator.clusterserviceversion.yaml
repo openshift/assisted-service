@@ -29,16 +29,14 @@ spec:
       specDescriptors:
       - description: DatabaseStorage defines the spec of the PersistentVolumeClaim
           to be created for the database's filesystem. With respect to the resource
-          requests, a minimum of 10Gi is recommended.
+          requests, minimum 10GiB is recommended.
         displayName: Storage for database
         path: databaseStorage
-      - description: 'FileSystemStorage defines the spec of the PersistentVolumeClaim
-          to be created for the assisted-service''s filesystem (logs, etc). With respect
-          to the resource requests, the amount of filesystem storage consumer will
-          depend largely on the number of clusters you intend to create. Approximate
-          storage requiremens include:   - ~200 MB per cluster   - ~2-3 GB per supported
-          OpenShift version 20Gi is the recommended minimum for development/testing
-          and 100Gi is recommended for everything else.'
+      - description: FileSystemStorage defines the spec of the PersistentVolumeClaim
+          to be created for the assisted-service's filesystem (logs, etc). With respect
+          to the resource requests, the amount of filesystem storage consumed will
+          depend largely on the number of clusters created (~200MB per cluster and
+          ~2-3GiB per supported OpenShift version). Minimum 100GiB recommended.
         displayName: Storage for service filesystem
         path: filesystemStorage
       - description: 'MirrorRegistryRef is the reference to the configmap that contains
