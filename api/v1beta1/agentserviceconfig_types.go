@@ -50,7 +50,7 @@ type MustGatherImage struct {
 	Url string `json:"url"`
 }
 
-// AgentServiceConfigSpec defines the desired state of AgentServiceConfig
+// AgentServiceConfigSpec defines the desired state of AgentServiceConfig.
 type AgentServiceConfigSpec struct {
 	// FileSystemStorage defines the spec of the PersistentVolumeClaim to be
 	// created for the assisted-service's filesystem (logs, etc).
