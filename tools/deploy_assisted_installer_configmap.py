@@ -6,7 +6,7 @@ import subprocess
 
 import deployment_options
 import utils
-from handle_ocp_versions import verify_ocp_versions
+from handle_ocp_versions import verify_images
 
 
 def handle_arguments():
@@ -51,8 +51,7 @@ def get_deployment_tag(args):
 
 def main():
     utils.verify_build_directory(deploy_options.namespace)
-    verify_ocp_versions(ocp_versions=None, release_images=json.loads(json.loads(f'"{deploy_options.release_images}"')))
-
+    verify_images(release_images=json.loads(json.loads('"{}"'.format(deploy_options.release_images))))
     with open(SRC_FILE, "r") as src:
         with open(DST_FILE, "w+") as dst:
             data = src.read()
