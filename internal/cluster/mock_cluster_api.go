@@ -41,17 +41,17 @@ func (m *MockRegistrationAPI) EXPECT() *MockRegistrationAPIMockRecorder {
 }
 
 // DeregisterCluster mocks base method.
-func (m *MockRegistrationAPI) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockRegistrationAPI) DeregisterCluster(ctx context.Context, c *common.Cluster, deleteHosts bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeregisterCluster", ctx, c)
+	ret := m.ctrl.Call(m, "DeregisterCluster", ctx, c, deleteHosts)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeregisterCluster indicates an expected call of DeregisterCluster.
-func (mr *MockRegistrationAPIMockRecorder) DeregisterCluster(ctx, c interface{}) *gomock.Call {
+func (mr *MockRegistrationAPIMockRecorder) DeregisterCluster(ctx, c, deleteHosts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).DeregisterCluster), ctx, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).DeregisterCluster), ctx, c, deleteHosts)
 }
 
 // RegisterAddHostsCluster mocks base method.
@@ -307,17 +307,17 @@ func (mr *MockAPIMockRecorder) DeleteClusterLogs(ctx, c, objectHandler interface
 }
 
 // DeregisterCluster mocks base method.
-func (m *MockAPI) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockAPI) DeregisterCluster(ctx context.Context, c *common.Cluster, deleteHosts bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeregisterCluster", ctx, c)
+	ret := m.ctrl.Call(m, "DeregisterCluster", ctx, c, deleteHosts)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeregisterCluster indicates an expected call of DeregisterCluster.
-func (mr *MockAPIMockRecorder) DeregisterCluster(ctx, c interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) DeregisterCluster(ctx, c, deleteHosts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterCluster", reflect.TypeOf((*MockAPI)(nil).DeregisterCluster), ctx, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterCluster", reflect.TypeOf((*MockAPI)(nil).DeregisterCluster), ctx, c, deleteHosts)
 }
 
 // DeregisterInactiveCluster mocks base method.

@@ -2961,7 +2961,7 @@ var _ = Describe("Validation metrics and events", func() {
 		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.DeregisteredClusterEventName),
 			eventstest.WithClusterIdMatcher(c.ID.String())))
-		err := m.DeregisterCluster(ctx, c)
+		err := m.DeregisterCluster(ctx, c, true)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -2973,7 +2973,7 @@ var _ = Describe("Validation metrics and events", func() {
 		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.DeregisteredClusterEventName),
 			eventstest.WithClusterIdMatcher(c.ID.String())))
-		err := m.DeregisterCluster(ctx, c)
+		err := m.DeregisterCluster(ctx, c, true)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 

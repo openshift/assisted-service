@@ -73,7 +73,7 @@ type RegistrationAPI interface {
 	// Register a new add-host-ocp cluster
 	RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error
 	//deregister cluster
-	DeregisterCluster(ctx context.Context, c *common.Cluster) error
+	DeregisterCluster(ctx context.Context, c *common.Cluster, deleteHosts bool) error
 }
 
 type InstallationAPI interface {
@@ -212,7 +212,7 @@ func (m *Manager) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) err
 	return m.registrationAPI.RegisterAddHostsOCPCluster(c, db)
 }
 
-func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
+func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster, deleteHosts bool) error {
 
 	var metricsErr error
 	for _, h := range c.Hosts {
@@ -244,7 +244,7 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 		}
 	}
 
-	err = m.registrationAPI.DeregisterCluster(ctx, c)
+	err = m.registrationAPI.DeregisterCluster(ctx, c, deleteHosts)
 	if err != nil {
 		eventgen.SendClusterDeregisterFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error())
 	} else {
@@ -1062,7 +1062,7 @@ func (m Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPer
 	for _, c := range clusters {
 		eventgen.SendClusterDeregisteredAfterInactivityEvent(ctx, m.eventsHandler, *c.ID)
 		log.Infof("Cluster %s is deregistered due to inactivity since %s", c.ID, c.UpdatedAt)
-		if err := m.DeregisterCluster(ctx, c); err != nil {
+		if err := m.DeregisterCluster(ctx, c, true); err != nil {
 			log.WithError(err).Errorf("failed to deregister inactive cluster %s ", c.ID)
 			continue
 		}

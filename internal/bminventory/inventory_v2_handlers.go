@@ -55,7 +55,7 @@ func (b *bareMetalInventory) V2GetCluster(ctx context.Context, params installer.
 }
 
 func (b *bareMetalInventory) V2DeregisterCluster(ctx context.Context, params installer.V2DeregisterClusterParams) middleware.Responder {
-	if err := b.DeregisterClusterInternal(ctx, params); err != nil {
+	if err := b.DeregisterClusterInternal(ctx, params, true); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2DeregisterClusterNoContent()

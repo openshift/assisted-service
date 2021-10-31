@@ -822,7 +822,7 @@ var _ = Describe("cluster reconcile", func() {
 				},
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
-			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
+			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any(), false).Return(nil)
 
 			simulateACIDeletionWithFinalizer(ctx, c, aci)
 			request := newClusterDeploymentRequest(cd)
@@ -839,7 +839,7 @@ var _ = Describe("cluster reconcile", func() {
 				},
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
-			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
+			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any(), false).Return(nil)
 			mockInstallerInternal.EXPECT().CancelInstallationInternal(gomock.Any(), gomock.Any()).Return(backEndCluster, nil).Times(1)
 
 			simulateACIDeletionWithFinalizer(ctx, c, aci)
@@ -856,7 +856,7 @@ var _ = Describe("cluster reconcile", func() {
 				},
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
-			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(errors.New("internal error"))
+			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any(), false).Return(errors.New("internal error"))
 
 			expectedErrMsg := fmt.Sprintf("failed to deregister cluster: %s: internal error", cd.Name)
 
@@ -876,7 +876,7 @@ var _ = Describe("cluster reconcile", func() {
 				},
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
-			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
+			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any(), false).Return(nil)
 			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
 			simulateACIDeletionWithFinalizer(ctx, c, aci)

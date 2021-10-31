@@ -66,7 +66,7 @@ var _ = Describe("registrar", func() {
 			cluster = getClusterFromDB(*cluster.ID, db)
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 
-			updateErr = registerManager.DeregisterCluster(ctx, &cluster)
+			updateErr = registerManager.DeregisterCluster(ctx, &cluster, true)
 			Expect(updateErr).ShouldNot(HaveOccurred())
 			Expect(db.First(&common.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(0)))
 			Expect(db.Unscoped().First(&common.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(1)))
@@ -98,7 +98,7 @@ var _ = Describe("registrar", func() {
 		})
 
 		It("unregister a registered cluster", func() {
-			updateErr = registerManager.DeregisterCluster(ctx, &cluster)
+			updateErr = registerManager.DeregisterCluster(ctx, &cluster, true)
 			Expect(updateErr).Should(BeNil())
 
 			_, err := common.GetClusterFromDB(db, *cluster.ID, common.UseEagerLoading)
@@ -117,7 +117,7 @@ var _ = Describe("registrar", func() {
 			cluster.Status = swag.String("installing")
 			Expect(db.Model(cluster).Update("Status", "installing").Error).NotTo(HaveOccurred())
 
-			updateErr = registerManager.DeregisterCluster(ctx, &cluster)
+			updateErr = registerManager.DeregisterCluster(ctx, &cluster, true)
 			Expect(updateErr).Should(HaveOccurred())
 
 			db.First(&cluster, "id = ?", cluster.ID)

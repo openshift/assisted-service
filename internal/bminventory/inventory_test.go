@@ -11324,7 +11324,7 @@ var _ = Describe("AMS subscriptions", func() {
 			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true, gomock.Any()).Return(nil)
 			mockClusterRegisterSteps()
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any(), clusterName).Return(nil, errors.New("dummy"))
-			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
+			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any(), true)
 
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String(clusterName)
@@ -11340,7 +11340,7 @@ var _ = Describe("AMS subscriptions", func() {
 			mockClusterRegisterSteps()
 			mockAMSSubscription(ctx)
 			mockClusterApi.EXPECT().UpdateAmsSubscriptionID(ctx, gomock.Any(), strfmt.UUID("")).Return(common.NewApiError(http.StatusInternalServerError, errors.New("dummy")))
-			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
+			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any(), true)
 			mockAccountsMgmt.EXPECT().DeleteSubscription(ctx, strfmt.UUID("")).Return(nil)
 
 			clusterParams := getDefaultClusterCreateParams()

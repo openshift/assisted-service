@@ -1059,13 +1059,14 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 		return buildReply(err)
 	}
 
-	if err = r.Installer.DeregisterClusterInternal(ctx, installer.V2DeregisterClusterParams{
-		ClusterID: *c.ID,
-	}); err != nil {
+	// Delete or unbind agents because their backend cluster is going to be deregistered.
+	if err = r.DeleteOrUnbindClusterDeploymentAgents(ctx, log, key, *c.ID); err != nil {
 		return buildReply(err)
 	}
-	// Delete agents because their backend cluster got deregistered.
-	if err = r.DeleteClusterDeploymentAgents(ctx, log, key); err != nil {
+
+	if err = r.Installer.DeregisterClusterInternal(ctx, installer.V2DeregisterClusterParams{
+		ClusterID: *c.ID,
+	}, false); err != nil {
 		return buildReply(err)
 	}
 
@@ -1110,7 +1111,7 @@ func (r *ClusterDeploymentsReconciler) deleteClusterInstall(ctx context.Context,
 	return buildReply(err)
 }
 
-func (r *ClusterDeploymentsReconciler) DeleteClusterDeploymentAgents(ctx context.Context, log logrus.FieldLogger, clusterDeployment types.NamespacedName) error {
+func (r *ClusterDeploymentsReconciler) DeleteOrUnbindClusterDeploymentAgents(ctx context.Context, log logrus.FieldLogger, clusterDeployment types.NamespacedName, clusterID strfmt.UUID) error {
 	agents := &aiv1beta1.AgentList{}
 	log = log.WithFields(logrus.Fields{"clusterDeployment": clusterDeployment.Name, "namespace": clusterDeployment.Namespace})
 	if err := r.List(ctx, agents); err != nil {
@@ -1120,10 +1121,41 @@ func (r *ClusterDeploymentsReconciler) DeleteClusterDeploymentAgents(ctx context
 		if clusterAgent.Spec.ClusterDeploymentName != nil &&
 			clusterAgent.Spec.ClusterDeploymentName.Name == clusterDeployment.Name &&
 			clusterAgent.Spec.ClusterDeploymentName.Namespace == clusterDeployment.Namespace {
-			log.Infof("delete agent %s namespace %s", clusterAgent.Name, clusterAgent.Namespace)
-			if err := r.Client.Delete(ctx, &agents.Items[i]); err != nil {
-				log.WithError(err).Errorf("Failed to delete resource %s %s", clusterAgent.Name, clusterAgent.Namespace)
+			key := types.NamespacedName{
+				Namespace: clusterAgent.Namespace,
+				Name:      clusterAgent.Name,
+			}
+			h, err2 := r.Installer.GetHostByKubeKey(key)
+			if err2 != nil {
+				if errors.Is(err2, gorm.ErrRecordNotFound) {
+					log.Infof("delete agent %s namespace %s", clusterAgent.Name, clusterAgent.Namespace)
+					if err := r.Client.Delete(ctx, &agents.Items[i]); err != nil {
+						log.WithError(err).Errorf("Failed to delete resource %s %s", clusterAgent.Name, clusterAgent.Namespace)
+						return err
+					}
+				} else {
+					log.WithError(err2).Errorf("Failed to get host %s %s", clusterAgent.Name, clusterAgent.Namespace)
+					return err2
+				}
+			}
+			infraEnv, err := r.Installer.GetInfraEnvById(ctx, h.InfraEnvID)
+			if err != nil {
+				log.WithError(err).Errorf("Failed to get infraEnv %s ", h.InfraEnvID)
 				return err
+			}
+
+			if infraEnv.ClusterID != clusterID {
+				//Unbind
+				agents.Items[i].Spec.ClusterDeploymentName = nil
+				if err = r.Update(ctx, &agents.Items[i]); err != nil {
+					log.WithError(err).Errorf("failed to add unbind resource %s %s", clusterAgent.Name, clusterAgent.Namespace)
+					return err
+				}
+			} else {
+				if err := r.Client.Delete(ctx, &agents.Items[i]); err != nil {
+					log.WithError(err).Errorf("Failed to delete resource %s %s", clusterAgent.Name, clusterAgent.Namespace)
+					return err
+				}
 			}
 		}
 	}

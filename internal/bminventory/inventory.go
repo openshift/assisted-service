@@ -132,7 +132,7 @@ type InstallerInternals interface {
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error)
-	DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams) error
+	DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams, deleteHosts bool) error
 	DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error
 	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams) error
 	GetCommonHostInternal(ctx context.Context, infraEnvId string, hostId string) (*common.Host, error)
@@ -154,6 +154,7 @@ type InstallerInternals interface {
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
 	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams) (*common.Host, error)
 	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
+	GetInfraEnvById(ctx context.Context, infraEnvID strfmt.UUID) (*common.InfraEnv, error)
 	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams) (*common.InfraEnv, error)
 	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
 	DeregisterInfraEnvInternal(ctx context.Context, params installer.DeregisterInfraEnvParams) error
@@ -685,7 +686,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterRegistration(ctx context.Con
 	sub, err := b.ocmClient.AccountsMgmt.CreateSubscription(ctx, *cluster.ID, cluster.Name)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to create AMS subscription for cluster %s, rolling back cluster registration", *cluster.ID)
-		if deregisterErr := b.clusterApi.DeregisterCluster(ctx, cluster); deregisterErr != nil {
+		if deregisterErr := b.clusterApi.DeregisterCluster(ctx, cluster, true); deregisterErr != nil {
 			log.WithError(deregisterErr).Errorf("Failed to rollback cluster %s registration", *cluster.ID)
 		}
 		return err
@@ -696,7 +697,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterRegistration(ctx context.Con
 		if deleteSubErr := b.ocmClient.AccountsMgmt.DeleteSubscription(ctx, strfmt.UUID(sub.ID())); deleteSubErr != nil {
 			log.WithError(deleteSubErr).Errorf("Failed to rollback AMS subscription %s in cluster %s", sub.ID(), *cluster.ID)
 		}
-		if deregisterErr := b.clusterApi.DeregisterCluster(ctx, cluster); deregisterErr != nil {
+		if deregisterErr := b.clusterApi.DeregisterCluster(ctx, cluster, true); deregisterErr != nil {
 			log.WithError(deregisterErr).Errorf("Failed to rollback cluster %s registration", *cluster.ID)
 		}
 		return err
@@ -863,7 +864,7 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 
 func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
 	v2Params := installer.V2DeregisterClusterParams{ClusterID: params.ClusterID}
-	if err := b.DeregisterClusterInternal(ctx, v2Params); err != nil {
+	if err := b.DeregisterClusterInternal(ctx, v2Params, true); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewDeregisterClusterNoContent()
@@ -889,7 +890,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterDeregistration(ctx context.C
 	return nil
 }
 
-func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams) error {
+func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams, deleteHosts bool) error {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
 	var err error
@@ -910,7 +911,7 @@ func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, para
 		log.Warnf("failed to delete DNS record sets for base domain: %s", cluster.BaseDNSDomain)
 	}
 
-	err = b.clusterApi.DeregisterCluster(ctx, cluster)
+	err = b.clusterApi.DeregisterCluster(ctx, cluster, deleteHosts)
 	if err != nil {
 		log.WithError(err).Errorf("failed to deregister cluster %s", params.ClusterID)
 		return common.NewApiError(http.StatusNotFound, err)
@@ -6060,6 +6061,15 @@ func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInf
 		}
 	}
 	return nil
+}
+
+func (b *bareMetalInventory) GetInfraEnvById(ctx context.Context, infraEnvID strfmt.UUID) (*common.InfraEnv, error) {
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, infraEnvID)
+	if err != nil {
+		b.log.WithError(err).Errorf("Failed to get infra env %s", infraEnvID)
+		return nil, err
+	}
+	return infraEnv, nil
 }
 
 func (b *bareMetalInventory) GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error) {

@@ -86,17 +86,17 @@ func (mr *MockInstallerInternalsMockRecorder) CancelInstallationInternal(arg0, a
 }
 
 // DeregisterClusterInternal mocks base method.
-func (m *MockInstallerInternals) DeregisterClusterInternal(arg0 context.Context, arg1 installer.V2DeregisterClusterParams) error {
+func (m *MockInstallerInternals) DeregisterClusterInternal(arg0 context.Context, arg1 installer.V2DeregisterClusterParams, arg2 bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeregisterClusterInternal", arg0, arg1)
+	ret := m.ctrl.Call(m, "DeregisterClusterInternal", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeregisterClusterInternal indicates an expected call of DeregisterClusterInternal.
-func (mr *MockInstallerInternalsMockRecorder) DeregisterClusterInternal(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockInstallerInternalsMockRecorder) DeregisterClusterInternal(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DeregisterClusterInternal), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DeregisterClusterInternal), arg0, arg1, arg2)
 }
 
 // DeregisterHostInternal mocks base method.
@@ -246,6 +246,21 @@ func (m *MockInstallerInternals) GetHostByKubeKey(arg0 types.NamespacedName) (*c
 func (mr *MockInstallerInternalsMockRecorder) GetHostByKubeKey(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostByKubeKey", reflect.TypeOf((*MockInstallerInternals)(nil).GetHostByKubeKey), arg0)
+}
+
+// GetInfraEnvById mocks base method.
+func (m *MockInstallerInternals) GetInfraEnvById(arg0 context.Context, arg1 strfmt.UUID) (*common.InfraEnv, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInfraEnvById", arg0, arg1)
+	ret0, _ := ret[0].(*common.InfraEnv)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInfraEnvById indicates an expected call of GetInfraEnvById.
+func (mr *MockInstallerInternalsMockRecorder) GetInfraEnvById(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvById", reflect.TypeOf((*MockInstallerInternals)(nil).GetInfraEnvById), arg0, arg1)
 }
 
 // GetInfraEnvByKubeKey mocks base method.

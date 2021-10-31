@@ -101,7 +101,7 @@ func (r *registrar) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) e
 	return nil
 }
 
-func (r *registrar) DeregisterCluster(ctx context.Context, cluster *common.Cluster) error {
+func (r *registrar) DeregisterCluster(ctx context.Context, cluster *common.Cluster, deleteHosts bool) error {
 	var txErr error
 	tx := r.db.Begin()
 
@@ -116,13 +116,18 @@ func (r *registrar) DeregisterCluster(ctx context.Context, cluster *common.Clust
 		return errors.Errorf("cluster %s can not be removed while being installed", cluster.ID)
 	}
 
-	if txErr = common.DeleteRecordsByClusterID(tx, *cluster.ID, []interface{}{
-		&models.Host{},
+	tables := []interface{}{
 		&models.MonitoredOperator{},
 		&models.ClusterNetwork{},
 		&models.ServiceNetwork{},
 		&models.MachineNetwork{},
-	}); txErr != nil {
+	}
+
+	if deleteHosts {
+		tables = append(tables, &models.Host{})
+	}
+
+	if txErr = common.DeleteRecordsByClusterID(tx, *cluster.ID, tables); txErr != nil {
 		tx.Rollback()
 		return errors.Errorf("failed to delete cluster records %s", cluster.ID)
 	}
