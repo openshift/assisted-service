@@ -3,14 +3,6 @@ FROM registry.ci.openshift.org/openshift/release:golang-1.16
 ENV GO111MODULE=on
 ENV GOFLAGS=""
 
-RUN yum install -y \
-    make \
-    jq \
-    git \
-    https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm 
-
-RUN yum install -y postgresql12-server
-
 COPY ./hack/setup_env.sh ./dev-requirements.txt ./
 RUN ./setup_env.sh assisted_service
 
