@@ -27,7 +27,7 @@ DEFAULT_WATCHERS = ["odepaz", "romfreiman", "asegurap", "lgamliel"]
 PR_MENTION = ["romfreiman", "celebdor", "gamli75"]
 PR_MESSAGE = "{task}: Bump OCP versions {versions_string}"
 
-OCP_INFO_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=stable-{version}\&arch\={architecture} | jq '[.nodes[]] | sort_by(.version | split(".") | map(tonumber))[-1]'"""
+OCP_INFO_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=fast-{version}\&arch\={architecture} | jq '[.nodes[]] | sort_by(.version | split(".") | map(tonumber))[-1]'"""
 OCP_INFO_FC_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=candidate-{version}\&arch\={architecture} | jq '[.nodes[]] | max_by(.version)'"""
 
 RHCOS_RELEASES = "https://mirror.openshift.com/pub/openshift-v4/{architecture}/dependencies/rhcos/{minor}"
