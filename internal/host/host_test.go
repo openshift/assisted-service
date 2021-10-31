@@ -547,7 +547,7 @@ var _ = Describe("update progress special cases", func() {
 		host = hostutil.GenerateTestHostByKind(id, infraEnvId, &clusterId, models.HostStatusInstalling, models.HostKindHost, models.HostRoleMaster)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostSetBootstrapEventName),
+			eventstest.WithNameMatcher(eventgen.HostBootstrapSetEventName),
 			eventstest.WithHostIdMatcher(host.ID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -1950,7 +1950,7 @@ var _ = Describe("SetBootstrap", func() {
 		It(fmt.Sprintf("Boostrap %s", strconv.FormatBool(t.IsBootstrap)), func() {
 			if t.IsBootstrap {
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.HostSetBootstrapEventName),
+					eventstest.WithNameMatcher(eventgen.HostBootstrapSetEventName),
 					eventstest.WithHostIdMatcher(hostId.String()),
 					eventstest.WithInfraEnvIdMatcher(infraEnvId.String())))
 			}
@@ -2300,7 +2300,7 @@ var _ = Describe("UpdateImageStatus", func() {
 				}
 
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.UpdateImageStatusEventName),
+					eventstest.WithNameMatcher(eventgen.ImageStatusUpdatedEventName),
 					eventstest.WithHostIdMatcher(hostId.String()),
 					eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo),
@@ -2482,7 +2482,7 @@ var _ = Describe("AutoAssignRole", func() {
 
 	mockRoleSuggestionEvent := func(h *models.Host) {
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.UpdateHostRoleEventName),
+			eventstest.WithNameMatcher(eventgen.HostRoleUpdatedEventName),
 			eventstest.WithHostIdMatcher(h.ID.String()),
 			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
 		))
@@ -2797,7 +2797,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 		mockMetric.EXPECT().HostValidationChanged(openshiftVersion, emailDomain, models.HostValidationIDHasMinCPUCores)
 		mockEvents.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostValidationFallingEventName),
+			eventstest.WithNameMatcher(eventgen.HostValidationFailedEventName),
 			eventstest.WithHostIdMatcher(h.ID.String()),
 			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String())))
 
@@ -2822,7 +2822,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 		mockMetric.EXPECT().HostValidationChanged(openshiftVersion, emailDomain, models.HostValidationIDHasMinCPUCores)
 		mockEvents.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostValidationFallingEventName),
+			eventstest.WithNameMatcher(eventgen.HostValidationFailedEventName),
 			eventstest.WithHostIdMatcher(h.ID.String()),
 			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String())))
 

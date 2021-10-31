@@ -166,7 +166,7 @@ var _ = Describe("Validations test", func() {
 
 			By("auto-assign node is effectively assigned to master")
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.UpdateHostRoleEventName),
+				eventstest.WithNameMatcher(eventgen.HostRoleUpdatedEventName),
 				eventstest.WithHostIdMatcher(h.ID.String()),
 				eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
 			))

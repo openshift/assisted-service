@@ -134,7 +134,7 @@ var _ = Describe("Controller events wrapper", func() {
 		It("Sending a cluster event", func() {
 			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
 			cEventsWrapper.SendClusterEvent(context.TODO(),
-				eventgen.NewDeregisterInactiveClustersEvent(*cluster1.ID, "event1"))
+				eventgen.NewInactiveClustersDeregisteredEvent(*cluster1.ID, "event1"))
 			Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(1))
 			Expect(numOfEvents(cluster2.ID, nil, nil)).Should(Equal(0))
 
@@ -145,7 +145,7 @@ var _ = Describe("Controller events wrapper", func() {
 
 			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster2.KubeKeyName, cluster2.KubeKeyNamespace).Times(1)
 			cEventsWrapper.SendClusterEvent(context.TODO(),
-				eventgen.NewDeregisterInactiveClustersEvent(*cluster2.ID, "event2"))
+				eventgen.NewInactiveClustersDeregisteredEvent(*cluster2.ID, "event2"))
 			Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(1))
 			Expect(numOfEvents(cluster2.ID, nil, nil)).Should(Equal(1))
 		})
@@ -153,7 +153,7 @@ var _ = Describe("Controller events wrapper", func() {
 		It("Sending a cluster event with time", func() {
 			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
 			cEventsWrapper.SendClusterEventAtTime(context.TODO(),
-				eventgen.NewDeregisterInactiveClustersEvent(*cluster1.ID, "event1"), time.Now())
+				eventgen.NewInactiveClustersDeregisteredEvent(*cluster1.ID, "event1"), time.Now())
 			Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(1))
 			Expect(numOfEvents(cluster2.ID, nil, nil)).Should(Equal(0))
 
@@ -164,7 +164,7 @@ var _ = Describe("Controller events wrapper", func() {
 
 			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster2.KubeKeyName, cluster2.KubeKeyNamespace).Times(1)
 			cEventsWrapper.SendClusterEventAtTime(context.TODO(),
-				eventgen.NewDeregisterInactiveClustersEvent(*cluster2.ID, "event2"), time.Now())
+				eventgen.NewInactiveClustersDeregisteredEvent(*cluster2.ID, "event2"), time.Now())
 			Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(1))
 			Expect(numOfEvents(cluster2.ID, nil, nil)).Should(Equal(1))
 		})

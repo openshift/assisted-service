@@ -310,7 +310,7 @@ var _ = Describe("Transition tests", func() {
 
 					if t.destState != *c.Status {
 						if t.updateSuccessfullyFinished {
-							checkCompleteInstallationUpdate(models.EventSeverityInfo, "Successfully finished installing cluster")
+							checkCompleteInstallationUpdate(models.EventSeverityInfo, "Successfully completed installing cluster")
 						} else {
 							checkCompleteInstallationUpdate(models.EventSeverityCritical, fmt.Sprintf("Operator %s failed", t.operators[0].Name))
 						}

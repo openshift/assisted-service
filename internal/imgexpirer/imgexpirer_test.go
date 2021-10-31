@@ -44,7 +44,7 @@ var _ = Describe("imgexpirer", func() {
 	It("callback_valid_objname", func() {
 		clusterId := "53116787-3eb0-4211-93ac-611d5cedaa30"
 		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.DeleteExpiredImageEventName),
+			eventstest.WithNameMatcher(eventgen.ExpiredImageDeletedEventName),
 			eventstest.WithClusterIdMatcher(clusterId)))
 		imgExp.DeletedImageCallback(ctx, log, fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterId)))
 	})

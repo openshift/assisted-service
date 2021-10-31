@@ -163,7 +163,7 @@ func createClusterCompletionStatusInfo(ctx context.Context, log logrus.FieldLogg
 	}
 
 	failedOperators := ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
-	eventgen.SendClusterDegradedFailedOLMOperatorsEvent(ctx, eventHandler, *cluster.ID, failedOperators)
+	eventgen.SendClusterDegradedOLMOperatorsFailedEvent(ctx, eventHandler, *cluster.ID, failedOperators)
 
 	statusInfo := StatusInfoDegraded
 	statusInfo += ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")

@@ -193,7 +193,7 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag
 		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error(), models.ClusterKindCluster)
 
 	} else {
-		eventgen.SendRegisteredClusterEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindCluster)
+		eventgen.SendClusterRegisteredEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindCluster)
 	}
 	return err
 }
@@ -203,7 +203,7 @@ func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster
 	if err != nil {
 		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error(), models.ClusterKindAddHostsCluster)
 	} else {
-		eventgen.SendRegisteredClusterEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
+		eventgen.SendClusterRegisteredEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
 	}
 	return err
 }
@@ -248,7 +248,7 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 	if err != nil {
 		eventgen.SendClusterDeregisterFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error())
 	} else {
-		eventgen.SendDeregisteredClusterEvent(ctx, m.eventsHandler, *c.ID)
+		eventgen.SendClusterDeregisteredEvent(ctx, m.eventsHandler, *c.ID)
 	}
 	return err
 }
@@ -281,7 +281,7 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.C
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
 				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
 					m.metricAPI.ClusterValidationChanged(c.OpenshiftVersion, c.EmailDomain, models.ClusterValidationID(v.ID))
-					eventgen.SendClusterValidationFallingEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
+					eventgen.SendClusterValidationFailedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
 				}
 				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
 					eventgen.SendClusterValidationFixedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
@@ -653,7 +653,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 		models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalling, models.ClusterStatusFinalizing}
 	defer func() {
 		if !isFailed {
-			eventgen.SendClusterCancelInstallationEvent(ctx, m.eventsHandler, *c.ID)
+			eventgen.SendClusterInstallationCanceledEvent(ctx, m.eventsHandler, *c.ID)
 		} else {
 			eventgen.SendCancelInstallationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error())
 		}
@@ -764,7 +764,7 @@ func (m *Manager) ResetCluster(ctx context.Context, c *common.Cluster, reason st
 	var err error
 	defer func() {
 		if !isFailed {
-			eventgen.SendClusterResetInstallationEvent(ctx, m.eventsHandler, *c.ID)
+			eventgen.SendClusterInstallationResetEvent(ctx, m.eventsHandler, *c.ID)
 		} else {
 			eventgen.SendResetInstallationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error())
 		}
@@ -818,7 +818,7 @@ func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster
 		log.WithError(err).Errorf("Failed to handle pre installation success for cluster %s", c.ID.String())
 	} else {
 		log.Infof("Successfully handled pre-installation success, cluster %s", c.ID.String())
-		eventgen.SendClusterPrepareInstallationEvent(ctx, m.eventsHandler, *c.ID)
+		eventgen.SendClusterPrepareInstallationStartedEvent(ctx, m.eventsHandler, *c.ID)
 	}
 }
 
@@ -857,7 +857,7 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 			if c.APIVip != "" || c.IngressVip != "" {
 				log.WithError(vipMismatchError(apiVip, ingressVip, c)).Warn("VIPs changed")
 			}
-			eventgen.SendApiIngressVipUpdateEvent(ctx, m.eventsHandler, *c.ID, apiVip, ingressVip)
+			eventgen.SendApiIngressVipUpdatedEvent(ctx, m.eventsHandler, *c.ID, apiVip, ingressVip)
 		}
 
 	case models.ClusterStatusInstalling, models.ClusterStatusPreparingForInstallation, models.ClusterStatusFinalizing:
@@ -1059,7 +1059,7 @@ func (m Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPer
 		return err
 	}
 	for _, c := range clusters {
-		eventgen.SendClusterDeregisteredAfterInactivityEvent(ctx, m.eventsHandler, *c.ID)
+		eventgen.SendAfterInactivityClusterDeregisteredEvent(ctx, m.eventsHandler, *c.ID)
 		log.Infof("Cluster %s is deregistered due to inactivity since %s", c.ID, c.UpdatedAt)
 		if err := m.DeregisterCluster(ctx, c); err != nil {
 			log.WithError(err).Errorf("failed to deregister inactive cluster %s ", c.ID)
@@ -1196,9 +1196,9 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 
 	if !successfullyFinished {
 		result = models.ClusterStatusError
-		eventgen.SendClusterInstallingFailedEvent(ctx, m.eventsHandler, *cluster.ID, reason)
+		eventgen.SendClusterInstallationFailedEvent(ctx, m.eventsHandler, *cluster.ID, reason)
 	} else {
-		eventgen.SendClusterInstallingFinishedEvent(ctx, m.eventsHandler, *cluster.ID)
+		eventgen.SendClusterInstallationCompletedEvent(ctx, m.eventsHandler, *cluster.ID)
 	}
 
 	return clusterAfterUpdate, nil

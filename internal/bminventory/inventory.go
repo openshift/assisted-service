@@ -338,7 +338,7 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	if existed {
-		eventgen.SendImageDeletedAfterIgnitionUpdateEvent(ctx, b.eventsHandler, *c.ID)
+		eventgen.SendIgnitionUpdatedThereforeImageDeletedEvent(ctx, b.eventsHandler, *c.ID)
 	}
 
 	return nil
@@ -935,13 +935,13 @@ func (b *bareMetalInventory) DownloadISOInternal(ctx context.Context, infraEnvID
 	exists, err := b.objectHandler.DoesObjectExist(ctx, imgName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get ISO for cluster %s", infraEnv.ID.String())
-		eventgen.SendDownloadImageFailedFetchEvent(ctx, b.eventsHandler, infraEnvID)
+		eventgen.SendDownloadImageFetchFailedEvent(ctx, b.eventsHandler, infraEnvID)
 
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 	if !exists {
-		eventgen.SendDownloadImageFailedNotFoundEvent(ctx, b.eventsHandler, infraEnvID)
+		eventgen.SendDownloadImageFindFailedEvent(ctx, b.eventsHandler, infraEnvID)
 
 		return installer.NewDownloadClusterISONotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, errors.New("The image was not found "+
@@ -950,7 +950,7 @@ func (b *bareMetalInventory) DownloadISOInternal(ctx context.Context, infraEnvID
 	reader, contentLength, err := b.objectHandler.Download(ctx, imgName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get ISO for cluster %s", infraEnv.ID.String())
-		eventgen.SendDownloadImageFailedFetchEvent(ctx, b.eventsHandler, infraEnvID)
+		eventgen.SendDownloadImageFetchFailedEvent(ctx, b.eventsHandler, infraEnvID)
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
@@ -978,7 +978,7 @@ func (b *bareMetalInventory) DownloadISOHeadersInternal(ctx context.Context, inf
 	exists, err := b.objectHandler.DoesObjectExist(ctx, imgName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get ISO for infra env %s", infraEnv.ID.String())
-		eventgen.SendDownloadImageFailedFetchEvent(ctx, b.eventsHandler, infraEnvID)
+		eventgen.SendDownloadImageFetchFailedEvent(ctx, b.eventsHandler, infraEnvID)
 		return installer.NewDownloadClusterISOHeadersInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
@@ -1183,7 +1183,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	}()
 
 	if tx.Error != nil {
-		eventgen.SendGenerateImageFailedStartEvent(ctx, b.eventsHandler, params.ClusterID)
+		eventgen.SendGenerateImageStartFailedEvent(ctx, b.eventsHandler, params.ClusterID)
 		log.WithError(tx.Error).Errorf("failed to start db transaction")
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction"))
 	}
@@ -1254,7 +1254,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
 		if err != nil {
 			log.WithError(err).Errorf("failed to contact storage backend")
-			eventgen.SendGenerateImageFailedContactStorageBackendEvent(ctx, b.eventsHandler, params.ClusterID)
+			eventgen.SendGenerateImageContactStorageBackendFailedEvent(ctx, b.eventsHandler, params.ClusterID)
 			return nil, common.NewApiError(http.StatusInternalServerError, errors.New("failed to contact storage backend"))
 		}
 	}
@@ -1280,7 +1280,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	if dbReply.Error != nil {
 		log.WithError(dbReply.Error).Errorf("failed to update infra env: %s", params.ClusterID)
 		msg := "Failed to generate image: error updating metadata"
-		eventgen.SendGenerateImageFailedUpdateMetadataEvent(ctx, b.eventsHandler, params.ClusterID)
+		eventgen.SendGenerateImageUpdateMetadataFailedEvent(ctx, b.eventsHandler, params.ClusterID)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
@@ -1291,14 +1291,14 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	if dbReply.Error != nil {
 		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
 		msg := "Failed to generate image: error updating metadata"
-		eventgen.SendGenerateImageFailedUpdateMetadataEvent(ctx, b.eventsHandler, params.ClusterID)
+		eventgen.SendGenerateImageUpdateMetadataFailedEvent(ctx, b.eventsHandler, params.ClusterID)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
 	if err = tx.Commit().Error; err != nil {
 		log.Error(err)
 		msg := "Failed to generate image: error committing the transaction"
-		eventgen.SendGenerateImageFailedCommitTransactionEvent(ctx, b.eventsHandler, params.ClusterID)
+		eventgen.SendGenerateImageCommitTransactionFailedEvent(ctx, b.eventsHandler, params.ClusterID)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 	txSuccess = true
@@ -1381,7 +1381,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, infraEnvID)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get infra env %s after update", infraEnv.ID)
-		eventgen.SendGenerateImageFailedFetchEvent(ctx, b.eventsHandler, infraEnvID)
+		eventgen.SendGenerateImageFetchFailedEvent(ctx, b.eventsHandler, infraEnvID)
 		return err
 	}
 
@@ -1408,7 +1408,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 	ignitionConfig, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
 	if err != nil {
 		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", infraEnv.ID)
-		eventgen.SendGenerateImageFailedFormatEvent(ctx, b.eventsHandler, *infraEnv.ID)
+		eventgen.SendGenerateImageFormatFailedEvent(ctx, b.eventsHandler, *infraEnv.ID)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
@@ -1439,7 +1439,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	details := b.getIgnitionConfigForLogging(ctx, infraEnv, log, imageType)
-	eventgen.SendGeneratedImageWithIgnitionConfigEvent(ctx, b.eventsHandler, *infraEnv.ID, details)
+	eventgen.SendIgnitionConfigImageGeneratedEvent(ctx, b.eventsHandler, *infraEnv.ID, details)
 	log.Infof("Generated image %s", details)
 
 	return nil
@@ -3670,7 +3670,8 @@ func (b *bareMetalInventory) DeregisterHostInternal(ctx context.Context, params 
 	}
 
 	// TODO: need to check that host can be deleted from the cluster
-	eventgen.SendHostDeregisteredClusterEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
+	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+		hostutil.GetHostnameForMsg(&h.Host))
 	return nil
 }
 
@@ -3695,7 +3696,8 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 		return err
 	}
 	clusterID = infraEnv.ClusterID
-	eventgen.SendHostDeregisteredClusterEvent(ctx, b.eventsHandler, &clusterID, params.HostID, params.InfraEnvID, hostutil.GetHostnameForMsg(&h.Host))
+	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, &clusterID, params.HostID, params.InfraEnvID,
+		hostutil.GetHostnameForMsg(&h.Host))
 	return nil
 }
 
@@ -3972,7 +3974,7 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 			msg := fmt.Sprintf("Host's disk %s is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: %d ms)",
 				diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 			log.Warnf(msg)
-			eventgen.SendDiskSlowerSupportedSpeedEvent(ctx, b.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
+			eventgen.SendDiskSpeedSlowerThanSupportedEvent(ctx, b.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 		}
 	}
 
@@ -4144,13 +4146,15 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", params.HostID)
-		eventgen.SendDisableHostFailedFetchEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&host.Host))
+		eventgen.SendDisableHostFetchFailedEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+			hostutil.GetHostnameForMsg(&host.Host))
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if err = b.hostApi.DisableHost(ctx, &host.Host, tx); err != nil {
 		log.WithError(err).Errorf("failed to disable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
-		eventgen.SendDisableHostFailedDisableEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&host.Host))
+		eventgen.SendHostDisableFailedEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+			hostutil.GetHostnameForMsg(&host.Host))
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
 
@@ -4166,7 +4170,7 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 	}
 	txSuccess = true
 
-	eventgen.SendHostDisabledByUserEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+	eventgen.SendHostDisabledEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
 		hostutil.GetHostnameForMsg(&host.Host))
 
 	c, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *c.ID})
@@ -4202,14 +4206,15 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", params.HostID)
-		eventgen.SendEnableHostFailedFetchEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&host.Host))
+		eventgen.SendEnableHostFetchFailedEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+			hostutil.GetHostnameForMsg(&host.Host))
 
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if err = b.hostApi.EnableHost(ctx, &host.Host, tx); err != nil {
 		log.WithError(err).Errorf("failed to enable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
-		eventgen.SendEnableHostFailedDisableEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID,
+		eventgen.SendEnableHostDisableFailedEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID,
 			params.ClusterID, hostutil.GetHostnameForMsg(&host.Host))
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
@@ -4225,7 +4230,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 	}
 	txSuccess = true
 
-	eventgen.SendHostEnabledByUserEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+	eventgen.SendHostEnabledEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
 		hostutil.GetHostnameForMsg(&host.Host))
 
 	c, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *c.ID})
@@ -4772,7 +4777,7 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 		}
 
 		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-		eventgen.SendUpdateHostInstallProgressEvent(ctx, b.eventsHandler, *host.ID, *host.ClusterID, hostutil.GetHostnameForMsg(&host.Host), event)
+		eventgen.SendHostInstallProgressUpdatedEvent(ctx, b.eventsHandler, *host.ID, *host.ClusterID, hostutil.GetHostnameForMsg(&host.Host), event)
 
 		if err := b.clusterApi.UpdateInstallProgress(ctx, params.ClusterID); err != nil {
 			log.WithError(err).Errorf("failed to update cluster %s progress", params.ClusterID)
@@ -4882,7 +4887,7 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 	if tx.Error != nil {
 		msg := "Failed to cancel installation: error starting DB transaction"
 		log.WithError(tx.Error).Errorf(msg)
-		eventgen.SendCancelInstallFailedStartEvent(ctx, b.eventsHandler, *cluster.ID)
+		eventgen.SendCancelInstallStartFailedEvent(ctx, b.eventsHandler, *cluster.ID)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
@@ -4910,7 +4915,7 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 
 	if err := tx.Commit().Error; err != nil {
 		log.Errorf("Failed to cancel installation: error committing DB transaction (%s)", err)
-		eventgen.SendCancelInstallFailedCommitEvent(ctx, b.eventsHandler, *cluster.ID)
+		eventgen.SendCancelInstallCommitFailedEvent(ctx, b.eventsHandler, *cluster.ID)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
 	}
 	txSuccess = true
@@ -5009,7 +5014,7 @@ func (b *bareMetalInventory) resetHost(ctx context.Context, hostId, infraEnvId s
 			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", hostId)
-		eventgen.SendHostResetFailedFetchEvent(ctx, b.eventsHandler, hostId, infraEnvId, hostutil.GetHostnameForMsg(&host.Host))
+		eventgen.SendHostResetFetchFailedEvent(ctx, b.eventsHandler, hostId, infraEnvId, hostutil.GetHostnameForMsg(&host.Host))
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
@@ -5345,7 +5350,7 @@ func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, inf
 		log.WithError(err).Errorf("failed to update 'approved' in host: %s", hostId)
 		return err
 	}
-	eventgen.SendHostUpdatedApprovedEvent(ctx, b.eventsHandler, *dbHost.ID, strfmt.UUID(infraEnvId),
+	eventgen.SendHostApprovedUpdatedEvent(ctx, b.eventsHandler, *dbHost.ID, strfmt.UUID(infraEnvId),
 		hostutil.GetHostnameForMsg(&dbHost.Host), approved)
 	return nil
 }
@@ -5518,7 +5523,7 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 		if success {
 			msg := fmt.Sprintf("Successfully deregistered InfraEnv %s", params.InfraEnvID.String())
 			log.Info(msg)
-			eventgen.SendDeregisteredInfraEnvEvent(ctx, b.eventsHandler, params.InfraEnvID)
+			eventgen.SendInfraEnvDeregisteredEvent(ctx, b.eventsHandler, params.InfraEnvID)
 		} else {
 			errMsg := fmt.Sprintf("Failed to deregister InfraEnv %s", params.InfraEnvID.String())
 			errString := ""
@@ -5640,7 +5645,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			msg := fmt.Sprintf("Successfully registered InfraEnv %s with id %s",
 				swag.StringValue(params.InfraenvCreateParams.Name), id)
 			log.Info(msg)
-			eventgen.SendRegisteredInfraEnvEvent(ctx, b.eventsHandler, id)
+			eventgen.SendInfraEnvRegisteredEvent(ctx, b.eventsHandler, id)
 		} else {
 			errMsg := fmt.Sprintf("Failed to register InfraEnv %s with id %s",
 				swag.StringValue(params.InfraenvCreateParams.Name), id)
@@ -6156,12 +6161,12 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 	if err = b.customizeHost(host); err != nil {
 		// TODO Need event for infra-env instead of cluster
-		eventgen.SendHostRegistrationFailedSettingPropertiesEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID)
+		eventgen.SendHostRegistrationSettingPropertiesFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID)
 		return common.GenerateErrorResponder(err)
 	}
 
 	// TODO Need event for infra-env instead of cluster
-	eventgen.SendHostRegisteredClusterEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID,
+	eventgen.SendHostClusterRegisteredEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID,
 		params.InfraEnvID, hostutil.GetHostnameForMsg(host))
 
 	hostRegistration := models.HostRegistrationResponse{
@@ -6353,7 +6358,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 		}
 
 		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-		eventgen.SendUpdateHostInstallProgressEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, hostutil.GetHostnameForMsg(&host.Host), event)
+		eventgen.SendHostInstallProgressUpdatedEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, hostutil.GetHostnameForMsg(&host.Host), event)
 		if err := b.clusterApi.UpdateInstallProgress(ctx, *host.ClusterID); err != nil {
 			log.WithError(err).Errorf("failed to update cluster %s progress", host.ClusterID)
 			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))

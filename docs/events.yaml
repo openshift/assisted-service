@@ -1,19 +1,19 @@
 x-events:
-- name: cancel_install_failed_start
+- name: cancel_install_start_failed
   message: "Failed to cancel installation: error starting DB transaction"
   event_type: cluster
   severity: "error"
   properties:
     cluster_id:  UUID
 
-- name: cancel_install_failed_commit
+- name: cancel_install_commit_failed
   message: "Failed to cancel installation: error committing DB transaction"
   event_type: cluster
   severity: "error"
   properties:
     cluster_id:  UUID
 
-- name: host_registration_failed_setting_properties
+- name: host_registration_setting_properties_failed
   message: "Failed to register host: error setting host properties"
   event_type: host
   severity: "error"
@@ -37,7 +37,7 @@ x-events:
   properties:
     cluster_id: UUID
 
-- name: registered_cluster
+- name: cluster_registered
   message: "Registered cluster"
   event_type: cluster
   severity: "info"
@@ -53,14 +53,14 @@ x-events:
     cluster_id: UUID
     error: string
 
-- name: deregistered_cluster
+- name: cluster_deregistered
   message: "Deregistered cluster"
   event_type: cluster
   severity: "info"
   properties:
     cluster_id: UUID
 
-- name: cluster_validation_falling
+- name: cluster_validation_failed
   message: "Cluster validation '{validation_id}' that used to succeed is now failing"
   event_type: cluster
   severity: "warning"
@@ -78,21 +78,21 @@ x-events:
     validation_id: string
     validation_msg: string
 
-- name: cluster_deregistered_after_inactivity
+- name: after_inactivity_cluster_deregistered
   message: "Cluster is deregistered due to inactivity"
   event_type: cluster
   severity: "info"
   properties:
     cluster_id: UUID
 
-- name: cluster_installing_finished
-  message: "Successfully finished installing cluster"
+- name: cluster_installation_completed
+  message: "Successfully completed installing cluster"
   event_type: cluster
   severity: "info"
   properties:
     cluster_id: UUID
 
-- name: cluster_installing_failed
+- name: cluster_installation_failed
   message: "Failed installing cluster. Reason: {failure_reason}"
   event_type: cluster
   severity: "critical"
@@ -100,8 +100,8 @@ x-events:
     cluster_id: UUID
     failure_reason: string
 
-- name: cluster_cancel_installation
-  message: "Cancelled cluster installation"
+- name: cluster_installation_canceled
+  message: "Canceled cluster installation"
   event_type: cluster
   severity: "info"
   properties:
@@ -124,7 +124,7 @@ x-events:
     cluster_status: string
     status_info: string
 
-- name: cluster_reset_installation
+- name: cluster_installation_reset
   message: "Reset cluster installation"
   event_type: cluster
   severity: "info"
@@ -139,7 +139,7 @@ x-events:
     cluster_id: UUID
     error: string
 
-- name: api_ingress_vip_update
+- name: api_ingress_vip_updated
   message: "Cluster was updated with api-vip {api_vip}, ingress-vip {ingress_vip}"
   event_type: cluster
   severity: "info"
@@ -164,7 +164,7 @@ x-events:
     cluster_id: UUID
     error: string
 
-- name: cluster_prepare_installation
+- name: cluster_prepare_installation_started
   message: "Cluster starting to prepare for installation"
   event_type: cluster
   severity: "info"
@@ -178,7 +178,7 @@ x-events:
   properties:
     cluster_id: UUID
 
-- name: cluster_degraded_failed_OLM_operators
+- name: cluster_degraded_OLM_operators_failed
   message: "Cluster is installed but degraded due to failed OLM operators {failed_operators}"
   event_type: cluster
   severity: "warning"
@@ -186,7 +186,7 @@ x-events:
     cluster_id: UUID
     failed_operators: string
 
-- name: delete_expired_image
+- name: expired_image_deleted
   message: "Deleted image from backend because it expired. It may be generated again at any time"
   event_type: cluster
   severity: "info"
@@ -203,14 +203,14 @@ x-events:
     status: string
     status_info: string
 
-- name: download_image_failed_fetch
+- name: download_image_fetch_failed
   message: "Failed to download image: error fetching from storage backend"
   event_type: infra_env
   severity: "error"
   properties:
     infra_env_id: UUID
 
-- name: host_deregistered_cluster
+- name: host_deregistered
   message: "Host {host_name} deregistered"
   event_type: host
   severity: "info"
@@ -230,7 +230,7 @@ x-events:
     infra_env_id: UUID
     host_name: string
 
-- name: host_set_bootstrap
+- name: host_bootstrap_set
   message: "Host {host_name}: set as bootstrap"
   event_type: host
   severity: "info"
@@ -253,7 +253,7 @@ x-events:
     new_status: string
     info: string
 
-- name: update_host_role
+- name: host_role_updated
   message: "Host {host_name}: calculated role is {suggested_role}"
   event_type: host
   severity: "info"
@@ -263,7 +263,7 @@ x-events:
     host_name: string
     suggested_role: string
 
-- name: update_image_status
+- name: image_status_updated
   message: "Host {host_name}: New image status {image_status}. result: {result}. {info}"
   event_type: host
   severity: "info"
@@ -307,7 +307,7 @@ x-events:
     host_name: string
     error: string
 
-- name: host_reset_installation
+- name: host_installation_reset
   message: "Installation reset for host {host_name}"
   event_type: host
   severity: "info"
@@ -317,7 +317,7 @@ x-events:
     infra_env_id: UUID
     host_name: string
 
-- name: host_reset_installation_failed
+- name: host_installation_reset_failed
   message: "Failed to reset installation of host {host_name}. Error: {error}"
   event_type: host
   severity: "error"
@@ -349,7 +349,7 @@ x-events:
     host_name: string
     error: string
 
-- name: host_validation_falling
+- name: host_validation_failed
   message: "Host {host_name}: validation '{validation_id}' that used to succeed is now failing"
   event_type: host
   severity: "warning"
@@ -371,7 +371,7 @@ x-events:
     host_name: string
     validation_id: string
 
-- name: quick_disk_format
+- name: quick_disk_format_performed
   message: "{host_name}: Performing quick format of disk {disk_name}({disk_id})"
   event_type: host
   severity: "info"
@@ -391,7 +391,7 @@ x-events:
     infra_env_id: UUID
     error: string
 
-- name: registered_infra_env
+- name: infra_env_registered
   message: "Registered infra env"
   event_type: infra_env
   severity: "info"
@@ -406,7 +406,7 @@ x-events:
     infra_env_id: UUID
     error: string
 
-- name: deregistered_infra_env
+- name: infra_env_deregistered
   message: "Deregistered infra env"
   event_type: infra_env
   severity: "info"
@@ -420,14 +420,14 @@ x-events:
   properties:
     cluster_id: UUID
 
-- name: image_deleted_after_ignition_update
+- name: ignition_updated_therefore_image_deleted
   message: "Deleted image from backend because its ignition was updated. The image may be regenerated at any time"
   event_type: cluster
   severity: "info"
   properties:
     cluster_id: UUID
 
-- name: download_image_failed_not_found
+- name: download_image_find_failed
   message: "Failed to download image: the image was not found (perhaps it expired) - please generate the image and try again"
   event_type: infra_env
   severity: "error"
@@ -442,35 +442,35 @@ x-events:
     infra_env_id: UUID
     image_type: string
 
-- name: generate_image_failed_start
+- name: generate_image_start_failed
   message: "Failed to generate image: error starting DB transaction"
   event_type: cluster
   severity: "error"
   properties:
     cluster_id: UUID
 
-- name: generate_image_failed_contact_storage_backend
+- name: generate_image_contact_storage_backend_failed
   message: "Failed to generate image: error contacting storage backend"
   event_type: cluster
   severity: "error"
   properties:
     cluster_id: UUID
 
-- name: generate_image_failed_update_metadata
+- name: generate_image_update_metadata_failed
   message: "Failed to generate image: error updating metadata"
   event_type: cluster
   severity: "error"
   properties:
     cluster_id: UUID
 
-- name: generate_image_failed_commit_transaction
+- name: generate_image_commit_transaction_failed
   message: "Failed to generate image: error committing the transaction"
   event_type: cluster
   severity: "error"
   properties:
     cluster_id: UUID
 
-- name: generate_image_failed_fetch
+- name: generate_image_fetch_failed
   message: "Failed to generate image: error fetching updated infra env metadata"
   event_type: infra_env
   severity: "error"
@@ -499,7 +499,7 @@ x-events:
   properties:
     cluster_id: UUID
 
-- name: disk_slower_supported_speed
+- name: disk_speed_slower_than_supported
   message: "Host's disk {host_disk} is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: {fdatasync_duration} ms)"
   event_type: host
   severity: "warning"
@@ -510,7 +510,7 @@ x-events:
     host_disk: string
     fdatasync_duration: int64
 
-- name: disable_host_failed_fetch
+- name: disable_host_fetch_failed
   message: "Failed to disable host {host_name}: error fetching host from DB"
   event_type: host
   severity: "error"
@@ -520,7 +520,7 @@ x-events:
     infra_env_id: UUID
     host_name: string
 
-- name: disable_host_failed_disable
+- name: host_disable_failed
   message: "Failed to disable host {host_name}: error disabling host in current status"
   event_type: host
   severity: "error"
@@ -530,7 +530,7 @@ x-events:
     infra_env_id: UUID
     host_name: string
 
-- name: host_disabled_by_user
+- name: host_disabled
   message: "Host {host_name} disabled by user"
   event_type: host
   severity: "info"
@@ -540,7 +540,7 @@ x-events:
     infra_env_id: UUID
     host_name: string
 
-- name: enable_host_failed_fetch
+- name: enable_host_fetch_failed
   message: "Failed to enable host {host_name}: error fetching host from DB"
   event_type: host
   severity: "error"
@@ -550,7 +550,7 @@ x-events:
     infra_env_id: UUID
     host_name: string
 
-- name: enable_host_failed_disable
+- name: enable_host_disable_failed
   message: "Failed to enable host {host_name}: error disabling host in current status"
   event_type: host
   severity: "error"
@@ -560,7 +560,7 @@ x-events:
     infra_env_id: UUID
     host_name: string
 
-- name: host_enabled_by_user
+- name: host_enabled
   message: "Host {host_name} enabled by user"
   event_type: host
   severity: "info"
@@ -579,7 +579,7 @@ x-events:
     infra_env_id: UUID
     host_name: string
 
-- name: host_reset_failed_fetch
+- name: host_reset_fetch_failed
   message: "Failed to reset host {host_name}: error fetching host from DB"
   event_type: host
   severity: "error"
@@ -605,7 +605,7 @@ x-events:
   properties:
     cluster_id: UUID
 
-- name: host_updated_approved
+- name: host_approved_updated
   message: "Host {host_name}: updated approved to {approved_value}"
   event_type: host
   severity: "info"
@@ -615,7 +615,7 @@ x-events:
     host_name: string
     approved_value: bool
 
-- name: host_registered_cluster
+- name: host_cluster_registered
   message: "Host {host_name}: registered to cluster"
   event_type: host
   severity: "info"
@@ -624,7 +624,7 @@ x-events:
     infra_env_id: UUID
     host_name: string
 
-- name: generate_image_failed_format
+- name: generate_image_format_failed
   message: "Failed to generate image: error formatting ignition file"
   event_type: infra_env
   severity: "error"
@@ -645,7 +645,7 @@ x-events:
   properties:
     infra_env_id: UUID
 
-- name: generated_image_with_ignition_config
+- name: ignition_config_image_generated
   message: "Generated image ({details})"
   event_type: cluster
   severity: "info"
@@ -662,7 +662,7 @@ x-events:
     infra_env_id: UUID
     message: string
 
-- name: update_host_install_progress
+- name: host_install_progress_updated
   message: "Host: {host_name}, {event}"
   event_type: host
   severity: "info"
@@ -690,7 +690,7 @@ x-events:
     infra_env_id: UUID
     message: string
 
-- name: deregister_inactive_clusters
+- name: inactive_clusters_deregistered
   message: "{message}"
   event_type: cluster
   severity: "info"
@@ -698,7 +698,7 @@ x-events:
     cluster_id: UUID
     message: string
 
-- name: permanently_delete_clusters
+- name: clusters_permanently_deleted
   message: "{message}"
   event_type: cluster
   severity: "info"
