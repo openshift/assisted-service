@@ -163,7 +163,7 @@ In case that the Bare Metal Operator is installed, the Baremetal Agent Controlle
 See BMAC documentation [here](./baremetal-agent-controller.md).
 
 ## Working with mirror registry
-In case all of your images are in mirror registries, the service, discovery ISO, and installed nodes must be configured with the proper registries.conf and authentication certificate.  To do so, see the Mirror Registry Configuration section [here](.operator.md).
+In case all of your images are in mirror registries, the service, discovery ISO, and installed nodes must be configured with the proper registries.conf and authentication certificate.  To do so, see the Mirror Registry Configuration section [here](../operator.md#mirror-registry-configuration).
 
 ## Assisted Installer Kube API CR examples
 
@@ -185,7 +185,7 @@ You will likely need to adapt those for your own needs.
 ### Creating InstallConfig overrides
 
 In order to alter the default install config yaml used when running `openshift-install create` commands.
-More information about install-config overrides is available [here](user-guide/install-customization.md#Install-Config)
+More information about install-config overrides is available [here](../user-guide/install-customization.md#install-config)
 In case of failure to apply the overrides the agentclusterinstall conditions will reflect the error and show the relevant error message.
 
 Add an annotation with the desired options, the clusterdeployment controller will update the install config yaml with the annotation value.
@@ -215,7 +215,7 @@ metadata:
 ### Creating host installer args overrides
 
 In order to alter the default coreos-installer arguments used when running `coreos-installer`openshift-install create command.
-List of supported args can be found [here](https://github.com/openshift/assisted-service/blob/master/internal/host/hostutil/host_utils.go#L165)
+List of supported args can be found [here](https://github.com/openshift/assisted-service/blob/38a9d0398b96e81ef494029277e362a7256df44e/internal/host/hostutil/host_utils.go#L150)
 In case of failure to apply the overrides the agent conditions will reflect the error and show the relevant error message. 
 
 Add an annotation with the desired options, the bmac controller will update the agent spec with the annotation value.
