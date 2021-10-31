@@ -410,6 +410,7 @@ func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *g
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, m.log)
 	if db == nil {
 		db = m.db
 	}
@@ -431,6 +432,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 	if err != nil {
 		return err
 	}
+	log.Debugf("Host %s: validation details: %+v", hostutil.GetHostnameForMsg(h), currentValidationRes)
 	if m.didValidationChanged(ctx, newValidationRes, currentValidationRes) {
 		// Validation status changes are detected when new validations are different from the
 		// current validations in the DB.
@@ -991,10 +993,12 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host,
 	newValidationRes, currentValidationRes ValidationsStatus) {
+	log := logutil.FromContext(ctx, m.log)
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
 				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
+					log.Errorf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
 					if vc.cluster != nil {
 						m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
 					} else if vc.infraEnv != nil {
@@ -1004,6 +1008,7 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 						h.InfraEnvID, hostutil.GetHostnameForMsg(h), v.ID.String())
 				}
 				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
+					log.Infof("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
 					eventgen.SendHostValidationFixedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
 						h.InfraEnvID, hostutil.GetHostnameForMsg(h), v.ID.String())
 				}
