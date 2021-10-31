@@ -243,6 +243,11 @@ func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) Valid
 	if doesClusterNetworksMatchNetworkType(c.cluster) {
 		return ValidationFailure
 	}
+
+	if isVipDhcpAllocationAndOVN(c.cluster) {
+		return ValidationFailure
+	}
+
 	return ValidationSuccess
 }
 
@@ -257,6 +262,8 @@ func (v *clusterValidator) printIsNetworkTypeValid(context *clusterPreprocessCon
 		}
 		if doesClusterNetworksMatchNetworkType(context.cluster) {
 			return "The cluster is configured with IPv6 which is not supported by OpenShiftSDN; use OVNKubernetes instead"
+		} else if isVipDhcpAllocationAndOVN(context.cluster) {
+			return "VIP DHCP allocation is not supported when the cluster is configured to use OVNKubernetes."
 		} else {
 			return "Network type is invalid for an unknown reason"
 		}
@@ -272,6 +279,12 @@ func doesClusterNetworksMatchNetworkType(cluster *common.Cluster) bool {
 		}
 		return network.IsIPv6CIDR(*ip)
 	})) && cluster.NetworkType != nil && swag.StringValue(cluster.NetworkType) != models.ClusterNetworkTypeOVNKubernetes
+}
+
+func isVipDhcpAllocationAndOVN(cluster *common.Cluster) bool {
+	isVipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
+	isNetworkTypeOVN := swag.StringValue(cluster.NetworkType) == models.ClusterNetworkTypeOVNKubernetes
+	return isVipDhcpAllocation && isNetworkTypeOVN
 }
 
 func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext, status ValidationStatus) string {

@@ -1678,6 +1678,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 			validationsChecker    *validationsChecker
 			errorExpected         bool
 			userManagedNetworking bool
+			vipDhcpAllocation     bool
 			networkType           string
 		}{
 			{
@@ -1995,6 +1996,40 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				}),
 				errorExpected: false,
 			},
+			{
+				name:              "pending-for-input to insufficient - networkType invalid (OVN and VIP DHCP allocation)",
+				srcState:          models.ClusterStatusPendingForInput,
+				dstState:          models.ClusterStatusInsufficient,
+				clusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
+				serviceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+				machineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				apiVip:            common.TestIPv4Networking.APIVip,
+				ingressVip:        common.TestIPv4Networking.IngressVip,
+				networkType:       models.ClusterNetworkTypeOVNKubernetes,
+				vipDhcpAllocation: true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster Machine CIDR is equivalent to the calculated CIDR"},
+					IsApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API virtual IP is defined"},
+					IsApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					IsIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IP is defined"},
+					IsIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
+					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
+					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
+					networkPrefixValid:                  {status: ValidationSuccess, messagePattern: "Cluster Network prefix is valid."},
+					isNetworkTypeValid:                  {status: ValidationFailure, messagePattern: "VIP DHCP allocation is not supported when the cluster is configured to use OVNKubernetes."},
+				}),
+				errorExpected: false,
+			},
 		}
 
 		for i := range tests {
@@ -2014,6 +2049,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 						BaseDNSDomain:         "test.com",
 						UserManagedNetworking: &t.userManagedNetworking,
 						NetworkType:           &t.networkType,
+						VipDhcpAllocation:     &t.vipDhcpAllocation,
 					},
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -2565,16 +2601,18 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 			statusInfoChecker       statusInfoChecker
 			validationsChecker      *validationsChecker
 			setMachineCidrUpdatedAt bool
+			vipDhcpAllocation       bool
 			errorExpected           bool
 		}{
 			{
-				name:          "pending-for-input to pending-for-input",
-				srcState:      models.ClusterStatusPendingForInput,
-				dstState:      models.ClusterStatusPendingForInput,
-				apiVip:        "",
-				ingressVip:    "",
-				dnsDomain:     "test.com",
-				pullSecretSet: true,
+				name:              "pending-for-input to pending-for-input",
+				srcState:          models.ClusterStatusPendingForInput,
+				dstState:          models.ClusterStatusPendingForInput,
+				apiVip:            "",
+				ingressVip:        "",
+				dnsDomain:         "test.com",
+				pullSecretSet:     true,
+				vipDhcpAllocation: true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
@@ -2692,14 +2730,15 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "ready to dhcp timeout - api vip not defined",
-				srcState:        models.ClusterStatusReady,
-				dstState:        models.ClusterStatusInsufficient,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          "",
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:              "ready to dhcp timeout - api vip not defined",
+				srcState:          models.ClusterStatusReady,
+				dstState:          models.ClusterStatusInsufficient,
+				machineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				apiVip:            "",
+				ingressVip:        common.TestIPv4Networking.IngressVip,
+				dnsDomain:         "test.com",
+				pullSecretSet:     true,
+				vipDhcpAllocation: true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2723,14 +2762,15 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "ready to insufficient - api vip not defined",
-				srcState:        models.ClusterStatusReady,
-				dstState:        models.ClusterStatusInsufficient,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          "",
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
+				name:              "ready to insufficient - api vip not defined",
+				srcState:          models.ClusterStatusReady,
+				dstState:          models.ClusterStatusInsufficient,
+				machineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				apiVip:            "",
+				ingressVip:        common.TestIPv4Networking.IngressVip,
+				dnsDomain:         "test.com",
+				pullSecretSet:     true,
+				vipDhcpAllocation: true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
@@ -2972,7 +3012,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 						MachineNetworks:   t.machineNetworks,
 						Status:            &t.srcState,
 						StatusInfo:        &t.srcStatusInfo,
-						VipDhcpAllocation: swag.Bool(true),
+						VipDhcpAllocation: &t.vipDhcpAllocation,
 						BaseDNSDomain:     t.dnsDomain,
 						PullSecretSet:     t.pullSecretSet,
 						ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
@@ -3081,6 +3121,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 			withOCMClient       bool
 			requiresAMSUpdate   bool
 			installationTimeout bool
+			vipDhcpAllocation   bool
 			operators           []*models.MonitoredOperator
 		}{
 			{
@@ -3329,7 +3370,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 						ID:                 &clusterId,
 						Status:             &t.srcState,
 						StatusInfo:         &t.srcStatusInfo,
-						VipDhcpAllocation:  swag.Bool(true),
+						VipDhcpAllocation:  &t.vipDhcpAllocation,
 						BaseDNSDomain:      "test.com",
 						PullSecretSet:      t.pullSecretSet,
 						MonitoredOperators: t.operators,
