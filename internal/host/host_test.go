@@ -1726,7 +1726,7 @@ var _ = Describe("Unbind host", func() {
 			{
 				name:       models.HostStatusInstalled,
 				srcState:   models.HostStatusInstalled,
-				validation: failure,
+				validation: success,
 			},
 			{
 				name:       models.HostStatusInstalling,
