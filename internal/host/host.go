@@ -51,6 +51,11 @@ var WorkerStages = [...]models.HostStage{
 	models.HostStageWaitingForIgnition, models.HostStageConfiguring,
 	models.HostStageJoined, models.HostStageDone,
 }
+var SnoStages = [...]models.HostStage{
+	models.HostStageStartingInstallation, models.HostStageInstalling,
+	models.HostStageWaitingForBootkube, models.HostStageWritingImageToDisk,
+	models.HostStageRebooting, models.HostStageDone,
+}
 
 var manualRebootStages = []models.HostStage{
 	models.HostStageRebooting,
@@ -139,7 +144,7 @@ type API interface {
 	EnableHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	// Install host - db is optional, for transactions
 	Install(ctx context.Context, h *models.Host, db *gorm.DB) error
-	GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage
+	GetStagesByRole(role models.HostRole, isbootstrap bool, isSNO bool) []models.HostStage
 	IndexOfStage(element models.HostStage, data []models.HostStage) int
 	IsInstallable(h *models.Host) bool
 	// auto assign host role
@@ -549,24 +554,23 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 	var extra []interface{}
 	if progress.CurrentStage != models.HostStageFailed {
+		isSno := hostutil.IsSingleNode(m.log, m.db, h)
 
+		stages := m.GetStagesByRole(h.Role, h.Bootstrap, isSno)
 		if previousProgress.CurrentStage != "" {
 			// Verify the new stage is higher or equal to the current host stage according to its role stages array
-			stages := m.GetStagesByRole(h.Role, h.Bootstrap)
 			currentIndex := m.IndexOfStage(progress.CurrentStage, stages)
 
 			if currentIndex == -1 {
 				return errors.Errorf("Stages %s isn't available for host role %s bootstrap %s",
 					progress.CurrentStage, h.Role, strconv.FormatBool(h.Bootstrap))
 			}
-			if currentIndex < m.IndexOfStage(previousProgress.CurrentStage, stages) &&
-				!m.allowStageOutOfOrder(h, progress.CurrentStage) {
+			if currentIndex < m.IndexOfStage(previousProgress.CurrentStage, stages) {
 				return errors.Errorf("Can't assign lower stage \"%s\" after host has been in stage \"%s\"",
 					progress.CurrentStage, previousProgress.CurrentStage)
 			}
 		}
 
-		stages := m.GetStagesByRole(h.Role, h.Bootstrap)
 		// for day2 hosts, rebooting stage is considered as the last state as we don't have any way to follow up on it further.
 		if *h.Kind == models.HostKindAddToExistingClusterHost {
 			rebootingIndex := m.IndexOfStage(models.HostStageRebooting, stages)
@@ -930,9 +934,13 @@ func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db
 	return nil
 }
 
-func (m *Manager) GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage {
+func (m *Manager) GetStagesByRole(role models.HostRole, isbootstrap bool, isSNO bool) []models.HostStage {
 	if isbootstrap || role == models.HostRoleBootstrap {
-		return BootstrapStages[:]
+		if isSNO {
+			return SnoStages[:]
+		} else {
+			return BootstrapStages[:]
+		}
 	}
 
 	switch role {
@@ -1253,14 +1261,6 @@ func (m Manager) PermanentHostsDeletion(olderThan strfmt.DateTime) error {
 		m.log.Debugf("Deleted %s hosts from db", reply.RowsAffected)
 	}
 	return nil
-}
-
-func (m *Manager) allowStageOutOfOrder(h *models.Host, stage models.HostStage) bool {
-	// Return True in case the given stage order is exceptional in case of SNO
-	if stage != models.HostStageWritingImageToDisk {
-		return false
-	}
-	return hostutil.IsSingleNode(m.log, m.db, h)
 }
 
 type DisabledHostValidations map[string]struct{}

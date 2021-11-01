@@ -2386,7 +2386,7 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
-		if err = b.customizeHost(host); err != nil {
+		if err = b.customizeHost(&cluster.Cluster, host); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 		// Clear this field as it is not needed to be sent via API
@@ -3560,7 +3560,7 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
-		if err = b.customizeHost(host); err != nil {
+		if err = b.customizeHost(&cluster.Cluster, host); err != nil {
 			return nil, err
 		}
 		// Clear this field as it is not needed to be sent via API
@@ -3707,7 +3707,11 @@ func (b *bareMetalInventory) GetHost(_ context.Context, params installer.GetHost
 		return installer.NewGetHostNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 
-	if err := b.customizeHost(&host.Host); err != nil {
+	cluster, err := common.GetClusterFromDB(b.db, *host.ClusterID, common.SkipEagerLoading)
+	if err != nil {
+		return installer.NewGetHostNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+	}
+	if err := b.customizeHost(&cluster.Cluster, &host.Host); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -3718,22 +3722,21 @@ func (b *bareMetalInventory) GetHost(_ context.Context, params installer.GetHost
 
 func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	var hosts []*models.Host
-	if err := b.db.Find(&hosts, "cluster_id = ?", params.ClusterID).Error; err != nil {
+	cluster, err := common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading)
+	if err != nil {
 		log.WithError(err).Errorf("failed to get list of hosts for cluster %s", params.ClusterID)
-		return installer.NewListHostsInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		return installer.NewListHostsInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	for _, host := range hosts {
-		if err := b.customizeHost(host); err != nil {
+	for _, host := range cluster.Hosts {
+		if err := b.customizeHost(&cluster.Cluster, host); err != nil {
 			return common.GenerateErrorResponder(err)
 		}
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
 	}
 
-	return installer.NewListHostsOK().WithPayload(hosts)
+	return installer.NewListHostsOK().WithPayload(cluster.Hosts)
 }
 
 func (b *bareMetalInventory) UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error) {
@@ -4903,7 +4906,7 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 		if err := b.hostApi.CancelInstallation(ctx, h, "Installation was cancelled by user", tx); err != nil {
 			return nil, err
 		}
-		if err := b.customizeHost(h); err != nil {
+		if err := b.customizeHost(&cluster.Cluster, h); err != nil {
 			return nil, err
 		}
 	}
@@ -5024,11 +5027,18 @@ func (b *bareMetalInventory) resetHost(ctx context.Context, hostId, infraEnvId s
 		return nil, common.NewApiError(http.StatusConflict, fmt.Errorf("method only allowed when host assigned to an existing cluster"))
 	}
 
+	cluster, err := common.GetClusterFromDB(b.db, *host.ClusterID, common.SkipEagerLoading)
+	if err != nil {
+		err = fmt.Errorf("can not find a cluster for host %s, cannot reset host", hostId)
+		log.Errorln(err.Error())
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	err = b.db.Transaction(func(tx *gorm.DB) error {
 		if errResponse := b.hostApi.ResetHost(ctx, &host.Host, "host was reset by user", tx); errResponse != nil {
 			return errResponse
 		}
-		if err = b.customizeHost(&host.Host); err != nil {
+		if err = b.customizeHost(&cluster.Cluster, &host.Host); err != nil {
 			return err
 		}
 		return nil
@@ -5365,18 +5375,14 @@ func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, f
 	return cluster, nil
 }
 
-func (b *bareMetalInventory) customizeHost(host *models.Host) error {
-	b.customizeHostStages(host)
-	b.customizeHostname(host)
-	return nil
-}
-
-func (b *bareMetalInventory) customizeHostStages(host *models.Host) {
-	host.ProgressStages = b.hostApi.GetStagesByRole(host.Role, host.Bootstrap)
-}
-
-func (b *bareMetalInventory) customizeHostname(host *models.Host) {
+func (b *bareMetalInventory) customizeHost(cluster *models.Cluster, host *models.Host) error {
+	var isSno = false
+	if cluster != nil {
+		isSno = swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
+	}
+	host.ProgressStages = b.hostApi.GetStagesByRole(host.Role, host.Bootstrap, isSno)
 	host.RequestedHostname = hostutil.GetHostnameForMsg(host)
+	return nil
 }
 
 func proxySettingsChanged(params *models.V2ClusterUpdateParams, cluster *common.Cluster) bool {
@@ -6121,6 +6127,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	}
 
 	var cluster *common.Cluster
+	var c *models.Cluster
 	cluster, err = b.getBoundCluster(tx, infraEnv, dbHost)
 	if err != nil {
 		log.WithError(err).Errorf("Bound Cluster get")
@@ -6138,11 +6145,13 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		}
 		if common.IsSingleNodeCluster(cluster) {
 			host.Role = models.HostRoleMaster
+			host.Bootstrap = true
 		}
 		if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 			host.Kind = swag.String(models.HostKindAddToExistingClusterHost)
 		}
 		host.ClusterID = cluster.ID
+		c = &cluster.Cluster
 	}
 
 	if err = b.hostApi.RegisterHost(ctx, host, tx); err != nil {
@@ -6154,7 +6163,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		return returnRegisterHostTransitionError(http.StatusBadRequest, err)
 	}
 
-	if err = b.customizeHost(host); err != nil {
+	if err = b.customizeHost(c, host); err != nil {
 		// TODO Need event for infra-env instead of cluster
 		eventgen.SendHostRegistrationFailedSettingPropertiesEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID)
 		return common.GenerateErrorResponder(err)
@@ -6315,7 +6324,17 @@ func (b *bareMetalInventory) V2GetHost(ctx context.Context, params installer.V2G
 		}
 	}
 
-	if err := b.customizeHost(&host.Host); err != nil {
+	var c *models.Cluster
+	if host.ClusterID != nil {
+		cluster, err := common.GetClusterFromDB(b.db, *host.ClusterID, common.SkipEagerLoading)
+		if err != nil {
+			err = fmt.Errorf("can not find a cluster for host %s", params.HostID.String())
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		c = &cluster.Cluster
+	}
+
+	if err := b.customizeHost(c, &host.Host); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -6471,7 +6490,7 @@ func (b *bareMetalInventory) V2ListHosts(ctx context.Context, params installer.V
 	}
 
 	for _, h := range hosts {
-		if err := b.customizeHost(&h.Host); err != nil {
+		if err := b.customizeHost(nil, &h.Host); err != nil {
 			return common.GenerateErrorResponder(err)
 		}
 		// Clear this field as it is not needed to be sent via API
@@ -6705,7 +6724,19 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
-	err = b.customizeHost(&host.Host)
+	//get bound cluster
+	var c *models.Cluster
+	var cluster *common.Cluster
+	if host.ClusterID != nil {
+		cluster, err = common.GetClusterFromDB(b.db, *host.ClusterID, common.SkipEagerLoading)
+		if err != nil {
+			err = fmt.Errorf("can not find a cluster for host %s", params.HostID.String())
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+		c = &cluster.Cluster
+	}
+
+	err = b.customizeHost(c, &host.Host)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}

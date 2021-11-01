@@ -157,17 +157,17 @@ func (mr *MockAPIMockRecorder) GetNextSteps(arg0, arg1 interface{}) *gomock.Call
 }
 
 // GetStagesByRole mocks base method.
-func (m *MockAPI) GetStagesByRole(arg0 models.HostRole, arg1 bool) []models.HostStage {
+func (m *MockAPI) GetStagesByRole(arg0 models.HostRole, arg1, arg2 bool) []models.HostStage {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStagesByRole", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetStagesByRole", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]models.HostStage)
 	return ret0
 }
 
 // GetStagesByRole indicates an expected call of GetStagesByRole.
-func (mr *MockAPIMockRecorder) GetStagesByRole(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) GetStagesByRole(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStagesByRole", reflect.TypeOf((*MockAPI)(nil).GetStagesByRole), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStagesByRole", reflect.TypeOf((*MockAPI)(nil).GetStagesByRole), arg0, arg1, arg2)
 }
 
 // HandleInstallationFailure mocks base method.

@@ -1089,11 +1089,13 @@ var _ = Describe("GetHost", func() {
 	)
 
 	BeforeEach(func() {
-		clusterId = strfmt.UUID(uuid.New().String())
-		infraEnvId = clusterId
 		hostID = strfmt.UUID(uuid.New().String())
 		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
+
+		cluster := createCluster(db, models.ClusterStatusInsufficient)
+		clusterId = *cluster.ID
+		infraEnvId = clusterId
 
 		hostObj := models.Host{
 			ID:         &hostID,
@@ -1115,19 +1117,19 @@ var _ = Describe("GetHost", func() {
 		Expect(response).Should(BeAssignableToTypeOf(&installer.GetHostNotFound{}))
 	})
 
-	It("Get host succeed", func() {
+	It("Get host succeed (no role)", func() {
 		ctx := context.Background()
 		params := installer.GetHostParams{
 			ClusterID: clusterId,
 			HostID:    hostID,
 		}
 
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Eq(false), gomock.Eq(false)).Return(nil).Times(1)
 		response := bm.GetHost(ctx, params)
 		Expect(response).Should(BeAssignableToTypeOf(&installer.GetHostOK{}))
 	})
 
-	It("Validate customization have occurred", func() {
+	It("customization with role bootstrap", func() {
 		ctx := context.Background()
 
 		hostObj := models.Host{
@@ -1145,10 +1147,37 @@ var _ = Describe("GetHost", func() {
 			ClusterID: clusterId,
 			HostID:    hostID,
 		}
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(host.BootstrapStages[:]).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Eq(true), gomock.Eq(false)).Return(host.BootstrapStages[:]).Times(1)
 		response := bm.GetHost(ctx, params)
 		Expect(response).Should(BeAssignableToTypeOf(&installer.GetHostOK{}))
 		Expect(response.(*installer.GetHostOK).Payload.ProgressStages).To(ConsistOf(host.BootstrapStages[:]))
+	})
+
+	It("customization with SNO", func() {
+		ctx := context.Background()
+		sno := createClusterWithAvailability(db, models.ClusterStatusInsufficient,
+			models.ClusterHighAvailabilityModeNone)
+		snoId := *sno.ID
+
+		newHostID := strfmt.UUID(uuid.New().String())
+		newHost := models.Host{
+			ID:         &newHostID,
+			InfraEnvID: snoId,
+			ClusterID:  &snoId,
+			Status:     swag.String("discovering"),
+			Bootstrap:  true,
+			Role:       models.HostRoleMaster,
+		}
+		Expect(db.Create(&newHost).Error).ShouldNot(HaveOccurred())
+
+		params := installer.GetHostParams{
+			ClusterID: snoId,
+			HostID:    newHostID,
+		}
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Eq(models.HostRoleMaster), gomock.Eq(true), gomock.Eq(true)).Return(host.SnoStages[:]).Times(1)
+		response := bm.GetHost(ctx, params)
+		Expect(response).Should(BeAssignableToTypeOf(&installer.GetHostOK{}))
+		Expect(response.(*installer.GetHostOK).Payload.ProgressStages).To(ConsistOf(host.SnoStages[:]))
 	})
 })
 
@@ -1194,7 +1223,7 @@ var _ = Describe("V2GetHost", func() {
 			HostID:     hostID,
 		}
 
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		response := bm.V2GetHost(ctx, params)
 		Expect(response).Should(BeAssignableToTypeOf(&installer.V2GetHostOK{}))
 	})
@@ -1217,7 +1246,7 @@ var _ = Describe("V2GetHost", func() {
 			InfraEnvID: infraEnvId,
 			HostID:     hostID,
 		}
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(host.BootstrapStages[:]).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(host.BootstrapStages[:]).Times(1)
 		response := bm.V2GetHost(ctx, params)
 		Expect(response).Should(BeAssignableToTypeOf(&installer.V2GetHostOK{}))
 		Expect(response.(*installer.V2GetHostOK).Payload.ProgressStages).To(ConsistOf(host.BootstrapStages[:]))
@@ -1317,7 +1346,7 @@ var _ = Describe("RegisterHost", func() {
 						return nil
 					}).Times(1)
 				mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.HostRegisteredClusterEventName),
 					eventstest.WithHostIdMatcher(hostID.String()),
@@ -1354,7 +1383,7 @@ var _ = Describe("RegisterHost", func() {
 		infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 		expectedErrMsg := "some-internal-error"
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 				// validate that host is registered with auto-assign role
@@ -1500,7 +1529,7 @@ var _ = Describe("v2RegisterHost", func() {
 						return nil
 					}).Times(1)
 				mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.HostRegisteredClusterEventName),
 					eventstest.WithHostIdMatcher(hostID.String()),
@@ -1538,7 +1567,7 @@ var _ = Describe("v2RegisterHost", func() {
 		expectedErrMsg := "some-internal-error"
 
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 				// validate that host is registered with auto-assign role
@@ -1617,7 +1646,7 @@ var _ = Describe("v2RegisterHost", func() {
 			eventstest.WithNameMatcher(eventgen.HostRegisteredClusterEventName),
 			eventstest.WithHostIdMatcher(hostId.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()))).Times(1)
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 		By("trying to register a host bound to day2 cluster")
@@ -3351,7 +3380,7 @@ var _ = Describe("cluster", func() {
 
 		Context("GetCluster", func() {
 			It("success", func() {
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
 				mockDurationsSuccess()
 				reply := bm.GetCluster(ctx, installer.GetClusterParams{
 					ClusterID: clusterID,
@@ -3423,7 +3452,7 @@ var _ = Describe("cluster", func() {
 
 			It("success", func() {
 				deleteCluster(false)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
 				cluster := resp.(*installer.GetClusterOK).Payload
 				Expect(cluster.ID.String()).Should(Equal(clusterID.String()))
@@ -4200,7 +4229,7 @@ var _ = Describe("cluster", func() {
 			It("Valid hostname", func() {
 				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
 				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
@@ -4219,7 +4248,7 @@ var _ = Describe("cluster", func() {
 			It("Valid splitted hostname", func() {
 				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
 				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
@@ -4292,7 +4321,7 @@ var _ = Describe("cluster", func() {
 			It("Valid machine config pool name", func() {
 				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
 				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
@@ -4324,7 +4353,7 @@ var _ = Describe("cluster", func() {
 			It("Valid selection of install disk", func() {
 				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
 				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
@@ -4401,7 +4430,7 @@ var _ = Describe("cluster", func() {
 			It("update hostname, all in known", func() {
 				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
 				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
@@ -4421,7 +4450,7 @@ var _ = Describe("cluster", func() {
 				addHost(masterHostId3, models.HostRoleMaster, "added-to-existing-cluster", models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname3", "bootMode", "1.2.3.6/24", "10.11.50.70/16"), db)
 				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
 				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
@@ -4456,7 +4485,7 @@ var _ = Describe("cluster", func() {
 			})
 
 			mockSuccess := func(times int) {
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(times * 3) // Number of hosts
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times * 3) // Number of hosts
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times * 3)
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times * 1)
 				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times * 3)
@@ -5722,7 +5751,7 @@ var _ = Describe("cluster", func() {
 
 		Context("CancelInstallation", func() {
 			BeforeEach(func() {
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 			})
 			It("cancel installation success", func() {
 				setCancelInstallationSuccess()
@@ -5754,7 +5783,7 @@ var _ = Describe("cluster", func() {
 
 		Context("reset cluster", func() {
 			BeforeEach(func() {
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 			})
 			It("reset installation success", func() {
 				setResetClusterSuccess()
@@ -7547,7 +7576,7 @@ var _ = Describe("infraEnvs", func() {
 
 		Context("List Hosts", func() {
 			It("success", func() {
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(5)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(5)
 				resp := bm.V2ListHosts(ctx, installer.V2ListHostsParams{
 					InfraEnvID: infraEnvId1,
 				})
@@ -8398,7 +8427,12 @@ var _ = Describe("infraEnvs host", func() {
 		BeforeEach(func() {
 			hostID = strfmt.UUID(uuid.New().String())
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&models.Host{
+
+			err := db.Create(&common.Cluster{
+				Cluster: models.Cluster{ID: &clusterID},
+			}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			err = db.Create(&models.Host{
 				ID:         &hostID,
 				InfraEnvID: infraEnvID,
 				ClusterID:  &clusterID,
@@ -8412,7 +8446,7 @@ var _ = Describe("infraEnvs host", func() {
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
 				InfraEnvID: infraEnvID,
 				HostID:     hostID,
@@ -8445,7 +8479,7 @@ var _ = Describe("infraEnvs host", func() {
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
 				InfraEnvID: infraEnvID,
 				HostID:     hostID,
@@ -8494,7 +8528,7 @@ var _ = Describe("infraEnvs host", func() {
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), diskID1).Return(nil).Times(1)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
 				InfraEnvID: infraEnvID,
 				HostID:     hostID,
@@ -8533,7 +8567,7 @@ var _ = Describe("infraEnvs host", func() {
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), "machinepool").Return(nil).Times(1)
 			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
 				InfraEnvID: infraEnvID,
 				HostID:     hostID,
@@ -9967,7 +10001,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 	})
 
 	addHost := func(clusterId strfmt.UUID, inventory string, role models.HostRole) {
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterId, clusterID, inventory, db)
 	}
 
@@ -10223,7 +10257,7 @@ var _ = Describe("Reset Host test", func() {
 		}
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		res := bm.V2ResetHost(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ResetHostOK()))
 	})
@@ -10236,7 +10270,7 @@ var _ = Describe("Reset Host test", func() {
 		}
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		res := bm.ResetHost(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewResetHostOK()))
 	})
