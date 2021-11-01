@@ -6470,9 +6470,12 @@ func (b *bareMetalInventory) V2ListHosts(ctx context.Context, params installer.V
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	for _, host := range hosts {
+	for _, h := range hosts {
+		if err := b.customizeHost(&h.Host); err != nil {
+			return common.GenerateErrorResponder(err)
+		}
 		// Clear this field as it is not needed to be sent via API
-		host.FreeAddresses = ""
+		h.FreeAddresses = ""
 	}
 
 	return installer.NewV2ListHostsOK().WithPayload(common.ToModelsHosts(hosts))
