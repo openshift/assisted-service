@@ -9431,6 +9431,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
+        "ignition_endpoint_url": {
+          "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
+          "type": "string",
+          "x-nullable": true
+        },
         "image_info": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",
           "$ref": "#/definitions/image_info"
@@ -9708,6 +9713,11 @@ func init() {
             "none",
             "all"
           ]
+        },
+        "ignition_endpoint_url": {
+          "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
+          "type": "string",
+          "x-nullable": true
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
@@ -10037,6 +10047,11 @@ func init() {
             "all",
             "none"
           ],
+          "x-nullable": true
+        },
+        "ignition_endpoint_url": {
+          "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
+          "type": "string",
           "x-nullable": true
         },
         "ingress_vip": {
@@ -11020,6 +11035,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
+        "ignition_endpoint_token": {
+          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
+          "type": "string",
+          "x-nullable": true
+        },
         "images_status": {
           "description": "Array of image statuses.",
           "type": "string",
@@ -11328,6 +11348,11 @@ func init() {
             "master",
             "worker"
           ],
+          "x-nullable": true
+        },
+        "ignition_endpoint_token": {
+          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
+          "type": "string",
           "x-nullable": true
         },
         "machine_config_pool_name": {
@@ -12729,6 +12754,11 @@ func init() {
             "all",
             "none"
           ],
+          "x-nullable": true
+        },
+        "ignition_endpoint_url": {
+          "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
+          "type": "string",
           "x-nullable": true
         },
         "ingress_vip": {
@@ -22540,6 +22570,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
+        "ignition_endpoint_url": {
+          "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
+          "type": "string",
+          "x-nullable": true
+        },
         "image_info": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",
           "$ref": "#/definitions/image_info"
@@ -22817,6 +22852,11 @@ func init() {
             "none",
             "all"
           ]
+        },
+        "ignition_endpoint_url": {
+          "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
+          "type": "string",
+          "x-nullable": true
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
@@ -23106,6 +23146,11 @@ func init() {
             "all",
             "none"
           ],
+          "x-nullable": true
+        },
+        "ignition_endpoint_url": {
+          "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
+          "type": "string",
           "x-nullable": true
         },
         "ingress_vip": {
@@ -24038,6 +24083,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
+        "ignition_endpoint_token": {
+          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
+          "type": "string",
+          "x-nullable": true
+        },
         "images_status": {
           "description": "Array of image statuses.",
           "type": "string",
@@ -24346,6 +24396,11 @@ func init() {
             "master",
             "worker"
           ],
+          "x-nullable": true
+        },
+        "ignition_endpoint_token": {
+          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
+          "type": "string",
           "x-nullable": true
         },
         "machine_config_pool_name": {
@@ -25738,6 +25793,11 @@ func init() {
             "all",
             "none"
           ],
+          "x-nullable": true
+        },
+        "ignition_endpoint_url": {
+          "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
+          "type": "string",
           "x-nullable": true
         },
         "ingress_vip": {

@@ -30,6 +30,9 @@ type HostUpdateParams struct {
 	// Enum: [auto-assign master worker]
 	HostRole *string `json:"host_role,omitempty"`
 
+	// A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
+	IgnitionEndpointToken *string `json:"ignition_endpoint_token,omitempty"`
+
 	// machine config pool name
 	MachineConfigPoolName *string `json:"machine_config_pool_name,omitempty"`
 }

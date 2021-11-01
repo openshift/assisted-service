@@ -62,6 +62,9 @@ type V2ClusterUpdateParams struct {
 	// Enum: [masters workers all none]
 	Hyperthreading *string `json:"hyperthreading,omitempty"`
 
+	// Explicit ignition endpoint overrides the default ignition endpoint.
+	IgnitionEndpointURL *string `json:"ignition_endpoint_url,omitempty"`
+
 	// The virtual IP used for cluster ingress traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$
 	IngressVip *string `json:"ingress_vip,omitempty"`

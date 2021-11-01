@@ -6637,6 +6637,10 @@ definitions:
         x-go-custom-tag: gorm:"type:text"
         type: string
         description: The domain name resolution result.
+      ignition_endpoint_token:
+        x-nullable: true
+        type: string
+        description: A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
 
 
   installer-args-params:
@@ -6886,6 +6890,10 @@ definitions:
         type: object
         $ref: '#/definitions/disk-encryption'
         description: Installation disks encryption mode and host roles to be applied.
+      ignition_endpoint_url:
+        type: string
+        description: Explicit ignition endpoint overrides the default ignition endpoint.
+        x-nullable: true
 
   host-update-params:
     type: object
@@ -6905,6 +6913,10 @@ definitions:
       machine_config_pool_name:
         type: string
         x-nullable: true
+      ignition_endpoint_token:
+        x-nullable: true
+        type: string
+        description: A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
 
   cluster-update-params:
     type: object
@@ -7087,7 +7099,10 @@ definitions:
         type: object
         $ref: '#/definitions/disk-encryption'
         description: Installation disks encryption mode and host roles to be applied.
-
+      ignition_endpoint_url:
+        type: string
+        description: Explicit ignition endpoint overrides the default ignition endpoint.
+        x-nullable: true
 
   v2-cluster-update-params:
     type: object
@@ -7220,6 +7235,10 @@ definitions:
         type: object
         $ref: '#/definitions/disk-encryption'
         description: Installation disks encryption mode and host roles to be applied.
+      ignition_endpoint_url:
+        type: string
+        description: Explicit ignition endpoint overrides the default ignition endpoint.
+        x-nullable: true
 
 
   add-hosts-cluster-create-params:
@@ -7535,6 +7554,10 @@ definitions:
         x-nullable: false
         default: 'x86_64'
         description: The CPU architecture of the image (x86_64/arm64/etc).
+      ignition_endpoint_url:
+        type: string
+        description: Explicit ignition endpoint overrides the default ignition endpoint.
+        x-nullable: true
 
   platform:
     type: object
