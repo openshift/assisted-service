@@ -876,6 +876,11 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		}
 	}
 
+	if spec.IgnitionEndpointToken != "" && spec.IgnitionEndpointToken != *internalHost.IgnitionEndpointToken {
+		hostUpdate = true
+		params.HostUpdateParams.IgnitionEndpointToken = &spec.IgnitionEndpointToken
+	}
+
 	if !hostUpdate {
 		return nil
 	}

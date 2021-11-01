@@ -704,6 +704,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	sshPublicKey := strings.TrimSpace(clusterInstall.Spec.SSHPublicKey)
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 
+	// Update ignition endpoint URL if needed
+	if clusterInstall.Spec.IgnitionEndpointUrl != "" {
+		updateString(clusterInstall.Spec.IgnitionEndpointUrl, swag.StringValue(cluster.IgnitionEndpointURL), &params.IgnitionEndpointURL)
+	}
+
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
 	}
@@ -920,6 +925,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		IngressVip:            clusterInstall.Spec.IngressVIP,
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
+		IgnitionEndpointURL:   swag.String(clusterInstall.Spec.IgnitionEndpointUrl),
 	}
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {

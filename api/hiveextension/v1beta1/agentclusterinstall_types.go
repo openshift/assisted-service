@@ -147,6 +147,10 @@ type AgentClusterInstallSpec struct {
 	// installation will not begin until this field is set to false.
 	// +optional
 	HoldInstallation bool `json:"holdInstallation,omitempty"`
+
+	// IgnitionEndpointUrl store the value of the custom ingnition endpoint.
+	// +optional
+	IgnitionEndpointUrl string `json:"ignitionEndpointUrl,omitempty"`
 }
 
 // AgentClusterInstallStatus defines the observed state of the AgentClusterInstall.

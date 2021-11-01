@@ -148,6 +148,10 @@ spec:
                   once the RequirementsMet condition is true, installation will not
                   begin until this field is set to false.
                 type: boolean
+              ignitionEndpointUrl:
+                description: IgnitionEndpointUrl store the value of the custom ingnition
+                  endpoint.
+                type: string
               imageSetRef:
                 description: ImageSetRef is a reference to a ClusterImageSet. The
                   release image specified in the ClusterImageSet will be used to install
