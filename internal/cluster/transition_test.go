@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -37,7 +38,7 @@ var _ = Describe("Transition tests", func() {
 		capi             API
 		db               *gorm.DB
 		clusterId        strfmt.UUID
-		eventsHandler    events.Handler
+		eventsHandler    eventsapi.Handler
 		ctrl             *gomock.Controller
 		mockMetric       *metrics.MockAPI
 		dbName           string
@@ -247,7 +248,7 @@ var _ = Describe("Transition tests", func() {
 		}
 
 		checkCompleteInstallationUpdate := func(eventSeverity string, eventMessage string) {
-			events, err := eventsHandler.V2GetEvents(&clusterId, nil, nil)
+			events, err := eventsHandler.V2GetEvents(ctx, &clusterId, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -336,14 +337,14 @@ var _ = Describe("Cancel cluster installation", func() {
 		capi              API
 		db                *gorm.DB
 		ctrl              *gomock.Controller
-		mockEventsHandler *events.MockHandler
+		mockEventsHandler *eventsapi.MockHandler
 		mockMetric        *metrics.MockAPI
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEventsHandler = events.NewMockHandler(ctrl)
+		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, mockMetric, nil, nil, operatorsManager, nil, nil, nil)
@@ -412,13 +413,13 @@ var _ = Describe("Reset cluster", func() {
 		capi              API
 		db                *gorm.DB
 		ctrl              *gomock.Controller
-		mockEventsHandler *events.MockHandler
+		mockEventsHandler *eventsapi.MockHandler
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEventsHandler = events.NewMockHandler(ctrl)
+		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, nil, nil, nil, operatorsManager, nil, nil, nil)
 	})
@@ -556,7 +557,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
 		cluster                                 common.Cluster
 		clusterApi                              *Manager
-		mockEvents                              *events.MockHandler
+		mockEvents                              *eventsapi.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
@@ -579,7 +580,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
@@ -1345,7 +1346,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
 		cluster                                 common.Cluster
 		clusterApi                              *Manager
-		mockEvents                              *events.MockHandler
+		mockEvents                              *eventsapi.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
@@ -1358,7 +1359,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
@@ -1634,7 +1635,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
 		cluster                                 common.Cluster
 		clusterApi                              *Manager
-		mockEvents                              *events.MockHandler
+		mockEvents                              *eventsapi.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
@@ -1647,7 +1648,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
@@ -2555,7 +2556,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
 		cluster                                 common.Cluster
 		clusterApi                              *Manager
-		mockEvents                              *events.MockHandler
+		mockEvents                              *eventsapi.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
@@ -2569,7 +2570,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
@@ -3073,7 +3074,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
 		cluster                                 common.Cluster
 		clusterApi                              *Manager
-		mockEvents                              *events.MockHandler
+		mockEvents                              *eventsapi.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		mockS3Api                               *s3wrapper.MockAPI
@@ -3093,7 +3094,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
@@ -3445,7 +3446,7 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 		clusterId   strfmt.UUID
 		cluster     common.Cluster
 		clusterApi  *Manager
-		mockEvents  *events.MockHandler
+		mockEvents  *eventsapi.MockHandler
 		mockHostAPI *host.MockAPI
 		mockMetric  *metrics.MockAPI
 		ctrl        *gomock.Controller
@@ -3478,7 +3479,7 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
@@ -3607,7 +3608,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
 		cluster                                 common.Cluster
 		clusterApi                              *Manager
-		mockEvents                              *events.MockHandler
+		mockEvents                              *eventsapi.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
@@ -3620,7 +3621,7 @@ var _ = Describe("NTP refresh cluster", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
@@ -3933,7 +3934,7 @@ var _ = Describe("Single node", func() {
 		clusterId, hid1, hid2, hid3 strfmt.UUID
 		cluster                     common.Cluster
 		clusterApi                  *Manager
-		mockEvents                  *events.MockHandler
+		mockEvents                  *eventsapi.MockHandler
 		mockHostAPI                 *host.MockAPI
 		mockMetric                  *metrics.MockAPI
 		ctrl                        *gomock.Controller
@@ -3949,7 +3950,7 @@ var _ = Describe("Single node", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)

@@ -10,7 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -18,7 +18,7 @@ import (
 
 var ResetLogsField = []interface{}{"logs_info", "", "logs_started_at", strfmt.DateTime(time.Time{}), "logs_collected_at", strfmt.DateTime(time.Time{})}
 
-func UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
+func UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, newStatus string, statusInfo string,
 	srcStage models.HostStage, newStage models.HostStage, progressInfo string, extra ...interface{}) (*common.Host, error) {
 
@@ -32,7 +32,7 @@ func UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB
 	return UpdateHostStatus(ctx, log, db, eventsHandler, infraEnvId, hostId, srcStatus, newStatus, statusInfo, extra...)
 }
 
-func UpdateLogsProgress(_ context.Context, log logrus.FieldLogger, db *gorm.DB, _ events.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID, srcStatus string, progress string, extra ...interface{}) (*common.Host, error) {
+func UpdateLogsProgress(_ context.Context, log logrus.FieldLogger, db *gorm.DB, _ eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID, srcStatus string, progress string, extra ...interface{}) (*common.Host, error) {
 	var host *common.Host
 	var err error
 
@@ -52,7 +52,7 @@ func UpdateLogsProgress(_ context.Context, log logrus.FieldLogger, db *gorm.DB, 
 	return host, nil
 }
 
-func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
+func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, newStatus string, statusInfo string, extra ...interface{}) (*common.Host, error) {
 	var host *common.Host
 	var err error

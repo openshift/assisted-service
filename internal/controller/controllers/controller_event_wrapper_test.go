@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -26,7 +27,7 @@ var _ = Describe("Controller events wrapper", func() {
 		cluster1             *common.Cluster
 		cluster2             *common.Cluster
 		infraEnv1            *common.InfraEnv
-		theEvents            *events.Events
+		theEvents            eventsapi.Handler
 		cEventsWrapper       *controllerEventsWrapper
 		mockCtrl             *gomock.Controller
 		mockCRDEventsHandler *MockCRDEventsHandler
@@ -74,7 +75,7 @@ var _ = Describe("Controller events wrapper", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 	numOfEvents := func(clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) int {
-		evs, err := cEventsWrapper.V2GetEvents(clusterID, hostID, infraEnvID)
+		evs, err := cEventsWrapper.V2GetEvents(context.TODO(), clusterID, hostID, infraEnvID)
 		Expect(err).Should(BeNil())
 		return len(evs)
 	}
@@ -98,7 +99,7 @@ var _ = Describe("Controller events wrapper", func() {
 			Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(1))
 			Expect(numOfEvents(cluster2.ID, nil, nil)).Should(Equal(0))
 
-			evs, err := cEventsWrapper.V2GetEvents(cluster1.ID, nil, nil)
+			evs, err := cEventsWrapper.V2GetEvents(context.TODO(), cluster1.ID, nil, nil)
 			Expect(err).Should(BeNil())
 			Expect(evs[0]).Should(WithMessage(swag.String("the event1")))
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
@@ -138,7 +139,7 @@ var _ = Describe("Controller events wrapper", func() {
 			Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(1))
 			Expect(numOfEvents(cluster2.ID, nil, nil)).Should(Equal(0))
 
-			evs, err := cEventsWrapper.V2GetEvents(cluster1.ID, nil, nil)
+			evs, err := cEventsWrapper.V2GetEvents(context.TODO(), cluster1.ID, nil, nil)
 			Expect(err).Should(BeNil())
 			Expect(evs[0]).Should(WithMessage(swag.String("event1")))
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
@@ -157,7 +158,7 @@ var _ = Describe("Controller events wrapper", func() {
 			Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(1))
 			Expect(numOfEvents(cluster2.ID, nil, nil)).Should(Equal(0))
 
-			evs, err := cEventsWrapper.V2GetEvents(cluster1.ID, nil, nil)
+			evs, err := cEventsWrapper.V2GetEvents(context.TODO(), cluster1.ID, nil, nil)
 			Expect(err).Should(BeNil())
 			Expect(evs[0]).Should(WithMessage(swag.String("event1")))
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))

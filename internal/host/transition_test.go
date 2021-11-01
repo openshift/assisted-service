@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -83,7 +83,7 @@ var _ = Describe("RegisterHost", func() {
 		hapi                          API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
 		dbName                        string
 	)
@@ -91,7 +91,7 @@ var _ = Describe("RegisterHost", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
@@ -599,7 +599,7 @@ var _ = Describe("HostInstallationFailed", func() {
 		host                          models.Host
 		ctrl                          *gomock.Controller
 		mockMetric                    *metrics.MockAPI
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		dbName                        string
 	)
 
@@ -607,7 +607,7 @@ var _ = Describe("HostInstallationFailed", func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil)
@@ -646,7 +646,7 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 		host                          models.Host
 		ctrl                          *gomock.Controller
 		mockMetric                    *metrics.MockAPI
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		dbName                        string
 	)
 
@@ -654,7 +654,7 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil)
@@ -684,13 +684,13 @@ var _ = Describe("Cancel host installation", func() {
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		ctrl                          *gomock.Controller
-		mockEventsHandler             *events.MockHandler
+		mockEventsHandler             *eventsapi.MockHandler
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEventsHandler = events.NewMockHandler(ctrl)
+		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
@@ -779,13 +779,13 @@ var _ = Describe("Reset host", func() {
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		ctrl                          *gomock.Controller
-		mockEventsHandler             *events.MockHandler
+		mockEventsHandler             *eventsapi.MockHandler
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEventsHandler = events.NewMockHandler(ctrl)
+		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
@@ -871,7 +871,7 @@ var _ = Describe("Install", func() {
 		hapi                          API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		cluster                       common.Cluster
@@ -882,7 +882,7 @@ var _ = Describe("Install", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		pr := registry.NewMockProviderRegistry(ctrl)
@@ -1051,7 +1051,7 @@ var _ = Describe("Disable", func() {
 		hapi                          API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		dbName                        string
@@ -1060,7 +1060,7 @@ var _ = Describe("Disable", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
@@ -1231,7 +1231,7 @@ var _ = Describe("Enable", func() {
 		hapi                          API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		dbName                        string
@@ -1240,7 +1240,7 @@ var _ = Describe("Enable", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
@@ -1392,7 +1392,7 @@ var _ = Describe("Unbind", func() {
 		hapi                          API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		dbName                        string
@@ -1401,7 +1401,7 @@ var _ = Describe("Unbind", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
@@ -1678,7 +1678,7 @@ var _ = Describe("Refresh Host", func() {
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		cluster                       common.Cluster
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		ctrl                          *gomock.Controller
 		dbName                        string
 		mockHwValidator               *hardware.MockValidator
@@ -1690,7 +1690,7 @@ var _ = Describe("Refresh Host", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		validatorCfg = createValidatorCfg()
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).DoAndReturn(func(inventory *models.Inventory) []*models.Disk {

@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -32,7 +32,7 @@ var _ = Describe("Validations test", func() {
 		ctx             = context.Background()
 		db              *gorm.DB
 		dbName          string
-		mockEvents      *events.MockHandler
+		mockEvents      *eventsapi.MockHandler
 		mockHwValidator *hardware.MockValidator
 		mockMetric      *metrics.MockAPI
 		mockOperators   *operators.MockAPI
@@ -44,7 +44,7 @@ var _ = Describe("Validations test", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockOperators = operators.NewMockAPI(ctrl)

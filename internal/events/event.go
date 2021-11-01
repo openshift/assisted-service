@@ -10,40 +10,15 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-type Sender interface {
-	// AddEvent add an event for and entityID.
-	// Since events, might relate to multiple entities, for example:
-	//     host added to cluster, we have the host-ID as the main entityID and
-	//     the cluster-ID as another ID that this event should be related to
-	// Use the prop field to add list of arbitrary key value pairs when additional information is needed (for example: "vendor": "RedHat")
-	AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{})
-
-	//Add metric-related event. These events are hidden from the user and has 'metrics' Category field
-	AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{})
-
-	SendClusterEvent(ctx context.Context, event ClusterEvent)
-	SendClusterEventAtTime(ctx context.Context, event ClusterEvent, eventTime time.Time)
-	SendHostEvent(ctx context.Context, event HostEvent)
-	SendHostEventAtTime(ctx context.Context, event HostEvent, eventTime time.Time)
-	SendInfraEnvEvent(ctx context.Context, event InfraEnvEvent)
-	SendInfraEnvEventAtTime(ctx context.Context, event InfraEnvEvent, eventTime time.Time)
-}
-
-//go:generate mockgen -source=event.go -package=events -destination=mock_event.go
-type Handler interface {
-	Sender
-	//Get a list of events. Events can be filtered by category. if no filter is specified, events with the default category are returned
-	GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error)
-	V2GetEvents(clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error)
-}
-
-var _ Handler = &Events{}
 
 var DefaultEventCategories = []string{
 	models.EventCategoryUser,
@@ -54,7 +29,7 @@ type Events struct {
 	log logrus.FieldLogger
 }
 
-func New(db *gorm.DB, log logrus.FieldLogger) *Events {
+func New(db *gorm.DB, log logrus.FieldLogger) eventsapi.Handler {
 	return &Events{
 		db:  db,
 		log: log,
@@ -152,30 +127,30 @@ func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID
 	dberr = tx.Create(&event).Error
 }
 
-func (e *Events) SendClusterEvent(ctx context.Context, event ClusterEvent) {
+func (e *Events) SendClusterEvent(ctx context.Context, event eventsapi.ClusterEvent) {
 	e.SendClusterEventAtTime(ctx, event, time.Now())
 }
 
-func (e *Events) SendClusterEventAtTime(ctx context.Context, event ClusterEvent, eventTime time.Time) {
+func (e *Events) SendClusterEventAtTime(ctx context.Context, event eventsapi.ClusterEvent, eventTime time.Time) {
 	cID := event.GetClusterId()
 	e.V2AddEvent(ctx, &cID, nil, nil, event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
-func (e *Events) SendHostEvent(ctx context.Context, event HostEvent) {
+func (e *Events) SendHostEvent(ctx context.Context, event eventsapi.HostEvent) {
 	e.SendHostEventAtTime(ctx, event, time.Now())
 }
 
-func (e *Events) SendHostEventAtTime(ctx context.Context, event HostEvent, eventTime time.Time) {
+func (e *Events) SendHostEventAtTime(ctx context.Context, event eventsapi.HostEvent, eventTime time.Time) {
 	hostID := event.GetHostId()
 	infraEnvID := event.GetInfraEnvId()
 	e.V2AddEvent(ctx, event.GetClusterId(), &hostID, &infraEnvID, event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
-func (e *Events) SendInfraEnvEvent(ctx context.Context, event InfraEnvEvent) {
+func (e *Events) SendInfraEnvEvent(ctx context.Context, event eventsapi.InfraEnvEvent) {
 	e.SendInfraEnvEventAtTime(ctx, event, time.Now())
 }
 
-func (e *Events) SendInfraEnvEventAtTime(ctx context.Context, event InfraEnvEvent, eventTime time.Time) {
+func (e *Events) SendInfraEnvEventAtTime(ctx context.Context, event eventsapi.InfraEnvEvent, eventTime time.Time) {
 	infraEnvID := event.GetInfraEnvId()
 	e.V2AddEvent(ctx, event.GetClusterId(), nil, &infraEnvID, event.GetSeverity(), event.FormatMessage(), eventTime)
 }
@@ -230,21 +205,82 @@ func (e Events) hostEventsQuery(events *[]*common.Event, selectedCategories []st
 		Find(events, "cluster_id = ? AND host_id = ?", clusterID.String(), (*hostID).String())
 }
 
-func (e Events) eventsQuery(events *[]*common.Event, selectedCategories []string, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) *gorm.DB {
+func (e Events) eventsQuery(ctx context.Context, events *[]*common.Event, selectedCategories []string, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) *gorm.DB {
 	whereCondition := make([]string, 0)
+	user := ocm.UserNameFromContext(ctx)
+
 	if clusterID != nil {
-		whereCondition = append(whereCondition, fmt.Sprintf("cluster_id = '%s'", clusterID.String()))
+		cluster, err := common.GetClusterFromDB(e.db, *clusterID, common.UseEagerLoading)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "cluster %s not found.", clusterID.String())}
+			}
+			return &gorm.DB{Error: err}
+		}
+		if user != "" && !identity.IsAdmin(ctx) { // A case where there is a non-admin user in context, the service should only present resources matching to it.
+			if cluster.UserName == user {
+				whereCondition = append(whereCondition, fmt.Sprintf("cluster_id = '%s'", clusterID.String()))
+			} else {
+				e.log.Errorf(
+					"user %s is not authorized to query events for cluster %s: cluster owned by another user.",
+					user, clusterID.String())
+				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "cluster %s not found.", clusterID.String())}
+			}
+		} else { // A case where there is no user in context, simply filter by resource id
+			whereCondition = append(whereCondition, fmt.Sprintf("cluster_id = '%s'", clusterID.String()))
+		}
 	}
 	if hostID != nil {
-		whereCondition = append(whereCondition, fmt.Sprintf("host_id = '%s'", hostID.String()))
+		host, err := common.GetHostFromDBbyHostId(e.db, *hostID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "host %s not found.", hostID.String())}
+			}
+			return &gorm.DB{Error: err}
+		}
+		if user != "" && !identity.IsAdmin(ctx) { // A case where there is a non-admin user in context, the service should only present resources matching to it.
+			if host != nil && host.UserName == user {
+				whereCondition = append(whereCondition, fmt.Sprintf("host_id = '%s'", hostID.String()))
+			} else {
+				e.log.Errorf(
+					"user %s is not authorized to query events for host %s: host owned by another user.",
+					user, hostID.String())
+				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "host %s not found.", hostID.String())}
+			}
+		} else { // A case where there is no user in context, simply filter by resource id
+			whereCondition = append(whereCondition, fmt.Sprintf("host_id = '%s'", hostID.String()))
+		}
 	}
 	if infraEnvID != nil {
-		whereCondition = append(whereCondition, fmt.Sprintf("infra_env_id = '%s'", infraEnvID.String()))
+		infraEnv, err := common.GetInfraEnvFromDB(e.db, *infraEnvID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "infra_env %s not found.", infraEnvID.String())}
+			}
+			return &gorm.DB{Error: err}
+		}
+		if user != "" && !identity.IsAdmin(ctx) { // A case where there is a non-admin user in context, the service should only present resources matching to it.
+			if infraEnv.UserName == user {
+				whereCondition = append(whereCondition, fmt.Sprintf("infra_env_id = '%s'", infraEnvID.String()))
+			} else {
+				e.log.Errorf(
+					"user %s is not authorized to query events for infra_env %s: infra_env owned by another user.",
+					user, infraEnvID.String())
+				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "infra_env %s not found.", infraEnvID.String())}
+			}
+		} else { // A case where there is no user in context, simply filter by resource id
+			whereCondition = append(whereCondition, fmt.Sprintf("infra_env_id = '%s'", infraEnvID.String()))
+		}
+	}
+	if len(whereCondition) == 0 {
+		queryErr := errors.Wrap(gorm.ErrInvalidTransaction, "events query with no filters is not allowed.")
+		e.log.Error(queryErr)
+		return &gorm.DB{Error: queryErr}
 	}
 	return e.db.Where("category IN (?)", selectedCategories).Order("event_time").Find(&events, strings.Join(whereCondition, " AND "))
 }
 
-func (e Events) V2GetEvents(clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+func (e Events) V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
 	var err error
 	var events []*common.Event
 
@@ -256,7 +292,7 @@ func (e Events) V2GetEvents(clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEn
 		selectedCategories = append(selectedCategories, DefaultEventCategories...)
 	}
 
-	err = e.eventsQuery(&events, selectedCategories, clusterID, hostID, infraEnvID).Error
+	err = e.eventsQuery(ctx, &events, selectedCategories, clusterID, hostID, infraEnvID).Error
 	return events, err
 }
 
@@ -284,28 +320,4 @@ func toProps(attrs ...interface{}) (result string, err error) {
 	}
 
 	return "", err
-}
-
-type BaseEvent interface {
-	GetName() string
-	GetSeverity() string
-	FormatMessage() string
-}
-
-type ClusterEvent interface {
-	BaseEvent
-	GetClusterId() strfmt.UUID
-}
-
-type HostEvent interface {
-	BaseEvent
-	GetClusterId() *strfmt.UUID
-	GetHostId() strfmt.UUID
-	GetInfraEnvId() strfmt.UUID
-}
-
-type InfraEnvEvent interface {
-	BaseEvent
-	GetInfraEnvId() strfmt.UUID
-	GetClusterId() *strfmt.UUID
 }

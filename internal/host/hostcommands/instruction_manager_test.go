@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/connectivity"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -33,7 +33,7 @@ var _ = Describe("instruction_manager", func() {
 		ctx                           = context.Background()
 		host                          models.Host
 		db                            *gorm.DB
-		mockEvents                    *events.MockHandler
+		mockEvents                    *eventsapi.MockHandler
 		mockVersions                  *versions.MockHandler
 		stepsReply                    models.Steps
 		hostId, clusterId, infraEnvId strfmt.UUID
@@ -50,7 +50,7 @@ var _ = Describe("instruction_manager", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
 		hwValidator = hardware.NewMockValidator(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
@@ -375,7 +375,7 @@ var _ = Describe("instruction_manager", func() {
 
 })
 
-func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents *events.MockHandler,
+func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents *eventsapi.MockHandler,
 	instMng *InstructionManager, mockValidator *hardware.MockValidator, mockRelease *oc.MockRelease, mockVersions *versions.MockHandler,
 	mockConnectivity *connectivity.MockValidator, ctx context.Context, expectedStepTypes []models.StepType) {
 

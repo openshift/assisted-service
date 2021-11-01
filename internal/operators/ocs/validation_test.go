@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	clust "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -84,7 +84,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		clusterId, hid1, hid2, hid3, hid4, hid5, hid6 strfmt.UUID
 		cluster                                       common.Cluster
 		clusterApi                                    *clust.Manager
-		mockEvents                                    *events.MockHandler
+		mockEvents                                    *eventsapi.MockHandler
 		mockHostAPI                                   *host.MockAPI
 		mockMetric                                    *metrics.MockAPI
 		ctrl                                          *gomock.Controller
@@ -104,7 +104,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)

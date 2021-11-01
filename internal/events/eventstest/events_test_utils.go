@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/thoas/go-funk"
 )
 
@@ -24,7 +24,7 @@ func NewEventMatcher(matcherGens ...eventPartMatcher) *EventMatcher {
 
 func WithNameMatcher(expected string) eventPartMatcher {
 	return func(event interface{}) bool {
-		e, ok := event.(events.BaseEvent)
+		e, ok := event.(eventsapi.BaseEvent)
 		if !ok {
 			return false
 		}
@@ -38,9 +38,9 @@ func WithNameMatcher(expected string) eventPartMatcher {
 func WithClusterIdMatcher(expected string) eventPartMatcher {
 	return func(event interface{}) bool {
 		switch e := event.(type) {
-		case events.ClusterEvent:
+		case eventsapi.ClusterEvent:
 			return e.GetClusterId().String() == expected
-		case events.HostEvent:
+		case eventsapi.HostEvent:
 			if e.GetClusterId() == nil {
 				return false
 			}
@@ -53,7 +53,7 @@ func WithClusterIdMatcher(expected string) eventPartMatcher {
 
 func WithHostIdMatcher(expected string) eventPartMatcher {
 	return func(event interface{}) bool {
-		e, ok := event.(events.HostEvent)
+		e, ok := event.(eventsapi.HostEvent)
 		if !ok {
 			return false
 		}
@@ -67,9 +67,9 @@ func WithHostIdMatcher(expected string) eventPartMatcher {
 func WithInfraEnvIdMatcher(expected string) eventPartMatcher {
 	return func(event interface{}) bool {
 		switch e := event.(type) {
-		case events.HostEvent:
+		case eventsapi.HostEvent:
 			return e.GetInfraEnvId().String() == expected
-		case events.InfraEnvEvent:
+		case eventsapi.InfraEnvEvent:
 			return e.GetInfraEnvId().String() == expected
 		default:
 			return false
@@ -79,7 +79,7 @@ func WithInfraEnvIdMatcher(expected string) eventPartMatcher {
 
 func WithSeverityMatcher(expected string) eventPartMatcher {
 	return func(event interface{}) bool {
-		e, ok := event.(events.HostEvent)
+		e, ok := event.(eventsapi.HostEvent)
 		if !ok {
 			return false
 		}
@@ -92,7 +92,7 @@ func WithSeverityMatcher(expected string) eventPartMatcher {
 
 func WithMessageMatcher(expected string) eventPartMatcher {
 	return func(event interface{}) bool {
-		e, ok := event.(events.BaseEvent)
+		e, ok := event.(eventsapi.BaseEvent)
 		if !ok {
 			return false
 		}
@@ -105,7 +105,7 @@ func WithMessageMatcher(expected string) eventPartMatcher {
 
 func WithMessageContainsMatcher(expected string) eventPartMatcher {
 	return func(event interface{}) bool {
-		e, ok := event.(events.BaseEvent)
+		e, ok := event.(eventsapi.BaseEvent)
 		if !ok {
 			return false
 		}
@@ -120,7 +120,7 @@ type EventMatcher struct {
 
 // Matches implements gomock.Matcher
 func (e *EventMatcher) Matches(input interface{}) bool {
-	event, ok := input.(events.BaseEvent)
+	event, ok := input.(eventsapi.BaseEvent)
 	if !ok {
 		e.message = "Unsupported event type"
 		return false

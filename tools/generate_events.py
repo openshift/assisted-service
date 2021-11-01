@@ -18,7 +18,7 @@ import (
     "fmt"
     "strings"
     "time"
-    "github.com/openshift/assisted-service/internal/events"
+    eventsapi "github.com/openshift/assisted-service/internal/events/api"
 {% for import in extra_imports %}
     {{import}}
 {% endfor -%}
@@ -53,7 +53,7 @@ func New{{eventName}}(
 
 func Send{{eventName}}(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
 {%- for p, t in event.properties.items() %}
     {{event.camel_case(p)}} {{event.go_type(t)}},
 {%- endfor %}) {
@@ -67,7 +67,7 @@ func Send{{eventName}}(
 
 func Send{{eventName}}AtTime(
     ctx context.Context,
-    eventsHandler events.Sender,
+    eventsHandler eventsapi.Sender,
 {%- for p, t in event.properties.items() %}
     {{event.camel_case(p)}} {{event.go_type(t)}},
 {%- endfor %}

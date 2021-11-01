@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/connectivity"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -63,7 +63,7 @@ type InstructionConfig struct {
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
-	instructionConfig InstructionConfig, connectivityValidator connectivity.Validator, eventsHandler events.Handler, versionHandler versions.Handler) *InstructionManager {
+	instructionConfig InstructionConfig, connectivityValidator connectivity.Validator, eventsHandler eventsapi.Handler, versionHandler versions.Handler) *InstructionManager {
 	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.AgentImage)
 	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler, versionHandler)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.AgentImage)

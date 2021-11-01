@@ -34,7 +34,7 @@ import (
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/garbagecollector"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -173,7 +173,7 @@ type bareMetalInventory struct {
 	hostApi              host.API
 	clusterApi           clusterPkg.API
 	dnsApi               dns.DNSApi
-	eventsHandler        events.Handler
+	eventsHandler        eventsapi.Handler
 	objectHandler        s3wrapper.API
 	metricApi            metrics.API
 	usageApi             usage.API
@@ -202,7 +202,7 @@ func NewBareMetalInventory(
 	clusterApi clusterPkg.API,
 	cfg Config,
 	generator generator.ISOInstallConfigGenerator,
-	eventsHandler events.Handler,
+	eventsHandler eventsapi.Handler,
 	objectHandler s3wrapper.API,
 	metricApi metrics.API,
 	usageApi usage.API,

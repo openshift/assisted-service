@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -25,13 +25,13 @@ var (
 
 type Manager struct {
 	objectHandler s3wrapper.API
-	eventsHandler events.Handler
+	eventsHandler eventsapi.Handler
 	deleteTime    time.Duration
 	leaderElector leader.Leader
 	enableKubeAPI bool
 }
 
-func NewManager(objectHandler s3wrapper.API, eventsHandler events.Handler, deleteTime time.Duration, leaderElector leader.ElectorInterface, enableKubeAPI bool) *Manager {
+func NewManager(objectHandler s3wrapper.API, eventsHandler eventsapi.Handler, deleteTime time.Duration, leaderElector leader.ElectorInterface, enableKubeAPI bool) *Manager {
 	return &Manager{
 		objectHandler: objectHandler,
 		eventsHandler: eventsHandler,

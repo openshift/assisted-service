@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -28,7 +28,7 @@ var _ = Describe("imgexpirer", func() {
 		imgExp     *Manager
 		ctx        = context.Background()
 		ctrl       *gomock.Controller
-		mockEvents *events.MockHandler
+		mockEvents *eventsapi.MockHandler
 		leaderMock *leader.MockElectorInterface
 		log        = logrus.New()
 	)
@@ -36,7 +36,7 @@ var _ = Describe("imgexpirer", func() {
 	BeforeEach(func() {
 		log.SetOutput(ioutil.Discard)
 		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		deleteTime, _ := time.ParseDuration("60m")
 		leaderMock = leader.NewMockElectorInterface(ctrl)
 		imgExp = NewManager(nil, mockEvents, deleteTime, leaderMock, false)
