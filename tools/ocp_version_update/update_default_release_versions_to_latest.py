@@ -432,7 +432,6 @@ def get_pr_body(updates_made):
         get_release_notes(updates_made) +
         textwrap.dedent(f"""
             /cc {" ".join(f"@{user}" for user in PR_MENTION)}
-            /test all
             /hold
         """)
     )
