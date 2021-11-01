@@ -30,6 +30,10 @@ import (
 )
 
 var resetLogsField = []interface{}{"logs_info", "", "controller_logs_started_at", strfmt.DateTime(time.Time{}), "controller_logs_collected_at", strfmt.DateTime(time.Time{})}
+var resetProgressFields = []interface{}{"progress_finalizing_stage_percentage", 0, "progress_installing_stage_percentage", 0,
+	"progress_preparing_for_installation_stage_percentage", 0, "progress_total_percentage", 0}
+
+var resetFields = append(append(resetProgressFields, resetLogsField...), "openshift_cluster_id", "")
 
 type transitionHandler struct {
 	log                 logrus.FieldLogger
@@ -84,8 +88,7 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 		return errors.New("PostResetCluster invalid argument")
 	}
 
-	//reset log fields and Openshift ClusterID when resetting the cluster
-	extra := append(append(make([]interface{}, 0), "OpenshiftClusterID", ""), resetLogsField...)
+	extra := resetFields[:]
 	// reset api_vip and ingress_vip in case of resetting the SNO cluster
 	if common.IsSingleNodeCluster(sCluster.cluster) {
 		extra = append(extra, "api_vip", "", "ingress_vip", "")

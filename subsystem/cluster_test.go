@@ -2428,6 +2428,15 @@ var _ = Describe("cluster install", func() {
 		Context("reset installation", func() {
 			enableReset, _ := strconv.ParseBool(os.Getenv("ENABLE_RESET"))
 
+			verifyHostProgressReset := func(progress *models.HostProgressInfo) {
+				Expect(progress).NotTo(BeNil())
+				Expect(string(progress.CurrentStage)).To(Equal(""))
+				Expect(progress.InstallationPercentage).To(Equal(int64(0)))
+				Expect(progress.ProgressInfo).To(Equal(""))
+				Expect(progress.StageStartedAt).To(Equal(strfmt.DateTime(time.Time{})))
+				Expect(progress.StageUpdatedAt).To(Equal(strfmt.DateTime(time.Time{})))
+			}
+
 			It("reset cluster and register hosts", func() {
 				By("verify reset success")
 				installCluster(clusterID)
@@ -2444,7 +2453,11 @@ var _ = Describe("cluster install", func() {
 				c := rep.GetPayload()
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 
-				By("verify hosts state")
+				By("verify resetted fields")
+				expectProgressToBe(c, 0, 0, 0)
+				Expect(c.OpenshiftClusterID.String()).To(Equal(""))
+
+				By("verify hosts state and resetted fields")
 				ips := hostutil.GenerateIPv4Addresses(len(c.Hosts), defaultCIDRv4)
 				for i, host := range c.Hosts {
 					if enableReset {
@@ -2454,6 +2467,8 @@ var _ = Describe("cluster install", func() {
 					} else {
 						waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, host)
 					}
+					verifyHostProgressReset(host.Progress)
+
 					_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
 						InfraEnvID: clusterID,
 						NewHostParams: &models.HostCreateParams{
