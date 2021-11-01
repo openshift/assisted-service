@@ -553,6 +553,13 @@ var _ = Describe("RegisterHost", func() {
 				newHost:     false,
 				eventRaised: true,
 			},
+			{
+				name:        "unbinding-pending-user-action to discovering-unbound",
+				srcState:    models.HostStatusUnbindingPendingUserAction,
+				dstState:    models.HostStatusDiscoveringUnbound,
+				newHost:     false,
+				eventRaised: true,
+			},
 		}
 		for i := range tests {
 			t := tests[i]
@@ -1463,62 +1470,72 @@ var _ = Describe("Unbind", func() {
 	tests := []struct {
 		name      string
 		srcState  string
+		dstState  string
 		success   bool
 		sendEvent bool
 	}{
 		{
 			name:      "known to unbinding",
 			srcState:  models.HostStatusKnown,
+			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
 		},
 		{
 			name:      "disabled to unbinding",
 			srcState:  models.HostStatusDisabled,
+			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
 		},
 		{
 			name:      "disconnected to unbinding",
 			srcState:  models.HostStatusDisconnected,
+			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
 		},
 		{
 			name:      "discovering to unbinding",
 			srcState:  models.HostStatusDiscovering,
+			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
 		},
 		{
 			name:      "pending-for-input to binding",
 			srcState:  models.HostStatusPendingForInput,
+			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
 		},
 		{
 			name:      "error to unbinding",
 			srcState:  models.HostStatusError,
+			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
 		},
 		{
 			name:      "cancelled to unbinding",
 			srcState:  models.HostStatusCancelled,
+			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
 		},
 		{
-			name:      "installing to unbinding",
+			name:      "installing to unbinding-pending-user-action",
 			srcState:  models.HostStatusInstalling,
-			success:   false,
-			sendEvent: false,
+			dstState:  models.HostStatusUnbindingPendingUserAction,
+			success:   true,
+			sendEvent: true,
 		},
 		{
-			name:      "added-host-to-existing-cluster to unbinding",
+			name:      "added-host-to-existing-cluster to unbinding-pending-user-action",
 			srcState:  models.HostStatusAddedToExistingCluster,
-			success:   false,
-			sendEvent: false,
+			dstState:  models.HostStatusUnbindingPendingUserAction,
+			success:   true,
+			sendEvent: true,
 		},
 	}
 	for i := range tests {
@@ -1554,7 +1571,7 @@ var _ = Describe("Unbind", func() {
 			host.StageStartedAt = strfmt.DateTime(time.Now())
 			host.StageUpdatedAt = strfmt.DateTime(time.Now())
 
-			dstState := models.HostStatusUnbinding
+			dstState := t.dstState
 
 			bytes, err := json.Marshal(defaultNTPSources)
 			Expect(err).ShouldNot(HaveOccurred())

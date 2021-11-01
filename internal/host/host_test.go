@@ -1726,22 +1726,22 @@ var _ = Describe("Unbind host", func() {
 			{
 				name:       models.HostStatusInstalled,
 				srcState:   models.HostStatusInstalled,
-				validation: failure,
+				validation: success,
 			},
 			{
 				name:       models.HostStatusInstalling,
 				srcState:   models.HostStatusInstalling,
-				validation: failure,
+				validation: success,
 			},
 			{
 				name:       models.HostStatusInstallingInProgress,
 				srcState:   models.HostStatusInstallingInProgress,
-				validation: failure,
+				validation: success,
 			},
 			{
 				name:       models.HostStatusResettingPendingUserAction,
 				srcState:   models.HostStatusResettingPendingUserAction,
-				validation: failure,
+				validation: success,
 			},
 			{
 				name:       models.HostStatusInsufficient,
@@ -1752,7 +1752,7 @@ var _ = Describe("Unbind host", func() {
 			{
 				name:       models.HostStatusResetting,
 				srcState:   models.HostStatusResetting,
-				validation: failure,
+				validation: success,
 			},
 			{
 				name:       models.HostStatusPendingForInput,

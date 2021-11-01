@@ -312,6 +312,24 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		PostTransition:   th.PostUnbindHost,
 	})
 
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeUnbindHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+			stateswitch.State(models.HostStatusPreparingFailed),
+			stateswitch.State(models.HostStatusPreparingSuccessful),
+			stateswitch.State(models.HostStatusInstalling),
+			stateswitch.State(models.HostStatusInstallingInProgress),
+			stateswitch.State(models.HostStatusInstallingPendingUserAction),
+			stateswitch.State(models.HostStatusResettingPendingUserAction),
+			stateswitch.State(models.HostStatusInstalled),
+			stateswitch.State(models.HostStatusResetting),
+			stateswitch.State(models.HostStatusAddedToExistingCluster),
+		},
+		DestinationState: stateswitch.State(models.HostStatusUnbindingPendingUserAction),
+		PostTransition:   th.PostUnbindHost,
+	})
+
 	// Refresh host
 
 	// Prepare for installation

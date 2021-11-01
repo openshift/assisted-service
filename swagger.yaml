@@ -6512,6 +6512,7 @@ definitions:
           - cancelled
           - binding
           - unbinding
+          - unbinding-pending-user-action
           - known-unbound
           - disconnected-unbound
           - insufficient-unbound
