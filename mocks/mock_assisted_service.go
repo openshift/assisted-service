@@ -568,6 +568,20 @@ func (mr *MockInstallerAPIMockRecorder) ListInfraEnvs(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInfraEnvs", reflect.TypeOf((*MockInstallerAPI)(nil).ListInfraEnvs), arg0, arg1)
 }
 
+// RegenerateInfraEnvSigningKey mocks base method.
+func (m *MockInstallerAPI) RegenerateInfraEnvSigningKey(arg0 context.Context, arg1 installer.RegenerateInfraEnvSigningKeyParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegenerateInfraEnvSigningKey", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// RegenerateInfraEnvSigningKey indicates an expected call of RegenerateInfraEnvSigningKey.
+func (mr *MockInstallerAPIMockRecorder) RegenerateInfraEnvSigningKey(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegenerateInfraEnvSigningKey", reflect.TypeOf((*MockInstallerAPI)(nil).RegenerateInfraEnvSigningKey), arg0, arg1)
+}
+
 // RegisterAddHostsCluster mocks base method.
 func (m *MockInstallerAPI) RegisterAddHostsCluster(arg0 context.Context, arg1 installer.RegisterAddHostsClusterParams) middleware.Responder {
 	m.ctrl.T.Helper()

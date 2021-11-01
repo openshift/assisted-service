@@ -496,6 +496,10 @@ func (f fakeInventory) V2ListFeatureSupportLevels(ctx context.Context, params in
 	return installer.NewV2ListFeatureSupportLevelsOK()
 }
 
+func (b fakeInventory) RegenerateInfraEnvSigningKey(ctx context.Context, params installer.RegenerateInfraEnvSigningKeyParams) middleware.Responder {
+	return installer.NewRegenerateInfraEnvSigningKeyNoContent()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

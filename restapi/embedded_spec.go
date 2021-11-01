@@ -9203,6 +9203,60 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/regenerate-signing-key": {
+      "post": {
+        "description": "Regenerate InfraEnv token signing key.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "RegenerateInfraEnvSigningKey",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The target InfraEnv.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/openshift-versions": {
       "get": {
         "security": [
@@ -22522,6 +22576,60 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/regenerate-signing-key": {
+      "post": {
+        "description": "Regenerate InfraEnv token signing key.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "RegenerateInfraEnvSigningKey",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The target InfraEnv.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }
