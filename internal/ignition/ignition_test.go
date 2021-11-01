@@ -1188,3 +1188,40 @@ var _ = Describe("Ignition SSH key building", func() {
 		})
 	})
 })
+
+var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
+
+	var (
+		ctrl                              *gomock.Controller
+		log                               logrus.FieldLogger
+		builder                           IgnitionBuilder
+		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+	)
+
+	BeforeEach(func() {
+		log = common.GetTestLog()
+		ctrl = gomock.NewController(GinkgoT())
+		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+	})
+
+	Context("test custom ignition endpoint", func() {
+
+		It("are rendered properly with token", func() {
+			token := "xyzabc123"
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", &token)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(ign)).Should(ContainSubstring("http://url.com"))
+			Expect(ign).Should(ContainSubstring(`"httpHeaders": [{"name": "Authorization", "value": "Bearer: xyzabc123"}]`))
+		})
+
+		It("are rendered properly without token", func() {
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(ign)).Should(ContainSubstring("http://url.com"))
+			Expect(ign).Should(ContainSubstring(`"httpHeaders": []`))
+		})
+	})
+})

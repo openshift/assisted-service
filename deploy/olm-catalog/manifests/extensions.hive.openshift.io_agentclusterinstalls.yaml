@@ -147,7 +147,7 @@ spec:
                   begin until this field is set to false.
                 type: boolean
               ignitionEndpointUrl:
-                description: IgnitionEndpointUrl store the value of the custom ingnition
+                description: IgnitionEndpointUrl store the value of the custom ignition
                   endpoint.
                 type: string
               imageSetRef:

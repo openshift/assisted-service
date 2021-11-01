@@ -148,7 +148,7 @@ type AgentClusterInstallSpec struct {
 	// +optional
 	HoldInstallation bool `json:"holdInstallation,omitempty"`
 
-	// IgnitionEndpointUrl store the value of the custom ingnition endpoint.
+	// IgnitionEndpointUrl store the value of the custom ignition endpoint.
 	// +optional
 	IgnitionEndpointUrl string `json:"ignitionEndpointUrl,omitempty"`
 }

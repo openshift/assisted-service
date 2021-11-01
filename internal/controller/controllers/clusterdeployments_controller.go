@@ -925,7 +925,6 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		IngressVip:            clusterInstall.Spec.IngressVIP,
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
-		IgnitionEndpointURL:   swag.String(clusterInstall.Spec.IgnitionEndpointUrl),
 	}
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
@@ -951,6 +950,10 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 
 	if hyperthreadingInSpec(clusterInstall) {
 		clusterParams.Hyperthreading = getHyperthreading(clusterInstall)
+	}
+
+	if clusterInstall.Spec.IgnitionEndpointUrl != "" {
+		clusterParams.IgnitionEndpointURL = swag.String(clusterInstall.Spec.IgnitionEndpointUrl)
 	}
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.V2RegisterClusterParams{

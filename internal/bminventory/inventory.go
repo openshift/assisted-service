@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	reflect "reflect"
 	"sort"
 	"strconv"
@@ -431,6 +432,10 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		}
 	}
 
+	if err = b.validateIgnitionEndpointURL(params.NewClusterParams.IgnitionEndpointURL, log); err != nil {
+		return err
+	}
+
 	if swag.BoolValue(params.NewClusterParams.UserManagedNetworking) {
 		if swag.BoolValue(params.NewClusterParams.VipDhcpAllocation) {
 			err = errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
@@ -560,6 +565,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			ServiceNetworks:       params.NewClusterParams.ServiceNetworks,
 			MachineNetworks:       params.NewClusterParams.MachineNetworks,
 			CPUArchitecture:       cpuArchitecture,
+			IgnitionEndpointURL:   params.NewClusterParams.IgnitionEndpointURL,
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
@@ -840,14 +846,29 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cluster *common.Cluster, host *models.Host) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Starting createAndUploadNodeIgnition for cluster %s, host %s", cluster.ID, host.ID)
+
+	// Specify ignition endpoint based on cluster configuration:
 	address := cluster.APIVip
 	if address == "" {
 		address = swag.StringValue(cluster.APIVipDNSName)
 	}
-	ignitionBytes, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(address, host.MachineConfigPoolName)
+
+	ignitionEndpointUrl := fmt.Sprintf("http://%s:22624/config/%s", address, host.MachineConfigPoolName)
+	if cluster.IgnitionEndpointURL != nil {
+		url, err := url.Parse(*cluster.IgnitionEndpointURL)
+		if err != nil {
+			return err
+		}
+		url.Path = path.Join(url.Path, host.MachineConfigPoolName)
+		ignitionEndpointUrl = url.String()
+	}
+
+	ignitionBytes, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, host.IgnitionEndpointToken)
 	if err != nil {
 		return errors.Errorf("Failed to create ignition string for cluster %s", cluster.ID)
 	}
+
+	// Update host ignition hostname:
 	fullIgnition, err := ignition.SetHostnameForNodeIgnition(ignitionBytes, host)
 	if err != nil {
 		return errors.Errorf("Failed to create ignition string for cluster %s, host %s", cluster.ID, host.ID)
@@ -2188,6 +2209,10 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
 	}
 
+	if err := b.validateIgnitionEndpointURL(params.ClusterUpdateParams.IgnitionEndpointURL, log); err != nil {
+		return installer.V2UpdateClusterParams{}, err
+	}
+
 	return *params, nil
 }
 
@@ -2266,6 +2291,7 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params
 			SSHPublicKey:             v1Params.ClusterUpdateParams.SSHPublicKey,
 			UserManagedNetworking:    v1Params.ClusterUpdateParams.UserManagedNetworking,
 			VipDhcpAllocation:        v1Params.ClusterUpdateParams.VipDhcpAllocation,
+			IgnitionEndpointURL:      v1Params.ClusterUpdateParams.IgnitionEndpointURL,
 		},
 	}
 
@@ -2320,6 +2346,10 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params
 	}
 
 	if err = b.validateDNSDomain(*cluster, v2Params, log); err != nil {
+		return nil, err
+	}
+
+	if err = b.validateIgnitionEndpointURL(v2Params.ClusterUpdateParams.IgnitionEndpointURL, log); err != nil {
 		return nil, err
 	}
 
@@ -2676,6 +2706,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	optionalParam(params.ClusterUpdateParams.NoProxy, "no_proxy", updates)
 	optionalParam(params.ClusterUpdateParams.SSHPublicKey, "ssh_public_key", updates)
 	optionalParam(params.ClusterUpdateParams.Hyperthreading, "hyperthreading", updates)
+	optionalParam(params.ClusterUpdateParams.IgnitionEndpointURL, "ignition_endpoint_url", updates)
 
 	b.setProxyUsage(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy, params.ClusterUpdateParams.NoProxy, usages)
 
@@ -5051,6 +5082,17 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 
 func (b *bareMetalInventory) deleteDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
 	return b.dnsApi.DeleteDNSRecordSets(ctx, &cluster)
+}
+
+func (b *bareMetalInventory) validateIgnitionEndpointURL(ignitionEndpointUrl *string, log logrus.FieldLogger) error {
+	if ignitionEndpointUrl == nil {
+		return nil
+	}
+	if err := validations.ValidateHTTPFormat(*ignitionEndpointUrl); err != nil {
+		log.WithError(err).Errorf("Invalid Ignition endpoint URL: %s", *ignitionEndpointUrl)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger) error {
