@@ -1061,8 +1061,8 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
-		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -1077,6 +1077,20 @@ var _ = Describe("agent reconcile", func() {
 		Expect(agent.Status.Progress.ProgressInfo).To(Equal(progress.ProgressInfo))
 		Expect(agent.Status.Progress.StageStartTime).NotTo(BeNil())
 		Expect(agent.Status.Progress.StageUpdateTime).NotTo(BeNil())
+
+		// Reset progress
+		commonHost.Progress = nil
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil)
+		result, err = hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent = &v1beta1.Agent{}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.Status.Progress.ProgressInfo).To(BeEmpty())
+		Expect(agent.Status.Progress.CurrentStage).To(BeEmpty())
+		Expect(agent.Status.Progress.StageStartTime).To(BeNil())
+		Expect(agent.Status.Progress.StageUpdateTime).To(BeNil())
+
 	})
 
 })
