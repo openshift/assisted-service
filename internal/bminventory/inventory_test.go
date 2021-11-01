@@ -7547,10 +7547,14 @@ var _ = Describe("infraEnvs", func() {
 
 		Context("List Hosts", func() {
 			It("success", func() {
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(5)
 				resp := bm.V2ListHosts(ctx, installer.V2ListHostsParams{
 					InfraEnvID: infraEnvId1,
 				})
 				payload := resp.(*installer.V2ListHostsOK).Payload
+				for i := range payload {
+					Expect(payload[i].RequestedHostname).Should(Equal(payload[i].ID.String()))
+				}
 				Expect(len(payload)).Should(Equal(2))
 				resp = bm.V2ListHosts(ctx, installer.V2ListHostsParams{
 					InfraEnvID: infraEnvId2,
