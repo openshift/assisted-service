@@ -132,7 +132,10 @@ var _ = Describe("Events tests", func() {
 
 				if test.querySucess {
 					Expect(err).Should(BeNil())
-					Expect(len(evs.GetPayload())).Should(Equal(2))
+					Expect(len(evs.GetPayload())).ShouldNot(Equal(0))
+					for idx := range evs.GetPayload() {
+						Expect(evs.GetPayload()[idx].ClusterID).Should(Equal(&clusterId))
+					}
 				} else {
 					Expect(err).ShouldNot(BeNil())
 					isExpectedAPIError(err, test.err)
