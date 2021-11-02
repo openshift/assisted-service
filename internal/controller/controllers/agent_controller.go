@@ -492,7 +492,7 @@ func installed(agent *aiv1beta1.Agent, status, statusInfo string) {
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.BindingReason
 		msg = aiv1beta1.BindingMsg
-	case models.HostStatusUnbinding:
+	case models.HostStatusUnbinding, models.HostStatusUnbindingPendingUserAction:
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.UnbindingReason
 		msg = aiv1beta1.UnbindingMsg
@@ -531,7 +531,7 @@ func validated(agent *aiv1beta1.Agent, status string, h *models.Host) {
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.BindingReason
 		msg = aiv1beta1.BindingMsg
-	case models.HostStatusUnbinding == status:
+	case models.HostStatusUnbinding == status || models.HostStatusUnbindingPendingUserAction == status:
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.UnbindingReason
 		msg = aiv1beta1.UnbindingMsg
@@ -617,7 +617,7 @@ func requirementsMet(agent *aiv1beta1.Agent, status string) {
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.BindingReason
 		msg = aiv1beta1.BindingMsg
-	case models.HostStatusUnbinding:
+	case models.HostStatusUnbinding, models.HostStatusUnbindingPendingUserAction:
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.UnbindingReason
 		msg = aiv1beta1.UnbindingMsg
@@ -647,6 +647,10 @@ func bound(agent *aiv1beta1.Agent, status string, h *models.Host) {
 		condStatus = corev1.ConditionFalse
 		reason = aiv1beta1.UnbindingReason
 		msg = aiv1beta1.UnbindingMsg
+	case models.HostStatusUnbindingPendingUserAction:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.UnbindingPendingUserActionReason
+		msg = aiv1beta1.UnbindingPendingUserActionMsg
 	case models.HostStatusDisconnectedUnbound, models.HostStatusKnownUnbound, models.HostStatusInsufficientUnbound,
 		models.HostStatusDisabledUnbound, models.HostStatusDiscoveringUnbound:
 		condStatus = corev1.ConditionFalse
