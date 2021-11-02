@@ -124,7 +124,7 @@ type OCPClusterAPI interface {
 
 //go:generate mockgen -package bminventory -destination mock_installer_internal.go . InstallerInternals
 type InstallerInternals interface {
-	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.V2RegisterClusterParams, v1Flag bool) (*common.Cluster, error)
+	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.V2RegisterClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error)
 	UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
@@ -145,7 +145,7 @@ type InstallerInternals interface {
 	DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	V2DownloadClusterFilesInternal(ctx context.Context, params installer.V2DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	V2DownloadClusterCredentialsInternal(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) (io.ReadCloser, int64, error)
-	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams, v1Flag bool) (*common.Cluster, error)
+	V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID, params installer.V2ImportClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, infraEnvId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error)
@@ -458,7 +458,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
 	params installer.V2RegisterClusterParams,
-	v1Flag bool) (*common.Cluster, error) {
+	v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error) {
 
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
@@ -768,23 +768,31 @@ func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *mode
 }
 
 func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
-	c, err := b.RegisterAddHostsClusterInternal(ctx, nil, params, true)
+	v2Params := installer.V2ImportClusterParams{
+		NewImportClusterParams: &models.ImportClusterParams{
+			APIVipDnsname:      params.NewAddHostsClusterParams.APIVipDnsname,
+			Name:               params.NewAddHostsClusterParams.Name,
+			OpenshiftVersion:   params.NewAddHostsClusterParams.OpenshiftVersion,
+			OpenshiftClusterID: params.NewAddHostsClusterParams.ID,
+		},
+	}
+	c, err := b.V2ImportClusterInternal(ctx, nil, params.NewAddHostsClusterParams.ID, v2Params, true)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&c.Cluster)
 
 }
-func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams, v1Flag bool) (*common.Cluster, error) {
-	id := params.NewAddHostsClusterParams.ID
+func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID,
+	params installer.V2ImportClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error) {
 	url := installer.GetClusterURL{ClusterID: *id}
 
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
-	apivipDnsname := swag.StringValue(params.NewAddHostsClusterParams.APIVipDnsname)
-	clusterName := swag.StringValue(params.NewAddHostsClusterParams.Name)
-	inputOpenshiftVersion := swag.StringValue(params.NewAddHostsClusterParams.OpenshiftVersion)
+	apivipDnsname := swag.StringValue(params.NewImportClusterParams.APIVipDnsname)
+	clusterName := swag.StringValue(params.NewImportClusterParams.Name)
+	inputOpenshiftVersion := swag.StringValue(params.NewImportClusterParams.OpenshiftVersion)
 
-	log.Infof("Register add-hosts-cluster: %s, id %s, version %s", clusterName, id.String(), inputOpenshiftVersion)
+	log.Infof("Import add-hosts-cluster: %s, id %s, version %s, openshift cluster id %s", clusterName, id.String(), inputOpenshiftVersion, params.NewImportClusterParams.OpenshiftClusterID)
 
 	if clusterPkg.ClusterExists(b.db, *id) {
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
@@ -802,20 +810,21 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 	}
 
 	newCluster := common.Cluster{Cluster: models.Cluster{
-		ID:               id,
-		Href:             swag.String(url.String()),
-		Kind:             swag.String(models.ClusterKindAddHostsCluster),
-		Name:             clusterName,
-		OpenshiftVersion: *releaseImage.Version,
-		OcpReleaseImage:  *releaseImage.URL,
-		UserName:         ocm.UserNameFromContext(ctx),
-		OrgID:            ocm.OrgIDFromContext(ctx),
-		EmailDomain:      ocm.EmailDomainFromContext(ctx),
-		UpdatedAt:        strfmt.DateTime{},
-		APIVipDNSName:    swag.String(apivipDnsname),
-		HostNetworks:     []*models.HostNetwork{},
-		Hosts:            []*models.Host{},
-		CPUArchitecture:  common.DefaultCPUArchitecture,
+		ID:                 id,
+		Href:               swag.String(url.String()),
+		Kind:               swag.String(models.ClusterKindAddHostsCluster),
+		Name:               clusterName,
+		OpenshiftVersion:   *releaseImage.Version,
+		OpenshiftClusterID: *params.NewImportClusterParams.OpenshiftClusterID,
+		OcpReleaseImage:    *releaseImage.URL,
+		UserName:           ocm.UserNameFromContext(ctx),
+		OrgID:              ocm.OrgIDFromContext(ctx),
+		EmailDomain:        ocm.EmailDomainFromContext(ctx),
+		UpdatedAt:          strfmt.DateTime{},
+		APIVipDNSName:      swag.String(apivipDnsname),
+		HostNetworks:       []*models.HostNetwork{},
+		Hosts:              []*models.Host{},
+		CPUArchitecture:    common.DefaultCPUArchitecture,
 	},
 		KubeKeyName:      kubeKey.Name,
 		KubeKeyNamespace: kubeKey.Namespace,

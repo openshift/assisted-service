@@ -352,6 +352,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2GetPreflightRequirementsHandler: installer.V2GetPreflightRequirementsHandlerFunc(func(params installer.V2GetPreflightRequirementsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetPreflightRequirements has not yet been implemented")
 		}),
+		InstallerV2ImportClusterHandler: installer.V2ImportClusterHandlerFunc(func(params installer.V2ImportClusterParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2ImportCluster has not yet been implemented")
+		}),
 		InstallerV2InstallClusterHandler: installer.V2InstallClusterHandlerFunc(func(params installer.V2InstallClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2InstallCluster has not yet been implemented")
 		}),
@@ -691,6 +694,8 @@ type AssistedInstallAPI struct {
 	InstallerV2GetNextStepsHandler installer.V2GetNextStepsHandler
 	// InstallerV2GetPreflightRequirementsHandler sets the operation handler for the v2 get preflight requirements operation
 	InstallerV2GetPreflightRequirementsHandler installer.V2GetPreflightRequirementsHandler
+	// InstallerV2ImportClusterHandler sets the operation handler for the v2 import cluster operation
+	InstallerV2ImportClusterHandler installer.V2ImportClusterHandler
 	// InstallerV2InstallClusterHandler sets the operation handler for the v2 install cluster operation
 	InstallerV2InstallClusterHandler installer.V2InstallClusterHandler
 	// InstallerV2InstallHostHandler sets the operation handler for the v2 install host operation
@@ -1128,6 +1133,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2GetPreflightRequirementsHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetPreflightRequirementsHandler")
+	}
+	if o.InstallerV2ImportClusterHandler == nil {
+		unregistered = append(unregistered, "installer.V2ImportClusterHandler")
 	}
 	if o.InstallerV2InstallClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2InstallClusterHandler")
@@ -1707,6 +1715,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters/{cluster_id}/preflight-requirements"] = installer.NewV2GetPreflightRequirements(o.context, o.InstallerV2GetPreflightRequirementsHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/clusters/import"] = installer.NewV2ImportCluster(o.context, o.InstallerV2ImportClusterHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

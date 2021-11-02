@@ -10182,7 +10182,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 			},
 		}
-		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), true, gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), common.DoInfraEnvCreation, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, clusterID, "Unknown").Times(1)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
@@ -10214,6 +10214,34 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		verifyApiError(res, http.StatusBadRequest)
+	})
+
+	It("Create V2 AddHosts cluster", func() {
+		defaultHostNetworks := make([]*models.HostNetwork, 0)
+		defaultHosts := make([]*models.Host, 0)
+		openshiftClusterID := strfmt.UUID(uuid.New().String())
+
+		params := installer.V2ImportClusterParams{
+			HTTPRequest: request,
+			NewImportClusterParams: &models.ImportClusterParams{
+				APIVipDnsname:      &apiVIPDnsname,
+				Name:               &clusterName,
+				OpenshiftVersion:   swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				OpenshiftClusterID: &openshiftClusterID,
+			},
+		}
+		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(nil).Times(1)
+		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, gomock.Any(), "Unknown").Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		res := bm.V2ImportCluster(ctx, params)
+		actual := res.(*installer.V2ImportClusterCreated)
+
+		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
+		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
+		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
+		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImageUrl))
+		Expect(actual.Payload.OpenshiftClusterID).To(Equal(openshiftClusterID))
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ImportClusterCreated()))
 	})
 })
 
@@ -11080,7 +11108,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("cluster api failed to register", func() {
 		bm.clusterApi = mockClusterApi
-		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true, gomock.Any()).Return(errors.Errorf("error")).Times(1)
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.DoInfraEnvCreation, gomock.Any()).Return(errors.Errorf("error")).Times(1)
 		mockClusterRegisterSteps()
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11321,7 +11349,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("register cluster - deregister if we failed to create AMS subscription", func() {
 			bm.clusterApi = mockClusterApi
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true, gomock.Any()).Return(nil)
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.DoInfraEnvCreation, gomock.Any()).Return(nil)
 			mockClusterRegisterSteps()
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any(), clusterName).Return(nil, errors.New("dummy"))
 			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
@@ -11336,7 +11364,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("register cluster - delete AMS subscription if we failed to patch DB with ams_subscription_id", func() {
 			bm.clusterApi = mockClusterApi
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), true, gomock.Any()).Return(nil)
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.DoInfraEnvCreation, gomock.Any()).Return(nil)
 			mockClusterRegisterSteps()
 			mockAMSSubscription(ctx)
 			mockClusterApi.EXPECT().UpdateAmsSubscriptionID(ctx, gomock.Any(), strfmt.UUID("")).Return(common.NewApiError(http.StatusInternalServerError, errors.New("dummy")))

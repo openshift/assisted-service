@@ -4631,6 +4631,58 @@ func init() {
         }
       }
     },
+    "/v2/clusters/import": {
+      "post": {
+        "description": "Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2ImportCluster",
+        "parameters": [
+          {
+            "description": "Parameters for importing a OCP cluster for adding nodes.",
+            "name": "new-import-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/import-cluster-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/clusters/{cluster_id}": {
       "get": {
         "security": [
@@ -11490,6 +11542,34 @@ func init() {
         "minimal-iso"
       ]
     },
+    "import-cluster-params": {
+      "type": "object",
+      "required": [
+        "name",
+        "api_vip_dnsname",
+        "openshift_version",
+        "openshift_cluster_id"
+      ],
+      "properties": {
+        "api_vip_dnsname": {
+          "description": "The domain name used to reach the OpenShift cluster API.",
+          "type": "string"
+        },
+        "name": {
+          "description": "OpenShift cluster name.",
+          "type": "string"
+        },
+        "openshift_cluster_id": {
+          "description": "The id of the OCP cluster, that hosts will be added to",
+          "type": "string",
+          "format": "uuid"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        }
+      }
+    },
     "infra-env": {
       "type": "object",
       "required": [
@@ -17555,6 +17635,58 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/cluster_default_config"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/clusters/import": {
+      "post": {
+        "description": "Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2ImportCluster",
+        "parameters": [
+          {
+            "description": "Parameters for importing a OCP cluster for adding nodes.",
+            "name": "new-import-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/import-cluster-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "401": {
@@ -24508,6 +24640,34 @@ func init() {
         "full-iso",
         "minimal-iso"
       ]
+    },
+    "import-cluster-params": {
+      "type": "object",
+      "required": [
+        "name",
+        "api_vip_dnsname",
+        "openshift_version",
+        "openshift_cluster_id"
+      ],
+      "properties": {
+        "api_vip_dnsname": {
+          "description": "The domain name used to reach the OpenShift cluster API.",
+          "type": "string"
+        },
+        "name": {
+          "description": "OpenShift cluster name.",
+          "type": "string"
+        },
+        "openshift_cluster_id": {
+          "description": "The id of the OCP cluster, that hosts will be added to",
+          "type": "string",
+          "format": "uuid"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        }
+      }
     },
     "infra-env": {
       "type": "object",

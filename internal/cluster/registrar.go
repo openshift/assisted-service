@@ -25,15 +25,16 @@ type registrar struct {
 	db  *gorm.DB
 }
 
-func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster, v1Flag bool, v1ISOType models.ImageType) error {
+func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error {
 	return r.registerCluster(ctx, cluster, models.ClusterStatusInsufficient, StatusInfoInsufficient, time.Now(), v1Flag, v1ISOType)
 }
 
-func (r *registrar) RegisterAddHostsCluster(ctx context.Context, cluster *common.Cluster, v1Flag bool, v1ISOType models.ImageType) error {
+func (r *registrar) RegisterAddHostsCluster(ctx context.Context, cluster *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error {
 	return r.registerCluster(ctx, cluster, models.ClusterStatusAddingHosts, statusInfoAddingHosts, time.Now(), v1Flag, v1ISOType)
 }
 
-func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster, status, statusInfo string, registerTime time.Time, v1Flag bool, v1ISOType models.ImageType) error {
+func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster, status, statusInfo string, registerTime time.Time,
+	v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error {
 	cluster.Status = swag.String(status)
 	cluster.StatusInfo = swag.String(statusInfo)
 	cluster.StatusUpdatedAt = strfmt.DateTime(registerTime)

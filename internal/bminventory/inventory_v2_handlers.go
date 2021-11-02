@@ -7,7 +7,9 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -391,4 +393,14 @@ func (b *bareMetalInventory) V2GetCredentials(ctx context.Context, params instal
 func (b *bareMetalInventory) V2ListFeatureSupportLevels(ctx context.Context, params installer.V2ListFeatureSupportLevelsParams) middleware.Responder {
 	payload := featuresupport.SupportLevelsList
 	return installer.NewV2ListFeatureSupportLevelsOK().WithPayload(payload)
+}
+
+func (b *bareMetalInventory) V2ImportCluster(ctx context.Context, params installer.V2ImportClusterParams) middleware.Responder {
+	id := strfmt.UUID(uuid.New().String())
+	c, err := b.V2ImportClusterInternal(ctx, nil, &id, params, common.SkipInfraEnvCreation)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2ImportClusterCreated().WithPayload(&c.Cluster)
+
 }

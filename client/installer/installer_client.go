@@ -256,6 +256,9 @@ type API interface {
 	   V2GetPreflightRequirements Get preflight requirements for a cluster.*/
 	V2GetPreflightRequirements(ctx context.Context, params *V2GetPreflightRequirementsParams) (*V2GetPreflightRequirementsOK, error)
 	/*
+	   V2ImportCluster Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster*/
+	V2ImportCluster(ctx context.Context, params *V2ImportClusterParams) (*V2ImportClusterCreated, error)
+	/*
 	   V2InstallCluster Installs the OpenShift cluster.*/
 	V2InstallCluster(ctx context.Context, params *V2InstallClusterParams) (*V2InstallClusterAccepted, error)
 	/*
@@ -2268,6 +2271,31 @@ func (a *Client) V2GetPreflightRequirements(ctx context.Context, params *V2GetPr
 		return nil, err
 	}
 	return result.(*V2GetPreflightRequirementsOK), nil
+
+}
+
+/*
+V2ImportCluster Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
+*/
+func (a *Client) V2ImportCluster(ctx context.Context, params *V2ImportClusterParams) (*V2ImportClusterCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2ImportCluster",
+		Method:             "POST",
+		PathPattern:        "/v2/clusters/import",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2ImportClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2ImportClusterCreated), nil
 
 }
 

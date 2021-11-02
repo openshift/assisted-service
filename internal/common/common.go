@@ -13,6 +13,13 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+type InfraEnvCreateFlag bool
+
+const (
+	DoInfraEnvCreation   InfraEnvCreateFlag = true
+	SkipInfraEnvCreation InfraEnvCreateFlag = false
+)
+
 const (
 	EnvConfigPrefix = "myapp"
 
