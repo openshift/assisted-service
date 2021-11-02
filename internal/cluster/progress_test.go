@@ -131,9 +131,9 @@ var _ = Describe("Progress bar test", func() {
 			bootstrapIndexReturned := 2
 			mastersIndexReturned := 3
 			workersIndexReturned := 1
-			mockHostAPI.EXPECT().GetStagesByRole(models.HostRoleBootstrap, true).Return(host.BootstrapStages[:]).Times(1)
-			mockHostAPI.EXPECT().GetStagesByRole(models.HostRoleMaster, false).Return(host.MasterStages[:]).Times(2)
-			mockHostAPI.EXPECT().GetStagesByRole(models.HostRoleWorker, false).Return(host.WorkerStages[:]).Times(2)
+			mockHostAPI.EXPECT().GetStagesByRole(models.HostRoleBootstrap, true, false).Return(host.BootstrapStages[:]).Times(1)
+			mockHostAPI.EXPECT().GetStagesByRole(models.HostRoleMaster, false, false).Return(host.MasterStages[:]).Times(2)
+			mockHostAPI.EXPECT().GetStagesByRole(models.HostRoleWorker, false, false).Return(host.WorkerStages[:]).Times(2)
 			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.BootstrapStages[:]).Return(bootstrapIndexReturned).Times(1)
 			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.MasterStages[:]).Return(mastersIndexReturned).Times(2)
 			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.WorkerStages[:]).Return(workersIndexReturned).Times(2)
@@ -144,6 +144,47 @@ var _ = Describe("Progress bar test", func() {
 			c := getClusterFromDB(clusterId, db)
 			expectedInstallingStagePercentage := float64((bootstrapIndexReturned+1)+2*(mastersIndexReturned+1)+2*(workersIndexReturned+1)) * 100 /
 				float64(len(host.BootstrapStages[:])+2*len(host.MasterStages[:])+2*len(host.WorkerStages[:]))
+			expectProgressToBe(&c, 0, int(expectedInstallingStagePercentage), 0)
+		})
+	})
+
+	It("UpdateInstallProgress with SNO", func() {
+		var clusterId strfmt.UUID
+
+		By("Create SNO cluster", func() {
+			clusterId = strfmt.UUID(uuid.New().String())
+			hid1 := strfmt.UUID(uuid.New().String())
+			none := models.ClusterHighAvailabilityModeNone
+			c := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                   &clusterId,
+					Kind:                 swag.String(models.ClusterKindCluster),
+					HighAvailabilityMode: &none,
+					Hosts: []*models.Host{
+						{
+							ID:         &hid1,
+							ClusterID:  &clusterId,
+							InfraEnvID: clusterId,
+							Role:       models.HostRoleBootstrap,
+							Bootstrap:  true,
+							Status:     swag.String(models.HostStatusInstalling),
+						},
+					},
+				},
+			}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+		})
+
+		By("test progress with SNO", func() {
+			bootstrapIndexReturned := 3
+			mockHostAPI.EXPECT().GetStagesByRole(models.HostRoleBootstrap, true, true).Return(host.SnoStages[:]).Times(1)
+			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.SnoStages[:]).Return(bootstrapIndexReturned).Times(1)
+			err := clusterApi.UpdateInstallProgress(ctx, clusterId)
+			Expect(err).NotTo(HaveOccurred())
+
+			c := getClusterFromDB(clusterId, db)
+			expectedInstallingStagePercentage := float64((bootstrapIndexReturned + 1)) * 100 /
+				float64(len(host.SnoStages[:]))
 			expectProgressToBe(&c, 0, int(expectedInstallingStagePercentage), 0)
 		})
 	})
