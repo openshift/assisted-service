@@ -582,7 +582,7 @@ spec:
                 - name: IMAGE_SERVICE_IMAGE
                   value: quay.io/edge-infrastructure/assisted-image-service:latest
                 - name: DATABASE_IMAGE
-                  value: quay.io/ocpmetal/postgresql-12-centos7:latest
+                  value: quay.io/edge-infrastructure/postgresql-12-centos7:latest
                 - name: AGENT_IMAGE
                   value: quay.io/edge-infrastructure/assisted-installer-agent:latest
                 - name: CONTROLLER_IMAGE
@@ -723,7 +723,7 @@ spec:
     name: controller
   - image: quay.io/edge-infrastructure/assisted-image-service:latest
     name: image-service
-  - image: quay.io/ocpmetal/postgresql-12-centos7:latest
+  - image: quay.io/edge-infrastructure/postgresql-12-centos7:latest
     name: postgresql
   - image: quay.io/edge-infrastructure/assisted-installer:latest
     name: installer
