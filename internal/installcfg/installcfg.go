@@ -26,6 +26,7 @@ type BareMetalInstallConfigPlatform struct {
 	APIVIP              string `yaml:"apiVIP"`
 	IngressVIP          string `yaml:"ingressVIP"`
 	Hosts               []Host `yaml:"hosts"`
+	ClusterOSImage      string `json:"clusterOSImage,omitempty"`
 }
 
 type VsphereInstallConfigPlatform struct {
