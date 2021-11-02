@@ -84,21 +84,21 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 			inventory:      hostutil.GenerateInventoryWithResourcesWithBytes(4, conversions.MibToBytes(150), conversions.MibToBytes(150), "worker"),
 			srcState:       models.HostStatusDiscovering,
 			suggested_role: models.HostRoleWorker,
-			eventTypes:     []string{eventgen.UpdateHostRoleEventName},
+			eventTypes:     []string{eventgen.HostRoleUpdatedEventName},
 		},
 		{
 			name:           "sufficient master memory --> suggested as master when masters < 3",
 			inventory:      hostutil.GenerateMasterInventory(),
 			srcState:       models.HostStatusInsufficient,
 			suggested_role: models.HostRoleMaster,
-			eventTypes:     []string{eventgen.UpdateHostRoleEventName},
+			eventTypes:     []string{eventgen.HostRoleUpdatedEventName},
 		},
 		{
 			name:           "sufficient worker memory --> suggested as worker",
 			inventory:      workerInventory(),
 			srcState:       models.HostStatusKnown,
 			suggested_role: models.HostRoleWorker,
-			eventTypes:     []string{eventgen.UpdateHostRoleEventName},
+			eventTypes:     []string{eventgen.HostRoleUpdatedEventName},
 		},
 	}
 

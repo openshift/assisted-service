@@ -405,7 +405,7 @@ func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *g
 					if err = updateRole(m.log, h, h.Role, suggestedRole, db, string(h.Role)); err == nil {
 						h.SuggestedRole = suggestedRole
 						m.log.Infof("suggested role for host %s is %s", *h.ID, suggestedRole)
-						eventgen.SendUpdateHostRoleEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(h), string(suggestedRole))
+						eventgen.SendHostRoleUpdatedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(h), string(suggestedRole))
 					}
 				}
 			}
@@ -621,7 +621,7 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}
-		eventgen.SendHostSetBootstrapEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(h))
+		eventgen.SendHostBootstrapSetEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(h))
 	}
 	return nil
 }
@@ -749,7 +749,7 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 				newImageStatus.Time, newImageStatus.SizeBytes, newImageStatus.DownloadRate)
 		}
 
-		eventgen.SendUpdateImageStatusEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID,
+		eventgen.SendImageStatusUpdatedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID,
 			hostutil.GetHostnameForMsg(h), newImageStatus.Name, string(newImageStatus.Result), eventInfo)
 	}
 	marshalledStatuses, err := common.MarshalImageStatuses(hostImageStatuses)
@@ -869,10 +869,10 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 	defer func() {
 		if shouldAddEvent {
 			if isFailed {
-				eventgen.SendHostResetInstallationFailedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
+				eventgen.SendHostInstallationResetFailedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
 					h.InfraEnvID, hostutil.GetHostnameForMsg(h), err.Error())
 			} else {
-				eventgen.SendHostResetInstallationEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
+				eventgen.SendHostInstallationResetEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
 					h.InfraEnvID, hostutil.GetHostnameForMsg(h))
 			}
 		}
@@ -1012,7 +1012,7 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 					} else if vc.infraEnv != nil {
 						m.metricApi.HostValidationChanged(vc.infraEnv.OpenshiftVersion, vc.infraEnv.EmailDomain, models.HostValidationID(v.ID))
 					}
-					eventgen.SendHostValidationFallingEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
+					eventgen.SendHostValidationFailedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
 						h.InfraEnvID, hostutil.GetHostnameForMsg(h), v.ID.String())
 				}
 				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {

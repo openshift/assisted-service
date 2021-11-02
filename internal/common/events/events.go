@@ -12,190 +12,190 @@ import (
 )
 
 //
-// Event cancel_install_failed_start
+// Event cancel_install_start_failed
 //
-type CancelInstallFailedStartEvent struct {
+type CancelInstallStartFailedEvent struct {
     ClusterId strfmt.UUID
 }
 
-var CancelInstallFailedStartEventName string = "cancel_install_failed_start"
+var CancelInstallStartFailedEventName string = "cancel_install_start_failed"
 
-func NewCancelInstallFailedStartEvent(
+func NewCancelInstallStartFailedEvent(
     clusterId strfmt.UUID,
-) *CancelInstallFailedStartEvent {
-    return &CancelInstallFailedStartEvent{
+) *CancelInstallStartFailedEvent {
+    return &CancelInstallStartFailedEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendCancelInstallFailedStartEvent(
+func SendCancelInstallStartFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewCancelInstallFailedStartEvent(
+    ev := NewCancelInstallStartFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendCancelInstallFailedStartEventAtTime(
+func SendCancelInstallStartFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewCancelInstallFailedStartEvent(
+    ev := NewCancelInstallStartFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *CancelInstallFailedStartEvent) GetName() string {
-    return "cancel_install_failed_start"
+func (e *CancelInstallStartFailedEvent) GetName() string {
+    return "cancel_install_start_failed"
 }
 
-func (e *CancelInstallFailedStartEvent) GetSeverity() string {
+func (e *CancelInstallStartFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *CancelInstallFailedStartEvent) GetClusterId() strfmt.UUID {
+func (e *CancelInstallStartFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *CancelInstallFailedStartEvent) format(message *string) string {
+func (e *CancelInstallStartFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *CancelInstallFailedStartEvent) FormatMessage() string {
+func (e *CancelInstallStartFailedEvent) FormatMessage() string {
     s := "Failed to cancel installation: error starting DB transaction"
     return e.format(&s)
 }
 
 //
-// Event cancel_install_failed_commit
+// Event cancel_install_commit_failed
 //
-type CancelInstallFailedCommitEvent struct {
+type CancelInstallCommitFailedEvent struct {
     ClusterId strfmt.UUID
 }
 
-var CancelInstallFailedCommitEventName string = "cancel_install_failed_commit"
+var CancelInstallCommitFailedEventName string = "cancel_install_commit_failed"
 
-func NewCancelInstallFailedCommitEvent(
+func NewCancelInstallCommitFailedEvent(
     clusterId strfmt.UUID,
-) *CancelInstallFailedCommitEvent {
-    return &CancelInstallFailedCommitEvent{
+) *CancelInstallCommitFailedEvent {
+    return &CancelInstallCommitFailedEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendCancelInstallFailedCommitEvent(
+func SendCancelInstallCommitFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewCancelInstallFailedCommitEvent(
+    ev := NewCancelInstallCommitFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendCancelInstallFailedCommitEventAtTime(
+func SendCancelInstallCommitFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewCancelInstallFailedCommitEvent(
+    ev := NewCancelInstallCommitFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *CancelInstallFailedCommitEvent) GetName() string {
-    return "cancel_install_failed_commit"
+func (e *CancelInstallCommitFailedEvent) GetName() string {
+    return "cancel_install_commit_failed"
 }
 
-func (e *CancelInstallFailedCommitEvent) GetSeverity() string {
+func (e *CancelInstallCommitFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *CancelInstallFailedCommitEvent) GetClusterId() strfmt.UUID {
+func (e *CancelInstallCommitFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *CancelInstallFailedCommitEvent) format(message *string) string {
+func (e *CancelInstallCommitFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *CancelInstallFailedCommitEvent) FormatMessage() string {
+func (e *CancelInstallCommitFailedEvent) FormatMessage() string {
     s := "Failed to cancel installation: error committing DB transaction"
     return e.format(&s)
 }
 
 //
-// Event host_registration_failed_setting_properties
+// Event host_registration_setting_properties_failed
 //
-type HostRegistrationFailedSettingPropertiesEvent struct {
+type HostRegistrationSettingPropertiesFailedEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
 }
 
-var HostRegistrationFailedSettingPropertiesEventName string = "host_registration_failed_setting_properties"
+var HostRegistrationSettingPropertiesFailedEventName string = "host_registration_setting_properties_failed"
 
-func NewHostRegistrationFailedSettingPropertiesEvent(
+func NewHostRegistrationSettingPropertiesFailedEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
-) *HostRegistrationFailedSettingPropertiesEvent {
-    return &HostRegistrationFailedSettingPropertiesEvent{
+) *HostRegistrationSettingPropertiesFailedEvent {
+    return &HostRegistrationSettingPropertiesFailedEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
     }
 }
 
-func SendHostRegistrationFailedSettingPropertiesEvent(
+func SendHostRegistrationSettingPropertiesFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,) {
-    ev := NewHostRegistrationFailedSettingPropertiesEvent(
+    ev := NewHostRegistrationSettingPropertiesFailedEvent(
         hostId,
         infraEnvId,
     )
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostRegistrationFailedSettingPropertiesEventAtTime(
+func SendHostRegistrationSettingPropertiesFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewHostRegistrationFailedSettingPropertiesEvent(
+    ev := NewHostRegistrationSettingPropertiesFailedEvent(
         hostId,
         infraEnvId,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostRegistrationFailedSettingPropertiesEvent) GetName() string {
-    return "host_registration_failed_setting_properties"
+func (e *HostRegistrationSettingPropertiesFailedEvent) GetName() string {
+    return "host_registration_setting_properties_failed"
 }
 
-func (e *HostRegistrationFailedSettingPropertiesEvent) GetSeverity() string {
+func (e *HostRegistrationSettingPropertiesFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *HostRegistrationFailedSettingPropertiesEvent) GetClusterId() *strfmt.UUID {
+func (e *HostRegistrationSettingPropertiesFailedEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *HostRegistrationFailedSettingPropertiesEvent) GetHostId() strfmt.UUID {
+func (e *HostRegistrationSettingPropertiesFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostRegistrationFailedSettingPropertiesEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostRegistrationSettingPropertiesFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostRegistrationFailedSettingPropertiesEvent) format(message *string) string {
+func (e *HostRegistrationSettingPropertiesFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
@@ -203,7 +203,7 @@ func (e *HostRegistrationFailedSettingPropertiesEvent) format(message *string) s
     return r.Replace(*message)
 }
 
-func (e *HostRegistrationFailedSettingPropertiesEvent) FormatMessage() string {
+func (e *HostRegistrationSettingPropertiesFailedEvent) FormatMessage() string {
     s := "Failed to register host: error setting host properties"
     return e.format(&s)
 }
@@ -347,62 +347,62 @@ func (e *ClusterRegistrationSucceededEvent) FormatMessage() string {
 }
 
 //
-// Event registered_cluster
+// Event cluster_registered
 //
-type RegisteredClusterEvent struct {
+type ClusterRegisteredEvent struct {
     ClusterId strfmt.UUID
     ClusterKind string
 }
 
-var RegisteredClusterEventName string = "registered_cluster"
+var ClusterRegisteredEventName string = "cluster_registered"
 
-func NewRegisteredClusterEvent(
+func NewClusterRegisteredEvent(
     clusterId strfmt.UUID,
     clusterKind string,
-) *RegisteredClusterEvent {
-    return &RegisteredClusterEvent{
+) *ClusterRegisteredEvent {
+    return &ClusterRegisteredEvent{
         ClusterId: clusterId,
         ClusterKind: clusterKind,
     }
 }
 
-func SendRegisteredClusterEvent(
+func SendClusterRegisteredEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     clusterKind string,) {
-    ev := NewRegisteredClusterEvent(
+    ev := NewClusterRegisteredEvent(
         clusterId,
         clusterKind,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendRegisteredClusterEventAtTime(
+func SendClusterRegisteredEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     clusterKind string,
     eventTime time.Time) {
-    ev := NewRegisteredClusterEvent(
+    ev := NewClusterRegisteredEvent(
         clusterId,
         clusterKind,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *RegisteredClusterEvent) GetName() string {
-    return "registered_cluster"
+func (e *ClusterRegisteredEvent) GetName() string {
+    return "cluster_registered"
 }
 
-func (e *RegisteredClusterEvent) GetSeverity() string {
+func (e *ClusterRegisteredEvent) GetSeverity() string {
     return "info"
 }
-func (e *RegisteredClusterEvent) GetClusterId() strfmt.UUID {
+func (e *ClusterRegisteredEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *RegisteredClusterEvent) format(message *string) string {
+func (e *ClusterRegisteredEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{cluster_kind}", fmt.Sprint(e.ClusterKind),
@@ -410,7 +410,7 @@ func (e *RegisteredClusterEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *RegisteredClusterEvent) FormatMessage() string {
+func (e *ClusterRegisteredEvent) FormatMessage() string {
     s := "Registered cluster"
     return e.format(&s)
 }
@@ -485,96 +485,96 @@ func (e *ClusterDeregisterFailedEvent) FormatMessage() string {
 }
 
 //
-// Event deregistered_cluster
+// Event cluster_deregistered
 //
-type DeregisteredClusterEvent struct {
+type ClusterDeregisteredEvent struct {
     ClusterId strfmt.UUID
 }
 
-var DeregisteredClusterEventName string = "deregistered_cluster"
+var ClusterDeregisteredEventName string = "cluster_deregistered"
 
-func NewDeregisteredClusterEvent(
+func NewClusterDeregisteredEvent(
     clusterId strfmt.UUID,
-) *DeregisteredClusterEvent {
-    return &DeregisteredClusterEvent{
+) *ClusterDeregisteredEvent {
+    return &ClusterDeregisteredEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendDeregisteredClusterEvent(
+func SendClusterDeregisteredEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewDeregisteredClusterEvent(
+    ev := NewClusterDeregisteredEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendDeregisteredClusterEventAtTime(
+func SendClusterDeregisteredEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewDeregisteredClusterEvent(
+    ev := NewClusterDeregisteredEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *DeregisteredClusterEvent) GetName() string {
-    return "deregistered_cluster"
+func (e *ClusterDeregisteredEvent) GetName() string {
+    return "cluster_deregistered"
 }
 
-func (e *DeregisteredClusterEvent) GetSeverity() string {
+func (e *ClusterDeregisteredEvent) GetSeverity() string {
     return "info"
 }
-func (e *DeregisteredClusterEvent) GetClusterId() strfmt.UUID {
+func (e *ClusterDeregisteredEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *DeregisteredClusterEvent) format(message *string) string {
+func (e *ClusterDeregisteredEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *DeregisteredClusterEvent) FormatMessage() string {
+func (e *ClusterDeregisteredEvent) FormatMessage() string {
     s := "Deregistered cluster"
     return e.format(&s)
 }
 
 //
-// Event cluster_validation_falling
+// Event cluster_validation_failed
 //
-type ClusterValidationFallingEvent struct {
+type ClusterValidationFailedEvent struct {
     ClusterId strfmt.UUID
     ValidationId string
     ValidationMsg string
 }
 
-var ClusterValidationFallingEventName string = "cluster_validation_falling"
+var ClusterValidationFailedEventName string = "cluster_validation_failed"
 
-func NewClusterValidationFallingEvent(
+func NewClusterValidationFailedEvent(
     clusterId strfmt.UUID,
     validationId string,
     validationMsg string,
-) *ClusterValidationFallingEvent {
-    return &ClusterValidationFallingEvent{
+) *ClusterValidationFailedEvent {
+    return &ClusterValidationFailedEvent{
         ClusterId: clusterId,
         ValidationId: validationId,
         ValidationMsg: validationMsg,
     }
 }
 
-func SendClusterValidationFallingEvent(
+func SendClusterValidationFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     validationId string,
     validationMsg string,) {
-    ev := NewClusterValidationFallingEvent(
+    ev := NewClusterValidationFailedEvent(
         clusterId,
         validationId,
         validationMsg,
@@ -582,14 +582,14 @@ func SendClusterValidationFallingEvent(
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendClusterValidationFallingEventAtTime(
+func SendClusterValidationFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     validationId string,
     validationMsg string,
     eventTime time.Time) {
-    ev := NewClusterValidationFallingEvent(
+    ev := NewClusterValidationFailedEvent(
         clusterId,
         validationId,
         validationMsg,
@@ -597,18 +597,18 @@ func SendClusterValidationFallingEventAtTime(
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *ClusterValidationFallingEvent) GetName() string {
-    return "cluster_validation_falling"
+func (e *ClusterValidationFailedEvent) GetName() string {
+    return "cluster_validation_failed"
 }
 
-func (e *ClusterValidationFallingEvent) GetSeverity() string {
+func (e *ClusterValidationFailedEvent) GetSeverity() string {
     return "warning"
 }
-func (e *ClusterValidationFallingEvent) GetClusterId() strfmt.UUID {
+func (e *ClusterValidationFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *ClusterValidationFallingEvent) format(message *string) string {
+func (e *ClusterValidationFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{validation_id}", fmt.Sprint(e.ValidationId),
@@ -617,7 +617,7 @@ func (e *ClusterValidationFallingEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *ClusterValidationFallingEvent) FormatMessage() string {
+func (e *ClusterValidationFailedEvent) FormatMessage() string {
     s := "Cluster validation '{validation_id}' that used to succeed is now failing"
     return e.format(&s)
 }
@@ -700,184 +700,184 @@ func (e *ClusterValidationFixedEvent) FormatMessage() string {
 }
 
 //
-// Event cluster_deregistered_after_inactivity
+// Event after_inactivity_cluster_deregistered
 //
-type ClusterDeregisteredAfterInactivityEvent struct {
+type AfterInactivityClusterDeregisteredEvent struct {
     ClusterId strfmt.UUID
 }
 
-var ClusterDeregisteredAfterInactivityEventName string = "cluster_deregistered_after_inactivity"
+var AfterInactivityClusterDeregisteredEventName string = "after_inactivity_cluster_deregistered"
 
-func NewClusterDeregisteredAfterInactivityEvent(
+func NewAfterInactivityClusterDeregisteredEvent(
     clusterId strfmt.UUID,
-) *ClusterDeregisteredAfterInactivityEvent {
-    return &ClusterDeregisteredAfterInactivityEvent{
+) *AfterInactivityClusterDeregisteredEvent {
+    return &AfterInactivityClusterDeregisteredEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendClusterDeregisteredAfterInactivityEvent(
+func SendAfterInactivityClusterDeregisteredEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewClusterDeregisteredAfterInactivityEvent(
+    ev := NewAfterInactivityClusterDeregisteredEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendClusterDeregisteredAfterInactivityEventAtTime(
+func SendAfterInactivityClusterDeregisteredEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewClusterDeregisteredAfterInactivityEvent(
+    ev := NewAfterInactivityClusterDeregisteredEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *ClusterDeregisteredAfterInactivityEvent) GetName() string {
-    return "cluster_deregistered_after_inactivity"
+func (e *AfterInactivityClusterDeregisteredEvent) GetName() string {
+    return "after_inactivity_cluster_deregistered"
 }
 
-func (e *ClusterDeregisteredAfterInactivityEvent) GetSeverity() string {
+func (e *AfterInactivityClusterDeregisteredEvent) GetSeverity() string {
     return "info"
 }
-func (e *ClusterDeregisteredAfterInactivityEvent) GetClusterId() strfmt.UUID {
+func (e *AfterInactivityClusterDeregisteredEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *ClusterDeregisteredAfterInactivityEvent) format(message *string) string {
+func (e *AfterInactivityClusterDeregisteredEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *ClusterDeregisteredAfterInactivityEvent) FormatMessage() string {
+func (e *AfterInactivityClusterDeregisteredEvent) FormatMessage() string {
     s := "Cluster is deregistered due to inactivity"
     return e.format(&s)
 }
 
 //
-// Event cluster_installing_finished
+// Event cluster_installation_completed
 //
-type ClusterInstallingFinishedEvent struct {
+type ClusterInstallationCompletedEvent struct {
     ClusterId strfmt.UUID
 }
 
-var ClusterInstallingFinishedEventName string = "cluster_installing_finished"
+var ClusterInstallationCompletedEventName string = "cluster_installation_completed"
 
-func NewClusterInstallingFinishedEvent(
+func NewClusterInstallationCompletedEvent(
     clusterId strfmt.UUID,
-) *ClusterInstallingFinishedEvent {
-    return &ClusterInstallingFinishedEvent{
+) *ClusterInstallationCompletedEvent {
+    return &ClusterInstallationCompletedEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendClusterInstallingFinishedEvent(
+func SendClusterInstallationCompletedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewClusterInstallingFinishedEvent(
+    ev := NewClusterInstallationCompletedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendClusterInstallingFinishedEventAtTime(
+func SendClusterInstallationCompletedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewClusterInstallingFinishedEvent(
+    ev := NewClusterInstallationCompletedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *ClusterInstallingFinishedEvent) GetName() string {
-    return "cluster_installing_finished"
+func (e *ClusterInstallationCompletedEvent) GetName() string {
+    return "cluster_installation_completed"
 }
 
-func (e *ClusterInstallingFinishedEvent) GetSeverity() string {
+func (e *ClusterInstallationCompletedEvent) GetSeverity() string {
     return "info"
 }
-func (e *ClusterInstallingFinishedEvent) GetClusterId() strfmt.UUID {
+func (e *ClusterInstallationCompletedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *ClusterInstallingFinishedEvent) format(message *string) string {
+func (e *ClusterInstallationCompletedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *ClusterInstallingFinishedEvent) FormatMessage() string {
-    s := "Successfully finished installing cluster"
+func (e *ClusterInstallationCompletedEvent) FormatMessage() string {
+    s := "Successfully completed installing cluster"
     return e.format(&s)
 }
 
 //
-// Event cluster_installing_failed
+// Event cluster_installation_failed
 //
-type ClusterInstallingFailedEvent struct {
+type ClusterInstallationFailedEvent struct {
     ClusterId strfmt.UUID
     FailureReason string
 }
 
-var ClusterInstallingFailedEventName string = "cluster_installing_failed"
+var ClusterInstallationFailedEventName string = "cluster_installation_failed"
 
-func NewClusterInstallingFailedEvent(
+func NewClusterInstallationFailedEvent(
     clusterId strfmt.UUID,
     failureReason string,
-) *ClusterInstallingFailedEvent {
-    return &ClusterInstallingFailedEvent{
+) *ClusterInstallationFailedEvent {
+    return &ClusterInstallationFailedEvent{
         ClusterId: clusterId,
         FailureReason: failureReason,
     }
 }
 
-func SendClusterInstallingFailedEvent(
+func SendClusterInstallationFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     failureReason string,) {
-    ev := NewClusterInstallingFailedEvent(
+    ev := NewClusterInstallationFailedEvent(
         clusterId,
         failureReason,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendClusterInstallingFailedEventAtTime(
+func SendClusterInstallationFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     failureReason string,
     eventTime time.Time) {
-    ev := NewClusterInstallingFailedEvent(
+    ev := NewClusterInstallationFailedEvent(
         clusterId,
         failureReason,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *ClusterInstallingFailedEvent) GetName() string {
-    return "cluster_installing_failed"
+func (e *ClusterInstallationFailedEvent) GetName() string {
+    return "cluster_installation_failed"
 }
 
-func (e *ClusterInstallingFailedEvent) GetSeverity() string {
+func (e *ClusterInstallationFailedEvent) GetSeverity() string {
     return "critical"
 }
-func (e *ClusterInstallingFailedEvent) GetClusterId() strfmt.UUID {
+func (e *ClusterInstallationFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *ClusterInstallingFailedEvent) format(message *string) string {
+func (e *ClusterInstallationFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{failure_reason}", fmt.Sprint(e.FailureReason),
@@ -885,69 +885,69 @@ func (e *ClusterInstallingFailedEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *ClusterInstallingFailedEvent) FormatMessage() string {
+func (e *ClusterInstallationFailedEvent) FormatMessage() string {
     s := "Failed installing cluster. Reason: {failure_reason}"
     return e.format(&s)
 }
 
 //
-// Event cluster_cancel_installation
+// Event cluster_installation_canceled
 //
-type ClusterCancelInstallationEvent struct {
+type ClusterInstallationCanceledEvent struct {
     ClusterId strfmt.UUID
 }
 
-var ClusterCancelInstallationEventName string = "cluster_cancel_installation"
+var ClusterInstallationCanceledEventName string = "cluster_installation_canceled"
 
-func NewClusterCancelInstallationEvent(
+func NewClusterInstallationCanceledEvent(
     clusterId strfmt.UUID,
-) *ClusterCancelInstallationEvent {
-    return &ClusterCancelInstallationEvent{
+) *ClusterInstallationCanceledEvent {
+    return &ClusterInstallationCanceledEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendClusterCancelInstallationEvent(
+func SendClusterInstallationCanceledEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewClusterCancelInstallationEvent(
+    ev := NewClusterInstallationCanceledEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendClusterCancelInstallationEventAtTime(
+func SendClusterInstallationCanceledEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewClusterCancelInstallationEvent(
+    ev := NewClusterInstallationCanceledEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *ClusterCancelInstallationEvent) GetName() string {
-    return "cluster_cancel_installation"
+func (e *ClusterInstallationCanceledEvent) GetName() string {
+    return "cluster_installation_canceled"
 }
 
-func (e *ClusterCancelInstallationEvent) GetSeverity() string {
+func (e *ClusterInstallationCanceledEvent) GetSeverity() string {
     return "info"
 }
-func (e *ClusterCancelInstallationEvent) GetClusterId() strfmt.UUID {
+func (e *ClusterInstallationCanceledEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *ClusterCancelInstallationEvent) format(message *string) string {
+func (e *ClusterInstallationCanceledEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *ClusterCancelInstallationEvent) FormatMessage() string {
-    s := "Cancelled cluster installation"
+func (e *ClusterInstallationCanceledEvent) FormatMessage() string {
+    s := "Canceled cluster installation"
     return e.format(&s)
 }
 
@@ -1098,62 +1098,62 @@ func (e *ClusterStatusUpdatedEvent) FormatMessage() string {
 }
 
 //
-// Event cluster_reset_installation
+// Event cluster_installation_reset
 //
-type ClusterResetInstallationEvent struct {
+type ClusterInstallationResetEvent struct {
     ClusterId strfmt.UUID
 }
 
-var ClusterResetInstallationEventName string = "cluster_reset_installation"
+var ClusterInstallationResetEventName string = "cluster_installation_reset"
 
-func NewClusterResetInstallationEvent(
+func NewClusterInstallationResetEvent(
     clusterId strfmt.UUID,
-) *ClusterResetInstallationEvent {
-    return &ClusterResetInstallationEvent{
+) *ClusterInstallationResetEvent {
+    return &ClusterInstallationResetEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendClusterResetInstallationEvent(
+func SendClusterInstallationResetEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewClusterResetInstallationEvent(
+    ev := NewClusterInstallationResetEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendClusterResetInstallationEventAtTime(
+func SendClusterInstallationResetEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewClusterResetInstallationEvent(
+    ev := NewClusterInstallationResetEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *ClusterResetInstallationEvent) GetName() string {
-    return "cluster_reset_installation"
+func (e *ClusterInstallationResetEvent) GetName() string {
+    return "cluster_installation_reset"
 }
 
-func (e *ClusterResetInstallationEvent) GetSeverity() string {
+func (e *ClusterInstallationResetEvent) GetSeverity() string {
     return "info"
 }
-func (e *ClusterResetInstallationEvent) GetClusterId() strfmt.UUID {
+func (e *ClusterInstallationResetEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *ClusterResetInstallationEvent) format(message *string) string {
+func (e *ClusterInstallationResetEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *ClusterResetInstallationEvent) FormatMessage() string {
+func (e *ClusterInstallationResetEvent) FormatMessage() string {
     s := "Reset cluster installation"
     return e.format(&s)
 }
@@ -1228,35 +1228,35 @@ func (e *ResetInstallationFailedEvent) FormatMessage() string {
 }
 
 //
-// Event api_ingress_vip_update
+// Event api_ingress_vip_updated
 //
-type ApiIngressVipUpdateEvent struct {
+type ApiIngressVipUpdatedEvent struct {
     ClusterId strfmt.UUID
     ApiVip string
     IngressVip string
 }
 
-var ApiIngressVipUpdateEventName string = "api_ingress_vip_update"
+var ApiIngressVipUpdatedEventName string = "api_ingress_vip_updated"
 
-func NewApiIngressVipUpdateEvent(
+func NewApiIngressVipUpdatedEvent(
     clusterId strfmt.UUID,
     apiVip string,
     ingressVip string,
-) *ApiIngressVipUpdateEvent {
-    return &ApiIngressVipUpdateEvent{
+) *ApiIngressVipUpdatedEvent {
+    return &ApiIngressVipUpdatedEvent{
         ClusterId: clusterId,
         ApiVip: apiVip,
         IngressVip: ingressVip,
     }
 }
 
-func SendApiIngressVipUpdateEvent(
+func SendApiIngressVipUpdatedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     apiVip string,
     ingressVip string,) {
-    ev := NewApiIngressVipUpdateEvent(
+    ev := NewApiIngressVipUpdatedEvent(
         clusterId,
         apiVip,
         ingressVip,
@@ -1264,14 +1264,14 @@ func SendApiIngressVipUpdateEvent(
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendApiIngressVipUpdateEventAtTime(
+func SendApiIngressVipUpdatedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     apiVip string,
     ingressVip string,
     eventTime time.Time) {
-    ev := NewApiIngressVipUpdateEvent(
+    ev := NewApiIngressVipUpdatedEvent(
         clusterId,
         apiVip,
         ingressVip,
@@ -1279,18 +1279,18 @@ func SendApiIngressVipUpdateEventAtTime(
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *ApiIngressVipUpdateEvent) GetName() string {
-    return "api_ingress_vip_update"
+func (e *ApiIngressVipUpdatedEvent) GetName() string {
+    return "api_ingress_vip_updated"
 }
 
-func (e *ApiIngressVipUpdateEvent) GetSeverity() string {
+func (e *ApiIngressVipUpdatedEvent) GetSeverity() string {
     return "info"
 }
-func (e *ApiIngressVipUpdateEvent) GetClusterId() strfmt.UUID {
+func (e *ApiIngressVipUpdatedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *ApiIngressVipUpdateEvent) format(message *string) string {
+func (e *ApiIngressVipUpdatedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{api_vip}", fmt.Sprint(e.ApiVip),
@@ -1299,7 +1299,7 @@ func (e *ApiIngressVipUpdateEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *ApiIngressVipUpdateEvent) FormatMessage() string {
+func (e *ApiIngressVipUpdatedEvent) FormatMessage() string {
     s := "Cluster was updated with api-vip {api_vip}, ingress-vip {ingress_vip}"
     return e.format(&s)
 }
@@ -1443,62 +1443,62 @@ func (e *PrepareInstallationFailedEvent) FormatMessage() string {
 }
 
 //
-// Event cluster_prepare_installation
+// Event cluster_prepare_installation_started
 //
-type ClusterPrepareInstallationEvent struct {
+type ClusterPrepareInstallationStartedEvent struct {
     ClusterId strfmt.UUID
 }
 
-var ClusterPrepareInstallationEventName string = "cluster_prepare_installation"
+var ClusterPrepareInstallationStartedEventName string = "cluster_prepare_installation_started"
 
-func NewClusterPrepareInstallationEvent(
+func NewClusterPrepareInstallationStartedEvent(
     clusterId strfmt.UUID,
-) *ClusterPrepareInstallationEvent {
-    return &ClusterPrepareInstallationEvent{
+) *ClusterPrepareInstallationStartedEvent {
+    return &ClusterPrepareInstallationStartedEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendClusterPrepareInstallationEvent(
+func SendClusterPrepareInstallationStartedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewClusterPrepareInstallationEvent(
+    ev := NewClusterPrepareInstallationStartedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendClusterPrepareInstallationEventAtTime(
+func SendClusterPrepareInstallationStartedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewClusterPrepareInstallationEvent(
+    ev := NewClusterPrepareInstallationStartedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *ClusterPrepareInstallationEvent) GetName() string {
-    return "cluster_prepare_installation"
+func (e *ClusterPrepareInstallationStartedEvent) GetName() string {
+    return "cluster_prepare_installation_started"
 }
 
-func (e *ClusterPrepareInstallationEvent) GetSeverity() string {
+func (e *ClusterPrepareInstallationStartedEvent) GetSeverity() string {
     return "info"
 }
-func (e *ClusterPrepareInstallationEvent) GetClusterId() strfmt.UUID {
+func (e *ClusterPrepareInstallationStartedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *ClusterPrepareInstallationEvent) format(message *string) string {
+func (e *ClusterPrepareInstallationStartedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *ClusterPrepareInstallationEvent) FormatMessage() string {
+func (e *ClusterPrepareInstallationStartedEvent) FormatMessage() string {
     s := "Cluster starting to prepare for installation"
     return e.format(&s)
 }
@@ -1565,62 +1565,62 @@ func (e *InstallationPreparingTimedOutEvent) FormatMessage() string {
 }
 
 //
-// Event cluster_degraded_failed_OLM_operators
+// Event cluster_degraded_OLM_operators_failed
 //
-type ClusterDegradedFailedOLMOperatorsEvent struct {
+type ClusterDegradedOLMOperatorsFailedEvent struct {
     ClusterId strfmt.UUID
     FailedOperators string
 }
 
-var ClusterDegradedFailedOLMOperatorsEventName string = "cluster_degraded_failed_OLM_operators"
+var ClusterDegradedOLMOperatorsFailedEventName string = "cluster_degraded_OLM_operators_failed"
 
-func NewClusterDegradedFailedOLMOperatorsEvent(
+func NewClusterDegradedOLMOperatorsFailedEvent(
     clusterId strfmt.UUID,
     failedOperators string,
-) *ClusterDegradedFailedOLMOperatorsEvent {
-    return &ClusterDegradedFailedOLMOperatorsEvent{
+) *ClusterDegradedOLMOperatorsFailedEvent {
+    return &ClusterDegradedOLMOperatorsFailedEvent{
         ClusterId: clusterId,
         FailedOperators: failedOperators,
     }
 }
 
-func SendClusterDegradedFailedOLMOperatorsEvent(
+func SendClusterDegradedOLMOperatorsFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     failedOperators string,) {
-    ev := NewClusterDegradedFailedOLMOperatorsEvent(
+    ev := NewClusterDegradedOLMOperatorsFailedEvent(
         clusterId,
         failedOperators,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendClusterDegradedFailedOLMOperatorsEventAtTime(
+func SendClusterDegradedOLMOperatorsFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     failedOperators string,
     eventTime time.Time) {
-    ev := NewClusterDegradedFailedOLMOperatorsEvent(
+    ev := NewClusterDegradedOLMOperatorsFailedEvent(
         clusterId,
         failedOperators,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *ClusterDegradedFailedOLMOperatorsEvent) GetName() string {
-    return "cluster_degraded_failed_OLM_operators"
+func (e *ClusterDegradedOLMOperatorsFailedEvent) GetName() string {
+    return "cluster_degraded_OLM_operators_failed"
 }
 
-func (e *ClusterDegradedFailedOLMOperatorsEvent) GetSeverity() string {
+func (e *ClusterDegradedOLMOperatorsFailedEvent) GetSeverity() string {
     return "warning"
 }
-func (e *ClusterDegradedFailedOLMOperatorsEvent) GetClusterId() strfmt.UUID {
+func (e *ClusterDegradedOLMOperatorsFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *ClusterDegradedFailedOLMOperatorsEvent) format(message *string) string {
+func (e *ClusterDegradedOLMOperatorsFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{failed_operators}", fmt.Sprint(e.FailedOperators),
@@ -1628,68 +1628,68 @@ func (e *ClusterDegradedFailedOLMOperatorsEvent) format(message *string) string 
     return r.Replace(*message)
 }
 
-func (e *ClusterDegradedFailedOLMOperatorsEvent) FormatMessage() string {
+func (e *ClusterDegradedOLMOperatorsFailedEvent) FormatMessage() string {
     s := "Cluster is installed but degraded due to failed OLM operators {failed_operators}"
     return e.format(&s)
 }
 
 //
-// Event delete_expired_image
+// Event expired_image_deleted
 //
-type DeleteExpiredImageEvent struct {
+type ExpiredImageDeletedEvent struct {
     ClusterId strfmt.UUID
 }
 
-var DeleteExpiredImageEventName string = "delete_expired_image"
+var ExpiredImageDeletedEventName string = "expired_image_deleted"
 
-func NewDeleteExpiredImageEvent(
+func NewExpiredImageDeletedEvent(
     clusterId strfmt.UUID,
-) *DeleteExpiredImageEvent {
-    return &DeleteExpiredImageEvent{
+) *ExpiredImageDeletedEvent {
+    return &ExpiredImageDeletedEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendDeleteExpiredImageEvent(
+func SendExpiredImageDeletedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewDeleteExpiredImageEvent(
+    ev := NewExpiredImageDeletedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendDeleteExpiredImageEventAtTime(
+func SendExpiredImageDeletedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewDeleteExpiredImageEvent(
+    ev := NewExpiredImageDeletedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *DeleteExpiredImageEvent) GetName() string {
-    return "delete_expired_image"
+func (e *ExpiredImageDeletedEvent) GetName() string {
+    return "expired_image_deleted"
 }
 
-func (e *DeleteExpiredImageEvent) GetSeverity() string {
+func (e *ExpiredImageDeletedEvent) GetSeverity() string {
     return "info"
 }
-func (e *DeleteExpiredImageEvent) GetClusterId() strfmt.UUID {
+func (e *ExpiredImageDeletedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *DeleteExpiredImageEvent) format(message *string) string {
+func (e *ExpiredImageDeletedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *DeleteExpiredImageEvent) FormatMessage() string {
+func (e *ExpiredImageDeletedEvent) FormatMessage() string {
     s := "Deleted image from backend because it expired. It may be generated again at any time"
     return e.format(&s)
 }
@@ -1780,88 +1780,88 @@ func (e *ClusterOperatorStatusEvent) FormatMessage() string {
 }
 
 //
-// Event download_image_failed_fetch
+// Event download_image_fetch_failed
 //
-type DownloadImageFailedFetchEvent struct {
+type DownloadImageFetchFailedEvent struct {
     InfraEnvId strfmt.UUID
 }
 
-var DownloadImageFailedFetchEventName string = "download_image_failed_fetch"
+var DownloadImageFetchFailedEventName string = "download_image_fetch_failed"
 
-func NewDownloadImageFailedFetchEvent(
+func NewDownloadImageFetchFailedEvent(
     infraEnvId strfmt.UUID,
-) *DownloadImageFailedFetchEvent {
-    return &DownloadImageFailedFetchEvent{
+) *DownloadImageFetchFailedEvent {
+    return &DownloadImageFetchFailedEvent{
         InfraEnvId: infraEnvId,
     }
 }
 
-func SendDownloadImageFailedFetchEvent(
+func SendDownloadImageFetchFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
-    ev := NewDownloadImageFailedFetchEvent(
+    ev := NewDownloadImageFetchFailedEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEvent(ctx, ev)
 }
 
-func SendDownloadImageFailedFetchEventAtTime(
+func SendDownloadImageFetchFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewDownloadImageFailedFetchEvent(
+    ev := NewDownloadImageFetchFailedEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *DownloadImageFailedFetchEvent) GetName() string {
-    return "download_image_failed_fetch"
+func (e *DownloadImageFetchFailedEvent) GetName() string {
+    return "download_image_fetch_failed"
 }
 
-func (e *DownloadImageFailedFetchEvent) GetSeverity() string {
+func (e *DownloadImageFetchFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *DownloadImageFailedFetchEvent) GetClusterId() *strfmt.UUID {
+func (e *DownloadImageFetchFailedEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *DownloadImageFailedFetchEvent) GetInfraEnvId() strfmt.UUID {
+func (e *DownloadImageFetchFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *DownloadImageFailedFetchEvent) format(message *string) string {
+func (e *DownloadImageFetchFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
     )
     return r.Replace(*message)
 }
 
-func (e *DownloadImageFailedFetchEvent) FormatMessage() string {
+func (e *DownloadImageFetchFailedEvent) FormatMessage() string {
     s := "Failed to download image: error fetching from storage backend"
     return e.format(&s)
 }
 
 //
-// Event host_deregistered_cluster
+// Event host_deregistered
 //
-type HostDeregisteredClusterEvent struct {
+type HostDeregisteredEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
 }
 
-var HostDeregisteredClusterEventName string = "host_deregistered_cluster"
+var HostDeregisteredEventName string = "host_deregistered"
 
-func NewHostDeregisteredClusterEvent(
+func NewHostDeregisteredEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
-) *HostDeregisteredClusterEvent {
-    return &HostDeregisteredClusterEvent{
+) *HostDeregisteredEvent {
+    return &HostDeregisteredEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -1869,14 +1869,14 @@ func NewHostDeregisteredClusterEvent(
     }
 }
 
-func SendHostDeregisteredClusterEvent(
+func SendHostDeregisteredEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
-    ev := NewHostDeregisteredClusterEvent(
+    ev := NewHostDeregisteredEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -1885,7 +1885,7 @@ func SendHostDeregisteredClusterEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostDeregisteredClusterEventAtTime(
+func SendHostDeregisteredEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -1893,7 +1893,7 @@ func SendHostDeregisteredClusterEventAtTime(
     infraEnvId strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewHostDeregisteredClusterEvent(
+    ev := NewHostDeregisteredEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -1902,24 +1902,24 @@ func SendHostDeregisteredClusterEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostDeregisteredClusterEvent) GetName() string {
-    return "host_deregistered_cluster"
+func (e *HostDeregisteredEvent) GetName() string {
+    return "host_deregistered"
 }
 
-func (e *HostDeregisteredClusterEvent) GetSeverity() string {
+func (e *HostDeregisteredEvent) GetSeverity() string {
     return "info"
 }
-func (e *HostDeregisteredClusterEvent) GetClusterId() *strfmt.UUID {
+func (e *HostDeregisteredEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *HostDeregisteredClusterEvent) GetHostId() strfmt.UUID {
+func (e *HostDeregisteredEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostDeregisteredClusterEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostDeregisteredEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostDeregisteredClusterEvent) format(message *string) string {
+func (e *HostDeregisteredEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -1929,7 +1929,7 @@ func (e *HostDeregisteredClusterEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *HostDeregisteredClusterEvent) FormatMessage() string {
+func (e *HostDeregisteredEvent) FormatMessage() string {
     s := "Host {host_name} deregistered"
     return e.format(&s)
 }
@@ -2026,24 +2026,24 @@ func (e *HostInstallerArgsAppliedEvent) FormatMessage() string {
 }
 
 //
-// Event host_set_bootstrap
+// Event host_bootstrap_set
 //
-type HostSetBootstrapEvent struct {
+type HostBootstrapSetEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
 }
 
-var HostSetBootstrapEventName string = "host_set_bootstrap"
+var HostBootstrapSetEventName string = "host_bootstrap_set"
 
-func NewHostSetBootstrapEvent(
+func NewHostBootstrapSetEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
-) *HostSetBootstrapEvent {
-    return &HostSetBootstrapEvent{
+) *HostBootstrapSetEvent {
+    return &HostBootstrapSetEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -2051,14 +2051,14 @@ func NewHostSetBootstrapEvent(
     }
 }
 
-func SendHostSetBootstrapEvent(
+func SendHostBootstrapSetEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
-    ev := NewHostSetBootstrapEvent(
+    ev := NewHostBootstrapSetEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -2067,7 +2067,7 @@ func SendHostSetBootstrapEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostSetBootstrapEventAtTime(
+func SendHostBootstrapSetEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -2075,7 +2075,7 @@ func SendHostSetBootstrapEventAtTime(
     infraEnvId strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewHostSetBootstrapEvent(
+    ev := NewHostBootstrapSetEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -2084,24 +2084,24 @@ func SendHostSetBootstrapEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostSetBootstrapEvent) GetName() string {
-    return "host_set_bootstrap"
+func (e *HostBootstrapSetEvent) GetName() string {
+    return "host_bootstrap_set"
 }
 
-func (e *HostSetBootstrapEvent) GetSeverity() string {
+func (e *HostBootstrapSetEvent) GetSeverity() string {
     return "info"
 }
-func (e *HostSetBootstrapEvent) GetClusterId() *strfmt.UUID {
+func (e *HostBootstrapSetEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *HostSetBootstrapEvent) GetHostId() strfmt.UUID {
+func (e *HostBootstrapSetEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostSetBootstrapEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostBootstrapSetEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostSetBootstrapEvent) format(message *string) string {
+func (e *HostBootstrapSetEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -2111,7 +2111,7 @@ func (e *HostSetBootstrapEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *HostSetBootstrapEvent) FormatMessage() string {
+func (e *HostBootstrapSetEvent) FormatMessage() string {
     s := "Host {host_name}: set as bootstrap"
     return e.format(&s)
 }
@@ -2232,24 +2232,24 @@ func (e *HostStatusUpdatedEvent) FormatMessage() string {
 }
 
 //
-// Event update_host_role
+// Event host_role_updated
 //
-type UpdateHostRoleEvent struct {
+type HostRoleUpdatedEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
     SuggestedRole string
 }
 
-var UpdateHostRoleEventName string = "update_host_role"
+var HostRoleUpdatedEventName string = "host_role_updated"
 
-func NewUpdateHostRoleEvent(
+func NewHostRoleUpdatedEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     suggestedRole string,
-) *UpdateHostRoleEvent {
-    return &UpdateHostRoleEvent{
+) *HostRoleUpdatedEvent {
+    return &HostRoleUpdatedEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
         HostName: hostName,
@@ -2257,14 +2257,14 @@ func NewUpdateHostRoleEvent(
     }
 }
 
-func SendUpdateHostRoleEvent(
+func SendHostRoleUpdatedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     suggestedRole string,) {
-    ev := NewUpdateHostRoleEvent(
+    ev := NewHostRoleUpdatedEvent(
         hostId,
         infraEnvId,
         hostName,
@@ -2273,7 +2273,7 @@ func SendUpdateHostRoleEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendUpdateHostRoleEventAtTime(
+func SendHostRoleUpdatedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
@@ -2281,7 +2281,7 @@ func SendUpdateHostRoleEventAtTime(
     hostName string,
     suggestedRole string,
     eventTime time.Time) {
-    ev := NewUpdateHostRoleEvent(
+    ev := NewHostRoleUpdatedEvent(
         hostId,
         infraEnvId,
         hostName,
@@ -2290,24 +2290,24 @@ func SendUpdateHostRoleEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *UpdateHostRoleEvent) GetName() string {
-    return "update_host_role"
+func (e *HostRoleUpdatedEvent) GetName() string {
+    return "host_role_updated"
 }
 
-func (e *UpdateHostRoleEvent) GetSeverity() string {
+func (e *HostRoleUpdatedEvent) GetSeverity() string {
     return "info"
 }
-func (e *UpdateHostRoleEvent) GetClusterId() *strfmt.UUID {
+func (e *HostRoleUpdatedEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *UpdateHostRoleEvent) GetHostId() strfmt.UUID {
+func (e *HostRoleUpdatedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *UpdateHostRoleEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostRoleUpdatedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *UpdateHostRoleEvent) format(message *string) string {
+func (e *HostRoleUpdatedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
@@ -2317,15 +2317,15 @@ func (e *UpdateHostRoleEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *UpdateHostRoleEvent) FormatMessage() string {
+func (e *HostRoleUpdatedEvent) FormatMessage() string {
     s := "Host {host_name}: calculated role is {suggested_role}"
     return e.format(&s)
 }
 
 //
-// Event update_image_status
+// Event image_status_updated
 //
-type UpdateImageStatusEvent struct {
+type ImageStatusUpdatedEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
@@ -2335,9 +2335,9 @@ type UpdateImageStatusEvent struct {
     Info string
 }
 
-var UpdateImageStatusEventName string = "update_image_status"
+var ImageStatusUpdatedEventName string = "image_status_updated"
 
-func NewUpdateImageStatusEvent(
+func NewImageStatusUpdatedEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
@@ -2345,8 +2345,8 @@ func NewUpdateImageStatusEvent(
     imageStatus string,
     result string,
     info string,
-) *UpdateImageStatusEvent {
-    return &UpdateImageStatusEvent{
+) *ImageStatusUpdatedEvent {
+    return &ImageStatusUpdatedEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -2357,7 +2357,7 @@ func NewUpdateImageStatusEvent(
     }
 }
 
-func SendUpdateImageStatusEvent(
+func SendImageStatusUpdatedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -2367,7 +2367,7 @@ func SendUpdateImageStatusEvent(
     imageStatus string,
     result string,
     info string,) {
-    ev := NewUpdateImageStatusEvent(
+    ev := NewImageStatusUpdatedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -2379,7 +2379,7 @@ func SendUpdateImageStatusEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendUpdateImageStatusEventAtTime(
+func SendImageStatusUpdatedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -2390,7 +2390,7 @@ func SendUpdateImageStatusEventAtTime(
     result string,
     info string,
     eventTime time.Time) {
-    ev := NewUpdateImageStatusEvent(
+    ev := NewImageStatusUpdatedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -2402,24 +2402,24 @@ func SendUpdateImageStatusEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *UpdateImageStatusEvent) GetName() string {
-    return "update_image_status"
+func (e *ImageStatusUpdatedEvent) GetName() string {
+    return "image_status_updated"
 }
 
-func (e *UpdateImageStatusEvent) GetSeverity() string {
+func (e *ImageStatusUpdatedEvent) GetSeverity() string {
     return "info"
 }
-func (e *UpdateImageStatusEvent) GetClusterId() *strfmt.UUID {
+func (e *ImageStatusUpdatedEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *UpdateImageStatusEvent) GetHostId() strfmt.UUID {
+func (e *ImageStatusUpdatedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *UpdateImageStatusEvent) GetInfraEnvId() strfmt.UUID {
+func (e *ImageStatusUpdatedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *UpdateImageStatusEvent) format(message *string) string {
+func (e *ImageStatusUpdatedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -2432,7 +2432,7 @@ func (e *UpdateImageStatusEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *UpdateImageStatusEvent) FormatMessage() string {
+func (e *ImageStatusUpdatedEvent) FormatMessage() string {
     s := "Host {host_name}: New image status {image_status}. result: {result}. {info}"
     return e.format(&s)
 }
@@ -2719,24 +2719,24 @@ func (e *HostCancelInstallationFailedEvent) FormatMessage() string {
 }
 
 //
-// Event host_reset_installation
+// Event host_installation_reset
 //
-type HostResetInstallationEvent struct {
+type HostInstallationResetEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
 }
 
-var HostResetInstallationEventName string = "host_reset_installation"
+var HostInstallationResetEventName string = "host_installation_reset"
 
-func NewHostResetInstallationEvent(
+func NewHostInstallationResetEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
-) *HostResetInstallationEvent {
-    return &HostResetInstallationEvent{
+) *HostInstallationResetEvent {
+    return &HostInstallationResetEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -2744,14 +2744,14 @@ func NewHostResetInstallationEvent(
     }
 }
 
-func SendHostResetInstallationEvent(
+func SendHostInstallationResetEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
-    ev := NewHostResetInstallationEvent(
+    ev := NewHostInstallationResetEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -2760,7 +2760,7 @@ func SendHostResetInstallationEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostResetInstallationEventAtTime(
+func SendHostInstallationResetEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -2768,7 +2768,7 @@ func SendHostResetInstallationEventAtTime(
     infraEnvId strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewHostResetInstallationEvent(
+    ev := NewHostInstallationResetEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -2777,24 +2777,24 @@ func SendHostResetInstallationEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostResetInstallationEvent) GetName() string {
-    return "host_reset_installation"
+func (e *HostInstallationResetEvent) GetName() string {
+    return "host_installation_reset"
 }
 
-func (e *HostResetInstallationEvent) GetSeverity() string {
+func (e *HostInstallationResetEvent) GetSeverity() string {
     return "info"
 }
-func (e *HostResetInstallationEvent) GetClusterId() *strfmt.UUID {
+func (e *HostInstallationResetEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *HostResetInstallationEvent) GetHostId() strfmt.UUID {
+func (e *HostInstallationResetEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostResetInstallationEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostInstallationResetEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostResetInstallationEvent) format(message *string) string {
+func (e *HostInstallationResetEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -2804,15 +2804,15 @@ func (e *HostResetInstallationEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *HostResetInstallationEvent) FormatMessage() string {
+func (e *HostInstallationResetEvent) FormatMessage() string {
     s := "Installation reset for host {host_name}"
     return e.format(&s)
 }
 
 //
-// Event host_reset_installation_failed
+// Event host_installation_reset_failed
 //
-type HostResetInstallationFailedEvent struct {
+type HostInstallationResetFailedEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
@@ -2820,16 +2820,16 @@ type HostResetInstallationFailedEvent struct {
     Error string
 }
 
-var HostResetInstallationFailedEventName string = "host_reset_installation_failed"
+var HostInstallationResetFailedEventName string = "host_installation_reset_failed"
 
-func NewHostResetInstallationFailedEvent(
+func NewHostInstallationResetFailedEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     error string,
-) *HostResetInstallationFailedEvent {
-    return &HostResetInstallationFailedEvent{
+) *HostInstallationResetFailedEvent {
+    return &HostInstallationResetFailedEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -2838,7 +2838,7 @@ func NewHostResetInstallationFailedEvent(
     }
 }
 
-func SendHostResetInstallationFailedEvent(
+func SendHostInstallationResetFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -2846,7 +2846,7 @@ func SendHostResetInstallationFailedEvent(
     infraEnvId strfmt.UUID,
     hostName string,
     error string,) {
-    ev := NewHostResetInstallationFailedEvent(
+    ev := NewHostInstallationResetFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -2856,7 +2856,7 @@ func SendHostResetInstallationFailedEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostResetInstallationFailedEventAtTime(
+func SendHostInstallationResetFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -2865,7 +2865,7 @@ func SendHostResetInstallationFailedEventAtTime(
     hostName string,
     error string,
     eventTime time.Time) {
-    ev := NewHostResetInstallationFailedEvent(
+    ev := NewHostInstallationResetFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -2875,24 +2875,24 @@ func SendHostResetInstallationFailedEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostResetInstallationFailedEvent) GetName() string {
-    return "host_reset_installation_failed"
+func (e *HostInstallationResetFailedEvent) GetName() string {
+    return "host_installation_reset_failed"
 }
 
-func (e *HostResetInstallationFailedEvent) GetSeverity() string {
+func (e *HostInstallationResetFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *HostResetInstallationFailedEvent) GetClusterId() *strfmt.UUID {
+func (e *HostInstallationResetFailedEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *HostResetInstallationFailedEvent) GetHostId() strfmt.UUID {
+func (e *HostInstallationResetFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostResetInstallationFailedEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostInstallationResetFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostResetInstallationFailedEvent) format(message *string) string {
+func (e *HostInstallationResetFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -2903,7 +2903,7 @@ func (e *HostResetInstallationFailedEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *HostResetInstallationFailedEvent) FormatMessage() string {
+func (e *HostInstallationResetFailedEvent) FormatMessage() string {
     s := "Failed to reset installation of host {host_name}. Error: {error}"
     return e.format(&s)
 }
@@ -3099,9 +3099,9 @@ func (e *HostSetStatusFailedEvent) FormatMessage() string {
 }
 
 //
-// Event host_validation_falling
+// Event host_validation_failed
 //
-type HostValidationFallingEvent struct {
+type HostValidationFailedEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
@@ -3109,16 +3109,16 @@ type HostValidationFallingEvent struct {
     ValidationId string
 }
 
-var HostValidationFallingEventName string = "host_validation_falling"
+var HostValidationFailedEventName string = "host_validation_failed"
 
-func NewHostValidationFallingEvent(
+func NewHostValidationFailedEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     validationId string,
-) *HostValidationFallingEvent {
-    return &HostValidationFallingEvent{
+) *HostValidationFailedEvent {
+    return &HostValidationFailedEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -3127,7 +3127,7 @@ func NewHostValidationFallingEvent(
     }
 }
 
-func SendHostValidationFallingEvent(
+func SendHostValidationFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -3135,7 +3135,7 @@ func SendHostValidationFallingEvent(
     infraEnvId strfmt.UUID,
     hostName string,
     validationId string,) {
-    ev := NewHostValidationFallingEvent(
+    ev := NewHostValidationFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -3145,7 +3145,7 @@ func SendHostValidationFallingEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostValidationFallingEventAtTime(
+func SendHostValidationFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -3154,7 +3154,7 @@ func SendHostValidationFallingEventAtTime(
     hostName string,
     validationId string,
     eventTime time.Time) {
-    ev := NewHostValidationFallingEvent(
+    ev := NewHostValidationFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -3164,24 +3164,24 @@ func SendHostValidationFallingEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostValidationFallingEvent) GetName() string {
-    return "host_validation_falling"
+func (e *HostValidationFailedEvent) GetName() string {
+    return "host_validation_failed"
 }
 
-func (e *HostValidationFallingEvent) GetSeverity() string {
+func (e *HostValidationFailedEvent) GetSeverity() string {
     return "warning"
 }
-func (e *HostValidationFallingEvent) GetClusterId() *strfmt.UUID {
+func (e *HostValidationFailedEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *HostValidationFallingEvent) GetHostId() strfmt.UUID {
+func (e *HostValidationFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostValidationFallingEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostValidationFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostValidationFallingEvent) format(message *string) string {
+func (e *HostValidationFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -3192,7 +3192,7 @@ func (e *HostValidationFallingEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *HostValidationFallingEvent) FormatMessage() string {
+func (e *HostValidationFailedEvent) FormatMessage() string {
     s := "Host {host_name}: validation '{validation_id}' that used to succeed is now failing"
     return e.format(&s)
 }
@@ -3297,9 +3297,9 @@ func (e *HostValidationFixedEvent) FormatMessage() string {
 }
 
 //
-// Event quick_disk_format
+// Event quick_disk_format_performed
 //
-type QuickDiskFormatEvent struct {
+type QuickDiskFormatPerformedEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
@@ -3308,17 +3308,17 @@ type QuickDiskFormatEvent struct {
     DiskId string
 }
 
-var QuickDiskFormatEventName string = "quick_disk_format"
+var QuickDiskFormatPerformedEventName string = "quick_disk_format_performed"
 
-func NewQuickDiskFormatEvent(
+func NewQuickDiskFormatPerformedEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     diskName string,
     diskId string,
-) *QuickDiskFormatEvent {
-    return &QuickDiskFormatEvent{
+) *QuickDiskFormatPerformedEvent {
+    return &QuickDiskFormatPerformedEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -3328,7 +3328,7 @@ func NewQuickDiskFormatEvent(
     }
 }
 
-func SendQuickDiskFormatEvent(
+func SendQuickDiskFormatPerformedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -3337,7 +3337,7 @@ func SendQuickDiskFormatEvent(
     hostName string,
     diskName string,
     diskId string,) {
-    ev := NewQuickDiskFormatEvent(
+    ev := NewQuickDiskFormatPerformedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -3348,7 +3348,7 @@ func SendQuickDiskFormatEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendQuickDiskFormatEventAtTime(
+func SendQuickDiskFormatPerformedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -3358,7 +3358,7 @@ func SendQuickDiskFormatEventAtTime(
     diskName string,
     diskId string,
     eventTime time.Time) {
-    ev := NewQuickDiskFormatEvent(
+    ev := NewQuickDiskFormatPerformedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -3369,24 +3369,24 @@ func SendQuickDiskFormatEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *QuickDiskFormatEvent) GetName() string {
-    return "quick_disk_format"
+func (e *QuickDiskFormatPerformedEvent) GetName() string {
+    return "quick_disk_format_performed"
 }
 
-func (e *QuickDiskFormatEvent) GetSeverity() string {
+func (e *QuickDiskFormatPerformedEvent) GetSeverity() string {
     return "info"
 }
-func (e *QuickDiskFormatEvent) GetClusterId() *strfmt.UUID {
+func (e *QuickDiskFormatPerformedEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *QuickDiskFormatEvent) GetHostId() strfmt.UUID {
+func (e *QuickDiskFormatPerformedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *QuickDiskFormatEvent) GetInfraEnvId() strfmt.UUID {
+func (e *QuickDiskFormatPerformedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *QuickDiskFormatEvent) format(message *string) string {
+func (e *QuickDiskFormatPerformedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -3398,7 +3398,7 @@ func (e *QuickDiskFormatEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *QuickDiskFormatEvent) FormatMessage() string {
+func (e *QuickDiskFormatPerformedEvent) FormatMessage() string {
     s := "{host_name}: Performing quick format of disk {disk_name}({disk_id})"
     return e.format(&s)
 }
@@ -3476,65 +3476,65 @@ func (e *InfraEnvRegistrationFailedEvent) FormatMessage() string {
 }
 
 //
-// Event registered_infra_env
+// Event infra_env_registered
 //
-type RegisteredInfraEnvEvent struct {
+type InfraEnvRegisteredEvent struct {
     InfraEnvId strfmt.UUID
 }
 
-var RegisteredInfraEnvEventName string = "registered_infra_env"
+var InfraEnvRegisteredEventName string = "infra_env_registered"
 
-func NewRegisteredInfraEnvEvent(
+func NewInfraEnvRegisteredEvent(
     infraEnvId strfmt.UUID,
-) *RegisteredInfraEnvEvent {
-    return &RegisteredInfraEnvEvent{
+) *InfraEnvRegisteredEvent {
+    return &InfraEnvRegisteredEvent{
         InfraEnvId: infraEnvId,
     }
 }
 
-func SendRegisteredInfraEnvEvent(
+func SendInfraEnvRegisteredEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
-    ev := NewRegisteredInfraEnvEvent(
+    ev := NewInfraEnvRegisteredEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEvent(ctx, ev)
 }
 
-func SendRegisteredInfraEnvEventAtTime(
+func SendInfraEnvRegisteredEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewRegisteredInfraEnvEvent(
+    ev := NewInfraEnvRegisteredEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *RegisteredInfraEnvEvent) GetName() string {
-    return "registered_infra_env"
+func (e *InfraEnvRegisteredEvent) GetName() string {
+    return "infra_env_registered"
 }
 
-func (e *RegisteredInfraEnvEvent) GetSeverity() string {
+func (e *InfraEnvRegisteredEvent) GetSeverity() string {
     return "info"
 }
-func (e *RegisteredInfraEnvEvent) GetClusterId() *strfmt.UUID {
+func (e *InfraEnvRegisteredEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *RegisteredInfraEnvEvent) GetInfraEnvId() strfmt.UUID {
+func (e *InfraEnvRegisteredEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *RegisteredInfraEnvEvent) format(message *string) string {
+func (e *InfraEnvRegisteredEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
     )
     return r.Replace(*message)
 }
 
-func (e *RegisteredInfraEnvEvent) FormatMessage() string {
+func (e *InfraEnvRegisteredEvent) FormatMessage() string {
     s := "Registered infra env"
     return e.format(&s)
 }
@@ -3612,65 +3612,65 @@ func (e *InfraEnvDeregisterFailedEvent) FormatMessage() string {
 }
 
 //
-// Event deregistered_infra_env
+// Event infra_env_deregistered
 //
-type DeregisteredInfraEnvEvent struct {
+type InfraEnvDeregisteredEvent struct {
     InfraEnvId strfmt.UUID
 }
 
-var DeregisteredInfraEnvEventName string = "deregistered_infra_env"
+var InfraEnvDeregisteredEventName string = "infra_env_deregistered"
 
-func NewDeregisteredInfraEnvEvent(
+func NewInfraEnvDeregisteredEvent(
     infraEnvId strfmt.UUID,
-) *DeregisteredInfraEnvEvent {
-    return &DeregisteredInfraEnvEvent{
+) *InfraEnvDeregisteredEvent {
+    return &InfraEnvDeregisteredEvent{
         InfraEnvId: infraEnvId,
     }
 }
 
-func SendDeregisteredInfraEnvEvent(
+func SendInfraEnvDeregisteredEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
-    ev := NewDeregisteredInfraEnvEvent(
+    ev := NewInfraEnvDeregisteredEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEvent(ctx, ev)
 }
 
-func SendDeregisteredInfraEnvEventAtTime(
+func SendInfraEnvDeregisteredEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewDeregisteredInfraEnvEvent(
+    ev := NewInfraEnvDeregisteredEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *DeregisteredInfraEnvEvent) GetName() string {
-    return "deregistered_infra_env"
+func (e *InfraEnvDeregisteredEvent) GetName() string {
+    return "infra_env_deregistered"
 }
 
-func (e *DeregisteredInfraEnvEvent) GetSeverity() string {
+func (e *InfraEnvDeregisteredEvent) GetSeverity() string {
     return "info"
 }
-func (e *DeregisteredInfraEnvEvent) GetClusterId() *strfmt.UUID {
+func (e *InfraEnvDeregisteredEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *DeregisteredInfraEnvEvent) GetInfraEnvId() strfmt.UUID {
+func (e *InfraEnvDeregisteredEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *DeregisteredInfraEnvEvent) format(message *string) string {
+func (e *InfraEnvDeregisteredEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
     )
     return r.Replace(*message)
 }
 
-func (e *DeregisteredInfraEnvEvent) FormatMessage() string {
+func (e *InfraEnvDeregisteredEvent) FormatMessage() string {
     s := "Deregistered infra env"
     return e.format(&s)
 }
@@ -3737,126 +3737,126 @@ func (e *DiscoveryIgnitionConfigAppliedEvent) FormatMessage() string {
 }
 
 //
-// Event image_deleted_after_ignition_update
+// Event ignition_updated_therefore_image_deleted
 //
-type ImageDeletedAfterIgnitionUpdateEvent struct {
+type IgnitionUpdatedThereforeImageDeletedEvent struct {
     ClusterId strfmt.UUID
 }
 
-var ImageDeletedAfterIgnitionUpdateEventName string = "image_deleted_after_ignition_update"
+var IgnitionUpdatedThereforeImageDeletedEventName string = "ignition_updated_therefore_image_deleted"
 
-func NewImageDeletedAfterIgnitionUpdateEvent(
+func NewIgnitionUpdatedThereforeImageDeletedEvent(
     clusterId strfmt.UUID,
-) *ImageDeletedAfterIgnitionUpdateEvent {
-    return &ImageDeletedAfterIgnitionUpdateEvent{
+) *IgnitionUpdatedThereforeImageDeletedEvent {
+    return &IgnitionUpdatedThereforeImageDeletedEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendImageDeletedAfterIgnitionUpdateEvent(
+func SendIgnitionUpdatedThereforeImageDeletedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewImageDeletedAfterIgnitionUpdateEvent(
+    ev := NewIgnitionUpdatedThereforeImageDeletedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendImageDeletedAfterIgnitionUpdateEventAtTime(
+func SendIgnitionUpdatedThereforeImageDeletedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewImageDeletedAfterIgnitionUpdateEvent(
+    ev := NewIgnitionUpdatedThereforeImageDeletedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *ImageDeletedAfterIgnitionUpdateEvent) GetName() string {
-    return "image_deleted_after_ignition_update"
+func (e *IgnitionUpdatedThereforeImageDeletedEvent) GetName() string {
+    return "ignition_updated_therefore_image_deleted"
 }
 
-func (e *ImageDeletedAfterIgnitionUpdateEvent) GetSeverity() string {
+func (e *IgnitionUpdatedThereforeImageDeletedEvent) GetSeverity() string {
     return "info"
 }
-func (e *ImageDeletedAfterIgnitionUpdateEvent) GetClusterId() strfmt.UUID {
+func (e *IgnitionUpdatedThereforeImageDeletedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *ImageDeletedAfterIgnitionUpdateEvent) format(message *string) string {
+func (e *IgnitionUpdatedThereforeImageDeletedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *ImageDeletedAfterIgnitionUpdateEvent) FormatMessage() string {
+func (e *IgnitionUpdatedThereforeImageDeletedEvent) FormatMessage() string {
     s := "Deleted image from backend because its ignition was updated. The image may be regenerated at any time"
     return e.format(&s)
 }
 
 //
-// Event download_image_failed_not_found
+// Event download_image_find_failed
 //
-type DownloadImageFailedNotFoundEvent struct {
+type DownloadImageFindFailedEvent struct {
     InfraEnvId strfmt.UUID
 }
 
-var DownloadImageFailedNotFoundEventName string = "download_image_failed_not_found"
+var DownloadImageFindFailedEventName string = "download_image_find_failed"
 
-func NewDownloadImageFailedNotFoundEvent(
+func NewDownloadImageFindFailedEvent(
     infraEnvId strfmt.UUID,
-) *DownloadImageFailedNotFoundEvent {
-    return &DownloadImageFailedNotFoundEvent{
+) *DownloadImageFindFailedEvent {
+    return &DownloadImageFindFailedEvent{
         InfraEnvId: infraEnvId,
     }
 }
 
-func SendDownloadImageFailedNotFoundEvent(
+func SendDownloadImageFindFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
-    ev := NewDownloadImageFailedNotFoundEvent(
+    ev := NewDownloadImageFindFailedEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEvent(ctx, ev)
 }
 
-func SendDownloadImageFailedNotFoundEventAtTime(
+func SendDownloadImageFindFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewDownloadImageFailedNotFoundEvent(
+    ev := NewDownloadImageFindFailedEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *DownloadImageFailedNotFoundEvent) GetName() string {
-    return "download_image_failed_not_found"
+func (e *DownloadImageFindFailedEvent) GetName() string {
+    return "download_image_find_failed"
 }
 
-func (e *DownloadImageFailedNotFoundEvent) GetSeverity() string {
+func (e *DownloadImageFindFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *DownloadImageFailedNotFoundEvent) GetClusterId() *strfmt.UUID {
+func (e *DownloadImageFindFailedEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *DownloadImageFailedNotFoundEvent) GetInfraEnvId() strfmt.UUID {
+func (e *DownloadImageFindFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *DownloadImageFailedNotFoundEvent) format(message *string) string {
+func (e *DownloadImageFindFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
     )
     return r.Replace(*message)
 }
 
-func (e *DownloadImageFailedNotFoundEvent) FormatMessage() string {
+func (e *DownloadImageFindFailedEvent) FormatMessage() string {
     s := "Failed to download image: the image was not found (perhaps it expired) - please generate the image and try again"
     return e.format(&s)
 }
@@ -3934,309 +3934,309 @@ func (e *DownloadImageStartedEvent) FormatMessage() string {
 }
 
 //
-// Event generate_image_failed_start
+// Event generate_image_start_failed
 //
-type GenerateImageFailedStartEvent struct {
+type GenerateImageStartFailedEvent struct {
     ClusterId strfmt.UUID
 }
 
-var GenerateImageFailedStartEventName string = "generate_image_failed_start"
+var GenerateImageStartFailedEventName string = "generate_image_start_failed"
 
-func NewGenerateImageFailedStartEvent(
+func NewGenerateImageStartFailedEvent(
     clusterId strfmt.UUID,
-) *GenerateImageFailedStartEvent {
-    return &GenerateImageFailedStartEvent{
+) *GenerateImageStartFailedEvent {
+    return &GenerateImageStartFailedEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendGenerateImageFailedStartEvent(
+func SendGenerateImageStartFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewGenerateImageFailedStartEvent(
+    ev := NewGenerateImageStartFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendGenerateImageFailedStartEventAtTime(
+func SendGenerateImageStartFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewGenerateImageFailedStartEvent(
+    ev := NewGenerateImageStartFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *GenerateImageFailedStartEvent) GetName() string {
-    return "generate_image_failed_start"
+func (e *GenerateImageStartFailedEvent) GetName() string {
+    return "generate_image_start_failed"
 }
 
-func (e *GenerateImageFailedStartEvent) GetSeverity() string {
+func (e *GenerateImageStartFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *GenerateImageFailedStartEvent) GetClusterId() strfmt.UUID {
+func (e *GenerateImageStartFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *GenerateImageFailedStartEvent) format(message *string) string {
+func (e *GenerateImageStartFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *GenerateImageFailedStartEvent) FormatMessage() string {
+func (e *GenerateImageStartFailedEvent) FormatMessage() string {
     s := "Failed to generate image: error starting DB transaction"
     return e.format(&s)
 }
 
 //
-// Event generate_image_failed_contact_storage_backend
+// Event generate_image_contact_storage_backend_failed
 //
-type GenerateImageFailedContactStorageBackendEvent struct {
+type GenerateImageContactStorageBackendFailedEvent struct {
     ClusterId strfmt.UUID
 }
 
-var GenerateImageFailedContactStorageBackendEventName string = "generate_image_failed_contact_storage_backend"
+var GenerateImageContactStorageBackendFailedEventName string = "generate_image_contact_storage_backend_failed"
 
-func NewGenerateImageFailedContactStorageBackendEvent(
+func NewGenerateImageContactStorageBackendFailedEvent(
     clusterId strfmt.UUID,
-) *GenerateImageFailedContactStorageBackendEvent {
-    return &GenerateImageFailedContactStorageBackendEvent{
+) *GenerateImageContactStorageBackendFailedEvent {
+    return &GenerateImageContactStorageBackendFailedEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendGenerateImageFailedContactStorageBackendEvent(
+func SendGenerateImageContactStorageBackendFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewGenerateImageFailedContactStorageBackendEvent(
+    ev := NewGenerateImageContactStorageBackendFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendGenerateImageFailedContactStorageBackendEventAtTime(
+func SendGenerateImageContactStorageBackendFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewGenerateImageFailedContactStorageBackendEvent(
+    ev := NewGenerateImageContactStorageBackendFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *GenerateImageFailedContactStorageBackendEvent) GetName() string {
-    return "generate_image_failed_contact_storage_backend"
+func (e *GenerateImageContactStorageBackendFailedEvent) GetName() string {
+    return "generate_image_contact_storage_backend_failed"
 }
 
-func (e *GenerateImageFailedContactStorageBackendEvent) GetSeverity() string {
+func (e *GenerateImageContactStorageBackendFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *GenerateImageFailedContactStorageBackendEvent) GetClusterId() strfmt.UUID {
+func (e *GenerateImageContactStorageBackendFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *GenerateImageFailedContactStorageBackendEvent) format(message *string) string {
+func (e *GenerateImageContactStorageBackendFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *GenerateImageFailedContactStorageBackendEvent) FormatMessage() string {
+func (e *GenerateImageContactStorageBackendFailedEvent) FormatMessage() string {
     s := "Failed to generate image: error contacting storage backend"
     return e.format(&s)
 }
 
 //
-// Event generate_image_failed_update_metadata
+// Event generate_image_update_metadata_failed
 //
-type GenerateImageFailedUpdateMetadataEvent struct {
+type GenerateImageUpdateMetadataFailedEvent struct {
     ClusterId strfmt.UUID
 }
 
-var GenerateImageFailedUpdateMetadataEventName string = "generate_image_failed_update_metadata"
+var GenerateImageUpdateMetadataFailedEventName string = "generate_image_update_metadata_failed"
 
-func NewGenerateImageFailedUpdateMetadataEvent(
+func NewGenerateImageUpdateMetadataFailedEvent(
     clusterId strfmt.UUID,
-) *GenerateImageFailedUpdateMetadataEvent {
-    return &GenerateImageFailedUpdateMetadataEvent{
+) *GenerateImageUpdateMetadataFailedEvent {
+    return &GenerateImageUpdateMetadataFailedEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendGenerateImageFailedUpdateMetadataEvent(
+func SendGenerateImageUpdateMetadataFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewGenerateImageFailedUpdateMetadataEvent(
+    ev := NewGenerateImageUpdateMetadataFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendGenerateImageFailedUpdateMetadataEventAtTime(
+func SendGenerateImageUpdateMetadataFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewGenerateImageFailedUpdateMetadataEvent(
+    ev := NewGenerateImageUpdateMetadataFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *GenerateImageFailedUpdateMetadataEvent) GetName() string {
-    return "generate_image_failed_update_metadata"
+func (e *GenerateImageUpdateMetadataFailedEvent) GetName() string {
+    return "generate_image_update_metadata_failed"
 }
 
-func (e *GenerateImageFailedUpdateMetadataEvent) GetSeverity() string {
+func (e *GenerateImageUpdateMetadataFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *GenerateImageFailedUpdateMetadataEvent) GetClusterId() strfmt.UUID {
+func (e *GenerateImageUpdateMetadataFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *GenerateImageFailedUpdateMetadataEvent) format(message *string) string {
+func (e *GenerateImageUpdateMetadataFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *GenerateImageFailedUpdateMetadataEvent) FormatMessage() string {
+func (e *GenerateImageUpdateMetadataFailedEvent) FormatMessage() string {
     s := "Failed to generate image: error updating metadata"
     return e.format(&s)
 }
 
 //
-// Event generate_image_failed_commit_transaction
+// Event generate_image_commit_transaction_failed
 //
-type GenerateImageFailedCommitTransactionEvent struct {
+type GenerateImageCommitTransactionFailedEvent struct {
     ClusterId strfmt.UUID
 }
 
-var GenerateImageFailedCommitTransactionEventName string = "generate_image_failed_commit_transaction"
+var GenerateImageCommitTransactionFailedEventName string = "generate_image_commit_transaction_failed"
 
-func NewGenerateImageFailedCommitTransactionEvent(
+func NewGenerateImageCommitTransactionFailedEvent(
     clusterId strfmt.UUID,
-) *GenerateImageFailedCommitTransactionEvent {
-    return &GenerateImageFailedCommitTransactionEvent{
+) *GenerateImageCommitTransactionFailedEvent {
+    return &GenerateImageCommitTransactionFailedEvent{
         ClusterId: clusterId,
     }
 }
 
-func SendGenerateImageFailedCommitTransactionEvent(
+func SendGenerateImageCommitTransactionFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,) {
-    ev := NewGenerateImageFailedCommitTransactionEvent(
+    ev := NewGenerateImageCommitTransactionFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendGenerateImageFailedCommitTransactionEventAtTime(
+func SendGenerateImageCommitTransactionFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewGenerateImageFailedCommitTransactionEvent(
+    ev := NewGenerateImageCommitTransactionFailedEvent(
         clusterId,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *GenerateImageFailedCommitTransactionEvent) GetName() string {
-    return "generate_image_failed_commit_transaction"
+func (e *GenerateImageCommitTransactionFailedEvent) GetName() string {
+    return "generate_image_commit_transaction_failed"
 }
 
-func (e *GenerateImageFailedCommitTransactionEvent) GetSeverity() string {
+func (e *GenerateImageCommitTransactionFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *GenerateImageFailedCommitTransactionEvent) GetClusterId() strfmt.UUID {
+func (e *GenerateImageCommitTransactionFailedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *GenerateImageFailedCommitTransactionEvent) format(message *string) string {
+func (e *GenerateImageCommitTransactionFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
 
-func (e *GenerateImageFailedCommitTransactionEvent) FormatMessage() string {
+func (e *GenerateImageCommitTransactionFailedEvent) FormatMessage() string {
     s := "Failed to generate image: error committing the transaction"
     return e.format(&s)
 }
 
 //
-// Event generate_image_failed_fetch
+// Event generate_image_fetch_failed
 //
-type GenerateImageFailedFetchEvent struct {
+type GenerateImageFetchFailedEvent struct {
     InfraEnvId strfmt.UUID
 }
 
-var GenerateImageFailedFetchEventName string = "generate_image_failed_fetch"
+var GenerateImageFetchFailedEventName string = "generate_image_fetch_failed"
 
-func NewGenerateImageFailedFetchEvent(
+func NewGenerateImageFetchFailedEvent(
     infraEnvId strfmt.UUID,
-) *GenerateImageFailedFetchEvent {
-    return &GenerateImageFailedFetchEvent{
+) *GenerateImageFetchFailedEvent {
+    return &GenerateImageFetchFailedEvent{
         InfraEnvId: infraEnvId,
     }
 }
 
-func SendGenerateImageFailedFetchEvent(
+func SendGenerateImageFetchFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
-    ev := NewGenerateImageFailedFetchEvent(
+    ev := NewGenerateImageFetchFailedEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEvent(ctx, ev)
 }
 
-func SendGenerateImageFailedFetchEventAtTime(
+func SendGenerateImageFetchFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewGenerateImageFailedFetchEvent(
+    ev := NewGenerateImageFetchFailedEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *GenerateImageFailedFetchEvent) GetName() string {
-    return "generate_image_failed_fetch"
+func (e *GenerateImageFetchFailedEvent) GetName() string {
+    return "generate_image_fetch_failed"
 }
 
-func (e *GenerateImageFailedFetchEvent) GetSeverity() string {
+func (e *GenerateImageFetchFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *GenerateImageFailedFetchEvent) GetClusterId() *strfmt.UUID {
+func (e *GenerateImageFetchFailedEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *GenerateImageFailedFetchEvent) GetInfraEnvId() strfmt.UUID {
+func (e *GenerateImageFetchFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *GenerateImageFailedFetchEvent) format(message *string) string {
+func (e *GenerateImageFetchFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
     )
     return r.Replace(*message)
 }
 
-func (e *GenerateImageFailedFetchEvent) FormatMessage() string {
+func (e *GenerateImageFetchFailedEvent) FormatMessage() string {
     s := "Failed to generate image: error fetching updated infra env metadata"
     return e.format(&s)
 }
@@ -4436,9 +4436,9 @@ func (e *ProxySettingsChangedEvent) FormatMessage() string {
 }
 
 //
-// Event disk_slower_supported_speed
+// Event disk_speed_slower_than_supported
 //
-type DiskSlowerSupportedSpeedEvent struct {
+type DiskSpeedSlowerThanSupportedEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
@@ -4446,16 +4446,16 @@ type DiskSlowerSupportedSpeedEvent struct {
     FdatasyncDuration int64
 }
 
-var DiskSlowerSupportedSpeedEventName string = "disk_slower_supported_speed"
+var DiskSpeedSlowerThanSupportedEventName string = "disk_speed_slower_than_supported"
 
-func NewDiskSlowerSupportedSpeedEvent(
+func NewDiskSpeedSlowerThanSupportedEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostDisk string,
     fdatasyncDuration int64,
-) *DiskSlowerSupportedSpeedEvent {
-    return &DiskSlowerSupportedSpeedEvent{
+) *DiskSpeedSlowerThanSupportedEvent {
+    return &DiskSpeedSlowerThanSupportedEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -4464,7 +4464,7 @@ func NewDiskSlowerSupportedSpeedEvent(
     }
 }
 
-func SendDiskSlowerSupportedSpeedEvent(
+func SendDiskSpeedSlowerThanSupportedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -4472,7 +4472,7 @@ func SendDiskSlowerSupportedSpeedEvent(
     infraEnvId strfmt.UUID,
     hostDisk string,
     fdatasyncDuration int64,) {
-    ev := NewDiskSlowerSupportedSpeedEvent(
+    ev := NewDiskSpeedSlowerThanSupportedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4482,7 +4482,7 @@ func SendDiskSlowerSupportedSpeedEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendDiskSlowerSupportedSpeedEventAtTime(
+func SendDiskSpeedSlowerThanSupportedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -4491,7 +4491,7 @@ func SendDiskSlowerSupportedSpeedEventAtTime(
     hostDisk string,
     fdatasyncDuration int64,
     eventTime time.Time) {
-    ev := NewDiskSlowerSupportedSpeedEvent(
+    ev := NewDiskSpeedSlowerThanSupportedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4501,24 +4501,24 @@ func SendDiskSlowerSupportedSpeedEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *DiskSlowerSupportedSpeedEvent) GetName() string {
-    return "disk_slower_supported_speed"
+func (e *DiskSpeedSlowerThanSupportedEvent) GetName() string {
+    return "disk_speed_slower_than_supported"
 }
 
-func (e *DiskSlowerSupportedSpeedEvent) GetSeverity() string {
+func (e *DiskSpeedSlowerThanSupportedEvent) GetSeverity() string {
     return "warning"
 }
-func (e *DiskSlowerSupportedSpeedEvent) GetClusterId() *strfmt.UUID {
+func (e *DiskSpeedSlowerThanSupportedEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *DiskSlowerSupportedSpeedEvent) GetHostId() strfmt.UUID {
+func (e *DiskSpeedSlowerThanSupportedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *DiskSlowerSupportedSpeedEvent) GetInfraEnvId() strfmt.UUID {
+func (e *DiskSpeedSlowerThanSupportedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *DiskSlowerSupportedSpeedEvent) format(message *string) string {
+func (e *DiskSpeedSlowerThanSupportedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -4529,30 +4529,30 @@ func (e *DiskSlowerSupportedSpeedEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *DiskSlowerSupportedSpeedEvent) FormatMessage() string {
+func (e *DiskSpeedSlowerThanSupportedEvent) FormatMessage() string {
     s := "Host's disk {host_disk} is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: {fdatasync_duration} ms)"
     return e.format(&s)
 }
 
 //
-// Event disable_host_failed_fetch
+// Event disable_host_fetch_failed
 //
-type DisableHostFailedFetchEvent struct {
+type DisableHostFetchFailedEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
 }
 
-var DisableHostFailedFetchEventName string = "disable_host_failed_fetch"
+var DisableHostFetchFailedEventName string = "disable_host_fetch_failed"
 
-func NewDisableHostFailedFetchEvent(
+func NewDisableHostFetchFailedEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
-) *DisableHostFailedFetchEvent {
-    return &DisableHostFailedFetchEvent{
+) *DisableHostFetchFailedEvent {
+    return &DisableHostFetchFailedEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -4560,14 +4560,14 @@ func NewDisableHostFailedFetchEvent(
     }
 }
 
-func SendDisableHostFailedFetchEvent(
+func SendDisableHostFetchFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
-    ev := NewDisableHostFailedFetchEvent(
+    ev := NewDisableHostFetchFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4576,7 +4576,7 @@ func SendDisableHostFailedFetchEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendDisableHostFailedFetchEventAtTime(
+func SendDisableHostFetchFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -4584,7 +4584,7 @@ func SendDisableHostFailedFetchEventAtTime(
     infraEnvId strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewDisableHostFailedFetchEvent(
+    ev := NewDisableHostFetchFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4593,24 +4593,24 @@ func SendDisableHostFailedFetchEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *DisableHostFailedFetchEvent) GetName() string {
-    return "disable_host_failed_fetch"
+func (e *DisableHostFetchFailedEvent) GetName() string {
+    return "disable_host_fetch_failed"
 }
 
-func (e *DisableHostFailedFetchEvent) GetSeverity() string {
+func (e *DisableHostFetchFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *DisableHostFailedFetchEvent) GetClusterId() *strfmt.UUID {
+func (e *DisableHostFetchFailedEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *DisableHostFailedFetchEvent) GetHostId() strfmt.UUID {
+func (e *DisableHostFetchFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *DisableHostFailedFetchEvent) GetInfraEnvId() strfmt.UUID {
+func (e *DisableHostFetchFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *DisableHostFailedFetchEvent) format(message *string) string {
+func (e *DisableHostFetchFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -4620,30 +4620,30 @@ func (e *DisableHostFailedFetchEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *DisableHostFailedFetchEvent) FormatMessage() string {
+func (e *DisableHostFetchFailedEvent) FormatMessage() string {
     s := "Failed to disable host {host_name}: error fetching host from DB"
     return e.format(&s)
 }
 
 //
-// Event disable_host_failed_disable
+// Event host_disable_failed
 //
-type DisableHostFailedDisableEvent struct {
+type HostDisableFailedEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
 }
 
-var DisableHostFailedDisableEventName string = "disable_host_failed_disable"
+var HostDisableFailedEventName string = "host_disable_failed"
 
-func NewDisableHostFailedDisableEvent(
+func NewHostDisableFailedEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
-) *DisableHostFailedDisableEvent {
-    return &DisableHostFailedDisableEvent{
+) *HostDisableFailedEvent {
+    return &HostDisableFailedEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -4651,14 +4651,14 @@ func NewDisableHostFailedDisableEvent(
     }
 }
 
-func SendDisableHostFailedDisableEvent(
+func SendHostDisableFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
-    ev := NewDisableHostFailedDisableEvent(
+    ev := NewHostDisableFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4667,7 +4667,7 @@ func SendDisableHostFailedDisableEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendDisableHostFailedDisableEventAtTime(
+func SendHostDisableFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -4675,7 +4675,7 @@ func SendDisableHostFailedDisableEventAtTime(
     infraEnvId strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewDisableHostFailedDisableEvent(
+    ev := NewHostDisableFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4684,24 +4684,24 @@ func SendDisableHostFailedDisableEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *DisableHostFailedDisableEvent) GetName() string {
-    return "disable_host_failed_disable"
+func (e *HostDisableFailedEvent) GetName() string {
+    return "host_disable_failed"
 }
 
-func (e *DisableHostFailedDisableEvent) GetSeverity() string {
+func (e *HostDisableFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *DisableHostFailedDisableEvent) GetClusterId() *strfmt.UUID {
+func (e *HostDisableFailedEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *DisableHostFailedDisableEvent) GetHostId() strfmt.UUID {
+func (e *HostDisableFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *DisableHostFailedDisableEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostDisableFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *DisableHostFailedDisableEvent) format(message *string) string {
+func (e *HostDisableFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -4711,30 +4711,30 @@ func (e *DisableHostFailedDisableEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *DisableHostFailedDisableEvent) FormatMessage() string {
+func (e *HostDisableFailedEvent) FormatMessage() string {
     s := "Failed to disable host {host_name}: error disabling host in current status"
     return e.format(&s)
 }
 
 //
-// Event host_disabled_by_user
+// Event host_disabled
 //
-type HostDisabledByUserEvent struct {
+type HostDisabledEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
 }
 
-var HostDisabledByUserEventName string = "host_disabled_by_user"
+var HostDisabledEventName string = "host_disabled"
 
-func NewHostDisabledByUserEvent(
+func NewHostDisabledEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
-) *HostDisabledByUserEvent {
-    return &HostDisabledByUserEvent{
+) *HostDisabledEvent {
+    return &HostDisabledEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -4742,14 +4742,14 @@ func NewHostDisabledByUserEvent(
     }
 }
 
-func SendHostDisabledByUserEvent(
+func SendHostDisabledEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
-    ev := NewHostDisabledByUserEvent(
+    ev := NewHostDisabledEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4758,7 +4758,7 @@ func SendHostDisabledByUserEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostDisabledByUserEventAtTime(
+func SendHostDisabledEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -4766,7 +4766,7 @@ func SendHostDisabledByUserEventAtTime(
     infraEnvId strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewHostDisabledByUserEvent(
+    ev := NewHostDisabledEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4775,24 +4775,24 @@ func SendHostDisabledByUserEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostDisabledByUserEvent) GetName() string {
-    return "host_disabled_by_user"
+func (e *HostDisabledEvent) GetName() string {
+    return "host_disabled"
 }
 
-func (e *HostDisabledByUserEvent) GetSeverity() string {
+func (e *HostDisabledEvent) GetSeverity() string {
     return "info"
 }
-func (e *HostDisabledByUserEvent) GetClusterId() *strfmt.UUID {
+func (e *HostDisabledEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *HostDisabledByUserEvent) GetHostId() strfmt.UUID {
+func (e *HostDisabledEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostDisabledByUserEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostDisabledEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostDisabledByUserEvent) format(message *string) string {
+func (e *HostDisabledEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -4802,30 +4802,30 @@ func (e *HostDisabledByUserEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *HostDisabledByUserEvent) FormatMessage() string {
+func (e *HostDisabledEvent) FormatMessage() string {
     s := "Host {host_name} disabled by user"
     return e.format(&s)
 }
 
 //
-// Event enable_host_failed_fetch
+// Event enable_host_fetch_failed
 //
-type EnableHostFailedFetchEvent struct {
+type EnableHostFetchFailedEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
 }
 
-var EnableHostFailedFetchEventName string = "enable_host_failed_fetch"
+var EnableHostFetchFailedEventName string = "enable_host_fetch_failed"
 
-func NewEnableHostFailedFetchEvent(
+func NewEnableHostFetchFailedEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
-) *EnableHostFailedFetchEvent {
-    return &EnableHostFailedFetchEvent{
+) *EnableHostFetchFailedEvent {
+    return &EnableHostFetchFailedEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -4833,14 +4833,14 @@ func NewEnableHostFailedFetchEvent(
     }
 }
 
-func SendEnableHostFailedFetchEvent(
+func SendEnableHostFetchFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
-    ev := NewEnableHostFailedFetchEvent(
+    ev := NewEnableHostFetchFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4849,7 +4849,7 @@ func SendEnableHostFailedFetchEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendEnableHostFailedFetchEventAtTime(
+func SendEnableHostFetchFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -4857,7 +4857,7 @@ func SendEnableHostFailedFetchEventAtTime(
     infraEnvId strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewEnableHostFailedFetchEvent(
+    ev := NewEnableHostFetchFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4866,24 +4866,24 @@ func SendEnableHostFailedFetchEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *EnableHostFailedFetchEvent) GetName() string {
-    return "enable_host_failed_fetch"
+func (e *EnableHostFetchFailedEvent) GetName() string {
+    return "enable_host_fetch_failed"
 }
 
-func (e *EnableHostFailedFetchEvent) GetSeverity() string {
+func (e *EnableHostFetchFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *EnableHostFailedFetchEvent) GetClusterId() *strfmt.UUID {
+func (e *EnableHostFetchFailedEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *EnableHostFailedFetchEvent) GetHostId() strfmt.UUID {
+func (e *EnableHostFetchFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *EnableHostFailedFetchEvent) GetInfraEnvId() strfmt.UUID {
+func (e *EnableHostFetchFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *EnableHostFailedFetchEvent) format(message *string) string {
+func (e *EnableHostFetchFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -4893,30 +4893,30 @@ func (e *EnableHostFailedFetchEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *EnableHostFailedFetchEvent) FormatMessage() string {
+func (e *EnableHostFetchFailedEvent) FormatMessage() string {
     s := "Failed to enable host {host_name}: error fetching host from DB"
     return e.format(&s)
 }
 
 //
-// Event enable_host_failed_disable
+// Event enable_host_disable_failed
 //
-type EnableHostFailedDisableEvent struct {
+type EnableHostDisableFailedEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
 }
 
-var EnableHostFailedDisableEventName string = "enable_host_failed_disable"
+var EnableHostDisableFailedEventName string = "enable_host_disable_failed"
 
-func NewEnableHostFailedDisableEvent(
+func NewEnableHostDisableFailedEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
-) *EnableHostFailedDisableEvent {
-    return &EnableHostFailedDisableEvent{
+) *EnableHostDisableFailedEvent {
+    return &EnableHostDisableFailedEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -4924,14 +4924,14 @@ func NewEnableHostFailedDisableEvent(
     }
 }
 
-func SendEnableHostFailedDisableEvent(
+func SendEnableHostDisableFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
-    ev := NewEnableHostFailedDisableEvent(
+    ev := NewEnableHostDisableFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4940,7 +4940,7 @@ func SendEnableHostFailedDisableEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendEnableHostFailedDisableEventAtTime(
+func SendEnableHostDisableFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -4948,7 +4948,7 @@ func SendEnableHostFailedDisableEventAtTime(
     infraEnvId strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewEnableHostFailedDisableEvent(
+    ev := NewEnableHostDisableFailedEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -4957,24 +4957,24 @@ func SendEnableHostFailedDisableEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *EnableHostFailedDisableEvent) GetName() string {
-    return "enable_host_failed_disable"
+func (e *EnableHostDisableFailedEvent) GetName() string {
+    return "enable_host_disable_failed"
 }
 
-func (e *EnableHostFailedDisableEvent) GetSeverity() string {
+func (e *EnableHostDisableFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *EnableHostFailedDisableEvent) GetClusterId() *strfmt.UUID {
+func (e *EnableHostDisableFailedEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *EnableHostFailedDisableEvent) GetHostId() strfmt.UUID {
+func (e *EnableHostDisableFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *EnableHostFailedDisableEvent) GetInfraEnvId() strfmt.UUID {
+func (e *EnableHostDisableFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *EnableHostFailedDisableEvent) format(message *string) string {
+func (e *EnableHostDisableFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -4984,30 +4984,30 @@ func (e *EnableHostFailedDisableEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *EnableHostFailedDisableEvent) FormatMessage() string {
+func (e *EnableHostDisableFailedEvent) FormatMessage() string {
     s := "Failed to enable host {host_name}: error disabling host in current status"
     return e.format(&s)
 }
 
 //
-// Event host_enabled_by_user
+// Event host_enabled
 //
-type HostEnabledByUserEvent struct {
+type HostEnabledEvent struct {
     ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
 }
 
-var HostEnabledByUserEventName string = "host_enabled_by_user"
+var HostEnabledEventName string = "host_enabled"
 
-func NewHostEnabledByUserEvent(
+func NewHostEnabledEvent(
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
-) *HostEnabledByUserEvent {
-    return &HostEnabledByUserEvent{
+) *HostEnabledEvent {
+    return &HostEnabledEvent{
         ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
@@ -5015,14 +5015,14 @@ func NewHostEnabledByUserEvent(
     }
 }
 
-func SendHostEnabledByUserEvent(
+func SendHostEnabledEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
-    ev := NewHostEnabledByUserEvent(
+    ev := NewHostEnabledEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -5031,7 +5031,7 @@ func SendHostEnabledByUserEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostEnabledByUserEventAtTime(
+func SendHostEnabledEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId *strfmt.UUID,
@@ -5039,7 +5039,7 @@ func SendHostEnabledByUserEventAtTime(
     infraEnvId strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewHostEnabledByUserEvent(
+    ev := NewHostEnabledEvent(
         clusterId,
         hostId,
         infraEnvId,
@@ -5048,24 +5048,24 @@ func SendHostEnabledByUserEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostEnabledByUserEvent) GetName() string {
-    return "host_enabled_by_user"
+func (e *HostEnabledEvent) GetName() string {
+    return "host_enabled"
 }
 
-func (e *HostEnabledByUserEvent) GetSeverity() string {
+func (e *HostEnabledEvent) GetSeverity() string {
     return "info"
 }
-func (e *HostEnabledByUserEvent) GetClusterId() *strfmt.UUID {
+func (e *HostEnabledEvent) GetClusterId() *strfmt.UUID {
     return e.ClusterId
 }
-func (e *HostEnabledByUserEvent) GetHostId() strfmt.UUID {
+func (e *HostEnabledEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostEnabledByUserEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostEnabledEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostEnabledByUserEvent) format(message *string) string {
+func (e *HostEnabledEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
@@ -5075,7 +5075,7 @@ func (e *HostEnabledByUserEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *HostEnabledByUserEvent) FormatMessage() string {
+func (e *HostEnabledEvent) FormatMessage() string {
     s := "Host {host_name} enabled by user"
     return e.format(&s)
 }
@@ -5164,35 +5164,35 @@ func (e *HostDiscoveryIgnitionConfigAppliedEvent) FormatMessage() string {
 }
 
 //
-// Event host_reset_failed_fetch
+// Event host_reset_fetch_failed
 //
-type HostResetFailedFetchEvent struct {
+type HostResetFetchFailedEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
 }
 
-var HostResetFailedFetchEventName string = "host_reset_failed_fetch"
+var HostResetFetchFailedEventName string = "host_reset_fetch_failed"
 
-func NewHostResetFailedFetchEvent(
+func NewHostResetFetchFailedEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
-) *HostResetFailedFetchEvent {
-    return &HostResetFailedFetchEvent{
+) *HostResetFetchFailedEvent {
+    return &HostResetFetchFailedEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
         HostName: hostName,
     }
 }
 
-func SendHostResetFailedFetchEvent(
+func SendHostResetFetchFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
-    ev := NewHostResetFailedFetchEvent(
+    ev := NewHostResetFetchFailedEvent(
         hostId,
         infraEnvId,
         hostName,
@@ -5200,14 +5200,14 @@ func SendHostResetFailedFetchEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostResetFailedFetchEventAtTime(
+func SendHostResetFetchFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewHostResetFailedFetchEvent(
+    ev := NewHostResetFetchFailedEvent(
         hostId,
         infraEnvId,
         hostName,
@@ -5215,24 +5215,24 @@ func SendHostResetFailedFetchEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostResetFailedFetchEvent) GetName() string {
-    return "host_reset_failed_fetch"
+func (e *HostResetFetchFailedEvent) GetName() string {
+    return "host_reset_fetch_failed"
 }
 
-func (e *HostResetFailedFetchEvent) GetSeverity() string {
+func (e *HostResetFetchFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *HostResetFailedFetchEvent) GetClusterId() *strfmt.UUID {
+func (e *HostResetFetchFailedEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *HostResetFailedFetchEvent) GetHostId() strfmt.UUID {
+func (e *HostResetFetchFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostResetFailedFetchEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostResetFetchFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostResetFailedFetchEvent) format(message *string) string {
+func (e *HostResetFetchFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
@@ -5241,7 +5241,7 @@ func (e *HostResetFailedFetchEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *HostResetFailedFetchEvent) FormatMessage() string {
+func (e *HostResetFetchFailedEvent) FormatMessage() string {
     s := "Failed to reset host {host_name}: error fetching host from DB"
     return e.format(&s)
 }
@@ -5399,24 +5399,24 @@ func (e *ClusterLogsUploadedEvent) FormatMessage() string {
 }
 
 //
-// Event host_updated_approved
+// Event host_approved_updated
 //
-type HostUpdatedApprovedEvent struct {
+type HostApprovedUpdatedEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
     ApprovedValue bool
 }
 
-var HostUpdatedApprovedEventName string = "host_updated_approved"
+var HostApprovedUpdatedEventName string = "host_approved_updated"
 
-func NewHostUpdatedApprovedEvent(
+func NewHostApprovedUpdatedEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     approvedValue bool,
-) *HostUpdatedApprovedEvent {
-    return &HostUpdatedApprovedEvent{
+) *HostApprovedUpdatedEvent {
+    return &HostApprovedUpdatedEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
         HostName: hostName,
@@ -5424,14 +5424,14 @@ func NewHostUpdatedApprovedEvent(
     }
 }
 
-func SendHostUpdatedApprovedEvent(
+func SendHostApprovedUpdatedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     approvedValue bool,) {
-    ev := NewHostUpdatedApprovedEvent(
+    ev := NewHostApprovedUpdatedEvent(
         hostId,
         infraEnvId,
         hostName,
@@ -5440,7 +5440,7 @@ func SendHostUpdatedApprovedEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostUpdatedApprovedEventAtTime(
+func SendHostApprovedUpdatedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
@@ -5448,7 +5448,7 @@ func SendHostUpdatedApprovedEventAtTime(
     hostName string,
     approvedValue bool,
     eventTime time.Time) {
-    ev := NewHostUpdatedApprovedEvent(
+    ev := NewHostApprovedUpdatedEvent(
         hostId,
         infraEnvId,
         hostName,
@@ -5457,24 +5457,24 @@ func SendHostUpdatedApprovedEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostUpdatedApprovedEvent) GetName() string {
-    return "host_updated_approved"
+func (e *HostApprovedUpdatedEvent) GetName() string {
+    return "host_approved_updated"
 }
 
-func (e *HostUpdatedApprovedEvent) GetSeverity() string {
+func (e *HostApprovedUpdatedEvent) GetSeverity() string {
     return "info"
 }
-func (e *HostUpdatedApprovedEvent) GetClusterId() *strfmt.UUID {
+func (e *HostApprovedUpdatedEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *HostUpdatedApprovedEvent) GetHostId() strfmt.UUID {
+func (e *HostApprovedUpdatedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostUpdatedApprovedEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostApprovedUpdatedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostUpdatedApprovedEvent) format(message *string) string {
+func (e *HostApprovedUpdatedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
@@ -5484,41 +5484,41 @@ func (e *HostUpdatedApprovedEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *HostUpdatedApprovedEvent) FormatMessage() string {
+func (e *HostApprovedUpdatedEvent) FormatMessage() string {
     s := "Host {host_name}: updated approved to {approved_value}"
     return e.format(&s)
 }
 
 //
-// Event host_registered_cluster
+// Event host_cluster_registered
 //
-type HostRegisteredClusterEvent struct {
+type HostClusterRegisteredEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
 }
 
-var HostRegisteredClusterEventName string = "host_registered_cluster"
+var HostClusterRegisteredEventName string = "host_cluster_registered"
 
-func NewHostRegisteredClusterEvent(
+func NewHostClusterRegisteredEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
-) *HostRegisteredClusterEvent {
-    return &HostRegisteredClusterEvent{
+) *HostClusterRegisteredEvent {
+    return &HostClusterRegisteredEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
         HostName: hostName,
     }
 }
 
-func SendHostRegisteredClusterEvent(
+func SendHostClusterRegisteredEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,) {
-    ev := NewHostRegisteredClusterEvent(
+    ev := NewHostClusterRegisteredEvent(
         hostId,
         infraEnvId,
         hostName,
@@ -5526,14 +5526,14 @@ func SendHostRegisteredClusterEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostRegisteredClusterEventAtTime(
+func SendHostClusterRegisteredEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewHostRegisteredClusterEvent(
+    ev := NewHostClusterRegisteredEvent(
         hostId,
         infraEnvId,
         hostName,
@@ -5541,24 +5541,24 @@ func SendHostRegisteredClusterEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostRegisteredClusterEvent) GetName() string {
-    return "host_registered_cluster"
+func (e *HostClusterRegisteredEvent) GetName() string {
+    return "host_cluster_registered"
 }
 
-func (e *HostRegisteredClusterEvent) GetSeverity() string {
+func (e *HostClusterRegisteredEvent) GetSeverity() string {
     return "info"
 }
-func (e *HostRegisteredClusterEvent) GetClusterId() *strfmt.UUID {
+func (e *HostClusterRegisteredEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *HostRegisteredClusterEvent) GetHostId() strfmt.UUID {
+func (e *HostClusterRegisteredEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostRegisteredClusterEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostClusterRegisteredEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostRegisteredClusterEvent) format(message *string) string {
+func (e *HostClusterRegisteredEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
@@ -5567,71 +5567,71 @@ func (e *HostRegisteredClusterEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *HostRegisteredClusterEvent) FormatMessage() string {
+func (e *HostClusterRegisteredEvent) FormatMessage() string {
     s := "Host {host_name}: registered to cluster"
     return e.format(&s)
 }
 
 //
-// Event generate_image_failed_format
+// Event generate_image_format_failed
 //
-type GenerateImageFailedFormatEvent struct {
+type GenerateImageFormatFailedEvent struct {
     InfraEnvId strfmt.UUID
 }
 
-var GenerateImageFailedFormatEventName string = "generate_image_failed_format"
+var GenerateImageFormatFailedEventName string = "generate_image_format_failed"
 
-func NewGenerateImageFailedFormatEvent(
+func NewGenerateImageFormatFailedEvent(
     infraEnvId strfmt.UUID,
-) *GenerateImageFailedFormatEvent {
-    return &GenerateImageFailedFormatEvent{
+) *GenerateImageFormatFailedEvent {
+    return &GenerateImageFormatFailedEvent{
         InfraEnvId: infraEnvId,
     }
 }
 
-func SendGenerateImageFailedFormatEvent(
+func SendGenerateImageFormatFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,) {
-    ev := NewGenerateImageFailedFormatEvent(
+    ev := NewGenerateImageFormatFailedEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEvent(ctx, ev)
 }
 
-func SendGenerateImageFailedFormatEventAtTime(
+func SendGenerateImageFormatFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     infraEnvId strfmt.UUID,
     eventTime time.Time) {
-    ev := NewGenerateImageFailedFormatEvent(
+    ev := NewGenerateImageFormatFailedEvent(
         infraEnvId,
     )
     eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *GenerateImageFailedFormatEvent) GetName() string {
-    return "generate_image_failed_format"
+func (e *GenerateImageFormatFailedEvent) GetName() string {
+    return "generate_image_format_failed"
 }
 
-func (e *GenerateImageFailedFormatEvent) GetSeverity() string {
+func (e *GenerateImageFormatFailedEvent) GetSeverity() string {
     return "error"
 }
-func (e *GenerateImageFailedFormatEvent) GetClusterId() *strfmt.UUID {
+func (e *GenerateImageFormatFailedEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *GenerateImageFailedFormatEvent) GetInfraEnvId() strfmt.UUID {
+func (e *GenerateImageFormatFailedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *GenerateImageFailedFormatEvent) format(message *string) string {
+func (e *GenerateImageFormatFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
     )
     return r.Replace(*message)
 }
 
-func (e *GenerateImageFailedFormatEvent) FormatMessage() string {
+func (e *GenerateImageFormatFailedEvent) FormatMessage() string {
     s := "Failed to generate image: error formatting ignition file"
     return e.format(&s)
 }
@@ -5765,62 +5765,62 @@ func (e *UploadImageFailedEvent) FormatMessage() string {
 }
 
 //
-// Event generated_image_with_ignition_config
+// Event ignition_config_image_generated
 //
-type GeneratedImageWithIgnitionConfigEvent struct {
+type IgnitionConfigImageGeneratedEvent struct {
     ClusterId strfmt.UUID
     Details string
 }
 
-var GeneratedImageWithIgnitionConfigEventName string = "generated_image_with_ignition_config"
+var IgnitionConfigImageGeneratedEventName string = "ignition_config_image_generated"
 
-func NewGeneratedImageWithIgnitionConfigEvent(
+func NewIgnitionConfigImageGeneratedEvent(
     clusterId strfmt.UUID,
     details string,
-) *GeneratedImageWithIgnitionConfigEvent {
-    return &GeneratedImageWithIgnitionConfigEvent{
+) *IgnitionConfigImageGeneratedEvent {
+    return &IgnitionConfigImageGeneratedEvent{
         ClusterId: clusterId,
         Details: details,
     }
 }
 
-func SendGeneratedImageWithIgnitionConfigEvent(
+func SendIgnitionConfigImageGeneratedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     details string,) {
-    ev := NewGeneratedImageWithIgnitionConfigEvent(
+    ev := NewIgnitionConfigImageGeneratedEvent(
         clusterId,
         details,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendGeneratedImageWithIgnitionConfigEventAtTime(
+func SendIgnitionConfigImageGeneratedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     details string,
     eventTime time.Time) {
-    ev := NewGeneratedImageWithIgnitionConfigEvent(
+    ev := NewIgnitionConfigImageGeneratedEvent(
         clusterId,
         details,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *GeneratedImageWithIgnitionConfigEvent) GetName() string {
-    return "generated_image_with_ignition_config"
+func (e *IgnitionConfigImageGeneratedEvent) GetName() string {
+    return "ignition_config_image_generated"
 }
 
-func (e *GeneratedImageWithIgnitionConfigEvent) GetSeverity() string {
+func (e *IgnitionConfigImageGeneratedEvent) GetSeverity() string {
     return "info"
 }
-func (e *GeneratedImageWithIgnitionConfigEvent) GetClusterId() strfmt.UUID {
+func (e *IgnitionConfigImageGeneratedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *GeneratedImageWithIgnitionConfigEvent) format(message *string) string {
+func (e *IgnitionConfigImageGeneratedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{details}", fmt.Sprint(e.Details),
@@ -5828,7 +5828,7 @@ func (e *GeneratedImageWithIgnitionConfigEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *GeneratedImageWithIgnitionConfigEvent) FormatMessage() string {
+func (e *IgnitionConfigImageGeneratedEvent) FormatMessage() string {
     s := "Generated image ({details})"
     return e.format(&s)
 }
@@ -5917,24 +5917,24 @@ func (e *RefreshHostOrClusterStatusesFailedEvent) FormatMessage() string {
 }
 
 //
-// Event update_host_install_progress
+// Event host_install_progress_updated
 //
-type UpdateHostInstallProgressEvent struct {
+type HostInstallProgressUpdatedEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
     Event string
 }
 
-var UpdateHostInstallProgressEventName string = "update_host_install_progress"
+var HostInstallProgressUpdatedEventName string = "host_install_progress_updated"
 
-func NewUpdateHostInstallProgressEvent(
+func NewHostInstallProgressUpdatedEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     event string,
-) *UpdateHostInstallProgressEvent {
-    return &UpdateHostInstallProgressEvent{
+) *HostInstallProgressUpdatedEvent {
+    return &HostInstallProgressUpdatedEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
         HostName: hostName,
@@ -5942,14 +5942,14 @@ func NewUpdateHostInstallProgressEvent(
     }
 }
 
-func SendUpdateHostInstallProgressEvent(
+func SendHostInstallProgressUpdatedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     event string,) {
-    ev := NewUpdateHostInstallProgressEvent(
+    ev := NewHostInstallProgressUpdatedEvent(
         hostId,
         infraEnvId,
         hostName,
@@ -5958,7 +5958,7 @@ func SendUpdateHostInstallProgressEvent(
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendUpdateHostInstallProgressEventAtTime(
+func SendHostInstallProgressUpdatedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
@@ -5966,7 +5966,7 @@ func SendUpdateHostInstallProgressEventAtTime(
     hostName string,
     event string,
     eventTime time.Time) {
-    ev := NewUpdateHostInstallProgressEvent(
+    ev := NewHostInstallProgressUpdatedEvent(
         hostId,
         infraEnvId,
         hostName,
@@ -5975,24 +5975,24 @@ func SendUpdateHostInstallProgressEventAtTime(
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *UpdateHostInstallProgressEvent) GetName() string {
-    return "update_host_install_progress"
+func (e *HostInstallProgressUpdatedEvent) GetName() string {
+    return "host_install_progress_updated"
 }
 
-func (e *UpdateHostInstallProgressEvent) GetSeverity() string {
+func (e *HostInstallProgressUpdatedEvent) GetSeverity() string {
     return "info"
 }
-func (e *UpdateHostInstallProgressEvent) GetClusterId() *strfmt.UUID {
+func (e *HostInstallProgressUpdatedEvent) GetClusterId() *strfmt.UUID {
     return nil
 }
-func (e *UpdateHostInstallProgressEvent) GetHostId() strfmt.UUID {
+func (e *HostInstallProgressUpdatedEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *UpdateHostInstallProgressEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostInstallProgressUpdatedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *UpdateHostInstallProgressEvent) format(message *string) string {
+func (e *HostInstallProgressUpdatedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
@@ -6002,7 +6002,7 @@ func (e *UpdateHostInstallProgressEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *UpdateHostInstallProgressEvent) FormatMessage() string {
+func (e *HostInstallProgressUpdatedEvent) FormatMessage() string {
     s := "Host: {host_name}, {event}"
     return e.format(&s)
 }
@@ -6174,62 +6174,62 @@ func (e *HostRegistrationFailedEvent) FormatMessage() string {
 }
 
 //
-// Event deregister_inactive_clusters
+// Event inactive_clusters_deregistered
 //
-type DeregisterInactiveClustersEvent struct {
+type InactiveClustersDeregisteredEvent struct {
     ClusterId strfmt.UUID
     Message string
 }
 
-var DeregisterInactiveClustersEventName string = "deregister_inactive_clusters"
+var InactiveClustersDeregisteredEventName string = "inactive_clusters_deregistered"
 
-func NewDeregisterInactiveClustersEvent(
+func NewInactiveClustersDeregisteredEvent(
     clusterId strfmt.UUID,
     message string,
-) *DeregisterInactiveClustersEvent {
-    return &DeregisterInactiveClustersEvent{
+) *InactiveClustersDeregisteredEvent {
+    return &InactiveClustersDeregisteredEvent{
         ClusterId: clusterId,
         Message: message,
     }
 }
 
-func SendDeregisterInactiveClustersEvent(
+func SendInactiveClustersDeregisteredEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     message string,) {
-    ev := NewDeregisterInactiveClustersEvent(
+    ev := NewInactiveClustersDeregisteredEvent(
         clusterId,
         message,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendDeregisterInactiveClustersEventAtTime(
+func SendInactiveClustersDeregisteredEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     message string,
     eventTime time.Time) {
-    ev := NewDeregisterInactiveClustersEvent(
+    ev := NewInactiveClustersDeregisteredEvent(
         clusterId,
         message,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *DeregisterInactiveClustersEvent) GetName() string {
-    return "deregister_inactive_clusters"
+func (e *InactiveClustersDeregisteredEvent) GetName() string {
+    return "inactive_clusters_deregistered"
 }
 
-func (e *DeregisterInactiveClustersEvent) GetSeverity() string {
+func (e *InactiveClustersDeregisteredEvent) GetSeverity() string {
     return "info"
 }
-func (e *DeregisterInactiveClustersEvent) GetClusterId() strfmt.UUID {
+func (e *InactiveClustersDeregisteredEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *DeregisterInactiveClustersEvent) format(message *string) string {
+func (e *InactiveClustersDeregisteredEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{message}", fmt.Sprint(e.Message),
@@ -6237,68 +6237,68 @@ func (e *DeregisterInactiveClustersEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *DeregisterInactiveClustersEvent) FormatMessage() string {
+func (e *InactiveClustersDeregisteredEvent) FormatMessage() string {
     s := "{message}"
     return e.format(&s)
 }
 
 //
-// Event permanently_delete_clusters
+// Event clusters_permanently_deleted
 //
-type PermanentlyDeleteClustersEvent struct {
+type ClustersPermanentlyDeletedEvent struct {
     ClusterId strfmt.UUID
     Message string
 }
 
-var PermanentlyDeleteClustersEventName string = "permanently_delete_clusters"
+var ClustersPermanentlyDeletedEventName string = "clusters_permanently_deleted"
 
-func NewPermanentlyDeleteClustersEvent(
+func NewClustersPermanentlyDeletedEvent(
     clusterId strfmt.UUID,
     message string,
-) *PermanentlyDeleteClustersEvent {
-    return &PermanentlyDeleteClustersEvent{
+) *ClustersPermanentlyDeletedEvent {
+    return &ClustersPermanentlyDeletedEvent{
         ClusterId: clusterId,
         Message: message,
     }
 }
 
-func SendPermanentlyDeleteClustersEvent(
+func SendClustersPermanentlyDeletedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     message string,) {
-    ev := NewPermanentlyDeleteClustersEvent(
+    ev := NewClustersPermanentlyDeletedEvent(
         clusterId,
         message,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
 
-func SendPermanentlyDeleteClustersEventAtTime(
+func SendClustersPermanentlyDeletedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     message string,
     eventTime time.Time) {
-    ev := NewPermanentlyDeleteClustersEvent(
+    ev := NewClustersPermanentlyDeletedEvent(
         clusterId,
         message,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *PermanentlyDeleteClustersEvent) GetName() string {
-    return "permanently_delete_clusters"
+func (e *ClustersPermanentlyDeletedEvent) GetName() string {
+    return "clusters_permanently_deleted"
 }
 
-func (e *PermanentlyDeleteClustersEvent) GetSeverity() string {
+func (e *ClustersPermanentlyDeletedEvent) GetSeverity() string {
     return "info"
 }
-func (e *PermanentlyDeleteClustersEvent) GetClusterId() strfmt.UUID {
+func (e *ClustersPermanentlyDeletedEvent) GetClusterId() strfmt.UUID {
     return e.ClusterId
 }
 
-func (e *PermanentlyDeleteClustersEvent) format(message *string) string {
+func (e *ClustersPermanentlyDeletedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{message}", fmt.Sprint(e.Message),
@@ -6306,7 +6306,7 @@ func (e *PermanentlyDeleteClustersEvent) format(message *string) string {
     return r.Replace(*message)
 }
 
-func (e *PermanentlyDeleteClustersEvent) FormatMessage() string {
+func (e *ClustersPermanentlyDeletedEvent) FormatMessage() string {
     s := "{message}"
     return e.format(&s)
 }

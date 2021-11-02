@@ -59,7 +59,7 @@ func (m *Manager) DeletedImageCallback(ctx context.Context, log logrus.FieldLogg
 		return
 	}
 	clusterID := strfmt.UUID(matches[1])
-	eventgen.SendDeleteExpiredImageEvent(ctx, m.eventsHandler, clusterID)
+	eventgen.SendExpiredImageDeletedEvent(ctx, m.eventsHandler, clusterID)
 }
 
 func (m *Manager) DeletedImageNoCallback(ctx context.Context, log logrus.FieldLogger, objectName string) {

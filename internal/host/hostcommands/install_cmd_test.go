@@ -170,7 +170,7 @@ var _ = Describe("installcmd", func() {
 			eventStatusInfo := "%s: Performing quick format of disk %s(%s)"
 			message := fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), disk.Name, disk.ID)
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.QuickDiskFormatEventName),
+				eventstest.WithNameMatcher(eventgen.QuickDiskFormatPerformedEventName),
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
 				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 				eventstest.WithMessageMatcher(message),

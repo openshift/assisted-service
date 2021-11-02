@@ -258,7 +258,7 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 		isMmcblk := strings.Contains(disk.ByPath, "mmcblk") //mmc devices should be treated as removable
 		if disk.Bootable && !disk.Removable && !isMmcblk && !isFcIscsi && !disk.IsInstallationMedia {
 			formatCmds += fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=1 ; ", hostutil.GetDeviceIdentifier(disk))
-			eventgen.SendQuickDiskFormatEvent(ctx, i.eventsHandler, host.ClusterID, *host.ID, host.InfraEnvID,
+			eventgen.SendQuickDiskFormatPerformedEvent(ctx, i.eventsHandler, host.ClusterID, *host.ID, host.InfraEnvID,
 				hostutil.GetHostnameForMsg(&host), disk.Name, hostutil.GetDeviceIdentifier(disk))
 		}
 	}

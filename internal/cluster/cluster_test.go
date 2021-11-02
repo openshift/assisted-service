@@ -1311,7 +1311,7 @@ var _ = Describe("CancelInstallation", func() {
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
-			Expect(*cancelEvent.Message).Should(Equal("Cancelled cluster installation"))
+			Expect(*cancelEvent.Message).Should(Equal("Canceled cluster installation"))
 		})
 		It("cancel_failed_installation", func() {
 			c.Status = swag.String(models.ClusterStatusError)
@@ -1324,7 +1324,7 @@ var _ = Describe("CancelInstallation", func() {
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
-			Expect(*cancelEvent.Message).Should(Equal("Cancelled cluster installation"))
+			Expect(*cancelEvent.Message).Should(Equal("Canceled cluster installation"))
 		})
 
 		AfterEach(func() {
@@ -1901,7 +1901,7 @@ var _ = Describe("SetVipsData", func() {
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			if t.eventExpected {
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ApiIngressVipUpdateEventName),
+					eventstest.WithNameMatcher(eventgen.ApiIngressVipUpdatedEventName),
 					eventstest.WithClusterIdMatcher(clusterId.String()))).Times(1)
 			}
 			err := capi.SetVipsData(ctx, &cluster, t.apiVip, t.ingressVip, t.clusterApiLease, t.clusterIngressLease, db)
@@ -2159,7 +2159,7 @@ var _ = Describe("insufficient_state", func() {
 			PullSecretSet:   true,
 		}}
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.RegisteredClusterEventName),
+			eventstest.WithNameMatcher(eventgen.ClusterRegisteredEventName),
 			eventstest.WithClusterIdMatcher(id.String()))).AnyTimes()
 	})
 
@@ -2445,7 +2445,7 @@ var _ = Describe("Deregister inactive clusters", func() {
 
 	registerCluster := func() common.Cluster {
 		id := strfmt.UUID(uuid.New().String())
-		eventgen.SendDeregisterInactiveClustersEvent(ctx, eventsHandler, id, "")
+		eventgen.SendInactiveClustersDeregisteredEvent(ctx, eventsHandler, id, "")
 		cl := common.Cluster{Cluster: models.Cluster{
 			ID:                 &id,
 			MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
@@ -2553,7 +2553,7 @@ var _ = Describe("Permanently delete clusters", func() {
 
 	registerCluster := func() common.Cluster {
 		id := strfmt.UUID(uuid.New().String())
-		eventgen.SendPermanentlyDeleteClustersEvent(ctx, eventsHandler, id, "")
+		eventgen.SendClustersPermanentlyDeletedEvent(ctx, eventsHandler, id, "")
 		c := common.Cluster{Cluster: models.Cluster{
 			ID:                 &id,
 			MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
@@ -2915,7 +2915,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 		clusterID := strfmt.UUID(uuid.New().String())
 		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.RegisteredClusterEventName),
+			eventstest.WithNameMatcher(eventgen.ClusterRegisteredEventName),
 			eventstest.WithClusterIdMatcher(clusterID.String())))
 		c := common.Cluster{
 			Cluster: models.Cluster{
@@ -2959,7 +2959,7 @@ var _ = Describe("Validation metrics and events", func() {
 		mockHost.EXPECT().ReportValidationFailedMetrics(ctx, gomock.Any(), openshiftVersion, emailDomain)
 		mockMetric.EXPECT().ClusterValidationFailed(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
 		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.DeregisteredClusterEventName),
+			eventstest.WithNameMatcher(eventgen.ClusterDeregisteredEventName),
 			eventstest.WithClusterIdMatcher(c.ID.String())))
 		err := m.DeregisterCluster(ctx, c)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -2971,7 +2971,7 @@ var _ = Describe("Validation metrics and events", func() {
 		mockHost.EXPECT().ReportValidationFailedMetrics(ctx, gomock.Any(), openshiftVersion, emailDomain)
 		mockMetric.EXPECT().ClusterValidationFailed(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
 		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.DeregisteredClusterEventName),
+			eventstest.WithNameMatcher(eventgen.ClusterDeregisteredEventName),
 			eventstest.WithClusterIdMatcher(c.ID.String())))
 		err := m.DeregisterCluster(ctx, c)
 		Expect(err).ShouldNot(HaveOccurred())
