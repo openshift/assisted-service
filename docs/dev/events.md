@@ -16,18 +16,19 @@ In order to add a new event, follow the next steps:
 ### Event Definition
 Event definition should specify the following attributes:
 1. __name__: A unique name of the event. The name needs to remain unique and constant
-as it may be referred by the service's clients (e.g. by the UI).
+as it may be referred by the service's clients (e.g. by the UI). The name should match
+the structure `<event-context>_<past_tense>`.
 2. __message__: A template of the message that will be rendered if it
-contains any references to the properties. E.g. the message "Install
-cluster {cluster_id}" expects the existence of a property named
-cluster_id
-3. __event_type__: Can be either "cluster", "host" or "infra_env".
-   1. "cluster" type requires the existence of "cluster_id" in properties.
-   2. "host" type requires the existence of "host_id" and "infra_env_id" in properties.
-   3. "infra_env" type requires the existence of "infra_env_id" in properties.
+contains any references to the properties. E.g. the message `"Install
+cluster {cluster_id}"` expects the existence of a property named
+`cluster_id`.
+3. __event_type__: Can be either `cluster`, `host` or `infra_env`.
+   1. "cluster" type requires the existence of `cluster_id` in properties.
+   2. "host" type requires the existence of `host_id` and `infra_env_id` in properties.
+   3. "infra_env" type requires the existence of `infra_env_id` in properties.
 4. __severity__: Any of "info", "warning", "error" or "critical".
 5. __properties__: A list of properties to be rendered into the message (if
-   referred by) or metadata of the event (e.g. cluster_id, host_id).
+   referred by) or metadata of the event (e.g. `cluster_id`, `host_id`).
 
 ### Testing
 Having an explicit event per scenario assists in setting expectations in tests for the events.
