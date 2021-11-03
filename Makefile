@@ -80,9 +80,9 @@ ifeq ($(ENABLE_KUBE_API),true)
 endif
 
 # Operator Vars
-BUNDLE_CHANNELS ?= alpha,ocm-2.4
+BUNDLE_CHANNELS ?= ocm-2.4
 BUNDLE_OUTPUT_DIR ?= deploy/olm-catalog
-BUNDLE_METADATA_OPTS ?= --channels=$(BUNDLE_CHANNELS) --default-channel=alpha
+BUNDLE_METADATA_OPTS ?= --channels=$(BUNDLE_CHANNELS) --default-channel=ocm-2.4
 
 # We decided to have an option to change replicas count only while running locally
 # check if SERVICE_REPLICAS_COUNT was set and if yes change default value to required one
