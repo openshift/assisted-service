@@ -1374,8 +1374,7 @@ var _ = Describe("cluster install", func() {
 			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
 			verifyUsageSet(getReply.Payload.FeatureUsage,
 				models.Usage{Name: usage.HighAvailabilityModeUsage})
-			verifyUsageSet(getReply.Payload.FeatureUsage, models.Usage{Name: usage.OVNNetworkTypeUsage})
-			verifyUsageNotSet(getReply.Payload.FeatureUsage, strings.ToUpper("console"), usage.VipDhcpAllocationUsage, usage.CPUArchitectureARM64)
+			verifyUsageNotSet(getReply.Payload.FeatureUsage, strings.ToUpper("console"), usage.VipDhcpAllocationUsage, usage.CPUArchitectureARM64, usage.SDNNetworkTypeUsage)
 		})
 
 		It("report usage on update cluster", func() {
@@ -1409,6 +1408,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			getReply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
+			verifyUsageNotSet(getReply.Payload.FeatureUsage, usage.SDNNetworkTypeUsage)
 			verifyUsageSet(getReply.Payload.FeatureUsage,
 				models.Usage{Name: usage.OVNNetworkTypeUsage},
 				models.Usage{

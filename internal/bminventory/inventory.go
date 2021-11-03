@@ -3165,8 +3165,10 @@ func (b *bareMetalInventory) setNetworkTypeUsage(networkType *string, usages map
 	switch swag.StringValue(networkType) {
 	case models.ClusterNetworkTypeOVNKubernetes:
 		b.setUsage(true, usage.OVNNetworkTypeUsage, nil, usages)
+		b.setUsage(false, usage.SDNNetworkTypeUsage, nil, usages)
 	case models.ClusterNetworkTypeOpenShiftSDN:
 		b.setUsage(true, usage.SDNNetworkTypeUsage, nil, usages)
+		b.setUsage(false, usage.OVNNetworkTypeUsage, nil, usages)
 	}
 }
 
