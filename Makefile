@@ -287,8 +287,8 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" $(TEST_FLAGS) \
-		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --os-images '$(subst ",\",$(OS_IMAGES))' \
-		--release-images '$(subst ",\",$(RELEASE_IMAGES))' --must-gather-images '$(subst ",\",$(MUST_GATHER_IMAGES))' \
+		--os-images '$(subst ",\",$(OS_IMAGES))' --release-images '$(subst ",\",$(RELEASE_IMAGES))' \
+		--must-gather-images '$(subst ",\",$(MUST_GATHER_IMAGES))' \
 		--public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
