@@ -4170,7 +4170,7 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
 
-	c, err := b.refreshHostAndClusterStatuses(ctx, "disable host", &params.HostID, &params.ClusterID, tx)
+	c, err := b.refreshHostAndClusterStatuses(ctx, "disable host", host, &params.ClusterID, tx)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -4231,7 +4231,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
 
-	c, err := b.refreshHostAndClusterStatuses(ctx, "enable host", &params.HostID, &params.ClusterID, tx)
+	c, err := b.refreshHostAndClusterStatuses(ctx, "enable host", host, &params.ClusterID, tx)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -4255,7 +4255,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 func (b *bareMetalInventory) refreshHostAndClusterStatuses(
 	ctx context.Context,
 	eventName string,
-	hostID *strfmt.UUID,
+	host *common.Host,
 	clusterID *strfmt.UUID,
 	db *gorm.DB) (*common.Cluster, error) {
 
@@ -4269,14 +4269,14 @@ func (b *bareMetalInventory) refreshHostAndClusterStatuses(
 		}
 		logger.WithError(err).Errorf("%s:", eventName)
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			eventgen.SendRefreshHostOrClusterStatusesFailedEvent(ctx, b.eventsHandler, *hostID, *clusterID, err.Error())
+			eventgen.SendRefreshHostOrClusterStatusesFailedEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, clusterID, err.Error())
 		}
 	}()
 	err = b.setMajorityGroupForCluster(clusterID, db)
 	if err != nil {
 		return nil, err
 	}
-	err = b.refreshHostStatus(ctx, hostID, clusterID, db)
+	err = b.refreshHostStatus(ctx, host.ID, clusterID, db)
 	if err != nil {
 		return nil, err
 	}
@@ -4789,7 +4789,7 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 		}
 
 		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-		eventgen.SendHostInstallProgressUpdatedEvent(ctx, b.eventsHandler, *host.ID, *host.ClusterID, hostutil.GetHostnameForMsg(&host.Host), event)
+		eventgen.SendHostInstallProgressUpdatedEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID, hostutil.GetHostnameForMsg(&host.Host), event)
 
 		if err := b.clusterApi.UpdateInstallProgress(ctx, params.ClusterID); err != nil {
 			log.WithError(err).Errorf("failed to update cluster %s progress", params.ClusterID)
@@ -6152,7 +6152,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			if err = b.clusterApi.AcceptRegistration(cluster); err != nil {
 				log.WithError(err).Errorf("failed to register host <%s> to infra-env %s due to: %s",
 					params.NewHostParams.HostID, params.InfraEnvID.String(), err.Error())
-				eventgen.SendRegisterHostToInfraEnvFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, err.Error())
+				eventgen.SendRegisterHostToInfraEnvFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, cluster.ID, err.Error())
 
 				return common.NewApiError(http.StatusConflict, err)
 			}
@@ -6386,7 +6386,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 		}
 
 		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-		eventgen.SendHostInstallProgressUpdatedEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, hostutil.GetHostnameForMsg(&host.Host), event)
+		eventgen.SendHostInstallProgressUpdatedEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID, hostutil.GetHostnameForMsg(&host.Host), event)
 		if err := b.clusterApi.UpdateInstallProgress(ctx, *host.ClusterID); err != nil {
 			log.WithError(err).Errorf("failed to update cluster %s progress", host.ClusterID)
 			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))

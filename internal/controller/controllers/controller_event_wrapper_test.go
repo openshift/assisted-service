@@ -188,7 +188,7 @@ var _ = Describe("Controller events wrapper", func() {
 			mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
 			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
 			cEventsWrapper.SendHostEvent(context.TODO(),
-				eventgen.NewRegisterHostToInfraEnvFailedEvent(*host1.ID, *infraEnv1.ID, "event1"))
+				eventgen.NewRegisterHostToInfraEnvFailedEvent(*host1.ID, *infraEnv1.ID, cluster1.ID, "event1"))
 			Expect(numOfEvents(nil, host1.ID, nil)).Should(Equal(1))
 			Expect(numOfEvents(nil, host1.ID, infraEnv1.ID)).Should(Equal(1))
 		})
@@ -211,7 +211,7 @@ var _ = Describe("Controller events wrapper", func() {
 			mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
 			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
 			cEventsWrapper.SendHostEventAtTime(context.TODO(),
-				eventgen.NewRegisterHostToInfraEnvFailedEvent(*host1.ID, *infraEnv1.ID, "event1"), time.Now())
+				eventgen.NewRegisterHostToInfraEnvFailedEvent(*host1.ID, *infraEnv1.ID, cluster1.ID, "event1"), time.Now())
 			Expect(numOfEvents(nil, host1.ID, nil)).Should(Equal(1))
 			Expect(numOfEvents(nil, host1.ID, infraEnv1.ID)).Should(Equal(1))
 		})
@@ -232,9 +232,8 @@ var _ = Describe("Controller events wrapper", func() {
 
 			mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
 			cEventsWrapper.SendHostEvent(context.TODO(),
-				eventgen.NewRegisterHostToInfraEnvFailedEvent(*host1.ID, *infraEnv1.ID, "event1"))
-			Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(0))
-			Expect(numOfEvents(nil, host1.ID, infraEnv1.ID)).Should(Equal(1))
+				eventgen.NewRegisterHostToInfraEnvFailedEvent(*host1.ID, *infraEnv1.ID, cluster1.ID, "event1"))
+			Expect(numOfEvents(cluster1.ID, host1.ID, infraEnv1.ID)).Should(Equal(1))
 
 		})
 	})
@@ -255,9 +254,8 @@ var _ = Describe("Controller events wrapper", func() {
 
 		mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
 		cEventsWrapper.SendHostEventAtTime(context.TODO(),
-			eventgen.NewRegisterHostToInfraEnvFailedEvent(*host1.ID, *infraEnv1.ID, "event1"), time.Now())
-		Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(0))
-		Expect(numOfEvents(nil, host1.ID, infraEnv1.ID)).Should(Equal(1))
+			eventgen.NewRegisterHostToInfraEnvFailedEvent(*host1.ID, *infraEnv1.ID, cluster1.ID, "event1"), time.Now())
+		Expect(numOfEvents(cluster1.ID, host1.ID, infraEnv1.ID)).Should(Equal(1))
 	})
 
 	AfterEach(func() {
