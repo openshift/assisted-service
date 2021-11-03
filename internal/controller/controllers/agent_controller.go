@@ -304,6 +304,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 			agent.Status.Progress.StageStartTime = &stageStartTime
 			stageUpdateTime := metav1.NewTime(time.Time(h.Progress.StageUpdatedAt))
 			agent.Status.Progress.StageUpdateTime = &stageUpdateTime
+		} else {
+			agent.Status.Progress = aiv1beta1.HostProgressInfo{}
 		}
 		status := *h.Status
 		if clusterId != nil {
