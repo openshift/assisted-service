@@ -26,7 +26,7 @@ cluster {cluster_id}"` expects the existence of a property named
    1. "cluster" type requires the existence of `cluster_id` in properties.
    2. "host" type requires the existence of `host_id` and `infra_env_id` in properties.
    3. "infra_env" type requires the existence of `infra_env_id` in properties.
-4. __severity__: Any of "info", "warning", "error" or "critical".
+4. __severity__: Any of "info", "warning", "error" or "critical". See more info about severity levels [here](../events.md).
 5. __properties__: A list of properties to be rendered into the message (if
    referred by) or metadata of the event (e.g. `cluster_id`, `host_id`).
 
