@@ -7,6 +7,7 @@ import requests
 import utils
 import deployment_options
 from urllib.parse import urlunsplit, urlsplit
+from retry import retry
 
 SERVICE = "assisted-service"
 TIMEOUT = 60 * 30
@@ -25,7 +26,9 @@ def wait_for_request(url: str) -> bool:
     return res.status_code == 200
 
 
+@retry(exceptions=RuntimeError, tries=2, delay=3)
 def is_assisted_service_ready(target, domain, namespace, disable_tls) -> bool:
+    print(f"DEBUG - is_assisted_service_ready({target} {domain} {namespace} {disable_tls})")
     service_url = utils.get_service_url(
         service=SERVICE, target=target, domain=domain,
         namespace=namespace, disable_tls=disable_tls)

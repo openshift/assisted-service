@@ -70,11 +70,7 @@ def check_output(command, raise_on_error=True):
     err = process.stderr.strip()
 
     if raise_on_error and process.returncode != 0:
-        raise RuntimeError(
-            f'command={command} exited with an '
-            f'error={err if err else out} '
-            f'code={process.returncode}'
-        )
+        raise RuntimeError(f'command={command} exited with an error={err if err else out} code={process.returncode}')
 
     return out if out else err
 
@@ -100,11 +96,7 @@ def get_service_host(
     return host.strip()
 
 
-def get_service_port(
-        service,
-        target=None,
-        namespace='assisted-installer',
-        ):
+def get_service_port(service, target=None, namespace='assisted-installer'):
     kubectl_cmd = get_kubectl_command(target, namespace)
     cmd = f'{kubectl_cmd} get service {service} | grep {service}'
     reply = check_output(cmd)[:-1].split()
