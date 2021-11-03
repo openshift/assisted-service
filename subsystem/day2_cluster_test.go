@@ -971,6 +971,81 @@ var _ = Describe("[V2UpdateCluster] Day2 cluster tests", func() {
 
 })
 
+var _ = Describe("Day2 cluster with bind/unbind hosts", func() {
+	ctx := context.Background()
+	var cluster *installer.V2ImportClusterCreated
+	var clusterID strfmt.UUID
+	var infraEnvID strfmt.UUID
+	var err error
+
+	BeforeEach(func() {
+		openshiftClusterID := strfmt.UUID(uuid.New().String())
+		cluster, err = userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
+			NewImportClusterParams: &models.ImportClusterParams{
+				Name:               swag.String("test-cluster"),
+				OpenshiftVersion:   swag.String(openshiftVersion),
+				APIVipDnsname:      swag.String("api_vip_dnsname"),
+				OpenshiftClusterID: &openshiftClusterID,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		clusterID = *cluster.GetPayload().ID
+
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				PullSecret: swag.String(pullSecret),
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		infraEnv, err := userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
+			InfraenvCreateParams: &models.InfraEnvCreateParams{
+				Name:             swag.String("test-infra-env"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHAuthorizedKey: swag.String(sshPublicKey),
+				ImageType:        models.ImageTypeFullIso,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		infraEnvID = *infraEnv.GetPayload().ID
+	})
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	It("check host states with binding - two nodes", func() {
+		host := &registerHost(infraEnvID).Host
+		h1 := getHostV2(infraEnvID, *host.ID)
+		host = &registerHost(infraEnvID).Host
+		h2 := getHostV2(infraEnvID, *host.ID)
+		ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
+
+		By("hosts in state discovering-unbound")
+		Expect(*h1.Status).Should(Equal(models.HostStatusDiscoveringUnbound))
+		Expect(*h2.Status).Should(Equal(models.HostStatusDiscoveringUnbound))
+
+		By("host h1 become known-unbound after inventory reply")
+		generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
+		waitForHostStateV2(ctx, models.HostStatusKnownUnbound, 60*time.Second, h1)
+
+		By("bind host h1 and re-register - host become insufficient")
+		bindHost(infraEnvID, *h1.ID, clusterID)
+		waitForHostStateV2(ctx, models.HostStatusBinding, 60*time.Second, h1)
+		h1 = &registerHostByUUID(infraEnvID, *h1.ID).Host
+		generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
+		waitForHostStateV2(ctx, models.HostStatusInsufficient, 60*time.Second, h1)
+
+		By("add connectivity - host h1 becomes known")
+		generateDomainResolution(ctx, h1, "test-cluster", "")
+		generateConnectivityCheckPostStepReply(ctx, h1, ips[1], true)
+		generateApiVipPostStepReply(ctx, h1, true)
+		waitForHostStateV2(ctx, models.HostStatusKnown, 60*time.Second, h1)
+	})
+})
+
 var _ = Describe("Installation progress", func() {
 	var (
 		ctx        = context.Background()
