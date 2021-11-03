@@ -214,6 +214,9 @@ type API interface {
 	   V2GetCredentials Get the cluster admin credentials.*/
 	V2GetCredentials(ctx context.Context, params *V2GetCredentialsParams) (*V2GetCredentialsOK, error)
 	/*
+	   V2GetPresignedForClusterCredentials Get the cluster admin credentials.*/
+	V2GetPresignedForClusterCredentials(ctx context.Context, params *V2GetPresignedForClusterCredentialsParams) (*V2GetPresignedForClusterCredentialsOK, error)
+	/*
 	   V2GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files.*/
 	V2GetPresignedForClusterFiles(ctx context.Context, params *V2GetPresignedForClusterFilesParams) (*V2GetPresignedForClusterFilesOK, error)
 	/*
@@ -1921,6 +1924,31 @@ func (a *Client) V2GetCredentials(ctx context.Context, params *V2GetCredentialsP
 		return nil, err
 	}
 	return result.(*V2GetCredentialsOK), nil
+
+}
+
+/*
+V2GetPresignedForClusterCredentials Get the cluster admin credentials.
+*/
+func (a *Client) V2GetPresignedForClusterCredentials(ctx context.Context, params *V2GetPresignedForClusterCredentialsParams) (*V2GetPresignedForClusterCredentialsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2GetPresignedForClusterCredentials",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/downloads/credentials-presigned",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetPresignedForClusterCredentialsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetPresignedForClusterCredentialsOK), nil
 
 }
 

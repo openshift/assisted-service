@@ -20,6 +20,10 @@ import (
 
 type fakeInventory struct{}
 
+func (f fakeInventory) V2GetPresignedForClusterCredentials(ctx context.Context, params installer.V2GetPresignedForClusterCredentialsParams) middleware.Responder {
+	return installer.NewV2GetPresignedForClusterCredentialsOK()
+}
+
 func (f fakeInventory) GetPreflightRequirements(ctx context.Context, params installer.GetPreflightRequirementsParams) middleware.Responder {
 	return installer.NewGetPreflightRequirementsOK().WithPayload(&models.PreflightHardwareRequirements{})
 }

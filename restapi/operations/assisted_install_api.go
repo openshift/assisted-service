@@ -292,6 +292,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2GetCredentialsHandler: installer.V2GetCredentialsHandlerFunc(func(params installer.V2GetCredentialsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetCredentials has not yet been implemented")
 		}),
+		InstallerV2GetPresignedForClusterCredentialsHandler: installer.V2GetPresignedForClusterCredentialsHandlerFunc(func(params installer.V2GetPresignedForClusterCredentialsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2GetPresignedForClusterCredentials has not yet been implemented")
+		}),
 		InstallerV2GetPresignedForClusterFilesHandler: installer.V2GetPresignedForClusterFilesHandlerFunc(func(params installer.V2GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetPresignedForClusterFiles has not yet been implemented")
 		}),
@@ -654,6 +657,8 @@ type AssistedInstallAPI struct {
 	InstallerV2GetClusterDefaultConfigHandler installer.V2GetClusterDefaultConfigHandler
 	// InstallerV2GetCredentialsHandler sets the operation handler for the v2 get credentials operation
 	InstallerV2GetCredentialsHandler installer.V2GetCredentialsHandler
+	// InstallerV2GetPresignedForClusterCredentialsHandler sets the operation handler for the v2 get presigned for cluster credentials operation
+	InstallerV2GetPresignedForClusterCredentialsHandler installer.V2GetPresignedForClusterCredentialsHandler
 	// InstallerV2GetPresignedForClusterFilesHandler sets the operation handler for the v2 get presigned for cluster files operation
 	InstallerV2GetPresignedForClusterFilesHandler installer.V2GetPresignedForClusterFilesHandler
 	// ManifestsV2ListClusterManifestsHandler sets the operation handler for the v2 list cluster manifests operation
@@ -1073,6 +1078,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2GetCredentialsHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetCredentialsHandler")
+	}
+	if o.InstallerV2GetPresignedForClusterCredentialsHandler == nil {
+		unregistered = append(unregistered, "installer.V2GetPresignedForClusterCredentialsHandler")
 	}
 	if o.InstallerV2GetPresignedForClusterFilesHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetPresignedForClusterFilesHandler")
@@ -1635,6 +1643,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters/{cluster_id}/credentials"] = installer.NewV2GetCredentials(o.context, o.InstallerV2GetCredentialsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/clusters/{cluster_id}/downloads/credentials-presigned"] = installer.NewV2GetPresignedForClusterCredentials(o.context, o.InstallerV2GetPresignedForClusterCredentialsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

@@ -13554,3 +13554,87 @@ var _ = Describe("Update cluster - feature usage flags", func() {
 		})
 	})
 })
+
+var _ = Describe("Download presigned cluster credentials", func() {
+
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         common.Cluster
+		dbName    string
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+
+		bm = createInventory(db, cfg)
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+			APIVip:           "10.11.12.13",
+		}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("kubeconfig presigned backend not aws", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(false)
+		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
+			ClusterID: clusterID,
+			FileName:  constants.Kubeconfig,
+		})
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+	})
+
+	It("kubeconfig presigned cluster is not in installed state", func() {
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(
+			ctx, fmt.Sprintf("%s/%s", clusterID.String(), constants.Kubeconfig), constants.Kubeconfig, gomock.Any()).Return("", errors.New("some error"))
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
+			ClusterID: clusterID,
+			FileName:  constants.Kubeconfig,
+		})
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusInternalServerError)))
+	})
+
+	It("presigned cluster credentials happy flow", func() {
+		status := models.ClusterStatusInstalled
+		c.Status = &status
+		db.Save(&c)
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(
+			ctx, fmt.Sprintf("%s/%s", clusterID.String(), constants.Kubeconfig), constants.Kubeconfig, gomock.Any()).Return("url", nil)
+		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
+			ClusterID: clusterID,
+			FileName:  constants.Kubeconfig,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.V2GetPresignedForClusterCredentialsOK{}))
+		replyPayload := generateReply.(*installer.V2GetPresignedForClusterCredentialsOK).Payload
+		Expect(*replyPayload.URL).Should(Equal("url"))
+	})
+
+	It("presigned cluster credentials download with invalid cluster id", func() {
+		clusterId := strToUUID(uuid.New().String())
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(
+			ctx, fmt.Sprintf("%s/%s", clusterId.String(), constants.Kubeconfig), constants.Kubeconfig, gomock.Any()).Return("", errors.New("some error"))
+		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
+			ClusterID: *clusterId,
+			FileName:  constants.Kubeconfig,
+		})
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusInternalServerError)))
+	})
+})

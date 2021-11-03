@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -403,4 +404,27 @@ func (b *bareMetalInventory) V2ImportCluster(ctx context.Context, params install
 	}
 	return installer.NewV2ImportClusterCreated().WithPayload(&c.Cluster)
 
+}
+
+func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Context, params installer.V2GetPresignedForClusterCredentialsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	if err := b.checkFileDownloadAccess(ctx, params.FileName); err != nil {
+		payload := common.GenerateInfraError(http.StatusForbidden, err)
+		return installer.NewV2GetPresignedForClusterCredentialsForbidden().WithPayload(payload)
+	}
+
+	// Presigned URL only works with AWS S3 because Scality is not exposed
+	if !b.objectHandler.IsAwsS3() {
+		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
+	}
+
+	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID.String(), params.FileName)
+	duration, _ := time.ParseDuration("10m")
+	url, err := b.objectHandler.GeneratePresignedDownloadURL(ctx, fullFileName, params.FileName, duration)
+	if err != nil {
+		log.WithError(err).Errorf("failed to generate presigned URL: %s from cluster: %s", params.FileName, params.ClusterID.String())
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return installer.NewV2GetPresignedForClusterCredentialsOK().WithPayload(&models.Presigned{URL: &url})
 }
