@@ -147,6 +147,14 @@ spec:
     the deployment of the Assisted Service. Assisted Service is used to orchestrate
     baremetal OpenShift installations.
 
+    The Assisted Service can currently install clusters with highly-available
+    control planes (3 hosts and above) and can also install Single-Node
+    OpenShift (SNO).  Highly available clusters are configured to use
+    OpenShift's `baremetal` platform (typically used in
+    [bare metal IPI deployments](https://docs.openshift.com/container-platform/4.7/installing/installing_bare_metal_ipi/ipi-install-overview.html)),
+    while SNO uses `none` (typically used in
+    [UPI deployments](https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html)).
+
     When creating the AgentServiceConfig CR. It is important to note that the
     controller will only ever reconcile an AgentServiceConfig named "agent",
     any other name will be ignored.
