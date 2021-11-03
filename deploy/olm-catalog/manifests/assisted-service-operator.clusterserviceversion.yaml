@@ -714,6 +714,14 @@ spec:
   links:
   - name: Assisted Service
     url: https://github.com/openshift/assisted-service
+  - name: Assisted Image Service
+    url: https://github.com/openshift/assisted-image-service
+  - name: Assisted Installer
+    url: https://github.com/openshift/assisted-installer
+  - name: Assisted Installer Controller
+    url: https://github.com/openshift/assisted-installer
+  - name: Assisted Installer Agent
+    url: https://github.com/openshift/assisted-installer-agent
   maintainers:
   - email: support@redhat.com
     name: Support
