@@ -939,10 +939,40 @@ func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, para
 		log.Warnf("failed to delete DNS record sets for base domain: %s", cluster.BaseDNSDomain)
 	}
 
+	if err = b.deleteOrUnbindHosts(ctx, cluster); err != nil {
+		log.WithError(err).Errorf("failed delete or unbind hosts when deregistering cluster: %s", params.ClusterID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	err = b.clusterApi.DeregisterCluster(ctx, cluster)
 	if err != nil {
 		log.WithError(err).Errorf("failed to deregister cluster %s", params.ClusterID)
 		return common.NewApiError(http.StatusNotFound, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) deleteOrUnbindHosts(ctx context.Context, cluster *common.Cluster) error {
+	log := logutil.FromContext(ctx, b.log)
+	for _, h := range cluster.Hosts {
+		infraEnv, err := common.GetInfraEnvFromDB(b.db, h.InfraEnvID)
+		if err != nil {
+			log.WithError(err).Errorf("failed to get infra env: %s", h.InfraEnvID)
+			return err
+		}
+		if infraEnv.ClusterID == *cluster.ID {
+			if err = b.hostApi.UnRegisterHost(ctx, h.ID.String(), h.InfraEnvID.String()); err != nil {
+				log.WithError(err).Errorf("failed to delete host: %s", h.ID.String())
+				return err
+			}
+			eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, cluster.ID, *h.ID, h.InfraEnvID,
+				hostutil.GetHostnameForMsg(h))
+		} else if h.ClusterID != nil {
+			if err = b.hostApi.UnbindHost(ctx, h, b.db); err != nil {
+				log.WithError(err).Errorf("Failed to unbind host <%s>", h.ID.String())
+				return err
+			}
+		}
 	}
 	return nil
 }

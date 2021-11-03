@@ -412,6 +412,7 @@ func (r *InfraEnvReconciler) deregisterInfraEnvWithHosts(ctx context.Context, lo
 		models.HostStatusInstalled,
 		models.HostStatusAddedToExistingCluster,
 		models.HostStatusUnbinding,
+		models.HostStatusUnbindingPendingUserAction,
 	}
 	hosts, err := r.Installer.GetInfraEnvHostsInternal(ctx, *infraEnv.ID)
 	if err != nil {

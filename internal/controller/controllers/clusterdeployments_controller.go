@@ -266,7 +266,7 @@ func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.
 				return &ctrl.Result{Requeue: true}, err
 			}
 			if err == nil {
-				if swag.StringValue(cluster.Status) == models.ClusterStatusInstalling {
+				if swag.StringValue(cluster.Status) == models.ClusterStatusInstalling || swag.StringValue(cluster.Status) == models.ClusterStatusPreparingForInstallation {
 					log.Infof("ClusterInstall is being deleted, cancel installation for cluster %s", *cluster.ID)
 					if _, err = r.Installer.CancelInstallationInternal(ctx, installer.V2CancelInstallationParams{
 						ClusterID: *cluster.ID,
@@ -275,7 +275,12 @@ func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.
 					}
 				}
 			}
-			// deletion finalizer found, deregister the backend cluster and delete agents
+			//Unbind agents
+			if err = r.UnbindAgents(ctx, log, req.NamespacedName); err != nil {
+				return &ctrl.Result{Requeue: true}, err
+			}
+
+			// deletion finalizer found, deregister the backend cluster
 			reply, cleanUpErr := r.deregisterClusterIfNeeded(ctx, log, req.NamespacedName)
 			if cleanUpErr != nil {
 				log.WithError(cleanUpErr).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s",
@@ -1072,10 +1077,6 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 	}); err != nil {
 		return buildReply(err)
 	}
-	// Delete agents because their backend cluster got deregistered.
-	if err = r.DeleteClusterDeploymentAgents(ctx, log, key); err != nil {
-		return buildReply(err)
-	}
 
 	log.Infof("Cluster resource deleted, Unregistered cluster: %s", c.ID.String())
 
@@ -1118,7 +1119,7 @@ func (r *ClusterDeploymentsReconciler) deleteClusterInstall(ctx context.Context,
 	return buildReply(err)
 }
 
-func (r *ClusterDeploymentsReconciler) DeleteClusterDeploymentAgents(ctx context.Context, log logrus.FieldLogger, clusterDeployment types.NamespacedName) error {
+func (r *ClusterDeploymentsReconciler) UnbindAgents(ctx context.Context, log logrus.FieldLogger, clusterDeployment types.NamespacedName) error {
 	agents := &aiv1beta1.AgentList{}
 	log = log.WithFields(logrus.Fields{"clusterDeployment": clusterDeployment.Name, "namespace": clusterDeployment.Namespace})
 	if err := r.List(ctx, agents); err != nil {
@@ -1128,9 +1129,10 @@ func (r *ClusterDeploymentsReconciler) DeleteClusterDeploymentAgents(ctx context
 		if clusterAgent.Spec.ClusterDeploymentName != nil &&
 			clusterAgent.Spec.ClusterDeploymentName.Name == clusterDeployment.Name &&
 			clusterAgent.Spec.ClusterDeploymentName.Namespace == clusterDeployment.Namespace {
-			log.Infof("delete agent %s namespace %s", clusterAgent.Name, clusterAgent.Namespace)
-			if err := r.Client.Delete(ctx, &agents.Items[i]); err != nil {
-				log.WithError(err).Errorf("Failed to delete resource %s %s", clusterAgent.Name, clusterAgent.Namespace)
+			log.Infof("unbind agent %s namespace %s", clusterAgent.Name, clusterAgent.Namespace)
+			agents.Items[i].Spec.ClusterDeploymentName = nil
+			if err := r.Update(ctx, &agents.Items[i]); err != nil {
+				log.WithError(err).Errorf("failed to add unbind resource %s %s", clusterAgent.Name, clusterAgent.Namespace)
 				return err
 			}
 		}

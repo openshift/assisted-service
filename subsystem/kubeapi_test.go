@@ -1952,6 +1952,76 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "1m", "10s").Should(BeTrue())
 	})
 
+	It("Agent back to InfraEnv on CD delete", func() {
+		By("Create InfraEnv - pool")
+		infraEnvSpec.ClusterRef = nil
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		By("Register host to pool")
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		host := &registerHost(*infraEnv.ID).Host
+		hwInfo := validHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
+		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+
+		By("Create cluster")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+
+		hostKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		By("Bind Agent")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, hostKey)
+			agent.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{
+				Namespace: Options.Namespace,
+				Name:      clusterDeploymentSpec.ClusterName,
+			}
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, hostKey)
+			return agent.Spec.ClusterDeploymentName != nil
+		}, "30s", "1s").Should(BeTrue())
+
+		Eventually(func() bool {
+			agent := GetHostByKubeKey(ctx, db, hostKey, waitForReconcileTimeout)
+			return agent.ClusterID != nil
+		}, "30s", "1s").Should(BeTrue())
+
+		registerHostByUUID(host.InfraEnvID, *host.ID)
+		generateEssentialHostSteps(ctx, host, "hostname1", defaultCIDRv4)
+		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+
+		By("Delete ClusterDeployment")
+		Expect(kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))).ShouldNot(HaveOccurred())
+
+		By("Check that host is not bound to cluster")
+		Eventually(func() bool {
+			agent := GetHostByKubeKey(ctx, db, hostKey, waitForReconcileTimeout)
+			return agent.ClusterID == nil
+		}, "30s", "1s").Should(BeTrue())
+
+		By("Check that Agent is unbind")
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, hostKey)
+			return agent.Spec.ClusterDeploymentName == nil
+		}, "30s", "1s").Should(BeTrue())
+	})
+
 	It("Move agent to different CD Unbind/bind", func() {
 		By("Create InfraEnv - pool")
 		infraEnvSpec.ClusterRef = nil

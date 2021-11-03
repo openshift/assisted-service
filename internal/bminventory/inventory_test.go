@@ -12276,7 +12276,7 @@ var _ = Describe("BindHost", func() {
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Kind: swag.String(models.ClusterKindCluster)}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -12391,6 +12391,74 @@ var _ = Describe("BindHost", func() {
 		verifyApiErrorString(response, http.StatusBadRequest, "doesn't match")
 	})
 
+	It("Deregister cluster - bind host", func() {
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.RegisterHostToInfraEnvFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
+		response := bm.BindHost(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
+
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("cluster_id", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("status", "known").Error).ShouldNot(HaveOccurred())
+		// Deregister Cluster
+		deregisterParams := installer.DeregisterClusterParams{
+			ClusterID: clusterID,
+		}
+		mockAccountsMgmt.EXPECT().GetSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
+		mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
+		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any()).Times(1)
+		response = bm.DeregisterCluster(ctx, deregisterParams)
+		Expect(response).To(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
+	})
+
+	It("Deregister cluster - mixed bind host", func() {
+		infraEnv2ID := strfmt.UUID(uuid.New().String())
+		err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnv2ID, ClusterID: clusterID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		host2ID := strfmt.UUID(uuid.New().String())
+		status := models.HostStatusKnown
+		err = db.Create(&common.Host{Host: models.Host{ID: &host2ID, ClusterID: &clusterID, InfraEnvID: infraEnv2ID, Status: &status}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
+		response := bm.BindHost(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
+
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("cluster_id", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("status", "known").Error).ShouldNot(HaveOccurred())
+		// Deregister Cluster
+		deregisterParams := installer.DeregisterClusterParams{
+			ClusterID: clusterID,
+		}
+		mockAccountsMgmt.EXPECT().GetSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
+		mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
+		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any()).Times(1)
+		mockHostApi.EXPECT().UnRegisterHost(ctx, host2ID.String(), infraEnv2ID.String()).Return(nil).Times(1)
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostDeregisteredEventName),
+			eventstest.WithHostIdMatcher(host2ID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
+		response = bm.DeregisterCluster(ctx, deregisterParams)
+		Expect(response).To(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
+	})
 })
 
 var _ = Describe("UnbindHost", func() {
