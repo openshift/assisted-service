@@ -18,8 +18,7 @@ import (
 type HostProgressInfo struct {
 
 	// current stage
-	// Required: true
-	CurrentStage HostStage `json:"current_stage"`
+	CurrentStage HostStage `json:"current_stage,omitempty"`
 
 	// installation percentage
 	InstallationPercentage int64 `json:"installation_percentage,omitempty"`
@@ -59,6 +58,10 @@ func (m *HostProgressInfo) Validate(formats strfmt.Registry) error {
 }
 
 func (m *HostProgressInfo) validateCurrentStage(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.CurrentStage) { // not required
+		return nil
+	}
 
 	if err := m.CurrentStage.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
