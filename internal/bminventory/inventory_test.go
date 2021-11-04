@@ -10398,6 +10398,25 @@ var _ = Describe("Install Host test", func() {
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostAccepted()))
 	})
 
+	It("Install day2 host custom ignition endpoint", func() {
+		db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Update("ignition_endpoint_url", "http://example.com")
+
+		params := installer.InstallHostParams{
+			HTTPRequest: request,
+			ClusterID:   clusterID,
+			HostID:      hostID,
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile("http://example.com", gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		res := bm.InstallHost(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostAccepted()))
+	})
+
 	It("[V2] Install day2 host", func() {
 		params := installer.V2InstallHostParams{
 			HTTPRequest: request,
@@ -10410,6 +10429,24 @@ var _ = Describe("Install Host test", func() {
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		res := bm.V2InstallHost(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostAccepted()))
+	})
+
+	It("[V2] Install day2 host custom ignition endpoint", func() {
+		db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Update("ignition_endpoint_url", "http://example.com")
+
+		params := installer.V2InstallHostParams{
+			HTTPRequest: request,
+			InfraEnvID:  infraEnvId,
+			HostID:      hostID,
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile("http://example.com", gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.V2InstallHost(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostAccepted()))
 	})

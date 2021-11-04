@@ -118,16 +118,16 @@ func (mr *MockIgnitionBuilderMockRecorder) FormatDiscoveryIgnitionFile(ctx, infr
 }
 
 // FormatSecondDayWorkerIgnitionFile mocks base method.
-func (m *MockIgnitionBuilder) FormatSecondDayWorkerIgnitionFile(address, machineConfigPoolName string) ([]byte, error) {
+func (m *MockIgnitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, bearerToken *string) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FormatSecondDayWorkerIgnitionFile", address, machineConfigPoolName)
+	ret := m.ctrl.Call(m, "FormatSecondDayWorkerIgnitionFile", url, bearerToken)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FormatSecondDayWorkerIgnitionFile indicates an expected call of FormatSecondDayWorkerIgnitionFile.
-func (mr *MockIgnitionBuilderMockRecorder) FormatSecondDayWorkerIgnitionFile(address, machineConfigPoolName interface{}) *gomock.Call {
+func (mr *MockIgnitionBuilderMockRecorder) FormatSecondDayWorkerIgnitionFile(url, bearerToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatSecondDayWorkerIgnitionFile", reflect.TypeOf((*MockIgnitionBuilder)(nil).FormatSecondDayWorkerIgnitionFile), address, machineConfigPoolName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatSecondDayWorkerIgnitionFile", reflect.TypeOf((*MockIgnitionBuilder)(nil).FormatSecondDayWorkerIgnitionFile), url, bearerToken)
 }

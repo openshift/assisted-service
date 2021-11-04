@@ -291,7 +291,8 @@ const secondDayWorkerIgnitionFormat = `{
 	  "version": "3.1.0",
 	  "config": {
 		"merge": [{
-		  "source": "{{.SOURCE}}"
+		  "source": "{{.SOURCE}}",
+		  "httpHeaders": [{{range $k,$v := .HEADERS}}{"name": "{{$k}}", "value": "{{$v}}"}{{end}}]
 		}]
 	  }
 	}
@@ -320,7 +321,7 @@ type Generator interface {
 //go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
 type IgnitionBuilder interface {
 	FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
-	FormatSecondDayWorkerIgnitionFile(address string, machineConfigPoolName string) ([]byte, error)
+	FormatSecondDayWorkerIgnitionFile(url string, bearerToken *string) ([]byte, error)
 }
 
 type installerGenerator struct {
@@ -1417,11 +1418,16 @@ func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(ctx context.Con
 	return filesList, nil
 }
 
-func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(address string, machineConfigPoolName string) ([]byte, error) {
-	var ignitionParams = map[string]string{
+func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, bearerToken *string) ([]byte, error) {
+	var ignitionParams = map[string]interface{}{
 		// https://github.com/openshift/machine-config-operator/blob/master/docs/MachineConfigServer.md#endpoint
-		"SOURCE": "http://" + address + fmt.Sprintf(":22624/config/%s", machineConfigPoolName),
+		"SOURCE":  url,
+		"HEADERS": map[string]string{},
 	}
+	if bearerToken != nil {
+		ignitionParams["HEADERS"].(map[string]string)["Authorization"] = fmt.Sprintf("Bearer: %s", *bearerToken)
+	}
+
 	tmpl, err := template.New("nodeIgnition").Parse(secondDayWorkerIgnitionFormat)
 	if err != nil {
 		return nil, err

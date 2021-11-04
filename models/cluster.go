@@ -121,6 +121,9 @@ type Cluster struct {
 	// Json formatted string containing the user overrides for the initial ignition config
 	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty" gorm:"type:text"`
 
+	// Explicit ignition endpoint overrides the default ignition endpoint.
+	IgnitionEndpointURL *string `json:"ignition_endpoint_url,omitempty"`
+
 	// image info
 	// Required: true
 	ImageInfo *ImageInfo `json:"image_info" gorm:"embedded;embedded_prefix:image_"`

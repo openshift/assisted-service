@@ -82,6 +82,10 @@ spec:
                 description: Json formatted string containing the user overrides for
                   the host's ignition config
                 type: string
+              ignitionEndpointToken:
+                description: IgnitionEndpointToken define a string which will be used
+                  as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
+                type: string
               installation_disk_id:
                 description: InstallationDiskID defines the installation destination
                   disk (must be equal to the inventory disk id).

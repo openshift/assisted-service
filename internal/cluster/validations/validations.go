@@ -250,6 +250,11 @@ func ValidateClusterNameFormat(name string) error {
 	return nil
 }
 
+// ValidateHTTPFormat validates the HTTP and HTTPS format
+func ValidateHTTPFormat(url string) error {
+	return ValidateHTTPProxyFormat(url)
+}
+
 // ValidateHTTPProxyFormat validates the HTTP Proxy and HTTPS Proxy format
 func ValidateHTTPProxyFormat(proxyURL string) error {
 	if !govalidator.IsURL(proxyURL) {

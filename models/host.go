@@ -69,6 +69,9 @@ type Host struct {
 	// Json formatted string containing the user overrides for the host's pointer ignition
 	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty" gorm:"type:text"`
 
+	// A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
+	IgnitionEndpointToken *string `json:"ignition_endpoint_token,omitempty"`
+
 	// Array of image statuses.
 	ImagesStatus string `json:"images_status,omitempty" gorm:"type:text"`
 
