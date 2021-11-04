@@ -22,6 +22,14 @@ func NewInventoryCmd(log logrus.FieldLogger, inventoryImage string) *inventoryCm
 }
 
 func (h *inventoryCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
+	// Copying mounts file, which is not available by podman's PID
+	// We incorporate the host's ID in the copied mtab file path to allow multiple agents
+	// to run on the same host during load testing easily without fighting over the same
+	// path (each of them has a different fake host ID)
+	mtabPath := fmt.Sprintf("/root/mtab-%s", host.ID)
+	mtabCopy := fmt.Sprintf("cp /etc/mtab %s", mtabPath)
+	mtabMount := fmt.Sprintf("%s:/host/etc/mtab:ro", mtabPath)
+
 	podmanRunCmd := strings.Join([]string{
 		"podman", "run", "--privileged", "--net=host", "--rm", "--quiet",
 		"-v", "/var/log:/var/log",
@@ -34,7 +42,7 @@ func (h *inventoryCmd) GetSteps(ctx context.Context, host *models.Host) ([]*mode
 		"-v", "/proc/meminfo:/host/proc/meminfo:ro",
 		"-v", "/sys/kernel/mm/hugepages:/host/sys/kernel/mm/hugepages:ro",
 		"-v", "/proc/cpuinfo:/host/proc/cpuinfo:ro",
-		"-v", "/root/mtab:/host/etc/mtab:ro",
+		"-v", mtabMount,
 		"-v", "/sys/block:/host/sys/block:ro",
 		"-v", "/sys/devices:/host/sys/devices:ro",
 		"-v", "/sys/bus:/host/sys/bus:ro",
@@ -46,15 +54,12 @@ func (h *inventoryCmd) GetSteps(ctx context.Context, host *models.Host) ([]*mode
 		"inventory",
 	}, " ")
 
-	// Copying mounts file, which is not available by podman's PID
-	copyMountsFileCmd := "cp /etc/mtab /root/mtab"
-
 	inventoryCmd := &models.Step{
 		StepType: models.StepTypeInventory,
 		Command:  "sh",
 		Args: []string{
 			"-c",
-			fmt.Sprintf("%v && %v", copyMountsFileCmd, podmanRunCmd),
+			fmt.Sprintf("%v && %v", mtabCopy, podmanRunCmd),
 		},
 	}
 

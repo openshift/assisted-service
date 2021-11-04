@@ -139,8 +139,6 @@ var _ = Describe("installcmd", func() {
 	It("invalid_inventory", func() {
 		host.Inventory = "blah"
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
-		mockGetReleaseImage(1)
-		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(true, true, nil, stepErr, "")
 	})
@@ -978,7 +976,7 @@ func verifyArgInCommand(command, key, value string, count int) {
 }
 
 func verifyDiskFormatCommand(command string, value string, exists bool) {
-	r := regexp.MustCompile(`dd if=\/dev\/zero of=([^\s]+) bs=512 count=1 ; `)
+	r := regexp.MustCompile(`--format-disk ([^\s]+)`)
 	matches := r.FindAllStringSubmatch(command, -1)
 	matchValue := func() bool {
 		if matches == nil {

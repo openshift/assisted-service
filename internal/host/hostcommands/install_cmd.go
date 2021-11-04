@@ -81,17 +81,17 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		}
 	}
 
-	fullCmd, err := i.getFullInstallerCommand(cluster, host, infraEnv, bootdevice)
+	disksToFormat, err := i.getDisksToFormat(ctx, *host)
 	if err != nil {
 		return nil, err
 	}
 
-	unbootableCmd, err := i.getDiskUnbootableCmd(ctx, *host)
+	fullCmd, err := i.getFullInstallerCommand(cluster, host, infraEnv, bootdevice, disksToFormat)
 	if err != nil {
 		return nil, err
 	}
 
-	step.Args = []string{"-c", unbootableCmd + fullCmd}
+	step.Args = []string{"-c", fullCmd}
 
 	if _, err := hostutil.UpdateHost(i.log, i.db, host.InfraEnvID, *host.ID, *host.Status,
 		"installer_version", i.instructionConfig.InstallerImage); err != nil {
@@ -101,7 +101,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	return []*models.Step{step}, nil
 }
 
-func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, infraEnv *common.InfraEnv, bootdevice string) (string, error) {
+func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, infraEnv *common.InfraEnv, bootdevice string, disksToFormat []string) (string, error) {
 	role := common.GetEffectiveRole(host)
 	if host.Bootstrap {
 		role = models.HostRoleBootstrap
@@ -134,7 +134,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	i.log.Infof("Install command releaseImage: %s, mcoImage: %s", *releaseImage.URL, mcoImage)
 
 	podmanCmd := podmanBaseCmd[:]
-	installerCmd := []string{
+	installerCmdArgs := []string{
 		"--role", string(role),
 		"--infra-env-id", host.InfraEnvID.String(),
 		"--cluster-id", host.ClusterID.String(),
@@ -149,22 +149,27 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		"--must-gather-image", mustGatherImages,
 	}
 
+	for _, diskToFormat := range disksToFormat {
+		installerCmdArgs = append(installerCmdArgs, "--format-disk")
+		installerCmdArgs = append(installerCmdArgs, diskToFormat)
+	}
+
 	/*
 		boolean flag must be used either without value (flag present means True) or in the format of <flag>=True|False.
 		format <boolean flag> <value> is not supported by golang flag package and will cause the flags processing to finish
 		before processing the rest of the input flags
 	*/
 	if i.instructionConfig.SkipCertVerification {
-		installerCmd = append(installerCmd, "--insecure")
+		installerCmdArgs = append(installerCmdArgs, "--insecure")
 	}
 
 	if i.instructionConfig.CheckClusterVersion {
-		installerCmd = append(installerCmd, "--check-cluster-version")
+		installerCmdArgs = append(installerCmdArgs, "--check-cluster-version")
 	}
 
 	if i.hasCACert() {
 		podmanCmd = append(podmanCmd, "--volume", fmt.Sprintf("%s:%s:rw", common.HostCACertPath, common.HostCACertPath))
-		installerCmd = append(installerCmd, "--cacert", common.HostCACertPath)
+		installerCmdArgs = append(installerCmdArgs, "--cacert", common.HostCACertPath)
 	}
 
 	hostInstallerArgs, err := constructHostInstallerArgs(cluster, host, infraEnv, i.log)
@@ -173,20 +178,20 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	}
 
 	if hostInstallerArgs != "" {
-		installerCmd = append(installerCmd, "--installer-args", hostInstallerArgs)
+		installerCmdArgs = append(installerCmdArgs, "--installer-args", hostInstallerArgs)
 	}
 
 	noProxyArgs := i.getProxyArguments(cluster.Name, cluster.BaseDNSDomain, cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
 	if len(noProxyArgs) > 0 {
-		installerCmd = append(installerCmd, noProxyArgs...)
+		installerCmdArgs = append(installerCmdArgs, noProxyArgs...)
 	}
 
 	if i.instructionConfig.ServiceIPs != "" {
-		installerCmd = append(installerCmd, "--service-ips", i.instructionConfig.ServiceIPs)
+		installerCmdArgs = append(installerCmdArgs, "--service-ips", i.instructionConfig.ServiceIPs)
 	}
 
 	return fmt.Sprintf("%s %s %s", shellescape.QuoteCommand(podmanCmd), i.instructionConfig.InstallerImage,
-		shellescape.QuoteCommand(installerCmd)), nil
+		shellescape.QuoteCommand(installerCmdArgs)), nil
 }
 
 func (i *installCmd) getMustGatherArgument(mustGatherMap versions.MustGatherVersion) (string, error) {
@@ -246,23 +251,23 @@ func (i *installCmd) hasCACert() bool {
 	return i.instructionConfig.ServiceCACertPath != ""
 }
 
-func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host) (string, error) {
+func (i *installCmd) getDisksToFormat(ctx context.Context, host models.Host) ([]string, error) {
 	var inventory models.Inventory
 	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
 		i.log.Errorf("Failed to get inventory from host with id %s", host.ID)
-		return "", err
+		return nil, err
 	}
-	formatCmds := ""
+	formatDisks := make([]string, 0, len(inventory.Disks))
 	for _, disk := range inventory.Disks {
 		isFcIscsi := strings.Contains(disk.ByPath, "-fc-") || strings.Contains(disk.ByPath, "-iscsi-")
 		isMmcblk := strings.Contains(disk.ByPath, "mmcblk") //mmc devices should be treated as removable
 		if disk.Bootable && !disk.Removable && !isMmcblk && !isFcIscsi && !disk.IsInstallationMedia {
-			formatCmds += fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=1 ; ", hostutil.GetDeviceIdentifier(disk))
+			formatDisks = append(formatDisks, hostutil.GetDeviceIdentifier(disk))
 			eventgen.SendQuickDiskFormatPerformedEvent(ctx, i.eventsHandler, host.ClusterID, *host.ID, host.InfraEnvID,
 				hostutil.GetHostnameForMsg(&host), disk.Name, hostutil.GetDeviceIdentifier(disk))
 		}
 	}
-	return formatCmds, nil
+	return formatDisks, nil
 }
 
 /*
