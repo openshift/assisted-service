@@ -286,6 +286,10 @@ var _ = Describe("instruction_manager", func() {
 		It("unbinding", func() {
 			checkStep(models.HostStatusUnbinding, nil)
 		})
+
+		It("unbinding-pending-user-action", func() {
+			checkStep(models.HostStatusUnbindingPendingUserAction, nil)
+		})
 	})
 
 	Context("Disable Steps verification", func() {

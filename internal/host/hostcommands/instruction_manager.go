@@ -112,12 +112,13 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusCancelled:            {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 		},
 		poolHostToSteps: stateToStepsMap{
-			models.HostStatusDiscoveringUnbound:  {[]CommandGetter{inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusDisconnectedUnbound: {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusDisabledUnbound:     {[]CommandGetter{}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusInsufficientUnbound: {[]CommandGetter{inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusKnownUnbound:        {[]CommandGetter{inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusUnbinding:           {[]CommandGetter{noopCmd}, 0, models.StepsPostStepActionExit},
+			models.HostStatusDiscoveringUnbound:         {[]CommandGetter{inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusDisconnectedUnbound:        {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusDisabledUnbound:            {[]CommandGetter{}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusInsufficientUnbound:        {[]CommandGetter{inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusKnownUnbound:               {[]CommandGetter{inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusUnbinding:                  {[]CommandGetter{noopCmd}, 0, models.StepsPostStepActionExit},
+			models.HostStatusUnbindingPendingUserAction: {[]CommandGetter{noopCmd}, 0, models.StepsPostStepActionExit},
 		},
 	}
 }

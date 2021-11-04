@@ -305,10 +305,20 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusInsufficient),
 			stateswitch.State(models.HostStatusDisabled),
 			stateswitch.State(models.HostStatusPendingForInput),
+		},
+		DestinationState: stateswitch.State(models.HostStatusUnbinding),
+		PostTransition:   th.PostUnbindHost,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeUnbindHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstalled),
+			stateswitch.State(models.HostStatusAddedToExistingCluster),
 			stateswitch.State(models.HostStatusError),
 			stateswitch.State(models.HostStatusCancelled),
 		},
-		DestinationState: stateswitch.State(models.HostStatusUnbinding),
+		DestinationState: stateswitch.State(models.HostStatusUnbindingPendingUserAction),
 		PostTransition:   th.PostUnbindHost,
 	})
 
