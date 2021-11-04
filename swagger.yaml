@@ -7819,8 +7819,6 @@ definitions:
 
   host-progress:
     type: object
-    required:
-      - current_stage
     properties:
       current_stage:
         type: string
@@ -7831,8 +7829,6 @@ definitions:
 
   host-progress-info:
     type: object
-    required:
-      - current_stage
     properties:
       installation_percentage:
         type: integer

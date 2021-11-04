@@ -17,8 +17,7 @@ import (
 type HostProgress struct {
 
 	// current stage
-	// Required: true
-	CurrentStage HostStage `json:"current_stage"`
+	CurrentStage HostStage `json:"current_stage,omitempty"`
 
 	// progress info
 	ProgressInfo string `json:"progress_info,omitempty" gorm:"type:varchar(2048)"`
@@ -39,6 +38,10 @@ func (m *HostProgress) Validate(formats strfmt.Registry) error {
 }
 
 func (m *HostProgress) validateCurrentStage(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.CurrentStage) { // not required
+		return nil
+	}
 
 	if err := m.CurrentStage.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {

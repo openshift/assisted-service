@@ -11340,9 +11340,6 @@ func init() {
     },
     "host-progress": {
       "type": "object",
-      "required": [
-        "current_stage"
-      ],
       "properties": {
         "current_stage": {
           "type": "string",
@@ -11356,9 +11353,6 @@ func init() {
     },
     "host-progress-info": {
       "type": "object",
-      "required": [
-        "current_stage"
-      ],
       "properties": {
         "current_stage": {
           "type": "string",
@@ -24527,9 +24521,6 @@ func init() {
     },
     "host-progress": {
       "type": "object",
-      "required": [
-        "current_stage"
-      ],
       "properties": {
         "current_stage": {
           "type": "string",
@@ -24543,9 +24534,6 @@ func init() {
     },
     "host-progress-info": {
       "type": "object",
-      "required": [
-        "current_stage"
-      ],
       "properties": {
         "current_stage": {
           "type": "string",
