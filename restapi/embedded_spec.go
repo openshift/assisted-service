@@ -11009,7 +11009,25 @@ func init() {
             "properties": {
               "feature_id": {
                 "description": "The ID of the feature",
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "ADDITIONAL_NTP_SOURCE",
+                  "REQUESTED_HOSTNAME",
+                  "PROXY",
+                  "SNO",
+                  "DAY2_HOSTS",
+                  "VIP_AUTO_ALLOC",
+                  "DISK_SELECTION",
+                  "OVN_NETWORK_TYPE",
+                  "SDN_NETWORK_TYPE",
+                  "PLATFORM_SELECTION",
+                  "SCHEDULABLE_MASTERS",
+                  "AUTO_ASSIGN_ROLE",
+                  "CUSTOM_MANIFEST",
+                  "DISK_ENCRYPTION",
+                  "USER_MANAGED_NETWORKING_WITH_VMS",
+                  "ARM64_ARCHITECTURE"
+                ]
               },
               "support_level": {
                 "type": "string",
@@ -22572,7 +22590,25 @@ func init() {
       "properties": {
         "feature_id": {
           "description": "The ID of the feature",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "ADDITIONAL_NTP_SOURCE",
+            "REQUESTED_HOSTNAME",
+            "PROXY",
+            "SNO",
+            "DAY2_HOSTS",
+            "VIP_AUTO_ALLOC",
+            "DISK_SELECTION",
+            "OVN_NETWORK_TYPE",
+            "SDN_NETWORK_TYPE",
+            "PLATFORM_SELECTION",
+            "SCHEDULABLE_MASTERS",
+            "AUTO_ASSIGN_ROLE",
+            "CUSTOM_MANIFEST",
+            "DISK_ENCRYPTION",
+            "USER_MANAGED_NETWORKING_WITH_VMS",
+            "ARM64_ARCHITECTURE"
+          ]
         },
         "support_level": {
           "type": "string",
