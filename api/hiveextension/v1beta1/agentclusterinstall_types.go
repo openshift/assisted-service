@@ -148,9 +148,20 @@ type AgentClusterInstallSpec struct {
 	// +optional
 	HoldInstallation bool `json:"holdInstallation,omitempty"`
 
-	// IgnitionEndpointUrl store the value of the custom ignition endpoint.
+	// IgnitionEndpoint store the data to of the custom ignition endpoint.
 	// +optional
-	IgnitionEndpointUrl string `json:"ignitionEndpointUrl,omitempty"`
+	IgnitionEndpoint *IgnitionEndpoint `json:"ignitionEndpoint,omitempty"`
+}
+
+// IgnitionEndpoint store the data to of the custom ignition endpoint.
+type IgnitionEndpoint struct {
+	// Url store the URL of the custom ignition endpoint.
+	// +optional
+	Url string `json:"url,omitempty"`
+
+	// CaCertificate a CA certficate to be used when contacting the URL via https.
+	// +optional
+	CaCertificate string `json:"caCertificate,omitempty"`
 }
 
 // AgentClusterInstallStatus defines the observed state of the AgentClusterInstall.

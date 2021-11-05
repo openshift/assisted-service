@@ -122,7 +122,7 @@ type Cluster struct {
 	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty" gorm:"type:text"`
 
 	// Explicit ignition endpoint overrides the default ignition endpoint.
-	IgnitionEndpointURL *string `json:"ignition_endpoint_url,omitempty"`
+	IgnitionEndpoint *IgnitionEndpoint `json:"ignition_endpoint,omitempty" gorm:"embedded;embedded_prefix:ignition_endpoint_"`
 
 	// image info
 	// Required: true
@@ -309,6 +309,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateIgnitionEndpoint(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -704,6 +708,24 @@ func (m *Cluster) validateID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateIgnitionEndpoint(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.IgnitionEndpoint) { // not required
+		return nil
+	}
+
+	if m.IgnitionEndpoint != nil {
+		if err := m.IgnitionEndpoint.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("ignition_endpoint")
+			}
+			return err
+		}
 	}
 
 	return nil

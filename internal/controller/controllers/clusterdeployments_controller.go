@@ -704,9 +704,17 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	sshPublicKey := strings.TrimSpace(clusterInstall.Spec.SSHPublicKey)
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 
-	// Update ignition endpoint URL if needed
-	if clusterInstall.Spec.IgnitionEndpointUrl != "" {
-		updateString(clusterInstall.Spec.IgnitionEndpointUrl, swag.StringValue(cluster.IgnitionEndpointURL), &params.IgnitionEndpointURL)
+	// Update ignition endpoint if needed
+	if clusterInstall.Spec.IgnitionEndpoint != nil {
+		ignitionEndpoint := &models.IgnitionEndpoint{}
+		if clusterInstall.Spec.IgnitionEndpoint.Url != "" {
+			ignitionEndpoint.URL = swag.String(clusterInstall.Spec.IgnitionEndpoint.Url)
+		}
+		if clusterInstall.Spec.IgnitionEndpoint.CaCertificate != "" {
+			ignitionEndpoint.CaCertificate = swag.String(clusterInstall.Spec.IgnitionEndpoint.CaCertificate)
+		}
+		params.IgnitionEndpoint = ignitionEndpoint
+		update = true
 	}
 
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
@@ -952,8 +960,11 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		clusterParams.Hyperthreading = getHyperthreading(clusterInstall)
 	}
 
-	if clusterInstall.Spec.IgnitionEndpointUrl != "" {
-		clusterParams.IgnitionEndpointURL = swag.String(clusterInstall.Spec.IgnitionEndpointUrl)
+	if clusterInstall.Spec.IgnitionEndpoint != nil {
+		clusterParams.IgnitionEndpoint = &models.IgnitionEndpoint{
+			URL:           swag.String(clusterInstall.Spec.IgnitionEndpoint.Url),
+			CaCertificate: swag.String(clusterInstall.Spec.IgnitionEndpoint.CaCertificate),
+		}
 	}
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.V2RegisterClusterParams{
