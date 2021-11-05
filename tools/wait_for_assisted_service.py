@@ -9,7 +9,6 @@ import deployment_options
 from urllib.parse import urlunsplit, urlsplit
 from retry import retry
 
-SERVICE = "assisted-service"
 TIMEOUT = 60 * 30
 REQUEST_TIMEOUT = 2
 SLEEP = 10
@@ -27,20 +26,18 @@ def wait_for_request(url: str) -> bool:
 
 
 @retry(exceptions=RuntimeError, tries=2, delay=3)
-def is_assisted_service_ready(target, domain, namespace, disable_tls) -> bool:
-    print(f"DEBUG - is_assisted_service_ready({target} {domain} {namespace} {disable_tls})")
+def is_service_ready(service, path, target, domain, namespace, disable_tls) -> bool:
+    print(f"DEBUG - is_service_ready({service} {path} {target} {domain} {namespace} {disable_tls})")
     service_url = utils.get_service_url(
-        service=SERVICE, target=target, domain=domain,
+        service=service, target=target, domain=domain,
         namespace=namespace, disable_tls=disable_tls)
-    health_url = f'{service_url}/ready'
+    url = urlsplit(service_url)
+    url = url._replace(path=path)
 
-    if os.getenv("SKIPPER_PLATFORM") == 'darwin':
-        url = urlsplit(health_url)
+    if os.getenv("SKIPPER_PLATFORM") == 'darwin' and url.hostname == "127.0.0.1":
+        url = url._replace(netloc=f"host.docker.internal:{url.port}")
 
-        if url.hostname == "127.0.0.1":
-            url = url._replace(netloc=f"host.docker.internal:{url.port}")
-            health_url = urlunsplit(url)
-
+    health_url = urlunsplit(url)
     print(f'Wait for {health_url}')
     return wait_for_request(health_url)
 
@@ -51,7 +48,9 @@ def main():
         return
 
     waiting.wait(
-        lambda: is_assisted_service_ready(
+        lambda: is_service_ready(
+            service="assisted-service",
+            path="/ready",
             target=deploy_options.target,
             domain=deploy_options.domain,
             namespace=deploy_options.namespace,
@@ -59,6 +58,18 @@ def main():
         timeout_seconds=TIMEOUT,
         expected_exceptions=(requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout),
         sleep_seconds=SLEEP, waiting_for="assisted-service to be healthy")
+
+    waiting.wait(
+        lambda: is_service_ready(
+            service="assisted-image-service",
+            path="/health",
+            target=deploy_options.target,
+            domain=deploy_options.domain,
+            namespace=deploy_options.namespace,
+            disable_tls=deploy_options.disable_tls),
+        timeout_seconds=TIMEOUT,
+        expected_exceptions=(requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout),
+        sleep_seconds=SLEEP, waiting_for="assisted-image-service to be healthy")
 
 
 if __name__ == '__main__':
