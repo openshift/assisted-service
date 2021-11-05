@@ -295,6 +295,13 @@ const secondDayWorkerIgnitionFormat = `{
 		  "source": "{{.SOURCE}}",
 		  "httpHeaders": [{{range $k,$v := .HEADERS}}{"name": "{{$k}}", "value": "{{$v}}"}{{end}}]
 		}]
+	  },
+	  "security": {
+		"tls": {
+			"certificateAuthorities": [{
+				"source": "{{.CACERT}}"
+			}]
+		}
 	  }
 	}
   }`
@@ -322,7 +329,7 @@ type Generator interface {
 //go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
 type IgnitionBuilder interface {
 	FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
-	FormatSecondDayWorkerIgnitionFile(url string, bearerToken *string) ([]byte, error)
+	FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken *string) ([]byte, error)
 }
 
 type installerGenerator struct {
@@ -1432,14 +1439,19 @@ func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(ctx context.Con
 	return filesList, nil
 }
 
-func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, bearerToken *string) ([]byte, error) {
+func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken *string) ([]byte, error) {
 	var ignitionParams = map[string]interface{}{
 		// https://github.com/openshift/machine-config-operator/blob/master/docs/MachineConfigServer.md#endpoint
 		"SOURCE":  url,
 		"HEADERS": map[string]string{},
+		"CACERT":  "",
 	}
 	if bearerToken != nil {
 		ignitionParams["HEADERS"].(map[string]string)["Authorization"] = fmt.Sprintf("Bearer: %s", *bearerToken)
+	}
+
+	if caCert != nil {
+		ignitionParams["CACERT"] = fmt.Sprintf("data:text/plain;base64,%s", base64.StdEncoding.EncodeToString([]byte(*caCert)))
 	}
 
 	tmpl, err := template.New("nodeIgnition").Parse(secondDayWorkerIgnitionFormat)

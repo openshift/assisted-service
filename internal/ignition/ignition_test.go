@@ -1232,14 +1232,14 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 
 		It("are rendered properly with token", func() {
 			token := "xyzabc123"
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", &token)
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, &token)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(ign)).Should(ContainSubstring("http://url.com"))
 			Expect(ign).Should(ContainSubstring(`"httpHeaders": [{"name": "Authorization", "value": "Bearer: xyzabc123"}]`))
 		})
 
 		It("are rendered properly without token", func() {
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil)
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(ign)).Should(ContainSubstring("http://url.com"))
 			Expect(ign).Should(ContainSubstring(`"httpHeaders": []`))

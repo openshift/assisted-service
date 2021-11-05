@@ -871,7 +871,7 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 		ignitionEndpointUrl = url.String()
 	}
 
-	ignitionBytes, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, host.IgnitionEndpointToken)
+	ignitionBytes, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, cluster.IgnitionEndpoint.CaCertificate, host.IgnitionEndpointToken)
 	if err != nil {
 		return errors.Errorf("Failed to create ignition string for cluster %s", cluster.ID)
 	}
