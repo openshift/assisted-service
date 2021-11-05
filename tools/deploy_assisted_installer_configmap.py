@@ -41,6 +41,7 @@ log = utils.get_logger('deploy-service-configmap')
 SRC_FILE = os.path.join(os.getcwd(), 'deploy/assisted-service-configmap.yaml')
 DST_FILE = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'assisted-service-configmap.yaml')
 SERVICE = "assisted-service"
+IMAGE_SERVICE = "assisted-image-service"
 
 
 def get_deployment_tag(args):
@@ -60,6 +61,11 @@ def main():
 
             if deploy_options.apply_manifest:
                 data = data.replace("REPLACE_BASE_URL", utils.get_service_url(service=SERVICE,
+                                                                            target=deploy_options.target,
+                                                                            domain=deploy_options.domain,
+                                                                            namespace=deploy_options.namespace,
+                                                                            disable_tls=deploy_options.disable_tls))
+                data = data.replace("REPLACE_IMAGE_SERVICE_BASE_URL", utils.get_service_url(service=IMAGE_SERVICE,
                                                                             target=deploy_options.target,
                                                                             domain=deploy_options.domain,
                                                                             namespace=deploy_options.namespace,
