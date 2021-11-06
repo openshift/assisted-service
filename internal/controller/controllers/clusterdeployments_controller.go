@@ -571,6 +571,20 @@ func isUserManagedNetwork(clusterInstall *hiveext.AgentClusterInstall) bool {
 	return false
 }
 
+func isDiskEncryptionEnabled(clusterInstall *hiveext.AgentClusterInstall) bool {
+	if clusterInstall.Spec.DiskEncryption == nil {
+		return false
+	}
+	switch swag.StringValue(clusterInstall.Spec.DiskEncryption.EnableOn) {
+	case models.DiskEncryptionEnableOnAll, models.DiskEncryptionEnableOnMasters, models.DiskEncryptionEnableOnWorkers:
+		return true
+	case models.DiskEncryptionEnableOnNone:
+		return false
+	default:
+		return false
+	}
+}
+
 //see https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html#installation-bare-metal-config-yaml_installing-platform-agnostic
 func hyperthreadingInSpec(clusterInstall *hiveext.AgentClusterInstall) bool {
 	//check if either master or worker pool hyperthreading settings are explicitly specified
@@ -740,6 +754,19 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	if cluster.Hyperthreading != *hyperthreading {
 		params.Hyperthreading = hyperthreading
 		update = true
+	}
+
+	if clusterInstall.Spec.DiskEncryption != nil {
+		params.DiskEncryption = &models.DiskEncryption{}
+		if cluster.DiskEncryption == nil { // true when current cluster configuration does not include disk encryption
+			cluster.DiskEncryption = &models.DiskEncryption{}
+		}
+		updateString(swag.StringValue(clusterInstall.Spec.DiskEncryption.EnableOn), swag.StringValue(cluster.DiskEncryption.EnableOn), &params.DiskEncryption.EnableOn)
+		updateString(swag.StringValue(clusterInstall.Spec.DiskEncryption.Mode), swag.StringValue(cluster.DiskEncryption.Mode), &params.DiskEncryption.Mode)
+		if clusterInstall.Spec.DiskEncryption.TangServers != cluster.DiskEncryption.TangServers {
+			params.DiskEncryption.TangServers = clusterInstall.Spec.DiskEncryption.TangServers
+			update = true
+		}
 	}
 
 	if !update {
@@ -969,6 +996,14 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		clusterParams.IgnitionEndpoint = &models.IgnitionEndpoint{
 			URL:           swag.String(clusterInstall.Spec.IgnitionEndpoint.Url),
 			CaCertificate: swag.String(clusterInstall.Spec.IgnitionEndpoint.CaCertificate),
+		}
+	}
+
+	if isDiskEncryptionEnabled(clusterInstall) {
+		clusterParams.DiskEncryption = &models.DiskEncryption{
+			EnableOn:    clusterInstall.Spec.DiskEncryption.EnableOn,
+			Mode:        clusterInstall.Spec.DiskEncryption.Mode,
+			TangServers: clusterInstall.Spec.DiskEncryption.TangServers,
 		}
 	}
 

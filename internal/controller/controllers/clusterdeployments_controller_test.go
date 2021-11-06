@@ -284,6 +284,43 @@ var _ = Describe("cluster reconcile", func() {
 				validateCreation(cluster)
 			})
 
+			It("create new cluster with disk encryption", func() {
+				tangServersConfig := `[{"URL":"http://tang.example.com:7500","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`
+				id := strfmt.UUID(uuid.New().String())
+				clusterReply = &common.Cluster{
+					Cluster: models.Cluster{
+						Status:     swag.String(models.ClusterStatusPendingForInput),
+						StatusInfo: swag.String("User input required"),
+						ID:         &id,
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+							Mode:        swag.String(models.DiskEncryptionModeTang),
+							TangServers: tangServersConfig,
+						},
+					},
+				}
+
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+						Expect(params.NewClusterParams.DiskEncryption).NotTo(BeNil())
+						Expect(swag.StringValue(params.NewClusterParams.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnMasters))
+						Expect(swag.StringValue(params.NewClusterParams.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTang))
+						Expect(params.NewClusterParams.DiskEncryption.TangServers).To(Equal(tangServersConfig))
+					}).Return(clusterReply, nil)
+				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+
+				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+				aci.Spec.DiskEncryption = &hiveext.DiskEncryption{
+					EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+					Mode:        swag.String(models.DiskEncryptionModeTang),
+					TangServers: tangServersConfig,
+				}
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+				validateCreation(cluster)
+			})
+
 			It("create sno cluster", func() {
 				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
 					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
@@ -1867,6 +1904,65 @@ var _ = Describe("cluster reconcile", func() {
 						To(Equal(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR))
 				}).Return(updateReply, nil)
 
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+		})
+
+		It("update disk encryption configuration", func() {
+			tangServersConfig := `[{"URL":"http://tang.example.com:7500","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               &sId,
+					Name:             clusterName,
+					OpenshiftVersion: "4.8",
+					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:           swag.String(models.ClusterStatusInsufficient),
+					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
+					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			updateReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusInsufficient),
+					DiskEncryption: &models.DiskEncryption{
+						EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+						Mode:        swag.String(models.DiskEncryptionModeTang),
+						TangServers: tangServersConfig,
+					},
+				},
+				PullSecret: testPullSecretVal,
+			}
+
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.V2UpdateClusterParams) {
+					Expect(param.ClusterUpdateParams.DiskEncryption).NotTo(BeNil())
+					Expect(swag.StringValue(param.ClusterUpdateParams.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnMasters))
+					Expect(swag.StringValue(param.ClusterUpdateParams.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTang))
+					Expect(param.ClusterUpdateParams.DiskEncryption.TangServers).To(Equal(tangServersConfig))
+
+				}).Return(updateReply, nil)
+
+			aci.Spec.DiskEncryption = &hiveext.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: tangServersConfig,
+			}
+			Expect(c.Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())

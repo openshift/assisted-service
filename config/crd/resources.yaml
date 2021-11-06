@@ -140,6 +140,31 @@ spec:
                 required:
                 - name
                 type: object
+              diskEncryption:
+                description: DiskEncryption is the configuration to enable/disable
+                  disk encryption for cluster nodes.
+                properties:
+                  enableOn:
+                    default: none
+                    description: Enable/disable disk encryption on master nodes, worker
+                      nodes, or all nodes.
+                    enum:
+                    - none
+                    - all
+                    - masters
+                    - workers
+                    type: string
+                  mode:
+                    description: The disk encryption mode to use.
+                    enum:
+                    - tpmv2
+                    - tang
+                    type: string
+                  tangServers:
+                    description: JSON-formatted string containing additional information
+                      regarding tang's configuration
+                    type: string
+                type: object
               holdInstallation:
                 description: HoldInstallation will prevent installation from happening
                   when true. Inspection and validation will proceed as usual, but

@@ -1680,6 +1680,55 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		verifyHyperthreadingSetup(models.ClusterHyperthreadingWorkers)
 	})
 
+	It("deploy clusterDeployment with disk encryption configuration", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		verifyDiskEncryptionConfig := func(enableOn *string, mode *string, tangServers string) {
+			Eventually(func() bool {
+				c := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+				return swag.StringValue(c.DiskEncryption.EnableOn) == swag.StringValue(enableOn) &&
+					swag.StringValue(c.DiskEncryption.Mode) == swag.StringValue(mode) &&
+					c.DiskEncryption.TangServers == tangServers
+			}, "1m", "10s").Should(BeTrue())
+		}
+		By("new deployment with disk encryption disabled")
+		aciSpec.DiskEncryption = &hiveext.DiskEncryption{
+			EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+		}
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnNone), nil, "")
+
+		By("update deployment with disk encryption enabled with tpmv2 on master only")
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.DiskEncryption = &hiveext.DiskEncryption{
+			EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+			Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+		}
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnMasters), swag.String(models.DiskEncryptionModeTpmv2), "")
+
+		By("update deployment with disk encryption enabled with tang on workers only")
+		tangServersConfig := `[{"URL":"http://tang.example.com:7500","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.DiskEncryption = &hiveext.DiskEncryption{
+			EnableOn:    swag.String(models.DiskEncryptionEnableOnWorkers),
+			Mode:        swag.String(models.DiskEncryptionModeTang),
+			TangServers: tangServersConfig,
+		}
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnWorkers), swag.String(models.DiskEncryptionModeTang), tangServersConfig)
+	})
+
 	It("deploy clusterDeployment with install config override", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
