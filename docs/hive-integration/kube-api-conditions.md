@@ -97,7 +97,7 @@ The Agent condition types supported are: `SpecSynced`, `Connected`, `Requirement
 |Validated|False|ValidationsUserPending|The agent's validations are pending for user: "summary of not-succeeded validations"|If the host status is "pending-for-input"|
 |Validated|Unknown|ValidationsUnknown|The agent's validations have not yet been calculated|If the validations have not yet been calculated|
 |Validated|False|Binding|The agent is currently binding to a cluster deployment|If the host status is "binding"|
-|Validated|False|Unbinding|The agent is currently unbinding from a cluster deployment|If the host status is "unbinding"|
+|Validated|False|Unbinding|The agent is currently unbinding from a cluster deployment|If the host status is "unbinding" or "unbinding-pending-user-action"|
 ||||||
 |RequirementsMet|True|AgentIsReady|The agent is ready to begin the installation|If the host is approved and in status "known"|
 |RequirementsMet|False|AgentNotReady|The agent is not ready to begin the installation|If the host is before installation ("discovering"/"insufficient"/"disconnected"/"pending-input")|
@@ -105,14 +105,14 @@ The Agent condition types supported are: `SpecSynced`, `Connected`, `Requirement
 |RequirementsMet|True|AgentAlreadyInstalling|Installation already started and is in progress|If the agent has begun installing ("preparing-successful","preparing-for-installation", "installing") |
 |RequirementsMet|True|AgentInstallationStopped|The agent installation stopped|If the agent has stopped installing ("installed", "error") |
 |RequirementsMet|False|Binding|The agent is currently binding to a cluster deployment|If the host status is "binding"|
-|RequirementsMet|False|Unbinding|The agent is currently unbinding from a cluster deployment|If the host status is "unbinding"|
+|RequirementsMet|False|Unbinding|The agent is currently unbinding from a cluster deployment|If the host status is "unbinding" or "unbinding-pending-user-action"|
 ||||||
 |Installed|True|InstallationCompleted|The installation has completed: "status_info"|If the host status is "installed"|
 |Installed|False|InstallationFailed|The installation has failed: "status_info"|If the host status is "error"|
 |Installed|False|InstallationNotStarted|The installation has not yet started|If the cluster is before installation ("discovering"/"insufficient"/"disconnected"/"pending-input/known")|
 |Installed|False|InstallationInProgress|The installation is in progress: "status_info"|If the host is installing ("preparing-for-installation", "preparing-successful", "installing")|
 |Installed|False|Binding|The agent is currently binding to a cluster deployment|If the host status is "binding"|
-|Installed|False|Unbinding|The agent is currently unbinding from a cluster deployment|If the host status is "unbinding"|
+|Installed|False|Unbinding|The agent is currently unbinding from a cluster deployment|If the host status is "unbinding" or "unbinding-pending-user-action"|
 ||||||
 |Connected|True|AgentIsConnected|The agent has not contacted the installation service in some time, user action should be taken|If the host status is not "disconnected"|
 |Connected|False|AgentIsDisconnected|The agent's connection to the installation service is unimpaired|If the host status is "error"|
@@ -121,6 +121,7 @@ The Agent condition types supported are: `SpecSynced`, `Connected`, `Requirement
 |Bound|False|Bound|The agent is not bound to any cluster deployment|If the host status is "known-unbound", "disconnected-unbound", "disconnected-unbound", "insufficient-unbound", "disabled-unbound" or "discovering-unbound"|
 |Bound|False|Binding|The agent is currently binding to a cluster deployment|If the host status is "binding"|
 |Bound|False|Unbinding|The agent is currently unbinding from a cluster deployment|If the host status is "unbinding"|
+|Bound|False|UnbindingPendingUserAction|The agent is currently unbinding; Pending host reboot from infraenv image|If the host status is "unbinding-pending-user-action"|
 
 
 Here an example of Agent conditions:

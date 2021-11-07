@@ -1690,6 +1690,44 @@ var _ = Describe("TestConditions", func() {
 			},
 		},
 		{
+			name:           "Unbinding Pending User Action",
+			hostStatus:     models.HostStatusUnbindingPendingUserAction,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.RequirementsMetCondition,
+					Message: v1beta1.UnbindingMsg,
+					Reason:  v1beta1.UnbindingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.UnbindingMsg,
+					Reason:  v1beta1.UnbindingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.UnbindingMsg,
+					Reason:  v1beta1.UnbindingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.UnbindingPendingUserActionMsg,
+					Reason:  v1beta1.UnbindingPendingUserActionReason,
+					Status:  corev1.ConditionFalse,
+				},
+			},
+		},
+		{
 			name:           "DisconnectedUnbound",
 			hostStatus:     models.HostStatusDisconnectedUnbound,
 			statusInfo:     "",
