@@ -2767,6 +2767,9 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		if params.ClusterUpdateParams.DiskEncryption.Mode != nil {
 			updates["disk_encryption_mode"] = params.ClusterUpdateParams.DiskEncryption.Mode
 		}
+		if params.ClusterUpdateParams.DiskEncryption.TangServers != "" {
+			updates["disk_encryption_tang_servers"] = params.ClusterUpdateParams.DiskEncryption.TangServers
+		}
 		b.setDiskEncryptionUsage(&cluster.Cluster, params.ClusterUpdateParams.DiskEncryption, usages)
 	}
 
