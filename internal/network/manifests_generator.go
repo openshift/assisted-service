@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	reflect "reflect"
 	"text/template"
 
 	"github.com/go-openapi/swag"
@@ -298,7 +297,7 @@ func (m *ManifestsGenerator) createDiskEncryptionManifest(ctx context.Context, l
 
 func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
 
-	if reflect.DeepEqual(c.DiskEncryption, &models.DiskEncryption{}) {
+	if swag.StringValue(c.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
 		return nil
 	}
 

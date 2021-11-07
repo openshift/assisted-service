@@ -16,7 +16,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	reflect "reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -2690,7 +2689,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 
 func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncryption *models.DiskEncryption, usages map[string]models.Usage) {
 
-	if c.DiskEncryption == nil || reflect.DeepEqual(c.DiskEncryption, &models.DiskEncryption{}) {
+	if c.DiskEncryption == nil || swag.StringValue(c.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
 		return
 	}
 
