@@ -548,7 +548,12 @@ var _ = Describe("disk encryption manifest", func() {
 			numOfManifests: 1,
 		},
 		{
-			name:           "disks encryption not set",
+			name: "disks encryption not set",
+			// This is the default values for disk_encryption
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
 			numOfManifests: 0,
 		},
 	} {
