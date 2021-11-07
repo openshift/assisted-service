@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -337,6 +338,7 @@ type installerGenerator struct {
 	enableMetal3Provisioning bool
 	operatorsApi             operators.API
 	installInvoker           string
+	providerRegistry         registry.ProviderRegistry
 }
 
 // IgnitionConfig contains the attributes required to build the discovery ignition file
@@ -367,7 +369,8 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
-	serviceCACert, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API) Generator {
+	serviceCACert, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API,
+	providerRegistry registry.ProviderRegistry) Generator {
 	return &installerGenerator{
 		cluster:                  cluster,
 		log:                      log,
@@ -380,6 +383,7 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		enableMetal3Provisioning: true,
 		operatorsApi:             operatorsApi,
 		installInvoker:           installInvoker,
+		providerRegistry:         providerRegistry,
 	}
 }
 
@@ -418,25 +422,35 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	// write installConfig to install-config.yaml so openshift-install can read it
 	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
 	if err != nil {
-		log.Errorf("Failed to write file %s", installConfigPath)
+		log.Errorf("failed to write file %s", installConfigPath)
 		return err
 	}
 
 	manifestFiles, err := manifests.GetClusterManifests(ctx, g.cluster.ID, g.s3Client)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to check if cluster %s has manifests", g.cluster.ID)
+		log.WithError(err).Errorf("failed to check if cluster %s has manifests", g.cluster.ID)
 		return err
 	}
 
 	// invoke 'create manifests' command and download cluster manifests to manifests folder
 	if len(manifestFiles) > 0 {
+		err = g.providerRegistry.PreCreateManifestsHook(g.cluster, &envVars, g.workDir)
+		if err != nil {
+			log.WithError(err).Errorf("failed to run pre manifests creation hook '%s'", g.cluster.Platform.Type)
+			return err
+		}
 		err = g.runCreateCommand(ctx, installerPath, "manifests", envVars)
 		if err != nil {
 			return err
 		}
+		err = g.providerRegistry.PostCreateManifestsHook(g.cluster, &envVars, g.workDir)
+		if err != nil {
+			log.WithError(err).Errorf("failed to run post manifests creation hook '%s'", g.cluster.Platform.Type)
+			return err
+		}
 		// download manifests files to working directory
 		for _, manifest := range manifestFiles {
-			log.Infof("Adding manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
+			log.Infof("adding manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
 			err = g.downloadManifest(ctx, manifest)
 			if err != nil {
 				_ = os.Remove(filepath.Join(g.workDir, "manifests"))

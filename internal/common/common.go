@@ -1,7 +1,10 @@
 package common
 
 import (
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -254,4 +257,66 @@ func GetHostNTPSources(db *gorm.DB, host *models.Host) (string, error) {
 		return "", err
 	}
 	return infraEnv.AdditionalNtpSources, nil
+}
+
+// GetHostsByRole returns the list of hosts with the required role.
+func GetHostsByRole(cluster *Cluster, role models.HostRole) []models.Host {
+	var hosts []models.Host
+	if cluster == nil {
+		return hosts
+	}
+	for _, host := range cluster.Hosts {
+		if swag.StringValue(host.Status) != models.HostStatusDisabled && GetEffectiveRole(host) == role {
+			hosts = append(hosts, *host)
+		}
+	}
+	return hosts
+}
+
+// ParsePemCerts returns a list of certificate objects extracted from a byte array
+// The certificates within the byte array must be PEM encoded
+func ParsePemCerts(pemCerts []byte) ([]x509.Certificate, bool) {
+	var certs []x509.Certificate
+	for len(pemCerts) > 0 {
+		var block *pem.Block
+		block, pemCerts = pem.Decode(pemCerts)
+		if block == nil {
+			return certs, true
+		}
+		if block.Type == "CERTIFICATE" && len(block.Headers) == 0 {
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return nil, false
+			}
+			certs = append(certs, *cert)
+		}
+	}
+	return certs, true
+}
+
+// VerifyCaBundle verifies the full CA Chain contained in a byte array.
+// The CA certs within the byte array must be PEM encoded
+// starting with the leaf CA certificate followed by the
+// subsequents intermediate CAs and ending with the root CA
+func VerifyCaBundle(pemCerts []byte) error {
+	var certs []x509.Certificate
+	var ok bool
+	certs, ok = ParsePemCerts(pemCerts)
+	if !ok {
+		return errors.New("unable to parse the CA Bundle")
+	}
+	if len(certs) == 0 {
+		return errors.New("the CA bundle does not contain any PEM certificate")
+	}
+	certPool := x509.NewCertPool()
+	for i := range certs {
+		certPool.AddCert(&certs[i])
+	}
+	verifyOptions := x509.VerifyOptions{
+		Roots: certPool,
+	}
+	if _, err := certs[0].Verify(verifyOptions); err != nil {
+		return errors.New("unable to verify the full CA Chain")
+	}
+	return nil
 }

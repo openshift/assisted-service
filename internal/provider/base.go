@@ -29,4 +29,8 @@ type Provider interface {
 	IsHostSupported(hosts *models.Host) (bool, error)
 	// AreHostsSupported checks if the provider supports the hosts
 	AreHostsSupported(host []*models.Host) (bool, error)
+	// PreCreateManifestsHook allows the provider to perform additional tasks required before the cluster manifests are created
+	PreCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
+	// PostCreateManifestsHook allows the provider to perform additional tasks required after the cluster manifests are created
+	PostCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
 }

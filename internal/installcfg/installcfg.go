@@ -11,6 +11,7 @@ import (
 type Platform struct {
 	Baremetal *BareMetalInstallConfigPlatform `yaml:"baremetal,omitempty"`
 	None      *PlatformNone                   `yaml:"none,omitempty"`
+	Ovirt     *OvirtInstallConfigPlatform     `yaml:"ovirt,omitempty"`
 	Vsphere   *VsphereInstallConfigPlatform   `yaml:"vsphere"`
 }
 
@@ -40,6 +41,17 @@ type VsphereInstallConfigPlatform struct {
 	Cluster          string          `yaml:"cluster"`
 	APIVIP           string          `yaml:"apiVIP"`
 	IngressVIP       string          `yaml:"ingressVIP"`
+}
+
+// OvirtInstallConfigPlatform represents the required parameters
+// within the `install-config.yaml` for the oVirt platform.
+type OvirtInstallConfigPlatform struct {
+	APIVIP          string      `yaml:"api_vip"`
+	IngressVIP      string      `yaml:"ingress_vip"`
+	ClusterID       strfmt.UUID `yaml:"ovirt_cluster_id"`
+	StorageDomainID strfmt.UUID `yaml:"ovirt_storage_domain_id"`
+	NetworkName     string      `yaml:"ovirt_network_name"`
+	VnicProfileID   strfmt.UUID `yaml:"vnicProfileID"`
 }
 
 type PlatformNone struct {

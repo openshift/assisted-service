@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
@@ -32,12 +33,13 @@ import (
 )
 
 var (
-	cluster             *common.Cluster
-	installerCacheDir   string
-	log                 = logrus.New()
-	workDir             string
-	mockOperatorManager operators.API
-	ctrl                *gomock.Controller
+	cluster              *common.Cluster
+	installerCacheDir    string
+	log                  = logrus.New()
+	workDir              string
+	mockOperatorManager  operators.API
+	mockProviderRegistry *registry.MockProviderRegistry
+	ctrl                 *gomock.Controller
 )
 
 var _ = BeforeEach(func() {
@@ -58,6 +60,7 @@ var _ = BeforeEach(func() {
 
 	ctrl = gomock.NewController(GinkgoT())
 	mockOperatorManager = operators.NewMockAPI(ctrl)
+	mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
 })
 
 var _ = AfterEach(func() {
@@ -117,7 +120,9 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 				Role:              models.HostRoleMaster,
 			},
 		}
-		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log, mockOperatorManager).(*installerGenerator)
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
+			mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+
 		err = g.updateBootstrap(context.Background(), examplePath)
 
 		bootstrapBytes, _ := ioutil.ReadFile(examplePath)
@@ -251,7 +256,9 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 	Describe("update ignitions", func() {
 		It("with ca cert file", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", caCertPath, "", nil, log, mockOperatorManager).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", caCertPath, "", nil, log,
+				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -272,7 +279,9 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(file.Path).To(Equal(common.HostCACertPath))
 		})
 		It("with no ca cert file", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log, mockOperatorManager).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -289,7 +298,9 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(workerConfig.Storage.Files).To(HaveLen(0))
 		})
 		It("with service ips", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log, mockOperatorManager).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+
 			err := g.UpdateEtcHosts("10.10.10.1,10.10.10.2")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -310,7 +321,9 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(file.Path).To(Equal("/etc/hosts"))
 		})
 		It("with no service ips", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log, mockOperatorManager).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+
 			err := g.UpdateEtcHosts("")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -338,7 +351,9 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		Context("DHCP generation", func() {
 			It("Definitions only", func() {
-				g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log, mockOperatorManager).(*installerGenerator)
+				g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+					mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+
 				g.encodedDhcpFileContents = "data:,abc"
 				err := g.updateIgnitions()
 				Expect(err).NotTo(HaveOccurred())
@@ -355,7 +370,9 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			})
 		})
 		It("Definitions+leases", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log, mockOperatorManager).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+
 			g.encodedDhcpFileContents = "data:,abc"
 			cluster.ApiVipLease = "api"
 			cluster.IngressVipLease = "ingress"
@@ -476,7 +493,9 @@ var _ = Describe("createHostIgnitions", func() {
 				host.ID = &id
 			}
 
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log, mockOperatorManager).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+
 			err := g.createHostIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -519,7 +538,9 @@ var _ = Describe("createHostIgnitions", func() {
 			IgnitionConfigOverrides: `{"ignition": {"version": "3.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
 		}}
 
-		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log, mockOperatorManager).(*installerGenerator)
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+
 		err := g.createHostIgnitions()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -1182,7 +1203,7 @@ var _ = Describe("Ignition SSH key building", func() {
 		It("Multiple keys with escaping and white space", func() {
 			buildIgnitionAndAssertSubString(`
 			ssh-rsa key coyote\123@acme.com
-			
+
 			ssh-rsa key2 c\0899oyote@acme.com
 			`, true, `"sshAuthorizedKeys":["ssh-rsa key coyote\\123@acme.com","ssh-rsa key2 c\\0899oyote@acme.com"]`)
 		})
