@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"reflect"
 	"strings"
 	"time"
 
@@ -360,7 +359,7 @@ func isDiskEncryptionEnabledForRole(encryption models.DiskEncryption, role model
 
 func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) ValidationStatus {
 
-	if c.infraEnv != nil || reflect.DeepEqual(c.cluster.DiskEncryption, &models.DiskEncryption{}) {
+	if c.infraEnv != nil || swag.StringValue(c.cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
 		return ValidationSuccessSuppressOutput
 	}
 
@@ -1194,7 +1193,7 @@ func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationS
 		}
 		return fmt.Sprintf("Domain name resolution was successful for domain %s", domainName)
 	case ValidationFailure:
-		return fmt.Sprintf("Couldn’t resolve domain name “%s” on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", domainName, destination)
+		return fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", domainName, destination)
 	case ValidationError:
 		return "Parse error for domain name resolutions result"
 	default:

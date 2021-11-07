@@ -29,6 +29,10 @@ func GenerateTestCluster(clusterID strfmt.UUID, machineNetworks []*models.Machin
 			MachineNetworks: machineNetworks,
 			Platform:        &models.Platform{Type: models.PlatformTypeBaremetal},
 			Kind:            swag.String(models.ClusterKindCluster),
+			DiskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
 		},
 	}
 }
