@@ -623,7 +623,8 @@ func (v *clusterValidator) printNtpServerConfigured(c *clusterPreprocessContext,
 	case ValidationSuccess:
 		return "No ntp problems found"
 	case ValidationFailure:
-		return "Host clocks are not synchronized, please configure an NTP server via DHCP."
+		return fmt.Sprintf("Hosts' clocks are not synchronized (there's more than a %d minutes gap between clocks), "+
+			"please configure an NTP server via DHCP or set clocks manually.", common.MaximumAllowedTimeDiffMinutes)
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
