@@ -241,6 +241,7 @@ var _ = Describe("disk encryption", func() {
 			c := updateClusterReply.GetPayload()
 			Expect(*c.DiskEncryption.EnableOn).To(Equal(models.DiskEncryptionEnableOnMasters))
 			Expect(*c.DiskEncryption.Mode).To(Equal(models.DiskEncryptionModeTang))
+			Expect(c.DiskEncryption.TangServers).To(Equal(defaultTangServers))
 		})
 	})
 
