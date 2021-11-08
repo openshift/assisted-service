@@ -1,7 +1,7 @@
 boto3==1.19.3
 mkdocs==1.2.2
 requests==2.22.0
-setuptools==58.3.0
+setuptools==58.5.3
 twine==3.4.2
 vcversioner==2.16.0.0
 waiting==1.4.1
