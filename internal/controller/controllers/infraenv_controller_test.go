@@ -115,7 +115,7 @@ var _ = Describe("infraEnv reconcile", func() {
 	It("create new infraEnv minimal-iso image - success", func() {
 		imageInfo := models.ImageInfo{
 			DownloadURL: "downloadurl",
-			CreatedAt:   strfmt.DateTime(time.Now()),
+			CreatedAt:   time.Now(),
 		}
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())

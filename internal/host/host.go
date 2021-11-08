@@ -557,7 +557,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		isSno := hostutil.IsSingleNode(m.log, m.db, h)
 
 		stages := m.GetStagesByRole(h.Role, h.Bootstrap, isSno)
-		if previousProgress.CurrentStage != "" {
+		if previousProgress != nil && previousProgress.CurrentStage != "" {
 			// Verify the new stage is higher or equal to the current host stage according to its role stages array
 			currentIndex := m.IndexOfStage(progress.CurrentStage, stages)
 
@@ -854,9 +854,10 @@ func (m *Manager) IsRequireUserActionReset(h *models.Host) bool {
 			"Exceeded reset timeout: %s", h.ClusterID.String(), h.ID.String(), m.Config.ResetTimeout.String())
 		return true
 	}
-	if funk.Contains(manualRebootStages, h.Progress.CurrentStage) {
+	hostStage := h.Progress.CurrentStage
+	if funk.Contains(manualRebootStages, hostStage) {
 		m.log.Infof("Cluster %s Host %s is in stage %s and must be restarted by user to the live image "+
-			"in order to reset the installation.", h.ClusterID.String(), h.ID.String(), h.Progress.CurrentStage)
+			"in order to reset the installation.", h.ClusterID.String(), h.ID.String(), hostStage)
 		return true
 	}
 	return false

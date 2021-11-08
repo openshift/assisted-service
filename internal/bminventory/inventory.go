@@ -384,7 +384,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	}
 	if params.NewClusterParams.Platform == nil {
 		params.NewClusterParams.Platform = &models.Platform{
-			Type: models.PlatformTypeBaremetal,
+			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 		}
 	}
 	if params.NewClusterParams.AdditionalNtpSource == nil {
@@ -544,7 +544,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			OpenshiftVersion:      *releaseImage.Version,
 			OcpReleaseImage:       *releaseImage.URL,
 			SSHPublicKey:          params.NewClusterParams.SSHPublicKey,
-			UpdatedAt:             strfmt.DateTime{},
 			UserName:              ocm.UserNameFromContext(ctx),
 			OrgID:                 ocm.OrgIDFromContext(ctx),
 			EmailDomain:           ocm.EmailDomainFromContext(ctx),
@@ -825,7 +824,6 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		UserName:           ocm.UserNameFromContext(ctx),
 		OrgID:              ocm.OrgIDFromContext(ctx),
 		EmailDomain:        ocm.EmailDomainFromContext(ctx),
-		UpdatedAt:          strfmt.DateTime{},
 		APIVipDNSName:      swag.String(apivipDnsname),
 		HostNetworks:       []*models.HostNetwork{},
 		Hosts:              []*models.Host{},
@@ -1018,7 +1016,7 @@ func (b *bareMetalInventory) DownloadISOInternal(ctx context.Context, infraEnvID
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
-	eventgen.SendDownloadImageStartedEvent(ctx, b.eventsHandler, infraEnvID, string(infraEnv.Type))
+	eventgen.SendDownloadImageStartedEvent(ctx, b.eventsHandler, infraEnvID, string(common.ImageTypeValue(infraEnv.Type)))
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(reader),
 		fmt.Sprintf("cluster-%s-discovery.iso", infraEnvID),
@@ -1111,7 +1109,7 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infr
 	}
 
 	updates["type"] = imageType
-	infraEnv.Type = imageType
+	infraEnv.Type = common.ImageTypePtr(imageType)
 
 	dbReply := b.db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
@@ -1147,7 +1145,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, 
 	}
 
 	updates["type"] = imageType
-	infraEnv.Type = imageType
+	infraEnv.Type = common.ImageTypePtr(imageType)
 
 	osImage, err := b.getOsImageOrLatest(&infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
@@ -1312,7 +1310,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		infraEnv.ProxyHash == infraEnvProxyHash &&
 		infraEnv.StaticNetworkConfig == staticNetworkConfig &&
 		infraEnv.Generated &&
-		infraEnv.Type == params.ImageCreateParams.ImageType &&
+		common.ImageTypeValue(infraEnv.Type) == params.ImageCreateParams.ImageType &&
 		b.ImageServiceBaseURL == "" {
 		imgName := getImageName(&params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
@@ -1431,7 +1429,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 		return common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
-	err = b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, *infraEnv.ID, infraEnv.Type, true, imageExists)
+	err = b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, *infraEnv.ID, common.ImageTypeValue(infraEnv.Type), true, imageExists)
 	if err != nil {
 		return err
 	}
@@ -1468,7 +1466,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 
 	// Setting ImageInfo.Type at this point in order to pass it to FormatDiscoveryIgnitionFile without saving it to the DB.
 	// Saving it to the DB will be done after a successful image generation by updateImageInfoPostUpload
-	infraEnv.Type = imageType
+	infraEnv.Type = common.ImageTypePtr(imageType)
 	ignitionConfig, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
 	if err != nil {
 		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", infraEnv.ID)
@@ -2971,14 +2969,14 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 }
 
 func (b *bareMetalInventory) updateProviderParams(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) error {
-	if params.ClusterUpdateParams.Platform != nil && params.ClusterUpdateParams.Platform.Type != "" {
+	if params.ClusterUpdateParams.Platform != nil && common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type) != "" {
 		err := b.providerRegistry.SetPlatformValuesInDBUpdates(
-			params.ClusterUpdateParams.Platform.Type, params.ClusterUpdateParams.Platform, updates)
+			common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type), params.ClusterUpdateParams.Platform, updates)
 		if err != nil {
 			return fmt.Errorf("failed setting platform values, error is: %w", err)
 		}
 		err = b.providerRegistry.SetPlatformUsages(
-			params.ClusterUpdateParams.Platform.Type, params.ClusterUpdateParams.Platform, usages, b.usageApi)
+			common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type), params.ClusterUpdateParams.Platform, usages, b.usageApi)
 		if err != nil {
 			return fmt.Errorf("failed setting platform usages, error is: %w", err)
 		}
@@ -3228,7 +3226,7 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	b.setNetworkTypeUsage(cluster.NetworkType, usages)
 	b.setDiskEncryptionUsage(cluster, cluster.DiskEncryption, usages)
 	//write all the usages to the cluster object
-	err := b.providerRegistry.SetPlatformUsages(cluster.Platform.Type, cluster.Platform, usages, b.usageApi)
+	err := b.providerRegistry.SetPlatformUsages(common.PlatformTypeValue(cluster.Platform.Type), cluster.Platform, usages, b.usageApi)
 	if err != nil {
 		return fmt.Errorf("failed setting platform usages, error is: %w", err)
 	}
@@ -3669,10 +3667,10 @@ func (b *bareMetalInventory) getImageInfo(clusterId *strfmt.UUID) (*models.Image
 		imageInfo := &models.ImageInfo{
 			DownloadURL:         infraEnv.DownloadURL,
 			SizeBytes:           infraEnv.SizeBytes,
-			CreatedAt:           infraEnv.GeneratedAt,
+			CreatedAt:           time.Time(infraEnv.GeneratedAt),
 			ExpiresAt:           infraEnv.ImageExpiresAt,
 			SSHPublicKey:        infraEnv.SSHAuthorizedKey,
-			Type:                infraEnv.Type,
+			Type:                common.ImageTypeValue(infraEnv.Type),
 			StaticNetworkConfig: infraEnv.StaticNetworkConfig,
 			GeneratorVersion:    infraEnv.GeneratorVersion,
 		}
@@ -4476,7 +4474,7 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 		return common.GenerateErrorResponder(err)
 	}
 
-	if infraEnv.Type != models.ImageTypeMinimalIso {
+	if common.ImageTypeValue(infraEnv.Type) != models.ImageTypeMinimalIso {
 		err = fmt.Errorf("Only %v image type supported but %v specified.", models.ImageTypeMinimalIso, infraEnv.Type)
 		log.WithError(err)
 		return common.NewApiError(http.StatusConflict, err)
@@ -4586,7 +4584,7 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 		if err != nil {
 			return "", "", err
 		}
-		if hostObject.LogsCollectedAt == strfmt.DateTime(time.Time{}) {
+		if time.Time(hostObject.LogsCollectedAt).Equal(time.Time{}) {
 			return "", "", common.NewApiError(http.StatusConflict, errors.Errorf("Logs for host %s were not found", hostId))
 		}
 		fileName = b.getLogsFullName(clusterId.String(), hostObject.ID.String())
@@ -4596,7 +4594,7 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 		}
 		downloadFileName = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, sanitize.Name(hostutil.GetHostnameForMsg(&hostObject.Host)))
 	case string(models.LogsTypeController):
-		if c.Cluster.ControllerLogsCollectedAt == strfmt.DateTime(time.Time{}) {
+		if time.Time(c.Cluster.ControllerLogsCollectedAt).Equal(time.Time{}) {
 			return "", "", common.NewApiError(http.StatusConflict, errors.Errorf("Controller Logs for cluster %s were not found", clusterId))
 		}
 		fileName = b.getLogsFullName(clusterId.String(), logsType)
@@ -5269,13 +5267,13 @@ func (b *bareMetalInventory) UpdateClusterLogsProgress(ctx context.Context, para
 
 func (b *bareMetalInventory) UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	log.Infof("update log progress on host %s on %s cluster to %s", params.HostID, params.ClusterID, params.LogsProgressParams.LogsState)
+	log.Infof("update log progress on host %s on %s cluster to %s", params.HostID, params.ClusterID, common.LogStateValue(params.LogsProgressParams.LogsState))
 	currentHost, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
 	if err == nil {
-		err = b.hostApi.UpdateLogsProgress(ctx, &currentHost.Host, string(params.LogsProgressParams.LogsState))
+		err = b.hostApi.UpdateLogsProgress(ctx, &currentHost.Host, string(common.LogStateValue(params.LogsProgressParams.LogsState)))
 	}
 	if err != nil {
-		b.log.WithError(err).Errorf("failed to update log progress %s on cluster %s host %s", params.LogsProgressParams.LogsState, params.ClusterID.String(), params.HostID.String())
+		b.log.WithError(err).Errorf("failed to update log progress %s on cluster %s host %s", common.LogStateValue(params.LogsProgressParams.LogsState), params.ClusterID.String(), params.HostID.String())
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewUpdateHostLogsProgressNoContent()
@@ -5332,7 +5330,7 @@ func (b *bareMetalInventory) v1uploadLogs(ctx context.Context, params installer.
 	}
 	if params.LogsType == string(models.LogsTypeController) {
 		firstClusterLogCollectionEvent := false
-		if swag.IsZero(currentCluster.ControllerLogsCollectedAt) {
+		if time.Time(currentCluster.ControllerLogsCollectedAt).Equal(time.Time{}) {
 			firstClusterLogCollectionEvent = true
 		}
 		err = b.clusterApi.SetUploadControllerLogsAt(ctx, currentCluster, b.db)
@@ -5828,8 +5826,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			OpenshiftVersion:       *osImage.OpenshiftVersion,
 			IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
 			StaticNetworkConfig:    b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraenvCreateParams.StaticNetworkConfig),
-			Type:                   params.InfraenvCreateParams.ImageType,
-			UpdatedAt:              &strfmt.DateTime{},
+			Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
 			AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
 			SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
 			CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
@@ -6057,7 +6054,7 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 		updates["ignition_config_override"] = params.InfraEnvUpdateParams.IgnitionConfigOverride
 	}
 
-	if params.InfraEnvUpdateParams.ImageType != "" && params.InfraEnvUpdateParams.ImageType != infraEnv.Type {
+	if params.InfraEnvUpdateParams.ImageType != "" && params.InfraEnvUpdateParams.ImageType != common.ImageTypeValue(infraEnv.Type) {
 		updates["type"] = params.InfraEnvUpdateParams.ImageType
 	}
 
@@ -6755,13 +6752,13 @@ func (b *bareMetalInventory) v2DownloadClusterFilesInternal(ctx context.Context,
 
 func (b *bareMetalInventory) V2UpdateHostLogsProgress(ctx context.Context, params installer.V2UpdateHostLogsProgressParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	log.Infof("update log progress on host %s infra-env %s to %s", params.HostID, params.InfraEnvID, params.LogsProgressParams.LogsState)
+	log.Infof("update log progress on host %s infra-env %s to %s", params.HostID, params.InfraEnvID, common.LogStateValue(params.LogsProgressParams.LogsState))
 	currentHost, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
 	if err == nil {
-		err = b.hostApi.UpdateLogsProgress(ctx, &currentHost.Host, string(params.LogsProgressParams.LogsState))
+		err = b.hostApi.UpdateLogsProgress(ctx, &currentHost.Host, string(common.LogStateValue(params.LogsProgressParams.LogsState)))
 	}
 	if err != nil {
-		b.log.WithError(err).Errorf("failed to update log progress %s on infra-env %s host %s", params.LogsProgressParams.LogsState, params.InfraEnvID.String(), params.HostID.String())
+		b.log.WithError(err).Errorf("failed to update log progress %s on infra-env %s host %s", common.LogStateValue(params.LogsProgressParams.LogsState), params.InfraEnvID.String(), params.HostID.String())
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2UpdateHostLogsProgressNoContent()

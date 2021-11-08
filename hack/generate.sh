@@ -14,15 +14,13 @@ function lint_swagger() {
 function generate_go_server() {
     rm -rf restapi
     docker run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
-        quay.io/goswagger/swagger:v0.25.0 generate server --template=stratoscale -f ${__root}/swagger.yaml \
-        --template-dir=/templates/contrib
+        quay.io/goswagger/swagger:v0.28.0 generate server --template=stratoscale -f ${__root}/swagger.yaml
 }
 
 function generate_go_client() {
     rm -rf client models
     docker run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
-        quay.io/goswagger/swagger:v0.25.0 generate client --template=stratoscale -f swagger.yaml \
-        --template-dir=/templates/contrib
+        quay.io/goswagger/swagger:v0.28.0 generate client --template=stratoscale -f swagger.yaml
 }
 
 function generate_python_client() {
@@ -52,10 +50,33 @@ function generate_keys() {
     cd ${__root}/tools && go run auth_keys_generator.go -keys-dir=${BUILD_FOLDER}
 }
 
+function remove_dashes_and_dots() {
+    for f in models/* ; do
+        sed -i 's/Dash//g;s/Dot//g' $f
+    done
+}
+
+function validate_swagger_file() {
+    egrep -r 'Dash|Dot' models | grep -v //  | awk '\
+        {reversed=gensub("Dash","-","g", $2); \
+         reversed=gensub("Dot",".","g",reversed); \
+         original=gensub("\"","","g", $5);\
+         if (match(original, "[.-]") == 0 || index(tolower(reversed), original) == 0)  {\
+             printf("Enum value %s does not match go generated value %s. Usage of Dash or Dot in the swagger file is not supported\n", original, $2); \
+             exit(-1); \
+         }}'
+    if [ $? != 0 ] ; then
+        echo "Failed validating swagger generated files before replacing Dash (-) and Dot (.) Please see https://github.com/go-swagger/go-swagger/issues/2515"
+        exit -1
+    fi
+}
+
 function generate_from_swagger() {
     lint_swagger
     generate_go_client
     generate_go_server
+    validate_swagger_file
+    remove_dashes_and_dots
 }
 
 function generate_events() {

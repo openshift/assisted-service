@@ -98,8 +98,12 @@ func UpdateHost(_ logrus.FieldLogger, db *gorm.DB, infraEnvId strfmt.UUID, hostI
 		hostId, infraEnvId, srcStatus).
 		Updates(updates)
 
-	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !hostExistsInDB(db, hostId, infraEnvId, updates)) {
-		return nil, errors.Errorf("failed to update host %s from cluster %s. nothing has changed", hostId, infraEnvId)
+	if dbReply.Error != nil {
+		return nil, errors.Wrapf(dbReply.Error, "failed to update host %s from infra-env %s", hostId, infraEnvId)
+	}
+
+	if dbReply.RowsAffected == 0 && !hostExistsInDB(db, hostId, infraEnvId, updates) {
+		return nil, errors.Errorf("failed to update host %s from infra-env %s. nothing has changed", hostId, infraEnvId)
 	}
 
 	var host *common.Host

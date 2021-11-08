@@ -52,7 +52,7 @@ func (p ovirtProvider) createOvirtConfig(workDir string, platformParams *models.
 // PreCreateManifestHook creates the 'ovirt-config.yaml' file required by the installer
 // for the oVirt platform and append the OVIRT_CONFIG to the environment variables
 func (p ovirtProvider) PreCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error {
-	if cluster.Platform.Type == models.PlatformTypeOvirt {
+	if common.PlatformTypeValue(cluster.Platform.Type) == models.PlatformTypeOvirt {
 		ovirtConfigPath, err := p.createOvirtConfig(workDir, cluster.Platform.Ovirt)
 		if err != nil {
 			return errors.Wrapf(err, "unable to create the ovirt config file %s", ovirtConfigPath)
@@ -123,7 +123,7 @@ func (p ovirtProvider) PostCreateManifestsHook(cluster *common.Cluster, envVars 
 	if cluster == nil {
 		return errors.New("no cluster provided")
 	}
-	if cluster.Platform == nil || cluster.Platform.Type != models.PlatformTypeOvirt {
+	if cluster.Platform == nil || common.PlatformTypeValue(cluster.Platform.Type) != models.PlatformTypeOvirt {
 		return errors.New("platform type is not ovirt")
 	}
 	if cluster.Platform.Ovirt == nil {

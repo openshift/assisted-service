@@ -200,10 +200,10 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 			}
 		}
 	} else {
-		err = i.providerRegistry.AddPlatformToInstallConfig(cluster.Platform.Type, cfg, cluster)
+		err = i.providerRegistry.AddPlatformToInstallConfig(common.PlatformTypeValue(cluster.Platform.Type), cfg, cluster)
 		if err != nil {
 			return nil, fmt.Errorf(
-				"error while adding Platfom %s to install config, error is: %w", cluster.Platform.Type, err)
+				"error while adding Platfom %s to install config, error is: %w", common.PlatformTypeValue(cluster.Platform.Type), err)
 		}
 	}
 

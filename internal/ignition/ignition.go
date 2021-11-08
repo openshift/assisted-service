@@ -443,7 +443,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	if len(manifestFiles) > 0 {
 		err = g.providerRegistry.PreCreateManifestsHook(g.cluster, &envVars, g.workDir)
 		if err != nil {
-			log.WithError(err).Errorf("failed to run pre manifests creation hook '%s'", g.cluster.Platform.Type)
+			log.WithError(err).Errorf("failed to run pre manifests creation hook '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
 			return err
 		}
 		err = g.runCreateCommand(ctx, installerPath, "manifests", envVars)
@@ -452,7 +452,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		}
 		err = g.providerRegistry.PostCreateManifestsHook(g.cluster, &envVars, g.workDir)
 		if err != nil {
-			log.WithError(err).Errorf("failed to run post manifests creation hook '%s'", g.cluster.Platform.Type)
+			log.WithError(err).Errorf("failed to run post manifests creation hook '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
 			return err
 		}
 		// download manifests files to working directory
@@ -1379,7 +1379,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(GetServiceIPHostnames(cfg.ServiceIPs)))
 	}
 
-	if infraEnv.StaticNetworkConfig != "" && infraEnv.Type == models.ImageTypeFullIso {
+	if infraEnv.StaticNetworkConfig != "" && common.ImageTypeValue(infraEnv.Type) == models.ImageTypeFullIso {
 		filesList, newErr := ib.prepareStaticNetworkConfigForIgnition(ctx, infraEnv)
 		if newErr != nil {
 			ib.log.WithError(newErr).Errorf("Failed to add static network config to ignition for infra env  %s", infraEnv.ID)

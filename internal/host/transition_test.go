@@ -2350,7 +2350,7 @@ var _ = Describe("Refresh Host", func() {
 				if t.platformType == "" {
 					cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
 				} else {
-					cluster = hostutil.GenerateTestClusterWithPlatform(clusterId, common.TestIPv4Networking.MachineNetworks, &models.Platform{Type: models.PlatformTypeVsphere})
+					cluster = hostutil.GenerateTestClusterWithPlatform(clusterId, common.TestIPv4Networking.MachineNetworks, &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)})
 				}
 
 				cluster.MonitoredOperators = []*models.MonitoredOperator{

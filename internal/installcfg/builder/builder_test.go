@@ -60,7 +60,7 @@ var _ = Describe("installcfg", func() {
 			IngressVip:             "376.5.56.6",
 			InstallConfigOverrides: `{"fips":true}`,
 			ImageInfo:              &models.ImageInfo{},
-			Platform:               &models.Platform{Type: models.PlatformTypeBaremetal},
+			Platform:               &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			NetworkType:            swag.String("OpenShiftSDN"),
 		}}
 		id := strfmt.UUID(uuid.New().String())
@@ -555,7 +555,7 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 			APIVip:           "102.345.34.34",
 			IngressVip:       "376.5.56.6",
 			ImageInfo:        &models.ImageInfo{},
-			Platform:         &models.Platform{Type: models.PlatformTypeBaremetal},
+			Platform:         &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 		}}
 		installConfig = createInstallConfigBuilder()
 	})
@@ -629,7 +629,7 @@ var _ = Describe("Generate NoProxy", func() {
 			BaseDNSDomain:   "myproxy.com",
 			ClusterNetworks: []*models.ClusterNetwork{{Cidr: "192.168.1.0/24"}},
 			ServiceNetworks: []*models.ServiceNetwork{{Cidr: "fe80::1/64"}},
-			Platform:        &models.Platform{Type: models.PlatformTypeBaremetal},
+			Platform:        &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 		}}
 		installConfig = createInstallConfigBuilder()
 	})

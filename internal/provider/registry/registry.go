@@ -154,7 +154,7 @@ func (r *registry) PreCreateManifestsHook(cluster *common.Cluster, envVars *[]st
 	if cluster == nil || cluster.Platform == nil {
 		return errors.New("unable to get the platform type")
 	}
-	currentProvider, err := r.Get(string(cluster.Platform.Type))
+	currentProvider, err := r.Get(string(common.PlatformTypeValue(cluster.Platform.Type)))
 	if err != nil {
 		return fmt.Errorf("error while running pre creation manifests hook on platform %s, error %w",
 			currentProvider.Name(), err)
@@ -166,7 +166,7 @@ func (r *registry) PostCreateManifestsHook(cluster *common.Cluster, envVars *[]s
 	if cluster == nil || cluster.Platform == nil {
 		return errors.New("unable to get the platform type")
 	}
-	currentProvider, err := r.Get(string(cluster.Platform.Type))
+	currentProvider, err := r.Get(string(common.PlatformTypeValue(cluster.Platform.Type)))
 	if err != nil {
 		return fmt.Errorf("error while running post creation manifests hook on platform %s, error %w",
 			currentProvider.Name(), err)

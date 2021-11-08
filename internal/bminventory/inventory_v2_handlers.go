@@ -270,13 +270,13 @@ func (b *bareMetalInventory) V2UpdateClusterLogsProgress(ctx context.Context, pa
 	var currentCluster *common.Cluster
 
 	log := logutil.FromContext(ctx, b.log)
-	log.Infof("update log progress on %s cluster to %s", params.ClusterID, params.LogsProgressParams.LogsState)
+	log.Infof("update log progress on %s cluster to %s", params.ClusterID, common.LogStateValue(params.LogsProgressParams.LogsState))
 	currentCluster, err = b.getCluster(ctx, params.ClusterID.String())
 	if err == nil {
-		err = b.clusterApi.UpdateLogsProgress(ctx, currentCluster, string(params.LogsProgressParams.LogsState))
+		err = b.clusterApi.UpdateLogsProgress(ctx, currentCluster, string(common.LogStateValue(params.LogsProgressParams.LogsState)))
 	}
 	if err != nil {
-		b.log.WithError(err).Errorf("failed to update log progress %s on cluster %s", params.LogsProgressParams.LogsState, params.ClusterID.String())
+		b.log.WithError(err).Errorf("failed to update log progress %s on cluster %s", common.LogStateValue(params.LogsProgressParams.LogsState), params.ClusterID.String())
 		return common.GenerateErrorResponder(err)
 	}
 

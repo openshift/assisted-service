@@ -57,7 +57,7 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 	} else if errors.Is(err, gorm.ErrRecordNotFound) {
 		// Delete any previews record of the cluster if it was soft deleted in the past,
 		// no error will be returned it wasn't existed.
-		if err := tx.Unscoped().Delete(&cluster, queryParams).Error; err != nil {
+		if err = tx.Unscoped().Delete(&common.Cluster{}, queryParams).Error; err != nil {
 			r.log.WithError(err).Errorf("Error registering cluster %s", cluster.Name)
 			return errors.Wrapf(
 				err,

@@ -128,7 +128,11 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 	// Status is required as well to avoid races between different components.
 	dbReply := db.Model(&common.Cluster{}).Where("id = ? and status = ?", clusterId, srcStatus).Updates(updates)
 
-	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !clusterExistsInDB(db, clusterId, updates)) {
+	if dbReply.Error != nil {
+		return nil, errors.Wrapf(dbReply.Error, "failed to update cluster %s", clusterId)
+	}
+
+	if dbReply.RowsAffected == 0 && !clusterExistsInDB(db, clusterId, updates) {
 		return nil, errors.Errorf("failed to update cluster %s. nothing has changed", clusterId)
 	}
 
@@ -215,7 +219,7 @@ func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr string)
 
 	if machineCidr != previousPrimaryMachineCidr {
 		if machineCidr != "" {
-			if err := db.Model(&models.MachineNetwork{}).Save(&models.MachineNetwork{
+			if err := db.Save(&models.MachineNetwork{
 				ClusterID: *cluster.ID,
 				Cidr:      models.Subnet(machineCidr),
 			}).Error; err != nil {

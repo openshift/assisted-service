@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -79,7 +80,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(swag.StringValue(updateInfraEnv.Proxy.HTTPProxy)).To(Equal("http://proxy.proxy"))
 		Expect(swag.StringValue(updateInfraEnv.Proxy.HTTPSProxy)).To(Equal("http://proxy.proxy"))
 		Expect(swag.StringValue(updateInfraEnv.Proxy.NoProxy)).To(Equal("proxy.proxy"))
-		Expect(updateInfraEnv.Type).To(Equal(models.ImageTypeMinimalIso))
+		Expect(common.ImageTypeValue(updateInfraEnv.Type)).To(Equal(models.ImageTypeMinimalIso))
 	})
 
 	It("download minimal-iso image success", func() {
