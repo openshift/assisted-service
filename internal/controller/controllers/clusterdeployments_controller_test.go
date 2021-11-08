@@ -849,6 +849,24 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).Should(Equal(ctrl.Result{}))
 		})
 
+		It("agentClusterInstall resource deleted - verify call to cancel installation - PreparingForInstallation", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusPreparingForInstallation),
+				},
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
+			mockInstallerInternal.EXPECT().CancelInstallationInternal(gomock.Any(), gomock.Any()).Return(backEndCluster, nil).Times(1)
+
+			simulateACIDeletionWithFinalizer(ctx, c, aci)
+			request := newClusterDeploymentRequest(cd)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(result).Should(Equal(ctrl.Result{}))
+		})
+
 		It("cluster deregister failed - internal error", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{

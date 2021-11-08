@@ -118,7 +118,6 @@ func (r *registrar) DeregisterCluster(ctx context.Context, cluster *common.Clust
 	}
 
 	if txErr = common.DeleteRecordsByClusterID(tx, *cluster.ID, []interface{}{
-		&models.Host{},
 		&models.MonitoredOperator{},
 		&models.ClusterNetwork{},
 		&models.ServiceNetwork{},
