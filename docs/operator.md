@@ -77,7 +77,7 @@ operator-sdk cleanup --namespace assisted-installer assisted-service-operator
 Is an effective way to remove the operator when installed via `operator-sdk run`.
 
 ## Creating an AgentServiceConfig Resource
-
+**Note that if you want to change any of the images used in the assisted framework you should start at the next section.**
 The Assisted Service is deployed by creating an AgentServiceConfig.
 At a minimum, you must specify the `databaseStorage` and `filesystemStorage` to
 be used.
