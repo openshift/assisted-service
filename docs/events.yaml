@@ -660,6 +660,7 @@ x-events:
   properties:
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     message: string
 
 - name: host_install_progress_updated
@@ -669,6 +670,7 @@ x-events:
   properties:
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
     event: string
 
@@ -679,6 +681,7 @@ x-events:
   properties:
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     message: string
 
 - name: host_registration_failed

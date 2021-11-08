@@ -5839,6 +5839,7 @@ func (e *IgnitionConfigImageGeneratedEvent) FormatMessage() string {
 type RefreshHostOrClusterStatusesFailedEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     Message string
 }
 
@@ -5847,11 +5848,13 @@ var RefreshHostOrClusterStatusesFailedEventName string = "refresh_host_or_cluste
 func NewRefreshHostOrClusterStatusesFailedEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     message string,
 ) *RefreshHostOrClusterStatusesFailedEvent {
     return &RefreshHostOrClusterStatusesFailedEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         Message: message,
     }
 }
@@ -5861,10 +5864,12 @@ func SendRefreshHostOrClusterStatusesFailedEvent(
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     message string,) {
     ev := NewRefreshHostOrClusterStatusesFailedEvent(
         hostId,
         infraEnvId,
+        clusterId,
         message,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -5875,11 +5880,13 @@ func SendRefreshHostOrClusterStatusesFailedEventAtTime(
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     message string,
     eventTime time.Time) {
     ev := NewRefreshHostOrClusterStatusesFailedEvent(
         hostId,
         infraEnvId,
+        clusterId,
         message,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -5893,7 +5900,7 @@ func (e *RefreshHostOrClusterStatusesFailedEvent) GetSeverity() string {
     return "error"
 }
 func (e *RefreshHostOrClusterStatusesFailedEvent) GetClusterId() *strfmt.UUID {
-    return nil
+    return e.ClusterId
 }
 func (e *RefreshHostOrClusterStatusesFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
@@ -5906,6 +5913,7 @@ func (e *RefreshHostOrClusterStatusesFailedEvent) format(message *string) string
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{message}", fmt.Sprint(e.Message),
     )
     return r.Replace(*message)
@@ -5922,6 +5930,7 @@ func (e *RefreshHostOrClusterStatusesFailedEvent) FormatMessage() string {
 type HostInstallProgressUpdatedEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
     Event string
 }
@@ -5931,12 +5940,14 @@ var HostInstallProgressUpdatedEventName string = "host_install_progress_updated"
 func NewHostInstallProgressUpdatedEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     event string,
 ) *HostInstallProgressUpdatedEvent {
     return &HostInstallProgressUpdatedEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
         Event: event,
     }
@@ -5947,11 +5958,13 @@ func SendHostInstallProgressUpdatedEvent(
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     event string,) {
     ev := NewHostInstallProgressUpdatedEvent(
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         event,
     )
@@ -5963,12 +5976,14 @@ func SendHostInstallProgressUpdatedEventAtTime(
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     event string,
     eventTime time.Time) {
     ev := NewHostInstallProgressUpdatedEvent(
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         event,
     )
@@ -5983,7 +5998,7 @@ func (e *HostInstallProgressUpdatedEvent) GetSeverity() string {
     return "info"
 }
 func (e *HostInstallProgressUpdatedEvent) GetClusterId() *strfmt.UUID {
-    return nil
+    return e.ClusterId
 }
 func (e *HostInstallProgressUpdatedEvent) GetHostId() strfmt.UUID {
     return e.HostId
@@ -5996,6 +6011,7 @@ func (e *HostInstallProgressUpdatedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
         "{event}", fmt.Sprint(e.Event),
     )
@@ -6013,6 +6029,7 @@ func (e *HostInstallProgressUpdatedEvent) FormatMessage() string {
 type RegisterHostToInfraEnvFailedEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     Message string
 }
 
@@ -6021,11 +6038,13 @@ var RegisterHostToInfraEnvFailedEventName string = "register_host_to_infra_env_f
 func NewRegisterHostToInfraEnvFailedEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     message string,
 ) *RegisterHostToInfraEnvFailedEvent {
     return &RegisterHostToInfraEnvFailedEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         Message: message,
     }
 }
@@ -6035,10 +6054,12 @@ func SendRegisterHostToInfraEnvFailedEvent(
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     message string,) {
     ev := NewRegisterHostToInfraEnvFailedEvent(
         hostId,
         infraEnvId,
+        clusterId,
         message,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -6049,11 +6070,13 @@ func SendRegisterHostToInfraEnvFailedEventAtTime(
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     message string,
     eventTime time.Time) {
     ev := NewRegisterHostToInfraEnvFailedEvent(
         hostId,
         infraEnvId,
+        clusterId,
         message,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -6067,7 +6090,7 @@ func (e *RegisterHostToInfraEnvFailedEvent) GetSeverity() string {
     return "error"
 }
 func (e *RegisterHostToInfraEnvFailedEvent) GetClusterId() *strfmt.UUID {
-    return nil
+    return e.ClusterId
 }
 func (e *RegisterHostToInfraEnvFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
@@ -6080,6 +6103,7 @@ func (e *RegisterHostToInfraEnvFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{message}", fmt.Sprint(e.Message),
     )
     return r.Replace(*message)
