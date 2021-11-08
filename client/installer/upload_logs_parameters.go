@@ -16,74 +16,95 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewUploadLogsParams creates a new UploadLogsParams object
-// with the default values initialized.
+// NewUploadLogsParams creates a new UploadLogsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUploadLogsParams() *UploadLogsParams {
-	var ()
 	return &UploadLogsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUploadLogsParamsWithTimeout creates a new UploadLogsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUploadLogsParamsWithTimeout(timeout time.Duration) *UploadLogsParams {
-	var ()
 	return &UploadLogsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUploadLogsParamsWithContext creates a new UploadLogsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUploadLogsParamsWithContext(ctx context.Context) *UploadLogsParams {
-	var ()
 	return &UploadLogsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUploadLogsParamsWithHTTPClient creates a new UploadLogsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUploadLogsParamsWithHTTPClient(client *http.Client) *UploadLogsParams {
-	var ()
 	return &UploadLogsParams{
 		HTTPClient: client,
 	}
 }
 
-/*UploadLogsParams contains all the parameters to send to the API endpoint
-for the upload logs operation typically these are written to a http.Request
+/* UploadLogsParams contains all the parameters to send to the API endpoint
+   for the upload logs operation.
+
+   Typically these are written to a http.Request.
 */
 type UploadLogsParams struct {
 
-	/*ClusterID
-	  The cluster whose logs should be uploaded.
+	/* ClusterID.
 
+	   The cluster whose logs should be uploaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host whose logs should be uploaded.
 
+	/* HostID.
+
+	   The host whose logs should be uploaded.
+
+	   Format: uuid
 	*/
 	HostID *strfmt.UUID
-	/*LogsType
-	  The type of log file to be uploaded.
 
+	/* LogsType.
+
+	   The type of log file to be uploaded.
 	*/
 	LogsType string
-	/*Upfile
-	  The log file to be uploaded.
 
+	/* Upfile.
+
+	   The log file to be uploaded.
 	*/
 	Upfile runtime.NamedReadCloser
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the upload logs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UploadLogsParams) WithDefaults() *UploadLogsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the upload logs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UploadLogsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the upload logs params
@@ -180,22 +201,24 @@ func (o *UploadLogsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 
 		// query param host_id
 		var qrHostID strfmt.UUID
+
 		if o.HostID != nil {
 			qrHostID = *o.HostID
 		}
 		qHostID := qrHostID.String()
 		if qHostID != "" {
+
 			if err := r.SetQueryParam("host_id", qHostID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	// query param logs_type
 	qrLogsType := o.LogsType
 	qLogsType := qrLogsType
 	if qLogsType != "" {
+
 		if err := r.SetQueryParam("logs_type", qLogsType); err != nil {
 			return err
 		}
@@ -204,14 +227,11 @@ func (o *UploadLogsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 	if o.Upfile != nil {
 
 		if o.Upfile != nil {
-
 			// form file param upfile
 			if err := r.SetFileParam("upfile", o.Upfile); err != nil {
 				return err
 			}
-
 		}
-
 	}
 
 	if len(res) > 0 {

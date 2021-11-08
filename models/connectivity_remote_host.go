@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -53,7 +54,6 @@ func (m *ConnectivityRemoteHost) Validate(formats strfmt.Registry) error {
 }
 
 func (m *ConnectivityRemoteHost) validateHostID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.HostID) { // not required
 		return nil
 	}
@@ -66,7 +66,6 @@ func (m *ConnectivityRemoteHost) validateHostID(formats strfmt.Registry) error {
 }
 
 func (m *ConnectivityRemoteHost) validateL2Connectivity(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.L2Connectivity) { // not required
 		return nil
 	}
@@ -80,6 +79,8 @@ func (m *ConnectivityRemoteHost) validateL2Connectivity(formats strfmt.Registry)
 			if err := m.L2Connectivity[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("l2_connectivity" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("l2_connectivity" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -91,7 +92,6 @@ func (m *ConnectivityRemoteHost) validateL2Connectivity(formats strfmt.Registry)
 }
 
 func (m *ConnectivityRemoteHost) validateL3Connectivity(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.L3Connectivity) { // not required
 		return nil
 	}
@@ -105,6 +105,66 @@ func (m *ConnectivityRemoteHost) validateL3Connectivity(formats strfmt.Registry)
 			if err := m.L3Connectivity[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("l3_connectivity" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("l3_connectivity" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this connectivity remote host based on the context it is used
+func (m *ConnectivityRemoteHost) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateL2Connectivity(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateL3Connectivity(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ConnectivityRemoteHost) contextValidateL2Connectivity(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.L2Connectivity); i++ {
+
+		if m.L2Connectivity[i] != nil {
+			if err := m.L2Connectivity[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("l2_connectivity" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("l2_connectivity" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *ConnectivityRemoteHost) contextValidateL3Connectivity(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.L3Connectivity); i++ {
+
+		if m.L3Connectivity[i] != nil {
+			if err := m.L3Connectivity[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("l3_connectivity" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("l3_connectivity" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

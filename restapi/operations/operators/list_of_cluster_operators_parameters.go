@@ -16,7 +16,8 @@ import (
 )
 
 // NewListOfClusterOperatorsParams creates a new ListOfClusterOperatorsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewListOfClusterOperatorsParams() ListOfClusterOperatorsParams {
 
 	return ListOfClusterOperatorsParams{}
@@ -62,7 +63,6 @@ func (o *ListOfClusterOperatorsParams) BindRequest(r *http.Request, route *middl
 	if err := o.bindOperatorName(qOperatorName, qhkOperatorName, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -111,10 +111,10 @@ func (o *ListOfClusterOperatorsParams) bindOperatorName(rawData []string, hasKey
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.OperatorName = &raw
 
 	return nil

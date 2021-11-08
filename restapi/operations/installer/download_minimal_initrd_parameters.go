@@ -15,7 +15,8 @@ import (
 )
 
 // NewDownloadMinimalInitrdParams creates a new DownloadMinimalInitrdParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewDownloadMinimalInitrdParams() DownloadMinimalInitrdParams {
 
 	return DownloadMinimalInitrdParams{}
@@ -50,7 +51,6 @@ func (o *DownloadMinimalInitrdParams) BindRequest(r *http.Request, route *middle
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

@@ -71,7 +71,6 @@ func (o *V2UploadClusterIngressCertReader) ReadResponse(response runtime.ClientR
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewV2UploadClusterIngressCertCreated() *V2UploadClusterIngressCertCreated {
 	return &V2UploadClusterIngressCertCreated{}
 }
 
-/*V2UploadClusterIngressCertCreated handles this case with default header values.
+/* V2UploadClusterIngressCertCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -103,7 +102,7 @@ func NewV2UploadClusterIngressCertBadRequest() *V2UploadClusterIngressCertBadReq
 	return &V2UploadClusterIngressCertBadRequest{}
 }
 
-/*V2UploadClusterIngressCertBadRequest handles this case with default header values.
+/* V2UploadClusterIngressCertBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -114,7 +113,6 @@ type V2UploadClusterIngressCertBadRequest struct {
 func (o *V2UploadClusterIngressCertBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2UploadClusterIngressCertBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -136,7 +134,7 @@ func NewV2UploadClusterIngressCertUnauthorized() *V2UploadClusterIngressCertUnau
 	return &V2UploadClusterIngressCertUnauthorized{}
 }
 
-/*V2UploadClusterIngressCertUnauthorized handles this case with default header values.
+/* V2UploadClusterIngressCertUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -147,7 +145,6 @@ type V2UploadClusterIngressCertUnauthorized struct {
 func (o *V2UploadClusterIngressCertUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2UploadClusterIngressCertUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +166,7 @@ func NewV2UploadClusterIngressCertForbidden() *V2UploadClusterIngressCertForbidd
 	return &V2UploadClusterIngressCertForbidden{}
 }
 
-/*V2UploadClusterIngressCertForbidden handles this case with default header values.
+/* V2UploadClusterIngressCertForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -180,7 +177,6 @@ type V2UploadClusterIngressCertForbidden struct {
 func (o *V2UploadClusterIngressCertForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2UploadClusterIngressCertForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -202,7 +198,7 @@ func NewV2UploadClusterIngressCertNotFound() *V2UploadClusterIngressCertNotFound
 	return &V2UploadClusterIngressCertNotFound{}
 }
 
-/*V2UploadClusterIngressCertNotFound handles this case with default header values.
+/* V2UploadClusterIngressCertNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -213,7 +209,6 @@ type V2UploadClusterIngressCertNotFound struct {
 func (o *V2UploadClusterIngressCertNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2UploadClusterIngressCertNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +230,7 @@ func NewV2UploadClusterIngressCertMethodNotAllowed() *V2UploadClusterIngressCert
 	return &V2UploadClusterIngressCertMethodNotAllowed{}
 }
 
-/*V2UploadClusterIngressCertMethodNotAllowed handles this case with default header values.
+/* V2UploadClusterIngressCertMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -246,7 +241,6 @@ type V2UploadClusterIngressCertMethodNotAllowed struct {
 func (o *V2UploadClusterIngressCertMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2UploadClusterIngressCertMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -268,7 +262,7 @@ func NewV2UploadClusterIngressCertInternalServerError() *V2UploadClusterIngressC
 	return &V2UploadClusterIngressCertInternalServerError{}
 }
 
-/*V2UploadClusterIngressCertInternalServerError handles this case with default header values.
+/* V2UploadClusterIngressCertInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -279,7 +273,6 @@ type V2UploadClusterIngressCertInternalServerError struct {
 func (o *V2UploadClusterIngressCertInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2UploadClusterIngressCertInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -301,7 +294,7 @@ func NewV2UploadClusterIngressCertServiceUnavailable() *V2UploadClusterIngressCe
 	return &V2UploadClusterIngressCertServiceUnavailable{}
 }
 
-/*V2UploadClusterIngressCertServiceUnavailable handles this case with default header values.
+/* V2UploadClusterIngressCertServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -312,7 +305,6 @@ type V2UploadClusterIngressCertServiceUnavailable struct {
 func (o *V2UploadClusterIngressCertServiceUnavailable) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2UploadClusterIngressCertServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

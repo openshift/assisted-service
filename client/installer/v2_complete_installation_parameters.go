@@ -18,69 +18,87 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewV2CompleteInstallationParams creates a new V2CompleteInstallationParams object
-// with the default values initialized.
+// NewV2CompleteInstallationParams creates a new V2CompleteInstallationParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2CompleteInstallationParams() *V2CompleteInstallationParams {
-	var ()
 	return &V2CompleteInstallationParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2CompleteInstallationParamsWithTimeout creates a new V2CompleteInstallationParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2CompleteInstallationParamsWithTimeout(timeout time.Duration) *V2CompleteInstallationParams {
-	var ()
 	return &V2CompleteInstallationParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2CompleteInstallationParamsWithContext creates a new V2CompleteInstallationParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2CompleteInstallationParamsWithContext(ctx context.Context) *V2CompleteInstallationParams {
-	var ()
 	return &V2CompleteInstallationParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2CompleteInstallationParamsWithHTTPClient creates a new V2CompleteInstallationParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2CompleteInstallationParamsWithHTTPClient(client *http.Client) *V2CompleteInstallationParams {
-	var ()
 	return &V2CompleteInstallationParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2CompleteInstallationParams contains all the parameters to send to the API endpoint
-for the v2 complete installation operation typically these are written to a http.Request
+/* V2CompleteInstallationParams contains all the parameters to send to the API endpoint
+   for the v2 complete installation operation.
+
+   Typically these are written to a http.Request.
 */
 type V2CompleteInstallationParams struct {
 
-	/*ClusterID
-	  The cluster whose installation is being completing.
+	/* ClusterID.
 
+	   The cluster whose installation is being completing.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*CompletionParams
-	  The final status of the cluster installation.
 
+	/* CompletionParams.
+
+	   The final status of the cluster installation.
 	*/
 	CompletionParams *models.CompletionParams
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is completing the installation.
 
+	/* DiscoveryAgentVersion.
+
+	   The software version of the discovery agent that is completing the installation.
 	*/
 	DiscoveryAgentVersion *string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 complete installation params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2CompleteInstallationParams) WithDefaults() *V2CompleteInstallationParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 complete installation params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2CompleteInstallationParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 complete installation params
@@ -161,7 +179,6 @@ func (o *V2CompleteInstallationParams) WriteToRequest(r runtime.ClientRequest, r
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
-
 	if o.CompletionParams != nil {
 		if err := r.SetBodyParam(o.CompletionParams); err != nil {
 			return err
@@ -174,7 +191,6 @@ func (o *V2CompleteInstallationParams) WriteToRequest(r runtime.ClientRequest, r
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
 
 	if len(res) > 0 {

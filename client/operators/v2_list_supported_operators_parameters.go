@@ -16,52 +16,66 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2ListSupportedOperatorsParams creates a new V2ListSupportedOperatorsParams object
-// with the default values initialized.
+// NewV2ListSupportedOperatorsParams creates a new V2ListSupportedOperatorsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2ListSupportedOperatorsParams() *V2ListSupportedOperatorsParams {
-
 	return &V2ListSupportedOperatorsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2ListSupportedOperatorsParamsWithTimeout creates a new V2ListSupportedOperatorsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2ListSupportedOperatorsParamsWithTimeout(timeout time.Duration) *V2ListSupportedOperatorsParams {
-
 	return &V2ListSupportedOperatorsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2ListSupportedOperatorsParamsWithContext creates a new V2ListSupportedOperatorsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2ListSupportedOperatorsParamsWithContext(ctx context.Context) *V2ListSupportedOperatorsParams {
-
 	return &V2ListSupportedOperatorsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2ListSupportedOperatorsParamsWithHTTPClient creates a new V2ListSupportedOperatorsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2ListSupportedOperatorsParamsWithHTTPClient(client *http.Client) *V2ListSupportedOperatorsParams {
-
 	return &V2ListSupportedOperatorsParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2ListSupportedOperatorsParams contains all the parameters to send to the API endpoint
-for the v2 list supported operators operation typically these are written to a http.Request
+/* V2ListSupportedOperatorsParams contains all the parameters to send to the API endpoint
+   for the v2 list supported operators operation.
+
+   Typically these are written to a http.Request.
 */
 type V2ListSupportedOperatorsParams struct {
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 list supported operators params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ListSupportedOperatorsParams) WithDefaults() *V2ListSupportedOperatorsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 list supported operators params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ListSupportedOperatorsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 list supported operators params

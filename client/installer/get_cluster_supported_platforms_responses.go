@@ -53,7 +53,6 @@ func (o *GetClusterSupportedPlatformsReader) ReadResponse(response runtime.Clien
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -64,7 +63,7 @@ func NewGetClusterSupportedPlatformsOK() *GetClusterSupportedPlatformsOK {
 	return &GetClusterSupportedPlatformsOK{}
 }
 
-/*GetClusterSupportedPlatformsOK handles this case with default header values.
+/* GetClusterSupportedPlatformsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -75,7 +74,6 @@ type GetClusterSupportedPlatformsOK struct {
 func (o *GetClusterSupportedPlatformsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsOK  %+v", 200, o.Payload)
 }
-
 func (o *GetClusterSupportedPlatformsOK) GetPayload() []models.PlatformType {
 	return o.Payload
 }
@@ -95,7 +93,7 @@ func NewGetClusterSupportedPlatformsUnauthorized() *GetClusterSupportedPlatforms
 	return &GetClusterSupportedPlatformsUnauthorized{}
 }
 
-/*GetClusterSupportedPlatformsUnauthorized handles this case with default header values.
+/* GetClusterSupportedPlatformsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -106,7 +104,6 @@ type GetClusterSupportedPlatformsUnauthorized struct {
 func (o *GetClusterSupportedPlatformsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GetClusterSupportedPlatformsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -128,7 +125,7 @@ func NewGetClusterSupportedPlatformsForbidden() *GetClusterSupportedPlatformsFor
 	return &GetClusterSupportedPlatformsForbidden{}
 }
 
-/*GetClusterSupportedPlatformsForbidden handles this case with default header values.
+/* GetClusterSupportedPlatformsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -139,7 +136,6 @@ type GetClusterSupportedPlatformsForbidden struct {
 func (o *GetClusterSupportedPlatformsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GetClusterSupportedPlatformsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -161,7 +157,7 @@ func NewGetClusterSupportedPlatformsNotFound() *GetClusterSupportedPlatformsNotF
 	return &GetClusterSupportedPlatformsNotFound{}
 }
 
-/*GetClusterSupportedPlatformsNotFound handles this case with default header values.
+/* GetClusterSupportedPlatformsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -172,7 +168,6 @@ type GetClusterSupportedPlatformsNotFound struct {
 func (o *GetClusterSupportedPlatformsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *GetClusterSupportedPlatformsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -194,7 +189,7 @@ func NewGetClusterSupportedPlatformsInternalServerError() *GetClusterSupportedPl
 	return &GetClusterSupportedPlatformsInternalServerError{}
 }
 
-/*GetClusterSupportedPlatformsInternalServerError handles this case with default header values.
+/* GetClusterSupportedPlatformsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -205,7 +200,6 @@ type GetClusterSupportedPlatformsInternalServerError struct {
 func (o *GetClusterSupportedPlatformsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GetClusterSupportedPlatformsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

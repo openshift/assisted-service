@@ -15,7 +15,8 @@ import (
 )
 
 // NewV2DownloadHostIgnitionParams creates a new V2DownloadHostIgnitionParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2DownloadHostIgnitionParams() V2DownloadHostIgnitionParams {
 
 	return V2DownloadHostIgnitionParams{}
@@ -60,7 +61,6 @@ func (o *V2DownloadHostIgnitionParams) BindRequest(r *http.Request, route *middl
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

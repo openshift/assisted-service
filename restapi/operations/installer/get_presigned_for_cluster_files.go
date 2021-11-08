@@ -29,7 +29,7 @@ func NewGetPresignedForClusterFiles(ctx *middleware.Context, handler GetPresigne
 	return &GetPresignedForClusterFiles{Context: ctx, Handler: handler}
 }
 
-/*GetPresignedForClusterFiles swagger:route GET /v1/clusters/{cluster_id}/downloads/files-presigned installer getPresignedForClusterFiles
+/* GetPresignedForClusterFiles swagger:route GET /v1/clusters/{cluster_id}/downloads/files-presigned installer getPresignedForClusterFiles
 
 Retrieves a pre-signed S3 URL for downloading cluster files.
 
@@ -42,21 +42,20 @@ type GetPresignedForClusterFiles struct {
 func (o *GetPresignedForClusterFiles) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewGetPresignedForClusterFilesParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *GetPresignedForClusterFiles) ServeHTTP(rw http.ResponseWriter, r *http.
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

@@ -17,7 +17,8 @@ import (
 )
 
 // NewListEventsParams creates a new ListEventsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewListEventsParams() ListEventsParams {
 
 	return ListEventsParams{}
@@ -72,7 +73,6 @@ func (o *ListEventsParams) BindRequest(r *http.Request, route *middleware.Matche
 	if err := o.bindHostID(qHostID, qhkHostID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -83,7 +83,6 @@ func (o *ListEventsParams) BindRequest(r *http.Request, route *middleware.Matche
 //
 // Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
 func (o *ListEventsParams) bindCategories(rawData []string, hasKey bool, formats strfmt.Registry) error {
-
 	var qvCategories string
 	if len(rawData) > 0 {
 		qvCategories = rawData[len(rawData)-1]
@@ -149,6 +148,7 @@ func (o *ListEventsParams) bindHostID(rawData []string, hasKey bool, formats str
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}

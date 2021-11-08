@@ -93,7 +93,6 @@ func (o *V2ListClustersParams) BindRequest(r *http.Request, route *middleware.Ma
 	if err := o.bindWithHosts(qWithHosts, qhkWithHosts, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -104,7 +103,6 @@ func (o *V2ListClustersParams) BindRequest(r *http.Request, route *middleware.Ma
 //
 // Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
 func (o *V2ListClustersParams) bindAmsSubscriptionIds(rawData []string, hasKey bool, formats strfmt.Registry) error {
-
 	var qvAmsSubscriptionIds string
 	if len(rawData) > 0 {
 		qvAmsSubscriptionIds = rawData[len(rawData)-1]
@@ -160,6 +158,7 @@ func (o *V2ListClustersParams) bindOpenshiftClusterID(rawData []string, hasKey b
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
@@ -196,6 +195,7 @@ func (o *V2ListClustersParams) bindWithHosts(rawData []string, hasKey bool, form
 
 	// Required: false
 	// AllowEmptyValue: true
+
 	if raw == "" { // empty values pass all other validations
 		// Default values have been previously initialized by NewV2ListClustersParams()
 		return nil

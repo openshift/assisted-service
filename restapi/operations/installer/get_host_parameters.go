@@ -15,7 +15,8 @@ import (
 )
 
 // NewGetHostParams creates a new GetHostParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewGetHostParams() GetHostParams {
 
 	return GetHostParams{}
@@ -60,7 +61,6 @@ func (o *GetHostParams) BindRequest(r *http.Request, route *middleware.MatchedRo
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

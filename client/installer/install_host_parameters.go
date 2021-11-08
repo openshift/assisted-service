@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewInstallHostParams creates a new InstallHostParams object
-// with the default values initialized.
+// NewInstallHostParams creates a new InstallHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewInstallHostParams() *InstallHostParams {
-	var ()
 	return &InstallHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewInstallHostParamsWithTimeout creates a new InstallHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewInstallHostParamsWithTimeout(timeout time.Duration) *InstallHostParams {
-	var ()
 	return &InstallHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewInstallHostParamsWithContext creates a new InstallHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewInstallHostParamsWithContext(ctx context.Context) *InstallHostParams {
-	var ()
 	return &InstallHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewInstallHostParamsWithHTTPClient creates a new InstallHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewInstallHostParamsWithHTTPClient(client *http.Client) *InstallHostParams {
-	var ()
 	return &InstallHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*InstallHostParams contains all the parameters to send to the API endpoint
-for the install host operation typically these are written to a http.Request
+/* InstallHostParams contains all the parameters to send to the API endpoint
+   for the install host operation.
+
+   Typically these are written to a http.Request.
 */
 type InstallHostParams struct {
 
-	/*ClusterID
-	  The cluster of the host that is being installed.
+	/* ClusterID.
 
+	   The cluster of the host that is being installed.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host that is being installed.
 
+	/* HostID.
+
+	   The host that is being installed.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the install host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *InstallHostParams) WithDefaults() *InstallHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the install host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *InstallHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the install host params

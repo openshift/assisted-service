@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetClusterHostRequirementsParams creates a new GetClusterHostRequirementsParams object
-// with the default values initialized.
+// NewGetClusterHostRequirementsParams creates a new GetClusterHostRequirementsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetClusterHostRequirementsParams() *GetClusterHostRequirementsParams {
-	var ()
 	return &GetClusterHostRequirementsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetClusterHostRequirementsParamsWithTimeout creates a new GetClusterHostRequirementsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetClusterHostRequirementsParamsWithTimeout(timeout time.Duration) *GetClusterHostRequirementsParams {
-	var ()
 	return &GetClusterHostRequirementsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetClusterHostRequirementsParamsWithContext creates a new GetClusterHostRequirementsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetClusterHostRequirementsParamsWithContext(ctx context.Context) *GetClusterHostRequirementsParams {
-	var ()
 	return &GetClusterHostRequirementsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetClusterHostRequirementsParamsWithHTTPClient creates a new GetClusterHostRequirementsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetClusterHostRequirementsParamsWithHTTPClient(client *http.Client) *GetClusterHostRequirementsParams {
-	var ()
 	return &GetClusterHostRequirementsParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetClusterHostRequirementsParams contains all the parameters to send to the API endpoint
-for the get cluster host requirements operation typically these are written to a http.Request
+/* GetClusterHostRequirementsParams contains all the parameters to send to the API endpoint
+   for the get cluster host requirements operation.
+
+   Typically these are written to a http.Request.
 */
 type GetClusterHostRequirementsParams struct {
 
-	/*ClusterID
-	  The cluster to return operators for.
+	/* ClusterID.
 
+	   The cluster to return operators for.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get cluster host requirements params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetClusterHostRequirementsParams) WithDefaults() *GetClusterHostRequirementsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get cluster host requirements params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetClusterHostRequirementsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get cluster host requirements params

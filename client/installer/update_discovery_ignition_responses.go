@@ -65,7 +65,6 @@ func (o *UpdateDiscoveryIgnitionReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewUpdateDiscoveryIgnitionCreated() *UpdateDiscoveryIgnitionCreated {
 	return &UpdateDiscoveryIgnitionCreated{}
 }
 
-/*UpdateDiscoveryIgnitionCreated handles this case with default header values.
+/* UpdateDiscoveryIgnitionCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -97,7 +96,7 @@ func NewUpdateDiscoveryIgnitionBadRequest() *UpdateDiscoveryIgnitionBadRequest {
 	return &UpdateDiscoveryIgnitionBadRequest{}
 }
 
-/*UpdateDiscoveryIgnitionBadRequest handles this case with default header values.
+/* UpdateDiscoveryIgnitionBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -108,7 +107,6 @@ type UpdateDiscoveryIgnitionBadRequest struct {
 func (o *UpdateDiscoveryIgnitionBadRequest) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *UpdateDiscoveryIgnitionBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -130,7 +128,7 @@ func NewUpdateDiscoveryIgnitionUnauthorized() *UpdateDiscoveryIgnitionUnauthoriz
 	return &UpdateDiscoveryIgnitionUnauthorized{}
 }
 
-/*UpdateDiscoveryIgnitionUnauthorized handles this case with default header values.
+/* UpdateDiscoveryIgnitionUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -141,7 +139,6 @@ type UpdateDiscoveryIgnitionUnauthorized struct {
 func (o *UpdateDiscoveryIgnitionUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *UpdateDiscoveryIgnitionUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -163,7 +160,7 @@ func NewUpdateDiscoveryIgnitionForbidden() *UpdateDiscoveryIgnitionForbidden {
 	return &UpdateDiscoveryIgnitionForbidden{}
 }
 
-/*UpdateDiscoveryIgnitionForbidden handles this case with default header values.
+/* UpdateDiscoveryIgnitionForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -174,7 +171,6 @@ type UpdateDiscoveryIgnitionForbidden struct {
 func (o *UpdateDiscoveryIgnitionForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionForbidden  %+v", 403, o.Payload)
 }
-
 func (o *UpdateDiscoveryIgnitionForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -196,7 +192,7 @@ func NewUpdateDiscoveryIgnitionNotFound() *UpdateDiscoveryIgnitionNotFound {
 	return &UpdateDiscoveryIgnitionNotFound{}
 }
 
-/*UpdateDiscoveryIgnitionNotFound handles this case with default header values.
+/* UpdateDiscoveryIgnitionNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -207,7 +203,6 @@ type UpdateDiscoveryIgnitionNotFound struct {
 func (o *UpdateDiscoveryIgnitionNotFound) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionNotFound  %+v", 404, o.Payload)
 }
-
 func (o *UpdateDiscoveryIgnitionNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -229,7 +224,7 @@ func NewUpdateDiscoveryIgnitionMethodNotAllowed() *UpdateDiscoveryIgnitionMethod
 	return &UpdateDiscoveryIgnitionMethodNotAllowed{}
 }
 
-/*UpdateDiscoveryIgnitionMethodNotAllowed handles this case with default header values.
+/* UpdateDiscoveryIgnitionMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -240,7 +235,6 @@ type UpdateDiscoveryIgnitionMethodNotAllowed struct {
 func (o *UpdateDiscoveryIgnitionMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *UpdateDiscoveryIgnitionMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -262,7 +256,7 @@ func NewUpdateDiscoveryIgnitionInternalServerError() *UpdateDiscoveryIgnitionInt
 	return &UpdateDiscoveryIgnitionInternalServerError{}
 }
 
-/*UpdateDiscoveryIgnitionInternalServerError handles this case with default header values.
+/* UpdateDiscoveryIgnitionInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -273,7 +267,6 @@ type UpdateDiscoveryIgnitionInternalServerError struct {
 func (o *UpdateDiscoveryIgnitionInternalServerError) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *UpdateDiscoveryIgnitionInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

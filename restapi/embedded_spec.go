@@ -2937,6 +2937,12 @@ func init() {
               "type": "file"
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "401": {
             "description": "Unauthorized.",
             "schema": {
@@ -3024,6 +3030,12 @@ func init() {
         "responses": {
           "204": {
             "description": "Success."
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
           },
           "401": {
             "description": "Unauthorized.",
@@ -3515,6 +3527,12 @@ func init() {
         "responses": {
           "204": {
             "description": "Success."
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
           },
           "401": {
             "description": "Unauthorized.",
@@ -9481,7 +9499,16 @@ func init() {
           "description": "The time that this cluster was created.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "deleted_at": {
           "description": "The time that the cluster was deleted.",
@@ -9493,7 +9520,6 @@ func init() {
         "disk_encryption": {
           "description": "Information regarding hosts' installation disks encryption.",
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:disk_encryption_\"",
           "$ref": "#/definitions/disk-encryption"
         },
         "email_domain": {
@@ -9574,11 +9600,9 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "image_info": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",
           "$ref": "#/definitions/image_info"
         },
         "ingress_vip": {
@@ -9614,7 +9638,6 @@ func init() {
         },
         "logs_info": {
           "description": "The progress of log collection or empty if logs are not applicable",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
           "$ref": "#/definitions/logs_state"
         },
         "machine_network_cidr": {
@@ -9674,12 +9697,10 @@ func init() {
           "type": "string"
         },
         "platform": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:platform_\"",
           "$ref": "#/definitions/platform"
         },
         "progress": {
           "description": "Installation progress percentages of the cluster.",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
           "$ref": "#/definitions/cluster-progress-info"
         },
         "pull_secret_set": {
@@ -9753,7 +9774,16 @@ func init() {
           "description": "The last time that this cluster was updated.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
@@ -9858,7 +9888,6 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
@@ -10046,7 +10075,8 @@ func init() {
         "total_percentage": {
           "type": "integer"
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\""
     },
     "cluster-update-params": {
       "type": "object",
@@ -10194,7 +10224,6 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
@@ -10347,7 +10376,6 @@ func init() {
       "properties": {
         "cidr": {
           "description": "The IP block address pool.",
-          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
@@ -10764,7 +10792,8 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:disk_encryption_\""
     },
     "disk-role": {
       "type": "string",
@@ -11154,7 +11183,16 @@ func init() {
         "created_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "deleted_at": {
           "description": "The time that the host was deleted.",
@@ -11247,7 +11285,6 @@ func init() {
         },
         "logs_info": {
           "description": "The progress of log collection or empty if logs are not applicable",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
           "$ref": "#/definitions/logs_state"
         },
         "logs_started_at": {
@@ -11264,7 +11301,6 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "progress": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
           "$ref": "#/definitions/host-progress-info"
         },
         "progress_stages": {
@@ -11339,7 +11375,16 @@ func init() {
         "updated_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "user_name": {
           "type": "string"
@@ -11383,7 +11428,6 @@ func init() {
       "type": "object",
       "properties": {
         "current_stage": {
-          "type": "string",
           "$ref": "#/definitions/host-stage"
         },
         "progress_info": {
@@ -11396,7 +11440,6 @@ func init() {
       "type": "object",
       "properties": {
         "current_stage": {
-          "type": "string",
           "$ref": "#/definitions/host-stage"
         },
         "installation_percentage": {
@@ -11418,7 +11461,8 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\""
     },
     "host-role": {
       "type": "string",
@@ -11623,7 +11667,8 @@ func init() {
           "type": "string",
           "x-nullable": true
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\""
     },
     "image-create-params": {
       "type": "object",
@@ -11650,7 +11695,16 @@ func init() {
         "created_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "download_url": {
           "type": "string"
@@ -11678,7 +11732,8 @@ func init() {
         "type": {
           "$ref": "#/definitions/image_type"
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\""
     },
     "image_type": {
       "type": "string",
@@ -11745,7 +11800,16 @@ func init() {
         "created_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "download_url": {
           "type": "string"
@@ -11795,7 +11859,6 @@ func init() {
           "type": "string"
         },
         "proxy": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:proxy_\"",
           "$ref": "#/definitions/proxy"
         },
         "pull_secret_set": {
@@ -11820,7 +11883,16 @@ func init() {
           "description": "The last time that this infraenv was updated.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "user_name": {
           "type": "string"
@@ -12178,7 +12250,8 @@ func init() {
         "completed",
         "timeout",
         ""
-      ]
+      ],
+      "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
     },
     "logs_type": {
       "type": "string",
@@ -12212,7 +12285,6 @@ func init() {
       "properties": {
         "cidr": {
           "description": "The IP block address pool for machines within the cluster.",
-          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
@@ -12639,7 +12711,8 @@ func init() {
           "format": "uuid",
           "x-nullable": true
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ovirt_\""
     },
     "platform": {
       "description": "The configuration for the specific platform upon which to perform the installation.",
@@ -12650,7 +12723,6 @@ func init() {
       "properties": {
         "ovirt": {
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ovirt_\"",
           "x-nullable": true,
           "$ref": "#/definitions/ovirt-platform"
         },
@@ -12659,11 +12731,11 @@ func init() {
         },
         "vsphere": {
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:vsphere_\"",
           "x-nullable": true,
           "$ref": "#/definitions/vsphere_platform"
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:platform_\""
     },
     "platform_type": {
       "type": "string",
@@ -12720,7 +12792,8 @@ func init() {
           "type": "string",
           "x-nullable": true
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:proxy_\""
     },
     "release-image": {
       "type": "object",
@@ -12798,7 +12871,6 @@ func init() {
       "properties": {
         "cidr": {
           "description": "The IP block address pool.",
-          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
@@ -12908,7 +12980,8 @@ func init() {
     },
     "subnet": {
       "type": "string",
-      "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
+      "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
+      "x-go-custom-tag": "gorm:\"primary_key\""
     },
     "system_vendor": {
       "type": "object",
@@ -13023,7 +13096,6 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
@@ -13196,7 +13268,8 @@ func init() {
           "type": "string",
           "x-nullable": true
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:vsphere_\""
     }
   },
   "securityDefinitions": {
@@ -16179,6 +16252,12 @@ func init() {
               "type": "file"
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "401": {
             "description": "Unauthorized.",
             "schema": {
@@ -16266,6 +16345,12 @@ func init() {
         "responses": {
           "204": {
             "description": "Success."
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
           },
           "401": {
             "description": "Unauthorized.",
@@ -16757,6 +16842,12 @@ func init() {
         "responses": {
           "204": {
             "description": "Success."
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
           },
           "401": {
             "description": "Unauthorized.",
@@ -22903,7 +22994,16 @@ func init() {
           "description": "The time that this cluster was created.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "deleted_at": {
           "description": "The time that the cluster was deleted.",
@@ -22915,7 +23015,6 @@ func init() {
         "disk_encryption": {
           "description": "Information regarding hosts' installation disks encryption.",
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:disk_encryption_\"",
           "$ref": "#/definitions/disk-encryption"
         },
         "email_domain": {
@@ -22996,11 +23095,9 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "image_info": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",
           "$ref": "#/definitions/image_info"
         },
         "ingress_vip": {
@@ -23036,7 +23133,6 @@ func init() {
         },
         "logs_info": {
           "description": "The progress of log collection or empty if logs are not applicable",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
           "$ref": "#/definitions/logs_state"
         },
         "machine_network_cidr": {
@@ -23096,12 +23192,10 @@ func init() {
           "type": "string"
         },
         "platform": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:platform_\"",
           "$ref": "#/definitions/platform"
         },
         "progress": {
           "description": "Installation progress percentages of the cluster.",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
           "$ref": "#/definitions/cluster-progress-info"
         },
         "pull_secret_set": {
@@ -23175,7 +23269,16 @@ func init() {
           "description": "The last time that this cluster was updated.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
@@ -23280,7 +23383,6 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
@@ -23468,7 +23570,8 @@ func init() {
         "total_percentage": {
           "type": "integer"
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\""
     },
     "cluster-update-params": {
       "type": "object",
@@ -23576,7 +23679,6 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
@@ -23729,7 +23831,6 @@ func init() {
       "properties": {
         "cidr": {
           "description": "The IP block address pool.",
-          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
@@ -24146,7 +24247,8 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:disk_encryption_\""
     },
     "disk-role": {
       "type": "string",
@@ -24467,7 +24569,16 @@ func init() {
         "created_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "deleted_at": {
           "description": "The time that the host was deleted.",
@@ -24560,7 +24671,6 @@ func init() {
         },
         "logs_info": {
           "description": "The progress of log collection or empty if logs are not applicable",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
           "$ref": "#/definitions/logs_state"
         },
         "logs_started_at": {
@@ -24577,7 +24687,6 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "progress": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
           "$ref": "#/definitions/host-progress-info"
         },
         "progress_stages": {
@@ -24652,7 +24761,16 @@ func init() {
         "updated_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "user_name": {
           "type": "string"
@@ -24696,7 +24814,6 @@ func init() {
       "type": "object",
       "properties": {
         "current_stage": {
-          "type": "string",
           "$ref": "#/definitions/host-stage"
         },
         "progress_info": {
@@ -24709,7 +24826,6 @@ func init() {
       "type": "object",
       "properties": {
         "current_stage": {
-          "type": "string",
           "$ref": "#/definitions/host-stage"
         },
         "installation_percentage": {
@@ -24731,7 +24847,8 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\""
     },
     "host-role": {
       "type": "string",
@@ -24936,7 +25053,8 @@ func init() {
           "type": "string",
           "x-nullable": true
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\""
     },
     "image-create-params": {
       "type": "object",
@@ -24963,7 +25081,16 @@ func init() {
         "created_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "download_url": {
           "type": "string"
@@ -24992,7 +25119,8 @@ func init() {
         "type": {
           "$ref": "#/definitions/image_type"
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\""
     },
     "image_type": {
       "type": "string",
@@ -25059,7 +25187,16 @@ func init() {
         "created_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "download_url": {
           "type": "string"
@@ -25109,7 +25246,6 @@ func init() {
           "type": "string"
         },
         "proxy": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:proxy_\"",
           "$ref": "#/definitions/proxy"
         },
         "pull_secret_set": {
@@ -25135,7 +25271,16 @@ func init() {
           "description": "The last time that this infraenv was updated.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "time"
+            },
+            "type": "Time"
+          }
         },
         "user_name": {
           "type": "string"
@@ -25493,7 +25638,8 @@ func init() {
         "completed",
         "timeout",
         ""
-      ]
+      ],
+      "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
     },
     "logs_type": {
       "type": "string",
@@ -25516,7 +25662,6 @@ func init() {
       "properties": {
         "cidr": {
           "description": "The IP block address pool for machines within the cluster.",
-          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
@@ -25943,7 +26088,8 @@ func init() {
           "format": "uuid",
           "x-nullable": true
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ovirt_\""
     },
     "platform": {
       "description": "The configuration for the specific platform upon which to perform the installation.",
@@ -25954,7 +26100,6 @@ func init() {
       "properties": {
         "ovirt": {
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ovirt_\"",
           "x-nullable": true,
           "$ref": "#/definitions/ovirt-platform"
         },
@@ -25963,11 +26108,11 @@ func init() {
         },
         "vsphere": {
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:vsphere_\"",
           "x-nullable": true,
           "$ref": "#/definitions/vsphere_platform"
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:platform_\""
     },
     "platform_type": {
       "type": "string",
@@ -26024,7 +26169,8 @@ func init() {
           "type": "string",
           "x-nullable": true
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:proxy_\""
     },
     "release-image": {
       "type": "object",
@@ -26102,7 +26248,6 @@ func init() {
       "properties": {
         "cidr": {
           "description": "The IP block address pool.",
-          "x-go-custom-tag": "gorm:\"primary_key\"",
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
@@ -26212,7 +26357,8 @@ func init() {
     },
     "subnet": {
       "type": "string",
-      "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
+      "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
+      "x-go-custom-tag": "gorm:\"primary_key\""
     },
     "system_vendor": {
       "type": "object",
@@ -26327,7 +26473,6 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "type": "object",
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
@@ -26500,7 +26645,8 @@ func init() {
           "type": "string",
           "x-nullable": true
         }
-      }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:vsphere_\""
     }
   },
   "securityDefinitions": {

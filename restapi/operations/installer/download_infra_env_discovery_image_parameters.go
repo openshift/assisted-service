@@ -15,7 +15,8 @@ import (
 )
 
 // NewDownloadInfraEnvDiscoveryImageParams creates a new DownloadInfraEnvDiscoveryImageParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewDownloadInfraEnvDiscoveryImageParams() DownloadInfraEnvDiscoveryImageParams {
 
 	return DownloadInfraEnvDiscoveryImageParams{}
@@ -50,7 +51,6 @@ func (o *DownloadInfraEnvDiscoveryImageParams) BindRequest(r *http.Request, rout
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

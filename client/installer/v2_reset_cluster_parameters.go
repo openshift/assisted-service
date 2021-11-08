@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2ResetClusterParams creates a new V2ResetClusterParams object
-// with the default values initialized.
+// NewV2ResetClusterParams creates a new V2ResetClusterParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2ResetClusterParams() *V2ResetClusterParams {
-	var ()
 	return &V2ResetClusterParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2ResetClusterParamsWithTimeout creates a new V2ResetClusterParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2ResetClusterParamsWithTimeout(timeout time.Duration) *V2ResetClusterParams {
-	var ()
 	return &V2ResetClusterParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2ResetClusterParamsWithContext creates a new V2ResetClusterParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2ResetClusterParamsWithContext(ctx context.Context) *V2ResetClusterParams {
-	var ()
 	return &V2ResetClusterParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2ResetClusterParamsWithHTTPClient creates a new V2ResetClusterParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2ResetClusterParamsWithHTTPClient(client *http.Client) *V2ResetClusterParams {
-	var ()
 	return &V2ResetClusterParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2ResetClusterParams contains all the parameters to send to the API endpoint
-for the v2 reset cluster operation typically these are written to a http.Request
+/* V2ResetClusterParams contains all the parameters to send to the API endpoint
+   for the v2 reset cluster operation.
+
+   Typically these are written to a http.Request.
 */
 type V2ResetClusterParams struct {
 
-	/*ClusterID
-	  The cluster whose installation is to be reset.
+	/* ClusterID.
 
+	   The cluster whose installation is to be reset.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 reset cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ResetClusterParams) WithDefaults() *V2ResetClusterParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 reset cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ResetClusterParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 reset cluster params

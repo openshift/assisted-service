@@ -65,7 +65,6 @@ func (o *V2UpdateHostInstallProgressReader) ReadResponse(response runtime.Client
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewV2UpdateHostInstallProgressOK() *V2UpdateHostInstallProgressOK {
 	return &V2UpdateHostInstallProgressOK{}
 }
 
-/*V2UpdateHostInstallProgressOK handles this case with default header values.
+/* V2UpdateHostInstallProgressOK describes a response with status code 200, with default header values.
 
 Update install progress.
 */
@@ -97,7 +96,7 @@ func NewV2UpdateHostInstallProgressUnauthorized() *V2UpdateHostInstallProgressUn
 	return &V2UpdateHostInstallProgressUnauthorized{}
 }
 
-/*V2UpdateHostInstallProgressUnauthorized handles this case with default header values.
+/* V2UpdateHostInstallProgressUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -108,7 +107,6 @@ type V2UpdateHostInstallProgressUnauthorized struct {
 func (o *V2UpdateHostInstallProgressUnauthorized) Error() string {
 	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2UpdateHostInstallProgressUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -130,7 +128,7 @@ func NewV2UpdateHostInstallProgressForbidden() *V2UpdateHostInstallProgressForbi
 	return &V2UpdateHostInstallProgressForbidden{}
 }
 
-/*V2UpdateHostInstallProgressForbidden handles this case with default header values.
+/* V2UpdateHostInstallProgressForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -141,7 +139,6 @@ type V2UpdateHostInstallProgressForbidden struct {
 func (o *V2UpdateHostInstallProgressForbidden) Error() string {
 	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2UpdateHostInstallProgressForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -163,7 +160,7 @@ func NewV2UpdateHostInstallProgressNotFound() *V2UpdateHostInstallProgressNotFou
 	return &V2UpdateHostInstallProgressNotFound{}
 }
 
-/*V2UpdateHostInstallProgressNotFound handles this case with default header values.
+/* V2UpdateHostInstallProgressNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -174,7 +171,6 @@ type V2UpdateHostInstallProgressNotFound struct {
 func (o *V2UpdateHostInstallProgressNotFound) Error() string {
 	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2UpdateHostInstallProgressNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -196,7 +192,7 @@ func NewV2UpdateHostInstallProgressMethodNotAllowed() *V2UpdateHostInstallProgre
 	return &V2UpdateHostInstallProgressMethodNotAllowed{}
 }
 
-/*V2UpdateHostInstallProgressMethodNotAllowed handles this case with default header values.
+/* V2UpdateHostInstallProgressMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -207,7 +203,6 @@ type V2UpdateHostInstallProgressMethodNotAllowed struct {
 func (o *V2UpdateHostInstallProgressMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2UpdateHostInstallProgressMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -229,7 +224,7 @@ func NewV2UpdateHostInstallProgressInternalServerError() *V2UpdateHostInstallPro
 	return &V2UpdateHostInstallProgressInternalServerError{}
 }
 
-/*V2UpdateHostInstallProgressInternalServerError handles this case with default header values.
+/* V2UpdateHostInstallProgressInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -240,7 +235,6 @@ type V2UpdateHostInstallProgressInternalServerError struct {
 func (o *V2UpdateHostInstallProgressInternalServerError) Error() string {
 	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2UpdateHostInstallProgressInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -262,7 +256,7 @@ func NewV2UpdateHostInstallProgressServiceUnavailable() *V2UpdateHostInstallProg
 	return &V2UpdateHostInstallProgressServiceUnavailable{}
 }
 
-/*V2UpdateHostInstallProgressServiceUnavailable handles this case with default header values.
+/* V2UpdateHostInstallProgressServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -273,7 +267,6 @@ type V2UpdateHostInstallProgressServiceUnavailable struct {
 func (o *V2UpdateHostInstallProgressServiceUnavailable) Error() string {
 	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2UpdateHostInstallProgressServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

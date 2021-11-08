@@ -16,81 +16,100 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2DownloadClusterManifestParams creates a new V2DownloadClusterManifestParams object
-// with the default values initialized.
+// NewV2DownloadClusterManifestParams creates a new V2DownloadClusterManifestParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2DownloadClusterManifestParams() *V2DownloadClusterManifestParams {
-	var (
-		folderDefault = string("manifests")
-	)
 	return &V2DownloadClusterManifestParams{
-		Folder: &folderDefault,
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2DownloadClusterManifestParamsWithTimeout creates a new V2DownloadClusterManifestParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2DownloadClusterManifestParamsWithTimeout(timeout time.Duration) *V2DownloadClusterManifestParams {
-	var (
-		folderDefault = string("manifests")
-	)
 	return &V2DownloadClusterManifestParams{
-		Folder: &folderDefault,
-
 		timeout: timeout,
 	}
 }
 
 // NewV2DownloadClusterManifestParamsWithContext creates a new V2DownloadClusterManifestParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2DownloadClusterManifestParamsWithContext(ctx context.Context) *V2DownloadClusterManifestParams {
-	var (
-		folderDefault = string("manifests")
-	)
 	return &V2DownloadClusterManifestParams{
-		Folder: &folderDefault,
-
 		Context: ctx,
 	}
 }
 
 // NewV2DownloadClusterManifestParamsWithHTTPClient creates a new V2DownloadClusterManifestParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2DownloadClusterManifestParamsWithHTTPClient(client *http.Client) *V2DownloadClusterManifestParams {
-	var (
-		folderDefault = string("manifests")
-	)
 	return &V2DownloadClusterManifestParams{
-		Folder:     &folderDefault,
 		HTTPClient: client,
 	}
 }
 
-/*V2DownloadClusterManifestParams contains all the parameters to send to the API endpoint
-for the v2 download cluster manifest operation typically these are written to a http.Request
+/* V2DownloadClusterManifestParams contains all the parameters to send to the API endpoint
+   for the v2 download cluster manifest operation.
+
+   Typically these are written to a http.Request.
 */
 type V2DownloadClusterManifestParams struct {
 
-	/*ClusterID
-	  The cluster whose manifest should be downloaded.
+	/* ClusterID.
 
+	   The cluster whose manifest should be downloaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*FileName
-	  The manifest file name to download.
 
+	/* FileName.
+
+	   The manifest file name to download.
 	*/
 	FileName string
-	/*Folder
-	  The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
 
+	/* Folder.
+
+	   The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
+
+	   Default: "manifests"
 	*/
 	Folder *string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 download cluster manifest params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DownloadClusterManifestParams) WithDefaults() *V2DownloadClusterManifestParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 download cluster manifest params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DownloadClusterManifestParams) SetDefaults() {
+	var (
+		folderDefault = string("manifests")
+	)
+
+	val := V2DownloadClusterManifestParams{
+		Folder: &folderDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the v2 download cluster manifest params
@@ -176,6 +195,7 @@ func (o *V2DownloadClusterManifestParams) WriteToRequest(r runtime.ClientRequest
 	qrFileName := o.FileName
 	qFileName := qrFileName
 	if qFileName != "" {
+
 		if err := r.SetQueryParam("file_name", qFileName); err != nil {
 			return err
 		}
@@ -185,16 +205,17 @@ func (o *V2DownloadClusterManifestParams) WriteToRequest(r runtime.ClientRequest
 
 		// query param folder
 		var qrFolder string
+
 		if o.Folder != nil {
 			qrFolder = *o.Folder
 		}
 		qFolder := qrFolder
 		if qFolder != "" {
+
 			if err := r.SetQueryParam("folder", qFolder); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if len(res) > 0 {

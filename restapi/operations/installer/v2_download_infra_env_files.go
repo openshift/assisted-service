@@ -29,7 +29,7 @@ func NewV2DownloadInfraEnvFiles(ctx *middleware.Context, handler V2DownloadInfra
 	return &V2DownloadInfraEnvFiles{Context: ctx, Handler: handler}
 }
 
-/*V2DownloadInfraEnvFiles swagger:route GET /v2/infra-envs/{infra_env_id}/downloads/files installer v2DownloadInfraEnvFiles
+/* V2DownloadInfraEnvFiles swagger:route GET /v2/infra-envs/{infra_env_id}/downloads/files installer v2DownloadInfraEnvFiles
 
 Downloads the customized ignition file for this host
 
@@ -42,21 +42,20 @@ type V2DownloadInfraEnvFiles struct {
 func (o *V2DownloadInfraEnvFiles) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewV2DownloadInfraEnvFilesParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *V2DownloadInfraEnvFiles) ServeHTTP(rw http.ResponseWriter, r *http.Requ
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

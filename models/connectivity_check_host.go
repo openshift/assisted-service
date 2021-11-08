@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -46,7 +47,6 @@ func (m *ConnectivityCheckHost) Validate(formats strfmt.Registry) error {
 }
 
 func (m *ConnectivityCheckHost) validateHostID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.HostID) { // not required
 		return nil
 	}
@@ -59,7 +59,6 @@ func (m *ConnectivityCheckHost) validateHostID(formats strfmt.Registry) error {
 }
 
 func (m *ConnectivityCheckHost) validateNics(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Nics) { // not required
 		return nil
 	}
@@ -73,6 +72,42 @@ func (m *ConnectivityCheckHost) validateNics(formats strfmt.Registry) error {
 			if err := m.Nics[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("nics" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("nics" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this connectivity check host based on the context it is used
+func (m *ConnectivityCheckHost) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateNics(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ConnectivityCheckHost) contextValidateNics(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Nics); i++ {
+
+		if m.Nics[i] != nil {
+			if err := m.Nics[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("nics" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("nics" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

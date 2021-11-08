@@ -16,81 +16,100 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDeleteClusterManifestParams creates a new DeleteClusterManifestParams object
-// with the default values initialized.
+// NewDeleteClusterManifestParams creates a new DeleteClusterManifestParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewDeleteClusterManifestParams() *DeleteClusterManifestParams {
-	var (
-		folderDefault = string("manifests")
-	)
 	return &DeleteClusterManifestParams{
-		Folder: &folderDefault,
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewDeleteClusterManifestParamsWithTimeout creates a new DeleteClusterManifestParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewDeleteClusterManifestParamsWithTimeout(timeout time.Duration) *DeleteClusterManifestParams {
-	var (
-		folderDefault = string("manifests")
-	)
 	return &DeleteClusterManifestParams{
-		Folder: &folderDefault,
-
 		timeout: timeout,
 	}
 }
 
 // NewDeleteClusterManifestParamsWithContext creates a new DeleteClusterManifestParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewDeleteClusterManifestParamsWithContext(ctx context.Context) *DeleteClusterManifestParams {
-	var (
-		folderDefault = string("manifests")
-	)
 	return &DeleteClusterManifestParams{
-		Folder: &folderDefault,
-
 		Context: ctx,
 	}
 }
 
 // NewDeleteClusterManifestParamsWithHTTPClient creates a new DeleteClusterManifestParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewDeleteClusterManifestParamsWithHTTPClient(client *http.Client) *DeleteClusterManifestParams {
-	var (
-		folderDefault = string("manifests")
-	)
 	return &DeleteClusterManifestParams{
-		Folder:     &folderDefault,
 		HTTPClient: client,
 	}
 }
 
-/*DeleteClusterManifestParams contains all the parameters to send to the API endpoint
-for the delete cluster manifest operation typically these are written to a http.Request
+/* DeleteClusterManifestParams contains all the parameters to send to the API endpoint
+   for the delete cluster manifest operation.
+
+   Typically these are written to a http.Request.
 */
 type DeleteClusterManifestParams struct {
 
-	/*ClusterID
-	  The cluster whose manifest should be deleted.
+	/* ClusterID.
 
+	   The cluster whose manifest should be deleted.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*FileName
-	  The manifest file name to delete from the cluster.
 
+	/* FileName.
+
+	   The manifest file name to delete from the cluster.
 	*/
 	FileName string
-	/*Folder
-	  The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
 
+	/* Folder.
+
+	   The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
+
+	   Default: "manifests"
 	*/
 	Folder *string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the delete cluster manifest params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DeleteClusterManifestParams) WithDefaults() *DeleteClusterManifestParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the delete cluster manifest params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DeleteClusterManifestParams) SetDefaults() {
+	var (
+		folderDefault = string("manifests")
+	)
+
+	val := DeleteClusterManifestParams{
+		Folder: &folderDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the delete cluster manifest params
@@ -176,6 +195,7 @@ func (o *DeleteClusterManifestParams) WriteToRequest(r runtime.ClientRequest, re
 	qrFileName := o.FileName
 	qFileName := qrFileName
 	if qFileName != "" {
+
 		if err := r.SetQueryParam("file_name", qFileName); err != nil {
 			return err
 		}
@@ -185,16 +205,17 @@ func (o *DeleteClusterManifestParams) WriteToRequest(r runtime.ClientRequest, re
 
 		// query param folder
 		var qrFolder string
+
 		if o.Folder != nil {
 			qrFolder = *o.Folder
 		}
 		qFolder := qrFolder
 		if qFolder != "" {
+
 			if err := r.SetQueryParam("folder", qFolder); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if len(res) > 0 {

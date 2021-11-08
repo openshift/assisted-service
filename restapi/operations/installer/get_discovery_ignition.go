@@ -29,7 +29,7 @@ func NewGetDiscoveryIgnition(ctx *middleware.Context, handler GetDiscoveryIgniti
 	return &GetDiscoveryIgnition{Context: ctx, Handler: handler}
 }
 
-/*GetDiscoveryIgnition swagger:route GET /v1/clusters/{cluster_id}/discovery-ignition installer getDiscoveryIgnition
+/* GetDiscoveryIgnition swagger:route GET /v1/clusters/{cluster_id}/discovery-ignition installer getDiscoveryIgnition
 
 Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.
 Used to test the validity of the discovery ignition when it is being overridden.
@@ -45,21 +45,20 @@ type GetDiscoveryIgnition struct {
 func (o *GetDiscoveryIgnition) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewGetDiscoveryIgnitionParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -68,7 +67,6 @@ func (o *GetDiscoveryIgnition) ServeHTTP(rw http.ResponseWriter, r *http.Request
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

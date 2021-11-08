@@ -71,7 +71,6 @@ func (o *V2UpdateClusterLogsProgressReader) ReadResponse(response runtime.Client
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewV2UpdateClusterLogsProgressNoContent() *V2UpdateClusterLogsProgressNoCon
 	return &V2UpdateClusterLogsProgressNoContent{}
 }
 
-/*V2UpdateClusterLogsProgressNoContent handles this case with default header values.
+/* V2UpdateClusterLogsProgressNoContent describes a response with status code 204, with default header values.
 
 Update cluster install progress.
 */
@@ -103,7 +102,7 @@ func NewV2UpdateClusterLogsProgressUnauthorized() *V2UpdateClusterLogsProgressUn
 	return &V2UpdateClusterLogsProgressUnauthorized{}
 }
 
-/*V2UpdateClusterLogsProgressUnauthorized handles this case with default header values.
+/* V2UpdateClusterLogsProgressUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -114,7 +113,6 @@ type V2UpdateClusterLogsProgressUnauthorized struct {
 func (o *V2UpdateClusterLogsProgressUnauthorized) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/logs-progress][%d] v2UpdateClusterLogsProgressUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2UpdateClusterLogsProgressUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -136,7 +134,7 @@ func NewV2UpdateClusterLogsProgressForbidden() *V2UpdateClusterLogsProgressForbi
 	return &V2UpdateClusterLogsProgressForbidden{}
 }
 
-/*V2UpdateClusterLogsProgressForbidden handles this case with default header values.
+/* V2UpdateClusterLogsProgressForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,7 +145,6 @@ type V2UpdateClusterLogsProgressForbidden struct {
 func (o *V2UpdateClusterLogsProgressForbidden) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/logs-progress][%d] v2UpdateClusterLogsProgressForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2UpdateClusterLogsProgressForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +166,7 @@ func NewV2UpdateClusterLogsProgressNotFound() *V2UpdateClusterLogsProgressNotFou
 	return &V2UpdateClusterLogsProgressNotFound{}
 }
 
-/*V2UpdateClusterLogsProgressNotFound handles this case with default header values.
+/* V2UpdateClusterLogsProgressNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -180,7 +177,6 @@ type V2UpdateClusterLogsProgressNotFound struct {
 func (o *V2UpdateClusterLogsProgressNotFound) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/logs-progress][%d] v2UpdateClusterLogsProgressNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2UpdateClusterLogsProgressNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -202,7 +198,7 @@ func NewV2UpdateClusterLogsProgressMethodNotAllowed() *V2UpdateClusterLogsProgre
 	return &V2UpdateClusterLogsProgressMethodNotAllowed{}
 }
 
-/*V2UpdateClusterLogsProgressMethodNotAllowed handles this case with default header values.
+/* V2UpdateClusterLogsProgressMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -213,7 +209,6 @@ type V2UpdateClusterLogsProgressMethodNotAllowed struct {
 func (o *V2UpdateClusterLogsProgressMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/logs-progress][%d] v2UpdateClusterLogsProgressMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2UpdateClusterLogsProgressMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +230,7 @@ func NewV2UpdateClusterLogsProgressConflict() *V2UpdateClusterLogsProgressConfli
 	return &V2UpdateClusterLogsProgressConflict{}
 }
 
-/*V2UpdateClusterLogsProgressConflict handles this case with default header values.
+/* V2UpdateClusterLogsProgressConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -246,7 +241,6 @@ type V2UpdateClusterLogsProgressConflict struct {
 func (o *V2UpdateClusterLogsProgressConflict) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/logs-progress][%d] v2UpdateClusterLogsProgressConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2UpdateClusterLogsProgressConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -268,7 +262,7 @@ func NewV2UpdateClusterLogsProgressInternalServerError() *V2UpdateClusterLogsPro
 	return &V2UpdateClusterLogsProgressInternalServerError{}
 }
 
-/*V2UpdateClusterLogsProgressInternalServerError handles this case with default header values.
+/* V2UpdateClusterLogsProgressInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -279,7 +273,6 @@ type V2UpdateClusterLogsProgressInternalServerError struct {
 func (o *V2UpdateClusterLogsProgressInternalServerError) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/logs-progress][%d] v2UpdateClusterLogsProgressInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2UpdateClusterLogsProgressInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -301,7 +294,7 @@ func NewV2UpdateClusterLogsProgressServiceUnavailable() *V2UpdateClusterLogsProg
 	return &V2UpdateClusterLogsProgressServiceUnavailable{}
 }
 
-/*V2UpdateClusterLogsProgressServiceUnavailable handles this case with default header values.
+/* V2UpdateClusterLogsProgressServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -312,7 +305,6 @@ type V2UpdateClusterLogsProgressServiceUnavailable struct {
 func (o *V2UpdateClusterLogsProgressServiceUnavailable) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/logs-progress][%d] v2UpdateClusterLogsProgressServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2UpdateClusterLogsProgressServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

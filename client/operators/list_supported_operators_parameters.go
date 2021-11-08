@@ -16,52 +16,66 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewListSupportedOperatorsParams creates a new ListSupportedOperatorsParams object
-// with the default values initialized.
+// NewListSupportedOperatorsParams creates a new ListSupportedOperatorsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewListSupportedOperatorsParams() *ListSupportedOperatorsParams {
-
 	return &ListSupportedOperatorsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewListSupportedOperatorsParamsWithTimeout creates a new ListSupportedOperatorsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewListSupportedOperatorsParamsWithTimeout(timeout time.Duration) *ListSupportedOperatorsParams {
-
 	return &ListSupportedOperatorsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewListSupportedOperatorsParamsWithContext creates a new ListSupportedOperatorsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewListSupportedOperatorsParamsWithContext(ctx context.Context) *ListSupportedOperatorsParams {
-
 	return &ListSupportedOperatorsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewListSupportedOperatorsParamsWithHTTPClient creates a new ListSupportedOperatorsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewListSupportedOperatorsParamsWithHTTPClient(client *http.Client) *ListSupportedOperatorsParams {
-
 	return &ListSupportedOperatorsParams{
 		HTTPClient: client,
 	}
 }
 
-/*ListSupportedOperatorsParams contains all the parameters to send to the API endpoint
-for the list supported operators operation typically these are written to a http.Request
+/* ListSupportedOperatorsParams contains all the parameters to send to the API endpoint
+   for the list supported operators operation.
+
+   Typically these are written to a http.Request.
 */
 type ListSupportedOperatorsParams struct {
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the list supported operators params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListSupportedOperatorsParams) WithDefaults() *ListSupportedOperatorsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the list supported operators params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListSupportedOperatorsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the list supported operators params

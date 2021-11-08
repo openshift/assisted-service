@@ -71,7 +71,6 @@ func (o *GetPresignedForClusterFilesReader) ReadResponse(response runtime.Client
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewGetPresignedForClusterFilesOK() *GetPresignedForClusterFilesOK {
 	return &GetPresignedForClusterFilesOK{}
 }
 
-/*GetPresignedForClusterFilesOK handles this case with default header values.
+/* GetPresignedForClusterFilesOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type GetPresignedForClusterFilesOK struct {
 func (o *GetPresignedForClusterFilesOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesOK  %+v", 200, o.Payload)
 }
-
 func (o *GetPresignedForClusterFilesOK) GetPayload() *models.Presigned {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewGetPresignedForClusterFilesBadRequest() *GetPresignedForClusterFilesBadR
 	return &GetPresignedForClusterFilesBadRequest{}
 }
 
-/*GetPresignedForClusterFilesBadRequest handles this case with default header values.
+/* GetPresignedForClusterFilesBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -126,7 +124,6 @@ type GetPresignedForClusterFilesBadRequest struct {
 func (o *GetPresignedForClusterFilesBadRequest) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *GetPresignedForClusterFilesBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewGetPresignedForClusterFilesUnauthorized() *GetPresignedForClusterFilesUn
 	return &GetPresignedForClusterFilesUnauthorized{}
 }
 
-/*GetPresignedForClusterFilesUnauthorized handles this case with default header values.
+/* GetPresignedForClusterFilesUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -159,7 +156,6 @@ type GetPresignedForClusterFilesUnauthorized struct {
 func (o *GetPresignedForClusterFilesUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GetPresignedForClusterFilesUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewGetPresignedForClusterFilesForbidden() *GetPresignedForClusterFilesForbi
 	return &GetPresignedForClusterFilesForbidden{}
 }
 
-/*GetPresignedForClusterFilesForbidden handles this case with default header values.
+/* GetPresignedForClusterFilesForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -192,7 +188,6 @@ type GetPresignedForClusterFilesForbidden struct {
 func (o *GetPresignedForClusterFilesForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GetPresignedForClusterFilesForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewGetPresignedForClusterFilesNotFound() *GetPresignedForClusterFilesNotFou
 	return &GetPresignedForClusterFilesNotFound{}
 }
 
-/*GetPresignedForClusterFilesNotFound handles this case with default header values.
+/* GetPresignedForClusterFilesNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -225,7 +220,6 @@ type GetPresignedForClusterFilesNotFound struct {
 func (o *GetPresignedForClusterFilesNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesNotFound  %+v", 404, o.Payload)
 }
-
 func (o *GetPresignedForClusterFilesNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewGetPresignedForClusterFilesMethodNotAllowed() *GetPresignedForClusterFil
 	return &GetPresignedForClusterFilesMethodNotAllowed{}
 }
 
-/*GetPresignedForClusterFilesMethodNotAllowed handles this case with default header values.
+/* GetPresignedForClusterFilesMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -258,7 +252,6 @@ type GetPresignedForClusterFilesMethodNotAllowed struct {
 func (o *GetPresignedForClusterFilesMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *GetPresignedForClusterFilesMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewGetPresignedForClusterFilesConflict() *GetPresignedForClusterFilesConfli
 	return &GetPresignedForClusterFilesConflict{}
 }
 
-/*GetPresignedForClusterFilesConflict handles this case with default header values.
+/* GetPresignedForClusterFilesConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -291,7 +284,6 @@ type GetPresignedForClusterFilesConflict struct {
 func (o *GetPresignedForClusterFilesConflict) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesConflict  %+v", 409, o.Payload)
 }
-
 func (o *GetPresignedForClusterFilesConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewGetPresignedForClusterFilesInternalServerError() *GetPresignedForCluster
 	return &GetPresignedForClusterFilesInternalServerError{}
 }
 
-/*GetPresignedForClusterFilesInternalServerError handles this case with default header values.
+/* GetPresignedForClusterFilesInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -324,7 +316,6 @@ type GetPresignedForClusterFilesInternalServerError struct {
 func (o *GetPresignedForClusterFilesInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GetPresignedForClusterFilesInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

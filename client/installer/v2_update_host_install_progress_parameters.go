@@ -18,74 +18,95 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewV2UpdateHostInstallProgressParams creates a new V2UpdateHostInstallProgressParams object
-// with the default values initialized.
+// NewV2UpdateHostInstallProgressParams creates a new V2UpdateHostInstallProgressParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2UpdateHostInstallProgressParams() *V2UpdateHostInstallProgressParams {
-	var ()
 	return &V2UpdateHostInstallProgressParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2UpdateHostInstallProgressParamsWithTimeout creates a new V2UpdateHostInstallProgressParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2UpdateHostInstallProgressParamsWithTimeout(timeout time.Duration) *V2UpdateHostInstallProgressParams {
-	var ()
 	return &V2UpdateHostInstallProgressParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2UpdateHostInstallProgressParamsWithContext creates a new V2UpdateHostInstallProgressParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2UpdateHostInstallProgressParamsWithContext(ctx context.Context) *V2UpdateHostInstallProgressParams {
-	var ()
 	return &V2UpdateHostInstallProgressParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2UpdateHostInstallProgressParamsWithHTTPClient creates a new V2UpdateHostInstallProgressParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2UpdateHostInstallProgressParamsWithHTTPClient(client *http.Client) *V2UpdateHostInstallProgressParams {
-	var ()
 	return &V2UpdateHostInstallProgressParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2UpdateHostInstallProgressParams contains all the parameters to send to the API endpoint
-for the v2 update host install progress operation typically these are written to a http.Request
+/* V2UpdateHostInstallProgressParams contains all the parameters to send to the API endpoint
+   for the v2 update host install progress operation.
+
+   Typically these are written to a http.Request.
 */
 type V2UpdateHostInstallProgressParams struct {
 
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is updating progress.
+	/* DiscoveryAgentVersion.
 
+	   The software version of the discovery agent that is updating progress.
 	*/
 	DiscoveryAgentVersion *string
-	/*HostProgress
-	  New progress value.
 
+	/* HostProgress.
+
+	   New progress value.
 	*/
 	HostProgress *models.HostProgress
-	/*HostID
-	  The ID of the host to update.
 
+	/* HostID.
+
+	   The ID of the host to update.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*InfraEnvID
-	  The InfraEnv of the host being updated.
 
+	/* InfraEnvID.
+
+	   The InfraEnv of the host being updated.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 update host install progress params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UpdateHostInstallProgressParams) WithDefaults() *V2UpdateHostInstallProgressParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 update host install progress params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UpdateHostInstallProgressParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 update host install progress params
@@ -179,9 +200,7 @@ func (o *V2UpdateHostInstallProgressParams) WriteToRequest(r runtime.ClientReque
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
-
 	if o.HostProgress != nil {
 		if err := r.SetBodyParam(o.HostProgress); err != nil {
 			return err

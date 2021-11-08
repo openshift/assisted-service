@@ -18,69 +18,87 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewV2RegisterHostParams creates a new V2RegisterHostParams object
-// with the default values initialized.
+// NewV2RegisterHostParams creates a new V2RegisterHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2RegisterHostParams() *V2RegisterHostParams {
-	var ()
 	return &V2RegisterHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2RegisterHostParamsWithTimeout creates a new V2RegisterHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2RegisterHostParamsWithTimeout(timeout time.Duration) *V2RegisterHostParams {
-	var ()
 	return &V2RegisterHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2RegisterHostParamsWithContext creates a new V2RegisterHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2RegisterHostParamsWithContext(ctx context.Context) *V2RegisterHostParams {
-	var ()
 	return &V2RegisterHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2RegisterHostParamsWithHTTPClient creates a new V2RegisterHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2RegisterHostParamsWithHTTPClient(client *http.Client) *V2RegisterHostParams {
-	var ()
 	return &V2RegisterHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2RegisterHostParams contains all the parameters to send to the API endpoint
-for the v2 register host operation typically these are written to a http.Request
+/* V2RegisterHostParams contains all the parameters to send to the API endpoint
+   for the v2 register host operation.
+
+   Typically these are written to a http.Request.
 */
 type V2RegisterHostParams struct {
 
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is registering the agent.
+	/* DiscoveryAgentVersion.
 
+	   The software version of the discovery agent that is registering the agent.
 	*/
 	DiscoveryAgentVersion *string
-	/*InfraEnvID
-	  The InfraEnv that the agent is associated with.
 
+	/* InfraEnvID.
+
+	   The InfraEnv that the agent is associated with.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
-	/*NewHostParams
-	  The description of the agent being registered.
 
+	/* NewHostParams.
+
+	   The description of the agent being registered.
 	*/
 	NewHostParams *models.HostCreateParams
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 register host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2RegisterHostParams) WithDefaults() *V2RegisterHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 register host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2RegisterHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 register host params
@@ -163,14 +181,12 @@ func (o *V2RegisterHostParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
 
 	// path param infra_env_id
 	if err := r.SetPathParam("infra_env_id", o.InfraEnvID.String()); err != nil {
 		return err
 	}
-
 	if o.NewHostParams != nil {
 		if err := r.SetBodyParam(o.NewHostParams); err != nil {
 			return err

@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 
@@ -50,7 +51,6 @@ func (m *Steps) Validate(formats strfmt.Registry) error {
 }
 
 func (m *Steps) validateInstructions(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Instructions) { // not required
 		return nil
 	}
@@ -64,6 +64,8 @@ func (m *Steps) validateInstructions(formats strfmt.Registry) error {
 			if err := m.Instructions[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("instructions" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("instructions" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -104,7 +106,6 @@ func (m *Steps) validatePostStepActionEnum(path, location string, value string) 
 }
 
 func (m *Steps) validatePostStepAction(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.PostStepAction) { // not required
 		return nil
 	}
@@ -112,6 +113,40 @@ func (m *Steps) validatePostStepAction(formats strfmt.Registry) error {
 	// value enum
 	if err := m.validatePostStepActionEnum("post_step_action", "body", *m.PostStepAction); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this steps based on the context it is used
+func (m *Steps) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateInstructions(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *Steps) contextValidateInstructions(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Instructions); i++ {
+
+		if m.Instructions[i] != nil {
+			if err := m.Instructions[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("instructions" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("instructions" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil

@@ -18,64 +18,81 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewCreateClusterManifestParams creates a new CreateClusterManifestParams object
-// with the default values initialized.
+// NewCreateClusterManifestParams creates a new CreateClusterManifestParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewCreateClusterManifestParams() *CreateClusterManifestParams {
-	var ()
 	return &CreateClusterManifestParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewCreateClusterManifestParamsWithTimeout creates a new CreateClusterManifestParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewCreateClusterManifestParamsWithTimeout(timeout time.Duration) *CreateClusterManifestParams {
-	var ()
 	return &CreateClusterManifestParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewCreateClusterManifestParamsWithContext creates a new CreateClusterManifestParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewCreateClusterManifestParamsWithContext(ctx context.Context) *CreateClusterManifestParams {
-	var ()
 	return &CreateClusterManifestParams{
-
 		Context: ctx,
 	}
 }
 
 // NewCreateClusterManifestParamsWithHTTPClient creates a new CreateClusterManifestParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewCreateClusterManifestParamsWithHTTPClient(client *http.Client) *CreateClusterManifestParams {
-	var ()
 	return &CreateClusterManifestParams{
 		HTTPClient: client,
 	}
 }
 
-/*CreateClusterManifestParams contains all the parameters to send to the API endpoint
-for the create cluster manifest operation typically these are written to a http.Request
+/* CreateClusterManifestParams contains all the parameters to send to the API endpoint
+   for the create cluster manifest operation.
+
+   Typically these are written to a http.Request.
 */
 type CreateClusterManifestParams struct {
 
-	/*CreateManifestParams
-	  The new manifest to create.
+	/* CreateManifestParams.
 
+	   The new manifest to create.
 	*/
 	CreateManifestParams *models.CreateManifestParams
-	/*ClusterID
-	  The cluster for which a new manifest should be created.
 
+	/* ClusterID.
+
+	   The cluster for which a new manifest should be created.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the create cluster manifest params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *CreateClusterManifestParams) WithDefaults() *CreateClusterManifestParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the create cluster manifest params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *CreateClusterManifestParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the create cluster manifest params
@@ -140,7 +157,6 @@ func (o *CreateClusterManifestParams) WriteToRequest(r runtime.ClientRequest, re
 		return err
 	}
 	var res []error
-
 	if o.CreateManifestParams != nil {
 		if err := r.SetBodyParam(o.CreateManifestParams); err != nil {
 			return err

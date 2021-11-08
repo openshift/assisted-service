@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewListClusterManifestsParams creates a new ListClusterManifestsParams object
-// with the default values initialized.
+// NewListClusterManifestsParams creates a new ListClusterManifestsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewListClusterManifestsParams() *ListClusterManifestsParams {
-	var ()
 	return &ListClusterManifestsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewListClusterManifestsParamsWithTimeout creates a new ListClusterManifestsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewListClusterManifestsParamsWithTimeout(timeout time.Duration) *ListClusterManifestsParams {
-	var ()
 	return &ListClusterManifestsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewListClusterManifestsParamsWithContext creates a new ListClusterManifestsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewListClusterManifestsParamsWithContext(ctx context.Context) *ListClusterManifestsParams {
-	var ()
 	return &ListClusterManifestsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewListClusterManifestsParamsWithHTTPClient creates a new ListClusterManifestsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewListClusterManifestsParamsWithHTTPClient(client *http.Client) *ListClusterManifestsParams {
-	var ()
 	return &ListClusterManifestsParams{
 		HTTPClient: client,
 	}
 }
 
-/*ListClusterManifestsParams contains all the parameters to send to the API endpoint
-for the list cluster manifests operation typically these are written to a http.Request
+/* ListClusterManifestsParams contains all the parameters to send to the API endpoint
+   for the list cluster manifests operation.
+
+   Typically these are written to a http.Request.
 */
 type ListClusterManifestsParams struct {
 
-	/*ClusterID
-	  The cluster for which the manifests should be listed.
+	/* ClusterID.
 
+	   The cluster for which the manifests should be listed.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the list cluster manifests params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListClusterManifestsParams) WithDefaults() *ListClusterManifestsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the list cluster manifests params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListClusterManifestsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the list cluster manifests params

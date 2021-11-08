@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -77,7 +79,6 @@ func (m *MonitoredOperator) Validate(formats strfmt.Registry) error {
 }
 
 func (m *MonitoredOperator) validateClusterID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ClusterID) { // not required
 		return nil
 	}
@@ -90,7 +91,6 @@ func (m *MonitoredOperator) validateClusterID(formats strfmt.Registry) error {
 }
 
 func (m *MonitoredOperator) validateOperatorType(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.OperatorType) { // not required
 		return nil
 	}
@@ -98,6 +98,8 @@ func (m *MonitoredOperator) validateOperatorType(formats strfmt.Registry) error 
 	if err := m.OperatorType.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("operator_type")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("operator_type")
 		}
 		return err
 	}
@@ -106,7 +108,6 @@ func (m *MonitoredOperator) validateOperatorType(formats strfmt.Registry) error 
 }
 
 func (m *MonitoredOperator) validateStatus(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Status) { // not required
 		return nil
 	}
@@ -114,6 +115,8 @@ func (m *MonitoredOperator) validateStatus(formats strfmt.Registry) error {
 	if err := m.Status.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("status")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("status")
 		}
 		return err
 	}
@@ -122,12 +125,57 @@ func (m *MonitoredOperator) validateStatus(formats strfmt.Registry) error {
 }
 
 func (m *MonitoredOperator) validateStatusUpdatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StatusUpdatedAt) { // not required
 		return nil
 	}
 
 	if err := validate.FormatOf("status_updated_at", "body", "date-time", m.StatusUpdatedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this monitored operator based on the context it is used
+func (m *MonitoredOperator) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateOperatorType(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateStatus(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *MonitoredOperator) contextValidateOperatorType(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.OperatorType.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("operator_type")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("operator_type")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *MonitoredOperator) contextValidateStatus(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.Status.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("status")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("status")
+		}
 		return err
 	}
 

@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -47,7 +48,6 @@ func (m *ImageCreateParams) Validate(formats strfmt.Registry) error {
 }
 
 func (m *ImageCreateParams) validateImageType(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ImageType) { // not required
 		return nil
 	}
@@ -55,6 +55,8 @@ func (m *ImageCreateParams) validateImageType(formats strfmt.Registry) error {
 	if err := m.ImageType.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("image_type")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("image_type")
 		}
 		return err
 	}
@@ -63,7 +65,6 @@ func (m *ImageCreateParams) validateImageType(formats strfmt.Registry) error {
 }
 
 func (m *ImageCreateParams) validateStaticNetworkConfig(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StaticNetworkConfig) { // not required
 		return nil
 	}
@@ -77,6 +78,60 @@ func (m *ImageCreateParams) validateStaticNetworkConfig(formats strfmt.Registry)
 			if err := m.StaticNetworkConfig[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("static_network_config" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("static_network_config" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this image create params based on the context it is used
+func (m *ImageCreateParams) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateImageType(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateStaticNetworkConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ImageCreateParams) contextValidateImageType(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.ImageType.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("image_type")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("image_type")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *ImageCreateParams) contextValidateStaticNetworkConfig(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.StaticNetworkConfig); i++ {
+
+		if m.StaticNetworkConfig[i] != nil {
+			if err := m.StaticNetworkConfig[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("static_network_config" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("static_network_config" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

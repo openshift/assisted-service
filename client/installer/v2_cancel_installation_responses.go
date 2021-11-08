@@ -65,7 +65,6 @@ func (o *V2CancelInstallationReader) ReadResponse(response runtime.ClientRespons
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewV2CancelInstallationAccepted() *V2CancelInstallationAccepted {
 	return &V2CancelInstallationAccepted{}
 }
 
-/*V2CancelInstallationAccepted handles this case with default header values.
+/* V2CancelInstallationAccepted describes a response with status code 202, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type V2CancelInstallationAccepted struct {
 func (o *V2CancelInstallationAccepted) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationAccepted  %+v", 202, o.Payload)
 }
-
 func (o *V2CancelInstallationAccepted) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -109,7 +107,7 @@ func NewV2CancelInstallationUnauthorized() *V2CancelInstallationUnauthorized {
 	return &V2CancelInstallationUnauthorized{}
 }
 
-/*V2CancelInstallationUnauthorized handles this case with default header values.
+/* V2CancelInstallationUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -120,7 +118,6 @@ type V2CancelInstallationUnauthorized struct {
 func (o *V2CancelInstallationUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2CancelInstallationUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -142,7 +139,7 @@ func NewV2CancelInstallationForbidden() *V2CancelInstallationForbidden {
 	return &V2CancelInstallationForbidden{}
 }
 
-/*V2CancelInstallationForbidden handles this case with default header values.
+/* V2CancelInstallationForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -153,7 +150,6 @@ type V2CancelInstallationForbidden struct {
 func (o *V2CancelInstallationForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2CancelInstallationForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +171,7 @@ func NewV2CancelInstallationNotFound() *V2CancelInstallationNotFound {
 	return &V2CancelInstallationNotFound{}
 }
 
-/*V2CancelInstallationNotFound handles this case with default header values.
+/* V2CancelInstallationNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -186,7 +182,6 @@ type V2CancelInstallationNotFound struct {
 func (o *V2CancelInstallationNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2CancelInstallationNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -208,7 +203,7 @@ func NewV2CancelInstallationMethodNotAllowed() *V2CancelInstallationMethodNotAll
 	return &V2CancelInstallationMethodNotAllowed{}
 }
 
-/*V2CancelInstallationMethodNotAllowed handles this case with default header values.
+/* V2CancelInstallationMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -219,7 +214,6 @@ type V2CancelInstallationMethodNotAllowed struct {
 func (o *V2CancelInstallationMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2CancelInstallationMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +235,7 @@ func NewV2CancelInstallationConflict() *V2CancelInstallationConflict {
 	return &V2CancelInstallationConflict{}
 }
 
-/*V2CancelInstallationConflict handles this case with default header values.
+/* V2CancelInstallationConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -252,7 +246,6 @@ type V2CancelInstallationConflict struct {
 func (o *V2CancelInstallationConflict) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2CancelInstallationConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +267,7 @@ func NewV2CancelInstallationInternalServerError() *V2CancelInstallationInternalS
 	return &V2CancelInstallationInternalServerError{}
 }
 
-/*V2CancelInstallationInternalServerError handles this case with default header values.
+/* V2CancelInstallationInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -285,7 +278,6 @@ type V2CancelInstallationInternalServerError struct {
 func (o *V2CancelInstallationInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2CancelInstallationInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

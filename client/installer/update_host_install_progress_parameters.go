@@ -18,74 +18,95 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewUpdateHostInstallProgressParams creates a new UpdateHostInstallProgressParams object
-// with the default values initialized.
+// NewUpdateHostInstallProgressParams creates a new UpdateHostInstallProgressParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUpdateHostInstallProgressParams() *UpdateHostInstallProgressParams {
-	var ()
 	return &UpdateHostInstallProgressParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUpdateHostInstallProgressParamsWithTimeout creates a new UpdateHostInstallProgressParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUpdateHostInstallProgressParamsWithTimeout(timeout time.Duration) *UpdateHostInstallProgressParams {
-	var ()
 	return &UpdateHostInstallProgressParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUpdateHostInstallProgressParamsWithContext creates a new UpdateHostInstallProgressParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUpdateHostInstallProgressParamsWithContext(ctx context.Context) *UpdateHostInstallProgressParams {
-	var ()
 	return &UpdateHostInstallProgressParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUpdateHostInstallProgressParamsWithHTTPClient creates a new UpdateHostInstallProgressParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUpdateHostInstallProgressParamsWithHTTPClient(client *http.Client) *UpdateHostInstallProgressParams {
-	var ()
 	return &UpdateHostInstallProgressParams{
 		HTTPClient: client,
 	}
 }
 
-/*UpdateHostInstallProgressParams contains all the parameters to send to the API endpoint
-for the update host install progress operation typically these are written to a http.Request
+/* UpdateHostInstallProgressParams contains all the parameters to send to the API endpoint
+   for the update host install progress operation.
+
+   Typically these are written to a http.Request.
 */
 type UpdateHostInstallProgressParams struct {
 
-	/*ClusterID
-	  The ID of the cluster to retrieve.
+	/* ClusterID.
 
+	   The ID of the cluster to retrieve.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is updating progress.
 
+	/* DiscoveryAgentVersion.
+
+	   The software version of the discovery agent that is updating progress.
 	*/
 	DiscoveryAgentVersion *string
-	/*HostProgress
-	  New progress value.
 
+	/* HostProgress.
+
+	   New progress value.
 	*/
 	HostProgress *models.HostProgress
-	/*HostID
-	  The ID of the host to retrieve.
 
+	/* HostID.
+
+	   The ID of the host to retrieve.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the update host install progress params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateHostInstallProgressParams) WithDefaults() *UpdateHostInstallProgressParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the update host install progress params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateHostInstallProgressParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the update host install progress params
@@ -184,9 +205,7 @@ func (o *UpdateHostInstallProgressParams) WriteToRequest(r runtime.ClientRequest
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
-
 	if o.HostProgress != nil {
 		if err := r.SetBodyParam(o.HostProgress); err != nil {
 			return err

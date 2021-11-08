@@ -13,7 +13,8 @@ import (
 )
 
 // NewV2ListManagedDomainsParams creates a new V2ListManagedDomainsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2ListManagedDomainsParams() V2ListManagedDomainsParams {
 
 	return V2ListManagedDomainsParams{}

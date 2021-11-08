@@ -18,69 +18,87 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewUploadClusterIngressCertParams creates a new UploadClusterIngressCertParams object
-// with the default values initialized.
+// NewUploadClusterIngressCertParams creates a new UploadClusterIngressCertParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUploadClusterIngressCertParams() *UploadClusterIngressCertParams {
-	var ()
 	return &UploadClusterIngressCertParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUploadClusterIngressCertParamsWithTimeout creates a new UploadClusterIngressCertParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUploadClusterIngressCertParamsWithTimeout(timeout time.Duration) *UploadClusterIngressCertParams {
-	var ()
 	return &UploadClusterIngressCertParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUploadClusterIngressCertParamsWithContext creates a new UploadClusterIngressCertParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUploadClusterIngressCertParamsWithContext(ctx context.Context) *UploadClusterIngressCertParams {
-	var ()
 	return &UploadClusterIngressCertParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUploadClusterIngressCertParamsWithHTTPClient creates a new UploadClusterIngressCertParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUploadClusterIngressCertParamsWithHTTPClient(client *http.Client) *UploadClusterIngressCertParams {
-	var ()
 	return &UploadClusterIngressCertParams{
 		HTTPClient: client,
 	}
 }
 
-/*UploadClusterIngressCertParams contains all the parameters to send to the API endpoint
-for the upload cluster ingress cert operation typically these are written to a http.Request
+/* UploadClusterIngressCertParams contains all the parameters to send to the API endpoint
+   for the upload cluster ingress cert operation.
+
+   Typically these are written to a http.Request.
 */
 type UploadClusterIngressCertParams struct {
 
-	/*ClusterID
-	  The cluster to associate with the ingress certificate.
+	/* ClusterID.
 
+	   The cluster to associate with the ingress certificate.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is uploading the ingress certificate.
 
+	/* DiscoveryAgentVersion.
+
+	   The software version of the discovery agent that is uploading the ingress certificate.
 	*/
 	DiscoveryAgentVersion *string
-	/*IngressCertParams
-	  The ingress certificate.
 
+	/* IngressCertParams.
+
+	   The ingress certificate.
 	*/
 	IngressCertParams models.IngressCertParams
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the upload cluster ingress cert params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UploadClusterIngressCertParams) WithDefaults() *UploadClusterIngressCertParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the upload cluster ingress cert params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UploadClusterIngressCertParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the upload cluster ingress cert params
@@ -168,9 +186,7 @@ func (o *UploadClusterIngressCertParams) WriteToRequest(r runtime.ClientRequest,
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
-
 	if err := r.SetBodyParam(o.IngressCertParams); err != nil {
 		return err
 	}

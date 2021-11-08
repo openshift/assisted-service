@@ -29,7 +29,7 @@ func NewGetInfraEnv(ctx *middleware.Context, handler GetInfraEnvHandler) *GetInf
 	return &GetInfraEnv{Context: ctx, Handler: handler}
 }
 
-/*GetInfraEnv swagger:route GET /v2/infra-envs/{infra_env_id} installer getInfraEnv
+/* GetInfraEnv swagger:route GET /v2/infra-envs/{infra_env_id} installer getInfraEnv
 
 Retrieves the details of the InfraEnv.
 
@@ -42,21 +42,20 @@ type GetInfraEnv struct {
 func (o *GetInfraEnv) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewGetInfraEnvParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *GetInfraEnv) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

@@ -53,7 +53,6 @@ func (o *V2ImportClusterReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -64,7 +63,7 @@ func NewV2ImportClusterCreated() *V2ImportClusterCreated {
 	return &V2ImportClusterCreated{}
 }
 
-/*V2ImportClusterCreated handles this case with default header values.
+/* V2ImportClusterCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -75,7 +74,6 @@ type V2ImportClusterCreated struct {
 func (o *V2ImportClusterCreated) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/import][%d] v2ImportClusterCreated  %+v", 201, o.Payload)
 }
-
 func (o *V2ImportClusterCreated) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -97,7 +95,7 @@ func NewV2ImportClusterBadRequest() *V2ImportClusterBadRequest {
 	return &V2ImportClusterBadRequest{}
 }
 
-/*V2ImportClusterBadRequest handles this case with default header values.
+/* V2ImportClusterBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -108,7 +106,6 @@ type V2ImportClusterBadRequest struct {
 func (o *V2ImportClusterBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/import][%d] v2ImportClusterBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2ImportClusterBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -130,7 +127,7 @@ func NewV2ImportClusterUnauthorized() *V2ImportClusterUnauthorized {
 	return &V2ImportClusterUnauthorized{}
 }
 
-/*V2ImportClusterUnauthorized handles this case with default header values.
+/* V2ImportClusterUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -141,7 +138,6 @@ type V2ImportClusterUnauthorized struct {
 func (o *V2ImportClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/import][%d] v2ImportClusterUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2ImportClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -163,7 +159,7 @@ func NewV2ImportClusterForbidden() *V2ImportClusterForbidden {
 	return &V2ImportClusterForbidden{}
 }
 
-/*V2ImportClusterForbidden handles this case with default header values.
+/* V2ImportClusterForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -174,7 +170,6 @@ type V2ImportClusterForbidden struct {
 func (o *V2ImportClusterForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/import][%d] v2ImportClusterForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2ImportClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -196,7 +191,7 @@ func NewV2ImportClusterInternalServerError() *V2ImportClusterInternalServerError
 	return &V2ImportClusterInternalServerError{}
 }
 
-/*V2ImportClusterInternalServerError handles this case with default header values.
+/* V2ImportClusterInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -207,7 +202,6 @@ type V2ImportClusterInternalServerError struct {
 func (o *V2ImportClusterInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/import][%d] v2ImportClusterInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2ImportClusterInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

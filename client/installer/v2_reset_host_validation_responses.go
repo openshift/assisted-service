@@ -65,7 +65,6 @@ func (o *V2ResetHostValidationReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewV2ResetHostValidationOK() *V2ResetHostValidationOK {
 	return &V2ResetHostValidationOK{}
 }
 
-/*V2ResetHostValidationOK handles this case with default header values.
+/* V2ResetHostValidationOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type V2ResetHostValidationOK struct {
 func (o *V2ResetHostValidationOK) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ResetHostValidationOK) GetPayload() *models.Host {
 	return o.Payload
 }
@@ -109,7 +107,7 @@ func NewV2ResetHostValidationBadRequest() *V2ResetHostValidationBadRequest {
 	return &V2ResetHostValidationBadRequest{}
 }
 
-/*V2ResetHostValidationBadRequest handles this case with default header values.
+/* V2ResetHostValidationBadRequest describes a response with status code 400, with default header values.
 
 Bad Request
 */
@@ -120,7 +118,6 @@ type V2ResetHostValidationBadRequest struct {
 func (o *V2ResetHostValidationBadRequest) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2ResetHostValidationBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -142,7 +139,7 @@ func NewV2ResetHostValidationUnauthorized() *V2ResetHostValidationUnauthorized {
 	return &V2ResetHostValidationUnauthorized{}
 }
 
-/*V2ResetHostValidationUnauthorized handles this case with default header values.
+/* V2ResetHostValidationUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -153,7 +150,6 @@ type V2ResetHostValidationUnauthorized struct {
 func (o *V2ResetHostValidationUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2ResetHostValidationUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +171,7 @@ func NewV2ResetHostValidationForbidden() *V2ResetHostValidationForbidden {
 	return &V2ResetHostValidationForbidden{}
 }
 
-/*V2ResetHostValidationForbidden handles this case with default header values.
+/* V2ResetHostValidationForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -186,7 +182,6 @@ type V2ResetHostValidationForbidden struct {
 func (o *V2ResetHostValidationForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2ResetHostValidationForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -208,7 +203,7 @@ func NewV2ResetHostValidationNotFound() *V2ResetHostValidationNotFound {
 	return &V2ResetHostValidationNotFound{}
 }
 
-/*V2ResetHostValidationNotFound handles this case with default header values.
+/* V2ResetHostValidationNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -219,7 +214,6 @@ type V2ResetHostValidationNotFound struct {
 func (o *V2ResetHostValidationNotFound) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2ResetHostValidationNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +235,7 @@ func NewV2ResetHostValidationConflict() *V2ResetHostValidationConflict {
 	return &V2ResetHostValidationConflict{}
 }
 
-/*V2ResetHostValidationConflict handles this case with default header values.
+/* V2ResetHostValidationConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -252,7 +246,6 @@ type V2ResetHostValidationConflict struct {
 func (o *V2ResetHostValidationConflict) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2ResetHostValidationConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +267,7 @@ func NewV2ResetHostValidationInternalServerError() *V2ResetHostValidationInterna
 	return &V2ResetHostValidationInternalServerError{}
 }
 
-/*V2ResetHostValidationInternalServerError handles this case with default header values.
+/* V2ResetHostValidationInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -285,7 +278,6 @@ type V2ResetHostValidationInternalServerError struct {
 func (o *V2ResetHostValidationInternalServerError) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2ResetHostValidationInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

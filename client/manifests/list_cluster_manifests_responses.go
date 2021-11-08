@@ -65,7 +65,6 @@ func (o *ListClusterManifestsReader) ReadResponse(response runtime.ClientRespons
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewListClusterManifestsOK() *ListClusterManifestsOK {
 	return &ListClusterManifestsOK{}
 }
 
-/*ListClusterManifestsOK handles this case with default header values.
+/* ListClusterManifestsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type ListClusterManifestsOK struct {
 func (o *ListClusterManifestsOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsOK  %+v", 200, o.Payload)
 }
-
 func (o *ListClusterManifestsOK) GetPayload() models.ListManifests {
 	return o.Payload
 }
@@ -107,7 +105,7 @@ func NewListClusterManifestsUnauthorized() *ListClusterManifestsUnauthorized {
 	return &ListClusterManifestsUnauthorized{}
 }
 
-/*ListClusterManifestsUnauthorized handles this case with default header values.
+/* ListClusterManifestsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -118,7 +116,6 @@ type ListClusterManifestsUnauthorized struct {
 func (o *ListClusterManifestsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *ListClusterManifestsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -140,7 +137,7 @@ func NewListClusterManifestsForbidden() *ListClusterManifestsForbidden {
 	return &ListClusterManifestsForbidden{}
 }
 
-/*ListClusterManifestsForbidden handles this case with default header values.
+/* ListClusterManifestsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -151,7 +148,6 @@ type ListClusterManifestsForbidden struct {
 func (o *ListClusterManifestsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *ListClusterManifestsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -173,7 +169,7 @@ func NewListClusterManifestsNotFound() *ListClusterManifestsNotFound {
 	return &ListClusterManifestsNotFound{}
 }
 
-/*ListClusterManifestsNotFound handles this case with default header values.
+/* ListClusterManifestsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -184,7 +180,6 @@ type ListClusterManifestsNotFound struct {
 func (o *ListClusterManifestsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *ListClusterManifestsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -206,7 +201,7 @@ func NewListClusterManifestsMethodNotAllowed() *ListClusterManifestsMethodNotAll
 	return &ListClusterManifestsMethodNotAllowed{}
 }
 
-/*ListClusterManifestsMethodNotAllowed handles this case with default header values.
+/* ListClusterManifestsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -217,7 +212,6 @@ type ListClusterManifestsMethodNotAllowed struct {
 func (o *ListClusterManifestsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *ListClusterManifestsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -239,7 +233,7 @@ func NewListClusterManifestsConflict() *ListClusterManifestsConflict {
 	return &ListClusterManifestsConflict{}
 }
 
-/*ListClusterManifestsConflict handles this case with default header values.
+/* ListClusterManifestsConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -250,7 +244,6 @@ type ListClusterManifestsConflict struct {
 func (o *ListClusterManifestsConflict) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsConflict  %+v", 409, o.Payload)
 }
-
 func (o *ListClusterManifestsConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -272,7 +265,7 @@ func NewListClusterManifestsInternalServerError() *ListClusterManifestsInternalS
 	return &ListClusterManifestsInternalServerError{}
 }
 
-/*ListClusterManifestsInternalServerError handles this case with default header values.
+/* ListClusterManifestsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -283,7 +276,6 @@ type ListClusterManifestsInternalServerError struct {
 func (o *ListClusterManifestsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *ListClusterManifestsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

@@ -17,69 +17,89 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// NewListEventsParams creates a new ListEventsParams object
-// with the default values initialized.
+// NewListEventsParams creates a new ListEventsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewListEventsParams() *ListEventsParams {
-	var ()
 	return &ListEventsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewListEventsParamsWithTimeout creates a new ListEventsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewListEventsParamsWithTimeout(timeout time.Duration) *ListEventsParams {
-	var ()
 	return &ListEventsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewListEventsParamsWithContext creates a new ListEventsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewListEventsParamsWithContext(ctx context.Context) *ListEventsParams {
-	var ()
 	return &ListEventsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewListEventsParamsWithHTTPClient creates a new ListEventsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewListEventsParamsWithHTTPClient(client *http.Client) *ListEventsParams {
-	var ()
 	return &ListEventsParams{
 		HTTPClient: client,
 	}
 }
 
-/*ListEventsParams contains all the parameters to send to the API endpoint
-for the list events operation typically these are written to a http.Request
+/* ListEventsParams contains all the parameters to send to the API endpoint
+   for the list events operation.
+
+   Typically these are written to a http.Request.
 */
 type ListEventsParams struct {
 
-	/*Categories
-	  A comma-separated list of event categories.
+	/* Categories.
 
+	   A comma-separated list of event categories.
 	*/
 	Categories []string
-	/*ClusterID
-	  The cluster to return events for.
 
+	/* ClusterID.
+
+	   The cluster to return events for.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  A host in the specified cluster to return events for.
 
+	/* HostID.
+
+	   A host in the specified cluster to return events for.
+
+	   Format: uuid
 	*/
 	HostID *strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the list events params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListEventsParams) WithDefaults() *ListEventsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the list events params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListEventsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the list events params
@@ -156,12 +176,15 @@ func (o *ListEventsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 	}
 	var res []error
 
-	valuesCategories := o.Categories
+	if o.Categories != nil {
 
-	joinedCategories := swag.JoinByFormat(valuesCategories, "")
-	// query array param categories
-	if err := r.SetQueryParam("categories", joinedCategories...); err != nil {
-		return err
+		// binding items for categories
+		joinedCategories := o.bindParamCategories(reg)
+
+		// query array param categories
+		if err := r.SetQueryParam("categories", joinedCategories...); err != nil {
+			return err
+		}
 	}
 
 	// path param cluster_id
@@ -173,20 +196,38 @@ func (o *ListEventsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 
 		// query param host_id
 		var qrHostID strfmt.UUID
+
 		if o.HostID != nil {
 			qrHostID = *o.HostID
 		}
 		qHostID := qrHostID.String()
 		if qHostID != "" {
+
 			if err := r.SetQueryParam("host_id", qHostID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
 	return nil
+}
+
+// bindParamListEvents binds the parameter categories
+func (o *ListEventsParams) bindParamCategories(formats strfmt.Registry) []string {
+	categoriesIR := o.Categories
+
+	var categoriesIC []string
+	for _, categoriesIIR := range categoriesIR { // explode []string
+
+		categoriesIIV := categoriesIIR // string as string
+		categoriesIC = append(categoriesIC, categoriesIIV)
+	}
+
+	// items.CollectionFormat: ""
+	categoriesIS := swag.JoinByFormat(categoriesIC, "")
+
+	return categoriesIS
 }

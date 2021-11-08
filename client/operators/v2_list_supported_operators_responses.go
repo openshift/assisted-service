@@ -47,7 +47,6 @@ func (o *V2ListSupportedOperatorsReader) ReadResponse(response runtime.ClientRes
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -58,7 +57,7 @@ func NewV2ListSupportedOperatorsOK() *V2ListSupportedOperatorsOK {
 	return &V2ListSupportedOperatorsOK{}
 }
 
-/*V2ListSupportedOperatorsOK handles this case with default header values.
+/* V2ListSupportedOperatorsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -69,7 +68,6 @@ type V2ListSupportedOperatorsOK struct {
 func (o *V2ListSupportedOperatorsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/supported-operators][%d] v2ListSupportedOperatorsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ListSupportedOperatorsOK) GetPayload() []string {
 	return o.Payload
 }
@@ -89,7 +87,7 @@ func NewV2ListSupportedOperatorsUnauthorized() *V2ListSupportedOperatorsUnauthor
 	return &V2ListSupportedOperatorsUnauthorized{}
 }
 
-/*V2ListSupportedOperatorsUnauthorized handles this case with default header values.
+/* V2ListSupportedOperatorsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -100,7 +98,6 @@ type V2ListSupportedOperatorsUnauthorized struct {
 func (o *V2ListSupportedOperatorsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/supported-operators][%d] v2ListSupportedOperatorsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2ListSupportedOperatorsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -122,7 +119,7 @@ func NewV2ListSupportedOperatorsForbidden() *V2ListSupportedOperatorsForbidden {
 	return &V2ListSupportedOperatorsForbidden{}
 }
 
-/*V2ListSupportedOperatorsForbidden handles this case with default header values.
+/* V2ListSupportedOperatorsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -133,7 +130,6 @@ type V2ListSupportedOperatorsForbidden struct {
 func (o *V2ListSupportedOperatorsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/supported-operators][%d] v2ListSupportedOperatorsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2ListSupportedOperatorsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -155,7 +151,7 @@ func NewV2ListSupportedOperatorsInternalServerError() *V2ListSupportedOperatorsI
 	return &V2ListSupportedOperatorsInternalServerError{}
 }
 
-/*V2ListSupportedOperatorsInternalServerError handles this case with default header values.
+/* V2ListSupportedOperatorsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -166,7 +162,6 @@ type V2ListSupportedOperatorsInternalServerError struct {
 func (o *V2ListSupportedOperatorsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/supported-operators][%d] v2ListSupportedOperatorsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2ListSupportedOperatorsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

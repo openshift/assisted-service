@@ -77,7 +77,6 @@ func (o *V2ReportMonitoredOperatorStatusReader) ReadResponse(response runtime.Cl
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -88,7 +87,7 @@ func NewV2ReportMonitoredOperatorStatusOK() *V2ReportMonitoredOperatorStatusOK {
 	return &V2ReportMonitoredOperatorStatusOK{}
 }
 
-/*V2ReportMonitoredOperatorStatusOK handles this case with default header values.
+/* V2ReportMonitoredOperatorStatusOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -109,7 +108,7 @@ func NewV2ReportMonitoredOperatorStatusBadRequest() *V2ReportMonitoredOperatorSt
 	return &V2ReportMonitoredOperatorStatusBadRequest{}
 }
 
-/*V2ReportMonitoredOperatorStatusBadRequest handles this case with default header values.
+/* V2ReportMonitoredOperatorStatusBadRequest describes a response with status code 400, with default header values.
 
 Bad Request
 */
@@ -120,7 +119,6 @@ type V2ReportMonitoredOperatorStatusBadRequest struct {
 func (o *V2ReportMonitoredOperatorStatusBadRequest) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2ReportMonitoredOperatorStatusBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -142,7 +140,7 @@ func NewV2ReportMonitoredOperatorStatusUnauthorized() *V2ReportMonitoredOperator
 	return &V2ReportMonitoredOperatorStatusUnauthorized{}
 }
 
-/*V2ReportMonitoredOperatorStatusUnauthorized handles this case with default header values.
+/* V2ReportMonitoredOperatorStatusUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -153,7 +151,6 @@ type V2ReportMonitoredOperatorStatusUnauthorized struct {
 func (o *V2ReportMonitoredOperatorStatusUnauthorized) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2ReportMonitoredOperatorStatusUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +172,7 @@ func NewV2ReportMonitoredOperatorStatusForbidden() *V2ReportMonitoredOperatorSta
 	return &V2ReportMonitoredOperatorStatusForbidden{}
 }
 
-/*V2ReportMonitoredOperatorStatusForbidden handles this case with default header values.
+/* V2ReportMonitoredOperatorStatusForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -186,7 +183,6 @@ type V2ReportMonitoredOperatorStatusForbidden struct {
 func (o *V2ReportMonitoredOperatorStatusForbidden) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2ReportMonitoredOperatorStatusForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -208,7 +204,7 @@ func NewV2ReportMonitoredOperatorStatusNotFound() *V2ReportMonitoredOperatorStat
 	return &V2ReportMonitoredOperatorStatusNotFound{}
 }
 
-/*V2ReportMonitoredOperatorStatusNotFound handles this case with default header values.
+/* V2ReportMonitoredOperatorStatusNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -219,7 +215,6 @@ type V2ReportMonitoredOperatorStatusNotFound struct {
 func (o *V2ReportMonitoredOperatorStatusNotFound) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2ReportMonitoredOperatorStatusNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +236,7 @@ func NewV2ReportMonitoredOperatorStatusMethodNotAllowed() *V2ReportMonitoredOper
 	return &V2ReportMonitoredOperatorStatusMethodNotAllowed{}
 }
 
-/*V2ReportMonitoredOperatorStatusMethodNotAllowed handles this case with default header values.
+/* V2ReportMonitoredOperatorStatusMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -252,7 +247,6 @@ type V2ReportMonitoredOperatorStatusMethodNotAllowed struct {
 func (o *V2ReportMonitoredOperatorStatusMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2ReportMonitoredOperatorStatusMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +268,7 @@ func NewV2ReportMonitoredOperatorStatusConflict() *V2ReportMonitoredOperatorStat
 	return &V2ReportMonitoredOperatorStatusConflict{}
 }
 
-/*V2ReportMonitoredOperatorStatusConflict handles this case with default header values.
+/* V2ReportMonitoredOperatorStatusConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -285,7 +279,6 @@ type V2ReportMonitoredOperatorStatusConflict struct {
 func (o *V2ReportMonitoredOperatorStatusConflict) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2ReportMonitoredOperatorStatusConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -307,7 +300,7 @@ func NewV2ReportMonitoredOperatorStatusInternalServerError() *V2ReportMonitoredO
 	return &V2ReportMonitoredOperatorStatusInternalServerError{}
 }
 
-/*V2ReportMonitoredOperatorStatusInternalServerError handles this case with default header values.
+/* V2ReportMonitoredOperatorStatusInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -318,7 +311,6 @@ type V2ReportMonitoredOperatorStatusInternalServerError struct {
 func (o *V2ReportMonitoredOperatorStatusInternalServerError) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2ReportMonitoredOperatorStatusInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -340,7 +332,7 @@ func NewV2ReportMonitoredOperatorStatusServiceUnavailable() *V2ReportMonitoredOp
 	return &V2ReportMonitoredOperatorStatusServiceUnavailable{}
 }
 
-/*V2ReportMonitoredOperatorStatusServiceUnavailable handles this case with default header values.
+/* V2ReportMonitoredOperatorStatusServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -351,7 +343,6 @@ type V2ReportMonitoredOperatorStatusServiceUnavailable struct {
 func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

@@ -17,8 +17,16 @@ import (
 	"github.com/go-openapi/validate"
 )
 
+// UploadLogsMaxParseMemory sets the maximum size in bytes for
+// the multipart form parser for this operation.
+//
+// The default value is 32 MB.
+// The multipart parser stores up to this + 10MB.
+var UploadLogsMaxParseMemory int64 = 32 << 20
+
 // NewUploadLogsParams creates a new UploadLogsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewUploadLogsParams() UploadLogsParams {
 
 	return UploadLogsParams{}
@@ -65,7 +73,7 @@ func (o *UploadLogsParams) BindRequest(r *http.Request, route *middleware.Matche
 
 	qs := runtime.Values(r.URL.Query())
 
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+	if err := r.ParseMultipartForm(UploadLogsMaxParseMemory); err != nil {
 		if err != http.ErrNotMultipart {
 			return errors.New(400, "%v", err)
 		} else if err := r.ParseForm(); err != nil {
@@ -98,7 +106,6 @@ func (o *UploadLogsParams) BindRequest(r *http.Request, route *middleware.Matche
 	} else {
 		o.Upfile = &runtime.File{Data: upfile, Header: upfileHeader}
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -147,6 +154,7 @@ func (o *UploadLogsParams) bindHostID(rawData []string, hasKey bool, formats str
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
@@ -186,10 +194,10 @@ func (o *UploadLogsParams) bindLogsType(rawData []string, hasKey bool, formats s
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("logs_type", "query", raw); err != nil {
 		return err
 	}
-
 	o.LogsType = raw
 
 	if err := o.validateLogsType(formats); err != nil {

@@ -59,7 +59,6 @@ func (o *V2ListEventsReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewV2ListEventsOK() *V2ListEventsOK {
 	return &V2ListEventsOK{}
 }
 
-/*V2ListEventsOK handles this case with default header values.
+/* V2ListEventsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type V2ListEventsOK struct {
 func (o *V2ListEventsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ListEventsOK) GetPayload() models.EventList {
 	return o.Payload
 }
@@ -101,7 +99,7 @@ func NewV2ListEventsUnauthorized() *V2ListEventsUnauthorized {
 	return &V2ListEventsUnauthorized{}
 }
 
-/*V2ListEventsUnauthorized handles this case with default header values.
+/* V2ListEventsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -112,7 +110,6 @@ type V2ListEventsUnauthorized struct {
 func (o *V2ListEventsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2ListEventsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -134,7 +131,7 @@ func NewV2ListEventsForbidden() *V2ListEventsForbidden {
 	return &V2ListEventsForbidden{}
 }
 
-/*V2ListEventsForbidden handles this case with default header values.
+/* V2ListEventsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -145,7 +142,6 @@ type V2ListEventsForbidden struct {
 func (o *V2ListEventsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2ListEventsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -167,7 +163,7 @@ func NewV2ListEventsNotFound() *V2ListEventsNotFound {
 	return &V2ListEventsNotFound{}
 }
 
-/*V2ListEventsNotFound handles this case with default header values.
+/* V2ListEventsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -178,7 +174,6 @@ type V2ListEventsNotFound struct {
 func (o *V2ListEventsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2ListEventsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -200,7 +195,7 @@ func NewV2ListEventsMethodNotAllowed() *V2ListEventsMethodNotAllowed {
 	return &V2ListEventsMethodNotAllowed{}
 }
 
-/*V2ListEventsMethodNotAllowed handles this case with default header values.
+/* V2ListEventsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -211,7 +206,6 @@ type V2ListEventsMethodNotAllowed struct {
 func (o *V2ListEventsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2ListEventsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -233,7 +227,7 @@ func NewV2ListEventsInternalServerError() *V2ListEventsInternalServerError {
 	return &V2ListEventsInternalServerError{}
 }
 
-/*V2ListEventsInternalServerError handles this case with default header values.
+/* V2ListEventsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -244,7 +238,6 @@ type V2ListEventsInternalServerError struct {
 func (o *V2ListEventsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2ListEventsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

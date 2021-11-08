@@ -29,7 +29,7 @@ func NewV2ListOfClusterOperators(ctx *middleware.Context, handler V2ListOfCluste
 	return &V2ListOfClusterOperators{Context: ctx, Handler: handler}
 }
 
-/*V2ListOfClusterOperators swagger:route GET /v2/clusters/{cluster_id}/monitored-operators operators installer v2ListOfClusterOperators
+/* V2ListOfClusterOperators swagger:route GET /v2/clusters/{cluster_id}/monitored-operators operators installer v2ListOfClusterOperators
 
 Lists operators to be monitored for a cluster.
 
@@ -42,21 +42,20 @@ type V2ListOfClusterOperators struct {
 func (o *V2ListOfClusterOperators) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewV2ListOfClusterOperatorsParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *V2ListOfClusterOperators) ServeHTTP(rw http.ResponseWriter, r *http.Req
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

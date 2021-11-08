@@ -65,7 +65,6 @@ func (o *ResetHostValidationReader) ReadResponse(response runtime.ClientResponse
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewResetHostValidationOK() *ResetHostValidationOK {
 	return &ResetHostValidationOK{}
 }
 
-/*ResetHostValidationOK handles this case with default header values.
+/* ResetHostValidationOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type ResetHostValidationOK struct {
 func (o *ResetHostValidationOK) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationOK  %+v", 200, o.Payload)
 }
-
 func (o *ResetHostValidationOK) GetPayload() *models.Host {
 	return o.Payload
 }
@@ -109,7 +107,7 @@ func NewResetHostValidationBadRequest() *ResetHostValidationBadRequest {
 	return &ResetHostValidationBadRequest{}
 }
 
-/*ResetHostValidationBadRequest handles this case with default header values.
+/* ResetHostValidationBadRequest describes a response with status code 400, with default header values.
 
 Bad Request
 */
@@ -120,7 +118,6 @@ type ResetHostValidationBadRequest struct {
 func (o *ResetHostValidationBadRequest) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *ResetHostValidationBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -142,7 +139,7 @@ func NewResetHostValidationUnauthorized() *ResetHostValidationUnauthorized {
 	return &ResetHostValidationUnauthorized{}
 }
 
-/*ResetHostValidationUnauthorized handles this case with default header values.
+/* ResetHostValidationUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -153,7 +150,6 @@ type ResetHostValidationUnauthorized struct {
 func (o *ResetHostValidationUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *ResetHostValidationUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +171,7 @@ func NewResetHostValidationForbidden() *ResetHostValidationForbidden {
 	return &ResetHostValidationForbidden{}
 }
 
-/*ResetHostValidationForbidden handles this case with default header values.
+/* ResetHostValidationForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -186,7 +182,6 @@ type ResetHostValidationForbidden struct {
 func (o *ResetHostValidationForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationForbidden  %+v", 403, o.Payload)
 }
-
 func (o *ResetHostValidationForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -208,7 +203,7 @@ func NewResetHostValidationNotFound() *ResetHostValidationNotFound {
 	return &ResetHostValidationNotFound{}
 }
 
-/*ResetHostValidationNotFound handles this case with default header values.
+/* ResetHostValidationNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -219,7 +214,6 @@ type ResetHostValidationNotFound struct {
 func (o *ResetHostValidationNotFound) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationNotFound  %+v", 404, o.Payload)
 }
-
 func (o *ResetHostValidationNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +235,7 @@ func NewResetHostValidationConflict() *ResetHostValidationConflict {
 	return &ResetHostValidationConflict{}
 }
 
-/*ResetHostValidationConflict handles this case with default header values.
+/* ResetHostValidationConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -252,7 +246,6 @@ type ResetHostValidationConflict struct {
 func (o *ResetHostValidationConflict) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationConflict  %+v", 409, o.Payload)
 }
-
 func (o *ResetHostValidationConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +267,7 @@ func NewResetHostValidationInternalServerError() *ResetHostValidationInternalSer
 	return &ResetHostValidationInternalServerError{}
 }
 
-/*ResetHostValidationInternalServerError handles this case with default header values.
+/* ResetHostValidationInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -285,7 +278,6 @@ type ResetHostValidationInternalServerError struct {
 func (o *ResetHostValidationInternalServerError) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *ResetHostValidationInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

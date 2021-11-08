@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetHostIgnitionParams creates a new GetHostIgnitionParams object
-// with the default values initialized.
+// NewGetHostIgnitionParams creates a new GetHostIgnitionParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetHostIgnitionParams() *GetHostIgnitionParams {
-	var ()
 	return &GetHostIgnitionParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetHostIgnitionParamsWithTimeout creates a new GetHostIgnitionParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetHostIgnitionParamsWithTimeout(timeout time.Duration) *GetHostIgnitionParams {
-	var ()
 	return &GetHostIgnitionParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetHostIgnitionParamsWithContext creates a new GetHostIgnitionParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetHostIgnitionParamsWithContext(ctx context.Context) *GetHostIgnitionParams {
-	var ()
 	return &GetHostIgnitionParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetHostIgnitionParamsWithHTTPClient creates a new GetHostIgnitionParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetHostIgnitionParamsWithHTTPClient(client *http.Client) *GetHostIgnitionParams {
-	var ()
 	return &GetHostIgnitionParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetHostIgnitionParams contains all the parameters to send to the API endpoint
-for the get host ignition operation typically these are written to a http.Request
+/* GetHostIgnitionParams contains all the parameters to send to the API endpoint
+   for the get host ignition operation.
+
+   Typically these are written to a http.Request.
 */
 type GetHostIgnitionParams struct {
 
-	/*ClusterID
-	  The cluster of the host whose customized ignition file should be retrieved.
+	/* ClusterID.
 
+	   The cluster of the host whose customized ignition file should be retrieved.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host whose customized ignition file should be retrieved.
 
+	/* HostID.
+
+	   The host whose customized ignition file should be retrieved.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get host ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetHostIgnitionParams) WithDefaults() *GetHostIgnitionParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get host ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetHostIgnitionParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get host ignition params

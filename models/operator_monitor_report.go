@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -41,7 +43,6 @@ func (m *OperatorMonitorReport) Validate(formats strfmt.Registry) error {
 }
 
 func (m *OperatorMonitorReport) validateStatus(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Status) { // not required
 		return nil
 	}
@@ -49,6 +50,36 @@ func (m *OperatorMonitorReport) validateStatus(formats strfmt.Registry) error {
 	if err := m.Status.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("status")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("status")
+		}
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this operator monitor report based on the context it is used
+func (m *OperatorMonitorReport) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateStatus(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *OperatorMonitorReport) contextValidateStatus(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.Status.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("status")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("status")
 		}
 		return err
 	}

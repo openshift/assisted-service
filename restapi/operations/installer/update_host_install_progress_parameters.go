@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewUpdateHostInstallProgressParams creates a new UpdateHostInstallProgressParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewUpdateHostInstallProgressParams() UpdateHostInstallProgressParams {
 
 	return UpdateHostInstallProgressParams{}
@@ -88,6 +90,11 @@ func (o *UpdateHostInstallProgressParams) BindRequest(r *http.Request, route *mi
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.HostProgress = &body
 			}
@@ -95,11 +102,11 @@ func (o *UpdateHostInstallProgressParams) BindRequest(r *http.Request, route *mi
 	} else {
 		res = append(res, errors.Required("hostProgress", "body", ""))
 	}
+
 	rHostID, rhkHostID, _ := route.Params.GetOK("host_id")
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -151,7 +158,6 @@ func (o *UpdateHostInstallProgressParams) bindDiscoveryAgentVersion(rawData []st
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.DiscoveryAgentVersion = &raw
 
 	return nil

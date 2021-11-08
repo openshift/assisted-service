@@ -16,52 +16,66 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDownloadISOParams creates a new DownloadISOParams object
-// with the default values initialized.
+// NewDownloadISOParams creates a new DownloadISOParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewDownloadISOParams() *DownloadISOParams {
-
 	return &DownloadISOParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewDownloadISOParamsWithTimeout creates a new DownloadISOParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewDownloadISOParamsWithTimeout(timeout time.Duration) *DownloadISOParams {
-
 	return &DownloadISOParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewDownloadISOParamsWithContext creates a new DownloadISOParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewDownloadISOParamsWithContext(ctx context.Context) *DownloadISOParams {
-
 	return &DownloadISOParams{
-
 		Context: ctx,
 	}
 }
 
 // NewDownloadISOParamsWithHTTPClient creates a new DownloadISOParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewDownloadISOParamsWithHTTPClient(client *http.Client) *DownloadISOParams {
-
 	return &DownloadISOParams{
 		HTTPClient: client,
 	}
 }
 
-/*DownloadISOParams contains all the parameters to send to the API endpoint
-for the download i s o operation typically these are written to a http.Request
+/* DownloadISOParams contains all the parameters to send to the API endpoint
+   for the download i s o operation.
+
+   Typically these are written to a http.Request.
 */
 type DownloadISOParams struct {
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the download i s o params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadISOParams) WithDefaults() *DownloadISOParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the download i s o params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadISOParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the download i s o params

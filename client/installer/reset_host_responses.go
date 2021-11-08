@@ -59,7 +59,6 @@ func (o *ResetHostReader) ReadResponse(response runtime.ClientResponse, consumer
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewResetHostOK() *ResetHostOK {
 	return &ResetHostOK{}
 }
 
-/*ResetHostOK handles this case with default header values.
+/* ResetHostOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type ResetHostOK struct {
 func (o *ResetHostOK) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostOK  %+v", 200, o.Payload)
 }
-
 func (o *ResetHostOK) GetPayload() *models.Host {
 	return o.Payload
 }
@@ -103,7 +101,7 @@ func NewResetHostUnauthorized() *ResetHostUnauthorized {
 	return &ResetHostUnauthorized{}
 }
 
-/*ResetHostUnauthorized handles this case with default header values.
+/* ResetHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -114,7 +112,6 @@ type ResetHostUnauthorized struct {
 func (o *ResetHostUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *ResetHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -136,7 +133,7 @@ func NewResetHostForbidden() *ResetHostForbidden {
 	return &ResetHostForbidden{}
 }
 
-/*ResetHostForbidden handles this case with default header values.
+/* ResetHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,7 +144,6 @@ type ResetHostForbidden struct {
 func (o *ResetHostForbidden) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *ResetHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +165,7 @@ func NewResetHostNotFound() *ResetHostNotFound {
 	return &ResetHostNotFound{}
 }
 
-/*ResetHostNotFound handles this case with default header values.
+/* ResetHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -180,7 +176,6 @@ type ResetHostNotFound struct {
 func (o *ResetHostNotFound) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *ResetHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -202,7 +197,7 @@ func NewResetHostConflict() *ResetHostConflict {
 	return &ResetHostConflict{}
 }
 
-/*ResetHostConflict handles this case with default header values.
+/* ResetHostConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -213,7 +208,6 @@ type ResetHostConflict struct {
 func (o *ResetHostConflict) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostConflict  %+v", 409, o.Payload)
 }
-
 func (o *ResetHostConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +229,7 @@ func NewResetHostInternalServerError() *ResetHostInternalServerError {
 	return &ResetHostInternalServerError{}
 }
 
-/*ResetHostInternalServerError handles this case with default header values.
+/* ResetHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -246,7 +240,6 @@ type ResetHostInternalServerError struct {
 func (o *ResetHostInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *ResetHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

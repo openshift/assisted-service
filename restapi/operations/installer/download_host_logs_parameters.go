@@ -15,7 +15,8 @@ import (
 )
 
 // NewDownloadHostLogsParams creates a new DownloadHostLogsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewDownloadHostLogsParams() DownloadHostLogsParams {
 
 	return DownloadHostLogsParams{}
@@ -60,7 +61,6 @@ func (o *DownloadHostLogsParams) BindRequest(r *http.Request, route *middleware.
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

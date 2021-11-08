@@ -15,7 +15,8 @@ import (
 )
 
 // NewGetClusterInstallConfigParams creates a new GetClusterInstallConfigParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewGetClusterInstallConfigParams() GetClusterInstallConfigParams {
 
 	return GetClusterInstallConfigParams{}
@@ -50,7 +51,6 @@ func (o *GetClusterInstallConfigParams) BindRequest(r *http.Request, route *midd
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

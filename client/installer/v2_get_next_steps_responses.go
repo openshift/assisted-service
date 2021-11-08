@@ -71,7 +71,6 @@ func (o *V2GetNextStepsReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewV2GetNextStepsOK() *V2GetNextStepsOK {
 	return &V2GetNextStepsOK{}
 }
 
-/*V2GetNextStepsOK handles this case with default header values.
+/* V2GetNextStepsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type V2GetNextStepsOK struct {
 func (o *V2GetNextStepsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2GetNextStepsOK) GetPayload() *models.Steps {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewV2GetNextStepsUnauthorized() *V2GetNextStepsUnauthorized {
 	return &V2GetNextStepsUnauthorized{}
 }
 
-/*V2GetNextStepsUnauthorized handles this case with default header values.
+/* V2GetNextStepsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -126,7 +124,6 @@ type V2GetNextStepsUnauthorized struct {
 func (o *V2GetNextStepsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2GetNextStepsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewV2GetNextStepsForbidden() *V2GetNextStepsForbidden {
 	return &V2GetNextStepsForbidden{}
 }
 
-/*V2GetNextStepsForbidden handles this case with default header values.
+/* V2GetNextStepsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -159,7 +156,6 @@ type V2GetNextStepsForbidden struct {
 func (o *V2GetNextStepsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2GetNextStepsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewV2GetNextStepsNotFound() *V2GetNextStepsNotFound {
 	return &V2GetNextStepsNotFound{}
 }
 
-/*V2GetNextStepsNotFound handles this case with default header values.
+/* V2GetNextStepsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -192,7 +188,6 @@ type V2GetNextStepsNotFound struct {
 func (o *V2GetNextStepsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2GetNextStepsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewV2GetNextStepsMethodNotAllowed() *V2GetNextStepsMethodNotAllowed {
 	return &V2GetNextStepsMethodNotAllowed{}
 }
 
-/*V2GetNextStepsMethodNotAllowed handles this case with default header values.
+/* V2GetNextStepsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -225,7 +220,6 @@ type V2GetNextStepsMethodNotAllowed struct {
 func (o *V2GetNextStepsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2GetNextStepsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewV2GetNextStepsInternalServerError() *V2GetNextStepsInternalServerError {
 	return &V2GetNextStepsInternalServerError{}
 }
 
-/*V2GetNextStepsInternalServerError handles this case with default header values.
+/* V2GetNextStepsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -258,7 +252,6 @@ type V2GetNextStepsInternalServerError struct {
 func (o *V2GetNextStepsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2GetNextStepsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewV2GetNextStepsNotImplemented() *V2GetNextStepsNotImplemented {
 	return &V2GetNextStepsNotImplemented{}
 }
 
-/*V2GetNextStepsNotImplemented handles this case with default header values.
+/* V2GetNextStepsNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -291,7 +284,6 @@ type V2GetNextStepsNotImplemented struct {
 func (o *V2GetNextStepsNotImplemented) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *V2GetNextStepsNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewV2GetNextStepsServiceUnavailable() *V2GetNextStepsServiceUnavailable {
 	return &V2GetNextStepsServiceUnavailable{}
 }
 
-/*V2GetNextStepsServiceUnavailable handles this case with default header values.
+/* V2GetNextStepsServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -324,7 +316,6 @@ type V2GetNextStepsServiceUnavailable struct {
 func (o *V2GetNextStepsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2GetNextStepsServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

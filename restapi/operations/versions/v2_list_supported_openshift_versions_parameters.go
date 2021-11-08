@@ -13,7 +13,8 @@ import (
 )
 
 // NewV2ListSupportedOpenshiftVersionsParams creates a new V2ListSupportedOpenshiftVersionsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2ListSupportedOpenshiftVersionsParams() V2ListSupportedOpenshiftVersionsParams {
 
 	return V2ListSupportedOpenshiftVersionsParams{}

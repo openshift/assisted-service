@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetCredentialsParams creates a new GetCredentialsParams object
-// with the default values initialized.
+// NewGetCredentialsParams creates a new GetCredentialsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetCredentialsParams() *GetCredentialsParams {
-	var ()
 	return &GetCredentialsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetCredentialsParamsWithTimeout creates a new GetCredentialsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetCredentialsParamsWithTimeout(timeout time.Duration) *GetCredentialsParams {
-	var ()
 	return &GetCredentialsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetCredentialsParamsWithContext creates a new GetCredentialsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetCredentialsParamsWithContext(ctx context.Context) *GetCredentialsParams {
-	var ()
 	return &GetCredentialsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetCredentialsParamsWithHTTPClient creates a new GetCredentialsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetCredentialsParamsWithHTTPClient(client *http.Client) *GetCredentialsParams {
-	var ()
 	return &GetCredentialsParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetCredentialsParams contains all the parameters to send to the API endpoint
-for the get credentials operation typically these are written to a http.Request
+/* GetCredentialsParams contains all the parameters to send to the API endpoint
+   for the get credentials operation.
+
+   Typically these are written to a http.Request.
 */
 type GetCredentialsParams struct {
 
-	/*ClusterID
-	  The cluster whose admin credentials should be retrieved.
+	/* ClusterID.
 
+	   The cluster whose admin credentials should be retrieved.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get credentials params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetCredentialsParams) WithDefaults() *GetCredentialsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get credentials params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetCredentialsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get credentials params

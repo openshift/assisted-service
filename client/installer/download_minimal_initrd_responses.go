@@ -72,7 +72,6 @@ func (o *DownloadMinimalInitrdReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -81,11 +80,12 @@ func (o *DownloadMinimalInitrdReader) ReadResponse(response runtime.ClientRespon
 // NewDownloadMinimalInitrdOK creates a DownloadMinimalInitrdOK with default headers values
 func NewDownloadMinimalInitrdOK(writer io.Writer) *DownloadMinimalInitrdOK {
 	return &DownloadMinimalInitrdOK{
+
 		Payload: writer,
 	}
 }
 
-/*DownloadMinimalInitrdOK handles this case with default header values.
+/* DownloadMinimalInitrdOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -96,7 +96,6 @@ type DownloadMinimalInitrdOK struct {
 func (o *DownloadMinimalInitrdOK) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdOK  %+v", 200, o.Payload)
 }
-
 func (o *DownloadMinimalInitrdOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -116,7 +115,7 @@ func NewDownloadMinimalInitrdNoContent() *DownloadMinimalInitrdNoContent {
 	return &DownloadMinimalInitrdNoContent{}
 }
 
-/*DownloadMinimalInitrdNoContent handles this case with default header values.
+/* DownloadMinimalInitrdNoContent describes a response with status code 204, with default header values.
 
 Empty Success.
 */
@@ -137,7 +136,7 @@ func NewDownloadMinimalInitrdUnauthorized() *DownloadMinimalInitrdUnauthorized {
 	return &DownloadMinimalInitrdUnauthorized{}
 }
 
-/*DownloadMinimalInitrdUnauthorized handles this case with default header values.
+/* DownloadMinimalInitrdUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -148,7 +147,6 @@ type DownloadMinimalInitrdUnauthorized struct {
 func (o *DownloadMinimalInitrdUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *DownloadMinimalInitrdUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -170,7 +168,7 @@ func NewDownloadMinimalInitrdForbidden() *DownloadMinimalInitrdForbidden {
 	return &DownloadMinimalInitrdForbidden{}
 }
 
-/*DownloadMinimalInitrdForbidden handles this case with default header values.
+/* DownloadMinimalInitrdForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -181,7 +179,6 @@ type DownloadMinimalInitrdForbidden struct {
 func (o *DownloadMinimalInitrdForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdForbidden  %+v", 403, o.Payload)
 }
-
 func (o *DownloadMinimalInitrdForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -203,7 +200,7 @@ func NewDownloadMinimalInitrdNotFound() *DownloadMinimalInitrdNotFound {
 	return &DownloadMinimalInitrdNotFound{}
 }
 
-/*DownloadMinimalInitrdNotFound handles this case with default header values.
+/* DownloadMinimalInitrdNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -214,7 +211,6 @@ type DownloadMinimalInitrdNotFound struct {
 func (o *DownloadMinimalInitrdNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdNotFound  %+v", 404, o.Payload)
 }
-
 func (o *DownloadMinimalInitrdNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -236,7 +232,7 @@ func NewDownloadMinimalInitrdMethodNotAllowed() *DownloadMinimalInitrdMethodNotA
 	return &DownloadMinimalInitrdMethodNotAllowed{}
 }
 
-/*DownloadMinimalInitrdMethodNotAllowed handles this case with default header values.
+/* DownloadMinimalInitrdMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -247,7 +243,6 @@ type DownloadMinimalInitrdMethodNotAllowed struct {
 func (o *DownloadMinimalInitrdMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *DownloadMinimalInitrdMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -269,7 +264,7 @@ func NewDownloadMinimalInitrdConflict() *DownloadMinimalInitrdConflict {
 	return &DownloadMinimalInitrdConflict{}
 }
 
-/*DownloadMinimalInitrdConflict handles this case with default header values.
+/* DownloadMinimalInitrdConflict describes a response with status code 409, with default header values.
 
 Conflict.
 */
@@ -280,7 +275,6 @@ type DownloadMinimalInitrdConflict struct {
 func (o *DownloadMinimalInitrdConflict) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdConflict  %+v", 409, o.Payload)
 }
-
 func (o *DownloadMinimalInitrdConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -302,7 +296,7 @@ func NewDownloadMinimalInitrdInternalServerError() *DownloadMinimalInitrdInterna
 	return &DownloadMinimalInitrdInternalServerError{}
 }
 
-/*DownloadMinimalInitrdInternalServerError handles this case with default header values.
+/* DownloadMinimalInitrdInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -313,7 +307,6 @@ type DownloadMinimalInitrdInternalServerError struct {
 func (o *DownloadMinimalInitrdInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *DownloadMinimalInitrdInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

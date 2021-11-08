@@ -18,69 +18,89 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewUpdateHostIgnitionParams creates a new UpdateHostIgnitionParams object
-// with the default values initialized.
+// NewUpdateHostIgnitionParams creates a new UpdateHostIgnitionParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUpdateHostIgnitionParams() *UpdateHostIgnitionParams {
-	var ()
 	return &UpdateHostIgnitionParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUpdateHostIgnitionParamsWithTimeout creates a new UpdateHostIgnitionParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUpdateHostIgnitionParamsWithTimeout(timeout time.Duration) *UpdateHostIgnitionParams {
-	var ()
 	return &UpdateHostIgnitionParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUpdateHostIgnitionParamsWithContext creates a new UpdateHostIgnitionParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUpdateHostIgnitionParamsWithContext(ctx context.Context) *UpdateHostIgnitionParams {
-	var ()
 	return &UpdateHostIgnitionParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUpdateHostIgnitionParamsWithHTTPClient creates a new UpdateHostIgnitionParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUpdateHostIgnitionParamsWithHTTPClient(client *http.Client) *UpdateHostIgnitionParams {
-	var ()
 	return &UpdateHostIgnitionParams{
 		HTTPClient: client,
 	}
 }
 
-/*UpdateHostIgnitionParams contains all the parameters to send to the API endpoint
-for the update host ignition operation typically these are written to a http.Request
+/* UpdateHostIgnitionParams contains all the parameters to send to the API endpoint
+   for the update host ignition operation.
+
+   Typically these are written to a http.Request.
 */
 type UpdateHostIgnitionParams struct {
 
-	/*ClusterID
-	  The cluster of the host whose ignition file should be updated.
+	/* ClusterID.
 
+	   The cluster of the host whose ignition file should be updated.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostIgnitionParams
-	  Ignition config overrides.
 
+	/* HostIgnitionParams.
+
+	   Ignition config overrides.
 	*/
 	HostIgnitionParams *models.HostIgnitionParams
-	/*HostID
-	  The host whose ignition file should be updated.
 
+	/* HostID.
+
+	   The host whose ignition file should be updated.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the update host ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateHostIgnitionParams) WithDefaults() *UpdateHostIgnitionParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the update host ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateHostIgnitionParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the update host ignition params
@@ -161,7 +181,6 @@ func (o *UpdateHostIgnitionParams) WriteToRequest(r runtime.ClientRequest, reg s
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
-
 	if o.HostIgnitionParams != nil {
 		if err := r.SetBodyParam(o.HostIgnitionParams); err != nil {
 			return err

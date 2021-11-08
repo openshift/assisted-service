@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewCompleteInstallationParams creates a new CompleteInstallationParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewCompleteInstallationParams() CompleteInstallationParams {
 
 	return CompleteInstallationParams{}
@@ -79,6 +81,11 @@ func (o *CompleteInstallationParams) BindRequest(r *http.Request, route *middlew
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.CompletionParams = &body
 			}
@@ -86,10 +93,10 @@ func (o *CompleteInstallationParams) BindRequest(r *http.Request, route *middlew
 	} else {
 		res = append(res, errors.Required("completionParams", "body", ""))
 	}
+
 	if err := o.bindDiscoveryAgentVersion(r.Header[http.CanonicalHeaderKey("discovery_agent_version")], true, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -141,7 +148,6 @@ func (o *CompleteInstallationParams) bindDiscoveryAgentVersion(rawData []string,
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.DiscoveryAgentVersion = &raw
 
 	return nil

@@ -41,7 +41,6 @@ func (o *ListSupportedOpenshiftVersionsReader) ReadResponse(response runtime.Cli
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -52,7 +51,7 @@ func NewListSupportedOpenshiftVersionsOK() *ListSupportedOpenshiftVersionsOK {
 	return &ListSupportedOpenshiftVersionsOK{}
 }
 
-/*ListSupportedOpenshiftVersionsOK handles this case with default header values.
+/* ListSupportedOpenshiftVersionsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -63,7 +62,6 @@ type ListSupportedOpenshiftVersionsOK struct {
 func (o *ListSupportedOpenshiftVersionsOK) Error() string {
 	return fmt.Sprintf("[GET /v1/openshift_versions][%d] listSupportedOpenshiftVersionsOK  %+v", 200, o.Payload)
 }
-
 func (o *ListSupportedOpenshiftVersionsOK) GetPayload() models.OpenshiftVersions {
 	return o.Payload
 }
@@ -83,7 +81,7 @@ func NewListSupportedOpenshiftVersionsInternalServerError() *ListSupportedOpensh
 	return &ListSupportedOpenshiftVersionsInternalServerError{}
 }
 
-/*ListSupportedOpenshiftVersionsInternalServerError handles this case with default header values.
+/* ListSupportedOpenshiftVersionsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -94,7 +92,6 @@ type ListSupportedOpenshiftVersionsInternalServerError struct {
 func (o *ListSupportedOpenshiftVersionsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/openshift_versions][%d] listSupportedOpenshiftVersionsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *ListSupportedOpenshiftVersionsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -116,7 +113,7 @@ func NewListSupportedOpenshiftVersionsServiceUnavailable() *ListSupportedOpenshi
 	return &ListSupportedOpenshiftVersionsServiceUnavailable{}
 }
 
-/*ListSupportedOpenshiftVersionsServiceUnavailable handles this case with default header values.
+/* ListSupportedOpenshiftVersionsServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -127,7 +124,6 @@ type ListSupportedOpenshiftVersionsServiceUnavailable struct {
 func (o *ListSupportedOpenshiftVersionsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v1/openshift_versions][%d] listSupportedOpenshiftVersionsServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *ListSupportedOpenshiftVersionsServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

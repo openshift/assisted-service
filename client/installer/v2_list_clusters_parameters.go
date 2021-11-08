@@ -17,94 +17,107 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// NewV2ListClustersParams creates a new V2ListClustersParams object
-// with the default values initialized.
+// NewV2ListClustersParams creates a new V2ListClustersParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2ListClustersParams() *V2ListClustersParams {
-	var (
-		getUnregisteredClustersDefault = bool(false)
-		withHostsDefault               = bool(false)
-	)
 	return &V2ListClustersParams{
-		GetUnregisteredClusters: &getUnregisteredClustersDefault,
-		WithHosts:               withHostsDefault,
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2ListClustersParamsWithTimeout creates a new V2ListClustersParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2ListClustersParamsWithTimeout(timeout time.Duration) *V2ListClustersParams {
-	var (
-		getUnregisteredClustersDefault = bool(false)
-		withHostsDefault               = bool(false)
-	)
 	return &V2ListClustersParams{
-		GetUnregisteredClusters: &getUnregisteredClustersDefault,
-		WithHosts:               withHostsDefault,
-
 		timeout: timeout,
 	}
 }
 
 // NewV2ListClustersParamsWithContext creates a new V2ListClustersParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2ListClustersParamsWithContext(ctx context.Context) *V2ListClustersParams {
-	var (
-		getUnregisteredClustersDefault = bool(false)
-		withHostsDefault               = bool(false)
-	)
 	return &V2ListClustersParams{
-		GetUnregisteredClusters: &getUnregisteredClustersDefault,
-		WithHosts:               withHostsDefault,
-
 		Context: ctx,
 	}
 }
 
 // NewV2ListClustersParamsWithHTTPClient creates a new V2ListClustersParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2ListClustersParamsWithHTTPClient(client *http.Client) *V2ListClustersParams {
-	var (
-		getUnregisteredClustersDefault = bool(false)
-		withHostsDefault               = bool(false)
-	)
 	return &V2ListClustersParams{
-		GetUnregisteredClusters: &getUnregisteredClustersDefault,
-		WithHosts:               withHostsDefault,
-		HTTPClient:              client,
+		HTTPClient: client,
 	}
 }
 
-/*V2ListClustersParams contains all the parameters to send to the API endpoint
-for the v2 list clusters operation typically these are written to a http.Request
+/* V2ListClustersParams contains all the parameters to send to the API endpoint
+   for the v2 list clusters operation.
+
+   Typically these are written to a http.Request.
 */
 type V2ListClustersParams struct {
 
-	/*AmsSubscriptionIds
-	  If non-empty, returned Clusters are filtered to those with matching subscription IDs.
+	/* AmsSubscriptionIds.
 
+	   If non-empty, returned Clusters are filtered to those with matching subscription IDs.
 	*/
 	AmsSubscriptionIds []string
-	/*GetUnregisteredClusters
-	  Whether to return clusters that have been unregistered.
 
+	/* GetUnregisteredClusters.
+
+	   Whether to return clusters that have been unregistered.
 	*/
 	GetUnregisteredClusters *bool
-	/*OpenshiftClusterID
-	  A specific cluster to retrieve.
 
+	/* OpenshiftClusterID.
+
+	   A specific cluster to retrieve.
+
+	   Format: uuid
 	*/
 	OpenshiftClusterID *strfmt.UUID
-	/*WithHosts
-	  Include hosts in the returned list.
 
+	/* WithHosts.
+
+	   Include hosts in the returned list.
 	*/
 	WithHosts bool
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 list clusters params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ListClustersParams) WithDefaults() *V2ListClustersParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 list clusters params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ListClustersParams) SetDefaults() {
+	var (
+		getUnregisteredClustersDefault = bool(false)
+
+		withHostsDefault = bool(false)
+	)
+
+	val := V2ListClustersParams{
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
+		WithHosts:               withHostsDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the v2 list clusters params
@@ -192,12 +205,15 @@ func (o *V2ListClustersParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 	}
 	var res []error
 
-	valuesAmsSubscriptionIds := o.AmsSubscriptionIds
+	if o.AmsSubscriptionIds != nil {
 
-	joinedAmsSubscriptionIds := swag.JoinByFormat(valuesAmsSubscriptionIds, "")
-	// query array param ams_subscription_ids
-	if err := r.SetQueryParam("ams_subscription_ids", joinedAmsSubscriptionIds...); err != nil {
-		return err
+		// binding items for ams_subscription_ids
+		joinedAmsSubscriptionIds := o.bindParamAmsSubscriptionIds(reg)
+
+		// query array param ams_subscription_ids
+		if err := r.SetQueryParam("ams_subscription_ids", joinedAmsSubscriptionIds...); err != nil {
+			return err
+		}
 	}
 
 	if o.GetUnregisteredClusters != nil {
@@ -206,28 +222,29 @@ func (o *V2ListClustersParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		if err := r.SetHeaderParam("get_unregistered_clusters", swag.FormatBool(*o.GetUnregisteredClusters)); err != nil {
 			return err
 		}
-
 	}
 
 	if o.OpenshiftClusterID != nil {
 
 		// query param openshift_cluster_id
 		var qrOpenshiftClusterID strfmt.UUID
+
 		if o.OpenshiftClusterID != nil {
 			qrOpenshiftClusterID = *o.OpenshiftClusterID
 		}
 		qOpenshiftClusterID := qrOpenshiftClusterID.String()
 		if qOpenshiftClusterID != "" {
+
 			if err := r.SetQueryParam("openshift_cluster_id", qOpenshiftClusterID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	// query param with_hosts
 	qrWithHosts := o.WithHosts
 	qWithHosts := swag.FormatBool(qrWithHosts)
+
 	if err := r.SetQueryParam("with_hosts", qWithHosts); err != nil {
 		return err
 	}
@@ -236,4 +253,21 @@ func (o *V2ListClustersParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		return errors.CompositeValidationError(res...)
 	}
 	return nil
+}
+
+// bindParamV2ListClusters binds the parameter ams_subscription_ids
+func (o *V2ListClustersParams) bindParamAmsSubscriptionIds(formats strfmt.Registry) []string {
+	amsSubscriptionIdsIR := o.AmsSubscriptionIds
+
+	var amsSubscriptionIdsIC []string
+	for _, amsSubscriptionIdsIIR := range amsSubscriptionIdsIR { // explode []string
+
+		amsSubscriptionIdsIIV := amsSubscriptionIdsIIR // string as string
+		amsSubscriptionIdsIC = append(amsSubscriptionIdsIC, amsSubscriptionIdsIIV)
+	}
+
+	// items.CollectionFormat: ""
+	amsSubscriptionIdsIS := swag.JoinByFormat(amsSubscriptionIdsIC, "")
+
+	return amsSubscriptionIdsIS
 }

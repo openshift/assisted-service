@@ -14,7 +14,8 @@ import (
 )
 
 // NewV2ListOperatorPropertiesParams creates a new V2ListOperatorPropertiesParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2ListOperatorPropertiesParams() V2ListOperatorPropertiesParams {
 
 	return V2ListOperatorPropertiesParams{}
@@ -49,7 +50,6 @@ func (o *V2ListOperatorPropertiesParams) BindRequest(r *http.Request, route *mid
 	if err := o.bindOperatorName(rOperatorName, rhkOperatorName, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -65,7 +65,6 @@ func (o *V2ListOperatorPropertiesParams) bindOperatorName(rawData []string, hasK
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.OperatorName = raw
 
 	return nil

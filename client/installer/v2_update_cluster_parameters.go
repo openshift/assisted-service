@@ -18,64 +18,81 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewV2UpdateClusterParams creates a new V2UpdateClusterParams object
-// with the default values initialized.
+// NewV2UpdateClusterParams creates a new V2UpdateClusterParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2UpdateClusterParams() *V2UpdateClusterParams {
-	var ()
 	return &V2UpdateClusterParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2UpdateClusterParamsWithTimeout creates a new V2UpdateClusterParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2UpdateClusterParamsWithTimeout(timeout time.Duration) *V2UpdateClusterParams {
-	var ()
 	return &V2UpdateClusterParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2UpdateClusterParamsWithContext creates a new V2UpdateClusterParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2UpdateClusterParamsWithContext(ctx context.Context) *V2UpdateClusterParams {
-	var ()
 	return &V2UpdateClusterParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2UpdateClusterParamsWithHTTPClient creates a new V2UpdateClusterParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2UpdateClusterParamsWithHTTPClient(client *http.Client) *V2UpdateClusterParams {
-	var ()
 	return &V2UpdateClusterParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2UpdateClusterParams contains all the parameters to send to the API endpoint
-for the v2 update cluster operation typically these are written to a http.Request
+/* V2UpdateClusterParams contains all the parameters to send to the API endpoint
+   for the v2 update cluster operation.
+
+   Typically these are written to a http.Request.
 */
 type V2UpdateClusterParams struct {
 
-	/*ClusterUpdateParams
-	  The properties to update.
+	/* ClusterUpdateParams.
 
+	   The properties to update.
 	*/
 	ClusterUpdateParams *models.V2ClusterUpdateParams
-	/*ClusterID
-	  The cluster to be updated.
 
+	/* ClusterID.
+
+	   The cluster to be updated.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 update cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UpdateClusterParams) WithDefaults() *V2UpdateClusterParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 update cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UpdateClusterParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 update cluster params
@@ -140,7 +157,6 @@ func (o *V2UpdateClusterParams) WriteToRequest(r runtime.ClientRequest, reg strf
 		return err
 	}
 	var res []error
-
 	if o.ClusterUpdateParams != nil {
 		if err := r.SetBodyParam(o.ClusterUpdateParams); err != nil {
 			return err

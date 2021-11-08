@@ -29,7 +29,7 @@ func NewV2GetPreflightRequirements(ctx *middleware.Context, handler V2GetPreflig
 	return &V2GetPreflightRequirements{Context: ctx, Handler: handler}
 }
 
-/*V2GetPreflightRequirements swagger:route GET /v2/clusters/{cluster_id}/preflight-requirements installer v2GetPreflightRequirements
+/* V2GetPreflightRequirements swagger:route GET /v2/clusters/{cluster_id}/preflight-requirements installer v2GetPreflightRequirements
 
 Get preflight requirements for a cluster.
 
@@ -42,21 +42,20 @@ type V2GetPreflightRequirements struct {
 func (o *V2GetPreflightRequirements) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewV2GetPreflightRequirementsParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *V2GetPreflightRequirements) ServeHTTP(rw http.ResponseWriter, r *http.R
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

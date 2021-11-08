@@ -13,7 +13,8 @@ import (
 )
 
 // NewDownloadISOParams creates a new DownloadISOParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewDownloadISOParams() DownloadISOParams {
 
 	return DownloadISOParams{}

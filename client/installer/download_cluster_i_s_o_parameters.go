@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDownloadClusterISOParams creates a new DownloadClusterISOParams object
-// with the default values initialized.
+// NewDownloadClusterISOParams creates a new DownloadClusterISOParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewDownloadClusterISOParams() *DownloadClusterISOParams {
-	var ()
 	return &DownloadClusterISOParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewDownloadClusterISOParamsWithTimeout creates a new DownloadClusterISOParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewDownloadClusterISOParamsWithTimeout(timeout time.Duration) *DownloadClusterISOParams {
-	var ()
 	return &DownloadClusterISOParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewDownloadClusterISOParamsWithContext creates a new DownloadClusterISOParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewDownloadClusterISOParamsWithContext(ctx context.Context) *DownloadClusterISOParams {
-	var ()
 	return &DownloadClusterISOParams{
-
 		Context: ctx,
 	}
 }
 
 // NewDownloadClusterISOParamsWithHTTPClient creates a new DownloadClusterISOParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewDownloadClusterISOParamsWithHTTPClient(client *http.Client) *DownloadClusterISOParams {
-	var ()
 	return &DownloadClusterISOParams{
 		HTTPClient: client,
 	}
 }
 
-/*DownloadClusterISOParams contains all the parameters to send to the API endpoint
-for the download cluster i s o operation typically these are written to a http.Request
+/* DownloadClusterISOParams contains all the parameters to send to the API endpoint
+   for the download cluster i s o operation.
+
+   Typically these are written to a http.Request.
 */
 type DownloadClusterISOParams struct {
 
-	/*ClusterID
-	  The cluster whose ISO should be downloaded.
+	/* ClusterID.
 
+	   The cluster whose ISO should be downloaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the download cluster i s o params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadClusterISOParams) WithDefaults() *DownloadClusterISOParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the download cluster i s o params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadClusterISOParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the download cluster i s o params

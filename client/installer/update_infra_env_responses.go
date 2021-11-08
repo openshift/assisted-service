@@ -77,7 +77,6 @@ func (o *UpdateInfraEnvReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -88,7 +87,7 @@ func NewUpdateInfraEnvCreated() *UpdateInfraEnvCreated {
 	return &UpdateInfraEnvCreated{}
 }
 
-/*UpdateInfraEnvCreated handles this case with default header values.
+/* UpdateInfraEnvCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -99,7 +98,6 @@ type UpdateInfraEnvCreated struct {
 func (o *UpdateInfraEnvCreated) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvCreated  %+v", 201, o.Payload)
 }
-
 func (o *UpdateInfraEnvCreated) GetPayload() *models.InfraEnv {
 	return o.Payload
 }
@@ -121,7 +119,7 @@ func NewUpdateInfraEnvBadRequest() *UpdateInfraEnvBadRequest {
 	return &UpdateInfraEnvBadRequest{}
 }
 
-/*UpdateInfraEnvBadRequest handles this case with default header values.
+/* UpdateInfraEnvBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -132,7 +130,6 @@ type UpdateInfraEnvBadRequest struct {
 func (o *UpdateInfraEnvBadRequest) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *UpdateInfraEnvBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -154,7 +151,7 @@ func NewUpdateInfraEnvUnauthorized() *UpdateInfraEnvUnauthorized {
 	return &UpdateInfraEnvUnauthorized{}
 }
 
-/*UpdateInfraEnvUnauthorized handles this case with default header values.
+/* UpdateInfraEnvUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -165,7 +162,6 @@ type UpdateInfraEnvUnauthorized struct {
 func (o *UpdateInfraEnvUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *UpdateInfraEnvUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -187,7 +183,7 @@ func NewUpdateInfraEnvForbidden() *UpdateInfraEnvForbidden {
 	return &UpdateInfraEnvForbidden{}
 }
 
-/*UpdateInfraEnvForbidden handles this case with default header values.
+/* UpdateInfraEnvForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -198,7 +194,6 @@ type UpdateInfraEnvForbidden struct {
 func (o *UpdateInfraEnvForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvForbidden  %+v", 403, o.Payload)
 }
-
 func (o *UpdateInfraEnvForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -220,7 +215,7 @@ func NewUpdateInfraEnvNotFound() *UpdateInfraEnvNotFound {
 	return &UpdateInfraEnvNotFound{}
 }
 
-/*UpdateInfraEnvNotFound handles this case with default header values.
+/* UpdateInfraEnvNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -231,7 +226,6 @@ type UpdateInfraEnvNotFound struct {
 func (o *UpdateInfraEnvNotFound) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvNotFound  %+v", 404, o.Payload)
 }
-
 func (o *UpdateInfraEnvNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -253,7 +247,7 @@ func NewUpdateInfraEnvMethodNotAllowed() *UpdateInfraEnvMethodNotAllowed {
 	return &UpdateInfraEnvMethodNotAllowed{}
 }
 
-/*UpdateInfraEnvMethodNotAllowed handles this case with default header values.
+/* UpdateInfraEnvMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -264,7 +258,6 @@ type UpdateInfraEnvMethodNotAllowed struct {
 func (o *UpdateInfraEnvMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *UpdateInfraEnvMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -286,7 +279,7 @@ func NewUpdateInfraEnvConflict() *UpdateInfraEnvConflict {
 	return &UpdateInfraEnvConflict{}
 }
 
-/*UpdateInfraEnvConflict handles this case with default header values.
+/* UpdateInfraEnvConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -297,7 +290,6 @@ type UpdateInfraEnvConflict struct {
 func (o *UpdateInfraEnvConflict) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvConflict  %+v", 409, o.Payload)
 }
-
 func (o *UpdateInfraEnvConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -319,7 +311,7 @@ func NewUpdateInfraEnvInternalServerError() *UpdateInfraEnvInternalServerError {
 	return &UpdateInfraEnvInternalServerError{}
 }
 
-/*UpdateInfraEnvInternalServerError handles this case with default header values.
+/* UpdateInfraEnvInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -330,7 +322,6 @@ type UpdateInfraEnvInternalServerError struct {
 func (o *UpdateInfraEnvInternalServerError) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *UpdateInfraEnvInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -352,7 +343,7 @@ func NewUpdateInfraEnvNotImplemented() *UpdateInfraEnvNotImplemented {
 	return &UpdateInfraEnvNotImplemented{}
 }
 
-/*UpdateInfraEnvNotImplemented handles this case with default header values.
+/* UpdateInfraEnvNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -363,7 +354,6 @@ type UpdateInfraEnvNotImplemented struct {
 func (o *UpdateInfraEnvNotImplemented) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *UpdateInfraEnvNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }

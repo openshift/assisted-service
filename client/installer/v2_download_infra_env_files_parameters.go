@@ -16,64 +16,81 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2DownloadInfraEnvFilesParams creates a new V2DownloadInfraEnvFilesParams object
-// with the default values initialized.
+// NewV2DownloadInfraEnvFilesParams creates a new V2DownloadInfraEnvFilesParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2DownloadInfraEnvFilesParams() *V2DownloadInfraEnvFilesParams {
-	var ()
 	return &V2DownloadInfraEnvFilesParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2DownloadInfraEnvFilesParamsWithTimeout creates a new V2DownloadInfraEnvFilesParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2DownloadInfraEnvFilesParamsWithTimeout(timeout time.Duration) *V2DownloadInfraEnvFilesParams {
-	var ()
 	return &V2DownloadInfraEnvFilesParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2DownloadInfraEnvFilesParamsWithContext creates a new V2DownloadInfraEnvFilesParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2DownloadInfraEnvFilesParamsWithContext(ctx context.Context) *V2DownloadInfraEnvFilesParams {
-	var ()
 	return &V2DownloadInfraEnvFilesParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2DownloadInfraEnvFilesParamsWithHTTPClient creates a new V2DownloadInfraEnvFilesParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2DownloadInfraEnvFilesParamsWithHTTPClient(client *http.Client) *V2DownloadInfraEnvFilesParams {
-	var ()
 	return &V2DownloadInfraEnvFilesParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2DownloadInfraEnvFilesParams contains all the parameters to send to the API endpoint
-for the v2 download infra env files operation typically these are written to a http.Request
+/* V2DownloadInfraEnvFilesParams contains all the parameters to send to the API endpoint
+   for the v2 download infra env files operation.
+
+   Typically these are written to a http.Request.
 */
 type V2DownloadInfraEnvFilesParams struct {
 
-	/*FileName
-	  The file to be downloaded.
+	/* FileName.
 
+	   The file to be downloaded.
 	*/
 	FileName string
-	/*InfraEnvID
-	  The InfraEnv whose file should be downloaded.
 
+	/* InfraEnvID.
+
+	   The InfraEnv whose file should be downloaded.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 download infra env files params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DownloadInfraEnvFilesParams) WithDefaults() *V2DownloadInfraEnvFilesParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 download infra env files params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DownloadInfraEnvFilesParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 download infra env files params
@@ -143,6 +160,7 @@ func (o *V2DownloadInfraEnvFilesParams) WriteToRequest(r runtime.ClientRequest, 
 	qrFileName := o.FileName
 	qFileName := qrFileName
 	if qFileName != "" {
+
 		if err := r.SetQueryParam("file_name", qFileName); err != nil {
 			return err
 		}

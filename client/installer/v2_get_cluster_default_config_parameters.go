@@ -16,52 +16,66 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2GetClusterDefaultConfigParams creates a new V2GetClusterDefaultConfigParams object
-// with the default values initialized.
+// NewV2GetClusterDefaultConfigParams creates a new V2GetClusterDefaultConfigParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2GetClusterDefaultConfigParams() *V2GetClusterDefaultConfigParams {
-
 	return &V2GetClusterDefaultConfigParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2GetClusterDefaultConfigParamsWithTimeout creates a new V2GetClusterDefaultConfigParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2GetClusterDefaultConfigParamsWithTimeout(timeout time.Duration) *V2GetClusterDefaultConfigParams {
-
 	return &V2GetClusterDefaultConfigParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2GetClusterDefaultConfigParamsWithContext creates a new V2GetClusterDefaultConfigParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2GetClusterDefaultConfigParamsWithContext(ctx context.Context) *V2GetClusterDefaultConfigParams {
-
 	return &V2GetClusterDefaultConfigParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2GetClusterDefaultConfigParamsWithHTTPClient creates a new V2GetClusterDefaultConfigParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2GetClusterDefaultConfigParamsWithHTTPClient(client *http.Client) *V2GetClusterDefaultConfigParams {
-
 	return &V2GetClusterDefaultConfigParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2GetClusterDefaultConfigParams contains all the parameters to send to the API endpoint
-for the v2 get cluster default config operation typically these are written to a http.Request
+/* V2GetClusterDefaultConfigParams contains all the parameters to send to the API endpoint
+   for the v2 get cluster default config operation.
+
+   Typically these are written to a http.Request.
 */
 type V2GetClusterDefaultConfigParams struct {
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 get cluster default config params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetClusterDefaultConfigParams) WithDefaults() *V2GetClusterDefaultConfigParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 get cluster default config params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetClusterDefaultConfigParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 get cluster default config params

@@ -72,7 +72,6 @@ func (o *V2DownloadHostIgnitionReader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -81,11 +80,12 @@ func (o *V2DownloadHostIgnitionReader) ReadResponse(response runtime.ClientRespo
 // NewV2DownloadHostIgnitionOK creates a V2DownloadHostIgnitionOK with default headers values
 func NewV2DownloadHostIgnitionOK(writer io.Writer) *V2DownloadHostIgnitionOK {
 	return &V2DownloadHostIgnitionOK{
+
 		Payload: writer,
 	}
 }
 
-/*V2DownloadHostIgnitionOK handles this case with default header values.
+/* V2DownloadHostIgnitionOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -96,7 +96,6 @@ type V2DownloadHostIgnitionOK struct {
 func (o *V2DownloadHostIgnitionOK) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionOK  %+v", 200, o.Payload)
 }
-
 func (o *V2DownloadHostIgnitionOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -116,7 +115,7 @@ func NewV2DownloadHostIgnitionUnauthorized() *V2DownloadHostIgnitionUnauthorized
 	return &V2DownloadHostIgnitionUnauthorized{}
 }
 
-/*V2DownloadHostIgnitionUnauthorized handles this case with default header values.
+/* V2DownloadHostIgnitionUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -127,7 +126,6 @@ type V2DownloadHostIgnitionUnauthorized struct {
 func (o *V2DownloadHostIgnitionUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2DownloadHostIgnitionUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -149,7 +147,7 @@ func NewV2DownloadHostIgnitionForbidden() *V2DownloadHostIgnitionForbidden {
 	return &V2DownloadHostIgnitionForbidden{}
 }
 
-/*V2DownloadHostIgnitionForbidden handles this case with default header values.
+/* V2DownloadHostIgnitionForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -160,7 +158,6 @@ type V2DownloadHostIgnitionForbidden struct {
 func (o *V2DownloadHostIgnitionForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2DownloadHostIgnitionForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -182,7 +179,7 @@ func NewV2DownloadHostIgnitionNotFound() *V2DownloadHostIgnitionNotFound {
 	return &V2DownloadHostIgnitionNotFound{}
 }
 
-/*V2DownloadHostIgnitionNotFound handles this case with default header values.
+/* V2DownloadHostIgnitionNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -193,7 +190,6 @@ type V2DownloadHostIgnitionNotFound struct {
 func (o *V2DownloadHostIgnitionNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2DownloadHostIgnitionNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -215,7 +211,7 @@ func NewV2DownloadHostIgnitionMethodNotAllowed() *V2DownloadHostIgnitionMethodNo
 	return &V2DownloadHostIgnitionMethodNotAllowed{}
 }
 
-/*V2DownloadHostIgnitionMethodNotAllowed handles this case with default header values.
+/* V2DownloadHostIgnitionMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -226,7 +222,6 @@ type V2DownloadHostIgnitionMethodNotAllowed struct {
 func (o *V2DownloadHostIgnitionMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2DownloadHostIgnitionMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -248,7 +243,7 @@ func NewV2DownloadHostIgnitionConflict() *V2DownloadHostIgnitionConflict {
 	return &V2DownloadHostIgnitionConflict{}
 }
 
-/*V2DownloadHostIgnitionConflict handles this case with default header values.
+/* V2DownloadHostIgnitionConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -259,7 +254,6 @@ type V2DownloadHostIgnitionConflict struct {
 func (o *V2DownloadHostIgnitionConflict) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2DownloadHostIgnitionConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -281,7 +275,7 @@ func NewV2DownloadHostIgnitionInternalServerError() *V2DownloadHostIgnitionInter
 	return &V2DownloadHostIgnitionInternalServerError{}
 }
 
-/*V2DownloadHostIgnitionInternalServerError handles this case with default header values.
+/* V2DownloadHostIgnitionInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -292,7 +286,6 @@ type V2DownloadHostIgnitionInternalServerError struct {
 func (o *V2DownloadHostIgnitionInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2DownloadHostIgnitionInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -314,7 +307,7 @@ func NewV2DownloadHostIgnitionServiceUnavailable() *V2DownloadHostIgnitionServic
 	return &V2DownloadHostIgnitionServiceUnavailable{}
 }
 
-/*V2DownloadHostIgnitionServiceUnavailable handles this case with default header values.
+/* V2DownloadHostIgnitionServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -325,7 +318,6 @@ type V2DownloadHostIgnitionServiceUnavailable struct {
 func (o *V2DownloadHostIgnitionServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2DownloadHostIgnitionServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

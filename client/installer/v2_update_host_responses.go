@@ -71,7 +71,6 @@ func (o *V2UpdateHostReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewV2UpdateHostCreated() *V2UpdateHostCreated {
 	return &V2UpdateHostCreated{}
 }
 
-/*V2UpdateHostCreated handles this case with default header values.
+/* V2UpdateHostCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type V2UpdateHostCreated struct {
 func (o *V2UpdateHostCreated) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2UpdateHostCreated  %+v", 201, o.Payload)
 }
-
 func (o *V2UpdateHostCreated) GetPayload() *models.Host {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewV2UpdateHostBadRequest() *V2UpdateHostBadRequest {
 	return &V2UpdateHostBadRequest{}
 }
 
-/*V2UpdateHostBadRequest handles this case with default header values.
+/* V2UpdateHostBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -126,7 +124,6 @@ type V2UpdateHostBadRequest struct {
 func (o *V2UpdateHostBadRequest) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2UpdateHostBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2UpdateHostBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewV2UpdateHostUnauthorized() *V2UpdateHostUnauthorized {
 	return &V2UpdateHostUnauthorized{}
 }
 
-/*V2UpdateHostUnauthorized handles this case with default header values.
+/* V2UpdateHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -159,7 +156,6 @@ type V2UpdateHostUnauthorized struct {
 func (o *V2UpdateHostUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2UpdateHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2UpdateHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewV2UpdateHostForbidden() *V2UpdateHostForbidden {
 	return &V2UpdateHostForbidden{}
 }
 
-/*V2UpdateHostForbidden handles this case with default header values.
+/* V2UpdateHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -192,7 +188,6 @@ type V2UpdateHostForbidden struct {
 func (o *V2UpdateHostForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2UpdateHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2UpdateHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewV2UpdateHostNotFound() *V2UpdateHostNotFound {
 	return &V2UpdateHostNotFound{}
 }
 
-/*V2UpdateHostNotFound handles this case with default header values.
+/* V2UpdateHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -225,7 +220,6 @@ type V2UpdateHostNotFound struct {
 func (o *V2UpdateHostNotFound) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2UpdateHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2UpdateHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewV2UpdateHostMethodNotAllowed() *V2UpdateHostMethodNotAllowed {
 	return &V2UpdateHostMethodNotAllowed{}
 }
 
-/*V2UpdateHostMethodNotAllowed handles this case with default header values.
+/* V2UpdateHostMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -258,7 +252,6 @@ type V2UpdateHostMethodNotAllowed struct {
 func (o *V2UpdateHostMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2UpdateHostMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2UpdateHostMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewV2UpdateHostConflict() *V2UpdateHostConflict {
 	return &V2UpdateHostConflict{}
 }
 
-/*V2UpdateHostConflict handles this case with default header values.
+/* V2UpdateHostConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -291,7 +284,6 @@ type V2UpdateHostConflict struct {
 func (o *V2UpdateHostConflict) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2UpdateHostConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2UpdateHostConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewV2UpdateHostInternalServerError() *V2UpdateHostInternalServerError {
 	return &V2UpdateHostInternalServerError{}
 }
 
-/*V2UpdateHostInternalServerError handles this case with default header values.
+/* V2UpdateHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -324,7 +316,6 @@ type V2UpdateHostInternalServerError struct {
 func (o *V2UpdateHostInternalServerError) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2UpdateHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2UpdateHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

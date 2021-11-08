@@ -77,7 +77,6 @@ func (o *ReportMonitoredOperatorStatusReader) ReadResponse(response runtime.Clie
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -88,7 +87,7 @@ func NewReportMonitoredOperatorStatusOK() *ReportMonitoredOperatorStatusOK {
 	return &ReportMonitoredOperatorStatusOK{}
 }
 
-/*ReportMonitoredOperatorStatusOK handles this case with default header values.
+/* ReportMonitoredOperatorStatusOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -109,7 +108,7 @@ func NewReportMonitoredOperatorStatusBadRequest() *ReportMonitoredOperatorStatus
 	return &ReportMonitoredOperatorStatusBadRequest{}
 }
 
-/*ReportMonitoredOperatorStatusBadRequest handles this case with default header values.
+/* ReportMonitoredOperatorStatusBadRequest describes a response with status code 400, with default header values.
 
 Bad Request
 */
@@ -120,7 +119,6 @@ type ReportMonitoredOperatorStatusBadRequest struct {
 func (o *ReportMonitoredOperatorStatusBadRequest) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *ReportMonitoredOperatorStatusBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -142,7 +140,7 @@ func NewReportMonitoredOperatorStatusUnauthorized() *ReportMonitoredOperatorStat
 	return &ReportMonitoredOperatorStatusUnauthorized{}
 }
 
-/*ReportMonitoredOperatorStatusUnauthorized handles this case with default header values.
+/* ReportMonitoredOperatorStatusUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -153,7 +151,6 @@ type ReportMonitoredOperatorStatusUnauthorized struct {
 func (o *ReportMonitoredOperatorStatusUnauthorized) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *ReportMonitoredOperatorStatusUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +172,7 @@ func NewReportMonitoredOperatorStatusForbidden() *ReportMonitoredOperatorStatusF
 	return &ReportMonitoredOperatorStatusForbidden{}
 }
 
-/*ReportMonitoredOperatorStatusForbidden handles this case with default header values.
+/* ReportMonitoredOperatorStatusForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -186,7 +183,6 @@ type ReportMonitoredOperatorStatusForbidden struct {
 func (o *ReportMonitoredOperatorStatusForbidden) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusForbidden  %+v", 403, o.Payload)
 }
-
 func (o *ReportMonitoredOperatorStatusForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -208,7 +204,7 @@ func NewReportMonitoredOperatorStatusNotFound() *ReportMonitoredOperatorStatusNo
 	return &ReportMonitoredOperatorStatusNotFound{}
 }
 
-/*ReportMonitoredOperatorStatusNotFound handles this case with default header values.
+/* ReportMonitoredOperatorStatusNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -219,7 +215,6 @@ type ReportMonitoredOperatorStatusNotFound struct {
 func (o *ReportMonitoredOperatorStatusNotFound) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusNotFound  %+v", 404, o.Payload)
 }
-
 func (o *ReportMonitoredOperatorStatusNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +236,7 @@ func NewReportMonitoredOperatorStatusMethodNotAllowed() *ReportMonitoredOperator
 	return &ReportMonitoredOperatorStatusMethodNotAllowed{}
 }
 
-/*ReportMonitoredOperatorStatusMethodNotAllowed handles this case with default header values.
+/* ReportMonitoredOperatorStatusMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -252,7 +247,6 @@ type ReportMonitoredOperatorStatusMethodNotAllowed struct {
 func (o *ReportMonitoredOperatorStatusMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *ReportMonitoredOperatorStatusMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +268,7 @@ func NewReportMonitoredOperatorStatusConflict() *ReportMonitoredOperatorStatusCo
 	return &ReportMonitoredOperatorStatusConflict{}
 }
 
-/*ReportMonitoredOperatorStatusConflict handles this case with default header values.
+/* ReportMonitoredOperatorStatusConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -285,7 +279,6 @@ type ReportMonitoredOperatorStatusConflict struct {
 func (o *ReportMonitoredOperatorStatusConflict) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusConflict  %+v", 409, o.Payload)
 }
-
 func (o *ReportMonitoredOperatorStatusConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -307,7 +300,7 @@ func NewReportMonitoredOperatorStatusInternalServerError() *ReportMonitoredOpera
 	return &ReportMonitoredOperatorStatusInternalServerError{}
 }
 
-/*ReportMonitoredOperatorStatusInternalServerError handles this case with default header values.
+/* ReportMonitoredOperatorStatusInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -318,7 +311,6 @@ type ReportMonitoredOperatorStatusInternalServerError struct {
 func (o *ReportMonitoredOperatorStatusInternalServerError) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *ReportMonitoredOperatorStatusInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -340,7 +332,7 @@ func NewReportMonitoredOperatorStatusServiceUnavailable() *ReportMonitoredOperat
 	return &ReportMonitoredOperatorStatusServiceUnavailable{}
 }
 
-/*ReportMonitoredOperatorStatusServiceUnavailable handles this case with default header values.
+/* ReportMonitoredOperatorStatusServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -351,7 +343,6 @@ type ReportMonitoredOperatorStatusServiceUnavailable struct {
 func (o *ReportMonitoredOperatorStatusServiceUnavailable) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *ReportMonitoredOperatorStatusServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

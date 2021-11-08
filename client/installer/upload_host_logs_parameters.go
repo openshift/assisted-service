@@ -16,74 +16,95 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewUploadHostLogsParams creates a new UploadHostLogsParams object
-// with the default values initialized.
+// NewUploadHostLogsParams creates a new UploadHostLogsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUploadHostLogsParams() *UploadHostLogsParams {
-	var ()
 	return &UploadHostLogsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUploadHostLogsParamsWithTimeout creates a new UploadHostLogsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUploadHostLogsParamsWithTimeout(timeout time.Duration) *UploadHostLogsParams {
-	var ()
 	return &UploadHostLogsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUploadHostLogsParamsWithContext creates a new UploadHostLogsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUploadHostLogsParamsWithContext(ctx context.Context) *UploadHostLogsParams {
-	var ()
 	return &UploadHostLogsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUploadHostLogsParamsWithHTTPClient creates a new UploadHostLogsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUploadHostLogsParamsWithHTTPClient(client *http.Client) *UploadHostLogsParams {
-	var ()
 	return &UploadHostLogsParams{
 		HTTPClient: client,
 	}
 }
 
-/*UploadHostLogsParams contains all the parameters to send to the API endpoint
-for the upload host logs operation typically these are written to a http.Request
+/* UploadHostLogsParams contains all the parameters to send to the API endpoint
+   for the upload host logs operation.
+
+   Typically these are written to a http.Request.
 */
 type UploadHostLogsParams struct {
 
-	/*ClusterID
-	  The cluster of the host whose logs should be uploaded.
+	/* ClusterID.
 
+	   The cluster of the host whose logs should be uploaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is uploading the logs.
 
+	/* DiscoveryAgentVersion.
+
+	   The software version of the discovery agent that is uploading the logs.
 	*/
 	DiscoveryAgentVersion *string
-	/*HostID
-	  The host whose logs should be uploaded.
 
+	/* HostID.
+
+	   The host whose logs should be uploaded.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*Upfile
-	  The log file to be uploaded.
 
+	/* Upfile.
+
+	   The log file to be uploaded.
 	*/
 	Upfile runtime.NamedReadCloser
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the upload host logs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UploadHostLogsParams) WithDefaults() *UploadHostLogsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the upload host logs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UploadHostLogsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the upload host logs params
@@ -182,7 +203,6 @@ func (o *UploadHostLogsParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
 
 	// path param host_id
@@ -193,14 +213,11 @@ func (o *UploadHostLogsParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 	if o.Upfile != nil {
 
 		if o.Upfile != nil {
-
 			// form file param upfile
 			if err := r.SetFileParam("upfile", o.Upfile); err != nil {
 				return err
 			}
-
 		}
-
 	}
 
 	if len(res) > 0 {

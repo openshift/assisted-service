@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -24,7 +25,7 @@ func (m FreeAddressesRequest) Validate(formats strfmt.Registry) error {
 
 	for i := 0; i < len(m); i++ {
 
-		if err := validate.Pattern(strconv.Itoa(i), "body", string(m[i]), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+		if err := validate.Pattern(strconv.Itoa(i), "body", m[i], `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
 			return err
 		}
 
@@ -33,5 +34,10 @@ func (m FreeAddressesRequest) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this free addresses request based on context it is used
+func (m FreeAddressesRequest) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

@@ -30,6 +30,12 @@ func (o *DownloadHostLogsReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return result, nil
+	case 400:
+		result := NewDownloadHostLogsBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 401:
 		result := NewDownloadHostLogsUnauthorized()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -66,7 +72,6 @@ func (o *DownloadHostLogsReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -75,11 +80,12 @@ func (o *DownloadHostLogsReader) ReadResponse(response runtime.ClientResponse, c
 // NewDownloadHostLogsOK creates a DownloadHostLogsOK with default headers values
 func NewDownloadHostLogsOK(writer io.Writer) *DownloadHostLogsOK {
 	return &DownloadHostLogsOK{
+
 		Payload: writer,
 	}
 }
 
-/*DownloadHostLogsOK handles this case with default header values.
+/* DownloadHostLogsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -90,7 +96,6 @@ type DownloadHostLogsOK struct {
 func (o *DownloadHostLogsOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsOK  %+v", 200, o.Payload)
 }
-
 func (o *DownloadHostLogsOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -105,12 +110,44 @@ func (o *DownloadHostLogsOK) readResponse(response runtime.ClientResponse, consu
 	return nil
 }
 
+// NewDownloadHostLogsBadRequest creates a DownloadHostLogsBadRequest with default headers values
+func NewDownloadHostLogsBadRequest() *DownloadHostLogsBadRequest {
+	return &DownloadHostLogsBadRequest{}
+}
+
+/* DownloadHostLogsBadRequest describes a response with status code 400, with default header values.
+
+Bad Request
+*/
+type DownloadHostLogsBadRequest struct {
+	Payload *models.Error
+}
+
+func (o *DownloadHostLogsBadRequest) Error() string {
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsBadRequest  %+v", 400, o.Payload)
+}
+func (o *DownloadHostLogsBadRequest) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DownloadHostLogsBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewDownloadHostLogsUnauthorized creates a DownloadHostLogsUnauthorized with default headers values
 func NewDownloadHostLogsUnauthorized() *DownloadHostLogsUnauthorized {
 	return &DownloadHostLogsUnauthorized{}
 }
 
-/*DownloadHostLogsUnauthorized handles this case with default header values.
+/* DownloadHostLogsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -121,7 +158,6 @@ type DownloadHostLogsUnauthorized struct {
 func (o *DownloadHostLogsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *DownloadHostLogsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -143,7 +179,7 @@ func NewDownloadHostLogsForbidden() *DownloadHostLogsForbidden {
 	return &DownloadHostLogsForbidden{}
 }
 
-/*DownloadHostLogsForbidden handles this case with default header values.
+/* DownloadHostLogsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -154,7 +190,6 @@ type DownloadHostLogsForbidden struct {
 func (o *DownloadHostLogsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *DownloadHostLogsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -176,7 +211,7 @@ func NewDownloadHostLogsNotFound() *DownloadHostLogsNotFound {
 	return &DownloadHostLogsNotFound{}
 }
 
-/*DownloadHostLogsNotFound handles this case with default header values.
+/* DownloadHostLogsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -187,7 +222,6 @@ type DownloadHostLogsNotFound struct {
 func (o *DownloadHostLogsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *DownloadHostLogsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -209,7 +243,7 @@ func NewDownloadHostLogsMethodNotAllowed() *DownloadHostLogsMethodNotAllowed {
 	return &DownloadHostLogsMethodNotAllowed{}
 }
 
-/*DownloadHostLogsMethodNotAllowed handles this case with default header values.
+/* DownloadHostLogsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -220,7 +254,6 @@ type DownloadHostLogsMethodNotAllowed struct {
 func (o *DownloadHostLogsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *DownloadHostLogsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -242,7 +275,7 @@ func NewDownloadHostLogsConflict() *DownloadHostLogsConflict {
 	return &DownloadHostLogsConflict{}
 }
 
-/*DownloadHostLogsConflict handles this case with default header values.
+/* DownloadHostLogsConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -253,7 +286,6 @@ type DownloadHostLogsConflict struct {
 func (o *DownloadHostLogsConflict) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsConflict  %+v", 409, o.Payload)
 }
-
 func (o *DownloadHostLogsConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -275,7 +307,7 @@ func NewDownloadHostLogsInternalServerError() *DownloadHostLogsInternalServerErr
 	return &DownloadHostLogsInternalServerError{}
 }
 
-/*DownloadHostLogsInternalServerError handles this case with default header values.
+/* DownloadHostLogsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -286,7 +318,6 @@ type DownloadHostLogsInternalServerError struct {
 func (o *DownloadHostLogsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *DownloadHostLogsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

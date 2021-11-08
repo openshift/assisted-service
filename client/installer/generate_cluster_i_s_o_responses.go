@@ -71,7 +71,6 @@ func (o *GenerateClusterISOReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewGenerateClusterISOCreated() *GenerateClusterISOCreated {
 	return &GenerateClusterISOCreated{}
 }
 
-/*GenerateClusterISOCreated handles this case with default header values.
+/* GenerateClusterISOCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type GenerateClusterISOCreated struct {
 func (o *GenerateClusterISOCreated) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOCreated  %+v", 201, o.Payload)
 }
-
 func (o *GenerateClusterISOCreated) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewGenerateClusterISOBadRequest() *GenerateClusterISOBadRequest {
 	return &GenerateClusterISOBadRequest{}
 }
 
-/*GenerateClusterISOBadRequest handles this case with default header values.
+/* GenerateClusterISOBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -126,7 +124,6 @@ type GenerateClusterISOBadRequest struct {
 func (o *GenerateClusterISOBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *GenerateClusterISOBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewGenerateClusterISOUnauthorized() *GenerateClusterISOUnauthorized {
 	return &GenerateClusterISOUnauthorized{}
 }
 
-/*GenerateClusterISOUnauthorized handles this case with default header values.
+/* GenerateClusterISOUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -159,7 +156,6 @@ type GenerateClusterISOUnauthorized struct {
 func (o *GenerateClusterISOUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GenerateClusterISOUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewGenerateClusterISOForbidden() *GenerateClusterISOForbidden {
 	return &GenerateClusterISOForbidden{}
 }
 
-/*GenerateClusterISOForbidden handles this case with default header values.
+/* GenerateClusterISOForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -192,7 +188,6 @@ type GenerateClusterISOForbidden struct {
 func (o *GenerateClusterISOForbidden) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GenerateClusterISOForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewGenerateClusterISONotFound() *GenerateClusterISONotFound {
 	return &GenerateClusterISONotFound{}
 }
 
-/*GenerateClusterISONotFound handles this case with default header values.
+/* GenerateClusterISONotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -225,7 +220,6 @@ type GenerateClusterISONotFound struct {
 func (o *GenerateClusterISONotFound) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISONotFound  %+v", 404, o.Payload)
 }
-
 func (o *GenerateClusterISONotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewGenerateClusterISOMethodNotAllowed() *GenerateClusterISOMethodNotAllowed
 	return &GenerateClusterISOMethodNotAllowed{}
 }
 
-/*GenerateClusterISOMethodNotAllowed handles this case with default header values.
+/* GenerateClusterISOMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -258,7 +252,6 @@ type GenerateClusterISOMethodNotAllowed struct {
 func (o *GenerateClusterISOMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *GenerateClusterISOMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewGenerateClusterISOConflict() *GenerateClusterISOConflict {
 	return &GenerateClusterISOConflict{}
 }
 
-/*GenerateClusterISOConflict handles this case with default header values.
+/* GenerateClusterISOConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -291,7 +284,6 @@ type GenerateClusterISOConflict struct {
 func (o *GenerateClusterISOConflict) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOConflict  %+v", 409, o.Payload)
 }
-
 func (o *GenerateClusterISOConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewGenerateClusterISOInternalServerError() *GenerateClusterISOInternalServe
 	return &GenerateClusterISOInternalServerError{}
 }
 
-/*GenerateClusterISOInternalServerError handles this case with default header values.
+/* GenerateClusterISOInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -324,7 +316,6 @@ type GenerateClusterISOInternalServerError struct {
 func (o *GenerateClusterISOInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GenerateClusterISOInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

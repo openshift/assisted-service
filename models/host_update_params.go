@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 
@@ -56,7 +57,6 @@ func (m *HostUpdateParams) Validate(formats strfmt.Registry) error {
 }
 
 func (m *HostUpdateParams) validateDisksSelectedConfig(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.DisksSelectedConfig) { // not required
 		return nil
 	}
@@ -70,6 +70,8 @@ func (m *HostUpdateParams) validateDisksSelectedConfig(formats strfmt.Registry) 
 			if err := m.DisksSelectedConfig[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -113,7 +115,6 @@ func (m *HostUpdateParams) validateHostRoleEnum(path, location string, value str
 }
 
 func (m *HostUpdateParams) validateHostRole(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.HostRole) { // not required
 		return nil
 	}
@@ -121,6 +122,40 @@ func (m *HostUpdateParams) validateHostRole(formats strfmt.Registry) error {
 	// value enum
 	if err := m.validateHostRoleEnum("host_role", "body", *m.HostRole); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this host update params based on the context it is used
+func (m *HostUpdateParams) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateDisksSelectedConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *HostUpdateParams) contextValidateDisksSelectedConfig(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.DisksSelectedConfig); i++ {
+
+		if m.DisksSelectedConfig[i] != nil {
+			if err := m.DisksSelectedConfig[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil

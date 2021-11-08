@@ -65,7 +65,6 @@ func (o *UpdateClusterInstallConfigReader) ReadResponse(response runtime.ClientR
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewUpdateClusterInstallConfigCreated() *UpdateClusterInstallConfigCreated {
 	return &UpdateClusterInstallConfigCreated{}
 }
 
-/*UpdateClusterInstallConfigCreated handles this case with default header values.
+/* UpdateClusterInstallConfigCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -97,7 +96,7 @@ func NewUpdateClusterInstallConfigBadRequest() *UpdateClusterInstallConfigBadReq
 	return &UpdateClusterInstallConfigBadRequest{}
 }
 
-/*UpdateClusterInstallConfigBadRequest handles this case with default header values.
+/* UpdateClusterInstallConfigBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -108,7 +107,6 @@ type UpdateClusterInstallConfigBadRequest struct {
 func (o *UpdateClusterInstallConfigBadRequest) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *UpdateClusterInstallConfigBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -130,7 +128,7 @@ func NewUpdateClusterInstallConfigUnauthorized() *UpdateClusterInstallConfigUnau
 	return &UpdateClusterInstallConfigUnauthorized{}
 }
 
-/*UpdateClusterInstallConfigUnauthorized handles this case with default header values.
+/* UpdateClusterInstallConfigUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -141,7 +139,6 @@ type UpdateClusterInstallConfigUnauthorized struct {
 func (o *UpdateClusterInstallConfigUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *UpdateClusterInstallConfigUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -163,7 +160,7 @@ func NewUpdateClusterInstallConfigForbidden() *UpdateClusterInstallConfigForbidd
 	return &UpdateClusterInstallConfigForbidden{}
 }
 
-/*UpdateClusterInstallConfigForbidden handles this case with default header values.
+/* UpdateClusterInstallConfigForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -174,7 +171,6 @@ type UpdateClusterInstallConfigForbidden struct {
 func (o *UpdateClusterInstallConfigForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigForbidden  %+v", 403, o.Payload)
 }
-
 func (o *UpdateClusterInstallConfigForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -196,7 +192,7 @@ func NewUpdateClusterInstallConfigNotFound() *UpdateClusterInstallConfigNotFound
 	return &UpdateClusterInstallConfigNotFound{}
 }
 
-/*UpdateClusterInstallConfigNotFound handles this case with default header values.
+/* UpdateClusterInstallConfigNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -207,7 +203,6 @@ type UpdateClusterInstallConfigNotFound struct {
 func (o *UpdateClusterInstallConfigNotFound) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigNotFound  %+v", 404, o.Payload)
 }
-
 func (o *UpdateClusterInstallConfigNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -229,7 +224,7 @@ func NewUpdateClusterInstallConfigMethodNotAllowed() *UpdateClusterInstallConfig
 	return &UpdateClusterInstallConfigMethodNotAllowed{}
 }
 
-/*UpdateClusterInstallConfigMethodNotAllowed handles this case with default header values.
+/* UpdateClusterInstallConfigMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -240,7 +235,6 @@ type UpdateClusterInstallConfigMethodNotAllowed struct {
 func (o *UpdateClusterInstallConfigMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *UpdateClusterInstallConfigMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -262,7 +256,7 @@ func NewUpdateClusterInstallConfigInternalServerError() *UpdateClusterInstallCon
 	return &UpdateClusterInstallConfigInternalServerError{}
 }
 
-/*UpdateClusterInstallConfigInternalServerError handles this case with default header values.
+/* UpdateClusterInstallConfigInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -273,7 +267,6 @@ type UpdateClusterInstallConfigInternalServerError struct {
 func (o *UpdateClusterInstallConfigInternalServerError) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *UpdateClusterInstallConfigInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

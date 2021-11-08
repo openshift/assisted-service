@@ -17,8 +17,16 @@ import (
 	"github.com/go-openapi/validate"
 )
 
+// UploadHostLogsMaxParseMemory sets the maximum size in bytes for
+// the multipart form parser for this operation.
+//
+// The default value is 32 MB.
+// The multipart parser stores up to this + 10MB.
+var UploadHostLogsMaxParseMemory int64 = 32 << 20
+
 // NewUploadHostLogsParams creates a new UploadHostLogsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewUploadHostLogsParams() UploadHostLogsParams {
 
 	return UploadHostLogsParams{}
@@ -62,7 +70,7 @@ func (o *UploadHostLogsParams) BindRequest(r *http.Request, route *middleware.Ma
 
 	o.HTTPRequest = r
 
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+	if err := r.ParseMultipartForm(UploadHostLogsMaxParseMemory); err != nil {
 		if err != http.ErrNotMultipart {
 			return errors.New(400, "%v", err)
 		} else if err := r.ParseForm(); err != nil {
@@ -94,7 +102,6 @@ func (o *UploadHostLogsParams) BindRequest(r *http.Request, route *middleware.Ma
 	} else {
 		o.Upfile = &runtime.File{Data: upfile, Header: upfileHeader}
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -146,7 +153,6 @@ func (o *UploadHostLogsParams) bindDiscoveryAgentVersion(rawData []string, hasKe
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.DiscoveryAgentVersion = &raw
 
 	return nil

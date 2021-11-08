@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -37,7 +38,6 @@ func (m *NtpSynchronizationResponse) Validate(formats strfmt.Registry) error {
 }
 
 func (m *NtpSynchronizationResponse) validateNtpSources(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.NtpSources) { // not required
 		return nil
 	}
@@ -51,6 +51,42 @@ func (m *NtpSynchronizationResponse) validateNtpSources(formats strfmt.Registry)
 			if err := m.NtpSources[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("ntp_sources" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("ntp_sources" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this ntp synchronization response based on the context it is used
+func (m *NtpSynchronizationResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateNtpSources(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *NtpSynchronizationResponse) contextValidateNtpSources(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.NtpSources); i++ {
+
+		if m.NtpSources[i] != nil {
+			if err := m.NtpSources[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("ntp_sources" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("ntp_sources" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

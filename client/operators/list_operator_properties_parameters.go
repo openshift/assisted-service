@@ -16,59 +16,73 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewListOperatorPropertiesParams creates a new ListOperatorPropertiesParams object
-// with the default values initialized.
+// NewListOperatorPropertiesParams creates a new ListOperatorPropertiesParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewListOperatorPropertiesParams() *ListOperatorPropertiesParams {
-	var ()
 	return &ListOperatorPropertiesParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewListOperatorPropertiesParamsWithTimeout creates a new ListOperatorPropertiesParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewListOperatorPropertiesParamsWithTimeout(timeout time.Duration) *ListOperatorPropertiesParams {
-	var ()
 	return &ListOperatorPropertiesParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewListOperatorPropertiesParamsWithContext creates a new ListOperatorPropertiesParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewListOperatorPropertiesParamsWithContext(ctx context.Context) *ListOperatorPropertiesParams {
-	var ()
 	return &ListOperatorPropertiesParams{
-
 		Context: ctx,
 	}
 }
 
 // NewListOperatorPropertiesParamsWithHTTPClient creates a new ListOperatorPropertiesParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewListOperatorPropertiesParamsWithHTTPClient(client *http.Client) *ListOperatorPropertiesParams {
-	var ()
 	return &ListOperatorPropertiesParams{
 		HTTPClient: client,
 	}
 }
 
-/*ListOperatorPropertiesParams contains all the parameters to send to the API endpoint
-for the list operator properties operation typically these are written to a http.Request
+/* ListOperatorPropertiesParams contains all the parameters to send to the API endpoint
+   for the list operator properties operation.
+
+   Typically these are written to a http.Request.
 */
 type ListOperatorPropertiesParams struct {
 
-	/*OperatorName
-	  The operator name.
+	/* OperatorName.
 
+	   The operator name.
 	*/
 	OperatorName string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the list operator properties params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListOperatorPropertiesParams) WithDefaults() *ListOperatorPropertiesParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the list operator properties params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListOperatorPropertiesParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the list operator properties params

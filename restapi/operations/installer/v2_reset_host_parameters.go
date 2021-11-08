@@ -15,7 +15,8 @@ import (
 )
 
 // NewV2ResetHostParams creates a new V2ResetHostParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2ResetHostParams() V2ResetHostParams {
 
 	return V2ResetHostParams{}
@@ -60,7 +61,6 @@ func (o *V2ResetHostParams) BindRequest(r *http.Request, route *middleware.Match
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

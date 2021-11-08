@@ -56,6 +56,50 @@ func (o *DownloadHostLogsOK) WriteResponse(rw http.ResponseWriter, producer runt
 	}
 }
 
+// DownloadHostLogsBadRequestCode is the HTTP code returned for type DownloadHostLogsBadRequest
+const DownloadHostLogsBadRequestCode int = 400
+
+/*DownloadHostLogsBadRequest Bad Request
+
+swagger:response downloadHostLogsBadRequest
+*/
+type DownloadHostLogsBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadHostLogsBadRequest creates DownloadHostLogsBadRequest with default headers values
+func NewDownloadHostLogsBadRequest() *DownloadHostLogsBadRequest {
+
+	return &DownloadHostLogsBadRequest{}
+}
+
+// WithPayload adds the payload to the download host logs bad request response
+func (o *DownloadHostLogsBadRequest) WithPayload(payload *models.Error) *DownloadHostLogsBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the download host logs bad request response
+func (o *DownloadHostLogsBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DownloadHostLogsBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DownloadHostLogsUnauthorizedCode is the HTTP code returned for type DownloadHostLogsUnauthorized
 const DownloadHostLogsUnauthorizedCode int = 401
 

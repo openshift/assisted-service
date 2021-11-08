@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewUnbindHostParams creates a new UnbindHostParams object
-// with the default values initialized.
+// NewUnbindHostParams creates a new UnbindHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUnbindHostParams() *UnbindHostParams {
-	var ()
 	return &UnbindHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUnbindHostParamsWithTimeout creates a new UnbindHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUnbindHostParamsWithTimeout(timeout time.Duration) *UnbindHostParams {
-	var ()
 	return &UnbindHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUnbindHostParamsWithContext creates a new UnbindHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUnbindHostParamsWithContext(ctx context.Context) *UnbindHostParams {
-	var ()
 	return &UnbindHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUnbindHostParamsWithHTTPClient creates a new UnbindHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUnbindHostParamsWithHTTPClient(client *http.Client) *UnbindHostParams {
-	var ()
 	return &UnbindHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*UnbindHostParams contains all the parameters to send to the API endpoint
-for the unbind host operation typically these are written to a http.Request
+/* UnbindHostParams contains all the parameters to send to the API endpoint
+   for the unbind host operation.
+
+   Typically these are written to a http.Request.
 */
 type UnbindHostParams struct {
 
-	/*HostID
-	  The host that is being bound.
+	/* HostID.
 
+	   The host that is being bound.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*InfraEnvID
-	  The infra env of the host that is being bound.
 
+	/* InfraEnvID.
+
+	   The infra env of the host that is being bound.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the unbind host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UnbindHostParams) WithDefaults() *UnbindHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the unbind host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UnbindHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the unbind host params

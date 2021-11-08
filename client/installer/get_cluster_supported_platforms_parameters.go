@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetClusterSupportedPlatformsParams creates a new GetClusterSupportedPlatformsParams object
-// with the default values initialized.
+// NewGetClusterSupportedPlatformsParams creates a new GetClusterSupportedPlatformsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetClusterSupportedPlatformsParams() *GetClusterSupportedPlatformsParams {
-	var ()
 	return &GetClusterSupportedPlatformsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetClusterSupportedPlatformsParamsWithTimeout creates a new GetClusterSupportedPlatformsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetClusterSupportedPlatformsParamsWithTimeout(timeout time.Duration) *GetClusterSupportedPlatformsParams {
-	var ()
 	return &GetClusterSupportedPlatformsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetClusterSupportedPlatformsParamsWithContext creates a new GetClusterSupportedPlatformsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetClusterSupportedPlatformsParamsWithContext(ctx context.Context) *GetClusterSupportedPlatformsParams {
-	var ()
 	return &GetClusterSupportedPlatformsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetClusterSupportedPlatformsParamsWithHTTPClient creates a new GetClusterSupportedPlatformsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetClusterSupportedPlatformsParamsWithHTTPClient(client *http.Client) *GetClusterSupportedPlatformsParams {
-	var ()
 	return &GetClusterSupportedPlatformsParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetClusterSupportedPlatformsParams contains all the parameters to send to the API endpoint
-for the get cluster supported platforms operation typically these are written to a http.Request
+/* GetClusterSupportedPlatformsParams contains all the parameters to send to the API endpoint
+   for the get cluster supported platforms operation.
+
+   Typically these are written to a http.Request.
 */
 type GetClusterSupportedPlatformsParams struct {
 
-	/*ClusterID
-	  The cluster whose platform types should be retrieved.
+	/* ClusterID.
 
+	   The cluster whose platform types should be retrieved.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get cluster supported platforms params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetClusterSupportedPlatformsParams) WithDefaults() *GetClusterSupportedPlatformsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get cluster supported platforms params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetClusterSupportedPlatformsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get cluster supported platforms params

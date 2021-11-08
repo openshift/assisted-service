@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewEnableHostParams creates a new EnableHostParams object
-// with the default values initialized.
+// NewEnableHostParams creates a new EnableHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewEnableHostParams() *EnableHostParams {
-	var ()
 	return &EnableHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewEnableHostParamsWithTimeout creates a new EnableHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewEnableHostParamsWithTimeout(timeout time.Duration) *EnableHostParams {
-	var ()
 	return &EnableHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewEnableHostParamsWithContext creates a new EnableHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewEnableHostParamsWithContext(ctx context.Context) *EnableHostParams {
-	var ()
 	return &EnableHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewEnableHostParamsWithHTTPClient creates a new EnableHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewEnableHostParamsWithHTTPClient(client *http.Client) *EnableHostParams {
-	var ()
 	return &EnableHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*EnableHostParams contains all the parameters to send to the API endpoint
-for the enable host operation typically these are written to a http.Request
+/* EnableHostParams contains all the parameters to send to the API endpoint
+   for the enable host operation.
+
+   Typically these are written to a http.Request.
 */
 type EnableHostParams struct {
 
-	/*ClusterID
-	  The cluster of the host that is being enabled.
+	/* ClusterID.
 
+	   The cluster of the host that is being enabled.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host that is being enabled.
 
+	/* HostID.
+
+	   The host that is being enabled.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the enable host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *EnableHostParams) WithDefaults() *EnableHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the enable host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *EnableHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the enable host params

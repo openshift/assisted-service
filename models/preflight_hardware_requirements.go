@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -44,7 +45,6 @@ func (m *PreflightHardwareRequirements) Validate(formats strfmt.Registry) error 
 }
 
 func (m *PreflightHardwareRequirements) validateOcp(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Ocp) { // not required
 		return nil
 	}
@@ -53,6 +53,8 @@ func (m *PreflightHardwareRequirements) validateOcp(formats strfmt.Registry) err
 		if err := m.Ocp.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("ocp")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("ocp")
 			}
 			return err
 		}
@@ -62,7 +64,6 @@ func (m *PreflightHardwareRequirements) validateOcp(formats strfmt.Registry) err
 }
 
 func (m *PreflightHardwareRequirements) validateOperators(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Operators) { // not required
 		return nil
 	}
@@ -76,6 +77,62 @@ func (m *PreflightHardwareRequirements) validateOperators(formats strfmt.Registr
 			if err := m.Operators[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("operators" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("operators" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this preflight hardware requirements based on the context it is used
+func (m *PreflightHardwareRequirements) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateOcp(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateOperators(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *PreflightHardwareRequirements) contextValidateOcp(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Ocp != nil {
+		if err := m.Ocp.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("ocp")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("ocp")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *PreflightHardwareRequirements) contextValidateOperators(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Operators); i++ {
+
+		if m.Operators[i] != nil {
+			if err := m.Operators[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("operators" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("operators" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

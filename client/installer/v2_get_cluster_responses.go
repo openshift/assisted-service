@@ -65,7 +65,6 @@ func (o *V2GetClusterReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewV2GetClusterOK() *V2GetClusterOK {
 	return &V2GetClusterOK{}
 }
 
-/*V2GetClusterOK handles this case with default header values.
+/* V2GetClusterOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type V2GetClusterOK struct {
 func (o *V2GetClusterOK) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}][%d] v2GetClusterOK  %+v", 200, o.Payload)
 }
-
 func (o *V2GetClusterOK) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -109,7 +107,7 @@ func NewV2GetClusterUnauthorized() *V2GetClusterUnauthorized {
 	return &V2GetClusterUnauthorized{}
 }
 
-/*V2GetClusterUnauthorized handles this case with default header values.
+/* V2GetClusterUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -120,7 +118,6 @@ type V2GetClusterUnauthorized struct {
 func (o *V2GetClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}][%d] v2GetClusterUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2GetClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -142,7 +139,7 @@ func NewV2GetClusterForbidden() *V2GetClusterForbidden {
 	return &V2GetClusterForbidden{}
 }
 
-/*V2GetClusterForbidden handles this case with default header values.
+/* V2GetClusterForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -153,7 +150,6 @@ type V2GetClusterForbidden struct {
 func (o *V2GetClusterForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}][%d] v2GetClusterForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2GetClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +171,7 @@ func NewV2GetClusterNotFound() *V2GetClusterNotFound {
 	return &V2GetClusterNotFound{}
 }
 
-/*V2GetClusterNotFound handles this case with default header values.
+/* V2GetClusterNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -186,7 +182,6 @@ type V2GetClusterNotFound struct {
 func (o *V2GetClusterNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}][%d] v2GetClusterNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2GetClusterNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -208,7 +203,7 @@ func NewV2GetClusterMethodNotAllowed() *V2GetClusterMethodNotAllowed {
 	return &V2GetClusterMethodNotAllowed{}
 }
 
-/*V2GetClusterMethodNotAllowed handles this case with default header values.
+/* V2GetClusterMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -219,7 +214,6 @@ type V2GetClusterMethodNotAllowed struct {
 func (o *V2GetClusterMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}][%d] v2GetClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2GetClusterMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +235,7 @@ func NewV2GetClusterInternalServerError() *V2GetClusterInternalServerError {
 	return &V2GetClusterInternalServerError{}
 }
 
-/*V2GetClusterInternalServerError handles this case with default header values.
+/* V2GetClusterInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -252,7 +246,6 @@ type V2GetClusterInternalServerError struct {
 func (o *V2GetClusterInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}][%d] v2GetClusterInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2GetClusterInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +267,7 @@ func NewV2GetClusterServiceUnavailable() *V2GetClusterServiceUnavailable {
 	return &V2GetClusterServiceUnavailable{}
 }
 
-/*V2GetClusterServiceUnavailable handles this case with default header values.
+/* V2GetClusterServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -285,7 +278,6 @@ type V2GetClusterServiceUnavailable struct {
 func (o *V2GetClusterServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}][%d] v2GetClusterServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2GetClusterServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

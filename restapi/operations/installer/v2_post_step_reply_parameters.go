@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-openapi/errors"
@@ -18,7 +19,8 @@ import (
 )
 
 // NewV2PostStepReplyParams creates a new V2PostStepReplyParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2PostStepReplyParams() V2PostStepReplyParams {
 
 	return V2PostStepReplyParams{}
@@ -87,6 +89,11 @@ func (o *V2PostStepReplyParams) BindRequest(r *http.Request, route *middleware.M
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.Reply = &body
 			}
@@ -110,7 +117,6 @@ func (o *V2PostStepReplyParams) bindDiscoveryAgentVersion(rawData []string, hasK
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.DiscoveryAgentVersion = &raw
 
 	return nil

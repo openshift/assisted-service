@@ -15,7 +15,8 @@ import (
 )
 
 // NewDownloadInfraEnvDiscoveryImageHeadersParams creates a new DownloadInfraEnvDiscoveryImageHeadersParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewDownloadInfraEnvDiscoveryImageHeadersParams() DownloadInfraEnvDiscoveryImageHeadersParams {
 
 	return DownloadInfraEnvDiscoveryImageHeadersParams{}
@@ -50,7 +51,6 @@ func (o *DownloadInfraEnvDiscoveryImageHeadersParams) BindRequest(r *http.Reques
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

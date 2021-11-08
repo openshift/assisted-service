@@ -17,81 +17,98 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// NewV2GetClusterParams creates a new V2GetClusterParams object
-// with the default values initialized.
+// NewV2GetClusterParams creates a new V2GetClusterParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2GetClusterParams() *V2GetClusterParams {
-	var (
-		getUnregisteredClustersDefault = bool(false)
-	)
 	return &V2GetClusterParams{
-		GetUnregisteredClusters: &getUnregisteredClustersDefault,
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2GetClusterParamsWithTimeout creates a new V2GetClusterParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2GetClusterParamsWithTimeout(timeout time.Duration) *V2GetClusterParams {
-	var (
-		getUnregisteredClustersDefault = bool(false)
-	)
 	return &V2GetClusterParams{
-		GetUnregisteredClusters: &getUnregisteredClustersDefault,
-
 		timeout: timeout,
 	}
 }
 
 // NewV2GetClusterParamsWithContext creates a new V2GetClusterParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2GetClusterParamsWithContext(ctx context.Context) *V2GetClusterParams {
-	var (
-		getUnregisteredClustersDefault = bool(false)
-	)
 	return &V2GetClusterParams{
-		GetUnregisteredClusters: &getUnregisteredClustersDefault,
-
 		Context: ctx,
 	}
 }
 
 // NewV2GetClusterParamsWithHTTPClient creates a new V2GetClusterParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2GetClusterParamsWithHTTPClient(client *http.Client) *V2GetClusterParams {
-	var (
-		getUnregisteredClustersDefault = bool(false)
-	)
 	return &V2GetClusterParams{
-		GetUnregisteredClusters: &getUnregisteredClustersDefault,
-		HTTPClient:              client,
+		HTTPClient: client,
 	}
 }
 
-/*V2GetClusterParams contains all the parameters to send to the API endpoint
-for the v2 get cluster operation typically these are written to a http.Request
+/* V2GetClusterParams contains all the parameters to send to the API endpoint
+   for the v2 get cluster operation.
+
+   Typically these are written to a http.Request.
 */
 type V2GetClusterParams struct {
 
-	/*ClusterID
-	  The cluster to be retrieved.
+	/* ClusterID.
 
+	   The cluster to be retrieved.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is retrieving the cluster details.
 
+	/* DiscoveryAgentVersion.
+
+	   The software version of the discovery agent that is retrieving the cluster details.
 	*/
 	DiscoveryAgentVersion *string
-	/*GetUnregisteredClusters
-	  Whether to return clusters that have been unregistered.
 
+	/* GetUnregisteredClusters.
+
+	   Whether to return clusters that have been unregistered.
 	*/
 	GetUnregisteredClusters *bool
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 get cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetClusterParams) WithDefaults() *V2GetClusterParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 get cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetClusterParams) SetDefaults() {
+	var (
+		getUnregisteredClustersDefault = bool(false)
+	)
+
+	val := V2GetClusterParams{
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the v2 get cluster params
@@ -179,7 +196,6 @@ func (o *V2GetClusterParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
 
 	if o.GetUnregisteredClusters != nil {
@@ -188,7 +204,6 @@ func (o *V2GetClusterParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		if err := r.SetHeaderParam("get_unregistered_clusters", swag.FormatBool(*o.GetUnregisteredClusters)); err != nil {
 			return err
 		}
-
 	}
 
 	if len(res) > 0 {

@@ -18,69 +18,87 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewV2UploadClusterIngressCertParams creates a new V2UploadClusterIngressCertParams object
-// with the default values initialized.
+// NewV2UploadClusterIngressCertParams creates a new V2UploadClusterIngressCertParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2UploadClusterIngressCertParams() *V2UploadClusterIngressCertParams {
-	var ()
 	return &V2UploadClusterIngressCertParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2UploadClusterIngressCertParamsWithTimeout creates a new V2UploadClusterIngressCertParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2UploadClusterIngressCertParamsWithTimeout(timeout time.Duration) *V2UploadClusterIngressCertParams {
-	var ()
 	return &V2UploadClusterIngressCertParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2UploadClusterIngressCertParamsWithContext creates a new V2UploadClusterIngressCertParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2UploadClusterIngressCertParamsWithContext(ctx context.Context) *V2UploadClusterIngressCertParams {
-	var ()
 	return &V2UploadClusterIngressCertParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2UploadClusterIngressCertParamsWithHTTPClient creates a new V2UploadClusterIngressCertParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2UploadClusterIngressCertParamsWithHTTPClient(client *http.Client) *V2UploadClusterIngressCertParams {
-	var ()
 	return &V2UploadClusterIngressCertParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2UploadClusterIngressCertParams contains all the parameters to send to the API endpoint
-for the v2 upload cluster ingress cert operation typically these are written to a http.Request
+/* V2UploadClusterIngressCertParams contains all the parameters to send to the API endpoint
+   for the v2 upload cluster ingress cert operation.
+
+   Typically these are written to a http.Request.
 */
 type V2UploadClusterIngressCertParams struct {
 
-	/*ClusterID
-	  The cluster to associate with the ingress certificate.
+	/* ClusterID.
 
+	   The cluster to associate with the ingress certificate.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is uploading the ingress certificate.
 
+	/* DiscoveryAgentVersion.
+
+	   The software version of the discovery agent that is uploading the ingress certificate.
 	*/
 	DiscoveryAgentVersion *string
-	/*IngressCertParams
-	  The ingress certificate.
 
+	/* IngressCertParams.
+
+	   The ingress certificate.
 	*/
 	IngressCertParams models.IngressCertParams
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 upload cluster ingress cert params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UploadClusterIngressCertParams) WithDefaults() *V2UploadClusterIngressCertParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 upload cluster ingress cert params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UploadClusterIngressCertParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 upload cluster ingress cert params
@@ -168,9 +186,7 @@ func (o *V2UploadClusterIngressCertParams) WriteToRequest(r runtime.ClientReques
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
-
 	if err := r.SetBodyParam(o.IngressCertParams); err != nil {
 		return err
 	}

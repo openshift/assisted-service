@@ -65,7 +65,6 @@ func (o *DeregisterHostReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewDeregisterHostNoContent() *DeregisterHostNoContent {
 	return &DeregisterHostNoContent{}
 }
 
-/*DeregisterHostNoContent handles this case with default header values.
+/* DeregisterHostNoContent describes a response with status code 204, with default header values.
 
 Success.
 */
@@ -97,7 +96,7 @@ func NewDeregisterHostBadRequest() *DeregisterHostBadRequest {
 	return &DeregisterHostBadRequest{}
 }
 
-/*DeregisterHostBadRequest handles this case with default header values.
+/* DeregisterHostBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -108,7 +107,6 @@ type DeregisterHostBadRequest struct {
 func (o *DeregisterHostBadRequest) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *DeregisterHostBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -130,7 +128,7 @@ func NewDeregisterHostUnauthorized() *DeregisterHostUnauthorized {
 	return &DeregisterHostUnauthorized{}
 }
 
-/*DeregisterHostUnauthorized handles this case with default header values.
+/* DeregisterHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -141,7 +139,6 @@ type DeregisterHostUnauthorized struct {
 func (o *DeregisterHostUnauthorized) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *DeregisterHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -163,7 +160,7 @@ func NewDeregisterHostForbidden() *DeregisterHostForbidden {
 	return &DeregisterHostForbidden{}
 }
 
-/*DeregisterHostForbidden handles this case with default header values.
+/* DeregisterHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -174,7 +171,6 @@ type DeregisterHostForbidden struct {
 func (o *DeregisterHostForbidden) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *DeregisterHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -196,7 +192,7 @@ func NewDeregisterHostNotFound() *DeregisterHostNotFound {
 	return &DeregisterHostNotFound{}
 }
 
-/*DeregisterHostNotFound handles this case with default header values.
+/* DeregisterHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -207,7 +203,6 @@ type DeregisterHostNotFound struct {
 func (o *DeregisterHostNotFound) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *DeregisterHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -229,7 +224,7 @@ func NewDeregisterHostMethodNotAllowed() *DeregisterHostMethodNotAllowed {
 	return &DeregisterHostMethodNotAllowed{}
 }
 
-/*DeregisterHostMethodNotAllowed handles this case with default header values.
+/* DeregisterHostMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -240,7 +235,6 @@ type DeregisterHostMethodNotAllowed struct {
 func (o *DeregisterHostMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *DeregisterHostMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -262,7 +256,7 @@ func NewDeregisterHostInternalServerError() *DeregisterHostInternalServerError {
 	return &DeregisterHostInternalServerError{}
 }
 
-/*DeregisterHostInternalServerError handles this case with default header values.
+/* DeregisterHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -273,7 +267,6 @@ type DeregisterHostInternalServerError struct {
 func (o *DeregisterHostInternalServerError) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *DeregisterHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

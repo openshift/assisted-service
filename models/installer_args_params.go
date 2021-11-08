@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
@@ -16,11 +18,17 @@ import (
 type InstallerArgsParams struct {
 
 	// List of additional arguments passed to coreos-installer
+	// Example: ["--append-karg","ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none","--save-partindex","1","-n"]
 	Args []string `json:"args"`
 }
 
 // Validate validates this installer args params
 func (m *InstallerArgsParams) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this installer args params based on context it is used
+func (m *InstallerArgsParams) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

@@ -65,7 +65,6 @@ func (o *V2ListHostsReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewV2ListHostsOK() *V2ListHostsOK {
 	return &V2ListHostsOK{}
 }
 
-/*V2ListHostsOK handles this case with default header values.
+/* V2ListHostsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type V2ListHostsOK struct {
 func (o *V2ListHostsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts][%d] v2ListHostsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ListHostsOK) GetPayload() models.HostList {
 	return o.Payload
 }
@@ -107,7 +105,7 @@ func NewV2ListHostsUnauthorized() *V2ListHostsUnauthorized {
 	return &V2ListHostsUnauthorized{}
 }
 
-/*V2ListHostsUnauthorized handles this case with default header values.
+/* V2ListHostsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -118,7 +116,6 @@ type V2ListHostsUnauthorized struct {
 func (o *V2ListHostsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts][%d] v2ListHostsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2ListHostsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -140,7 +137,7 @@ func NewV2ListHostsForbidden() *V2ListHostsForbidden {
 	return &V2ListHostsForbidden{}
 }
 
-/*V2ListHostsForbidden handles this case with default header values.
+/* V2ListHostsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -151,7 +148,6 @@ type V2ListHostsForbidden struct {
 func (o *V2ListHostsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts][%d] v2ListHostsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2ListHostsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -173,7 +169,7 @@ func NewV2ListHostsMethodNotAllowed() *V2ListHostsMethodNotAllowed {
 	return &V2ListHostsMethodNotAllowed{}
 }
 
-/*V2ListHostsMethodNotAllowed handles this case with default header values.
+/* V2ListHostsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -184,7 +180,6 @@ type V2ListHostsMethodNotAllowed struct {
 func (o *V2ListHostsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts][%d] v2ListHostsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2ListHostsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -206,7 +201,7 @@ func NewV2ListHostsInternalServerError() *V2ListHostsInternalServerError {
 	return &V2ListHostsInternalServerError{}
 }
 
-/*V2ListHostsInternalServerError handles this case with default header values.
+/* V2ListHostsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -217,7 +212,6 @@ type V2ListHostsInternalServerError struct {
 func (o *V2ListHostsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts][%d] v2ListHostsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2ListHostsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -239,7 +233,7 @@ func NewV2ListHostsNotImplemented() *V2ListHostsNotImplemented {
 	return &V2ListHostsNotImplemented{}
 }
 
-/*V2ListHostsNotImplemented handles this case with default header values.
+/* V2ListHostsNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -250,7 +244,6 @@ type V2ListHostsNotImplemented struct {
 func (o *V2ListHostsNotImplemented) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts][%d] v2ListHostsNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *V2ListHostsNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -272,7 +265,7 @@ func NewV2ListHostsServiceUnavailable() *V2ListHostsServiceUnavailable {
 	return &V2ListHostsServiceUnavailable{}
 }
 
-/*V2ListHostsServiceUnavailable handles this case with default header values.
+/* V2ListHostsServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -283,7 +276,6 @@ type V2ListHostsServiceUnavailable struct {
 func (o *V2ListHostsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts][%d] v2ListHostsServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2ListHostsServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

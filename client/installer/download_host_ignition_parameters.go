@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDownloadHostIgnitionParams creates a new DownloadHostIgnitionParams object
-// with the default values initialized.
+// NewDownloadHostIgnitionParams creates a new DownloadHostIgnitionParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewDownloadHostIgnitionParams() *DownloadHostIgnitionParams {
-	var ()
 	return &DownloadHostIgnitionParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewDownloadHostIgnitionParamsWithTimeout creates a new DownloadHostIgnitionParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewDownloadHostIgnitionParamsWithTimeout(timeout time.Duration) *DownloadHostIgnitionParams {
-	var ()
 	return &DownloadHostIgnitionParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewDownloadHostIgnitionParamsWithContext creates a new DownloadHostIgnitionParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewDownloadHostIgnitionParamsWithContext(ctx context.Context) *DownloadHostIgnitionParams {
-	var ()
 	return &DownloadHostIgnitionParams{
-
 		Context: ctx,
 	}
 }
 
 // NewDownloadHostIgnitionParamsWithHTTPClient creates a new DownloadHostIgnitionParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewDownloadHostIgnitionParamsWithHTTPClient(client *http.Client) *DownloadHostIgnitionParams {
-	var ()
 	return &DownloadHostIgnitionParams{
 		HTTPClient: client,
 	}
 }
 
-/*DownloadHostIgnitionParams contains all the parameters to send to the API endpoint
-for the download host ignition operation typically these are written to a http.Request
+/* DownloadHostIgnitionParams contains all the parameters to send to the API endpoint
+   for the download host ignition operation.
+
+   Typically these are written to a http.Request.
 */
 type DownloadHostIgnitionParams struct {
 
-	/*ClusterID
-	  The cluster of the host whose ignition file should be downloaded.
+	/* ClusterID.
 
+	   The cluster of the host whose ignition file should be downloaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host whose ignition file should be downloaded.
 
+	/* HostID.
+
+	   The host whose ignition file should be downloaded.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the download host ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadHostIgnitionParams) WithDefaults() *DownloadHostIgnitionParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the download host ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadHostIgnitionParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the download host ignition params

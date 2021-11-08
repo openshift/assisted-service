@@ -18,64 +18,81 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewV2ReportMonitoredOperatorStatusParams creates a new V2ReportMonitoredOperatorStatusParams object
-// with the default values initialized.
+// NewV2ReportMonitoredOperatorStatusParams creates a new V2ReportMonitoredOperatorStatusParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2ReportMonitoredOperatorStatusParams() *V2ReportMonitoredOperatorStatusParams {
-	var ()
 	return &V2ReportMonitoredOperatorStatusParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2ReportMonitoredOperatorStatusParamsWithTimeout creates a new V2ReportMonitoredOperatorStatusParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2ReportMonitoredOperatorStatusParamsWithTimeout(timeout time.Duration) *V2ReportMonitoredOperatorStatusParams {
-	var ()
 	return &V2ReportMonitoredOperatorStatusParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2ReportMonitoredOperatorStatusParamsWithContext creates a new V2ReportMonitoredOperatorStatusParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2ReportMonitoredOperatorStatusParamsWithContext(ctx context.Context) *V2ReportMonitoredOperatorStatusParams {
-	var ()
 	return &V2ReportMonitoredOperatorStatusParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2ReportMonitoredOperatorStatusParamsWithHTTPClient creates a new V2ReportMonitoredOperatorStatusParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2ReportMonitoredOperatorStatusParamsWithHTTPClient(client *http.Client) *V2ReportMonitoredOperatorStatusParams {
-	var ()
 	return &V2ReportMonitoredOperatorStatusParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2ReportMonitoredOperatorStatusParams contains all the parameters to send to the API endpoint
-for the v2 report monitored operator status operation typically these are written to a http.Request
+/* V2ReportMonitoredOperatorStatusParams contains all the parameters to send to the API endpoint
+   for the v2 report monitored operator status operation.
+
+   Typically these are written to a http.Request.
 */
 type V2ReportMonitoredOperatorStatusParams struct {
 
-	/*ClusterID
-	  The cluster whose operators are being monitored.
+	/* ClusterID.
 
+	   The cluster whose operators are being monitored.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*ReportParams
-	  The operators monitor report.
 
+	/* ReportParams.
+
+	   The operators monitor report.
 	*/
 	ReportParams *models.OperatorMonitorReport
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 report monitored operator status params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ReportMonitoredOperatorStatusParams) WithDefaults() *V2ReportMonitoredOperatorStatusParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 report monitored operator status params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ReportMonitoredOperatorStatusParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 report monitored operator status params
@@ -145,7 +162,6 @@ func (o *V2ReportMonitoredOperatorStatusParams) WriteToRequest(r runtime.ClientR
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
-
 	if o.ReportParams != nil {
 		if err := r.SetBodyParam(o.ReportParams); err != nil {
 			return err

@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
@@ -17,6 +18,11 @@ import (
 //
 // swagger:model host-validation-id
 type HostValidationID string
+
+func NewHostValidationID(value HostValidationID) *HostValidationID {
+	v := value
+	return &v
+}
 
 const (
 
@@ -140,5 +146,10 @@ func (m HostValidationID) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this host validation id based on context it is used
+func (m HostValidationID) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

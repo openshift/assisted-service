@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewV2UpdateHostInstallProgressParams creates a new V2UpdateHostInstallProgressParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2UpdateHostInstallProgressParams() V2UpdateHostInstallProgressParams {
 
 	return V2UpdateHostInstallProgressParams{}
@@ -83,6 +85,11 @@ func (o *V2UpdateHostInstallProgressParams) BindRequest(r *http.Request, route *
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.HostProgress = &body
 			}
@@ -90,6 +97,7 @@ func (o *V2UpdateHostInstallProgressParams) BindRequest(r *http.Request, route *
 	} else {
 		res = append(res, errors.Required("hostProgress", "body", ""))
 	}
+
 	rHostID, rhkHostID, _ := route.Params.GetOK("host_id")
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
 		res = append(res, err)
@@ -99,7 +107,6 @@ func (o *V2UpdateHostInstallProgressParams) BindRequest(r *http.Request, route *
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -118,7 +125,6 @@ func (o *V2UpdateHostInstallProgressParams) bindDiscoveryAgentVersion(rawData []
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.DiscoveryAgentVersion = &raw
 
 	return nil

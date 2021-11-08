@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 
@@ -42,7 +43,6 @@ func (m *FeatureSupportLevel) Validate(formats strfmt.Registry) error {
 }
 
 func (m *FeatureSupportLevel) validateFeatures(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Features) { // not required
 		return nil
 	}
@@ -56,6 +56,42 @@ func (m *FeatureSupportLevel) validateFeatures(formats strfmt.Registry) error {
 			if err := m.Features[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("features" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("features" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this feature support level based on the context it is used
+func (m *FeatureSupportLevel) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateFeatures(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *FeatureSupportLevel) contextValidateFeatures(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Features); i++ {
+
+		if m.Features[i] != nil {
+			if err := m.Features[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("features" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("features" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -188,7 +224,6 @@ func (m *FeatureSupportLevelFeaturesItems0) validateFeatureIDEnum(path, location
 }
 
 func (m *FeatureSupportLevelFeaturesItems0) validateFeatureID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.FeatureID) { // not required
 		return nil
 	}
@@ -237,7 +272,6 @@ func (m *FeatureSupportLevelFeaturesItems0) validateSupportLevelEnum(path, locat
 }
 
 func (m *FeatureSupportLevelFeaturesItems0) validateSupportLevel(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.SupportLevel) { // not required
 		return nil
 	}
@@ -247,6 +281,11 @@ func (m *FeatureSupportLevelFeaturesItems0) validateSupportLevel(formats strfmt.
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this feature support level features items0 based on context it is used
+func (m *FeatureSupportLevelFeaturesItems0) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

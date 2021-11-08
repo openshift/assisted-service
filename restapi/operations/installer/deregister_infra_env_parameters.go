@@ -15,7 +15,8 @@ import (
 )
 
 // NewDeregisterInfraEnvParams creates a new DeregisterInfraEnvParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewDeregisterInfraEnvParams() DeregisterInfraEnvParams {
 
 	return DeregisterInfraEnvParams{}
@@ -50,7 +51,6 @@ func (o *DeregisterInfraEnvParams) BindRequest(r *http.Request, route *middlewar
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2GetPreflightRequirementsParams creates a new V2GetPreflightRequirementsParams object
-// with the default values initialized.
+// NewV2GetPreflightRequirementsParams creates a new V2GetPreflightRequirementsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2GetPreflightRequirementsParams() *V2GetPreflightRequirementsParams {
-	var ()
 	return &V2GetPreflightRequirementsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2GetPreflightRequirementsParamsWithTimeout creates a new V2GetPreflightRequirementsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2GetPreflightRequirementsParamsWithTimeout(timeout time.Duration) *V2GetPreflightRequirementsParams {
-	var ()
 	return &V2GetPreflightRequirementsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2GetPreflightRequirementsParamsWithContext creates a new V2GetPreflightRequirementsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2GetPreflightRequirementsParamsWithContext(ctx context.Context) *V2GetPreflightRequirementsParams {
-	var ()
 	return &V2GetPreflightRequirementsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2GetPreflightRequirementsParamsWithHTTPClient creates a new V2GetPreflightRequirementsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2GetPreflightRequirementsParamsWithHTTPClient(client *http.Client) *V2GetPreflightRequirementsParams {
-	var ()
 	return &V2GetPreflightRequirementsParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2GetPreflightRequirementsParams contains all the parameters to send to the API endpoint
-for the v2 get preflight requirements operation typically these are written to a http.Request
+/* V2GetPreflightRequirementsParams contains all the parameters to send to the API endpoint
+   for the v2 get preflight requirements operation.
+
+   Typically these are written to a http.Request.
 */
 type V2GetPreflightRequirementsParams struct {
 
-	/*ClusterID
-	  The cluster to return preflight requrements for.
+	/* ClusterID.
 
+	   The cluster to return preflight requrements for.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 get preflight requirements params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetPreflightRequirementsParams) WithDefaults() *V2GetPreflightRequirementsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 get preflight requirements params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetPreflightRequirementsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 get preflight requirements params

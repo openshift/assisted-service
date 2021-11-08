@@ -53,7 +53,6 @@ func (o *V2ListOperatorPropertiesReader) ReadResponse(response runtime.ClientRes
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -64,7 +63,7 @@ func NewV2ListOperatorPropertiesOK() *V2ListOperatorPropertiesOK {
 	return &V2ListOperatorPropertiesOK{}
 }
 
-/*V2ListOperatorPropertiesOK handles this case with default header values.
+/* V2ListOperatorPropertiesOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -75,7 +74,6 @@ type V2ListOperatorPropertiesOK struct {
 func (o *V2ListOperatorPropertiesOK) Error() string {
 	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ListOperatorPropertiesOK) GetPayload() models.OperatorProperties {
 	return o.Payload
 }
@@ -95,7 +93,7 @@ func NewV2ListOperatorPropertiesUnauthorized() *V2ListOperatorPropertiesUnauthor
 	return &V2ListOperatorPropertiesUnauthorized{}
 }
 
-/*V2ListOperatorPropertiesUnauthorized handles this case with default header values.
+/* V2ListOperatorPropertiesUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -106,7 +104,6 @@ type V2ListOperatorPropertiesUnauthorized struct {
 func (o *V2ListOperatorPropertiesUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2ListOperatorPropertiesUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -128,7 +125,7 @@ func NewV2ListOperatorPropertiesForbidden() *V2ListOperatorPropertiesForbidden {
 	return &V2ListOperatorPropertiesForbidden{}
 }
 
-/*V2ListOperatorPropertiesForbidden handles this case with default header values.
+/* V2ListOperatorPropertiesForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -139,7 +136,6 @@ type V2ListOperatorPropertiesForbidden struct {
 func (o *V2ListOperatorPropertiesForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2ListOperatorPropertiesForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -161,7 +157,7 @@ func NewV2ListOperatorPropertiesNotFound() *V2ListOperatorPropertiesNotFound {
 	return &V2ListOperatorPropertiesNotFound{}
 }
 
-/*V2ListOperatorPropertiesNotFound handles this case with default header values.
+/* V2ListOperatorPropertiesNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -172,7 +168,6 @@ type V2ListOperatorPropertiesNotFound struct {
 func (o *V2ListOperatorPropertiesNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2ListOperatorPropertiesNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -194,7 +189,7 @@ func NewV2ListOperatorPropertiesInternalServerError() *V2ListOperatorPropertiesI
 	return &V2ListOperatorPropertiesInternalServerError{}
 }
 
-/*V2ListOperatorPropertiesInternalServerError handles this case with default header values.
+/* V2ListOperatorPropertiesInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -205,7 +200,6 @@ type V2ListOperatorPropertiesInternalServerError struct {
 func (o *V2ListOperatorPropertiesInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2ListOperatorPropertiesInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

@@ -29,7 +29,6 @@ func (o *ListComponentVersionsReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -40,7 +39,7 @@ func NewListComponentVersionsOK() *ListComponentVersionsOK {
 	return &ListComponentVersionsOK{}
 }
 
-/*ListComponentVersionsOK handles this case with default header values.
+/* ListComponentVersionsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -51,7 +50,6 @@ type ListComponentVersionsOK struct {
 func (o *ListComponentVersionsOK) Error() string {
 	return fmt.Sprintf("[GET /v1/component_versions][%d] listComponentVersionsOK  %+v", 200, o.Payload)
 }
-
 func (o *ListComponentVersionsOK) GetPayload() *models.ListVersions {
 	return o.Payload
 }

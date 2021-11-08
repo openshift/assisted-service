@@ -65,7 +65,6 @@ func (o *V2DeleteClusterManifestReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewV2DeleteClusterManifestOK() *V2DeleteClusterManifestOK {
 	return &V2DeleteClusterManifestOK{}
 }
 
-/*V2DeleteClusterManifestOK handles this case with default header values.
+/* V2DeleteClusterManifestOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -97,7 +96,7 @@ func NewV2DeleteClusterManifestUnauthorized() *V2DeleteClusterManifestUnauthoriz
 	return &V2DeleteClusterManifestUnauthorized{}
 }
 
-/*V2DeleteClusterManifestUnauthorized handles this case with default header values.
+/* V2DeleteClusterManifestUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -108,7 +107,6 @@ type V2DeleteClusterManifestUnauthorized struct {
 func (o *V2DeleteClusterManifestUnauthorized) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2DeleteClusterManifestUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -130,7 +128,7 @@ func NewV2DeleteClusterManifestForbidden() *V2DeleteClusterManifestForbidden {
 	return &V2DeleteClusterManifestForbidden{}
 }
 
-/*V2DeleteClusterManifestForbidden handles this case with default header values.
+/* V2DeleteClusterManifestForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -141,7 +139,6 @@ type V2DeleteClusterManifestForbidden struct {
 func (o *V2DeleteClusterManifestForbidden) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2DeleteClusterManifestForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -163,7 +160,7 @@ func NewV2DeleteClusterManifestNotFound() *V2DeleteClusterManifestNotFound {
 	return &V2DeleteClusterManifestNotFound{}
 }
 
-/*V2DeleteClusterManifestNotFound handles this case with default header values.
+/* V2DeleteClusterManifestNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -174,7 +171,6 @@ type V2DeleteClusterManifestNotFound struct {
 func (o *V2DeleteClusterManifestNotFound) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2DeleteClusterManifestNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -196,7 +192,7 @@ func NewV2DeleteClusterManifestMethodNotAllowed() *V2DeleteClusterManifestMethod
 	return &V2DeleteClusterManifestMethodNotAllowed{}
 }
 
-/*V2DeleteClusterManifestMethodNotAllowed handles this case with default header values.
+/* V2DeleteClusterManifestMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -207,7 +203,6 @@ type V2DeleteClusterManifestMethodNotAllowed struct {
 func (o *V2DeleteClusterManifestMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2DeleteClusterManifestMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -229,7 +224,7 @@ func NewV2DeleteClusterManifestConflict() *V2DeleteClusterManifestConflict {
 	return &V2DeleteClusterManifestConflict{}
 }
 
-/*V2DeleteClusterManifestConflict handles this case with default header values.
+/* V2DeleteClusterManifestConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -240,7 +235,6 @@ type V2DeleteClusterManifestConflict struct {
 func (o *V2DeleteClusterManifestConflict) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2DeleteClusterManifestConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -262,7 +256,7 @@ func NewV2DeleteClusterManifestInternalServerError() *V2DeleteClusterManifestInt
 	return &V2DeleteClusterManifestInternalServerError{}
 }
 
-/*V2DeleteClusterManifestInternalServerError handles this case with default header values.
+/* V2DeleteClusterManifestInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -273,7 +267,6 @@ type V2DeleteClusterManifestInternalServerError struct {
 func (o *V2DeleteClusterManifestInternalServerError) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2DeleteClusterManifestInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

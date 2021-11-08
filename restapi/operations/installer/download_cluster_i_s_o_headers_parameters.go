@@ -15,7 +15,8 @@ import (
 )
 
 // NewDownloadClusterISOHeadersParams creates a new DownloadClusterISOHeadersParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewDownloadClusterISOHeadersParams() DownloadClusterISOHeadersParams {
 
 	return DownloadClusterISOHeadersParams{}
@@ -50,7 +51,6 @@ func (o *DownloadClusterISOHeadersParams) BindRequest(r *http.Request, route *mi
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

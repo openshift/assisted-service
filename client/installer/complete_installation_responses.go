@@ -71,7 +71,6 @@ func (o *CompleteInstallationReader) ReadResponse(response runtime.ClientRespons
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewCompleteInstallationAccepted() *CompleteInstallationAccepted {
 	return &CompleteInstallationAccepted{}
 }
 
-/*CompleteInstallationAccepted handles this case with default header values.
+/* CompleteInstallationAccepted describes a response with status code 202, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type CompleteInstallationAccepted struct {
 func (o *CompleteInstallationAccepted) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationAccepted  %+v", 202, o.Payload)
 }
-
 func (o *CompleteInstallationAccepted) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewCompleteInstallationUnauthorized() *CompleteInstallationUnauthorized {
 	return &CompleteInstallationUnauthorized{}
 }
 
-/*CompleteInstallationUnauthorized handles this case with default header values.
+/* CompleteInstallationUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -126,7 +124,6 @@ type CompleteInstallationUnauthorized struct {
 func (o *CompleteInstallationUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *CompleteInstallationUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewCompleteInstallationForbidden() *CompleteInstallationForbidden {
 	return &CompleteInstallationForbidden{}
 }
 
-/*CompleteInstallationForbidden handles this case with default header values.
+/* CompleteInstallationForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -159,7 +156,6 @@ type CompleteInstallationForbidden struct {
 func (o *CompleteInstallationForbidden) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationForbidden  %+v", 403, o.Payload)
 }
-
 func (o *CompleteInstallationForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewCompleteInstallationNotFound() *CompleteInstallationNotFound {
 	return &CompleteInstallationNotFound{}
 }
 
-/*CompleteInstallationNotFound handles this case with default header values.
+/* CompleteInstallationNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -192,7 +188,6 @@ type CompleteInstallationNotFound struct {
 func (o *CompleteInstallationNotFound) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationNotFound  %+v", 404, o.Payload)
 }
-
 func (o *CompleteInstallationNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewCompleteInstallationMethodNotAllowed() *CompleteInstallationMethodNotAll
 	return &CompleteInstallationMethodNotAllowed{}
 }
 
-/*CompleteInstallationMethodNotAllowed handles this case with default header values.
+/* CompleteInstallationMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -225,7 +220,6 @@ type CompleteInstallationMethodNotAllowed struct {
 func (o *CompleteInstallationMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *CompleteInstallationMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewCompleteInstallationConflict() *CompleteInstallationConflict {
 	return &CompleteInstallationConflict{}
 }
 
-/*CompleteInstallationConflict handles this case with default header values.
+/* CompleteInstallationConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -258,7 +252,6 @@ type CompleteInstallationConflict struct {
 func (o *CompleteInstallationConflict) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationConflict  %+v", 409, o.Payload)
 }
-
 func (o *CompleteInstallationConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewCompleteInstallationInternalServerError() *CompleteInstallationInternalS
 	return &CompleteInstallationInternalServerError{}
 }
 
-/*CompleteInstallationInternalServerError handles this case with default header values.
+/* CompleteInstallationInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -291,7 +284,6 @@ type CompleteInstallationInternalServerError struct {
 func (o *CompleteInstallationInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *CompleteInstallationInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewCompleteInstallationServiceUnavailable() *CompleteInstallationServiceUna
 	return &CompleteInstallationServiceUnavailable{}
 }
 
-/*CompleteInstallationServiceUnavailable handles this case with default header values.
+/* CompleteInstallationServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -324,7 +316,6 @@ type CompleteInstallationServiceUnavailable struct {
 func (o *CompleteInstallationServiceUnavailable) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *CompleteInstallationServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

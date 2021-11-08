@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDeregisterInfraEnvParams creates a new DeregisterInfraEnvParams object
-// with the default values initialized.
+// NewDeregisterInfraEnvParams creates a new DeregisterInfraEnvParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewDeregisterInfraEnvParams() *DeregisterInfraEnvParams {
-	var ()
 	return &DeregisterInfraEnvParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewDeregisterInfraEnvParamsWithTimeout creates a new DeregisterInfraEnvParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewDeregisterInfraEnvParamsWithTimeout(timeout time.Duration) *DeregisterInfraEnvParams {
-	var ()
 	return &DeregisterInfraEnvParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewDeregisterInfraEnvParamsWithContext creates a new DeregisterInfraEnvParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewDeregisterInfraEnvParamsWithContext(ctx context.Context) *DeregisterInfraEnvParams {
-	var ()
 	return &DeregisterInfraEnvParams{
-
 		Context: ctx,
 	}
 }
 
 // NewDeregisterInfraEnvParamsWithHTTPClient creates a new DeregisterInfraEnvParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewDeregisterInfraEnvParamsWithHTTPClient(client *http.Client) *DeregisterInfraEnvParams {
-	var ()
 	return &DeregisterInfraEnvParams{
 		HTTPClient: client,
 	}
 }
 
-/*DeregisterInfraEnvParams contains all the parameters to send to the API endpoint
-for the deregister infra env operation typically these are written to a http.Request
+/* DeregisterInfraEnvParams contains all the parameters to send to the API endpoint
+   for the deregister infra env operation.
+
+   Typically these are written to a http.Request.
 */
 type DeregisterInfraEnvParams struct {
 
-	/*InfraEnvID
-	  The InfraEnv to be deleted.
+	/* InfraEnvID.
 
+	   The InfraEnv to be deleted.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the deregister infra env params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DeregisterInfraEnvParams) WithDefaults() *DeregisterInfraEnvParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the deregister infra env params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DeregisterInfraEnvParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the deregister infra env params

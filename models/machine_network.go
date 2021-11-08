@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -44,7 +46,6 @@ func (m *MachineNetwork) Validate(formats strfmt.Registry) error {
 }
 
 func (m *MachineNetwork) validateCidr(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Cidr) { // not required
 		return nil
 	}
@@ -52,6 +53,8 @@ func (m *MachineNetwork) validateCidr(formats strfmt.Registry) error {
 	if err := m.Cidr.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("cidr")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("cidr")
 		}
 		return err
 	}
@@ -60,12 +63,39 @@ func (m *MachineNetwork) validateCidr(formats strfmt.Registry) error {
 }
 
 func (m *MachineNetwork) validateClusterID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ClusterID) { // not required
 		return nil
 	}
 
 	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this machine network based on the context it is used
+func (m *MachineNetwork) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateCidr(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *MachineNetwork) contextValidateCidr(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.Cidr.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("cidr")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("cidr")
+		}
 		return err
 	}
 

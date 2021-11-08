@@ -77,7 +77,6 @@ func (o *BindHostReader) ReadResponse(response runtime.ClientResponse, consumer 
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -88,7 +87,7 @@ func NewBindHostOK() *BindHostOK {
 	return &BindHostOK{}
 }
 
-/*BindHostOK handles this case with default header values.
+/* BindHostOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -99,7 +98,6 @@ type BindHostOK struct {
 func (o *BindHostOK) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostOK  %+v", 200, o.Payload)
 }
-
 func (o *BindHostOK) GetPayload() *models.Host {
 	return o.Payload
 }
@@ -121,7 +119,7 @@ func NewBindHostBadRequest() *BindHostBadRequest {
 	return &BindHostBadRequest{}
 }
 
-/*BindHostBadRequest handles this case with default header values.
+/* BindHostBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -132,7 +130,6 @@ type BindHostBadRequest struct {
 func (o *BindHostBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *BindHostBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -154,7 +151,7 @@ func NewBindHostUnauthorized() *BindHostUnauthorized {
 	return &BindHostUnauthorized{}
 }
 
-/*BindHostUnauthorized handles this case with default header values.
+/* BindHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -165,7 +162,6 @@ type BindHostUnauthorized struct {
 func (o *BindHostUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *BindHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -187,7 +183,7 @@ func NewBindHostForbidden() *BindHostForbidden {
 	return &BindHostForbidden{}
 }
 
-/*BindHostForbidden handles this case with default header values.
+/* BindHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -198,7 +194,6 @@ type BindHostForbidden struct {
 func (o *BindHostForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *BindHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -220,7 +215,7 @@ func NewBindHostNotFound() *BindHostNotFound {
 	return &BindHostNotFound{}
 }
 
-/*BindHostNotFound handles this case with default header values.
+/* BindHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -231,7 +226,6 @@ type BindHostNotFound struct {
 func (o *BindHostNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *BindHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -253,7 +247,7 @@ func NewBindHostMethodNotAllowed() *BindHostMethodNotAllowed {
 	return &BindHostMethodNotAllowed{}
 }
 
-/*BindHostMethodNotAllowed handles this case with default header values.
+/* BindHostMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -264,7 +258,6 @@ type BindHostMethodNotAllowed struct {
 func (o *BindHostMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *BindHostMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -286,7 +279,7 @@ func NewBindHostInternalServerError() *BindHostInternalServerError {
 	return &BindHostInternalServerError{}
 }
 
-/*BindHostInternalServerError handles this case with default header values.
+/* BindHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -297,7 +290,6 @@ type BindHostInternalServerError struct {
 func (o *BindHostInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *BindHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -319,7 +311,7 @@ func NewBindHostNotImplemented() *BindHostNotImplemented {
 	return &BindHostNotImplemented{}
 }
 
-/*BindHostNotImplemented handles this case with default header values.
+/* BindHostNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -330,7 +322,6 @@ type BindHostNotImplemented struct {
 func (o *BindHostNotImplemented) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *BindHostNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -352,7 +343,7 @@ func NewBindHostServiceUnavailable() *BindHostServiceUnavailable {
 	return &BindHostServiceUnavailable{}
 }
 
-/*BindHostServiceUnavailable handles this case with default header values.
+/* BindHostServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -363,7 +354,6 @@ type BindHostServiceUnavailable struct {
 func (o *BindHostServiceUnavailable) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *BindHostServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

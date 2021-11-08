@@ -16,64 +16,81 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2UpdateClusterInstallConfigParams creates a new V2UpdateClusterInstallConfigParams object
-// with the default values initialized.
+// NewV2UpdateClusterInstallConfigParams creates a new V2UpdateClusterInstallConfigParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2UpdateClusterInstallConfigParams() *V2UpdateClusterInstallConfigParams {
-	var ()
 	return &V2UpdateClusterInstallConfigParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2UpdateClusterInstallConfigParamsWithTimeout creates a new V2UpdateClusterInstallConfigParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2UpdateClusterInstallConfigParamsWithTimeout(timeout time.Duration) *V2UpdateClusterInstallConfigParams {
-	var ()
 	return &V2UpdateClusterInstallConfigParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2UpdateClusterInstallConfigParamsWithContext creates a new V2UpdateClusterInstallConfigParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2UpdateClusterInstallConfigParamsWithContext(ctx context.Context) *V2UpdateClusterInstallConfigParams {
-	var ()
 	return &V2UpdateClusterInstallConfigParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2UpdateClusterInstallConfigParamsWithHTTPClient creates a new V2UpdateClusterInstallConfigParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2UpdateClusterInstallConfigParamsWithHTTPClient(client *http.Client) *V2UpdateClusterInstallConfigParams {
-	var ()
 	return &V2UpdateClusterInstallConfigParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2UpdateClusterInstallConfigParams contains all the parameters to send to the API endpoint
-for the v2 update cluster install config operation typically these are written to a http.Request
+/* V2UpdateClusterInstallConfigParams contains all the parameters to send to the API endpoint
+   for the v2 update cluster install config operation.
+
+   Typically these are written to a http.Request.
 */
 type V2UpdateClusterInstallConfigParams struct {
 
-	/*ClusterID
-	  The cluster whose install config is being updated.
+	/* ClusterID.
 
+	   The cluster whose install config is being updated.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*InstallConfigParams
-	  Install config overrides.
 
+	/* InstallConfigParams.
+
+	   Install config overrides.
 	*/
 	InstallConfigParams string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 update cluster install config params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UpdateClusterInstallConfigParams) WithDefaults() *V2UpdateClusterInstallConfigParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 update cluster install config params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UpdateClusterInstallConfigParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 update cluster install config params
@@ -143,7 +160,6 @@ func (o *V2UpdateClusterInstallConfigParams) WriteToRequest(r runtime.ClientRequ
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
-
 	if err := r.SetBodyParam(o.InstallConfigParams); err != nil {
 		return err
 	}

@@ -72,7 +72,6 @@ func (o *V2DownloadClusterFilesReader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -81,11 +80,12 @@ func (o *V2DownloadClusterFilesReader) ReadResponse(response runtime.ClientRespo
 // NewV2DownloadClusterFilesOK creates a V2DownloadClusterFilesOK with default headers values
 func NewV2DownloadClusterFilesOK(writer io.Writer) *V2DownloadClusterFilesOK {
 	return &V2DownloadClusterFilesOK{
+
 		Payload: writer,
 	}
 }
 
-/*V2DownloadClusterFilesOK handles this case with default header values.
+/* V2DownloadClusterFilesOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -96,7 +96,6 @@ type V2DownloadClusterFilesOK struct {
 func (o *V2DownloadClusterFilesOK) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesOK  %+v", 200, o.Payload)
 }
-
 func (o *V2DownloadClusterFilesOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -116,7 +115,7 @@ func NewV2DownloadClusterFilesUnauthorized() *V2DownloadClusterFilesUnauthorized
 	return &V2DownloadClusterFilesUnauthorized{}
 }
 
-/*V2DownloadClusterFilesUnauthorized handles this case with default header values.
+/* V2DownloadClusterFilesUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -127,7 +126,6 @@ type V2DownloadClusterFilesUnauthorized struct {
 func (o *V2DownloadClusterFilesUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2DownloadClusterFilesUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -149,7 +147,7 @@ func NewV2DownloadClusterFilesForbidden() *V2DownloadClusterFilesForbidden {
 	return &V2DownloadClusterFilesForbidden{}
 }
 
-/*V2DownloadClusterFilesForbidden handles this case with default header values.
+/* V2DownloadClusterFilesForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -160,7 +158,6 @@ type V2DownloadClusterFilesForbidden struct {
 func (o *V2DownloadClusterFilesForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2DownloadClusterFilesForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -182,7 +179,7 @@ func NewV2DownloadClusterFilesNotFound() *V2DownloadClusterFilesNotFound {
 	return &V2DownloadClusterFilesNotFound{}
 }
 
-/*V2DownloadClusterFilesNotFound handles this case with default header values.
+/* V2DownloadClusterFilesNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -193,7 +190,6 @@ type V2DownloadClusterFilesNotFound struct {
 func (o *V2DownloadClusterFilesNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2DownloadClusterFilesNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -215,7 +211,7 @@ func NewV2DownloadClusterFilesMethodNotAllowed() *V2DownloadClusterFilesMethodNo
 	return &V2DownloadClusterFilesMethodNotAllowed{}
 }
 
-/*V2DownloadClusterFilesMethodNotAllowed handles this case with default header values.
+/* V2DownloadClusterFilesMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -226,7 +222,6 @@ type V2DownloadClusterFilesMethodNotAllowed struct {
 func (o *V2DownloadClusterFilesMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2DownloadClusterFilesMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -248,7 +243,7 @@ func NewV2DownloadClusterFilesConflict() *V2DownloadClusterFilesConflict {
 	return &V2DownloadClusterFilesConflict{}
 }
 
-/*V2DownloadClusterFilesConflict handles this case with default header values.
+/* V2DownloadClusterFilesConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -259,7 +254,6 @@ type V2DownloadClusterFilesConflict struct {
 func (o *V2DownloadClusterFilesConflict) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2DownloadClusterFilesConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -281,7 +275,7 @@ func NewV2DownloadClusterFilesInternalServerError() *V2DownloadClusterFilesInter
 	return &V2DownloadClusterFilesInternalServerError{}
 }
 
-/*V2DownloadClusterFilesInternalServerError handles this case with default header values.
+/* V2DownloadClusterFilesInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -292,7 +286,6 @@ type V2DownloadClusterFilesInternalServerError struct {
 func (o *V2DownloadClusterFilesInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2DownloadClusterFilesInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -314,7 +307,7 @@ func NewV2DownloadClusterFilesServiceUnavailable() *V2DownloadClusterFilesServic
 	return &V2DownloadClusterFilesServiceUnavailable{}
 }
 
-/*V2DownloadClusterFilesServiceUnavailable handles this case with default header values.
+/* V2DownloadClusterFilesServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -325,7 +318,6 @@ type V2DownloadClusterFilesServiceUnavailable struct {
 func (o *V2DownloadClusterFilesServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2DownloadClusterFilesServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

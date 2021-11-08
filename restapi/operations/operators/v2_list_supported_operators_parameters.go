@@ -13,7 +13,8 @@ import (
 )
 
 // NewV2ListSupportedOperatorsParams creates a new V2ListSupportedOperatorsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2ListSupportedOperatorsParams() V2ListSupportedOperatorsParams {
 
 	return V2ListSupportedOperatorsParams{}

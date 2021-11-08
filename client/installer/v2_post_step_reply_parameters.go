@@ -18,74 +18,95 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewV2PostStepReplyParams creates a new V2PostStepReplyParams object
-// with the default values initialized.
+// NewV2PostStepReplyParams creates a new V2PostStepReplyParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2PostStepReplyParams() *V2PostStepReplyParams {
-	var ()
 	return &V2PostStepReplyParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2PostStepReplyParamsWithTimeout creates a new V2PostStepReplyParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2PostStepReplyParamsWithTimeout(timeout time.Duration) *V2PostStepReplyParams {
-	var ()
 	return &V2PostStepReplyParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2PostStepReplyParamsWithContext creates a new V2PostStepReplyParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2PostStepReplyParamsWithContext(ctx context.Context) *V2PostStepReplyParams {
-	var ()
 	return &V2PostStepReplyParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2PostStepReplyParamsWithHTTPClient creates a new V2PostStepReplyParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2PostStepReplyParamsWithHTTPClient(client *http.Client) *V2PostStepReplyParams {
-	var ()
 	return &V2PostStepReplyParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2PostStepReplyParams contains all the parameters to send to the API endpoint
-for the v2 post step reply operation typically these are written to a http.Request
+/* V2PostStepReplyParams contains all the parameters to send to the API endpoint
+   for the v2 post step reply operation.
+
+   Typically these are written to a http.Request.
 */
 type V2PostStepReplyParams struct {
 
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is posting results.
+	/* DiscoveryAgentVersion.
 
+	   The software version of the discovery agent that is posting results.
 	*/
 	DiscoveryAgentVersion *string
-	/*HostID
-	  The host that is posting results.
 
+	/* HostID.
+
+	   The host that is posting results.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*InfraEnvID
-	  The infra env of the host that is posting results.
 
+	/* InfraEnvID.
+
+	   The infra env of the host that is posting results.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
-	/*Reply
-	  The results to be posted.
 
+	/* Reply.
+
+	   The results to be posted.
 	*/
 	Reply *models.StepReply
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 post step reply params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2PostStepReplyParams) WithDefaults() *V2PostStepReplyParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 post step reply params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2PostStepReplyParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 post step reply params
@@ -179,7 +200,6 @@ func (o *V2PostStepReplyParams) WriteToRequest(r runtime.ClientRequest, reg strf
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
 
 	// path param host_id
@@ -191,7 +211,6 @@ func (o *V2PostStepReplyParams) WriteToRequest(r runtime.ClientRequest, reg strf
 	if err := r.SetPathParam("infra_env_id", o.InfraEnvID.String()); err != nil {
 		return err
 	}
-
 	if o.Reply != nil {
 		if err := r.SetBodyParam(o.Reply); err != nil {
 			return err

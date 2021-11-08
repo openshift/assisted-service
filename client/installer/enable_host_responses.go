@@ -65,7 +65,6 @@ func (o *EnableHostReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewEnableHostOK() *EnableHostOK {
 	return &EnableHostOK{}
 }
 
-/*EnableHostOK handles this case with default header values.
+/* EnableHostOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type EnableHostOK struct {
 func (o *EnableHostOK) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostOK  %+v", 200, o.Payload)
 }
-
 func (o *EnableHostOK) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -109,7 +107,7 @@ func NewEnableHostUnauthorized() *EnableHostUnauthorized {
 	return &EnableHostUnauthorized{}
 }
 
-/*EnableHostUnauthorized handles this case with default header values.
+/* EnableHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -120,7 +118,6 @@ type EnableHostUnauthorized struct {
 func (o *EnableHostUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *EnableHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -142,7 +139,7 @@ func NewEnableHostForbidden() *EnableHostForbidden {
 	return &EnableHostForbidden{}
 }
 
-/*EnableHostForbidden handles this case with default header values.
+/* EnableHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -153,7 +150,6 @@ type EnableHostForbidden struct {
 func (o *EnableHostForbidden) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *EnableHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +171,7 @@ func NewEnableHostNotFound() *EnableHostNotFound {
 	return &EnableHostNotFound{}
 }
 
-/*EnableHostNotFound handles this case with default header values.
+/* EnableHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -186,7 +182,6 @@ type EnableHostNotFound struct {
 func (o *EnableHostNotFound) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *EnableHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -208,7 +203,7 @@ func NewEnableHostMethodNotAllowed() *EnableHostMethodNotAllowed {
 	return &EnableHostMethodNotAllowed{}
 }
 
-/*EnableHostMethodNotAllowed handles this case with default header values.
+/* EnableHostMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -219,7 +214,6 @@ type EnableHostMethodNotAllowed struct {
 func (o *EnableHostMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *EnableHostMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +235,7 @@ func NewEnableHostConflict() *EnableHostConflict {
 	return &EnableHostConflict{}
 }
 
-/*EnableHostConflict handles this case with default header values.
+/* EnableHostConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -252,7 +246,6 @@ type EnableHostConflict struct {
 func (o *EnableHostConflict) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostConflict  %+v", 409, o.Payload)
 }
-
 func (o *EnableHostConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +267,7 @@ func NewEnableHostInternalServerError() *EnableHostInternalServerError {
 	return &EnableHostInternalServerError{}
 }
 
-/*EnableHostInternalServerError handles this case with default header values.
+/* EnableHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -285,7 +278,6 @@ type EnableHostInternalServerError struct {
 func (o *EnableHostInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *EnableHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

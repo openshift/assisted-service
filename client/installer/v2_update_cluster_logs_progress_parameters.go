@@ -18,64 +18,81 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewV2UpdateClusterLogsProgressParams creates a new V2UpdateClusterLogsProgressParams object
-// with the default values initialized.
+// NewV2UpdateClusterLogsProgressParams creates a new V2UpdateClusterLogsProgressParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2UpdateClusterLogsProgressParams() *V2UpdateClusterLogsProgressParams {
-	var ()
 	return &V2UpdateClusterLogsProgressParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2UpdateClusterLogsProgressParamsWithTimeout creates a new V2UpdateClusterLogsProgressParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2UpdateClusterLogsProgressParamsWithTimeout(timeout time.Duration) *V2UpdateClusterLogsProgressParams {
-	var ()
 	return &V2UpdateClusterLogsProgressParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2UpdateClusterLogsProgressParamsWithContext creates a new V2UpdateClusterLogsProgressParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2UpdateClusterLogsProgressParamsWithContext(ctx context.Context) *V2UpdateClusterLogsProgressParams {
-	var ()
 	return &V2UpdateClusterLogsProgressParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2UpdateClusterLogsProgressParamsWithHTTPClient creates a new V2UpdateClusterLogsProgressParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2UpdateClusterLogsProgressParamsWithHTTPClient(client *http.Client) *V2UpdateClusterLogsProgressParams {
-	var ()
 	return &V2UpdateClusterLogsProgressParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2UpdateClusterLogsProgressParams contains all the parameters to send to the API endpoint
-for the v2 update cluster logs progress operation typically these are written to a http.Request
+/* V2UpdateClusterLogsProgressParams contains all the parameters to send to the API endpoint
+   for the v2 update cluster logs progress operation.
+
+   Typically these are written to a http.Request.
 */
 type V2UpdateClusterLogsProgressParams struct {
 
-	/*ClusterID
-	  The cluster whose log progress is being updated.
+	/* ClusterID.
 
+	   The cluster whose log progress is being updated.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*LogsProgressParams
-	  Parameters for updating log progress.
 
+	/* LogsProgressParams.
+
+	   Parameters for updating log progress.
 	*/
 	LogsProgressParams *models.LogsProgressParams
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 update cluster logs progress params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UpdateClusterLogsProgressParams) WithDefaults() *V2UpdateClusterLogsProgressParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 update cluster logs progress params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UpdateClusterLogsProgressParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 update cluster logs progress params
@@ -145,7 +162,6 @@ func (o *V2UpdateClusterLogsProgressParams) WriteToRequest(r runtime.ClientReque
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
-
 	if o.LogsProgressParams != nil {
 		if err := r.SetBodyParam(o.LogsProgressParams); err != nil {
 			return err

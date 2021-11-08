@@ -53,7 +53,6 @@ func (o *RegisterAddHostsClusterReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -64,7 +63,7 @@ func NewRegisterAddHostsClusterCreated() *RegisterAddHostsClusterCreated {
 	return &RegisterAddHostsClusterCreated{}
 }
 
-/*RegisterAddHostsClusterCreated handles this case with default header values.
+/* RegisterAddHostsClusterCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -75,7 +74,6 @@ type RegisterAddHostsClusterCreated struct {
 func (o *RegisterAddHostsClusterCreated) Error() string {
 	return fmt.Sprintf("[POST /v1/add_hosts_clusters][%d] registerAddHostsClusterCreated  %+v", 201, o.Payload)
 }
-
 func (o *RegisterAddHostsClusterCreated) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -97,7 +95,7 @@ func NewRegisterAddHostsClusterBadRequest() *RegisterAddHostsClusterBadRequest {
 	return &RegisterAddHostsClusterBadRequest{}
 }
 
-/*RegisterAddHostsClusterBadRequest handles this case with default header values.
+/* RegisterAddHostsClusterBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -108,7 +106,6 @@ type RegisterAddHostsClusterBadRequest struct {
 func (o *RegisterAddHostsClusterBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v1/add_hosts_clusters][%d] registerAddHostsClusterBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *RegisterAddHostsClusterBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -130,7 +127,7 @@ func NewRegisterAddHostsClusterUnauthorized() *RegisterAddHostsClusterUnauthoriz
 	return &RegisterAddHostsClusterUnauthorized{}
 }
 
-/*RegisterAddHostsClusterUnauthorized handles this case with default header values.
+/* RegisterAddHostsClusterUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -141,7 +138,6 @@ type RegisterAddHostsClusterUnauthorized struct {
 func (o *RegisterAddHostsClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v1/add_hosts_clusters][%d] registerAddHostsClusterUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *RegisterAddHostsClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -163,7 +159,7 @@ func NewRegisterAddHostsClusterForbidden() *RegisterAddHostsClusterForbidden {
 	return &RegisterAddHostsClusterForbidden{}
 }
 
-/*RegisterAddHostsClusterForbidden handles this case with default header values.
+/* RegisterAddHostsClusterForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -174,7 +170,6 @@ type RegisterAddHostsClusterForbidden struct {
 func (o *RegisterAddHostsClusterForbidden) Error() string {
 	return fmt.Sprintf("[POST /v1/add_hosts_clusters][%d] registerAddHostsClusterForbidden  %+v", 403, o.Payload)
 }
-
 func (o *RegisterAddHostsClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -196,7 +191,7 @@ func NewRegisterAddHostsClusterInternalServerError() *RegisterAddHostsClusterInt
 	return &RegisterAddHostsClusterInternalServerError{}
 }
 
-/*RegisterAddHostsClusterInternalServerError handles this case with default header values.
+/* RegisterAddHostsClusterInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -207,7 +202,6 @@ type RegisterAddHostsClusterInternalServerError struct {
 func (o *RegisterAddHostsClusterInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v1/add_hosts_clusters][%d] registerAddHostsClusterInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *RegisterAddHostsClusterInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

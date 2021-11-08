@@ -65,7 +65,6 @@ func (o *UpdateHostIgnitionReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewUpdateHostIgnitionCreated() *UpdateHostIgnitionCreated {
 	return &UpdateHostIgnitionCreated{}
 }
 
-/*UpdateHostIgnitionCreated handles this case with default header values.
+/* UpdateHostIgnitionCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -97,7 +96,7 @@ func NewUpdateHostIgnitionBadRequest() *UpdateHostIgnitionBadRequest {
 	return &UpdateHostIgnitionBadRequest{}
 }
 
-/*UpdateHostIgnitionBadRequest handles this case with default header values.
+/* UpdateHostIgnitionBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -108,7 +107,6 @@ type UpdateHostIgnitionBadRequest struct {
 func (o *UpdateHostIgnitionBadRequest) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *UpdateHostIgnitionBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -130,7 +128,7 @@ func NewUpdateHostIgnitionUnauthorized() *UpdateHostIgnitionUnauthorized {
 	return &UpdateHostIgnitionUnauthorized{}
 }
 
-/*UpdateHostIgnitionUnauthorized handles this case with default header values.
+/* UpdateHostIgnitionUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -141,7 +139,6 @@ type UpdateHostIgnitionUnauthorized struct {
 func (o *UpdateHostIgnitionUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *UpdateHostIgnitionUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -163,7 +160,7 @@ func NewUpdateHostIgnitionForbidden() *UpdateHostIgnitionForbidden {
 	return &UpdateHostIgnitionForbidden{}
 }
 
-/*UpdateHostIgnitionForbidden handles this case with default header values.
+/* UpdateHostIgnitionForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -174,7 +171,6 @@ type UpdateHostIgnitionForbidden struct {
 func (o *UpdateHostIgnitionForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionForbidden  %+v", 403, o.Payload)
 }
-
 func (o *UpdateHostIgnitionForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -196,7 +192,7 @@ func NewUpdateHostIgnitionNotFound() *UpdateHostIgnitionNotFound {
 	return &UpdateHostIgnitionNotFound{}
 }
 
-/*UpdateHostIgnitionNotFound handles this case with default header values.
+/* UpdateHostIgnitionNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -207,7 +203,6 @@ type UpdateHostIgnitionNotFound struct {
 func (o *UpdateHostIgnitionNotFound) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionNotFound  %+v", 404, o.Payload)
 }
-
 func (o *UpdateHostIgnitionNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -229,7 +224,7 @@ func NewUpdateHostIgnitionMethodNotAllowed() *UpdateHostIgnitionMethodNotAllowed
 	return &UpdateHostIgnitionMethodNotAllowed{}
 }
 
-/*UpdateHostIgnitionMethodNotAllowed handles this case with default header values.
+/* UpdateHostIgnitionMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -240,7 +235,6 @@ type UpdateHostIgnitionMethodNotAllowed struct {
 func (o *UpdateHostIgnitionMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *UpdateHostIgnitionMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -262,7 +256,7 @@ func NewUpdateHostIgnitionInternalServerError() *UpdateHostIgnitionInternalServe
 	return &UpdateHostIgnitionInternalServerError{}
 }
 
-/*UpdateHostIgnitionInternalServerError handles this case with default header values.
+/* UpdateHostIgnitionInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -273,7 +267,6 @@ type UpdateHostIgnitionInternalServerError struct {
 func (o *UpdateHostIgnitionInternalServerError) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *UpdateHostIgnitionInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

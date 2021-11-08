@@ -15,7 +15,8 @@ import (
 )
 
 // NewV2GetNextStepsParams creates a new V2GetNextStepsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2GetNextStepsParams() V2GetNextStepsParams {
 
 	return V2GetNextStepsParams{}
@@ -68,7 +69,6 @@ func (o *V2GetNextStepsParams) BindRequest(r *http.Request, route *middleware.Ma
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -87,7 +87,6 @@ func (o *V2GetNextStepsParams) bindDiscoveryAgentVersion(rawData []string, hasKe
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.DiscoveryAgentVersion = &raw
 
 	return nil

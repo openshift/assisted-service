@@ -15,7 +15,8 @@ import (
 )
 
 // NewGetClusterHostRequirementsParams creates a new GetClusterHostRequirementsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewGetClusterHostRequirementsParams() GetClusterHostRequirementsParams {
 
 	return GetClusterHostRequirementsParams{}
@@ -50,7 +51,6 @@ func (o *GetClusterHostRequirementsParams) BindRequest(r *http.Request, route *m
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

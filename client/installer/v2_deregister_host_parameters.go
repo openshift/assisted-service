@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2DeregisterHostParams creates a new V2DeregisterHostParams object
-// with the default values initialized.
+// NewV2DeregisterHostParams creates a new V2DeregisterHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2DeregisterHostParams() *V2DeregisterHostParams {
-	var ()
 	return &V2DeregisterHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2DeregisterHostParamsWithTimeout creates a new V2DeregisterHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2DeregisterHostParamsWithTimeout(timeout time.Duration) *V2DeregisterHostParams {
-	var ()
 	return &V2DeregisterHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2DeregisterHostParamsWithContext creates a new V2DeregisterHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2DeregisterHostParamsWithContext(ctx context.Context) *V2DeregisterHostParams {
-	var ()
 	return &V2DeregisterHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2DeregisterHostParamsWithHTTPClient creates a new V2DeregisterHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2DeregisterHostParamsWithHTTPClient(client *http.Client) *V2DeregisterHostParams {
-	var ()
 	return &V2DeregisterHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2DeregisterHostParams contains all the parameters to send to the API endpoint
-for the v2 deregister host operation typically these are written to a http.Request
+/* V2DeregisterHostParams contains all the parameters to send to the API endpoint
+   for the v2 deregister host operation.
+
+   Typically these are written to a http.Request.
 */
 type V2DeregisterHostParams struct {
 
-	/*HostID
-	  The host that should be deregistered.
+	/* HostID.
 
+	   The host that should be deregistered.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*InfraEnvID
-	  The infra env of the host that should be deregistered.
 
+	/* InfraEnvID.
+
+	   The infra env of the host that should be deregistered.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 deregister host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DeregisterHostParams) WithDefaults() *V2DeregisterHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 deregister host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DeregisterHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 deregister host params

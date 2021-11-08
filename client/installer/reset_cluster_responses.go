@@ -65,7 +65,6 @@ func (o *ResetClusterReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewResetClusterAccepted() *ResetClusterAccepted {
 	return &ResetClusterAccepted{}
 }
 
-/*ResetClusterAccepted handles this case with default header values.
+/* ResetClusterAccepted describes a response with status code 202, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type ResetClusterAccepted struct {
 func (o *ResetClusterAccepted) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterAccepted  %+v", 202, o.Payload)
 }
-
 func (o *ResetClusterAccepted) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -109,7 +107,7 @@ func NewResetClusterUnauthorized() *ResetClusterUnauthorized {
 	return &ResetClusterUnauthorized{}
 }
 
-/*ResetClusterUnauthorized handles this case with default header values.
+/* ResetClusterUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -120,7 +118,6 @@ type ResetClusterUnauthorized struct {
 func (o *ResetClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *ResetClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -142,7 +139,7 @@ func NewResetClusterForbidden() *ResetClusterForbidden {
 	return &ResetClusterForbidden{}
 }
 
-/*ResetClusterForbidden handles this case with default header values.
+/* ResetClusterForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -153,7 +150,6 @@ type ResetClusterForbidden struct {
 func (o *ResetClusterForbidden) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterForbidden  %+v", 403, o.Payload)
 }
-
 func (o *ResetClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +171,7 @@ func NewResetClusterNotFound() *ResetClusterNotFound {
 	return &ResetClusterNotFound{}
 }
 
-/*ResetClusterNotFound handles this case with default header values.
+/* ResetClusterNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -186,7 +182,6 @@ type ResetClusterNotFound struct {
 func (o *ResetClusterNotFound) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterNotFound  %+v", 404, o.Payload)
 }
-
 func (o *ResetClusterNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -208,7 +203,7 @@ func NewResetClusterMethodNotAllowed() *ResetClusterMethodNotAllowed {
 	return &ResetClusterMethodNotAllowed{}
 }
 
-/*ResetClusterMethodNotAllowed handles this case with default header values.
+/* ResetClusterMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -219,7 +214,6 @@ type ResetClusterMethodNotAllowed struct {
 func (o *ResetClusterMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *ResetClusterMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +235,7 @@ func NewResetClusterConflict() *ResetClusterConflict {
 	return &ResetClusterConflict{}
 }
 
-/*ResetClusterConflict handles this case with default header values.
+/* ResetClusterConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -252,7 +246,6 @@ type ResetClusterConflict struct {
 func (o *ResetClusterConflict) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterConflict  %+v", 409, o.Payload)
 }
-
 func (o *ResetClusterConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +267,7 @@ func NewResetClusterInternalServerError() *ResetClusterInternalServerError {
 	return &ResetClusterInternalServerError{}
 }
 
-/*ResetClusterInternalServerError handles this case with default header values.
+/* ResetClusterInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -285,7 +278,6 @@ type ResetClusterInternalServerError struct {
 func (o *ResetClusterInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *ResetClusterInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

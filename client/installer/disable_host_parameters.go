@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDisableHostParams creates a new DisableHostParams object
-// with the default values initialized.
+// NewDisableHostParams creates a new DisableHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewDisableHostParams() *DisableHostParams {
-	var ()
 	return &DisableHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewDisableHostParamsWithTimeout creates a new DisableHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewDisableHostParamsWithTimeout(timeout time.Duration) *DisableHostParams {
-	var ()
 	return &DisableHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewDisableHostParamsWithContext creates a new DisableHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewDisableHostParamsWithContext(ctx context.Context) *DisableHostParams {
-	var ()
 	return &DisableHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewDisableHostParamsWithHTTPClient creates a new DisableHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewDisableHostParamsWithHTTPClient(client *http.Client) *DisableHostParams {
-	var ()
 	return &DisableHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*DisableHostParams contains all the parameters to send to the API endpoint
-for the disable host operation typically these are written to a http.Request
+/* DisableHostParams contains all the parameters to send to the API endpoint
+   for the disable host operation.
+
+   Typically these are written to a http.Request.
 */
 type DisableHostParams struct {
 
-	/*ClusterID
-	  The cluster of the host that is being disabled.
+	/* ClusterID.
 
+	   The cluster of the host that is being disabled.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host that is being disabled.
 
+	/* HostID.
+
+	   The host that is being disabled.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the disable host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DisableHostParams) WithDefaults() *DisableHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the disable host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DisableHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the disable host params

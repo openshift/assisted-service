@@ -35,7 +35,6 @@ func (o *V2ListManagedDomainsReader) ReadResponse(response runtime.ClientRespons
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -46,7 +45,7 @@ func NewV2ListManagedDomainsOK() *V2ListManagedDomainsOK {
 	return &V2ListManagedDomainsOK{}
 }
 
-/*V2ListManagedDomainsOK handles this case with default header values.
+/* V2ListManagedDomainsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -57,7 +56,6 @@ type V2ListManagedDomainsOK struct {
 func (o *V2ListManagedDomainsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/domains][%d] v2ListManagedDomainsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ListManagedDomainsOK) GetPayload() models.ListManagedDomains {
 	return o.Payload
 }
@@ -77,7 +75,7 @@ func NewV2ListManagedDomainsInternalServerError() *V2ListManagedDomainsInternalS
 	return &V2ListManagedDomainsInternalServerError{}
 }
 
-/*V2ListManagedDomainsInternalServerError handles this case with default header values.
+/* V2ListManagedDomainsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -88,7 +86,6 @@ type V2ListManagedDomainsInternalServerError struct {
 func (o *V2ListManagedDomainsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/domains][%d] v2ListManagedDomainsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2ListManagedDomainsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

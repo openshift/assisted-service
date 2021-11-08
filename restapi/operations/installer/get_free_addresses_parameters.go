@@ -94,7 +94,6 @@ func (o *GetFreeAddressesParams) BindRequest(r *http.Request, route *middleware.
 	if err := o.bindPrefix(qPrefix, qhkPrefix, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -143,6 +142,7 @@ func (o *GetFreeAddressesParams) bindLimit(rawData []string, hasKey bool, format
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		// Default values have been previously initialized by NewGetFreeAddressesParams()
 		return nil
@@ -164,11 +164,11 @@ func (o *GetFreeAddressesParams) bindLimit(rawData []string, hasKey bool, format
 // validateLimit carries on validations for parameter Limit
 func (o *GetFreeAddressesParams) validateLimit(formats strfmt.Registry) error {
 
-	if err := validate.MinimumInt("limit", "query", int64(*o.Limit), 1, false); err != nil {
+	if err := validate.MinimumInt("limit", "query", *o.Limit, 1, false); err != nil {
 		return err
 	}
 
-	if err := validate.MaximumInt("limit", "query", int64(*o.Limit), 8000, false); err != nil {
+	if err := validate.MaximumInt("limit", "query", *o.Limit, 8000, false); err != nil {
 		return err
 	}
 
@@ -187,10 +187,10 @@ func (o *GetFreeAddressesParams) bindNetwork(rawData []string, hasKey bool, form
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("network", "query", raw); err != nil {
 		return err
 	}
-
 	o.Network = raw
 
 	if err := o.validateNetwork(formats); err != nil {
@@ -219,10 +219,10 @@ func (o *GetFreeAddressesParams) bindPrefix(rawData []string, hasKey bool, forma
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.Prefix = &raw
 
 	return nil

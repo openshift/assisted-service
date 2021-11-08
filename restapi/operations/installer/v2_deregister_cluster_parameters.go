@@ -15,7 +15,8 @@ import (
 )
 
 // NewV2DeregisterClusterParams creates a new V2DeregisterClusterParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2DeregisterClusterParams() V2DeregisterClusterParams {
 
 	return V2DeregisterClusterParams{}
@@ -50,7 +51,6 @@ func (o *V2DeregisterClusterParams) BindRequest(r *http.Request, route *middlewa
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

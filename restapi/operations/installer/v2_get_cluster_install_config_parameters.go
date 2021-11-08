@@ -15,7 +15,8 @@ import (
 )
 
 // NewV2GetClusterInstallConfigParams creates a new V2GetClusterInstallConfigParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2GetClusterInstallConfigParams() V2GetClusterInstallConfigParams {
 
 	return V2GetClusterInstallConfigParams{}
@@ -50,7 +51,6 @@ func (o *V2GetClusterInstallConfigParams) BindRequest(r *http.Request, route *mi
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

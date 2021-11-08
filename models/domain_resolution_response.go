@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -53,6 +54,42 @@ func (m *DomainResolutionResponse) validateResolutions(formats strfmt.Registry) 
 			if err := m.Resolutions[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("resolutions" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("resolutions" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this domain resolution response based on the context it is used
+func (m *DomainResolutionResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateResolutions(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *DomainResolutionResponse) contextValidateResolutions(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Resolutions); i++ {
+
+		if m.Resolutions[i] != nil {
+			if err := m.Resolutions[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("resolutions" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("resolutions" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -129,7 +166,6 @@ func (m *DomainResolutionResponseDomain) validateDomainName(formats strfmt.Regis
 }
 
 func (m *DomainResolutionResponseDomain) validateIPV4Addresses(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.IPV4Addresses) { // not required
 		return nil
 	}
@@ -146,7 +182,6 @@ func (m *DomainResolutionResponseDomain) validateIPV4Addresses(formats strfmt.Re
 }
 
 func (m *DomainResolutionResponseDomain) validateIPV6Addresses(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.IPV6Addresses) { // not required
 		return nil
 	}
@@ -159,6 +194,11 @@ func (m *DomainResolutionResponseDomain) validateIPV6Addresses(formats strfmt.Re
 
 	}
 
+	return nil
+}
+
+// ContextValidate validates this domain resolution response domain based on context it is used
+func (m *DomainResolutionResponseDomain) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

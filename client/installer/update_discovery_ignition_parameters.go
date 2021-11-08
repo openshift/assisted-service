@@ -18,64 +18,81 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewUpdateDiscoveryIgnitionParams creates a new UpdateDiscoveryIgnitionParams object
-// with the default values initialized.
+// NewUpdateDiscoveryIgnitionParams creates a new UpdateDiscoveryIgnitionParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUpdateDiscoveryIgnitionParams() *UpdateDiscoveryIgnitionParams {
-	var ()
 	return &UpdateDiscoveryIgnitionParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUpdateDiscoveryIgnitionParamsWithTimeout creates a new UpdateDiscoveryIgnitionParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUpdateDiscoveryIgnitionParamsWithTimeout(timeout time.Duration) *UpdateDiscoveryIgnitionParams {
-	var ()
 	return &UpdateDiscoveryIgnitionParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUpdateDiscoveryIgnitionParamsWithContext creates a new UpdateDiscoveryIgnitionParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUpdateDiscoveryIgnitionParamsWithContext(ctx context.Context) *UpdateDiscoveryIgnitionParams {
-	var ()
 	return &UpdateDiscoveryIgnitionParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUpdateDiscoveryIgnitionParamsWithHTTPClient creates a new UpdateDiscoveryIgnitionParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUpdateDiscoveryIgnitionParamsWithHTTPClient(client *http.Client) *UpdateDiscoveryIgnitionParams {
-	var ()
 	return &UpdateDiscoveryIgnitionParams{
 		HTTPClient: client,
 	}
 }
 
-/*UpdateDiscoveryIgnitionParams contains all the parameters to send to the API endpoint
-for the update discovery ignition operation typically these are written to a http.Request
+/* UpdateDiscoveryIgnitionParams contains all the parameters to send to the API endpoint
+   for the update discovery ignition operation.
+
+   Typically these are written to a http.Request.
 */
 type UpdateDiscoveryIgnitionParams struct {
 
-	/*ClusterID
-	  The cluster for which the discovery ignition config should be updated.
+	/* ClusterID.
 
+	   The cluster for which the discovery ignition config should be updated.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryIgnitionParams
-	  Overrides for the discovery ignition config.
 
+	/* DiscoveryIgnitionParams.
+
+	   Overrides for the discovery ignition config.
 	*/
 	DiscoveryIgnitionParams *models.DiscoveryIgnitionParams
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the update discovery ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateDiscoveryIgnitionParams) WithDefaults() *UpdateDiscoveryIgnitionParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the update discovery ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateDiscoveryIgnitionParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the update discovery ignition params
@@ -145,7 +162,6 @@ func (o *UpdateDiscoveryIgnitionParams) WriteToRequest(r runtime.ClientRequest, 
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
-
 	if o.DiscoveryIgnitionParams != nil {
 		if err := r.SetBodyParam(o.DiscoveryIgnitionParams); err != nil {
 			return err

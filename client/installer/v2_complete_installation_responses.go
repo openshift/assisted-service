@@ -71,7 +71,6 @@ func (o *V2CompleteInstallationReader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewV2CompleteInstallationAccepted() *V2CompleteInstallationAccepted {
 	return &V2CompleteInstallationAccepted{}
 }
 
-/*V2CompleteInstallationAccepted handles this case with default header values.
+/* V2CompleteInstallationAccepted describes a response with status code 202, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type V2CompleteInstallationAccepted struct {
 func (o *V2CompleteInstallationAccepted) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationAccepted  %+v", 202, o.Payload)
 }
-
 func (o *V2CompleteInstallationAccepted) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewV2CompleteInstallationUnauthorized() *V2CompleteInstallationUnauthorized
 	return &V2CompleteInstallationUnauthorized{}
 }
 
-/*V2CompleteInstallationUnauthorized handles this case with default header values.
+/* V2CompleteInstallationUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -126,7 +124,6 @@ type V2CompleteInstallationUnauthorized struct {
 func (o *V2CompleteInstallationUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2CompleteInstallationUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewV2CompleteInstallationForbidden() *V2CompleteInstallationForbidden {
 	return &V2CompleteInstallationForbidden{}
 }
 
-/*V2CompleteInstallationForbidden handles this case with default header values.
+/* V2CompleteInstallationForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -159,7 +156,6 @@ type V2CompleteInstallationForbidden struct {
 func (o *V2CompleteInstallationForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2CompleteInstallationForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewV2CompleteInstallationNotFound() *V2CompleteInstallationNotFound {
 	return &V2CompleteInstallationNotFound{}
 }
 
-/*V2CompleteInstallationNotFound handles this case with default header values.
+/* V2CompleteInstallationNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -192,7 +188,6 @@ type V2CompleteInstallationNotFound struct {
 func (o *V2CompleteInstallationNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2CompleteInstallationNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewV2CompleteInstallationMethodNotAllowed() *V2CompleteInstallationMethodNo
 	return &V2CompleteInstallationMethodNotAllowed{}
 }
 
-/*V2CompleteInstallationMethodNotAllowed handles this case with default header values.
+/* V2CompleteInstallationMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -225,7 +220,6 @@ type V2CompleteInstallationMethodNotAllowed struct {
 func (o *V2CompleteInstallationMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2CompleteInstallationMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewV2CompleteInstallationConflict() *V2CompleteInstallationConflict {
 	return &V2CompleteInstallationConflict{}
 }
 
-/*V2CompleteInstallationConflict handles this case with default header values.
+/* V2CompleteInstallationConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -258,7 +252,6 @@ type V2CompleteInstallationConflict struct {
 func (o *V2CompleteInstallationConflict) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2CompleteInstallationConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewV2CompleteInstallationInternalServerError() *V2CompleteInstallationInter
 	return &V2CompleteInstallationInternalServerError{}
 }
 
-/*V2CompleteInstallationInternalServerError handles this case with default header values.
+/* V2CompleteInstallationInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -291,7 +284,6 @@ type V2CompleteInstallationInternalServerError struct {
 func (o *V2CompleteInstallationInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2CompleteInstallationInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewV2CompleteInstallationServiceUnavailable() *V2CompleteInstallationServic
 	return &V2CompleteInstallationServiceUnavailable{}
 }
 
-/*V2CompleteInstallationServiceUnavailable handles this case with default header values.
+/* V2CompleteInstallationServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -324,7 +316,6 @@ type V2CompleteInstallationServiceUnavailable struct {
 func (o *V2CompleteInstallationServiceUnavailable) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2CompleteInstallationServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

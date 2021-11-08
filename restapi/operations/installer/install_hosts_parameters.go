@@ -15,7 +15,8 @@ import (
 )
 
 // NewInstallHostsParams creates a new InstallHostsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewInstallHostsParams() InstallHostsParams {
 
 	return InstallHostsParams{}
@@ -50,7 +51,6 @@ func (o *InstallHostsParams) BindRequest(r *http.Request, route *middleware.Matc
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

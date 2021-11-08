@@ -16,64 +16,81 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewListOfClusterOperatorsParams creates a new ListOfClusterOperatorsParams object
-// with the default values initialized.
+// NewListOfClusterOperatorsParams creates a new ListOfClusterOperatorsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewListOfClusterOperatorsParams() *ListOfClusterOperatorsParams {
-	var ()
 	return &ListOfClusterOperatorsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewListOfClusterOperatorsParamsWithTimeout creates a new ListOfClusterOperatorsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewListOfClusterOperatorsParamsWithTimeout(timeout time.Duration) *ListOfClusterOperatorsParams {
-	var ()
 	return &ListOfClusterOperatorsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewListOfClusterOperatorsParamsWithContext creates a new ListOfClusterOperatorsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewListOfClusterOperatorsParamsWithContext(ctx context.Context) *ListOfClusterOperatorsParams {
-	var ()
 	return &ListOfClusterOperatorsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewListOfClusterOperatorsParamsWithHTTPClient creates a new ListOfClusterOperatorsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewListOfClusterOperatorsParamsWithHTTPClient(client *http.Client) *ListOfClusterOperatorsParams {
-	var ()
 	return &ListOfClusterOperatorsParams{
 		HTTPClient: client,
 	}
 }
 
-/*ListOfClusterOperatorsParams contains all the parameters to send to the API endpoint
-for the list of cluster operators operation typically these are written to a http.Request
+/* ListOfClusterOperatorsParams contains all the parameters to send to the API endpoint
+   for the list of cluster operators operation.
+
+   Typically these are written to a http.Request.
 */
 type ListOfClusterOperatorsParams struct {
 
-	/*ClusterID
-	  The cluster to return operators for.
+	/* ClusterID.
 
+	   The cluster to return operators for.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*OperatorName
-	  An operator in the specified cluster to return its data.
 
+	/* OperatorName.
+
+	   An operator in the specified cluster to return its data.
 	*/
 	OperatorName *string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the list of cluster operators params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListOfClusterOperatorsParams) WithDefaults() *ListOfClusterOperatorsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the list of cluster operators params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListOfClusterOperatorsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the list of cluster operators params
@@ -148,16 +165,17 @@ func (o *ListOfClusterOperatorsParams) WriteToRequest(r runtime.ClientRequest, r
 
 		// query param operator_name
 		var qrOperatorName string
+
 		if o.OperatorName != nil {
 			qrOperatorName = *o.OperatorName
 		}
 		qOperatorName := qrOperatorName
 		if qOperatorName != "" {
+
 			if err := r.SetQueryParam("operator_name", qOperatorName); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if len(res) > 0 {

@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -53,7 +55,6 @@ func (m *ClusterNetwork) Validate(formats strfmt.Registry) error {
 }
 
 func (m *ClusterNetwork) validateCidr(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Cidr) { // not required
 		return nil
 	}
@@ -61,6 +62,8 @@ func (m *ClusterNetwork) validateCidr(formats strfmt.Registry) error {
 	if err := m.Cidr.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("cidr")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("cidr")
 		}
 		return err
 	}
@@ -69,7 +72,6 @@ func (m *ClusterNetwork) validateCidr(formats strfmt.Registry) error {
 }
 
 func (m *ClusterNetwork) validateClusterID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ClusterID) { // not required
 		return nil
 	}
@@ -82,16 +84,43 @@ func (m *ClusterNetwork) validateClusterID(formats strfmt.Registry) error {
 }
 
 func (m *ClusterNetwork) validateHostPrefix(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.HostPrefix) { // not required
 		return nil
 	}
 
-	if err := validate.MinimumInt("host_prefix", "body", int64(m.HostPrefix), 1, false); err != nil {
+	if err := validate.MinimumInt("host_prefix", "body", m.HostPrefix, 1, false); err != nil {
 		return err
 	}
 
-	if err := validate.MaximumInt("host_prefix", "body", int64(m.HostPrefix), 128, false); err != nil {
+	if err := validate.MaximumInt("host_prefix", "body", m.HostPrefix, 128, false); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this cluster network based on the context it is used
+func (m *ClusterNetwork) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateCidr(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ClusterNetwork) contextValidateCidr(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.Cidr.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("cidr")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("cidr")
+		}
 		return err
 	}
 

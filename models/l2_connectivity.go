@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
@@ -33,6 +35,11 @@ type L2Connectivity struct {
 
 // Validate validates this l2 connectivity
 func (m *L2Connectivity) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this l2 connectivity based on context it is used
+func (m *L2Connectivity) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

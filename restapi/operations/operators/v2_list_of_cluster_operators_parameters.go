@@ -16,7 +16,8 @@ import (
 )
 
 // NewV2ListOfClusterOperatorsParams creates a new V2ListOfClusterOperatorsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2ListOfClusterOperatorsParams() V2ListOfClusterOperatorsParams {
 
 	return V2ListOfClusterOperatorsParams{}
@@ -62,7 +63,6 @@ func (o *V2ListOfClusterOperatorsParams) BindRequest(r *http.Request, route *mid
 	if err := o.bindOperatorName(qOperatorName, qhkOperatorName, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -111,10 +111,10 @@ func (o *V2ListOfClusterOperatorsParams) bindOperatorName(rawData []string, hasK
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.OperatorName = &raw
 
 	return nil

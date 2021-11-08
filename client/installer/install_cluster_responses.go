@@ -71,7 +71,6 @@ func (o *InstallClusterReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewInstallClusterAccepted() *InstallClusterAccepted {
 	return &InstallClusterAccepted{}
 }
 
-/*InstallClusterAccepted handles this case with default header values.
+/* InstallClusterAccepted describes a response with status code 202, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type InstallClusterAccepted struct {
 func (o *InstallClusterAccepted) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterAccepted  %+v", 202, o.Payload)
 }
-
 func (o *InstallClusterAccepted) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewInstallClusterBadRequest() *InstallClusterBadRequest {
 	return &InstallClusterBadRequest{}
 }
 
-/*InstallClusterBadRequest handles this case with default header values.
+/* InstallClusterBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -126,7 +124,6 @@ type InstallClusterBadRequest struct {
 func (o *InstallClusterBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *InstallClusterBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewInstallClusterUnauthorized() *InstallClusterUnauthorized {
 	return &InstallClusterUnauthorized{}
 }
 
-/*InstallClusterUnauthorized handles this case with default header values.
+/* InstallClusterUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -159,7 +156,6 @@ type InstallClusterUnauthorized struct {
 func (o *InstallClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *InstallClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewInstallClusterForbidden() *InstallClusterForbidden {
 	return &InstallClusterForbidden{}
 }
 
-/*InstallClusterForbidden handles this case with default header values.
+/* InstallClusterForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -192,7 +188,6 @@ type InstallClusterForbidden struct {
 func (o *InstallClusterForbidden) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterForbidden  %+v", 403, o.Payload)
 }
-
 func (o *InstallClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewInstallClusterNotFound() *InstallClusterNotFound {
 	return &InstallClusterNotFound{}
 }
 
-/*InstallClusterNotFound handles this case with default header values.
+/* InstallClusterNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -225,7 +220,6 @@ type InstallClusterNotFound struct {
 func (o *InstallClusterNotFound) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterNotFound  %+v", 404, o.Payload)
 }
-
 func (o *InstallClusterNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewInstallClusterMethodNotAllowed() *InstallClusterMethodNotAllowed {
 	return &InstallClusterMethodNotAllowed{}
 }
 
-/*InstallClusterMethodNotAllowed handles this case with default header values.
+/* InstallClusterMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -258,7 +252,6 @@ type InstallClusterMethodNotAllowed struct {
 func (o *InstallClusterMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *InstallClusterMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewInstallClusterConflict() *InstallClusterConflict {
 	return &InstallClusterConflict{}
 }
 
-/*InstallClusterConflict handles this case with default header values.
+/* InstallClusterConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -291,7 +284,6 @@ type InstallClusterConflict struct {
 func (o *InstallClusterConflict) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterConflict  %+v", 409, o.Payload)
 }
-
 func (o *InstallClusterConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewInstallClusterInternalServerError() *InstallClusterInternalServerError {
 	return &InstallClusterInternalServerError{}
 }
 
-/*InstallClusterInternalServerError handles this case with default header values.
+/* InstallClusterInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -324,7 +316,6 @@ type InstallClusterInternalServerError struct {
 func (o *InstallClusterInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *InstallClusterInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

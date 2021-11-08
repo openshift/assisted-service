@@ -71,7 +71,6 @@ func (o *UpdateHostInstallerArgsReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewUpdateHostInstallerArgsCreated() *UpdateHostInstallerArgsCreated {
 	return &UpdateHostInstallerArgsCreated{}
 }
 
-/*UpdateHostInstallerArgsCreated handles this case with default header values.
+/* UpdateHostInstallerArgsCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type UpdateHostInstallerArgsCreated struct {
 func (o *UpdateHostInstallerArgsCreated) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsCreated  %+v", 201, o.Payload)
 }
-
 func (o *UpdateHostInstallerArgsCreated) GetPayload() *models.Host {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewUpdateHostInstallerArgsBadRequest() *UpdateHostInstallerArgsBadRequest {
 	return &UpdateHostInstallerArgsBadRequest{}
 }
 
-/*UpdateHostInstallerArgsBadRequest handles this case with default header values.
+/* UpdateHostInstallerArgsBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -126,7 +124,6 @@ type UpdateHostInstallerArgsBadRequest struct {
 func (o *UpdateHostInstallerArgsBadRequest) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *UpdateHostInstallerArgsBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewUpdateHostInstallerArgsUnauthorized() *UpdateHostInstallerArgsUnauthoriz
 	return &UpdateHostInstallerArgsUnauthorized{}
 }
 
-/*UpdateHostInstallerArgsUnauthorized handles this case with default header values.
+/* UpdateHostInstallerArgsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -159,7 +156,6 @@ type UpdateHostInstallerArgsUnauthorized struct {
 func (o *UpdateHostInstallerArgsUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *UpdateHostInstallerArgsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewUpdateHostInstallerArgsForbidden() *UpdateHostInstallerArgsForbidden {
 	return &UpdateHostInstallerArgsForbidden{}
 }
 
-/*UpdateHostInstallerArgsForbidden handles this case with default header values.
+/* UpdateHostInstallerArgsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -192,7 +188,6 @@ type UpdateHostInstallerArgsForbidden struct {
 func (o *UpdateHostInstallerArgsForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *UpdateHostInstallerArgsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewUpdateHostInstallerArgsNotFound() *UpdateHostInstallerArgsNotFound {
 	return &UpdateHostInstallerArgsNotFound{}
 }
 
-/*UpdateHostInstallerArgsNotFound handles this case with default header values.
+/* UpdateHostInstallerArgsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -225,7 +220,6 @@ type UpdateHostInstallerArgsNotFound struct {
 func (o *UpdateHostInstallerArgsNotFound) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *UpdateHostInstallerArgsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewUpdateHostInstallerArgsMethodNotAllowed() *UpdateHostInstallerArgsMethod
 	return &UpdateHostInstallerArgsMethodNotAllowed{}
 }
 
-/*UpdateHostInstallerArgsMethodNotAllowed handles this case with default header values.
+/* UpdateHostInstallerArgsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -258,7 +252,6 @@ type UpdateHostInstallerArgsMethodNotAllowed struct {
 func (o *UpdateHostInstallerArgsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *UpdateHostInstallerArgsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewUpdateHostInstallerArgsConflict() *UpdateHostInstallerArgsConflict {
 	return &UpdateHostInstallerArgsConflict{}
 }
 
-/*UpdateHostInstallerArgsConflict handles this case with default header values.
+/* UpdateHostInstallerArgsConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -291,7 +284,6 @@ type UpdateHostInstallerArgsConflict struct {
 func (o *UpdateHostInstallerArgsConflict) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsConflict  %+v", 409, o.Payload)
 }
-
 func (o *UpdateHostInstallerArgsConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewUpdateHostInstallerArgsInternalServerError() *UpdateHostInstallerArgsInt
 	return &UpdateHostInstallerArgsInternalServerError{}
 }
 
-/*UpdateHostInstallerArgsInternalServerError handles this case with default header values.
+/* UpdateHostInstallerArgsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -324,7 +316,6 @@ type UpdateHostInstallerArgsInternalServerError struct {
 func (o *UpdateHostInstallerArgsInternalServerError) Error() string {
 	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *UpdateHostInstallerArgsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetInfraEnvParams creates a new GetInfraEnvParams object
-// with the default values initialized.
+// NewGetInfraEnvParams creates a new GetInfraEnvParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetInfraEnvParams() *GetInfraEnvParams {
-	var ()
 	return &GetInfraEnvParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetInfraEnvParamsWithTimeout creates a new GetInfraEnvParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetInfraEnvParamsWithTimeout(timeout time.Duration) *GetInfraEnvParams {
-	var ()
 	return &GetInfraEnvParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetInfraEnvParamsWithContext creates a new GetInfraEnvParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetInfraEnvParamsWithContext(ctx context.Context) *GetInfraEnvParams {
-	var ()
 	return &GetInfraEnvParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetInfraEnvParamsWithHTTPClient creates a new GetInfraEnvParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetInfraEnvParamsWithHTTPClient(client *http.Client) *GetInfraEnvParams {
-	var ()
 	return &GetInfraEnvParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetInfraEnvParams contains all the parameters to send to the API endpoint
-for the get infra env operation typically these are written to a http.Request
+/* GetInfraEnvParams contains all the parameters to send to the API endpoint
+   for the get infra env operation.
+
+   Typically these are written to a http.Request.
 */
 type GetInfraEnvParams struct {
 
-	/*InfraEnvID
-	  The InfraEnv to be retrieved.
+	/* InfraEnvID.
 
+	   The InfraEnv to be retrieved.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get infra env params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetInfraEnvParams) WithDefaults() *GetInfraEnvParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get infra env params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetInfraEnvParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get infra env params

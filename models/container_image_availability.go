@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -47,7 +49,6 @@ func (m *ContainerImageAvailability) Validate(formats strfmt.Registry) error {
 }
 
 func (m *ContainerImageAvailability) validateResult(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Result) { // not required
 		return nil
 	}
@@ -55,6 +56,36 @@ func (m *ContainerImageAvailability) validateResult(formats strfmt.Registry) err
 	if err := m.Result.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("result")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("result")
+		}
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this container image availability based on the context it is used
+func (m *ContainerImageAvailability) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateResult(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ContainerImageAvailability) contextValidateResult(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.Result.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("result")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("result")
 		}
 		return err
 	}

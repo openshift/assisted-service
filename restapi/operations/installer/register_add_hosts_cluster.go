@@ -29,7 +29,7 @@ func NewRegisterAddHostsCluster(ctx *middleware.Context, handler RegisterAddHost
 	return &RegisterAddHostsCluster{Context: ctx, Handler: handler}
 }
 
-/*RegisterAddHostsCluster swagger:route POST /v1/add_hosts_clusters installer registerAddHostsCluster
+/* RegisterAddHostsCluster swagger:route POST /v1/add_hosts_clusters installer registerAddHostsCluster
 
 Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.
 
@@ -42,21 +42,20 @@ type RegisterAddHostsCluster struct {
 func (o *RegisterAddHostsCluster) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewRegisterAddHostsClusterParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *RegisterAddHostsCluster) ServeHTTP(rw http.ResponseWriter, r *http.Requ
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

@@ -16,64 +16,81 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2GetPresignedForClusterCredentialsParams creates a new V2GetPresignedForClusterCredentialsParams object
-// with the default values initialized.
+// NewV2GetPresignedForClusterCredentialsParams creates a new V2GetPresignedForClusterCredentialsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2GetPresignedForClusterCredentialsParams() *V2GetPresignedForClusterCredentialsParams {
-	var ()
 	return &V2GetPresignedForClusterCredentialsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2GetPresignedForClusterCredentialsParamsWithTimeout creates a new V2GetPresignedForClusterCredentialsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2GetPresignedForClusterCredentialsParamsWithTimeout(timeout time.Duration) *V2GetPresignedForClusterCredentialsParams {
-	var ()
 	return &V2GetPresignedForClusterCredentialsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2GetPresignedForClusterCredentialsParamsWithContext creates a new V2GetPresignedForClusterCredentialsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2GetPresignedForClusterCredentialsParamsWithContext(ctx context.Context) *V2GetPresignedForClusterCredentialsParams {
-	var ()
 	return &V2GetPresignedForClusterCredentialsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2GetPresignedForClusterCredentialsParamsWithHTTPClient creates a new V2GetPresignedForClusterCredentialsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2GetPresignedForClusterCredentialsParamsWithHTTPClient(client *http.Client) *V2GetPresignedForClusterCredentialsParams {
-	var ()
 	return &V2GetPresignedForClusterCredentialsParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2GetPresignedForClusterCredentialsParams contains all the parameters to send to the API endpoint
-for the v2 get presigned for cluster credentials operation typically these are written to a http.Request
+/* V2GetPresignedForClusterCredentialsParams contains all the parameters to send to the API endpoint
+   for the v2 get presigned for cluster credentials operation.
+
+   Typically these are written to a http.Request.
 */
 type V2GetPresignedForClusterCredentialsParams struct {
 
-	/*ClusterID
-	  The cluster that owns the file that should be downloaded.
+	/* ClusterID.
 
+	   The cluster that owns the file that should be downloaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*FileName
-	  The file to be downloaded.
 
+	/* FileName.
+
+	   The file to be downloaded.
 	*/
 	FileName string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 get presigned for cluster credentials params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetPresignedForClusterCredentialsParams) WithDefaults() *V2GetPresignedForClusterCredentialsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 get presigned for cluster credentials params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetPresignedForClusterCredentialsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 get presigned for cluster credentials params
@@ -148,6 +165,7 @@ func (o *V2GetPresignedForClusterCredentialsParams) WriteToRequest(r runtime.Cli
 	qrFileName := o.FileName
 	qFileName := qrFileName
 	if qFileName != "" {
+
 		if err := r.SetQueryParam("file_name", qFileName); err != nil {
 			return err
 		}

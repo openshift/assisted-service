@@ -16,7 +16,8 @@ import (
 )
 
 // NewV2DownloadClusterFilesParams creates a new V2DownloadClusterFilesParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2DownloadClusterFilesParams() V2DownloadClusterFilesParams {
 
 	return V2DownloadClusterFilesParams{}
@@ -71,7 +72,6 @@ func (o *V2DownloadClusterFilesParams) BindRequest(r *http.Request, route *middl
 	if err := o.bindFileName(qFileName, qhkFileName, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -123,7 +123,6 @@ func (o *V2DownloadClusterFilesParams) bindDiscoveryAgentVersion(rawData []strin
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.DiscoveryAgentVersion = &raw
 
 	return nil
@@ -141,10 +140,10 @@ func (o *V2DownloadClusterFilesParams) bindFileName(rawData []string, hasKey boo
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("file_name", "query", raw); err != nil {
 		return err
 	}
-
 	o.FileName = raw
 
 	if err := o.validateFileName(formats); err != nil {

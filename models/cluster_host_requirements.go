@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -60,7 +61,6 @@ func (m *ClusterHostRequirements) Validate(formats strfmt.Registry) error {
 }
 
 func (m *ClusterHostRequirements) validateHostID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.HostID) { // not required
 		return nil
 	}
@@ -73,7 +73,6 @@ func (m *ClusterHostRequirements) validateHostID(formats strfmt.Registry) error 
 }
 
 func (m *ClusterHostRequirements) validateOcp(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Ocp) { // not required
 		return nil
 	}
@@ -82,6 +81,8 @@ func (m *ClusterHostRequirements) validateOcp(formats strfmt.Registry) error {
 		if err := m.Ocp.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("ocp")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("ocp")
 			}
 			return err
 		}
@@ -91,7 +92,6 @@ func (m *ClusterHostRequirements) validateOcp(formats strfmt.Registry) error {
 }
 
 func (m *ClusterHostRequirements) validateOperators(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Operators) { // not required
 		return nil
 	}
@@ -105,6 +105,8 @@ func (m *ClusterHostRequirements) validateOperators(formats strfmt.Registry) err
 			if err := m.Operators[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("operators" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("operators" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -116,7 +118,6 @@ func (m *ClusterHostRequirements) validateOperators(formats strfmt.Registry) err
 }
 
 func (m *ClusterHostRequirements) validateTotal(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Total) { // not required
 		return nil
 	}
@@ -125,6 +126,82 @@ func (m *ClusterHostRequirements) validateTotal(formats strfmt.Registry) error {
 		if err := m.Total.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("total")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("total")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this cluster host requirements based on the context it is used
+func (m *ClusterHostRequirements) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateOcp(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateOperators(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateTotal(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ClusterHostRequirements) contextValidateOcp(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Ocp != nil {
+		if err := m.Ocp.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("ocp")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("ocp")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ClusterHostRequirements) contextValidateOperators(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Operators); i++ {
+
+		if m.Operators[i] != nil {
+			if err := m.Operators[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("operators" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("operators" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *ClusterHostRequirements) contextValidateTotal(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Total != nil {
+		if err := m.Total.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("total")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("total")
 			}
 			return err
 		}

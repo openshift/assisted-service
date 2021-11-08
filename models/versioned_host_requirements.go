@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -52,7 +54,6 @@ func (m *VersionedHostRequirements) Validate(formats strfmt.Registry) error {
 }
 
 func (m *VersionedHostRequirements) validateMasterRequirements(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.MasterRequirements) { // not required
 		return nil
 	}
@@ -61,6 +62,8 @@ func (m *VersionedHostRequirements) validateMasterRequirements(formats strfmt.Re
 		if err := m.MasterRequirements.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("master")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("master")
 			}
 			return err
 		}
@@ -70,7 +73,6 @@ func (m *VersionedHostRequirements) validateMasterRequirements(formats strfmt.Re
 }
 
 func (m *VersionedHostRequirements) validateSNORequirements(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.SNORequirements) { // not required
 		return nil
 	}
@@ -79,6 +81,8 @@ func (m *VersionedHostRequirements) validateSNORequirements(formats strfmt.Regis
 		if err := m.SNORequirements.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("sno")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("sno")
 			}
 			return err
 		}
@@ -88,7 +92,6 @@ func (m *VersionedHostRequirements) validateSNORequirements(formats strfmt.Regis
 }
 
 func (m *VersionedHostRequirements) validateWorkerRequirements(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.WorkerRequirements) { // not required
 		return nil
 	}
@@ -97,6 +100,78 @@ func (m *VersionedHostRequirements) validateWorkerRequirements(formats strfmt.Re
 		if err := m.WorkerRequirements.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("worker")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("worker")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this versioned host requirements based on the context it is used
+func (m *VersionedHostRequirements) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateMasterRequirements(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateSNORequirements(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateWorkerRequirements(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *VersionedHostRequirements) contextValidateMasterRequirements(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.MasterRequirements != nil {
+		if err := m.MasterRequirements.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("master")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("master")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *VersionedHostRequirements) contextValidateSNORequirements(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.SNORequirements != nil {
+		if err := m.SNORequirements.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("sno")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("sno")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *VersionedHostRequirements) contextValidateWorkerRequirements(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.WorkerRequirements != nil {
+		if err := m.WorkerRequirements.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("worker")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("worker")
 			}
 			return err
 		}

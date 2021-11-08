@@ -16,52 +16,66 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2ListSupportedOpenshiftVersionsParams creates a new V2ListSupportedOpenshiftVersionsParams object
-// with the default values initialized.
+// NewV2ListSupportedOpenshiftVersionsParams creates a new V2ListSupportedOpenshiftVersionsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2ListSupportedOpenshiftVersionsParams() *V2ListSupportedOpenshiftVersionsParams {
-
 	return &V2ListSupportedOpenshiftVersionsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2ListSupportedOpenshiftVersionsParamsWithTimeout creates a new V2ListSupportedOpenshiftVersionsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2ListSupportedOpenshiftVersionsParamsWithTimeout(timeout time.Duration) *V2ListSupportedOpenshiftVersionsParams {
-
 	return &V2ListSupportedOpenshiftVersionsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2ListSupportedOpenshiftVersionsParamsWithContext creates a new V2ListSupportedOpenshiftVersionsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2ListSupportedOpenshiftVersionsParamsWithContext(ctx context.Context) *V2ListSupportedOpenshiftVersionsParams {
-
 	return &V2ListSupportedOpenshiftVersionsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2ListSupportedOpenshiftVersionsParamsWithHTTPClient creates a new V2ListSupportedOpenshiftVersionsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2ListSupportedOpenshiftVersionsParamsWithHTTPClient(client *http.Client) *V2ListSupportedOpenshiftVersionsParams {
-
 	return &V2ListSupportedOpenshiftVersionsParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2ListSupportedOpenshiftVersionsParams contains all the parameters to send to the API endpoint
-for the v2 list supported openshift versions operation typically these are written to a http.Request
+/* V2ListSupportedOpenshiftVersionsParams contains all the parameters to send to the API endpoint
+   for the v2 list supported openshift versions operation.
+
+   Typically these are written to a http.Request.
 */
 type V2ListSupportedOpenshiftVersionsParams struct {
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 list supported openshift versions params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ListSupportedOpenshiftVersionsParams) WithDefaults() *V2ListSupportedOpenshiftVersionsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 list supported openshift versions params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ListSupportedOpenshiftVersionsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 list supported openshift versions params
