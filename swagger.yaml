@@ -7742,8 +7742,6 @@ definitions:
   ignition-endpoint:
     type: object
     description: Explicit ignition endpoint overrides the default ignition endpoint.
-    required:
-      - url
     properties:
       url:
         type: string

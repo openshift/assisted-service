@@ -6,10 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
 // IgnitionEndpoint Explicit ignition endpoint overrides the default ignition endpoint.
@@ -21,30 +19,11 @@ type IgnitionEndpoint struct {
 	CaCertificate *string `json:"ca_certificate,omitempty"`
 
 	// The URL for the ignition endpoint.
-	// Required: true
-	URL *string `json:"url"`
+	URL *string `json:"url,omitempty"`
 }
 
 // Validate validates this ignition endpoint
 func (m *IgnitionEndpoint) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateURL(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *IgnitionEndpoint) validateURL(formats strfmt.Registry) error {
-
-	if err := validate.Required("url", "body", m.URL); err != nil {
-		return err
-	}
-
 	return nil
 }
 

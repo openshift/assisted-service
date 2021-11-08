@@ -11612,9 +11612,6 @@ func init() {
     "ignition-endpoint": {
       "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
       "type": "object",
-      "required": [
-        "url"
-      ],
       "properties": {
         "ca_certificate": {
           "description": "A CA certficate to be used when contacting the URL via https.",
@@ -24928,9 +24925,6 @@ func init() {
     "ignition-endpoint": {
       "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
       "type": "object",
-      "required": [
-        "url"
-      ],
       "properties": {
         "ca_certificate": {
           "description": "A CA certficate to be used when contacting the URL via https.",
