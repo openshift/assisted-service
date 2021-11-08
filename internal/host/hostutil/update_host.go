@@ -16,8 +16,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var ResetLogsField = []interface{}{"logs_info", "", "logs_started_at", strfmt.DateTime(time.Time{}), "logs_collected_at", strfmt.DateTime(time.Time{})}
-
 func UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, newStatus string, statusInfo string,
 	srcStage models.HostStage, newStage models.HostStage, progressInfo string, extra ...interface{}) (*common.Host, error) {
