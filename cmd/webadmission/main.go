@@ -2,6 +2,7 @@ package main
 
 import (
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	agentinstallvalidatingwebhooks "github.com/openshift/assisted-service/pkg/validating-webhooks/agentinstall/v1beta1"
 	hiveextvalidatingwebhooks "github.com/openshift/assisted-service/pkg/validating-webhooks/hiveextension/v1beta1"
 	admissionCmd "github.com/openshift/generic-admission-server/pkg/cmd"
 	log "github.com/sirupsen/logrus"
@@ -18,6 +19,7 @@ func main() {
 
 	admissionCmd.RunAdmissionServer(
 		hiveextvalidatingwebhooks.NewAgentClusterInstallValidatingAdmissionHook(decoder),
+		agentinstallvalidatingwebhooks.NewInfraEnvValidatingAdmissionHook(decoder),
 	)
 }
 
