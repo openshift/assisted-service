@@ -185,7 +185,8 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, r.newAssistedCM},
 		{"ImageServiceDeployment", aiv1beta1.ReasonImageHandlerDeploymentFailure, r.newImageServiceDeployment},
 		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, r.newAssistedServiceDeployment},
-		{"ValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newACIWebHook},
+		{"AgentClusterInstallValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newACIWebHook},
+		{"InfraEnvValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newInfraEnvWebHook},
 		{"WebHookService", aiv1beta1.ReasonWebHookServiceFailure, r.newWebHookService},
 		{"WebHookServiceDeployment", aiv1beta1.ReasonWebHookDeploymentFailure, r.newWebHookDeployment},
 		{"WebHookServiceAccount", aiv1beta1.ReasonWebHookServiceAccountFailure, r.newWebHookServiceAccount},
@@ -1285,6 +1286,60 @@ func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 			},
 		},
 	}
+}
+
+func (r *AgentServiceConfigReconciler) newInfraEnvWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	fp := admregv1.Fail
+	se := admregv1.SideEffectClassNone
+	path := "/apis/admission.agentinstall.openshift.io/v1/infraenvvalidators"
+	webhooks := []admregv1.ValidatingWebhook{
+		{
+			Name:          "infraenvvalidators.admission.agentinstall.openshift.io",
+			FailurePolicy: &fp,
+			SideEffects:   &se,
+			AdmissionReviewVersions: []string{
+				"v1",
+			},
+			ClientConfig: admregv1.WebhookClientConfig{
+				Service: &admregv1.ServiceReference{
+					Namespace: "default",
+					Name:      "kubernetes",
+					Path:      &path,
+				},
+			},
+			Rules: []admregv1.RuleWithOperations{
+				{
+					Operations: []admregv1.OperationType{
+						admregv1.Update,
+					},
+					Rule: admregv1.Rule{
+						APIGroups: []string{
+							"agent-install.openshift.io",
+						},
+						APIVersions: []string{
+							"v1beta1",
+						},
+						Resources: []string{
+							"infraenvs",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	aci := admregv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "infraenvvalidators.admission.agentinstall.openshift.io",
+		},
+		Webhooks: webhooks,
+	}
+
+	mutateFn := func() error {
+		aci.Webhooks = webhooks
+		return nil
+	}
+	return &aci, mutateFn, nil
 }
 
 func (r *AgentServiceConfigReconciler) newACIWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
