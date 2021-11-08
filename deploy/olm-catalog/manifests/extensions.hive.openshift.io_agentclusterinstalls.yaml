@@ -147,15 +147,15 @@ spec:
                   begin until this field is set to false.
                 type: boolean
               ignitionEndpoint:
-                description: IgnitionEndpoint store the data to of the custom ignition
+                description: IgnitionEndpoint stores the data of the custom ignition
                   endpoint.
                 properties:
                   caCertificate:
-                    description: CaCertificate a CA certficate to be used when contacting
-                      the URL via https.
+                    description: CaCertificate is a CA certificate to be used when
+                      contacting the URL via HTTPS.
                     type: string
                   url:
-                    description: Url store the URL of the custom ignition endpoint.
+                    description: Url stores the URL of the custom ignition endpoint.
                     type: string
                 type: object
               imageSetRef:

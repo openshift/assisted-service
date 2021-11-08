@@ -292,19 +292,19 @@ const secondDayWorkerIgnitionFormat = `{
 	  "version": "3.1.0",
 	  "config": {
 		"merge": [{
-		  "source": "{{.SOURCE}}",
-		  "httpHeaders": [{{range $k,$v := .HEADERS}}{"name": "{{$k}}", "value": "{{$v}}"}{{end}}]
+		  "source": "{{.SOURCE}}"{{if .HEADERS}},
+          "httpHeaders": [{{range $k,$v := .HEADERS}}{"name": "{{$k}}", "value": "{{$v}}"}{{end}}]{{end}}
 		}]
-	  },
-	  "security": {
-		"tls": {
-			"certificateAuthorities": [{
-				"source": "{{.CACERT}}"
-			}]
-		}
-	  }
-	}
-  }`
+	  }{{if .CACERT}},
+          "security": {
+            "tls": {
+	      "certificateAuthorities": [{
+	        "source": "{{.CACERT}}"
+	      }]
+	    }
+	  }{{end}}
+    }
+ }`
 
 const tempNMConnectionsDir = "/etc/assisted/network"
 

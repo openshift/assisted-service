@@ -2,6 +2,7 @@ package ignition
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1230,19 +1231,62 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 
 	Context("test custom ignition endpoint", func() {
 
+		It("are rendered properly without ca cert and token", func() {
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			ignConfig, _, err := config_31.Parse(ign)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].Source)).Should(Equal("http://url.com"))
+			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders).Should(HaveLen(0))
+			Expect(ignConfig.Ignition.Security.TLS.CertificateAuthorities).Should(HaveLen(0))
+		})
+
 		It("are rendered properly with token", func() {
 			token := "xyzabc123"
 			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, &token)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(ign)).Should(ContainSubstring("http://url.com"))
-			Expect(ign).Should(ContainSubstring(`"httpHeaders": [{"name": "Authorization", "value": "Bearer: xyzabc123"}]`))
+
+			ignConfig, _, err := config_31.Parse(ign)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].Source)).Should(Equal("http://url.com"))
+			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders).Should(HaveLen(1))
+			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Name).Should(Equal("Authorization"))
+			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Value)).Should(Equal("Bearer: " + token))
+			Expect(ignConfig.Ignition.Security.TLS.CertificateAuthorities).Should(HaveLen(0))
 		})
 
-		It("are rendered properly without token", func() {
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, nil)
+		It("are rendered properly with ca cert", func() {
+			ca := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+				"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+				"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &ca, nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(ign)).Should(ContainSubstring("http://url.com"))
-			Expect(ign).Should(ContainSubstring(`"httpHeaders": []`))
+
+			ignConfig, _, err := config_31.Parse(ign)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].Source)).Should(Equal("https://url.com"))
+			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders).Should(HaveLen(0))
+			Expect(ignConfig.Ignition.Security.TLS.CertificateAuthorities).Should(HaveLen(1))
+			Expect(swag.StringValue(ignConfig.Ignition.Security.TLS.CertificateAuthorities[0].Source)).Should(Equal("data:text/plain;base64," + base64.StdEncoding.EncodeToString([]byte(ca))))
+		})
+
+		It("are rendered properly with ca cert and token", func() {
+			token := "xyzabc123"
+			ca := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+				"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+				"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &ca, &token)
+			Expect(err).NotTo(HaveOccurred())
+
+			ignConfig, _, err := config_31.Parse(ign)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].Source)).Should(Equal("https://url.com"))
+			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders).Should(HaveLen(1))
+			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Name).Should(Equal("Authorization"))
+			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Value)).Should(Equal("Bearer: " + token))
+			Expect(ignConfig.Ignition.Security.TLS.CertificateAuthorities).Should(HaveLen(1))
+			Expect(swag.StringValue(ignConfig.Ignition.Security.TLS.CertificateAuthorities[0].Source)).Should(Equal("data:text/plain;base64," + base64.StdEncoding.EncodeToString([]byte(ca))))
 		})
 	})
 })
