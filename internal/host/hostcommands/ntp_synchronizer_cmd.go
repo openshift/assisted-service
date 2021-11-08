@@ -51,6 +51,7 @@ func (f *ntpSynchronizerCmd) GetSteps(ctx context.Context, host *models.Host) ([
 		Command:  "podman",
 		Args: []string{
 			"run", "--privileged", "--net=host", "--rm",
+			"-v", "/usr/bin/chronyc:/usr/bin/chronyc",
 			"-v", "/var/log:/var/log",
 			"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
 			"-v", "/var/run/chrony:/var/run/chrony",
