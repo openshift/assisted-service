@@ -146,10 +146,18 @@ spec:
                   once the RequirementsMet condition is true, installation will not
                   begin until this field is set to false.
                 type: boolean
-              ignitionEndpointUrl:
-                description: IgnitionEndpointUrl store the value of the custom ignition
+              ignitionEndpoint:
+                description: IgnitionEndpoint stores the data of the custom ignition
                   endpoint.
-                type: string
+                properties:
+                  caCertificate:
+                    description: CaCertificate is a CA certificate to be used when
+                      contacting the URL via HTTPS.
+                    type: string
+                  url:
+                    description: Url stores the URL of the custom ignition endpoint.
+                    type: string
+                type: object
               imageSetRef:
                 description: ImageSetRef is a reference to a ClusterImageSet. The
                   release image specified in the ClusterImageSet will be used to install

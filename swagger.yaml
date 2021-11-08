@@ -7045,10 +7045,11 @@ definitions:
         type: object
         $ref: '#/definitions/disk-encryption'
         description: Installation disks encryption mode and host roles to be applied.
-      ignition_endpoint_url:
-        type: string
+      ignition_endpoint:
+        type: object
+        $ref: '#/definitions/ignition-endpoint'
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:ignition_endpoint_"
         description: Explicit ignition endpoint overrides the default ignition endpoint.
-        x-nullable: true
 
   host-update-params:
     type: object
@@ -7254,10 +7255,11 @@ definitions:
         type: object
         $ref: '#/definitions/disk-encryption'
         description: Installation disks encryption mode and host roles to be applied.
-      ignition_endpoint_url:
-        type: string
+      ignition_endpoint:
+        type: object
+        $ref: '#/definitions/ignition-endpoint'
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:ignition_endpoint_"
         description: Explicit ignition endpoint overrides the default ignition endpoint.
-        x-nullable: true
 
   v2-cluster-update-params:
     type: object
@@ -7390,10 +7392,11 @@ definitions:
         type: object
         $ref: '#/definitions/disk-encryption'
         description: Installation disks encryption mode and host roles to be applied.
-      ignition_endpoint_url:
-        type: string
+      ignition_endpoint:
+        type: object
+        $ref: '#/definitions/ignition-endpoint'
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:ignition_endpoint_"
         description: Explicit ignition endpoint overrides the default ignition endpoint.
-        x-nullable: true
 
 
   add-hosts-cluster-create-params:
@@ -7604,7 +7607,6 @@ definitions:
         type: boolean
         description: Schedule workloads on masters
         default: false
-
       updated_at:
         type: string
         format: date-time
@@ -7731,10 +7733,24 @@ definitions:
         x-nullable: false
         default: 'x86_64'
         description: The CPU architecture of the image (x86_64/arm64/etc).
-      ignition_endpoint_url:
-        type: string
+      ignition_endpoint:
+        type: object
+        $ref: '#/definitions/ignition-endpoint'
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:ignition_endpoint_"
         description: Explicit ignition endpoint overrides the default ignition endpoint.
+
+  ignition-endpoint:
+    type: object
+    description: Explicit ignition endpoint overrides the default ignition endpoint.
+    properties:
+      url:
+        type: string
+        description: The URL for the ignition endpoint.
         x-nullable: true
+      ca_certificate:
+        type: string
+        x-nullable: true
+        description: A CA certficate to be used when contacting the URL via https.
 
   platform:
     type: object

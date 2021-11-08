@@ -9571,10 +9571,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
-        "ignition_endpoint_url": {
+        "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "string",
-          "x-nullable": true
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
+          "$ref": "#/definitions/ignition-endpoint"
         },
         "image_info": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",
@@ -9854,10 +9855,11 @@ func init() {
             "all"
           ]
         },
-        "ignition_endpoint_url": {
+        "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "string",
-          "x-nullable": true
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
+          "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
@@ -10189,10 +10191,11 @@ func init() {
           ],
           "x-nullable": true
         },
-        "ignition_endpoint_url": {
+        "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "string",
-          "x-nullable": true
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
+          "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
@@ -11606,6 +11609,22 @@ func init() {
         }
       }
     },
+    "ignition-endpoint": {
+      "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
+      "type": "object",
+      "properties": {
+        "ca_certificate": {
+          "description": "A CA certficate to be used when contacting the URL via https.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "url": {
+          "description": "The URL for the ignition endpoint.",
+          "type": "string",
+          "x-nullable": true
+        }
+      }
+    },
     "image-create-params": {
       "type": "object",
       "properties": {
@@ -13001,10 +13020,11 @@ func init() {
           ],
           "x-nullable": true
         },
-        "ignition_endpoint_url": {
+        "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "string",
-          "x-nullable": true
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
+          "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
@@ -22973,10 +22993,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
-        "ignition_endpoint_url": {
+        "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "string",
-          "x-nullable": true
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
+          "$ref": "#/definitions/ignition-endpoint"
         },
         "image_info": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",
@@ -23256,10 +23277,11 @@ func init() {
             "all"
           ]
         },
-        "ignition_endpoint_url": {
+        "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "string",
-          "x-nullable": true
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
+          "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
@@ -23551,10 +23573,11 @@ func init() {
           ],
           "x-nullable": true
         },
-        "ignition_endpoint_url": {
+        "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "string",
-          "x-nullable": true
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
+          "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
@@ -24896,6 +24919,22 @@ func init() {
         "network_yaml": {
           "description": "yaml string that can be processed by nmstate",
           "type": "string"
+        }
+      }
+    },
+    "ignition-endpoint": {
+      "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
+      "type": "object",
+      "properties": {
+        "ca_certificate": {
+          "description": "A CA certficate to be used when contacting the URL via https.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "url": {
+          "description": "The URL for the ignition endpoint.",
+          "type": "string",
+          "x-nullable": true
         }
       }
     },
@@ -26285,10 +26324,11 @@ func init() {
           ],
           "x-nullable": true
         },
-        "ignition_endpoint_url": {
+        "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "string",
-          "x-nullable": true
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\"",
+          "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",

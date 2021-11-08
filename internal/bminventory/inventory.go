@@ -431,7 +431,7 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		}
 	}
 
-	if err = b.validateIgnitionEndpointURL(params.NewClusterParams.IgnitionEndpointURL, log); err != nil {
+	if err = b.validateIgnitionEndpointURL(params.NewClusterParams.IgnitionEndpoint, log); err != nil {
 		return err
 	}
 
@@ -564,7 +564,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			ServiceNetworks:       params.NewClusterParams.ServiceNetworks,
 			MachineNetworks:       params.NewClusterParams.MachineNetworks,
 			CPUArchitecture:       cpuArchitecture,
-			IgnitionEndpointURL:   params.NewClusterParams.IgnitionEndpointURL,
+			IgnitionEndpoint:      params.NewClusterParams.IgnitionEndpoint,
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
@@ -862,8 +862,8 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 	}
 
 	ignitionEndpointUrl := fmt.Sprintf("http://%s:22624/config/%s", address, host.MachineConfigPoolName)
-	if cluster.IgnitionEndpointURL != nil {
-		url, err := url.Parse(*cluster.IgnitionEndpointURL)
+	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
+		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
 		if err != nil {
 			return err
 		}
@@ -871,7 +871,12 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 		ignitionEndpointUrl = url.String()
 	}
 
-	ignitionBytes, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, host.IgnitionEndpointToken)
+	var caCert *string = nil
+	if cluster.IgnitionEndpoint != nil {
+		caCert = cluster.IgnitionEndpoint.CaCertificate
+	}
+
+	ignitionBytes, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, caCert, host.IgnitionEndpointToken)
 	if err != nil {
 		return errors.Errorf("Failed to create ignition string for cluster %s", cluster.ID)
 	}
@@ -2247,7 +2252,7 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
 	}
 
-	if err := b.validateIgnitionEndpointURL(params.ClusterUpdateParams.IgnitionEndpointURL, log); err != nil {
+	if err := b.validateIgnitionEndpointURL(params.ClusterUpdateParams.IgnitionEndpoint, log); err != nil {
 		return installer.V2UpdateClusterParams{}, err
 	}
 
@@ -2329,7 +2334,7 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params
 			SSHPublicKey:             v1Params.ClusterUpdateParams.SSHPublicKey,
 			UserManagedNetworking:    v1Params.ClusterUpdateParams.UserManagedNetworking,
 			VipDhcpAllocation:        v1Params.ClusterUpdateParams.VipDhcpAllocation,
-			IgnitionEndpointURL:      v1Params.ClusterUpdateParams.IgnitionEndpointURL,
+			IgnitionEndpoint:         v1Params.ClusterUpdateParams.IgnitionEndpoint,
 		},
 	}
 
@@ -2387,7 +2392,7 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params
 		return nil, err
 	}
 
-	if err = b.validateIgnitionEndpointURL(v2Params.ClusterUpdateParams.IgnitionEndpointURL, log); err != nil {
+	if err = b.validateIgnitionEndpointURL(v2Params.ClusterUpdateParams.IgnitionEndpoint, log); err != nil {
 		return nil, err
 	}
 
@@ -2744,7 +2749,6 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	optionalParam(params.ClusterUpdateParams.NoProxy, "no_proxy", updates)
 	optionalParam(params.ClusterUpdateParams.SSHPublicKey, "ssh_public_key", updates)
 	optionalParam(params.ClusterUpdateParams.Hyperthreading, "hyperthreading", updates)
-	optionalParam(params.ClusterUpdateParams.IgnitionEndpointURL, "ignition_endpoint_url", updates)
 
 	b.setProxyUsage(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy, params.ClusterUpdateParams.NoProxy, usages)
 
@@ -2801,6 +2805,15 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 			updates["disk_encryption_tang_servers"] = params.ClusterUpdateParams.DiskEncryption.TangServers
 		}
 		b.setDiskEncryptionUsage(&cluster.Cluster, params.ClusterUpdateParams.DiskEncryption, usages)
+	}
+
+	if params.ClusterUpdateParams.IgnitionEndpoint != nil {
+		if params.ClusterUpdateParams.IgnitionEndpoint.URL != nil {
+			optionalParam(params.ClusterUpdateParams.IgnitionEndpoint.URL, "ignition_endpoint_url", updates)
+		}
+		if params.ClusterUpdateParams.IgnitionEndpoint.CaCertificate != nil {
+			optionalParam(params.ClusterUpdateParams.IgnitionEndpoint.CaCertificate, "ignition_endpoint_ca_certificate", updates)
+		}
 	}
 
 	if len(updates) > 0 {
@@ -5142,12 +5155,12 @@ func (b *bareMetalInventory) deleteDNSRecordSets(ctx context.Context, cluster co
 	return b.dnsApi.DeleteDNSRecordSets(ctx, &cluster)
 }
 
-func (b *bareMetalInventory) validateIgnitionEndpointURL(ignitionEndpointUrl *string, log logrus.FieldLogger) error {
-	if ignitionEndpointUrl == nil {
+func (b *bareMetalInventory) validateIgnitionEndpointURL(ignitionEndpoint *models.IgnitionEndpoint, log logrus.FieldLogger) error {
+	if ignitionEndpoint == nil || ignitionEndpoint.URL == nil {
 		return nil
 	}
-	if err := validations.ValidateHTTPFormat(*ignitionEndpointUrl); err != nil {
-		log.WithError(err).Errorf("Invalid Ignition endpoint URL: %s", *ignitionEndpointUrl)
+	if err := validations.ValidateHTTPFormat(*ignitionEndpoint.URL); err != nil {
+		log.WithError(err).Errorf("Invalid Ignition endpoint URL: %s", *ignitionEndpoint.URL)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	return nil

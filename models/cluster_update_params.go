@@ -75,7 +75,7 @@ type ClusterUpdateParams struct {
 	Hyperthreading *string `json:"hyperthreading,omitempty"`
 
 	// Explicit ignition endpoint overrides the default ignition endpoint.
-	IgnitionEndpointURL *string `json:"ignition_endpoint_url,omitempty"`
+	IgnitionEndpoint *IgnitionEndpoint `json:"ignition_endpoint,omitempty" gorm:"embedded;embedded_prefix:ignition_endpoint_"`
 
 	// The virtual IP used for cluster ingress traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$
@@ -170,6 +170,10 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateHyperthreading(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateIgnitionEndpoint(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -445,6 +449,24 @@ func (m *ClusterUpdateParams) validateHyperthreading(formats strfmt.Registry) er
 	// value enum
 	if err := m.validateHyperthreadingEnum("hyperthreading", "body", *m.Hyperthreading); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterUpdateParams) validateIgnitionEndpoint(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.IgnitionEndpoint) { // not required
+		return nil
+	}
+
+	if m.IgnitionEndpoint != nil {
+		if err := m.IgnitionEndpoint.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("ignition_endpoint")
+			}
+			return err
+		}
 	}
 
 	return nil
