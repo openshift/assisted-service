@@ -49,7 +49,7 @@ func (i *logsCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.St
 		}
 	}
 
-	logsCommand, err := createUploadLogsCmd(host, i.instructionConfig.ServiceBaseURL,
+	logsCommand, err := i.createUploadLogsCmd(host, i.instructionConfig.ServiceBaseURL,
 		i.instructionConfig.AgentImage, strings.Join(mastersIPs, ","),
 		i.instructionConfig.SkipCertVerification, false, true)
 	if err != nil {
@@ -65,7 +65,7 @@ func (i *logsCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.St
 	return []*models.Step{step}, nil
 }
 
-func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs string, skipCertVerification, preservePreviousCommandReturnCode,
+func (i *logsCmd) createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs string, skipCertVerification, preservePreviousCommandReturnCode,
 	withInstallerGatherLogging bool) (string, error) {
 
 	cmdArgsTmpl := ""
@@ -83,10 +83,15 @@ func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs stri
 		"BOOTSTRAP":              strconv.FormatBool(host.Bootstrap),
 		"INSTALLER_GATHER":       strconv.FormatBool(withInstallerGatherLogging),
 		"MASTERS_IPS":            mastersIPs,
-		"CACERTPATH":             common.HostCACertPath,
 	}
+
+	if i.instructionConfig.ServiceCACertPath != "" {
+		data["CACERTPATH"] = common.HostCACertPath
+	}
+
 	cmdArgsTmpl += "timeout 1h podman run --rm --privileged --net=host " +
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
+		"{{if .CACERTPATH}} -v {{.CACERTPATH}}:{{.CACERTPATH}} {{end}}" +
 		"{{if .BOOTSTRAP}} -v /root/.ssh:/root/.ssh -v /tmp:/tmp {{end}}" +
 		"--env PULL_SECRET_TOKEN --name logs-sender --pid=host {{.AGENT_IMAGE}} logs_sender " +
 		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}} -infra-env-id {{.INFRA_ENV_ID}} " +
@@ -97,6 +102,7 @@ func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs stri
 	if preservePreviousCommandReturnCode {
 		cmdArgsTmpl = cmdArgsTmpl + "; exit $returnCode; )"
 	}
+
 	t, err := template.New("cmd").Parse(cmdArgsTmpl)
 	if err != nil {
 		return "", err
