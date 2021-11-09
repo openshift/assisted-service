@@ -14,7 +14,8 @@ import (
 )
 
 // NewListOperatorPropertiesParams creates a new ListOperatorPropertiesParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewListOperatorPropertiesParams() ListOperatorPropertiesParams {
 
 	return ListOperatorPropertiesParams{}
@@ -49,7 +50,6 @@ func (o *ListOperatorPropertiesParams) BindRequest(r *http.Request, route *middl
 	if err := o.bindOperatorName(rOperatorName, rhkOperatorName, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -65,7 +65,6 @@ func (o *ListOperatorPropertiesParams) bindOperatorName(rawData []string, hasKey
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.OperatorName = raw
 
 	return nil

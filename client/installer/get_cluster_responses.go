@@ -65,7 +65,6 @@ func (o *GetClusterReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewGetClusterOK() *GetClusterOK {
 	return &GetClusterOK{}
 }
 
-/*GetClusterOK handles this case with default header values.
+/* GetClusterOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type GetClusterOK struct {
 func (o *GetClusterOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterOK  %+v", 200, o.Payload)
 }
-
 func (o *GetClusterOK) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -109,7 +107,7 @@ func NewGetClusterUnauthorized() *GetClusterUnauthorized {
 	return &GetClusterUnauthorized{}
 }
 
-/*GetClusterUnauthorized handles this case with default header values.
+/* GetClusterUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -120,7 +118,6 @@ type GetClusterUnauthorized struct {
 func (o *GetClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GetClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -142,7 +139,7 @@ func NewGetClusterForbidden() *GetClusterForbidden {
 	return &GetClusterForbidden{}
 }
 
-/*GetClusterForbidden handles this case with default header values.
+/* GetClusterForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -153,7 +150,6 @@ type GetClusterForbidden struct {
 func (o *GetClusterForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GetClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +171,7 @@ func NewGetClusterNotFound() *GetClusterNotFound {
 	return &GetClusterNotFound{}
 }
 
-/*GetClusterNotFound handles this case with default header values.
+/* GetClusterNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -186,7 +182,6 @@ type GetClusterNotFound struct {
 func (o *GetClusterNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterNotFound  %+v", 404, o.Payload)
 }
-
 func (o *GetClusterNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -208,7 +203,7 @@ func NewGetClusterMethodNotAllowed() *GetClusterMethodNotAllowed {
 	return &GetClusterMethodNotAllowed{}
 }
 
-/*GetClusterMethodNotAllowed handles this case with default header values.
+/* GetClusterMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -219,7 +214,6 @@ type GetClusterMethodNotAllowed struct {
 func (o *GetClusterMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *GetClusterMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +235,7 @@ func NewGetClusterInternalServerError() *GetClusterInternalServerError {
 	return &GetClusterInternalServerError{}
 }
 
-/*GetClusterInternalServerError handles this case with default header values.
+/* GetClusterInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -252,7 +246,6 @@ type GetClusterInternalServerError struct {
 func (o *GetClusterInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GetClusterInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +267,7 @@ func NewGetClusterServiceUnavailable() *GetClusterServiceUnavailable {
 	return &GetClusterServiceUnavailable{}
 }
 
-/*GetClusterServiceUnavailable handles this case with default header values.
+/* GetClusterServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -285,7 +278,6 @@ type GetClusterServiceUnavailable struct {
 func (o *GetClusterServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *GetClusterServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

@@ -6,6 +6,9 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+	timeext "time"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -19,7 +22,7 @@ type ImageInfo struct {
 
 	// created at
 	// Format: date-time
-	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
+	CreatedAt timeext.Time `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// download url
 	DownloadURL string `json:"download_url,omitempty"`
@@ -72,7 +75,6 @@ func (m *ImageInfo) Validate(formats strfmt.Registry) error {
 }
 
 func (m *ImageInfo) validateCreatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
 	}
@@ -85,7 +87,6 @@ func (m *ImageInfo) validateCreatedAt(formats strfmt.Registry) error {
 }
 
 func (m *ImageInfo) validateExpiresAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ExpiresAt) { // not required
 		return nil
 	}
@@ -98,12 +99,11 @@ func (m *ImageInfo) validateExpiresAt(formats strfmt.Registry) error {
 }
 
 func (m *ImageInfo) validateSizeBytes(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.SizeBytes) { // not required
 		return nil
 	}
 
-	if err := validate.MinimumInt("size_bytes", "body", int64(*m.SizeBytes), 0, false); err != nil {
+	if err := validate.MinimumInt("size_bytes", "body", *m.SizeBytes, 0, false); err != nil {
 		return err
 	}
 
@@ -111,7 +111,6 @@ func (m *ImageInfo) validateSizeBytes(formats strfmt.Registry) error {
 }
 
 func (m *ImageInfo) validateType(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Type) { // not required
 		return nil
 	}
@@ -119,6 +118,36 @@ func (m *ImageInfo) validateType(formats strfmt.Registry) error {
 	if err := m.Type.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("type")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("type")
+		}
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this image info based on the context it is used
+func (m *ImageInfo) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateType(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ImageInfo) contextValidateType(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.Type.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("type")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("type")
 		}
 		return err
 	}

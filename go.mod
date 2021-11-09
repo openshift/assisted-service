@@ -20,13 +20,13 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
 	github.com/frankban/quicktest v1.11.3 // indirect
-	github.com/go-openapi/errors v0.19.6
-	github.com/go-openapi/loads v0.19.5
+	github.com/go-openapi/errors v0.20.1
+	github.com/go-openapi/loads v0.20.2
 	github.com/go-openapi/runtime v0.19.24
-	github.com/go-openapi/spec v0.19.9
-	github.com/go-openapi/strfmt v0.19.5
-	github.com/go-openapi/swag v0.19.9
-	github.com/go-openapi/validate v0.19.10
+	github.com/go-openapi/spec v0.20.4
+	github.com/go-openapi/strfmt v0.20.3
+	github.com/go-openapi/swag v0.19.15
+	github.com/go-openapi/validate v0.20.3
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.5

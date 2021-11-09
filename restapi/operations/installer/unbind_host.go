@@ -29,7 +29,7 @@ func NewUnbindHost(ctx *middleware.Context, handler UnbindHostHandler) *UnbindHo
 	return &UnbindHost{Context: ctx, Handler: handler}
 }
 
-/*UnbindHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind installer unbindHost
+/* UnbindHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind installer unbindHost
 
 Unbind host to a cluster
 
@@ -42,21 +42,20 @@ type UnbindHost struct {
 func (o *UnbindHost) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewUnbindHostParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *UnbindHost) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

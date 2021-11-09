@@ -65,7 +65,6 @@ func (o *V2DeregisterClusterReader) ReadResponse(response runtime.ClientResponse
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewV2DeregisterClusterNoContent() *V2DeregisterClusterNoContent {
 	return &V2DeregisterClusterNoContent{}
 }
 
-/*V2DeregisterClusterNoContent handles this case with default header values.
+/* V2DeregisterClusterNoContent describes a response with status code 204, with default header values.
 
 Success.
 */
@@ -97,7 +96,7 @@ func NewV2DeregisterClusterUnauthorized() *V2DeregisterClusterUnauthorized {
 	return &V2DeregisterClusterUnauthorized{}
 }
 
-/*V2DeregisterClusterUnauthorized handles this case with default header values.
+/* V2DeregisterClusterUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -108,7 +107,6 @@ type V2DeregisterClusterUnauthorized struct {
 func (o *V2DeregisterClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2DeregisterClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -130,7 +128,7 @@ func NewV2DeregisterClusterForbidden() *V2DeregisterClusterForbidden {
 	return &V2DeregisterClusterForbidden{}
 }
 
-/*V2DeregisterClusterForbidden handles this case with default header values.
+/* V2DeregisterClusterForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -141,7 +139,6 @@ type V2DeregisterClusterForbidden struct {
 func (o *V2DeregisterClusterForbidden) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2DeregisterClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -163,7 +160,7 @@ func NewV2DeregisterClusterNotFound() *V2DeregisterClusterNotFound {
 	return &V2DeregisterClusterNotFound{}
 }
 
-/*V2DeregisterClusterNotFound handles this case with default header values.
+/* V2DeregisterClusterNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -174,7 +171,6 @@ type V2DeregisterClusterNotFound struct {
 func (o *V2DeregisterClusterNotFound) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2DeregisterClusterNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -196,7 +192,7 @@ func NewV2DeregisterClusterMethodNotAllowed() *V2DeregisterClusterMethodNotAllow
 	return &V2DeregisterClusterMethodNotAllowed{}
 }
 
-/*V2DeregisterClusterMethodNotAllowed handles this case with default header values.
+/* V2DeregisterClusterMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -207,7 +203,6 @@ type V2DeregisterClusterMethodNotAllowed struct {
 func (o *V2DeregisterClusterMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2DeregisterClusterMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -229,7 +224,7 @@ func NewV2DeregisterClusterConflict() *V2DeregisterClusterConflict {
 	return &V2DeregisterClusterConflict{}
 }
 
-/*V2DeregisterClusterConflict handles this case with default header values.
+/* V2DeregisterClusterConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -240,7 +235,6 @@ type V2DeregisterClusterConflict struct {
 func (o *V2DeregisterClusterConflict) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2DeregisterClusterConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -262,7 +256,7 @@ func NewV2DeregisterClusterInternalServerError() *V2DeregisterClusterInternalSer
 	return &V2DeregisterClusterInternalServerError{}
 }
 
-/*V2DeregisterClusterInternalServerError handles this case with default header values.
+/* V2DeregisterClusterInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -273,7 +267,6 @@ type V2DeregisterClusterInternalServerError struct {
 func (o *V2DeregisterClusterInternalServerError) Error() string {
 	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2DeregisterClusterInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

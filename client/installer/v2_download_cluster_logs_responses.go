@@ -66,7 +66,6 @@ func (o *V2DownloadClusterLogsReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -75,11 +74,12 @@ func (o *V2DownloadClusterLogsReader) ReadResponse(response runtime.ClientRespon
 // NewV2DownloadClusterLogsOK creates a V2DownloadClusterLogsOK with default headers values
 func NewV2DownloadClusterLogsOK(writer io.Writer) *V2DownloadClusterLogsOK {
 	return &V2DownloadClusterLogsOK{
+
 		Payload: writer,
 	}
 }
 
-/*V2DownloadClusterLogsOK handles this case with default header values.
+/* V2DownloadClusterLogsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -90,7 +90,6 @@ type V2DownloadClusterLogsOK struct {
 func (o *V2DownloadClusterLogsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/logs][%d] v2DownloadClusterLogsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2DownloadClusterLogsOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -110,7 +109,7 @@ func NewV2DownloadClusterLogsUnauthorized() *V2DownloadClusterLogsUnauthorized {
 	return &V2DownloadClusterLogsUnauthorized{}
 }
 
-/*V2DownloadClusterLogsUnauthorized handles this case with default header values.
+/* V2DownloadClusterLogsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -121,7 +120,6 @@ type V2DownloadClusterLogsUnauthorized struct {
 func (o *V2DownloadClusterLogsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/logs][%d] v2DownloadClusterLogsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2DownloadClusterLogsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -143,7 +141,7 @@ func NewV2DownloadClusterLogsForbidden() *V2DownloadClusterLogsForbidden {
 	return &V2DownloadClusterLogsForbidden{}
 }
 
-/*V2DownloadClusterLogsForbidden handles this case with default header values.
+/* V2DownloadClusterLogsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -154,7 +152,6 @@ type V2DownloadClusterLogsForbidden struct {
 func (o *V2DownloadClusterLogsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/logs][%d] v2DownloadClusterLogsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2DownloadClusterLogsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -176,7 +173,7 @@ func NewV2DownloadClusterLogsNotFound() *V2DownloadClusterLogsNotFound {
 	return &V2DownloadClusterLogsNotFound{}
 }
 
-/*V2DownloadClusterLogsNotFound handles this case with default header values.
+/* V2DownloadClusterLogsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -187,7 +184,6 @@ type V2DownloadClusterLogsNotFound struct {
 func (o *V2DownloadClusterLogsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/logs][%d] v2DownloadClusterLogsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2DownloadClusterLogsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -209,7 +205,7 @@ func NewV2DownloadClusterLogsMethodNotAllowed() *V2DownloadClusterLogsMethodNotA
 	return &V2DownloadClusterLogsMethodNotAllowed{}
 }
 
-/*V2DownloadClusterLogsMethodNotAllowed handles this case with default header values.
+/* V2DownloadClusterLogsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -220,7 +216,6 @@ type V2DownloadClusterLogsMethodNotAllowed struct {
 func (o *V2DownloadClusterLogsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/logs][%d] v2DownloadClusterLogsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2DownloadClusterLogsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -242,7 +237,7 @@ func NewV2DownloadClusterLogsConflict() *V2DownloadClusterLogsConflict {
 	return &V2DownloadClusterLogsConflict{}
 }
 
-/*V2DownloadClusterLogsConflict handles this case with default header values.
+/* V2DownloadClusterLogsConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -253,7 +248,6 @@ type V2DownloadClusterLogsConflict struct {
 func (o *V2DownloadClusterLogsConflict) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/logs][%d] v2DownloadClusterLogsConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2DownloadClusterLogsConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -275,7 +269,7 @@ func NewV2DownloadClusterLogsInternalServerError() *V2DownloadClusterLogsInterna
 	return &V2DownloadClusterLogsInternalServerError{}
 }
 
-/*V2DownloadClusterLogsInternalServerError handles this case with default header values.
+/* V2DownloadClusterLogsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -286,7 +280,6 @@ type V2DownloadClusterLogsInternalServerError struct {
 func (o *V2DownloadClusterLogsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/logs][%d] v2DownloadClusterLogsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2DownloadClusterLogsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

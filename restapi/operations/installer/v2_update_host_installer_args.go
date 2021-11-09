@@ -29,7 +29,7 @@ func NewV2UpdateHostInstallerArgs(ctx *middleware.Context, handler V2UpdateHostI
 	return &V2UpdateHostInstallerArgs{Context: ctx, Handler: handler}
 }
 
-/*V2UpdateHostInstallerArgs swagger:route PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args installer v2UpdateHostInstallerArgs
+/* V2UpdateHostInstallerArgs swagger:route PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args installer v2UpdateHostInstallerArgs
 
 Updates a host's installer arguments.
 
@@ -42,21 +42,20 @@ type V2UpdateHostInstallerArgs struct {
 func (o *V2UpdateHostInstallerArgs) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewV2UpdateHostInstallerArgsParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *V2UpdateHostInstallerArgs) ServeHTTP(rw http.ResponseWriter, r *http.Re
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

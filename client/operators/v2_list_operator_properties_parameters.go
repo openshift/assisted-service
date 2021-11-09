@@ -16,59 +16,73 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2ListOperatorPropertiesParams creates a new V2ListOperatorPropertiesParams object
-// with the default values initialized.
+// NewV2ListOperatorPropertiesParams creates a new V2ListOperatorPropertiesParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2ListOperatorPropertiesParams() *V2ListOperatorPropertiesParams {
-	var ()
 	return &V2ListOperatorPropertiesParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2ListOperatorPropertiesParamsWithTimeout creates a new V2ListOperatorPropertiesParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2ListOperatorPropertiesParamsWithTimeout(timeout time.Duration) *V2ListOperatorPropertiesParams {
-	var ()
 	return &V2ListOperatorPropertiesParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2ListOperatorPropertiesParamsWithContext creates a new V2ListOperatorPropertiesParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2ListOperatorPropertiesParamsWithContext(ctx context.Context) *V2ListOperatorPropertiesParams {
-	var ()
 	return &V2ListOperatorPropertiesParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2ListOperatorPropertiesParamsWithHTTPClient creates a new V2ListOperatorPropertiesParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2ListOperatorPropertiesParamsWithHTTPClient(client *http.Client) *V2ListOperatorPropertiesParams {
-	var ()
 	return &V2ListOperatorPropertiesParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2ListOperatorPropertiesParams contains all the parameters to send to the API endpoint
-for the v2 list operator properties operation typically these are written to a http.Request
+/* V2ListOperatorPropertiesParams contains all the parameters to send to the API endpoint
+   for the v2 list operator properties operation.
+
+   Typically these are written to a http.Request.
 */
 type V2ListOperatorPropertiesParams struct {
 
-	/*OperatorName
-	  The operator name.
+	/* OperatorName.
 
+	   The operator name.
 	*/
 	OperatorName string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 list operator properties params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ListOperatorPropertiesParams) WithDefaults() *V2ListOperatorPropertiesParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 list operator properties params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ListOperatorPropertiesParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 list operator properties params

@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetPreflightRequirementsParams creates a new GetPreflightRequirementsParams object
-// with the default values initialized.
+// NewGetPreflightRequirementsParams creates a new GetPreflightRequirementsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetPreflightRequirementsParams() *GetPreflightRequirementsParams {
-	var ()
 	return &GetPreflightRequirementsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetPreflightRequirementsParamsWithTimeout creates a new GetPreflightRequirementsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetPreflightRequirementsParamsWithTimeout(timeout time.Duration) *GetPreflightRequirementsParams {
-	var ()
 	return &GetPreflightRequirementsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetPreflightRequirementsParamsWithContext creates a new GetPreflightRequirementsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetPreflightRequirementsParamsWithContext(ctx context.Context) *GetPreflightRequirementsParams {
-	var ()
 	return &GetPreflightRequirementsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetPreflightRequirementsParamsWithHTTPClient creates a new GetPreflightRequirementsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetPreflightRequirementsParamsWithHTTPClient(client *http.Client) *GetPreflightRequirementsParams {
-	var ()
 	return &GetPreflightRequirementsParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetPreflightRequirementsParams contains all the parameters to send to the API endpoint
-for the get preflight requirements operation typically these are written to a http.Request
+/* GetPreflightRequirementsParams contains all the parameters to send to the API endpoint
+   for the get preflight requirements operation.
+
+   Typically these are written to a http.Request.
 */
 type GetPreflightRequirementsParams struct {
 
-	/*ClusterID
-	  The cluster to return preflight requrements for.
+	/* ClusterID.
 
+	   The cluster to return preflight requrements for.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get preflight requirements params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetPreflightRequirementsParams) WithDefaults() *GetPreflightRequirementsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get preflight requirements params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetPreflightRequirementsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get preflight requirements params

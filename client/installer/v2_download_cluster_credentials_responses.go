@@ -72,7 +72,6 @@ func (o *V2DownloadClusterCredentialsReader) ReadResponse(response runtime.Clien
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -81,11 +80,12 @@ func (o *V2DownloadClusterCredentialsReader) ReadResponse(response runtime.Clien
 // NewV2DownloadClusterCredentialsOK creates a V2DownloadClusterCredentialsOK with default headers values
 func NewV2DownloadClusterCredentialsOK(writer io.Writer) *V2DownloadClusterCredentialsOK {
 	return &V2DownloadClusterCredentialsOK{
+
 		Payload: writer,
 	}
 }
 
-/*V2DownloadClusterCredentialsOK handles this case with default header values.
+/* V2DownloadClusterCredentialsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -96,7 +96,6 @@ type V2DownloadClusterCredentialsOK struct {
 func (o *V2DownloadClusterCredentialsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials][%d] v2DownloadClusterCredentialsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2DownloadClusterCredentialsOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -116,7 +115,7 @@ func NewV2DownloadClusterCredentialsUnauthorized() *V2DownloadClusterCredentials
 	return &V2DownloadClusterCredentialsUnauthorized{}
 }
 
-/*V2DownloadClusterCredentialsUnauthorized handles this case with default header values.
+/* V2DownloadClusterCredentialsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -127,7 +126,6 @@ type V2DownloadClusterCredentialsUnauthorized struct {
 func (o *V2DownloadClusterCredentialsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials][%d] v2DownloadClusterCredentialsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2DownloadClusterCredentialsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -149,7 +147,7 @@ func NewV2DownloadClusterCredentialsForbidden() *V2DownloadClusterCredentialsFor
 	return &V2DownloadClusterCredentialsForbidden{}
 }
 
-/*V2DownloadClusterCredentialsForbidden handles this case with default header values.
+/* V2DownloadClusterCredentialsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -160,7 +158,6 @@ type V2DownloadClusterCredentialsForbidden struct {
 func (o *V2DownloadClusterCredentialsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials][%d] v2DownloadClusterCredentialsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2DownloadClusterCredentialsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -182,7 +179,7 @@ func NewV2DownloadClusterCredentialsNotFound() *V2DownloadClusterCredentialsNotF
 	return &V2DownloadClusterCredentialsNotFound{}
 }
 
-/*V2DownloadClusterCredentialsNotFound handles this case with default header values.
+/* V2DownloadClusterCredentialsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -193,7 +190,6 @@ type V2DownloadClusterCredentialsNotFound struct {
 func (o *V2DownloadClusterCredentialsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials][%d] v2DownloadClusterCredentialsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2DownloadClusterCredentialsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -215,7 +211,7 @@ func NewV2DownloadClusterCredentialsMethodNotAllowed() *V2DownloadClusterCredent
 	return &V2DownloadClusterCredentialsMethodNotAllowed{}
 }
 
-/*V2DownloadClusterCredentialsMethodNotAllowed handles this case with default header values.
+/* V2DownloadClusterCredentialsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -226,7 +222,6 @@ type V2DownloadClusterCredentialsMethodNotAllowed struct {
 func (o *V2DownloadClusterCredentialsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials][%d] v2DownloadClusterCredentialsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2DownloadClusterCredentialsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -248,7 +243,7 @@ func NewV2DownloadClusterCredentialsConflict() *V2DownloadClusterCredentialsConf
 	return &V2DownloadClusterCredentialsConflict{}
 }
 
-/*V2DownloadClusterCredentialsConflict handles this case with default header values.
+/* V2DownloadClusterCredentialsConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -259,7 +254,6 @@ type V2DownloadClusterCredentialsConflict struct {
 func (o *V2DownloadClusterCredentialsConflict) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials][%d] v2DownloadClusterCredentialsConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2DownloadClusterCredentialsConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -281,7 +275,7 @@ func NewV2DownloadClusterCredentialsInternalServerError() *V2DownloadClusterCred
 	return &V2DownloadClusterCredentialsInternalServerError{}
 }
 
-/*V2DownloadClusterCredentialsInternalServerError handles this case with default header values.
+/* V2DownloadClusterCredentialsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -292,7 +286,6 @@ type V2DownloadClusterCredentialsInternalServerError struct {
 func (o *V2DownloadClusterCredentialsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials][%d] v2DownloadClusterCredentialsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2DownloadClusterCredentialsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -314,7 +307,7 @@ func NewV2DownloadClusterCredentialsServiceUnavailable() *V2DownloadClusterCrede
 	return &V2DownloadClusterCredentialsServiceUnavailable{}
 }
 
-/*V2DownloadClusterCredentialsServiceUnavailable handles this case with default header values.
+/* V2DownloadClusterCredentialsServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -325,7 +318,6 @@ type V2DownloadClusterCredentialsServiceUnavailable struct {
 func (o *V2DownloadClusterCredentialsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials][%d] v2DownloadClusterCredentialsServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2DownloadClusterCredentialsServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

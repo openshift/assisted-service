@@ -77,7 +77,6 @@ func (o *V2PostStepReplyReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -88,7 +87,7 @@ func NewV2PostStepReplyNoContent() *V2PostStepReplyNoContent {
 	return &V2PostStepReplyNoContent{}
 }
 
-/*V2PostStepReplyNoContent handles this case with default header values.
+/* V2PostStepReplyNoContent describes a response with status code 204, with default header values.
 
 Success.
 */
@@ -109,7 +108,7 @@ func NewV2PostStepReplyBadRequest() *V2PostStepReplyBadRequest {
 	return &V2PostStepReplyBadRequest{}
 }
 
-/*V2PostStepReplyBadRequest handles this case with default header values.
+/* V2PostStepReplyBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -120,7 +119,6 @@ type V2PostStepReplyBadRequest struct {
 func (o *V2PostStepReplyBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2PostStepReplyBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -142,7 +140,7 @@ func NewV2PostStepReplyUnauthorized() *V2PostStepReplyUnauthorized {
 	return &V2PostStepReplyUnauthorized{}
 }
 
-/*V2PostStepReplyUnauthorized handles this case with default header values.
+/* V2PostStepReplyUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -153,7 +151,6 @@ type V2PostStepReplyUnauthorized struct {
 func (o *V2PostStepReplyUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2PostStepReplyUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +172,7 @@ func NewV2PostStepReplyForbidden() *V2PostStepReplyForbidden {
 	return &V2PostStepReplyForbidden{}
 }
 
-/*V2PostStepReplyForbidden handles this case with default header values.
+/* V2PostStepReplyForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -186,7 +183,6 @@ type V2PostStepReplyForbidden struct {
 func (o *V2PostStepReplyForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2PostStepReplyForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -208,7 +204,7 @@ func NewV2PostStepReplyNotFound() *V2PostStepReplyNotFound {
 	return &V2PostStepReplyNotFound{}
 }
 
-/*V2PostStepReplyNotFound handles this case with default header values.
+/* V2PostStepReplyNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -219,7 +215,6 @@ type V2PostStepReplyNotFound struct {
 func (o *V2PostStepReplyNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2PostStepReplyNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +236,7 @@ func NewV2PostStepReplyMethodNotAllowed() *V2PostStepReplyMethodNotAllowed {
 	return &V2PostStepReplyMethodNotAllowed{}
 }
 
-/*V2PostStepReplyMethodNotAllowed handles this case with default header values.
+/* V2PostStepReplyMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -252,7 +247,6 @@ type V2PostStepReplyMethodNotAllowed struct {
 func (o *V2PostStepReplyMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2PostStepReplyMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +268,7 @@ func NewV2PostStepReplyInternalServerError() *V2PostStepReplyInternalServerError
 	return &V2PostStepReplyInternalServerError{}
 }
 
-/*V2PostStepReplyInternalServerError handles this case with default header values.
+/* V2PostStepReplyInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -285,7 +279,6 @@ type V2PostStepReplyInternalServerError struct {
 func (o *V2PostStepReplyInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2PostStepReplyInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -307,7 +300,7 @@ func NewV2PostStepReplyNotImplemented() *V2PostStepReplyNotImplemented {
 	return &V2PostStepReplyNotImplemented{}
 }
 
-/*V2PostStepReplyNotImplemented handles this case with default header values.
+/* V2PostStepReplyNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -318,7 +311,6 @@ type V2PostStepReplyNotImplemented struct {
 func (o *V2PostStepReplyNotImplemented) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *V2PostStepReplyNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -340,7 +332,7 @@ func NewV2PostStepReplyServiceUnavailable() *V2PostStepReplyServiceUnavailable {
 	return &V2PostStepReplyServiceUnavailable{}
 }
 
-/*V2PostStepReplyServiceUnavailable handles this case with default header values.
+/* V2PostStepReplyServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -351,7 +343,6 @@ type V2PostStepReplyServiceUnavailable struct {
 func (o *V2PostStepReplyServiceUnavailable) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2PostStepReplyServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

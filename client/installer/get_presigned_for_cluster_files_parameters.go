@@ -16,79 +16,101 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetPresignedForClusterFilesParams creates a new GetPresignedForClusterFilesParams object
-// with the default values initialized.
+// NewGetPresignedForClusterFilesParams creates a new GetPresignedForClusterFilesParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetPresignedForClusterFilesParams() *GetPresignedForClusterFilesParams {
-	var ()
 	return &GetPresignedForClusterFilesParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetPresignedForClusterFilesParamsWithTimeout creates a new GetPresignedForClusterFilesParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetPresignedForClusterFilesParamsWithTimeout(timeout time.Duration) *GetPresignedForClusterFilesParams {
-	var ()
 	return &GetPresignedForClusterFilesParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetPresignedForClusterFilesParamsWithContext creates a new GetPresignedForClusterFilesParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetPresignedForClusterFilesParamsWithContext(ctx context.Context) *GetPresignedForClusterFilesParams {
-	var ()
 	return &GetPresignedForClusterFilesParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetPresignedForClusterFilesParamsWithHTTPClient creates a new GetPresignedForClusterFilesParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetPresignedForClusterFilesParamsWithHTTPClient(client *http.Client) *GetPresignedForClusterFilesParams {
-	var ()
 	return &GetPresignedForClusterFilesParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetPresignedForClusterFilesParams contains all the parameters to send to the API endpoint
-for the get presigned for cluster files operation typically these are written to a http.Request
+/* GetPresignedForClusterFilesParams contains all the parameters to send to the API endpoint
+   for the get presigned for cluster files operation.
+
+   Typically these are written to a http.Request.
 */
 type GetPresignedForClusterFilesParams struct {
 
-	/*AdditionalName
-	  If downloading a manifest, the file name, prefaced with folder name, for example, openshift/99-openshift-xyz.yaml.
+	/* AdditionalName.
 
+	   If downloading a manifest, the file name, prefaced with folder name, for example, openshift/99-openshift-xyz.yaml.
 	*/
 	AdditionalName *string
-	/*ClusterID
-	  The cluster that owns the file that should be downloaded.
 
+	/* ClusterID.
+
+	   The cluster that owns the file that should be downloaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*FileName
-	  The file to be downloaded.
 
+	/* FileName.
+
+	   The file to be downloaded.
 	*/
 	FileName string
-	/*HostID
-	  If downloading a file related to a host, the relevant host.
 
+	/* HostID.
+
+	   If downloading a file related to a host, the relevant host.
+
+	   Format: uuid
 	*/
 	HostID *strfmt.UUID
-	/*LogsType
-	  If downloading logs, the type of logs to download.
 
+	/* LogsType.
+
+	   If downloading logs, the type of logs to download.
 	*/
 	LogsType *string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get presigned for cluster files params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetPresignedForClusterFilesParams) WithDefaults() *GetPresignedForClusterFilesParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get presigned for cluster files params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetPresignedForClusterFilesParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get presigned for cluster files params
@@ -191,16 +213,17 @@ func (o *GetPresignedForClusterFilesParams) WriteToRequest(r runtime.ClientReque
 
 		// query param additional_name
 		var qrAdditionalName string
+
 		if o.AdditionalName != nil {
 			qrAdditionalName = *o.AdditionalName
 		}
 		qAdditionalName := qrAdditionalName
 		if qAdditionalName != "" {
+
 			if err := r.SetQueryParam("additional_name", qAdditionalName); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	// path param cluster_id
@@ -212,6 +235,7 @@ func (o *GetPresignedForClusterFilesParams) WriteToRequest(r runtime.ClientReque
 	qrFileName := o.FileName
 	qFileName := qrFileName
 	if qFileName != "" {
+
 		if err := r.SetQueryParam("file_name", qFileName); err != nil {
 			return err
 		}
@@ -221,32 +245,34 @@ func (o *GetPresignedForClusterFilesParams) WriteToRequest(r runtime.ClientReque
 
 		// query param host_id
 		var qrHostID strfmt.UUID
+
 		if o.HostID != nil {
 			qrHostID = *o.HostID
 		}
 		qHostID := qrHostID.String()
 		if qHostID != "" {
+
 			if err := r.SetQueryParam("host_id", qHostID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.LogsType != nil {
 
 		// query param logs_type
 		var qrLogsType string
+
 		if o.LogsType != nil {
 			qrLogsType = *o.LogsType
 		}
 		qLogsType := qrLogsType
 		if qLogsType != "" {
+
 			if err := r.SetQueryParam("logs_type", qLogsType); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if len(res) > 0 {

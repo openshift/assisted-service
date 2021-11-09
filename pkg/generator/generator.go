@@ -124,5 +124,5 @@ func (k *installGenerator) getClusterPlatformType(cluster common.Cluster) models
 	if swag.BoolValue(cluster.UserManagedNetworking) {
 		return models.PlatformTypeNone
 	}
-	return cluster.Platform.Type
+	return common.PlatformTypeValue(cluster.Platform.Type)
 }

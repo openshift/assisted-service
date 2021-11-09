@@ -18,69 +18,89 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewUpdateHostInstallerArgsParams creates a new UpdateHostInstallerArgsParams object
-// with the default values initialized.
+// NewUpdateHostInstallerArgsParams creates a new UpdateHostInstallerArgsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUpdateHostInstallerArgsParams() *UpdateHostInstallerArgsParams {
-	var ()
 	return &UpdateHostInstallerArgsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUpdateHostInstallerArgsParamsWithTimeout creates a new UpdateHostInstallerArgsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUpdateHostInstallerArgsParamsWithTimeout(timeout time.Duration) *UpdateHostInstallerArgsParams {
-	var ()
 	return &UpdateHostInstallerArgsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUpdateHostInstallerArgsParamsWithContext creates a new UpdateHostInstallerArgsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUpdateHostInstallerArgsParamsWithContext(ctx context.Context) *UpdateHostInstallerArgsParams {
-	var ()
 	return &UpdateHostInstallerArgsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUpdateHostInstallerArgsParamsWithHTTPClient creates a new UpdateHostInstallerArgsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUpdateHostInstallerArgsParamsWithHTTPClient(client *http.Client) *UpdateHostInstallerArgsParams {
-	var ()
 	return &UpdateHostInstallerArgsParams{
 		HTTPClient: client,
 	}
 }
 
-/*UpdateHostInstallerArgsParams contains all the parameters to send to the API endpoint
-for the update host installer args operation typically these are written to a http.Request
+/* UpdateHostInstallerArgsParams contains all the parameters to send to the API endpoint
+   for the update host installer args operation.
+
+   Typically these are written to a http.Request.
 */
 type UpdateHostInstallerArgsParams struct {
 
-	/*ClusterID
-	  The cluster of the host whose installer arguments should be updated.
+	/* ClusterID.
 
+	   The cluster of the host whose installer arguments should be updated.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host whose installer arguments should be updated.
 
+	/* HostID.
+
+	   The host whose installer arguments should be updated.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*InstallerArgsParams
-	  The updated installer arguments.
 
+	/* InstallerArgsParams.
+
+	   The updated installer arguments.
 	*/
 	InstallerArgsParams *models.InstallerArgsParams
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the update host installer args params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateHostInstallerArgsParams) WithDefaults() *UpdateHostInstallerArgsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the update host installer args params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateHostInstallerArgsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the update host installer args params
@@ -166,7 +186,6 @@ func (o *UpdateHostInstallerArgsParams) WriteToRequest(r runtime.ClientRequest, 
 	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {
 		return err
 	}
-
 	if o.InstallerArgsParams != nil {
 		if err := r.SetBodyParam(o.InstallerArgsParams); err != nil {
 			return err

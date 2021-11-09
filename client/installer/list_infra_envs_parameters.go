@@ -16,52 +16,66 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewListInfraEnvsParams creates a new ListInfraEnvsParams object
-// with the default values initialized.
+// NewListInfraEnvsParams creates a new ListInfraEnvsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewListInfraEnvsParams() *ListInfraEnvsParams {
-
 	return &ListInfraEnvsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewListInfraEnvsParamsWithTimeout creates a new ListInfraEnvsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewListInfraEnvsParamsWithTimeout(timeout time.Duration) *ListInfraEnvsParams {
-
 	return &ListInfraEnvsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewListInfraEnvsParamsWithContext creates a new ListInfraEnvsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewListInfraEnvsParamsWithContext(ctx context.Context) *ListInfraEnvsParams {
-
 	return &ListInfraEnvsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewListInfraEnvsParamsWithHTTPClient creates a new ListInfraEnvsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewListInfraEnvsParamsWithHTTPClient(client *http.Client) *ListInfraEnvsParams {
-
 	return &ListInfraEnvsParams{
 		HTTPClient: client,
 	}
 }
 
-/*ListInfraEnvsParams contains all the parameters to send to the API endpoint
-for the list infra envs operation typically these are written to a http.Request
+/* ListInfraEnvsParams contains all the parameters to send to the API endpoint
+   for the list infra envs operation.
+
+   Typically these are written to a http.Request.
 */
 type ListInfraEnvsParams struct {
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the list infra envs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListInfraEnvsParams) WithDefaults() *ListInfraEnvsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the list infra envs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListInfraEnvsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the list infra envs params

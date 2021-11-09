@@ -71,7 +71,6 @@ func (o *V2GetPresignedForClusterCredentialsReader) ReadResponse(response runtim
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewV2GetPresignedForClusterCredentialsOK() *V2GetPresignedForClusterCredent
 	return &V2GetPresignedForClusterCredentialsOK{}
 }
 
-/*V2GetPresignedForClusterCredentialsOK handles this case with default header values.
+/* V2GetPresignedForClusterCredentialsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type V2GetPresignedForClusterCredentialsOK struct {
 func (o *V2GetPresignedForClusterCredentialsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2GetPresignedForClusterCredentialsOK) GetPayload() *models.Presigned {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewV2GetPresignedForClusterCredentialsBadRequest() *V2GetPresignedForCluste
 	return &V2GetPresignedForClusterCredentialsBadRequest{}
 }
 
-/*V2GetPresignedForClusterCredentialsBadRequest handles this case with default header values.
+/* V2GetPresignedForClusterCredentialsBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -126,7 +124,6 @@ type V2GetPresignedForClusterCredentialsBadRequest struct {
 func (o *V2GetPresignedForClusterCredentialsBadRequest) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2GetPresignedForClusterCredentialsBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewV2GetPresignedForClusterCredentialsUnauthorized() *V2GetPresignedForClus
 	return &V2GetPresignedForClusterCredentialsUnauthorized{}
 }
 
-/*V2GetPresignedForClusterCredentialsUnauthorized handles this case with default header values.
+/* V2GetPresignedForClusterCredentialsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -159,7 +156,6 @@ type V2GetPresignedForClusterCredentialsUnauthorized struct {
 func (o *V2GetPresignedForClusterCredentialsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2GetPresignedForClusterCredentialsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewV2GetPresignedForClusterCredentialsForbidden() *V2GetPresignedForCluster
 	return &V2GetPresignedForClusterCredentialsForbidden{}
 }
 
-/*V2GetPresignedForClusterCredentialsForbidden handles this case with default header values.
+/* V2GetPresignedForClusterCredentialsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -192,7 +188,6 @@ type V2GetPresignedForClusterCredentialsForbidden struct {
 func (o *V2GetPresignedForClusterCredentialsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2GetPresignedForClusterCredentialsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewV2GetPresignedForClusterCredentialsNotFound() *V2GetPresignedForClusterC
 	return &V2GetPresignedForClusterCredentialsNotFound{}
 }
 
-/*V2GetPresignedForClusterCredentialsNotFound handles this case with default header values.
+/* V2GetPresignedForClusterCredentialsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -225,7 +220,6 @@ type V2GetPresignedForClusterCredentialsNotFound struct {
 func (o *V2GetPresignedForClusterCredentialsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2GetPresignedForClusterCredentialsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewV2GetPresignedForClusterCredentialsMethodNotAllowed() *V2GetPresignedFor
 	return &V2GetPresignedForClusterCredentialsMethodNotAllowed{}
 }
 
-/*V2GetPresignedForClusterCredentialsMethodNotAllowed handles this case with default header values.
+/* V2GetPresignedForClusterCredentialsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -258,7 +252,6 @@ type V2GetPresignedForClusterCredentialsMethodNotAllowed struct {
 func (o *V2GetPresignedForClusterCredentialsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2GetPresignedForClusterCredentialsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewV2GetPresignedForClusterCredentialsConflict() *V2GetPresignedForClusterC
 	return &V2GetPresignedForClusterCredentialsConflict{}
 }
 
-/*V2GetPresignedForClusterCredentialsConflict handles this case with default header values.
+/* V2GetPresignedForClusterCredentialsConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -291,7 +284,6 @@ type V2GetPresignedForClusterCredentialsConflict struct {
 func (o *V2GetPresignedForClusterCredentialsConflict) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2GetPresignedForClusterCredentialsConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewV2GetPresignedForClusterCredentialsInternalServerError() *V2GetPresigned
 	return &V2GetPresignedForClusterCredentialsInternalServerError{}
 }
 
-/*V2GetPresignedForClusterCredentialsInternalServerError handles this case with default header values.
+/* V2GetPresignedForClusterCredentialsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -324,7 +316,6 @@ type V2GetPresignedForClusterCredentialsInternalServerError struct {
 func (o *V2GetPresignedForClusterCredentialsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2GetPresignedForClusterCredentialsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

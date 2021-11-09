@@ -72,7 +72,6 @@ func (o *DownloadHostIgnitionReader) ReadResponse(response runtime.ClientRespons
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -81,11 +80,12 @@ func (o *DownloadHostIgnitionReader) ReadResponse(response runtime.ClientRespons
 // NewDownloadHostIgnitionOK creates a DownloadHostIgnitionOK with default headers values
 func NewDownloadHostIgnitionOK(writer io.Writer) *DownloadHostIgnitionOK {
 	return &DownloadHostIgnitionOK{
+
 		Payload: writer,
 	}
 }
 
-/*DownloadHostIgnitionOK handles this case with default header values.
+/* DownloadHostIgnitionOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -96,7 +96,6 @@ type DownloadHostIgnitionOK struct {
 func (o *DownloadHostIgnitionOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionOK  %+v", 200, o.Payload)
 }
-
 func (o *DownloadHostIgnitionOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -116,7 +115,7 @@ func NewDownloadHostIgnitionUnauthorized() *DownloadHostIgnitionUnauthorized {
 	return &DownloadHostIgnitionUnauthorized{}
 }
 
-/*DownloadHostIgnitionUnauthorized handles this case with default header values.
+/* DownloadHostIgnitionUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -127,7 +126,6 @@ type DownloadHostIgnitionUnauthorized struct {
 func (o *DownloadHostIgnitionUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *DownloadHostIgnitionUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -149,7 +147,7 @@ func NewDownloadHostIgnitionForbidden() *DownloadHostIgnitionForbidden {
 	return &DownloadHostIgnitionForbidden{}
 }
 
-/*DownloadHostIgnitionForbidden handles this case with default header values.
+/* DownloadHostIgnitionForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -160,7 +158,6 @@ type DownloadHostIgnitionForbidden struct {
 func (o *DownloadHostIgnitionForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionForbidden  %+v", 403, o.Payload)
 }
-
 func (o *DownloadHostIgnitionForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -182,7 +179,7 @@ func NewDownloadHostIgnitionNotFound() *DownloadHostIgnitionNotFound {
 	return &DownloadHostIgnitionNotFound{}
 }
 
-/*DownloadHostIgnitionNotFound handles this case with default header values.
+/* DownloadHostIgnitionNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -193,7 +190,6 @@ type DownloadHostIgnitionNotFound struct {
 func (o *DownloadHostIgnitionNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionNotFound  %+v", 404, o.Payload)
 }
-
 func (o *DownloadHostIgnitionNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -215,7 +211,7 @@ func NewDownloadHostIgnitionMethodNotAllowed() *DownloadHostIgnitionMethodNotAll
 	return &DownloadHostIgnitionMethodNotAllowed{}
 }
 
-/*DownloadHostIgnitionMethodNotAllowed handles this case with default header values.
+/* DownloadHostIgnitionMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -226,7 +222,6 @@ type DownloadHostIgnitionMethodNotAllowed struct {
 func (o *DownloadHostIgnitionMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *DownloadHostIgnitionMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -248,7 +243,7 @@ func NewDownloadHostIgnitionConflict() *DownloadHostIgnitionConflict {
 	return &DownloadHostIgnitionConflict{}
 }
 
-/*DownloadHostIgnitionConflict handles this case with default header values.
+/* DownloadHostIgnitionConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -259,7 +254,6 @@ type DownloadHostIgnitionConflict struct {
 func (o *DownloadHostIgnitionConflict) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionConflict  %+v", 409, o.Payload)
 }
-
 func (o *DownloadHostIgnitionConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -281,7 +275,7 @@ func NewDownloadHostIgnitionInternalServerError() *DownloadHostIgnitionInternalS
 	return &DownloadHostIgnitionInternalServerError{}
 }
 
-/*DownloadHostIgnitionInternalServerError handles this case with default header values.
+/* DownloadHostIgnitionInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -292,7 +286,6 @@ type DownloadHostIgnitionInternalServerError struct {
 func (o *DownloadHostIgnitionInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *DownloadHostIgnitionInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -314,7 +307,7 @@ func NewDownloadHostIgnitionServiceUnavailable() *DownloadHostIgnitionServiceUna
 	return &DownloadHostIgnitionServiceUnavailable{}
 }
 
-/*DownloadHostIgnitionServiceUnavailable handles this case with default header values.
+/* DownloadHostIgnitionServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -325,7 +318,6 @@ type DownloadHostIgnitionServiceUnavailable struct {
 func (o *DownloadHostIgnitionServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *DownloadHostIgnitionServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

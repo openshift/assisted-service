@@ -71,7 +71,6 @@ func (o *V2UpdateClusterReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewV2UpdateClusterCreated() *V2UpdateClusterCreated {
 	return &V2UpdateClusterCreated{}
 }
 
-/*V2UpdateClusterCreated handles this case with default header values.
+/* V2UpdateClusterCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type V2UpdateClusterCreated struct {
 func (o *V2UpdateClusterCreated) Error() string {
 	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}][%d] v2UpdateClusterCreated  %+v", 201, o.Payload)
 }
-
 func (o *V2UpdateClusterCreated) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewV2UpdateClusterBadRequest() *V2UpdateClusterBadRequest {
 	return &V2UpdateClusterBadRequest{}
 }
 
-/*V2UpdateClusterBadRequest handles this case with default header values.
+/* V2UpdateClusterBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -126,7 +124,6 @@ type V2UpdateClusterBadRequest struct {
 func (o *V2UpdateClusterBadRequest) Error() string {
 	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}][%d] v2UpdateClusterBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2UpdateClusterBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewV2UpdateClusterUnauthorized() *V2UpdateClusterUnauthorized {
 	return &V2UpdateClusterUnauthorized{}
 }
 
-/*V2UpdateClusterUnauthorized handles this case with default header values.
+/* V2UpdateClusterUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -159,7 +156,6 @@ type V2UpdateClusterUnauthorized struct {
 func (o *V2UpdateClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}][%d] v2UpdateClusterUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2UpdateClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewV2UpdateClusterForbidden() *V2UpdateClusterForbidden {
 	return &V2UpdateClusterForbidden{}
 }
 
-/*V2UpdateClusterForbidden handles this case with default header values.
+/* V2UpdateClusterForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -192,7 +188,6 @@ type V2UpdateClusterForbidden struct {
 func (o *V2UpdateClusterForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}][%d] v2UpdateClusterForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2UpdateClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewV2UpdateClusterNotFound() *V2UpdateClusterNotFound {
 	return &V2UpdateClusterNotFound{}
 }
 
-/*V2UpdateClusterNotFound handles this case with default header values.
+/* V2UpdateClusterNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -225,7 +220,6 @@ type V2UpdateClusterNotFound struct {
 func (o *V2UpdateClusterNotFound) Error() string {
 	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}][%d] v2UpdateClusterNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2UpdateClusterNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewV2UpdateClusterMethodNotAllowed() *V2UpdateClusterMethodNotAllowed {
 	return &V2UpdateClusterMethodNotAllowed{}
 }
 
-/*V2UpdateClusterMethodNotAllowed handles this case with default header values.
+/* V2UpdateClusterMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -258,7 +252,6 @@ type V2UpdateClusterMethodNotAllowed struct {
 func (o *V2UpdateClusterMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}][%d] v2UpdateClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2UpdateClusterMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewV2UpdateClusterConflict() *V2UpdateClusterConflict {
 	return &V2UpdateClusterConflict{}
 }
 
-/*V2UpdateClusterConflict handles this case with default header values.
+/* V2UpdateClusterConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -291,7 +284,6 @@ type V2UpdateClusterConflict struct {
 func (o *V2UpdateClusterConflict) Error() string {
 	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}][%d] v2UpdateClusterConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2UpdateClusterConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewV2UpdateClusterInternalServerError() *V2UpdateClusterInternalServerError
 	return &V2UpdateClusterInternalServerError{}
 }
 
-/*V2UpdateClusterInternalServerError handles this case with default header values.
+/* V2UpdateClusterInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -324,7 +316,6 @@ type V2UpdateClusterInternalServerError struct {
 func (o *V2UpdateClusterInternalServerError) Error() string {
 	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}][%d] v2UpdateClusterInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2UpdateClusterInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

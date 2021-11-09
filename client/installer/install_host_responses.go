@@ -59,7 +59,6 @@ func (o *InstallHostReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewInstallHostAccepted() *InstallHostAccepted {
 	return &InstallHostAccepted{}
 }
 
-/*InstallHostAccepted handles this case with default header values.
+/* InstallHostAccepted describes a response with status code 202, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type InstallHostAccepted struct {
 func (o *InstallHostAccepted) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/install][%d] installHostAccepted  %+v", 202, o.Payload)
 }
-
 func (o *InstallHostAccepted) GetPayload() *models.Host {
 	return o.Payload
 }
@@ -103,7 +101,7 @@ func NewInstallHostUnauthorized() *InstallHostUnauthorized {
 	return &InstallHostUnauthorized{}
 }
 
-/*InstallHostUnauthorized handles this case with default header values.
+/* InstallHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -114,7 +112,6 @@ type InstallHostUnauthorized struct {
 func (o *InstallHostUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/install][%d] installHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *InstallHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -136,7 +133,7 @@ func NewInstallHostForbidden() *InstallHostForbidden {
 	return &InstallHostForbidden{}
 }
 
-/*InstallHostForbidden handles this case with default header values.
+/* InstallHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,7 +144,6 @@ type InstallHostForbidden struct {
 func (o *InstallHostForbidden) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/install][%d] installHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *InstallHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +165,7 @@ func NewInstallHostNotFound() *InstallHostNotFound {
 	return &InstallHostNotFound{}
 }
 
-/*InstallHostNotFound handles this case with default header values.
+/* InstallHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -180,7 +176,6 @@ type InstallHostNotFound struct {
 func (o *InstallHostNotFound) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/install][%d] installHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *InstallHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -202,7 +197,7 @@ func NewInstallHostConflict() *InstallHostConflict {
 	return &InstallHostConflict{}
 }
 
-/*InstallHostConflict handles this case with default header values.
+/* InstallHostConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -213,7 +208,6 @@ type InstallHostConflict struct {
 func (o *InstallHostConflict) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/install][%d] installHostConflict  %+v", 409, o.Payload)
 }
-
 func (o *InstallHostConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +229,7 @@ func NewInstallHostInternalServerError() *InstallHostInternalServerError {
 	return &InstallHostInternalServerError{}
 }
 
-/*InstallHostInternalServerError handles this case with default header values.
+/* InstallHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -246,7 +240,6 @@ type InstallHostInternalServerError struct {
 func (o *InstallHostInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/install][%d] installHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *InstallHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

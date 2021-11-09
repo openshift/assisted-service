@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewV2UpdateHostLogsProgressParams creates a new V2UpdateHostLogsProgressParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2UpdateHostLogsProgressParams() V2UpdateHostLogsProgressParams {
 
 	return V2UpdateHostLogsProgressParams{}
@@ -82,6 +84,11 @@ func (o *V2UpdateHostLogsProgressParams) BindRequest(r *http.Request, route *mid
 		} else {
 			// validate body object
 			if err := body.Validate(route.Formats); err != nil {
+				res = append(res, err)
+			}
+
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
 				res = append(res, err)
 			}
 

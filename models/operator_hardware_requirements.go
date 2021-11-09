@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -41,7 +43,6 @@ func (m *OperatorHardwareRequirements) Validate(formats strfmt.Registry) error {
 }
 
 func (m *OperatorHardwareRequirements) validateRequirements(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Requirements) { // not required
 		return nil
 	}
@@ -50,6 +51,38 @@ func (m *OperatorHardwareRequirements) validateRequirements(formats strfmt.Regis
 		if err := m.Requirements.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("requirements")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("requirements")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this operator hardware requirements based on the context it is used
+func (m *OperatorHardwareRequirements) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateRequirements(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *OperatorHardwareRequirements) contextValidateRequirements(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Requirements != nil {
+		if err := m.Requirements.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("requirements")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("requirements")
 			}
 			return err
 		}

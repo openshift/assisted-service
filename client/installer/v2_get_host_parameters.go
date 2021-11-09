@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2GetHostParams creates a new V2GetHostParams object
-// with the default values initialized.
+// NewV2GetHostParams creates a new V2GetHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2GetHostParams() *V2GetHostParams {
-	var ()
 	return &V2GetHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2GetHostParamsWithTimeout creates a new V2GetHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2GetHostParamsWithTimeout(timeout time.Duration) *V2GetHostParams {
-	var ()
 	return &V2GetHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2GetHostParamsWithContext creates a new V2GetHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2GetHostParamsWithContext(ctx context.Context) *V2GetHostParams {
-	var ()
 	return &V2GetHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2GetHostParamsWithHTTPClient creates a new V2GetHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2GetHostParamsWithHTTPClient(client *http.Client) *V2GetHostParams {
-	var ()
 	return &V2GetHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2GetHostParams contains all the parameters to send to the API endpoint
-for the v2 get host operation typically these are written to a http.Request
+/* V2GetHostParams contains all the parameters to send to the API endpoint
+   for the v2 get host operation.
+
+   Typically these are written to a http.Request.
 */
 type V2GetHostParams struct {
 
-	/*HostID
-	  The host that should be retrieved.
+	/* HostID.
 
+	   The host that should be retrieved.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*InfraEnvID
-	  The infra env of the host that should be retrieved.
 
+	/* InfraEnvID.
+
+	   The infra env of the host that should be retrieved.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 get host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetHostParams) WithDefaults() *V2GetHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 get host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 get host params

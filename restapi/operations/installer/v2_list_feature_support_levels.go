@@ -29,7 +29,7 @@ func NewV2ListFeatureSupportLevels(ctx *middleware.Context, handler V2ListFeatur
 	return &V2ListFeatureSupportLevels{Context: ctx, Handler: handler}
 }
 
-/*V2ListFeatureSupportLevels swagger:route GET /v2/feature-support-levels installer v2ListFeatureSupportLevels
+/* V2ListFeatureSupportLevels swagger:route GET /v2/feature-support-levels installer v2ListFeatureSupportLevels
 
 Retrieves the support levels for features for each OpenShift version.
 
@@ -42,21 +42,20 @@ type V2ListFeatureSupportLevels struct {
 func (o *V2ListFeatureSupportLevels) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewV2ListFeatureSupportLevelsParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *V2ListFeatureSupportLevels) ServeHTTP(rw http.ResponseWriter, r *http.R
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

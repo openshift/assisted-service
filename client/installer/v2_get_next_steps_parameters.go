@@ -16,69 +16,89 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2GetNextStepsParams creates a new V2GetNextStepsParams object
-// with the default values initialized.
+// NewV2GetNextStepsParams creates a new V2GetNextStepsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2GetNextStepsParams() *V2GetNextStepsParams {
-	var ()
 	return &V2GetNextStepsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2GetNextStepsParamsWithTimeout creates a new V2GetNextStepsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2GetNextStepsParamsWithTimeout(timeout time.Duration) *V2GetNextStepsParams {
-	var ()
 	return &V2GetNextStepsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2GetNextStepsParamsWithContext creates a new V2GetNextStepsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2GetNextStepsParamsWithContext(ctx context.Context) *V2GetNextStepsParams {
-	var ()
 	return &V2GetNextStepsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2GetNextStepsParamsWithHTTPClient creates a new V2GetNextStepsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2GetNextStepsParamsWithHTTPClient(client *http.Client) *V2GetNextStepsParams {
-	var ()
 	return &V2GetNextStepsParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2GetNextStepsParams contains all the parameters to send to the API endpoint
-for the v2 get next steps operation typically these are written to a http.Request
+/* V2GetNextStepsParams contains all the parameters to send to the API endpoint
+   for the v2 get next steps operation.
+
+   Typically these are written to a http.Request.
 */
 type V2GetNextStepsParams struct {
 
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is retrieving instructions.
+	/* DiscoveryAgentVersion.
 
+	   The software version of the discovery agent that is retrieving instructions.
 	*/
 	DiscoveryAgentVersion *string
-	/*HostID
-	  The host that is retrieving instructions.
 
+	/* HostID.
+
+	   The host that is retrieving instructions.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*InfraEnvID
-	  The infra env of the host that is retrieving instructions.
 
+	/* InfraEnvID.
+
+	   The infra env of the host that is retrieving instructions.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 get next steps params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetNextStepsParams) WithDefaults() *V2GetNextStepsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 get next steps params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2GetNextStepsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 get next steps params
@@ -161,7 +181,6 @@ func (o *V2GetNextStepsParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
 
 	// path param host_id

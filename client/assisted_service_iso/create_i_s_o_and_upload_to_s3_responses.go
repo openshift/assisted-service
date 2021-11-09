@@ -53,7 +53,6 @@ func (o *CreateISOAndUploadToS3Reader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -64,7 +63,7 @@ func NewCreateISOAndUploadToS3Created() *CreateISOAndUploadToS3Created {
 	return &CreateISOAndUploadToS3Created{}
 }
 
-/*CreateISOAndUploadToS3Created handles this case with default header values.
+/* CreateISOAndUploadToS3Created describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -85,7 +84,7 @@ func NewCreateISOAndUploadToS3BadRequest() *CreateISOAndUploadToS3BadRequest {
 	return &CreateISOAndUploadToS3BadRequest{}
 }
 
-/*CreateISOAndUploadToS3BadRequest handles this case with default header values.
+/* CreateISOAndUploadToS3BadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -96,7 +95,6 @@ type CreateISOAndUploadToS3BadRequest struct {
 func (o *CreateISOAndUploadToS3BadRequest) Error() string {
 	return fmt.Sprintf("[POST /v1/assisted-service-iso][%d] createISOAndUploadToS3BadRequest  %+v", 400, o.Payload)
 }
-
 func (o *CreateISOAndUploadToS3BadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -118,7 +116,7 @@ func NewCreateISOAndUploadToS3Unauthorized() *CreateISOAndUploadToS3Unauthorized
 	return &CreateISOAndUploadToS3Unauthorized{}
 }
 
-/*CreateISOAndUploadToS3Unauthorized handles this case with default header values.
+/* CreateISOAndUploadToS3Unauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -129,7 +127,6 @@ type CreateISOAndUploadToS3Unauthorized struct {
 func (o *CreateISOAndUploadToS3Unauthorized) Error() string {
 	return fmt.Sprintf("[POST /v1/assisted-service-iso][%d] createISOAndUploadToS3Unauthorized  %+v", 401, o.Payload)
 }
-
 func (o *CreateISOAndUploadToS3Unauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -151,7 +148,7 @@ func NewCreateISOAndUploadToS3Forbidden() *CreateISOAndUploadToS3Forbidden {
 	return &CreateISOAndUploadToS3Forbidden{}
 }
 
-/*CreateISOAndUploadToS3Forbidden handles this case with default header values.
+/* CreateISOAndUploadToS3Forbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -162,7 +159,6 @@ type CreateISOAndUploadToS3Forbidden struct {
 func (o *CreateISOAndUploadToS3Forbidden) Error() string {
 	return fmt.Sprintf("[POST /v1/assisted-service-iso][%d] createISOAndUploadToS3Forbidden  %+v", 403, o.Payload)
 }
-
 func (o *CreateISOAndUploadToS3Forbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -184,7 +180,7 @@ func NewCreateISOAndUploadToS3InternalServerError() *CreateISOAndUploadToS3Inter
 	return &CreateISOAndUploadToS3InternalServerError{}
 }
 
-/*CreateISOAndUploadToS3InternalServerError handles this case with default header values.
+/* CreateISOAndUploadToS3InternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -195,7 +191,6 @@ type CreateISOAndUploadToS3InternalServerError struct {
 func (o *CreateISOAndUploadToS3InternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v1/assisted-service-iso][%d] createISOAndUploadToS3InternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *CreateISOAndUploadToS3InternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

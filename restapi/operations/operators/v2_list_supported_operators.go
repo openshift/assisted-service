@@ -29,7 +29,7 @@ func NewV2ListSupportedOperators(ctx *middleware.Context, handler V2ListSupporte
 	return &V2ListSupportedOperators{Context: ctx, Handler: handler}
 }
 
-/*V2ListSupportedOperators swagger:route GET /v2/supported-operators operators v2ListSupportedOperators
+/* V2ListSupportedOperators swagger:route GET /v2/supported-operators operators v2ListSupportedOperators
 
 Retrieves the list of supported operators.
 
@@ -42,21 +42,20 @@ type V2ListSupportedOperators struct {
 func (o *V2ListSupportedOperators) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewV2ListSupportedOperatorsParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *V2ListSupportedOperators) ServeHTTP(rw http.ResponseWriter, r *http.Req
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

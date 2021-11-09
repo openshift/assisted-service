@@ -29,7 +29,7 @@ func NewUpdateClusterLogsProgress(ctx *middleware.Context, handler UpdateCluster
 	return &UpdateClusterLogsProgress{Context: ctx, Handler: handler}
 }
 
-/*UpdateClusterLogsProgress swagger:route PUT /v1/clusters/{cluster_id}/logs_progress installer updateClusterLogsProgress
+/* UpdateClusterLogsProgress swagger:route PUT /v1/clusters/{cluster_id}/logs_progress installer updateClusterLogsProgress
 
 Update log collection state and progress.
 
@@ -42,21 +42,20 @@ type UpdateClusterLogsProgress struct {
 func (o *UpdateClusterLogsProgress) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewUpdateClusterLogsProgressParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *UpdateClusterLogsProgress) ServeHTTP(rw http.ResponseWriter, r *http.Re
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

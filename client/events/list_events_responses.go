@@ -59,7 +59,6 @@ func (o *ListEventsReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewListEventsOK() *ListEventsOK {
 	return &ListEventsOK{}
 }
 
-/*ListEventsOK handles this case with default header values.
+/* ListEventsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type ListEventsOK struct {
 func (o *ListEventsOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsOK  %+v", 200, o.Payload)
 }
-
 func (o *ListEventsOK) GetPayload() models.EventList {
 	return o.Payload
 }
@@ -101,7 +99,7 @@ func NewListEventsUnauthorized() *ListEventsUnauthorized {
 	return &ListEventsUnauthorized{}
 }
 
-/*ListEventsUnauthorized handles this case with default header values.
+/* ListEventsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -112,7 +110,6 @@ type ListEventsUnauthorized struct {
 func (o *ListEventsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *ListEventsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -134,7 +131,7 @@ func NewListEventsForbidden() *ListEventsForbidden {
 	return &ListEventsForbidden{}
 }
 
-/*ListEventsForbidden handles this case with default header values.
+/* ListEventsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -145,7 +142,6 @@ type ListEventsForbidden struct {
 func (o *ListEventsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *ListEventsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -167,7 +163,7 @@ func NewListEventsNotFound() *ListEventsNotFound {
 	return &ListEventsNotFound{}
 }
 
-/*ListEventsNotFound handles this case with default header values.
+/* ListEventsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -178,7 +174,6 @@ type ListEventsNotFound struct {
 func (o *ListEventsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *ListEventsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -200,7 +195,7 @@ func NewListEventsMethodNotAllowed() *ListEventsMethodNotAllowed {
 	return &ListEventsMethodNotAllowed{}
 }
 
-/*ListEventsMethodNotAllowed handles this case with default header values.
+/* ListEventsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -211,7 +206,6 @@ type ListEventsMethodNotAllowed struct {
 func (o *ListEventsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *ListEventsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -233,7 +227,7 @@ func NewListEventsInternalServerError() *ListEventsInternalServerError {
 	return &ListEventsInternalServerError{}
 }
 
-/*ListEventsInternalServerError handles this case with default header values.
+/* ListEventsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -244,7 +238,6 @@ type ListEventsInternalServerError struct {
 func (o *ListEventsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *ListEventsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

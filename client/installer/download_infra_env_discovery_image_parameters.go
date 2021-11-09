@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDownloadInfraEnvDiscoveryImageParams creates a new DownloadInfraEnvDiscoveryImageParams object
-// with the default values initialized.
+// NewDownloadInfraEnvDiscoveryImageParams creates a new DownloadInfraEnvDiscoveryImageParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewDownloadInfraEnvDiscoveryImageParams() *DownloadInfraEnvDiscoveryImageParams {
-	var ()
 	return &DownloadInfraEnvDiscoveryImageParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewDownloadInfraEnvDiscoveryImageParamsWithTimeout creates a new DownloadInfraEnvDiscoveryImageParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewDownloadInfraEnvDiscoveryImageParamsWithTimeout(timeout time.Duration) *DownloadInfraEnvDiscoveryImageParams {
-	var ()
 	return &DownloadInfraEnvDiscoveryImageParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewDownloadInfraEnvDiscoveryImageParamsWithContext creates a new DownloadInfraEnvDiscoveryImageParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewDownloadInfraEnvDiscoveryImageParamsWithContext(ctx context.Context) *DownloadInfraEnvDiscoveryImageParams {
-	var ()
 	return &DownloadInfraEnvDiscoveryImageParams{
-
 		Context: ctx,
 	}
 }
 
 // NewDownloadInfraEnvDiscoveryImageParamsWithHTTPClient creates a new DownloadInfraEnvDiscoveryImageParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewDownloadInfraEnvDiscoveryImageParamsWithHTTPClient(client *http.Client) *DownloadInfraEnvDiscoveryImageParams {
-	var ()
 	return &DownloadInfraEnvDiscoveryImageParams{
 		HTTPClient: client,
 	}
 }
 
-/*DownloadInfraEnvDiscoveryImageParams contains all the parameters to send to the API endpoint
-for the download infra env discovery image operation typically these are written to a http.Request
+/* DownloadInfraEnvDiscoveryImageParams contains all the parameters to send to the API endpoint
+   for the download infra env discovery image operation.
+
+   Typically these are written to a http.Request.
 */
 type DownloadInfraEnvDiscoveryImageParams struct {
 
-	/*InfraEnvID
-	  The InfraEnv whose image should be downloaded.
+	/* InfraEnvID.
 
+	   The InfraEnv whose image should be downloaded.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the download infra env discovery image params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadInfraEnvDiscoveryImageParams) WithDefaults() *DownloadInfraEnvDiscoveryImageParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the download infra env discovery image params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadInfraEnvDiscoveryImageParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the download infra env discovery image params

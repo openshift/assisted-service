@@ -515,7 +515,7 @@ func createVspherePlatformParams() *models.Platform {
 		VCenter:          &dummyField,
 	}
 	return &models.Platform{
-		Type:    models.PlatformTypeVsphere,
+		Type:    common.PlatformTypePtr(models.PlatformTypeVsphere),
 		Vsphere: &vspherePlatform,
 	}
 }
@@ -538,7 +538,7 @@ func createOvirtPlatformParams() *models.Platform {
 		VnicProfileID:   &VnicProfileID,
 	}
 	return &models.Platform{
-		Type:  models.PlatformTypeOvirt,
+		Type:  common.PlatformTypePtr(models.PlatformTypeOvirt),
 		Ovirt: &ovirtPlatform,
 	}
 }

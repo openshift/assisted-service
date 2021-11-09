@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2ResetHostParams creates a new V2ResetHostParams object
-// with the default values initialized.
+// NewV2ResetHostParams creates a new V2ResetHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2ResetHostParams() *V2ResetHostParams {
-	var ()
 	return &V2ResetHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2ResetHostParamsWithTimeout creates a new V2ResetHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2ResetHostParamsWithTimeout(timeout time.Duration) *V2ResetHostParams {
-	var ()
 	return &V2ResetHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2ResetHostParamsWithContext creates a new V2ResetHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2ResetHostParamsWithContext(ctx context.Context) *V2ResetHostParams {
-	var ()
 	return &V2ResetHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2ResetHostParamsWithHTTPClient creates a new V2ResetHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2ResetHostParamsWithHTTPClient(client *http.Client) *V2ResetHostParams {
-	var ()
 	return &V2ResetHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2ResetHostParams contains all the parameters to send to the API endpoint
-for the v2 reset host operation typically these are written to a http.Request
+/* V2ResetHostParams contains all the parameters to send to the API endpoint
+   for the v2 reset host operation.
+
+   Typically these are written to a http.Request.
 */
 type V2ResetHostParams struct {
 
-	/*HostID
-	  The host that is being reset.
+	/* HostID.
 
+	   The host that is being reset.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*InfraEnvID
-	  The InfraEnv of the host that is being reset.
 
+	/* InfraEnvID.
+
+	   The InfraEnv of the host that is being reset.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 reset host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ResetHostParams) WithDefaults() *V2ResetHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 reset host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2ResetHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 reset host params

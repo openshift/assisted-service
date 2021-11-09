@@ -59,7 +59,6 @@ func (o *V2GetPreflightRequirementsReader) ReadResponse(response runtime.ClientR
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewV2GetPreflightRequirementsOK() *V2GetPreflightRequirementsOK {
 	return &V2GetPreflightRequirementsOK{}
 }
 
-/*V2GetPreflightRequirementsOK handles this case with default header values.
+/* V2GetPreflightRequirementsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type V2GetPreflightRequirementsOK struct {
 func (o *V2GetPreflightRequirementsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2GetPreflightRequirementsOK) GetPayload() *models.PreflightHardwareRequirements {
 	return o.Payload
 }
@@ -103,7 +101,7 @@ func NewV2GetPreflightRequirementsUnauthorized() *V2GetPreflightRequirementsUnau
 	return &V2GetPreflightRequirementsUnauthorized{}
 }
 
-/*V2GetPreflightRequirementsUnauthorized handles this case with default header values.
+/* V2GetPreflightRequirementsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -114,7 +112,6 @@ type V2GetPreflightRequirementsUnauthorized struct {
 func (o *V2GetPreflightRequirementsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2GetPreflightRequirementsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -136,7 +133,7 @@ func NewV2GetPreflightRequirementsForbidden() *V2GetPreflightRequirementsForbidd
 	return &V2GetPreflightRequirementsForbidden{}
 }
 
-/*V2GetPreflightRequirementsForbidden handles this case with default header values.
+/* V2GetPreflightRequirementsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,7 +144,6 @@ type V2GetPreflightRequirementsForbidden struct {
 func (o *V2GetPreflightRequirementsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2GetPreflightRequirementsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +165,7 @@ func NewV2GetPreflightRequirementsNotFound() *V2GetPreflightRequirementsNotFound
 	return &V2GetPreflightRequirementsNotFound{}
 }
 
-/*V2GetPreflightRequirementsNotFound handles this case with default header values.
+/* V2GetPreflightRequirementsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -180,7 +176,6 @@ type V2GetPreflightRequirementsNotFound struct {
 func (o *V2GetPreflightRequirementsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2GetPreflightRequirementsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -202,7 +197,7 @@ func NewV2GetPreflightRequirementsMethodNotAllowed() *V2GetPreflightRequirements
 	return &V2GetPreflightRequirementsMethodNotAllowed{}
 }
 
-/*V2GetPreflightRequirementsMethodNotAllowed handles this case with default header values.
+/* V2GetPreflightRequirementsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -213,7 +208,6 @@ type V2GetPreflightRequirementsMethodNotAllowed struct {
 func (o *V2GetPreflightRequirementsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2GetPreflightRequirementsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +229,7 @@ func NewV2GetPreflightRequirementsInternalServerError() *V2GetPreflightRequireme
 	return &V2GetPreflightRequirementsInternalServerError{}
 }
 
-/*V2GetPreflightRequirementsInternalServerError handles this case with default header values.
+/* V2GetPreflightRequirementsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -246,7 +240,6 @@ type V2GetPreflightRequirementsInternalServerError struct {
 func (o *V2GetPreflightRequirementsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2GetPreflightRequirementsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

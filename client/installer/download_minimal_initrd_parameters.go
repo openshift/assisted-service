@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDownloadMinimalInitrdParams creates a new DownloadMinimalInitrdParams object
-// with the default values initialized.
+// NewDownloadMinimalInitrdParams creates a new DownloadMinimalInitrdParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewDownloadMinimalInitrdParams() *DownloadMinimalInitrdParams {
-	var ()
 	return &DownloadMinimalInitrdParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewDownloadMinimalInitrdParamsWithTimeout creates a new DownloadMinimalInitrdParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewDownloadMinimalInitrdParamsWithTimeout(timeout time.Duration) *DownloadMinimalInitrdParams {
-	var ()
 	return &DownloadMinimalInitrdParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewDownloadMinimalInitrdParamsWithContext creates a new DownloadMinimalInitrdParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewDownloadMinimalInitrdParamsWithContext(ctx context.Context) *DownloadMinimalInitrdParams {
-	var ()
 	return &DownloadMinimalInitrdParams{
-
 		Context: ctx,
 	}
 }
 
 // NewDownloadMinimalInitrdParamsWithHTTPClient creates a new DownloadMinimalInitrdParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewDownloadMinimalInitrdParamsWithHTTPClient(client *http.Client) *DownloadMinimalInitrdParams {
-	var ()
 	return &DownloadMinimalInitrdParams{
 		HTTPClient: client,
 	}
 }
 
-/*DownloadMinimalInitrdParams contains all the parameters to send to the API endpoint
-for the download minimal initrd operation typically these are written to a http.Request
+/* DownloadMinimalInitrdParams contains all the parameters to send to the API endpoint
+   for the download minimal initrd operation.
+
+   Typically these are written to a http.Request.
 */
 type DownloadMinimalInitrdParams struct {
 
-	/*InfraEnvID
-	  The infra env of the host that should be retrieved.
+	/* InfraEnvID.
 
+	   The infra env of the host that should be retrieved.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the download minimal initrd params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadMinimalInitrdParams) WithDefaults() *DownloadMinimalInitrdParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the download minimal initrd params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadMinimalInitrdParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the download minimal initrd params

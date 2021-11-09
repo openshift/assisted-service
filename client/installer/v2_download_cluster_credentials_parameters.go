@@ -16,64 +16,81 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2DownloadClusterCredentialsParams creates a new V2DownloadClusterCredentialsParams object
-// with the default values initialized.
+// NewV2DownloadClusterCredentialsParams creates a new V2DownloadClusterCredentialsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2DownloadClusterCredentialsParams() *V2DownloadClusterCredentialsParams {
-	var ()
 	return &V2DownloadClusterCredentialsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2DownloadClusterCredentialsParamsWithTimeout creates a new V2DownloadClusterCredentialsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2DownloadClusterCredentialsParamsWithTimeout(timeout time.Duration) *V2DownloadClusterCredentialsParams {
-	var ()
 	return &V2DownloadClusterCredentialsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2DownloadClusterCredentialsParamsWithContext creates a new V2DownloadClusterCredentialsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2DownloadClusterCredentialsParamsWithContext(ctx context.Context) *V2DownloadClusterCredentialsParams {
-	var ()
 	return &V2DownloadClusterCredentialsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2DownloadClusterCredentialsParamsWithHTTPClient creates a new V2DownloadClusterCredentialsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2DownloadClusterCredentialsParamsWithHTTPClient(client *http.Client) *V2DownloadClusterCredentialsParams {
-	var ()
 	return &V2DownloadClusterCredentialsParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2DownloadClusterCredentialsParams contains all the parameters to send to the API endpoint
-for the v2 download cluster credentials operation typically these are written to a http.Request
+/* V2DownloadClusterCredentialsParams contains all the parameters to send to the API endpoint
+   for the v2 download cluster credentials operation.
+
+   Typically these are written to a http.Request.
 */
 type V2DownloadClusterCredentialsParams struct {
 
-	/*ClusterID
-	  The cluster that owns the credential file that should be downloaded.
+	/* ClusterID.
 
+	   The cluster that owns the credential file that should be downloaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*FileName
-	  The credential file to be downloaded.
 
+	/* FileName.
+
+	   The credential file to be downloaded.
 	*/
 	FileName string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 download cluster credentials params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DownloadClusterCredentialsParams) WithDefaults() *V2DownloadClusterCredentialsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 download cluster credentials params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DownloadClusterCredentialsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 download cluster credentials params
@@ -148,6 +165,7 @@ func (o *V2DownloadClusterCredentialsParams) WriteToRequest(r runtime.ClientRequ
 	qrFileName := o.FileName
 	qFileName := qrFileName
 	if qFileName != "" {
+
 		if err := r.SetQueryParam("file_name", qFileName); err != nil {
 			return err
 		}

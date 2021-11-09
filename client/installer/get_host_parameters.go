@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetHostParams creates a new GetHostParams object
-// with the default values initialized.
+// NewGetHostParams creates a new GetHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetHostParams() *GetHostParams {
-	var ()
 	return &GetHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetHostParamsWithTimeout creates a new GetHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetHostParamsWithTimeout(timeout time.Duration) *GetHostParams {
-	var ()
 	return &GetHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetHostParamsWithContext creates a new GetHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetHostParamsWithContext(ctx context.Context) *GetHostParams {
-	var ()
 	return &GetHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetHostParamsWithHTTPClient creates a new GetHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetHostParamsWithHTTPClient(client *http.Client) *GetHostParams {
-	var ()
 	return &GetHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetHostParams contains all the parameters to send to the API endpoint
-for the get host operation typically these are written to a http.Request
+/* GetHostParams contains all the parameters to send to the API endpoint
+   for the get host operation.
+
+   Typically these are written to a http.Request.
 */
 type GetHostParams struct {
 
-	/*ClusterID
-	  The cluster of the host that should be retrieved.
+	/* ClusterID.
 
+	   The cluster of the host that should be retrieved.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host that should be retrieved.
 
+	/* HostID.
+
+	   The host that should be retrieved.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetHostParams) WithDefaults() *GetHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get host params

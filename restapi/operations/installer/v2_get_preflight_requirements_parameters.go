@@ -15,7 +15,8 @@ import (
 )
 
 // NewV2GetPreflightRequirementsParams creates a new V2GetPreflightRequirementsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2GetPreflightRequirementsParams() V2GetPreflightRequirementsParams {
 
 	return V2GetPreflightRequirementsParams{}
@@ -50,7 +51,6 @@ func (o *V2GetPreflightRequirementsParams) BindRequest(r *http.Request, route *m
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

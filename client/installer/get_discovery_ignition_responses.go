@@ -59,7 +59,6 @@ func (o *GetDiscoveryIgnitionReader) ReadResponse(response runtime.ClientRespons
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewGetDiscoveryIgnitionOK() *GetDiscoveryIgnitionOK {
 	return &GetDiscoveryIgnitionOK{}
 }
 
-/*GetDiscoveryIgnitionOK handles this case with default header values.
+/* GetDiscoveryIgnitionOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type GetDiscoveryIgnitionOK struct {
 func (o *GetDiscoveryIgnitionOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionOK  %+v", 200, o.Payload)
 }
-
 func (o *GetDiscoveryIgnitionOK) GetPayload() *models.DiscoveryIgnitionParams {
 	return o.Payload
 }
@@ -103,7 +101,7 @@ func NewGetDiscoveryIgnitionUnauthorized() *GetDiscoveryIgnitionUnauthorized {
 	return &GetDiscoveryIgnitionUnauthorized{}
 }
 
-/*GetDiscoveryIgnitionUnauthorized handles this case with default header values.
+/* GetDiscoveryIgnitionUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -114,7 +112,6 @@ type GetDiscoveryIgnitionUnauthorized struct {
 func (o *GetDiscoveryIgnitionUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GetDiscoveryIgnitionUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -136,7 +133,7 @@ func NewGetDiscoveryIgnitionForbidden() *GetDiscoveryIgnitionForbidden {
 	return &GetDiscoveryIgnitionForbidden{}
 }
 
-/*GetDiscoveryIgnitionForbidden handles this case with default header values.
+/* GetDiscoveryIgnitionForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,7 +144,6 @@ type GetDiscoveryIgnitionForbidden struct {
 func (o *GetDiscoveryIgnitionForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GetDiscoveryIgnitionForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +165,7 @@ func NewGetDiscoveryIgnitionNotFound() *GetDiscoveryIgnitionNotFound {
 	return &GetDiscoveryIgnitionNotFound{}
 }
 
-/*GetDiscoveryIgnitionNotFound handles this case with default header values.
+/* GetDiscoveryIgnitionNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -180,7 +176,6 @@ type GetDiscoveryIgnitionNotFound struct {
 func (o *GetDiscoveryIgnitionNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionNotFound  %+v", 404, o.Payload)
 }
-
 func (o *GetDiscoveryIgnitionNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -202,7 +197,7 @@ func NewGetDiscoveryIgnitionMethodNotAllowed() *GetDiscoveryIgnitionMethodNotAll
 	return &GetDiscoveryIgnitionMethodNotAllowed{}
 }
 
-/*GetDiscoveryIgnitionMethodNotAllowed handles this case with default header values.
+/* GetDiscoveryIgnitionMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -213,7 +208,6 @@ type GetDiscoveryIgnitionMethodNotAllowed struct {
 func (o *GetDiscoveryIgnitionMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *GetDiscoveryIgnitionMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +229,7 @@ func NewGetDiscoveryIgnitionInternalServerError() *GetDiscoveryIgnitionInternalS
 	return &GetDiscoveryIgnitionInternalServerError{}
 }
 
-/*GetDiscoveryIgnitionInternalServerError handles this case with default header values.
+/* GetDiscoveryIgnitionInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -246,7 +240,6 @@ type GetDiscoveryIgnitionInternalServerError struct {
 func (o *GetDiscoveryIgnitionInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GetDiscoveryIgnitionInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

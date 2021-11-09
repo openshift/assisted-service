@@ -17,7 +17,8 @@ import (
 )
 
 // NewV2ListEventsParams creates a new V2ListEventsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2ListEventsParams() V2ListEventsParams {
 
 	return V2ListEventsParams{}
@@ -80,7 +81,6 @@ func (o *V2ListEventsParams) BindRequest(r *http.Request, route *middleware.Matc
 	if err := o.bindInfraEnvID(qInfraEnvID, qhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -91,7 +91,6 @@ func (o *V2ListEventsParams) BindRequest(r *http.Request, route *middleware.Matc
 //
 // Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
 func (o *V2ListEventsParams) bindCategories(rawData []string, hasKey bool, formats strfmt.Registry) error {
-
 	var qvCategories string
 	if len(rawData) > 0 {
 		qvCategories = rawData[len(rawData)-1]
@@ -124,6 +123,7 @@ func (o *V2ListEventsParams) bindClusterID(rawData []string, hasKey bool, format
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
@@ -160,6 +160,7 @@ func (o *V2ListEventsParams) bindHostID(rawData []string, hasKey bool, formats s
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
@@ -196,6 +197,7 @@ func (o *V2ListEventsParams) bindInfraEnvID(rawData []string, hasKey bool, forma
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}

@@ -93,7 +93,6 @@ func (o *ListClustersParams) BindRequest(r *http.Request, route *middleware.Matc
 	if err := o.bindWithHosts(qWithHosts, qhkWithHosts, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -104,7 +103,6 @@ func (o *ListClustersParams) BindRequest(r *http.Request, route *middleware.Matc
 //
 // Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
 func (o *ListClustersParams) bindAmsSubscriptionIds(rawData []string, hasKey bool, formats strfmt.Registry) error {
-
 	var qvAmsSubscriptionIds string
 	if len(rawData) > 0 {
 		qvAmsSubscriptionIds = rawData[len(rawData)-1]
@@ -160,6 +158,7 @@ func (o *ListClustersParams) bindOpenshiftClusterID(rawData []string, hasKey boo
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
@@ -196,6 +195,7 @@ func (o *ListClustersParams) bindWithHosts(rawData []string, hasKey bool, format
 
 	// Required: false
 	// AllowEmptyValue: true
+
 	if raw == "" { // empty values pass all other validations
 		// Default values have been previously initialized by NewListClustersParams()
 		return nil

@@ -18,69 +18,87 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewCompleteInstallationParams creates a new CompleteInstallationParams object
-// with the default values initialized.
+// NewCompleteInstallationParams creates a new CompleteInstallationParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewCompleteInstallationParams() *CompleteInstallationParams {
-	var ()
 	return &CompleteInstallationParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewCompleteInstallationParamsWithTimeout creates a new CompleteInstallationParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewCompleteInstallationParamsWithTimeout(timeout time.Duration) *CompleteInstallationParams {
-	var ()
 	return &CompleteInstallationParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewCompleteInstallationParamsWithContext creates a new CompleteInstallationParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewCompleteInstallationParamsWithContext(ctx context.Context) *CompleteInstallationParams {
-	var ()
 	return &CompleteInstallationParams{
-
 		Context: ctx,
 	}
 }
 
 // NewCompleteInstallationParamsWithHTTPClient creates a new CompleteInstallationParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewCompleteInstallationParamsWithHTTPClient(client *http.Client) *CompleteInstallationParams {
-	var ()
 	return &CompleteInstallationParams{
 		HTTPClient: client,
 	}
 }
 
-/*CompleteInstallationParams contains all the parameters to send to the API endpoint
-for the complete installation operation typically these are written to a http.Request
+/* CompleteInstallationParams contains all the parameters to send to the API endpoint
+   for the complete installation operation.
+
+   Typically these are written to a http.Request.
 */
 type CompleteInstallationParams struct {
 
-	/*ClusterID
-	  The cluster whose installation is being completing.
+	/* ClusterID.
 
+	   The cluster whose installation is being completing.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*CompletionParams
-	  The final status of the cluster installation.
 
+	/* CompletionParams.
+
+	   The final status of the cluster installation.
 	*/
 	CompletionParams *models.CompletionParams
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is completing the installation.
 
+	/* DiscoveryAgentVersion.
+
+	   The software version of the discovery agent that is completing the installation.
 	*/
 	DiscoveryAgentVersion *string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the complete installation params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *CompleteInstallationParams) WithDefaults() *CompleteInstallationParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the complete installation params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *CompleteInstallationParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the complete installation params
@@ -161,7 +179,6 @@ func (o *CompleteInstallationParams) WriteToRequest(r runtime.ClientRequest, reg
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
-
 	if o.CompletionParams != nil {
 		if err := r.SetBodyParam(o.CompletionParams); err != nil {
 			return err
@@ -174,7 +191,6 @@ func (o *CompleteInstallationParams) WriteToRequest(r runtime.ClientRequest, reg
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
 
 	if len(res) > 0 {

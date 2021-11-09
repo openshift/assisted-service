@@ -17,7 +17,8 @@ import (
 )
 
 // NewUpdateClusterInstallConfigParams creates a new UpdateClusterInstallConfigParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewUpdateClusterInstallConfigParams() UpdateClusterInstallConfigParams {
 
 	return UpdateClusterInstallConfigParams{}

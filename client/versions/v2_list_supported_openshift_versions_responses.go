@@ -35,7 +35,6 @@ func (o *V2ListSupportedOpenshiftVersionsReader) ReadResponse(response runtime.C
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -46,7 +45,7 @@ func NewV2ListSupportedOpenshiftVersionsOK() *V2ListSupportedOpenshiftVersionsOK
 	return &V2ListSupportedOpenshiftVersionsOK{}
 }
 
-/*V2ListSupportedOpenshiftVersionsOK handles this case with default header values.
+/* V2ListSupportedOpenshiftVersionsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -57,7 +56,6 @@ type V2ListSupportedOpenshiftVersionsOK struct {
 func (o *V2ListSupportedOpenshiftVersionsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ListSupportedOpenshiftVersionsOK) GetPayload() models.OpenshiftVersions {
 	return o.Payload
 }
@@ -77,7 +75,7 @@ func NewV2ListSupportedOpenshiftVersionsServiceUnavailable() *V2ListSupportedOpe
 	return &V2ListSupportedOpenshiftVersionsServiceUnavailable{}
 }
 
-/*V2ListSupportedOpenshiftVersionsServiceUnavailable handles this case with default header values.
+/* V2ListSupportedOpenshiftVersionsServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -88,7 +86,6 @@ type V2ListSupportedOpenshiftVersionsServiceUnavailable struct {
 func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

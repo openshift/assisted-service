@@ -78,7 +78,6 @@ func (o *V2DownloadInfraEnvFilesReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -87,11 +86,12 @@ func (o *V2DownloadInfraEnvFilesReader) ReadResponse(response runtime.ClientResp
 // NewV2DownloadInfraEnvFilesOK creates a V2DownloadInfraEnvFilesOK with default headers values
 func NewV2DownloadInfraEnvFilesOK(writer io.Writer) *V2DownloadInfraEnvFilesOK {
 	return &V2DownloadInfraEnvFilesOK{
+
 		Payload: writer,
 	}
 }
 
-/*V2DownloadInfraEnvFilesOK handles this case with default header values.
+/* V2DownloadInfraEnvFilesOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -102,7 +102,6 @@ type V2DownloadInfraEnvFilesOK struct {
 func (o *V2DownloadInfraEnvFilesOK) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files][%d] v2DownloadInfraEnvFilesOK  %+v", 200, o.Payload)
 }
-
 func (o *V2DownloadInfraEnvFilesOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -122,7 +121,7 @@ func NewV2DownloadInfraEnvFilesUnauthorized() *V2DownloadInfraEnvFilesUnauthoriz
 	return &V2DownloadInfraEnvFilesUnauthorized{}
 }
 
-/*V2DownloadInfraEnvFilesUnauthorized handles this case with default header values.
+/* V2DownloadInfraEnvFilesUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -133,7 +132,6 @@ type V2DownloadInfraEnvFilesUnauthorized struct {
 func (o *V2DownloadInfraEnvFilesUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files][%d] v2DownloadInfraEnvFilesUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2DownloadInfraEnvFilesUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -155,7 +153,7 @@ func NewV2DownloadInfraEnvFilesForbidden() *V2DownloadInfraEnvFilesForbidden {
 	return &V2DownloadInfraEnvFilesForbidden{}
 }
 
-/*V2DownloadInfraEnvFilesForbidden handles this case with default header values.
+/* V2DownloadInfraEnvFilesForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -166,7 +164,6 @@ type V2DownloadInfraEnvFilesForbidden struct {
 func (o *V2DownloadInfraEnvFilesForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files][%d] v2DownloadInfraEnvFilesForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2DownloadInfraEnvFilesForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -188,7 +185,7 @@ func NewV2DownloadInfraEnvFilesNotFound() *V2DownloadInfraEnvFilesNotFound {
 	return &V2DownloadInfraEnvFilesNotFound{}
 }
 
-/*V2DownloadInfraEnvFilesNotFound handles this case with default header values.
+/* V2DownloadInfraEnvFilesNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -199,7 +196,6 @@ type V2DownloadInfraEnvFilesNotFound struct {
 func (o *V2DownloadInfraEnvFilesNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files][%d] v2DownloadInfraEnvFilesNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2DownloadInfraEnvFilesNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -221,7 +217,7 @@ func NewV2DownloadInfraEnvFilesMethodNotAllowed() *V2DownloadInfraEnvFilesMethod
 	return &V2DownloadInfraEnvFilesMethodNotAllowed{}
 }
 
-/*V2DownloadInfraEnvFilesMethodNotAllowed handles this case with default header values.
+/* V2DownloadInfraEnvFilesMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -232,7 +228,6 @@ type V2DownloadInfraEnvFilesMethodNotAllowed struct {
 func (o *V2DownloadInfraEnvFilesMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files][%d] v2DownloadInfraEnvFilesMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2DownloadInfraEnvFilesMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -254,7 +249,7 @@ func NewV2DownloadInfraEnvFilesConflict() *V2DownloadInfraEnvFilesConflict {
 	return &V2DownloadInfraEnvFilesConflict{}
 }
 
-/*V2DownloadInfraEnvFilesConflict handles this case with default header values.
+/* V2DownloadInfraEnvFilesConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -265,7 +260,6 @@ type V2DownloadInfraEnvFilesConflict struct {
 func (o *V2DownloadInfraEnvFilesConflict) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files][%d] v2DownloadInfraEnvFilesConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2DownloadInfraEnvFilesConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -287,7 +281,7 @@ func NewV2DownloadInfraEnvFilesInternalServerError() *V2DownloadInfraEnvFilesInt
 	return &V2DownloadInfraEnvFilesInternalServerError{}
 }
 
-/*V2DownloadInfraEnvFilesInternalServerError handles this case with default header values.
+/* V2DownloadInfraEnvFilesInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -298,7 +292,6 @@ type V2DownloadInfraEnvFilesInternalServerError struct {
 func (o *V2DownloadInfraEnvFilesInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files][%d] v2DownloadInfraEnvFilesInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2DownloadInfraEnvFilesInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -320,7 +313,7 @@ func NewV2DownloadInfraEnvFilesNotImplemented() *V2DownloadInfraEnvFilesNotImple
 	return &V2DownloadInfraEnvFilesNotImplemented{}
 }
 
-/*V2DownloadInfraEnvFilesNotImplemented handles this case with default header values.
+/* V2DownloadInfraEnvFilesNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -331,7 +324,6 @@ type V2DownloadInfraEnvFilesNotImplemented struct {
 func (o *V2DownloadInfraEnvFilesNotImplemented) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files][%d] v2DownloadInfraEnvFilesNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *V2DownloadInfraEnvFilesNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -353,7 +345,7 @@ func NewV2DownloadInfraEnvFilesServiceUnavailable() *V2DownloadInfraEnvFilesServ
 	return &V2DownloadInfraEnvFilesServiceUnavailable{}
 }
 
-/*V2DownloadInfraEnvFilesServiceUnavailable handles this case with default header values.
+/* V2DownloadInfraEnvFilesServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -364,7 +356,6 @@ type V2DownloadInfraEnvFilesServiceUnavailable struct {
 func (o *V2DownloadInfraEnvFilesServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files][%d] v2DownloadInfraEnvFilesServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2DownloadInfraEnvFilesServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

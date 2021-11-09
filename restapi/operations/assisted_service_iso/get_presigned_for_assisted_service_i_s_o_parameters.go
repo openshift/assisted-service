@@ -13,7 +13,8 @@ import (
 )
 
 // NewGetPresignedForAssistedServiceISOParams creates a new GetPresignedForAssistedServiceISOParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewGetPresignedForAssistedServiceISOParams() GetPresignedForAssistedServiceISOParams {
 
 	return GetPresignedForAssistedServiceISOParams{}

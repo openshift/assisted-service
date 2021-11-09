@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
@@ -89,7 +90,6 @@ func (m *OperatorProperty) validateDataTypeEnum(path, location string, value str
 }
 
 func (m *OperatorProperty) validateDataType(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.DataType) { // not required
 		return nil
 	}
@@ -99,6 +99,11 @@ func (m *OperatorProperty) validateDataType(formats strfmt.Registry) error {
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this operator property based on context it is used
+func (m *OperatorProperty) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

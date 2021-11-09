@@ -13,7 +13,8 @@ import (
 )
 
 // NewGetClusterDefaultConfigParams creates a new GetClusterDefaultConfigParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewGetClusterDefaultConfigParams() GetClusterDefaultConfigParams {
 
 	return GetClusterDefaultConfigParams{}

@@ -59,7 +59,6 @@ func (o *V2ListClustersReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewV2ListClustersOK() *V2ListClustersOK {
 	return &V2ListClustersOK{}
 }
 
-/*V2ListClustersOK handles this case with default header values.
+/* V2ListClustersOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type V2ListClustersOK struct {
 func (o *V2ListClustersOK) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters][%d] v2ListClustersOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ListClustersOK) GetPayload() models.ClusterList {
 	return o.Payload
 }
@@ -101,7 +99,7 @@ func NewV2ListClustersUnauthorized() *V2ListClustersUnauthorized {
 	return &V2ListClustersUnauthorized{}
 }
 
-/*V2ListClustersUnauthorized handles this case with default header values.
+/* V2ListClustersUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -112,7 +110,6 @@ type V2ListClustersUnauthorized struct {
 func (o *V2ListClustersUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters][%d] v2ListClustersUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2ListClustersUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -134,7 +131,7 @@ func NewV2ListClustersForbidden() *V2ListClustersForbidden {
 	return &V2ListClustersForbidden{}
 }
 
-/*V2ListClustersForbidden handles this case with default header values.
+/* V2ListClustersForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -145,7 +142,6 @@ type V2ListClustersForbidden struct {
 func (o *V2ListClustersForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters][%d] v2ListClustersForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2ListClustersForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -167,7 +163,7 @@ func NewV2ListClustersMethodNotAllowed() *V2ListClustersMethodNotAllowed {
 	return &V2ListClustersMethodNotAllowed{}
 }
 
-/*V2ListClustersMethodNotAllowed handles this case with default header values.
+/* V2ListClustersMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -178,7 +174,6 @@ type V2ListClustersMethodNotAllowed struct {
 func (o *V2ListClustersMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters][%d] v2ListClustersMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2ListClustersMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -200,7 +195,7 @@ func NewV2ListClustersInternalServerError() *V2ListClustersInternalServerError {
 	return &V2ListClustersInternalServerError{}
 }
 
-/*V2ListClustersInternalServerError handles this case with default header values.
+/* V2ListClustersInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -211,7 +206,6 @@ type V2ListClustersInternalServerError struct {
 func (o *V2ListClustersInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters][%d] v2ListClustersInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2ListClustersInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -233,7 +227,7 @@ func NewV2ListClustersServiceUnavailable() *V2ListClustersServiceUnavailable {
 	return &V2ListClustersServiceUnavailable{}
 }
 
-/*V2ListClustersServiceUnavailable handles this case with default header values.
+/* V2ListClustersServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -244,7 +238,6 @@ type V2ListClustersServiceUnavailable struct {
 func (o *V2ListClustersServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters][%d] v2ListClustersServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2ListClustersServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

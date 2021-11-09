@@ -18,59 +18,73 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewCreateISOAndUploadToS3Params creates a new CreateISOAndUploadToS3Params object
-// with the default values initialized.
+// NewCreateISOAndUploadToS3Params creates a new CreateISOAndUploadToS3Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewCreateISOAndUploadToS3Params() *CreateISOAndUploadToS3Params {
-	var ()
 	return &CreateISOAndUploadToS3Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewCreateISOAndUploadToS3ParamsWithTimeout creates a new CreateISOAndUploadToS3Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewCreateISOAndUploadToS3ParamsWithTimeout(timeout time.Duration) *CreateISOAndUploadToS3Params {
-	var ()
 	return &CreateISOAndUploadToS3Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewCreateISOAndUploadToS3ParamsWithContext creates a new CreateISOAndUploadToS3Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewCreateISOAndUploadToS3ParamsWithContext(ctx context.Context) *CreateISOAndUploadToS3Params {
-	var ()
 	return &CreateISOAndUploadToS3Params{
-
 		Context: ctx,
 	}
 }
 
 // NewCreateISOAndUploadToS3ParamsWithHTTPClient creates a new CreateISOAndUploadToS3Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewCreateISOAndUploadToS3ParamsWithHTTPClient(client *http.Client) *CreateISOAndUploadToS3Params {
-	var ()
 	return &CreateISOAndUploadToS3Params{
 		HTTPClient: client,
 	}
 }
 
-/*CreateISOAndUploadToS3Params contains all the parameters to send to the API endpoint
-for the create i s o and upload to s3 operation typically these are written to a http.Request
+/* CreateISOAndUploadToS3Params contains all the parameters to send to the API endpoint
+   for the create i s o and upload to s3 operation.
+
+   Typically these are written to a http.Request.
 */
 type CreateISOAndUploadToS3Params struct {
 
-	/*AssistedServiceIsoCreateParams
-	  Parameters for creating an Assisted Service ISO.
+	/* AssistedServiceIsoCreateParams.
 
+	   Parameters for creating an Assisted Service ISO.
 	*/
 	AssistedServiceIsoCreateParams *models.AssistedServiceIsoCreateParams
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the create i s o and upload to s3 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *CreateISOAndUploadToS3Params) WithDefaults() *CreateISOAndUploadToS3Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the create i s o and upload to s3 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *CreateISOAndUploadToS3Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the create i s o and upload to s3 params
@@ -124,7 +138,6 @@ func (o *CreateISOAndUploadToS3Params) WriteToRequest(r runtime.ClientRequest, r
 		return err
 	}
 	var res []error
-
 	if o.AssistedServiceIsoCreateParams != nil {
 		if err := r.SetBodyParam(o.AssistedServiceIsoCreateParams); err != nil {
 			return err

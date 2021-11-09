@@ -29,7 +29,7 @@ func NewResetCluster(ctx *middleware.Context, handler ResetClusterHandler) *Rese
 	return &ResetCluster{Context: ctx, Handler: handler}
 }
 
-/*ResetCluster swagger:route POST /v1/clusters/{cluster_id}/actions/reset installer resetCluster
+/* ResetCluster swagger:route POST /v1/clusters/{cluster_id}/actions/reset installer resetCluster
 
 Resets a failed installation.
 
@@ -42,21 +42,20 @@ type ResetCluster struct {
 func (o *ResetCluster) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewResetClusterParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *ResetCluster) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

@@ -18,69 +18,89 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewBindHostParams creates a new BindHostParams object
-// with the default values initialized.
+// NewBindHostParams creates a new BindHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewBindHostParams() *BindHostParams {
-	var ()
 	return &BindHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewBindHostParamsWithTimeout creates a new BindHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewBindHostParamsWithTimeout(timeout time.Duration) *BindHostParams {
-	var ()
 	return &BindHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewBindHostParamsWithContext creates a new BindHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewBindHostParamsWithContext(ctx context.Context) *BindHostParams {
-	var ()
 	return &BindHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewBindHostParamsWithHTTPClient creates a new BindHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewBindHostParamsWithHTTPClient(client *http.Client) *BindHostParams {
-	var ()
 	return &BindHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*BindHostParams contains all the parameters to send to the API endpoint
-for the bind host operation typically these are written to a http.Request
+/* BindHostParams contains all the parameters to send to the API endpoint
+   for the bind host operation.
+
+   Typically these are written to a http.Request.
 */
 type BindHostParams struct {
 
-	/*BindHostParams
-	  The parameters for the host binding.
+	/* BindHostParams.
 
+	   The parameters for the host binding.
 	*/
 	BindHostParams *models.BindHostParams
-	/*HostID
-	  The host that is being bound.
 
+	/* HostID.
+
+	   The host that is being bound.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*InfraEnvID
-	  The infra env of the host that is being bound.
 
+	/* InfraEnvID.
+
+	   The infra env of the host that is being bound.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the bind host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *BindHostParams) WithDefaults() *BindHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the bind host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *BindHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the bind host params
@@ -156,7 +176,6 @@ func (o *BindHostParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 		return err
 	}
 	var res []error
-
 	if o.BindHostParams != nil {
 		if err := r.SetBodyParam(o.BindHostParams); err != nil {
 			return err

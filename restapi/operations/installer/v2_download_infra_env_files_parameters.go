@@ -16,7 +16,8 @@ import (
 )
 
 // NewV2DownloadInfraEnvFilesParams creates a new V2DownloadInfraEnvFilesParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2DownloadInfraEnvFilesParams() V2DownloadInfraEnvFilesParams {
 
 	return V2DownloadInfraEnvFilesParams{}
@@ -63,7 +64,6 @@ func (o *V2DownloadInfraEnvFilesParams) BindRequest(r *http.Request, route *midd
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -82,10 +82,10 @@ func (o *V2DownloadInfraEnvFilesParams) bindFileName(rawData []string, hasKey bo
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("file_name", "query", raw); err != nil {
 		return err
 	}
-
 	o.FileName = raw
 
 	if err := o.validateFileName(formats); err != nil {

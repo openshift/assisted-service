@@ -13,7 +13,8 @@ import (
 )
 
 // NewListSupportedOperatorsParams creates a new ListSupportedOperatorsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewListSupportedOperatorsParams() ListSupportedOperatorsParams {
 
 	return ListSupportedOperatorsParams{}

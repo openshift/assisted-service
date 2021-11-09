@@ -29,7 +29,6 @@ func (o *V2ListComponentVersionsReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -40,7 +39,7 @@ func NewV2ListComponentVersionsOK() *V2ListComponentVersionsOK {
 	return &V2ListComponentVersionsOK{}
 }
 
-/*V2ListComponentVersionsOK handles this case with default header values.
+/* V2ListComponentVersionsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -51,7 +50,6 @@ type V2ListComponentVersionsOK struct {
 func (o *V2ListComponentVersionsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/component-versions][%d] v2ListComponentVersionsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ListComponentVersionsOK) GetPayload() *models.ListVersions {
 	return o.Payload
 }

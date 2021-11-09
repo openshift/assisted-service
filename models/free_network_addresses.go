@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -46,7 +47,6 @@ func (m *FreeNetworkAddresses) Validate(formats strfmt.Registry) error {
 }
 
 func (m *FreeNetworkAddresses) validateFreeAddresses(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.FreeAddresses) { // not required
 		return nil
 	}
@@ -63,15 +63,19 @@ func (m *FreeNetworkAddresses) validateFreeAddresses(formats strfmt.Registry) er
 }
 
 func (m *FreeNetworkAddresses) validateNetwork(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Network) { // not required
 		return nil
 	}
 
-	if err := validate.Pattern("network", "body", string(m.Network), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+	if err := validate.Pattern("network", "body", m.Network, `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this free network addresses based on context it is used
+func (m *FreeNetworkAddresses) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

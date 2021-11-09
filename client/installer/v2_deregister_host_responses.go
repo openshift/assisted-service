@@ -65,7 +65,6 @@ func (o *V2DeregisterHostReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewV2DeregisterHostNoContent() *V2DeregisterHostNoContent {
 	return &V2DeregisterHostNoContent{}
 }
 
-/*V2DeregisterHostNoContent handles this case with default header values.
+/* V2DeregisterHostNoContent describes a response with status code 204, with default header values.
 
 Success.
 */
@@ -97,7 +96,7 @@ func NewV2DeregisterHostBadRequest() *V2DeregisterHostBadRequest {
 	return &V2DeregisterHostBadRequest{}
 }
 
-/*V2DeregisterHostBadRequest handles this case with default header values.
+/* V2DeregisterHostBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -108,7 +107,6 @@ type V2DeregisterHostBadRequest struct {
 func (o *V2DeregisterHostBadRequest) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2DeregisterHostBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -130,7 +128,7 @@ func NewV2DeregisterHostUnauthorized() *V2DeregisterHostUnauthorized {
 	return &V2DeregisterHostUnauthorized{}
 }
 
-/*V2DeregisterHostUnauthorized handles this case with default header values.
+/* V2DeregisterHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -141,7 +139,6 @@ type V2DeregisterHostUnauthorized struct {
 func (o *V2DeregisterHostUnauthorized) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2DeregisterHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -163,7 +160,7 @@ func NewV2DeregisterHostForbidden() *V2DeregisterHostForbidden {
 	return &V2DeregisterHostForbidden{}
 }
 
-/*V2DeregisterHostForbidden handles this case with default header values.
+/* V2DeregisterHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -174,7 +171,6 @@ type V2DeregisterHostForbidden struct {
 func (o *V2DeregisterHostForbidden) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2DeregisterHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -196,7 +192,7 @@ func NewV2DeregisterHostNotFound() *V2DeregisterHostNotFound {
 	return &V2DeregisterHostNotFound{}
 }
 
-/*V2DeregisterHostNotFound handles this case with default header values.
+/* V2DeregisterHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -207,7 +203,6 @@ type V2DeregisterHostNotFound struct {
 func (o *V2DeregisterHostNotFound) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2DeregisterHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -229,7 +224,7 @@ func NewV2DeregisterHostMethodNotAllowed() *V2DeregisterHostMethodNotAllowed {
 	return &V2DeregisterHostMethodNotAllowed{}
 }
 
-/*V2DeregisterHostMethodNotAllowed handles this case with default header values.
+/* V2DeregisterHostMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -240,7 +235,6 @@ type V2DeregisterHostMethodNotAllowed struct {
 func (o *V2DeregisterHostMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2DeregisterHostMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -262,7 +256,7 @@ func NewV2DeregisterHostInternalServerError() *V2DeregisterHostInternalServerErr
 	return &V2DeregisterHostInternalServerError{}
 }
 
-/*V2DeregisterHostInternalServerError handles this case with default header values.
+/* V2DeregisterHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -273,7 +267,6 @@ type V2DeregisterHostInternalServerError struct {
 func (o *V2DeregisterHostInternalServerError) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2DeregisterHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

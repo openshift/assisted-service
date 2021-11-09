@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewV2UpdateHostIgnitionParams creates a new V2UpdateHostIgnitionParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2UpdateHostIgnitionParams() V2UpdateHostIgnitionParams {
 
 	return V2UpdateHostIgnitionParams{}
@@ -75,6 +77,11 @@ func (o *V2UpdateHostIgnitionParams) BindRequest(r *http.Request, route *middlew
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.HostIgnitionParams = &body
 			}
@@ -82,6 +89,7 @@ func (o *V2UpdateHostIgnitionParams) BindRequest(r *http.Request, route *middlew
 	} else {
 		res = append(res, errors.Required("hostIgnitionParams", "body", ""))
 	}
+
 	rHostID, rhkHostID, _ := route.Params.GetOK("host_id")
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
 		res = append(res, err)
@@ -91,7 +99,6 @@ func (o *V2UpdateHostIgnitionParams) BindRequest(r *http.Request, route *middlew
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

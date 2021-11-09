@@ -15,7 +15,8 @@ import (
 )
 
 // NewInstallHostParams creates a new InstallHostParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewInstallHostParams() InstallHostParams {
 
 	return InstallHostParams{}
@@ -60,7 +61,6 @@ func (o *InstallHostParams) BindRequest(r *http.Request, route *middleware.Match
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

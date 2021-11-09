@@ -71,7 +71,6 @@ func (o *UpdateHostLogsProgressReader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewUpdateHostLogsProgressNoContent() *UpdateHostLogsProgressNoContent {
 	return &UpdateHostLogsProgressNoContent{}
 }
 
-/*UpdateHostLogsProgressNoContent handles this case with default header values.
+/* UpdateHostLogsProgressNoContent describes a response with status code 204, with default header values.
 
 Update cluster install progress.
 */
@@ -103,7 +102,7 @@ func NewUpdateHostLogsProgressUnauthorized() *UpdateHostLogsProgressUnauthorized
 	return &UpdateHostLogsProgressUnauthorized{}
 }
 
-/*UpdateHostLogsProgressUnauthorized handles this case with default header values.
+/* UpdateHostLogsProgressUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -114,7 +113,6 @@ type UpdateHostLogsProgressUnauthorized struct {
 func (o *UpdateHostLogsProgressUnauthorized) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *UpdateHostLogsProgressUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -136,7 +134,7 @@ func NewUpdateHostLogsProgressForbidden() *UpdateHostLogsProgressForbidden {
 	return &UpdateHostLogsProgressForbidden{}
 }
 
-/*UpdateHostLogsProgressForbidden handles this case with default header values.
+/* UpdateHostLogsProgressForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,7 +145,6 @@ type UpdateHostLogsProgressForbidden struct {
 func (o *UpdateHostLogsProgressForbidden) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressForbidden  %+v", 403, o.Payload)
 }
-
 func (o *UpdateHostLogsProgressForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +166,7 @@ func NewUpdateHostLogsProgressNotFound() *UpdateHostLogsProgressNotFound {
 	return &UpdateHostLogsProgressNotFound{}
 }
 
-/*UpdateHostLogsProgressNotFound handles this case with default header values.
+/* UpdateHostLogsProgressNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -180,7 +177,6 @@ type UpdateHostLogsProgressNotFound struct {
 func (o *UpdateHostLogsProgressNotFound) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressNotFound  %+v", 404, o.Payload)
 }
-
 func (o *UpdateHostLogsProgressNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -202,7 +198,7 @@ func NewUpdateHostLogsProgressMethodNotAllowed() *UpdateHostLogsProgressMethodNo
 	return &UpdateHostLogsProgressMethodNotAllowed{}
 }
 
-/*UpdateHostLogsProgressMethodNotAllowed handles this case with default header values.
+/* UpdateHostLogsProgressMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -213,7 +209,6 @@ type UpdateHostLogsProgressMethodNotAllowed struct {
 func (o *UpdateHostLogsProgressMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *UpdateHostLogsProgressMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +230,7 @@ func NewUpdateHostLogsProgressConflict() *UpdateHostLogsProgressConflict {
 	return &UpdateHostLogsProgressConflict{}
 }
 
-/*UpdateHostLogsProgressConflict handles this case with default header values.
+/* UpdateHostLogsProgressConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -246,7 +241,6 @@ type UpdateHostLogsProgressConflict struct {
 func (o *UpdateHostLogsProgressConflict) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressConflict  %+v", 409, o.Payload)
 }
-
 func (o *UpdateHostLogsProgressConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -268,7 +262,7 @@ func NewUpdateHostLogsProgressInternalServerError() *UpdateHostLogsProgressInter
 	return &UpdateHostLogsProgressInternalServerError{}
 }
 
-/*UpdateHostLogsProgressInternalServerError handles this case with default header values.
+/* UpdateHostLogsProgressInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -279,7 +273,6 @@ type UpdateHostLogsProgressInternalServerError struct {
 func (o *UpdateHostLogsProgressInternalServerError) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *UpdateHostLogsProgressInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -301,7 +294,7 @@ func NewUpdateHostLogsProgressServiceUnavailable() *UpdateHostLogsProgressServic
 	return &UpdateHostLogsProgressServiceUnavailable{}
 }
 
-/*UpdateHostLogsProgressServiceUnavailable handles this case with default header values.
+/* UpdateHostLogsProgressServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -312,7 +305,6 @@ type UpdateHostLogsProgressServiceUnavailable struct {
 func (o *UpdateHostLogsProgressServiceUnavailable) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *UpdateHostLogsProgressServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

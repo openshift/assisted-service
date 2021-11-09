@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewBindHostParams creates a new BindHostParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewBindHostParams() BindHostParams {
 
 	return BindHostParams{}
@@ -75,6 +77,11 @@ func (o *BindHostParams) BindRequest(r *http.Request, route *middleware.MatchedR
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.BindHostParams = &body
 			}
@@ -82,6 +89,7 @@ func (o *BindHostParams) BindRequest(r *http.Request, route *middleware.MatchedR
 	} else {
 		res = append(res, errors.Required("bindHostParams", "body", ""))
 	}
+
 	rHostID, rhkHostID, _ := route.Params.GetOK("host_id")
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
 		res = append(res, err)
@@ -91,7 +99,6 @@ func (o *BindHostParams) BindRequest(r *http.Request, route *middleware.MatchedR
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

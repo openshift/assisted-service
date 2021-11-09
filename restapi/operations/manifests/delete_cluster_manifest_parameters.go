@@ -81,7 +81,6 @@ func (o *DeleteClusterManifestParams) BindRequest(r *http.Request, route *middle
 	if err := o.bindFolder(qFolder, qhkFolder, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -133,10 +132,10 @@ func (o *DeleteClusterManifestParams) bindFileName(rawData []string, hasKey bool
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("file_name", "query", raw); err != nil {
 		return err
 	}
-
 	o.FileName = raw
 
 	return nil
@@ -151,11 +150,11 @@ func (o *DeleteClusterManifestParams) bindFolder(rawData []string, hasKey bool, 
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		// Default values have been previously initialized by NewDeleteClusterManifestParams()
 		return nil
 	}
-
 	o.Folder = &raw
 
 	if err := o.validateFolder(formats); err != nil {

@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDeregisterHostParams creates a new DeregisterHostParams object
-// with the default values initialized.
+// NewDeregisterHostParams creates a new DeregisterHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewDeregisterHostParams() *DeregisterHostParams {
-	var ()
 	return &DeregisterHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewDeregisterHostParamsWithTimeout creates a new DeregisterHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewDeregisterHostParamsWithTimeout(timeout time.Duration) *DeregisterHostParams {
-	var ()
 	return &DeregisterHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewDeregisterHostParamsWithContext creates a new DeregisterHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewDeregisterHostParamsWithContext(ctx context.Context) *DeregisterHostParams {
-	var ()
 	return &DeregisterHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewDeregisterHostParamsWithHTTPClient creates a new DeregisterHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewDeregisterHostParamsWithHTTPClient(client *http.Client) *DeregisterHostParams {
-	var ()
 	return &DeregisterHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*DeregisterHostParams contains all the parameters to send to the API endpoint
-for the deregister host operation typically these are written to a http.Request
+/* DeregisterHostParams contains all the parameters to send to the API endpoint
+   for the deregister host operation.
+
+   Typically these are written to a http.Request.
 */
 type DeregisterHostParams struct {
 
-	/*ClusterID
-	  The cluster of the host that should be deregistered.
+	/* ClusterID.
 
+	   The cluster of the host that should be deregistered.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host that should be deregistered.
 
+	/* HostID.
+
+	   The host that should be deregistered.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the deregister host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DeregisterHostParams) WithDefaults() *DeregisterHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the deregister host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DeregisterHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the deregister host params

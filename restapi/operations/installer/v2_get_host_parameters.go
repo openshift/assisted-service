@@ -15,7 +15,8 @@ import (
 )
 
 // NewV2GetHostParams creates a new V2GetHostParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2GetHostParams() V2GetHostParams {
 
 	return V2GetHostParams{}
@@ -60,7 +61,6 @@ func (o *V2GetHostParams) BindRequest(r *http.Request, route *middleware.Matched
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

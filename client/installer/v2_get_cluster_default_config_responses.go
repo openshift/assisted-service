@@ -47,7 +47,6 @@ func (o *V2GetClusterDefaultConfigReader) ReadResponse(response runtime.ClientRe
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -58,7 +57,7 @@ func NewV2GetClusterDefaultConfigOK() *V2GetClusterDefaultConfigOK {
 	return &V2GetClusterDefaultConfigOK{}
 }
 
-/*V2GetClusterDefaultConfigOK handles this case with default header values.
+/* V2GetClusterDefaultConfigOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -69,7 +68,6 @@ type V2GetClusterDefaultConfigOK struct {
 func (o *V2GetClusterDefaultConfigOK) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigOK  %+v", 200, o.Payload)
 }
-
 func (o *V2GetClusterDefaultConfigOK) GetPayload() *models.ClusterDefaultConfig {
 	return o.Payload
 }
@@ -91,7 +89,7 @@ func NewV2GetClusterDefaultConfigUnauthorized() *V2GetClusterDefaultConfigUnauth
 	return &V2GetClusterDefaultConfigUnauthorized{}
 }
 
-/*V2GetClusterDefaultConfigUnauthorized handles this case with default header values.
+/* V2GetClusterDefaultConfigUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -102,7 +100,6 @@ type V2GetClusterDefaultConfigUnauthorized struct {
 func (o *V2GetClusterDefaultConfigUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2GetClusterDefaultConfigUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -124,7 +121,7 @@ func NewV2GetClusterDefaultConfigForbidden() *V2GetClusterDefaultConfigForbidden
 	return &V2GetClusterDefaultConfigForbidden{}
 }
 
-/*V2GetClusterDefaultConfigForbidden handles this case with default header values.
+/* V2GetClusterDefaultConfigForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -135,7 +132,6 @@ type V2GetClusterDefaultConfigForbidden struct {
 func (o *V2GetClusterDefaultConfigForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2GetClusterDefaultConfigForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -157,7 +153,7 @@ func NewV2GetClusterDefaultConfigInternalServerError() *V2GetClusterDefaultConfi
 	return &V2GetClusterDefaultConfigInternalServerError{}
 }
 
-/*V2GetClusterDefaultConfigInternalServerError handles this case with default header values.
+/* V2GetClusterDefaultConfigInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -168,7 +164,6 @@ type V2GetClusterDefaultConfigInternalServerError struct {
 func (o *V2GetClusterDefaultConfigInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2GetClusterDefaultConfigInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

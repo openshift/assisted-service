@@ -15,7 +15,8 @@ import (
 )
 
 // NewV2ListClusterManifestsParams creates a new V2ListClusterManifestsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2ListClusterManifestsParams() V2ListClusterManifestsParams {
 
 	return V2ListClusterManifestsParams{}
@@ -50,7 +51,6 @@ func (o *V2ListClusterManifestsParams) BindRequest(r *http.Request, route *middl
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

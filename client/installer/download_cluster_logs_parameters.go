@@ -16,69 +16,89 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDownloadClusterLogsParams creates a new DownloadClusterLogsParams object
-// with the default values initialized.
+// NewDownloadClusterLogsParams creates a new DownloadClusterLogsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewDownloadClusterLogsParams() *DownloadClusterLogsParams {
-	var ()
 	return &DownloadClusterLogsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewDownloadClusterLogsParamsWithTimeout creates a new DownloadClusterLogsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewDownloadClusterLogsParamsWithTimeout(timeout time.Duration) *DownloadClusterLogsParams {
-	var ()
 	return &DownloadClusterLogsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewDownloadClusterLogsParamsWithContext creates a new DownloadClusterLogsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewDownloadClusterLogsParamsWithContext(ctx context.Context) *DownloadClusterLogsParams {
-	var ()
 	return &DownloadClusterLogsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewDownloadClusterLogsParamsWithHTTPClient creates a new DownloadClusterLogsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewDownloadClusterLogsParamsWithHTTPClient(client *http.Client) *DownloadClusterLogsParams {
-	var ()
 	return &DownloadClusterLogsParams{
 		HTTPClient: client,
 	}
 }
 
-/*DownloadClusterLogsParams contains all the parameters to send to the API endpoint
-for the download cluster logs operation typically these are written to a http.Request
+/* DownloadClusterLogsParams contains all the parameters to send to the API endpoint
+   for the download cluster logs operation.
+
+   Typically these are written to a http.Request.
 */
 type DownloadClusterLogsParams struct {
 
-	/*ClusterID
-	  The cluster whose logs should be downloaded.
+	/* ClusterID.
 
+	   The cluster whose logs should be downloaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  A specific host in the cluster whose logs should be downloaded.
 
+	/* HostID.
+
+	   A specific host in the cluster whose logs should be downloaded.
+
+	   Format: uuid
 	*/
 	HostID *strfmt.UUID
-	/*LogsType
-	  The type of logs to be downloaded.
 
+	/* LogsType.
+
+	   The type of logs to be downloaded.
 	*/
 	LogsType *string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the download cluster logs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadClusterLogsParams) WithDefaults() *DownloadClusterLogsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the download cluster logs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadClusterLogsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the download cluster logs params
@@ -164,32 +184,34 @@ func (o *DownloadClusterLogsParams) WriteToRequest(r runtime.ClientRequest, reg 
 
 		// query param host_id
 		var qrHostID strfmt.UUID
+
 		if o.HostID != nil {
 			qrHostID = *o.HostID
 		}
 		qHostID := qrHostID.String()
 		if qHostID != "" {
+
 			if err := r.SetQueryParam("host_id", qHostID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.LogsType != nil {
 
 		// query param logs_type
 		var qrLogsType string
+
 		if o.LogsType != nil {
 			qrLogsType = *o.LogsType
 		}
 		qLogsType := qrLogsType
 		if qLogsType != "" {
+
 			if err := r.SetQueryParam("logs_type", qLogsType); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if len(res) > 0 {

@@ -17,7 +17,8 @@ import (
 )
 
 // NewV2UpdateClusterInstallConfigParams creates a new V2UpdateClusterInstallConfigParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2UpdateClusterInstallConfigParams() V2UpdateClusterInstallConfigParams {
 
 	return V2UpdateClusterInstallConfigParams{}

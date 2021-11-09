@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewV2UploadClusterIngressCertParams creates a new V2UploadClusterIngressCertParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2UploadClusterIngressCertParams() V2UploadClusterIngressCertParams {
 
 	return V2UploadClusterIngressCertParams{}
@@ -83,6 +85,11 @@ func (o *V2UploadClusterIngressCertParams) BindRequest(r *http.Request, route *m
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.IngressCertParams = body
 			}
@@ -141,7 +148,6 @@ func (o *V2UploadClusterIngressCertParams) bindDiscoveryAgentVersion(rawData []s
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.DiscoveryAgentVersion = &raw
 
 	return nil

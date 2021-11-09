@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
@@ -95,7 +96,6 @@ func (m *OpenshiftVersion) validateSupportLevelEnum(path, location string, value
 }
 
 func (m *OpenshiftVersion) validateSupportLevel(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.SupportLevel) { // not required
 		return nil
 	}
@@ -105,6 +105,11 @@ func (m *OpenshiftVersion) validateSupportLevel(formats strfmt.Registry) error {
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this openshift version based on context it is used
+func (m *OpenshiftVersion) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

@@ -316,10 +316,10 @@ func (v *validator) compatibleWithClusterPlatform(c *validationContext) Validati
 		return ValidationSuccess
 	}
 
-	if c.inventory == nil || c.cluster.Platform.Type == "" {
+	if c.inventory == nil || common.PlatformTypeValue(c.cluster.Platform.Type) == "" {
 		return ValidationPending
 	}
-	supported, err := v.providerRegistry.IsHostSupported(c.cluster.Platform.Type, c.host)
+	supported, err := v.providerRegistry.IsHostSupported(common.PlatformTypeValue(c.cluster.Platform.Type), c.host)
 	if err != nil {
 		return ValidationError
 	}
@@ -332,11 +332,11 @@ func (v *validator) compatibleWithClusterPlatform(c *validationContext) Validati
 func (v *validator) printCompatibleWithClusterPlatform(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return fmt.Sprintf("Host is compatible with cluster platform %s", c.cluster.Platform.Type)
+		return fmt.Sprintf("Host is compatible with cluster platform %s", common.PlatformTypeValue(c.cluster.Platform.Type))
 	case ValidationFailure:
 		hostAvailablePlatforms, _ := v.providerRegistry.GetSupportedProvidersByHosts([]*models.Host{c.host})
 		return fmt.Sprintf("Host is not compatible with cluster platform %s; either disable this host or choose a compatible cluster platform (%v)",
-			c.cluster.Platform.Type, hostAvailablePlatforms)
+			common.PlatformTypeValue(c.cluster.Platform.Type), hostAvailablePlatforms)
 	case ValidationPending:
 		return "Missing inventory or platform isn't set"
 	default:

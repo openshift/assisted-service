@@ -18,69 +18,89 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewUpdateHostLogsProgressParams creates a new UpdateHostLogsProgressParams object
-// with the default values initialized.
+// NewUpdateHostLogsProgressParams creates a new UpdateHostLogsProgressParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUpdateHostLogsProgressParams() *UpdateHostLogsProgressParams {
-	var ()
 	return &UpdateHostLogsProgressParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUpdateHostLogsProgressParamsWithTimeout creates a new UpdateHostLogsProgressParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUpdateHostLogsProgressParamsWithTimeout(timeout time.Duration) *UpdateHostLogsProgressParams {
-	var ()
 	return &UpdateHostLogsProgressParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUpdateHostLogsProgressParamsWithContext creates a new UpdateHostLogsProgressParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUpdateHostLogsProgressParamsWithContext(ctx context.Context) *UpdateHostLogsProgressParams {
-	var ()
 	return &UpdateHostLogsProgressParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUpdateHostLogsProgressParamsWithHTTPClient creates a new UpdateHostLogsProgressParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUpdateHostLogsProgressParamsWithHTTPClient(client *http.Client) *UpdateHostLogsProgressParams {
-	var ()
 	return &UpdateHostLogsProgressParams{
 		HTTPClient: client,
 	}
 }
 
-/*UpdateHostLogsProgressParams contains all the parameters to send to the API endpoint
-for the update host logs progress operation typically these are written to a http.Request
+/* UpdateHostLogsProgressParams contains all the parameters to send to the API endpoint
+   for the update host logs progress operation.
+
+   Typically these are written to a http.Request.
 */
 type UpdateHostLogsProgressParams struct {
 
-	/*ClusterID
-	  The cluster whose log progress is being updated.
+	/* ClusterID.
 
+	   The cluster whose log progress is being updated.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host whose log progress is being updated.
 
+	/* HostID.
+
+	   The host whose log progress is being updated.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*LogsProgressParams
-	  Parameters for updating log progress.
 
+	/* LogsProgressParams.
+
+	   Parameters for updating log progress.
 	*/
 	LogsProgressParams *models.LogsProgressParams
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the update host logs progress params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateHostLogsProgressParams) WithDefaults() *UpdateHostLogsProgressParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the update host logs progress params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateHostLogsProgressParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the update host logs progress params
@@ -166,7 +186,6 @@ func (o *UpdateHostLogsProgressParams) WriteToRequest(r runtime.ClientRequest, r
 	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {
 		return err
 	}
-
 	if o.LogsProgressParams != nil {
 		if err := r.SetBodyParam(o.LogsProgressParams); err != nil {
 			return err

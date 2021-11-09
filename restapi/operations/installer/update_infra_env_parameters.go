@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewUpdateInfraEnvParams creates a new UpdateInfraEnvParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewUpdateInfraEnvParams() UpdateInfraEnvParams {
 
 	return UpdateInfraEnvParams{}
@@ -70,6 +72,11 @@ func (o *UpdateInfraEnvParams) BindRequest(r *http.Request, route *middleware.Ma
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.InfraEnvUpdateParams = &body
 			}
@@ -77,11 +84,11 @@ func (o *UpdateInfraEnvParams) BindRequest(r *http.Request, route *middleware.Ma
 	} else {
 		res = append(res, errors.Required("infraEnvUpdateParams", "body", ""))
 	}
+
 	rInfraEnvID, rhkInfraEnvID, _ := route.Params.GetOK("infra_env_id")
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

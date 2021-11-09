@@ -59,7 +59,6 @@ var _ = Describe("registrar", func() {
 		It("register a (soft) deleted cluster", func() {
 			Expect(db.Unscoped().Delete(&cluster).Error).ShouldNot(HaveOccurred())
 			Expect(db.Unscoped().Delete(infraEnv).Error).ShouldNot(HaveOccurred())
-
 			updateErr = registerManager.RegisterCluster(ctx, &cluster, true, models.ImageTypeFullIso)
 			Expect(updateErr).ShouldNot(HaveOccurred())
 

@@ -16,52 +16,66 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewListComponentVersionsParams creates a new ListComponentVersionsParams object
-// with the default values initialized.
+// NewListComponentVersionsParams creates a new ListComponentVersionsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewListComponentVersionsParams() *ListComponentVersionsParams {
-
 	return &ListComponentVersionsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewListComponentVersionsParamsWithTimeout creates a new ListComponentVersionsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewListComponentVersionsParamsWithTimeout(timeout time.Duration) *ListComponentVersionsParams {
-
 	return &ListComponentVersionsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewListComponentVersionsParamsWithContext creates a new ListComponentVersionsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewListComponentVersionsParamsWithContext(ctx context.Context) *ListComponentVersionsParams {
-
 	return &ListComponentVersionsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewListComponentVersionsParamsWithHTTPClient creates a new ListComponentVersionsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewListComponentVersionsParamsWithHTTPClient(client *http.Client) *ListComponentVersionsParams {
-
 	return &ListComponentVersionsParams{
 		HTTPClient: client,
 	}
 }
 
-/*ListComponentVersionsParams contains all the parameters to send to the API endpoint
-for the list component versions operation typically these are written to a http.Request
+/* ListComponentVersionsParams contains all the parameters to send to the API endpoint
+   for the list component versions operation.
+
+   Typically these are written to a http.Request.
 */
 type ListComponentVersionsParams struct {
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the list component versions params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListComponentVersionsParams) WithDefaults() *ListComponentVersionsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the list component versions params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListComponentVersionsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the list component versions params

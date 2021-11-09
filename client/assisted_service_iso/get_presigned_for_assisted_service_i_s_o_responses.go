@@ -53,7 +53,6 @@ func (o *GetPresignedForAssistedServiceISOReader) ReadResponse(response runtime.
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -64,7 +63,7 @@ func NewGetPresignedForAssistedServiceISOOK() *GetPresignedForAssistedServiceISO
 	return &GetPresignedForAssistedServiceISOOK{}
 }
 
-/*GetPresignedForAssistedServiceISOOK handles this case with default header values.
+/* GetPresignedForAssistedServiceISOOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -75,7 +74,6 @@ type GetPresignedForAssistedServiceISOOK struct {
 func (o *GetPresignedForAssistedServiceISOOK) Error() string {
 	return fmt.Sprintf("[GET /v1/assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOOK  %+v", 200, o.Payload)
 }
-
 func (o *GetPresignedForAssistedServiceISOOK) GetPayload() *models.Presigned {
 	return o.Payload
 }
@@ -97,7 +95,7 @@ func NewGetPresignedForAssistedServiceISOUnauthorized() *GetPresignedForAssisted
 	return &GetPresignedForAssistedServiceISOUnauthorized{}
 }
 
-/*GetPresignedForAssistedServiceISOUnauthorized handles this case with default header values.
+/* GetPresignedForAssistedServiceISOUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -108,7 +106,6 @@ type GetPresignedForAssistedServiceISOUnauthorized struct {
 func (o *GetPresignedForAssistedServiceISOUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GetPresignedForAssistedServiceISOUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -130,7 +127,7 @@ func NewGetPresignedForAssistedServiceISOForbidden() *GetPresignedForAssistedSer
 	return &GetPresignedForAssistedServiceISOForbidden{}
 }
 
-/*GetPresignedForAssistedServiceISOForbidden handles this case with default header values.
+/* GetPresignedForAssistedServiceISOForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -141,7 +138,6 @@ type GetPresignedForAssistedServiceISOForbidden struct {
 func (o *GetPresignedForAssistedServiceISOForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GetPresignedForAssistedServiceISOForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -163,7 +159,7 @@ func NewGetPresignedForAssistedServiceISONotFound() *GetPresignedForAssistedServ
 	return &GetPresignedForAssistedServiceISONotFound{}
 }
 
-/*GetPresignedForAssistedServiceISONotFound handles this case with default header values.
+/* GetPresignedForAssistedServiceISONotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -174,7 +170,6 @@ type GetPresignedForAssistedServiceISONotFound struct {
 func (o *GetPresignedForAssistedServiceISONotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISONotFound  %+v", 404, o.Payload)
 }
-
 func (o *GetPresignedForAssistedServiceISONotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -196,7 +191,7 @@ func NewGetPresignedForAssistedServiceISOInternalServerError() *GetPresignedForA
 	return &GetPresignedForAssistedServiceISOInternalServerError{}
 }
 
-/*GetPresignedForAssistedServiceISOInternalServerError handles this case with default header values.
+/* GetPresignedForAssistedServiceISOInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -207,7 +202,6 @@ type GetPresignedForAssistedServiceISOInternalServerError struct {
 func (o *GetPresignedForAssistedServiceISOInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GetPresignedForAssistedServiceISOInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

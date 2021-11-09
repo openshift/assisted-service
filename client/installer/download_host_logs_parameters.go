@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDownloadHostLogsParams creates a new DownloadHostLogsParams object
-// with the default values initialized.
+// NewDownloadHostLogsParams creates a new DownloadHostLogsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewDownloadHostLogsParams() *DownloadHostLogsParams {
-	var ()
 	return &DownloadHostLogsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewDownloadHostLogsParamsWithTimeout creates a new DownloadHostLogsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewDownloadHostLogsParamsWithTimeout(timeout time.Duration) *DownloadHostLogsParams {
-	var ()
 	return &DownloadHostLogsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewDownloadHostLogsParamsWithContext creates a new DownloadHostLogsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewDownloadHostLogsParamsWithContext(ctx context.Context) *DownloadHostLogsParams {
-	var ()
 	return &DownloadHostLogsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewDownloadHostLogsParamsWithHTTPClient creates a new DownloadHostLogsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewDownloadHostLogsParamsWithHTTPClient(client *http.Client) *DownloadHostLogsParams {
-	var ()
 	return &DownloadHostLogsParams{
 		HTTPClient: client,
 	}
 }
 
-/*DownloadHostLogsParams contains all the parameters to send to the API endpoint
-for the download host logs operation typically these are written to a http.Request
+/* DownloadHostLogsParams contains all the parameters to send to the API endpoint
+   for the download host logs operation.
+
+   Typically these are written to a http.Request.
 */
 type DownloadHostLogsParams struct {
 
-	/*ClusterID
-	  The cluster of the host whose logs should be downloaded.
+	/* ClusterID.
 
+	   The cluster of the host whose logs should be downloaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host whose logs should be downloaded.
 
+	/* HostID.
+
+	   The host whose logs should be downloaded.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the download host logs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadHostLogsParams) WithDefaults() *DownloadHostLogsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the download host logs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *DownloadHostLogsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the download host logs params

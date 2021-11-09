@@ -65,7 +65,6 @@ func (o *GetHostIgnitionReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewGetHostIgnitionOK() *GetHostIgnitionOK {
 	return &GetHostIgnitionOK{}
 }
 
-/*GetHostIgnitionOK handles this case with default header values.
+/* GetHostIgnitionOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type GetHostIgnitionOK struct {
 func (o *GetHostIgnitionOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionOK  %+v", 200, o.Payload)
 }
-
 func (o *GetHostIgnitionOK) GetPayload() *models.HostIgnitionParams {
 	return o.Payload
 }
@@ -109,7 +107,7 @@ func NewGetHostIgnitionUnauthorized() *GetHostIgnitionUnauthorized {
 	return &GetHostIgnitionUnauthorized{}
 }
 
-/*GetHostIgnitionUnauthorized handles this case with default header values.
+/* GetHostIgnitionUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -120,7 +118,6 @@ type GetHostIgnitionUnauthorized struct {
 func (o *GetHostIgnitionUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GetHostIgnitionUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -142,7 +139,7 @@ func NewGetHostIgnitionForbidden() *GetHostIgnitionForbidden {
 	return &GetHostIgnitionForbidden{}
 }
 
-/*GetHostIgnitionForbidden handles this case with default header values.
+/* GetHostIgnitionForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -153,7 +150,6 @@ type GetHostIgnitionForbidden struct {
 func (o *GetHostIgnitionForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GetHostIgnitionForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +171,7 @@ func NewGetHostIgnitionNotFound() *GetHostIgnitionNotFound {
 	return &GetHostIgnitionNotFound{}
 }
 
-/*GetHostIgnitionNotFound handles this case with default header values.
+/* GetHostIgnitionNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -186,7 +182,6 @@ type GetHostIgnitionNotFound struct {
 func (o *GetHostIgnitionNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionNotFound  %+v", 404, o.Payload)
 }
-
 func (o *GetHostIgnitionNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -208,7 +203,7 @@ func NewGetHostIgnitionMethodNotAllowed() *GetHostIgnitionMethodNotAllowed {
 	return &GetHostIgnitionMethodNotAllowed{}
 }
 
-/*GetHostIgnitionMethodNotAllowed handles this case with default header values.
+/* GetHostIgnitionMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -219,7 +214,6 @@ type GetHostIgnitionMethodNotAllowed struct {
 func (o *GetHostIgnitionMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *GetHostIgnitionMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +235,7 @@ func NewGetHostIgnitionConflict() *GetHostIgnitionConflict {
 	return &GetHostIgnitionConflict{}
 }
 
-/*GetHostIgnitionConflict handles this case with default header values.
+/* GetHostIgnitionConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -252,7 +246,6 @@ type GetHostIgnitionConflict struct {
 func (o *GetHostIgnitionConflict) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionConflict  %+v", 409, o.Payload)
 }
-
 func (o *GetHostIgnitionConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +267,7 @@ func NewGetHostIgnitionInternalServerError() *GetHostIgnitionInternalServerError
 	return &GetHostIgnitionInternalServerError{}
 }
 
-/*GetHostIgnitionInternalServerError handles this case with default header values.
+/* GetHostIgnitionInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -285,7 +278,6 @@ type GetHostIgnitionInternalServerError struct {
 func (o *GetHostIgnitionInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GetHostIgnitionInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

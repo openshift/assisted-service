@@ -15,7 +15,8 @@ import (
 )
 
 // NewGetClusterSupportedPlatformsParams creates a new GetClusterSupportedPlatformsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewGetClusterSupportedPlatformsParams() GetClusterSupportedPlatformsParams {
 
 	return GetClusterSupportedPlatformsParams{}
@@ -50,7 +51,6 @@ func (o *GetClusterSupportedPlatformsParams) BindRequest(r *http.Request, route 
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

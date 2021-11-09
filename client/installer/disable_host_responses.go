@@ -65,7 +65,6 @@ func (o *DisableHostReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewDisableHostOK() *DisableHostOK {
 	return &DisableHostOK{}
 }
 
-/*DisableHostOK handles this case with default header values.
+/* DisableHostOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type DisableHostOK struct {
 func (o *DisableHostOK) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostOK  %+v", 200, o.Payload)
 }
-
 func (o *DisableHostOK) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -109,7 +107,7 @@ func NewDisableHostUnauthorized() *DisableHostUnauthorized {
 	return &DisableHostUnauthorized{}
 }
 
-/*DisableHostUnauthorized handles this case with default header values.
+/* DisableHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -120,7 +118,6 @@ type DisableHostUnauthorized struct {
 func (o *DisableHostUnauthorized) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *DisableHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -142,7 +139,7 @@ func NewDisableHostForbidden() *DisableHostForbidden {
 	return &DisableHostForbidden{}
 }
 
-/*DisableHostForbidden handles this case with default header values.
+/* DisableHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -153,7 +150,6 @@ type DisableHostForbidden struct {
 func (o *DisableHostForbidden) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *DisableHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +171,7 @@ func NewDisableHostNotFound() *DisableHostNotFound {
 	return &DisableHostNotFound{}
 }
 
-/*DisableHostNotFound handles this case with default header values.
+/* DisableHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -186,7 +182,6 @@ type DisableHostNotFound struct {
 func (o *DisableHostNotFound) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *DisableHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -208,7 +203,7 @@ func NewDisableHostMethodNotAllowed() *DisableHostMethodNotAllowed {
 	return &DisableHostMethodNotAllowed{}
 }
 
-/*DisableHostMethodNotAllowed handles this case with default header values.
+/* DisableHostMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -219,7 +214,6 @@ type DisableHostMethodNotAllowed struct {
 func (o *DisableHostMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *DisableHostMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +235,7 @@ func NewDisableHostConflict() *DisableHostConflict {
 	return &DisableHostConflict{}
 }
 
-/*DisableHostConflict handles this case with default header values.
+/* DisableHostConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -252,7 +246,6 @@ type DisableHostConflict struct {
 func (o *DisableHostConflict) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostConflict  %+v", 409, o.Payload)
 }
-
 func (o *DisableHostConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +267,7 @@ func NewDisableHostInternalServerError() *DisableHostInternalServerError {
 	return &DisableHostInternalServerError{}
 }
 
-/*DisableHostInternalServerError handles this case with default header values.
+/* DisableHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -285,7 +278,6 @@ type DisableHostInternalServerError struct {
 func (o *DisableHostInternalServerError) Error() string {
 	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *DisableHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

@@ -16,79 +16,103 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2UploadLogsParams creates a new V2UploadLogsParams object
-// with the default values initialized.
+// NewV2UploadLogsParams creates a new V2UploadLogsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2UploadLogsParams() *V2UploadLogsParams {
-	var ()
 	return &V2UploadLogsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2UploadLogsParamsWithTimeout creates a new V2UploadLogsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2UploadLogsParamsWithTimeout(timeout time.Duration) *V2UploadLogsParams {
-	var ()
 	return &V2UploadLogsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2UploadLogsParamsWithContext creates a new V2UploadLogsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2UploadLogsParamsWithContext(ctx context.Context) *V2UploadLogsParams {
-	var ()
 	return &V2UploadLogsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2UploadLogsParamsWithHTTPClient creates a new V2UploadLogsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2UploadLogsParamsWithHTTPClient(client *http.Client) *V2UploadLogsParams {
-	var ()
 	return &V2UploadLogsParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2UploadLogsParams contains all the parameters to send to the API endpoint
-for the v2 upload logs operation typically these are written to a http.Request
+/* V2UploadLogsParams contains all the parameters to send to the API endpoint
+   for the v2 upload logs operation.
+
+   Typically these are written to a http.Request.
 */
 type V2UploadLogsParams struct {
 
-	/*ClusterID
-	  The cluster whose logs should be uploaded.
+	/* ClusterID.
 
+	   The cluster whose logs should be uploaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host whose logs should be uploaded.
 
+	/* HostID.
+
+	   The host whose logs should be uploaded.
+
+	   Format: uuid
 	*/
 	HostID *strfmt.UUID
-	/*InfraEnvID
-	  The infra_env_id of the host.
 
+	/* InfraEnvID.
+
+	   The infra_env_id of the host.
+
+	   Format: uuid
 	*/
 	InfraEnvID *strfmt.UUID
-	/*LogsType
-	  The type of log file to be uploaded.
 
+	/* LogsType.
+
+	   The type of log file to be uploaded.
 	*/
 	LogsType string
-	/*Upfile
-	  The log file to be uploaded.
 
+	/* Upfile.
+
+	   The log file to be uploaded.
 	*/
 	Upfile runtime.NamedReadCloser
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 upload logs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UploadLogsParams) WithDefaults() *V2UploadLogsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 upload logs params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2UploadLogsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 upload logs params
@@ -196,38 +220,41 @@ func (o *V2UploadLogsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 
 		// query param host_id
 		var qrHostID strfmt.UUID
+
 		if o.HostID != nil {
 			qrHostID = *o.HostID
 		}
 		qHostID := qrHostID.String()
 		if qHostID != "" {
+
 			if err := r.SetQueryParam("host_id", qHostID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.InfraEnvID != nil {
 
 		// query param infra_env_id
 		var qrInfraEnvID strfmt.UUID
+
 		if o.InfraEnvID != nil {
 			qrInfraEnvID = *o.InfraEnvID
 		}
 		qInfraEnvID := qrInfraEnvID.String()
 		if qInfraEnvID != "" {
+
 			if err := r.SetQueryParam("infra_env_id", qInfraEnvID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	// query param logs_type
 	qrLogsType := o.LogsType
 	qLogsType := qrLogsType
 	if qLogsType != "" {
+
 		if err := r.SetQueryParam("logs_type", qLogsType); err != nil {
 			return err
 		}
@@ -236,14 +263,11 @@ func (o *V2UploadLogsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 	if o.Upfile != nil {
 
 		if o.Upfile != nil {
-
 			// form file param upfile
 			if err := r.SetFileParam("upfile", o.Upfile); err != nil {
 				return err
 			}
-
 		}
-
 	}
 
 	if len(res) > 0 {

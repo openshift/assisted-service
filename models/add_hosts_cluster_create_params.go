@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -98,6 +100,11 @@ func (m *AddHostsClusterCreateParams) validateOpenshiftVersion(formats strfmt.Re
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this add hosts cluster create params based on context it is used
+func (m *AddHostsClusterCreateParams) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

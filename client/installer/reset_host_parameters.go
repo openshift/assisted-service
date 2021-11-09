@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewResetHostParams creates a new ResetHostParams object
-// with the default values initialized.
+// NewResetHostParams creates a new ResetHostParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewResetHostParams() *ResetHostParams {
-	var ()
 	return &ResetHostParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewResetHostParamsWithTimeout creates a new ResetHostParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewResetHostParamsWithTimeout(timeout time.Duration) *ResetHostParams {
-	var ()
 	return &ResetHostParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewResetHostParamsWithContext creates a new ResetHostParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewResetHostParamsWithContext(ctx context.Context) *ResetHostParams {
-	var ()
 	return &ResetHostParams{
-
 		Context: ctx,
 	}
 }
 
 // NewResetHostParamsWithHTTPClient creates a new ResetHostParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewResetHostParamsWithHTTPClient(client *http.Client) *ResetHostParams {
-	var ()
 	return &ResetHostParams{
 		HTTPClient: client,
 	}
 }
 
-/*ResetHostParams contains all the parameters to send to the API endpoint
-for the reset host operation typically these are written to a http.Request
+/* ResetHostParams contains all the parameters to send to the API endpoint
+   for the reset host operation.
+
+   Typically these are written to a http.Request.
 */
 type ResetHostParams struct {
 
-	/*ClusterID
-	  The cluster of the host that is being reset.
+	/* ClusterID.
 
+	   The cluster of the host that is being reset.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*HostID
-	  The host that is being reset.
 
+	/* HostID.
+
+	   The host that is being reset.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the reset host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ResetHostParams) WithDefaults() *ResetHostParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the reset host params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ResetHostParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the reset host params

@@ -77,7 +77,6 @@ func (o *UnbindHostReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -88,7 +87,7 @@ func NewUnbindHostOK() *UnbindHostOK {
 	return &UnbindHostOK{}
 }
 
-/*UnbindHostOK handles this case with default header values.
+/* UnbindHostOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -99,7 +98,6 @@ type UnbindHostOK struct {
 func (o *UnbindHostOK) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind][%d] unbindHostOK  %+v", 200, o.Payload)
 }
-
 func (o *UnbindHostOK) GetPayload() *models.Host {
 	return o.Payload
 }
@@ -121,7 +119,7 @@ func NewUnbindHostBadRequest() *UnbindHostBadRequest {
 	return &UnbindHostBadRequest{}
 }
 
-/*UnbindHostBadRequest handles this case with default header values.
+/* UnbindHostBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -132,7 +130,6 @@ type UnbindHostBadRequest struct {
 func (o *UnbindHostBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind][%d] unbindHostBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *UnbindHostBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -154,7 +151,7 @@ func NewUnbindHostUnauthorized() *UnbindHostUnauthorized {
 	return &UnbindHostUnauthorized{}
 }
 
-/*UnbindHostUnauthorized handles this case with default header values.
+/* UnbindHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -165,7 +162,6 @@ type UnbindHostUnauthorized struct {
 func (o *UnbindHostUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind][%d] unbindHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *UnbindHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -187,7 +183,7 @@ func NewUnbindHostForbidden() *UnbindHostForbidden {
 	return &UnbindHostForbidden{}
 }
 
-/*UnbindHostForbidden handles this case with default header values.
+/* UnbindHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -198,7 +194,6 @@ type UnbindHostForbidden struct {
 func (o *UnbindHostForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind][%d] unbindHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *UnbindHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -220,7 +215,7 @@ func NewUnbindHostNotFound() *UnbindHostNotFound {
 	return &UnbindHostNotFound{}
 }
 
-/*UnbindHostNotFound handles this case with default header values.
+/* UnbindHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -231,7 +226,6 @@ type UnbindHostNotFound struct {
 func (o *UnbindHostNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind][%d] unbindHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *UnbindHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -253,7 +247,7 @@ func NewUnbindHostMethodNotAllowed() *UnbindHostMethodNotAllowed {
 	return &UnbindHostMethodNotAllowed{}
 }
 
-/*UnbindHostMethodNotAllowed handles this case with default header values.
+/* UnbindHostMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -264,7 +258,6 @@ type UnbindHostMethodNotAllowed struct {
 func (o *UnbindHostMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind][%d] unbindHostMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *UnbindHostMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -286,7 +279,7 @@ func NewUnbindHostInternalServerError() *UnbindHostInternalServerError {
 	return &UnbindHostInternalServerError{}
 }
 
-/*UnbindHostInternalServerError handles this case with default header values.
+/* UnbindHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -297,7 +290,6 @@ type UnbindHostInternalServerError struct {
 func (o *UnbindHostInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind][%d] unbindHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *UnbindHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -319,7 +311,7 @@ func NewUnbindHostNotImplemented() *UnbindHostNotImplemented {
 	return &UnbindHostNotImplemented{}
 }
 
-/*UnbindHostNotImplemented handles this case with default header values.
+/* UnbindHostNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -330,7 +322,6 @@ type UnbindHostNotImplemented struct {
 func (o *UnbindHostNotImplemented) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind][%d] unbindHostNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *UnbindHostNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -352,7 +343,7 @@ func NewUnbindHostServiceUnavailable() *UnbindHostServiceUnavailable {
 	return &UnbindHostServiceUnavailable{}
 }
 
-/*UnbindHostServiceUnavailable handles this case with default header values.
+/* UnbindHostServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -363,7 +354,6 @@ type UnbindHostServiceUnavailable struct {
 func (o *UnbindHostServiceUnavailable) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind][%d] unbindHostServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *UnbindHostServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

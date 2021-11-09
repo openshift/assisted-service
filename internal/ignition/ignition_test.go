@@ -1083,7 +1083,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		It("produces a valid ignition v3.1 spec with static ips paramters", func() {
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			infraEnv.StaticNetworkConfig = formattedInput
-			infraEnv.Type = models.ImageTypeFullIso
+			infraEnv.Type = common.ImageTypePtr(models.ImageTypeFullIso)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 			Expect(err).NotTo(HaveOccurred())
@@ -1101,7 +1101,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		It("Doesn't include static network config for minimal isos", func() {
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			infraEnv.StaticNetworkConfig = formattedInput
-			infraEnv.Type = models.ImageTypeMinimalIso
+			infraEnv.Type = common.ImageTypePtr(models.ImageTypeMinimalIso)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 			Expect(err).NotTo(HaveOccurred())

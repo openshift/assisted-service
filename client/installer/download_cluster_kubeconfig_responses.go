@@ -66,7 +66,6 @@ func (o *DownloadClusterKubeconfigReader) ReadResponse(response runtime.ClientRe
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -75,11 +74,12 @@ func (o *DownloadClusterKubeconfigReader) ReadResponse(response runtime.ClientRe
 // NewDownloadClusterKubeconfigOK creates a DownloadClusterKubeconfigOK with default headers values
 func NewDownloadClusterKubeconfigOK(writer io.Writer) *DownloadClusterKubeconfigOK {
 	return &DownloadClusterKubeconfigOK{
+
 		Payload: writer,
 	}
 }
 
-/*DownloadClusterKubeconfigOK handles this case with default header values.
+/* DownloadClusterKubeconfigOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -90,7 +90,6 @@ type DownloadClusterKubeconfigOK struct {
 func (o *DownloadClusterKubeconfigOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigOK  %+v", 200, o.Payload)
 }
-
 func (o *DownloadClusterKubeconfigOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -110,7 +109,7 @@ func NewDownloadClusterKubeconfigUnauthorized() *DownloadClusterKubeconfigUnauth
 	return &DownloadClusterKubeconfigUnauthorized{}
 }
 
-/*DownloadClusterKubeconfigUnauthorized handles this case with default header values.
+/* DownloadClusterKubeconfigUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -121,7 +120,6 @@ type DownloadClusterKubeconfigUnauthorized struct {
 func (o *DownloadClusterKubeconfigUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *DownloadClusterKubeconfigUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -143,7 +141,7 @@ func NewDownloadClusterKubeconfigForbidden() *DownloadClusterKubeconfigForbidden
 	return &DownloadClusterKubeconfigForbidden{}
 }
 
-/*DownloadClusterKubeconfigForbidden handles this case with default header values.
+/* DownloadClusterKubeconfigForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -154,7 +152,6 @@ type DownloadClusterKubeconfigForbidden struct {
 func (o *DownloadClusterKubeconfigForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigForbidden  %+v", 403, o.Payload)
 }
-
 func (o *DownloadClusterKubeconfigForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -176,7 +173,7 @@ func NewDownloadClusterKubeconfigNotFound() *DownloadClusterKubeconfigNotFound {
 	return &DownloadClusterKubeconfigNotFound{}
 }
 
-/*DownloadClusterKubeconfigNotFound handles this case with default header values.
+/* DownloadClusterKubeconfigNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -187,7 +184,6 @@ type DownloadClusterKubeconfigNotFound struct {
 func (o *DownloadClusterKubeconfigNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigNotFound  %+v", 404, o.Payload)
 }
-
 func (o *DownloadClusterKubeconfigNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -209,7 +205,7 @@ func NewDownloadClusterKubeconfigMethodNotAllowed() *DownloadClusterKubeconfigMe
 	return &DownloadClusterKubeconfigMethodNotAllowed{}
 }
 
-/*DownloadClusterKubeconfigMethodNotAllowed handles this case with default header values.
+/* DownloadClusterKubeconfigMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -220,7 +216,6 @@ type DownloadClusterKubeconfigMethodNotAllowed struct {
 func (o *DownloadClusterKubeconfigMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *DownloadClusterKubeconfigMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -242,7 +237,7 @@ func NewDownloadClusterKubeconfigConflict() *DownloadClusterKubeconfigConflict {
 	return &DownloadClusterKubeconfigConflict{}
 }
 
-/*DownloadClusterKubeconfigConflict handles this case with default header values.
+/* DownloadClusterKubeconfigConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -253,7 +248,6 @@ type DownloadClusterKubeconfigConflict struct {
 func (o *DownloadClusterKubeconfigConflict) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigConflict  %+v", 409, o.Payload)
 }
-
 func (o *DownloadClusterKubeconfigConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -275,7 +269,7 @@ func NewDownloadClusterKubeconfigInternalServerError() *DownloadClusterKubeconfi
 	return &DownloadClusterKubeconfigInternalServerError{}
 }
 
-/*DownloadClusterKubeconfigInternalServerError handles this case with default header values.
+/* DownloadClusterKubeconfigInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -286,7 +280,6 @@ type DownloadClusterKubeconfigInternalServerError struct {
 func (o *DownloadClusterKubeconfigInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *DownloadClusterKubeconfigInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

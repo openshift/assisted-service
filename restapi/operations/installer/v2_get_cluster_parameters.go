@@ -76,7 +76,6 @@ func (o *V2GetClusterParams) BindRequest(r *http.Request, route *middleware.Matc
 	if err := o.bindGetUnregisteredClusters(r.Header[http.CanonicalHeaderKey("get_unregistered_clusters")], true, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -128,7 +127,6 @@ func (o *V2GetClusterParams) bindDiscoveryAgentVersion(rawData []string, hasKey 
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.DiscoveryAgentVersion = &raw
 
 	return nil

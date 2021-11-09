@@ -77,7 +77,6 @@ func (o *RegisterInfraEnvReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -88,7 +87,7 @@ func NewRegisterInfraEnvCreated() *RegisterInfraEnvCreated {
 	return &RegisterInfraEnvCreated{}
 }
 
-/*RegisterInfraEnvCreated handles this case with default header values.
+/* RegisterInfraEnvCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -99,7 +98,6 @@ type RegisterInfraEnvCreated struct {
 func (o *RegisterInfraEnvCreated) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvCreated  %+v", 201, o.Payload)
 }
-
 func (o *RegisterInfraEnvCreated) GetPayload() *models.InfraEnv {
 	return o.Payload
 }
@@ -121,7 +119,7 @@ func NewRegisterInfraEnvBadRequest() *RegisterInfraEnvBadRequest {
 	return &RegisterInfraEnvBadRequest{}
 }
 
-/*RegisterInfraEnvBadRequest handles this case with default header values.
+/* RegisterInfraEnvBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -132,7 +130,6 @@ type RegisterInfraEnvBadRequest struct {
 func (o *RegisterInfraEnvBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *RegisterInfraEnvBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -154,7 +151,7 @@ func NewRegisterInfraEnvUnauthorized() *RegisterInfraEnvUnauthorized {
 	return &RegisterInfraEnvUnauthorized{}
 }
 
-/*RegisterInfraEnvUnauthorized handles this case with default header values.
+/* RegisterInfraEnvUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -165,7 +162,6 @@ type RegisterInfraEnvUnauthorized struct {
 func (o *RegisterInfraEnvUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *RegisterInfraEnvUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -187,7 +183,7 @@ func NewRegisterInfraEnvForbidden() *RegisterInfraEnvForbidden {
 	return &RegisterInfraEnvForbidden{}
 }
 
-/*RegisterInfraEnvForbidden handles this case with default header values.
+/* RegisterInfraEnvForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -198,7 +194,6 @@ type RegisterInfraEnvForbidden struct {
 func (o *RegisterInfraEnvForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvForbidden  %+v", 403, o.Payload)
 }
-
 func (o *RegisterInfraEnvForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -220,7 +215,7 @@ func NewRegisterInfraEnvNotFound() *RegisterInfraEnvNotFound {
 	return &RegisterInfraEnvNotFound{}
 }
 
-/*RegisterInfraEnvNotFound handles this case with default header values.
+/* RegisterInfraEnvNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -231,7 +226,6 @@ type RegisterInfraEnvNotFound struct {
 func (o *RegisterInfraEnvNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvNotFound  %+v", 404, o.Payload)
 }
-
 func (o *RegisterInfraEnvNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -253,7 +247,7 @@ func NewRegisterInfraEnvMethodNotAllowed() *RegisterInfraEnvMethodNotAllowed {
 	return &RegisterInfraEnvMethodNotAllowed{}
 }
 
-/*RegisterInfraEnvMethodNotAllowed handles this case with default header values.
+/* RegisterInfraEnvMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -264,7 +258,6 @@ type RegisterInfraEnvMethodNotAllowed struct {
 func (o *RegisterInfraEnvMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *RegisterInfraEnvMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -286,7 +279,7 @@ func NewRegisterInfraEnvConflict() *RegisterInfraEnvConflict {
 	return &RegisterInfraEnvConflict{}
 }
 
-/*RegisterInfraEnvConflict handles this case with default header values.
+/* RegisterInfraEnvConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -297,7 +290,6 @@ type RegisterInfraEnvConflict struct {
 func (o *RegisterInfraEnvConflict) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvConflict  %+v", 409, o.Payload)
 }
-
 func (o *RegisterInfraEnvConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -319,7 +311,7 @@ func NewRegisterInfraEnvInternalServerError() *RegisterInfraEnvInternalServerErr
 	return &RegisterInfraEnvInternalServerError{}
 }
 
-/*RegisterInfraEnvInternalServerError handles this case with default header values.
+/* RegisterInfraEnvInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -330,7 +322,6 @@ type RegisterInfraEnvInternalServerError struct {
 func (o *RegisterInfraEnvInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *RegisterInfraEnvInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -352,7 +343,7 @@ func NewRegisterInfraEnvNotImplemented() *RegisterInfraEnvNotImplemented {
 	return &RegisterInfraEnvNotImplemented{}
 }
 
-/*RegisterInfraEnvNotImplemented handles this case with default header values.
+/* RegisterInfraEnvNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -363,7 +354,6 @@ type RegisterInfraEnvNotImplemented struct {
 func (o *RegisterInfraEnvNotImplemented) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *RegisterInfraEnvNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }

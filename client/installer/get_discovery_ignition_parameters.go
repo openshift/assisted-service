@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetDiscoveryIgnitionParams creates a new GetDiscoveryIgnitionParams object
-// with the default values initialized.
+// NewGetDiscoveryIgnitionParams creates a new GetDiscoveryIgnitionParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetDiscoveryIgnitionParams() *GetDiscoveryIgnitionParams {
-	var ()
 	return &GetDiscoveryIgnitionParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetDiscoveryIgnitionParamsWithTimeout creates a new GetDiscoveryIgnitionParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetDiscoveryIgnitionParamsWithTimeout(timeout time.Duration) *GetDiscoveryIgnitionParams {
-	var ()
 	return &GetDiscoveryIgnitionParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetDiscoveryIgnitionParamsWithContext creates a new GetDiscoveryIgnitionParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetDiscoveryIgnitionParamsWithContext(ctx context.Context) *GetDiscoveryIgnitionParams {
-	var ()
 	return &GetDiscoveryIgnitionParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetDiscoveryIgnitionParamsWithHTTPClient creates a new GetDiscoveryIgnitionParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetDiscoveryIgnitionParamsWithHTTPClient(client *http.Client) *GetDiscoveryIgnitionParams {
-	var ()
 	return &GetDiscoveryIgnitionParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetDiscoveryIgnitionParams contains all the parameters to send to the API endpoint
-for the get discovery ignition operation typically these are written to a http.Request
+/* GetDiscoveryIgnitionParams contains all the parameters to send to the API endpoint
+   for the get discovery ignition operation.
+
+   Typically these are written to a http.Request.
 */
 type GetDiscoveryIgnitionParams struct {
 
-	/*ClusterID
-	  The cluster for which the discovery ignition config should be retrieved.
+	/* ClusterID.
 
+	   The cluster for which the discovery ignition config should be retrieved.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get discovery ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetDiscoveryIgnitionParams) WithDefaults() *GetDiscoveryIgnitionParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get discovery ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetDiscoveryIgnitionParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get discovery ignition params

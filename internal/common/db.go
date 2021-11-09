@@ -353,7 +353,7 @@ func CreateInfraEnvForCluster(db *gorm.DB, cluster *Cluster, imageType models.Im
 		EmailDomain:      cluster.EmailDomain,
 		OrgID:            cluster.OrgID,
 		UserName:         cluster.UserName,
-		Type:             imageType,
+		Type:             ImageTypePtr(imageType),
 	},
 		PullSecret: cluster.PullSecret,
 		Generated:  false,

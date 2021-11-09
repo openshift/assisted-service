@@ -13,7 +13,8 @@ import (
 )
 
 // NewV2ListComponentVersionsParams creates a new V2ListComponentVersionsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2ListComponentVersionsParams() V2ListComponentVersionsParams {
 
 	return V2ListComponentVersionsParams{}

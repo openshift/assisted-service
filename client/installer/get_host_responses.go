@@ -59,7 +59,6 @@ func (o *GetHostReader) ReadResponse(response runtime.ClientResponse, consumer r
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewGetHostOK() *GetHostOK {
 	return &GetHostOK{}
 }
 
-/*GetHostOK handles this case with default header values.
+/* GetHostOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type GetHostOK struct {
 func (o *GetHostOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostOK  %+v", 200, o.Payload)
 }
-
 func (o *GetHostOK) GetPayload() *models.Host {
 	return o.Payload
 }
@@ -103,7 +101,7 @@ func NewGetHostUnauthorized() *GetHostUnauthorized {
 	return &GetHostUnauthorized{}
 }
 
-/*GetHostUnauthorized handles this case with default header values.
+/* GetHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -114,7 +112,6 @@ type GetHostUnauthorized struct {
 func (o *GetHostUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GetHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -136,7 +133,7 @@ func NewGetHostForbidden() *GetHostForbidden {
 	return &GetHostForbidden{}
 }
 
-/*GetHostForbidden handles this case with default header values.
+/* GetHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,7 +144,6 @@ type GetHostForbidden struct {
 func (o *GetHostForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GetHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +165,7 @@ func NewGetHostNotFound() *GetHostNotFound {
 	return &GetHostNotFound{}
 }
 
-/*GetHostNotFound handles this case with default header values.
+/* GetHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -180,7 +176,6 @@ type GetHostNotFound struct {
 func (o *GetHostNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *GetHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -202,7 +197,7 @@ func NewGetHostMethodNotAllowed() *GetHostMethodNotAllowed {
 	return &GetHostMethodNotAllowed{}
 }
 
-/*GetHostMethodNotAllowed handles this case with default header values.
+/* GetHostMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -213,7 +208,6 @@ type GetHostMethodNotAllowed struct {
 func (o *GetHostMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *GetHostMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +229,7 @@ func NewGetHostInternalServerError() *GetHostInternalServerError {
 	return &GetHostInternalServerError{}
 }
 
-/*GetHostInternalServerError handles this case with default header values.
+/* GetHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -246,7 +240,6 @@ type GetHostInternalServerError struct {
 func (o *GetHostInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GetHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

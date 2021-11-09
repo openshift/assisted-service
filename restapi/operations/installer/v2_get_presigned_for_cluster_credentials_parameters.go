@@ -16,7 +16,8 @@ import (
 )
 
 // NewV2GetPresignedForClusterCredentialsParams creates a new V2GetPresignedForClusterCredentialsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2GetPresignedForClusterCredentialsParams() V2GetPresignedForClusterCredentialsParams {
 
 	return V2GetPresignedForClusterCredentialsParams{}
@@ -63,7 +64,6 @@ func (o *V2GetPresignedForClusterCredentialsParams) BindRequest(r *http.Request,
 	if err := o.bindFileName(qFileName, qhkFileName, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -115,10 +115,10 @@ func (o *V2GetPresignedForClusterCredentialsParams) bindFileName(rawData []strin
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("file_name", "query", raw); err != nil {
 		return err
 	}
-
 	o.FileName = raw
 
 	if err := o.validateFileName(formats); err != nil {

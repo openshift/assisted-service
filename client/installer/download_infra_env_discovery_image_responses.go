@@ -78,7 +78,6 @@ func (o *DownloadInfraEnvDiscoveryImageReader) ReadResponse(response runtime.Cli
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -87,11 +86,12 @@ func (o *DownloadInfraEnvDiscoveryImageReader) ReadResponse(response runtime.Cli
 // NewDownloadInfraEnvDiscoveryImageOK creates a DownloadInfraEnvDiscoveryImageOK with default headers values
 func NewDownloadInfraEnvDiscoveryImageOK(writer io.Writer) *DownloadInfraEnvDiscoveryImageOK {
 	return &DownloadInfraEnvDiscoveryImageOK{
+
 		Payload: writer,
 	}
 }
 
-/*DownloadInfraEnvDiscoveryImageOK handles this case with default header values.
+/* DownloadInfraEnvDiscoveryImageOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -102,7 +102,6 @@ type DownloadInfraEnvDiscoveryImageOK struct {
 func (o *DownloadInfraEnvDiscoveryImageOK) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageOK  %+v", 200, o.Payload)
 }
-
 func (o *DownloadInfraEnvDiscoveryImageOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -122,7 +121,7 @@ func NewDownloadInfraEnvDiscoveryImageBadRequest() *DownloadInfraEnvDiscoveryIma
 	return &DownloadInfraEnvDiscoveryImageBadRequest{}
 }
 
-/*DownloadInfraEnvDiscoveryImageBadRequest handles this case with default header values.
+/* DownloadInfraEnvDiscoveryImageBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -133,7 +132,6 @@ type DownloadInfraEnvDiscoveryImageBadRequest struct {
 func (o *DownloadInfraEnvDiscoveryImageBadRequest) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *DownloadInfraEnvDiscoveryImageBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -155,7 +153,7 @@ func NewDownloadInfraEnvDiscoveryImageUnauthorized() *DownloadInfraEnvDiscoveryI
 	return &DownloadInfraEnvDiscoveryImageUnauthorized{}
 }
 
-/*DownloadInfraEnvDiscoveryImageUnauthorized handles this case with default header values.
+/* DownloadInfraEnvDiscoveryImageUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -166,7 +164,6 @@ type DownloadInfraEnvDiscoveryImageUnauthorized struct {
 func (o *DownloadInfraEnvDiscoveryImageUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *DownloadInfraEnvDiscoveryImageUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -188,7 +185,7 @@ func NewDownloadInfraEnvDiscoveryImageForbidden() *DownloadInfraEnvDiscoveryImag
 	return &DownloadInfraEnvDiscoveryImageForbidden{}
 }
 
-/*DownloadInfraEnvDiscoveryImageForbidden handles this case with default header values.
+/* DownloadInfraEnvDiscoveryImageForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -199,7 +196,6 @@ type DownloadInfraEnvDiscoveryImageForbidden struct {
 func (o *DownloadInfraEnvDiscoveryImageForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageForbidden  %+v", 403, o.Payload)
 }
-
 func (o *DownloadInfraEnvDiscoveryImageForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -221,7 +217,7 @@ func NewDownloadInfraEnvDiscoveryImageNotFound() *DownloadInfraEnvDiscoveryImage
 	return &DownloadInfraEnvDiscoveryImageNotFound{}
 }
 
-/*DownloadInfraEnvDiscoveryImageNotFound handles this case with default header values.
+/* DownloadInfraEnvDiscoveryImageNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -232,7 +228,6 @@ type DownloadInfraEnvDiscoveryImageNotFound struct {
 func (o *DownloadInfraEnvDiscoveryImageNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageNotFound  %+v", 404, o.Payload)
 }
-
 func (o *DownloadInfraEnvDiscoveryImageNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -254,7 +249,7 @@ func NewDownloadInfraEnvDiscoveryImageMethodNotAllowed() *DownloadInfraEnvDiscov
 	return &DownloadInfraEnvDiscoveryImageMethodNotAllowed{}
 }
 
-/*DownloadInfraEnvDiscoveryImageMethodNotAllowed handles this case with default header values.
+/* DownloadInfraEnvDiscoveryImageMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -275,7 +270,7 @@ func NewDownloadInfraEnvDiscoveryImageConflict() *DownloadInfraEnvDiscoveryImage
 	return &DownloadInfraEnvDiscoveryImageConflict{}
 }
 
-/*DownloadInfraEnvDiscoveryImageConflict handles this case with default header values.
+/* DownloadInfraEnvDiscoveryImageConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -286,7 +281,6 @@ type DownloadInfraEnvDiscoveryImageConflict struct {
 func (o *DownloadInfraEnvDiscoveryImageConflict) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageConflict  %+v", 409, o.Payload)
 }
-
 func (o *DownloadInfraEnvDiscoveryImageConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -308,7 +302,7 @@ func NewDownloadInfraEnvDiscoveryImageInternalServerError() *DownloadInfraEnvDis
 	return &DownloadInfraEnvDiscoveryImageInternalServerError{}
 }
 
-/*DownloadInfraEnvDiscoveryImageInternalServerError handles this case with default header values.
+/* DownloadInfraEnvDiscoveryImageInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -319,7 +313,6 @@ type DownloadInfraEnvDiscoveryImageInternalServerError struct {
 func (o *DownloadInfraEnvDiscoveryImageInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *DownloadInfraEnvDiscoveryImageInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -341,7 +334,7 @@ func NewDownloadInfraEnvDiscoveryImageNotImplemented() *DownloadInfraEnvDiscover
 	return &DownloadInfraEnvDiscoveryImageNotImplemented{}
 }
 
-/*DownloadInfraEnvDiscoveryImageNotImplemented handles this case with default header values.
+/* DownloadInfraEnvDiscoveryImageNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -352,7 +345,6 @@ type DownloadInfraEnvDiscoveryImageNotImplemented struct {
 func (o *DownloadInfraEnvDiscoveryImageNotImplemented) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image][%d] downloadInfraEnvDiscoveryImageNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *DownloadInfraEnvDiscoveryImageNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }

@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -42,7 +44,6 @@ func (m *HostTypeHardwareRequirementsWrapper) Validate(formats strfmt.Registry) 
 }
 
 func (m *HostTypeHardwareRequirementsWrapper) validateMaster(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Master) { // not required
 		return nil
 	}
@@ -51,6 +52,8 @@ func (m *HostTypeHardwareRequirementsWrapper) validateMaster(formats strfmt.Regi
 		if err := m.Master.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("master")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("master")
 			}
 			return err
 		}
@@ -60,7 +63,6 @@ func (m *HostTypeHardwareRequirementsWrapper) validateMaster(formats strfmt.Regi
 }
 
 func (m *HostTypeHardwareRequirementsWrapper) validateWorker(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Worker) { // not required
 		return nil
 	}
@@ -69,6 +71,58 @@ func (m *HostTypeHardwareRequirementsWrapper) validateWorker(formats strfmt.Regi
 		if err := m.Worker.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("worker")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("worker")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this host type hardware requirements wrapper based on the context it is used
+func (m *HostTypeHardwareRequirementsWrapper) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateMaster(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateWorker(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *HostTypeHardwareRequirementsWrapper) contextValidateMaster(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Master != nil {
+		if err := m.Master.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("master")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("master")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *HostTypeHardwareRequirementsWrapper) contextValidateWorker(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Worker != nil {
+		if err := m.Worker.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("worker")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("worker")
 			}
 			return err
 		}

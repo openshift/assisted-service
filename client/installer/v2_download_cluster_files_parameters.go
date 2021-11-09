@@ -16,69 +16,87 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2DownloadClusterFilesParams creates a new V2DownloadClusterFilesParams object
-// with the default values initialized.
+// NewV2DownloadClusterFilesParams creates a new V2DownloadClusterFilesParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2DownloadClusterFilesParams() *V2DownloadClusterFilesParams {
-	var ()
 	return &V2DownloadClusterFilesParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2DownloadClusterFilesParamsWithTimeout creates a new V2DownloadClusterFilesParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2DownloadClusterFilesParamsWithTimeout(timeout time.Duration) *V2DownloadClusterFilesParams {
-	var ()
 	return &V2DownloadClusterFilesParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2DownloadClusterFilesParamsWithContext creates a new V2DownloadClusterFilesParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2DownloadClusterFilesParamsWithContext(ctx context.Context) *V2DownloadClusterFilesParams {
-	var ()
 	return &V2DownloadClusterFilesParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2DownloadClusterFilesParamsWithHTTPClient creates a new V2DownloadClusterFilesParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2DownloadClusterFilesParamsWithHTTPClient(client *http.Client) *V2DownloadClusterFilesParams {
-	var ()
 	return &V2DownloadClusterFilesParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2DownloadClusterFilesParams contains all the parameters to send to the API endpoint
-for the v2 download cluster files operation typically these are written to a http.Request
+/* V2DownloadClusterFilesParams contains all the parameters to send to the API endpoint
+   for the v2 download cluster files operation.
+
+   Typically these are written to a http.Request.
 */
 type V2DownloadClusterFilesParams struct {
 
-	/*ClusterID
-	  The cluster that owns the file that should be downloaded.
+	/* ClusterID.
 
+	   The cluster that owns the file that should be downloaded.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is downloading the file.
 
+	/* DiscoveryAgentVersion.
+
+	   The software version of the discovery agent that is downloading the file.
 	*/
 	DiscoveryAgentVersion *string
-	/*FileName
-	  The file to be downloaded.
 
+	/* FileName.
+
+	   The file to be downloaded.
 	*/
 	FileName string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 download cluster files params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DownloadClusterFilesParams) WithDefaults() *V2DownloadClusterFilesParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 download cluster files params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DownloadClusterFilesParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 download cluster files params
@@ -166,13 +184,13 @@ func (o *V2DownloadClusterFilesParams) WriteToRequest(r runtime.ClientRequest, r
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
 			return err
 		}
-
 	}
 
 	// query param file_name
 	qrFileName := o.FileName
 	qFileName := qrFileName
 	if qFileName != "" {
+
 		if err := r.SetQueryParam("file_name", qFileName); err != nil {
 			return err
 		}

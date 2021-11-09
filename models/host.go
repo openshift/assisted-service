@@ -6,8 +6,10 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
+	timeext "time"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -39,7 +41,7 @@ type Host struct {
 
 	// created at
 	// Format: date-time
-	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
+	CreatedAt timeext.Time `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// The time that the host was deleted.
 	// Format: date-time
@@ -67,6 +69,7 @@ type Host struct {
 	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
 
 	// Json formatted string containing the user overrides for the host's pointer ignition
+	// Example: {\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}
 	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty" gorm:"type:text"`
 
 	// A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
@@ -83,6 +86,7 @@ type Host struct {
 	InstallationDiskID string `json:"installation_disk_id,omitempty"`
 
 	// Contains the inventory disk path, This field is replaced by installation_disk_id field and used for backward compatability with the old UI.
+	// Example: /dev/sda
 	InstallationDiskPath string `json:"installation_disk_path,omitempty"`
 
 	// installer args
@@ -156,7 +160,7 @@ type Host struct {
 
 	// updated at
 	// Format: date-time
-	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
+	UpdatedAt timeext.Time `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// user name
 	UserName string `json:"user_name,omitempty"`
@@ -260,7 +264,6 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateCheckedInAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.CheckedInAt) { // not required
 		return nil
 	}
@@ -273,7 +276,6 @@ func (m *Host) validateCheckedInAt(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateClusterID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ClusterID) { // not required
 		return nil
 	}
@@ -286,7 +288,6 @@ func (m *Host) validateClusterID(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateCreatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
 	}
@@ -299,7 +300,6 @@ func (m *Host) validateCreatedAt(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateDeletedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.DeletedAt) { // not required
 		return nil
 	}
@@ -334,7 +334,6 @@ func (m *Host) validateID(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateInfraEnvID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.InfraEnvID) { // not required
 		return nil
 	}
@@ -390,7 +389,6 @@ func (m *Host) validateKind(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateLogsCollectedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.LogsCollectedAt) { // not required
 		return nil
 	}
@@ -403,7 +401,6 @@ func (m *Host) validateLogsCollectedAt(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateLogsInfo(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.LogsInfo) { // not required
 		return nil
 	}
@@ -411,6 +408,8 @@ func (m *Host) validateLogsInfo(formats strfmt.Registry) error {
 	if err := m.LogsInfo.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("logs_info")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("logs_info")
 		}
 		return err
 	}
@@ -419,7 +418,6 @@ func (m *Host) validateLogsInfo(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateLogsStartedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.LogsStartedAt) { // not required
 		return nil
 	}
@@ -432,7 +430,6 @@ func (m *Host) validateLogsStartedAt(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateProgress(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Progress) { // not required
 		return nil
 	}
@@ -441,6 +438,8 @@ func (m *Host) validateProgress(formats strfmt.Registry) error {
 		if err := m.Progress.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("progress")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("progress")
 			}
 			return err
 		}
@@ -450,7 +449,6 @@ func (m *Host) validateProgress(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateProgressStages(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ProgressStages) { // not required
 		return nil
 	}
@@ -460,6 +458,8 @@ func (m *Host) validateProgressStages(formats strfmt.Registry) error {
 		if err := m.ProgressStages[i].Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("progress_stages" + "." + strconv.Itoa(i))
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("progress_stages" + "." + strconv.Itoa(i))
 			}
 			return err
 		}
@@ -470,7 +470,6 @@ func (m *Host) validateProgressStages(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateRole(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Role) { // not required
 		return nil
 	}
@@ -478,6 +477,8 @@ func (m *Host) validateRole(formats strfmt.Registry) error {
 	if err := m.Role.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("role")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("role")
 		}
 		return err
 	}
@@ -486,7 +487,6 @@ func (m *Host) validateRole(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateStageStartedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StageStartedAt) { // not required
 		return nil
 	}
@@ -499,7 +499,6 @@ func (m *Host) validateStageStartedAt(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateStageUpdatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StageUpdatedAt) { // not required
 		return nil
 	}
@@ -636,7 +635,6 @@ func (m *Host) validateStatusInfo(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateStatusUpdatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StatusUpdatedAt) { // not required
 		return nil
 	}
@@ -649,7 +647,6 @@ func (m *Host) validateStatusUpdatedAt(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateSuggestedRole(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.SuggestedRole) { // not required
 		return nil
 	}
@@ -657,6 +654,8 @@ func (m *Host) validateSuggestedRole(formats strfmt.Registry) error {
 	if err := m.SuggestedRole.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("suggested_role")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("suggested_role")
 		}
 		return err
 	}
@@ -665,12 +664,117 @@ func (m *Host) validateSuggestedRole(formats strfmt.Registry) error {
 }
 
 func (m *Host) validateUpdatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.UpdatedAt) { // not required
 		return nil
 	}
 
 	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this host based on the context it is used
+func (m *Host) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateLogsInfo(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateProgress(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateProgressStages(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateRole(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateSuggestedRole(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *Host) contextValidateLogsInfo(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.LogsInfo.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("logs_info")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("logs_info")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) contextValidateProgress(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Progress != nil {
+		if err := m.Progress.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("progress")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("progress")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Host) contextValidateProgressStages(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.ProgressStages); i++ {
+
+		if err := m.ProgressStages[i].ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("progress_stages" + "." + strconv.Itoa(i))
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("progress_stages" + "." + strconv.Itoa(i))
+			}
+			return err
+		}
+
+	}
+
+	return nil
+}
+
+func (m *Host) contextValidateRole(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.Role.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("role")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("role")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) contextValidateSuggestedRole(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.SuggestedRole.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("suggested_role")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("suggested_role")
+		}
 		return err
 	}
 

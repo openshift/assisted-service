@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -33,5 +34,10 @@ func (m FreeAddressesList) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this free addresses list based on context it is used
+func (m FreeAddressesList) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

@@ -18,59 +18,73 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewRegisterAddHostsClusterParams creates a new RegisterAddHostsClusterParams object
-// with the default values initialized.
+// NewRegisterAddHostsClusterParams creates a new RegisterAddHostsClusterParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRegisterAddHostsClusterParams() *RegisterAddHostsClusterParams {
-	var ()
 	return &RegisterAddHostsClusterParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRegisterAddHostsClusterParamsWithTimeout creates a new RegisterAddHostsClusterParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRegisterAddHostsClusterParamsWithTimeout(timeout time.Duration) *RegisterAddHostsClusterParams {
-	var ()
 	return &RegisterAddHostsClusterParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewRegisterAddHostsClusterParamsWithContext creates a new RegisterAddHostsClusterParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRegisterAddHostsClusterParamsWithContext(ctx context.Context) *RegisterAddHostsClusterParams {
-	var ()
 	return &RegisterAddHostsClusterParams{
-
 		Context: ctx,
 	}
 }
 
 // NewRegisterAddHostsClusterParamsWithHTTPClient creates a new RegisterAddHostsClusterParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRegisterAddHostsClusterParamsWithHTTPClient(client *http.Client) *RegisterAddHostsClusterParams {
-	var ()
 	return &RegisterAddHostsClusterParams{
 		HTTPClient: client,
 	}
 }
 
-/*RegisterAddHostsClusterParams contains all the parameters to send to the API endpoint
-for the register add hosts cluster operation typically these are written to a http.Request
+/* RegisterAddHostsClusterParams contains all the parameters to send to the API endpoint
+   for the register add hosts cluster operation.
+
+   Typically these are written to a http.Request.
 */
 type RegisterAddHostsClusterParams struct {
 
-	/*NewAddHostsClusterParams
-	  Parameters for creating a new cluster for adding nodes.
+	/* NewAddHostsClusterParams.
 
+	   Parameters for creating a new cluster for adding nodes.
 	*/
 	NewAddHostsClusterParams *models.AddHostsClusterCreateParams
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the register add hosts cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RegisterAddHostsClusterParams) WithDefaults() *RegisterAddHostsClusterParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the register add hosts cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RegisterAddHostsClusterParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the register add hosts cluster params
@@ -124,7 +138,6 @@ func (o *RegisterAddHostsClusterParams) WriteToRequest(r runtime.ClientRequest, 
 		return err
 	}
 	var res []error
-
 	if o.NewAddHostsClusterParams != nil {
 		if err := r.SetBodyParam(o.NewAddHostsClusterParams); err != nil {
 			return err

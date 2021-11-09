@@ -59,7 +59,6 @@ func (o *V2RegisterClusterReader) ReadResponse(response runtime.ClientResponse, 
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewV2RegisterClusterCreated() *V2RegisterClusterCreated {
 	return &V2RegisterClusterCreated{}
 }
 
-/*V2RegisterClusterCreated handles this case with default header values.
+/* V2RegisterClusterCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type V2RegisterClusterCreated struct {
 func (o *V2RegisterClusterCreated) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterCreated  %+v", 201, o.Payload)
 }
-
 func (o *V2RegisterClusterCreated) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -103,7 +101,7 @@ func NewV2RegisterClusterBadRequest() *V2RegisterClusterBadRequest {
 	return &V2RegisterClusterBadRequest{}
 }
 
-/*V2RegisterClusterBadRequest handles this case with default header values.
+/* V2RegisterClusterBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -114,7 +112,6 @@ type V2RegisterClusterBadRequest struct {
 func (o *V2RegisterClusterBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2RegisterClusterBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -136,7 +133,7 @@ func NewV2RegisterClusterUnauthorized() *V2RegisterClusterUnauthorized {
 	return &V2RegisterClusterUnauthorized{}
 }
 
-/*V2RegisterClusterUnauthorized handles this case with default header values.
+/* V2RegisterClusterUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -147,7 +144,6 @@ type V2RegisterClusterUnauthorized struct {
 func (o *V2RegisterClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2RegisterClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +165,7 @@ func NewV2RegisterClusterForbidden() *V2RegisterClusterForbidden {
 	return &V2RegisterClusterForbidden{}
 }
 
-/*V2RegisterClusterForbidden handles this case with default header values.
+/* V2RegisterClusterForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -180,7 +176,6 @@ type V2RegisterClusterForbidden struct {
 func (o *V2RegisterClusterForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2RegisterClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -202,7 +197,7 @@ func NewV2RegisterClusterMethodNotAllowed() *V2RegisterClusterMethodNotAllowed {
 	return &V2RegisterClusterMethodNotAllowed{}
 }
 
-/*V2RegisterClusterMethodNotAllowed handles this case with default header values.
+/* V2RegisterClusterMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -213,7 +208,6 @@ type V2RegisterClusterMethodNotAllowed struct {
 func (o *V2RegisterClusterMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2RegisterClusterMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +229,7 @@ func NewV2RegisterClusterInternalServerError() *V2RegisterClusterInternalServerE
 	return &V2RegisterClusterInternalServerError{}
 }
 
-/*V2RegisterClusterInternalServerError handles this case with default header values.
+/* V2RegisterClusterInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -246,7 +240,6 @@ type V2RegisterClusterInternalServerError struct {
 func (o *V2RegisterClusterInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2RegisterClusterInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

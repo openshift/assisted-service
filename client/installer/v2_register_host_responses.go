@@ -83,7 +83,6 @@ func (o *V2RegisterHostReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -94,7 +93,7 @@ func NewV2RegisterHostCreated() *V2RegisterHostCreated {
 	return &V2RegisterHostCreated{}
 }
 
-/*V2RegisterHostCreated handles this case with default header values.
+/* V2RegisterHostCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -105,7 +104,6 @@ type V2RegisterHostCreated struct {
 func (o *V2RegisterHostCreated) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostCreated  %+v", 201, o.Payload)
 }
-
 func (o *V2RegisterHostCreated) GetPayload() *models.HostRegistrationResponse {
 	return o.Payload
 }
@@ -127,7 +125,7 @@ func NewV2RegisterHostBadRequest() *V2RegisterHostBadRequest {
 	return &V2RegisterHostBadRequest{}
 }
 
-/*V2RegisterHostBadRequest handles this case with default header values.
+/* V2RegisterHostBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -138,7 +136,6 @@ type V2RegisterHostBadRequest struct {
 func (o *V2RegisterHostBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2RegisterHostBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -160,7 +157,7 @@ func NewV2RegisterHostUnauthorized() *V2RegisterHostUnauthorized {
 	return &V2RegisterHostUnauthorized{}
 }
 
-/*V2RegisterHostUnauthorized handles this case with default header values.
+/* V2RegisterHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -171,7 +168,6 @@ type V2RegisterHostUnauthorized struct {
 func (o *V2RegisterHostUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2RegisterHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -193,7 +189,7 @@ func NewV2RegisterHostForbidden() *V2RegisterHostForbidden {
 	return &V2RegisterHostForbidden{}
 }
 
-/*V2RegisterHostForbidden handles this case with default header values.
+/* V2RegisterHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -204,7 +200,6 @@ type V2RegisterHostForbidden struct {
 func (o *V2RegisterHostForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2RegisterHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -226,7 +221,7 @@ func NewV2RegisterHostNotFound() *V2RegisterHostNotFound {
 	return &V2RegisterHostNotFound{}
 }
 
-/*V2RegisterHostNotFound handles this case with default header values.
+/* V2RegisterHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -237,7 +232,6 @@ type V2RegisterHostNotFound struct {
 func (o *V2RegisterHostNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2RegisterHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -259,7 +253,7 @@ func NewV2RegisterHostMethodNotAllowed() *V2RegisterHostMethodNotAllowed {
 	return &V2RegisterHostMethodNotAllowed{}
 }
 
-/*V2RegisterHostMethodNotAllowed handles this case with default header values.
+/* V2RegisterHostMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -270,7 +264,6 @@ type V2RegisterHostMethodNotAllowed struct {
 func (o *V2RegisterHostMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2RegisterHostMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -292,7 +285,7 @@ func NewV2RegisterHostConflict() *V2RegisterHostConflict {
 	return &V2RegisterHostConflict{}
 }
 
-/*V2RegisterHostConflict handles this case with default header values.
+/* V2RegisterHostConflict describes a response with status code 409, with default header values.
 
 Cluster cannot accept new agents due to its current state.
 */
@@ -303,7 +296,6 @@ type V2RegisterHostConflict struct {
 func (o *V2RegisterHostConflict) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2RegisterHostConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -325,7 +317,7 @@ func NewV2RegisterHostInternalServerError() *V2RegisterHostInternalServerError {
 	return &V2RegisterHostInternalServerError{}
 }
 
-/*V2RegisterHostInternalServerError handles this case with default header values.
+/* V2RegisterHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -336,7 +328,6 @@ type V2RegisterHostInternalServerError struct {
 func (o *V2RegisterHostInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2RegisterHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -358,7 +349,7 @@ func NewV2RegisterHostNotImplemented() *V2RegisterHostNotImplemented {
 	return &V2RegisterHostNotImplemented{}
 }
 
-/*V2RegisterHostNotImplemented handles this case with default header values.
+/* V2RegisterHostNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -369,7 +360,6 @@ type V2RegisterHostNotImplemented struct {
 func (o *V2RegisterHostNotImplemented) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *V2RegisterHostNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -391,7 +381,7 @@ func NewV2RegisterHostServiceUnavailable() *V2RegisterHostServiceUnavailable {
 	return &V2RegisterHostServiceUnavailable{}
 }
 
-/*V2RegisterHostServiceUnavailable handles this case with default header values.
+/* V2RegisterHostServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -402,7 +392,6 @@ type V2RegisterHostServiceUnavailable struct {
 func (o *V2RegisterHostServiceUnavailable) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2RegisterHostServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

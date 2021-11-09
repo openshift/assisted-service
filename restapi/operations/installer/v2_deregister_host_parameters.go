@@ -15,7 +15,8 @@ import (
 )
 
 // NewV2DeregisterHostParams creates a new V2DeregisterHostParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2DeregisterHostParams() V2DeregisterHostParams {
 
 	return V2DeregisterHostParams{}
@@ -60,7 +61,6 @@ func (o *V2DeregisterHostParams) BindRequest(r *http.Request, route *middleware.
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

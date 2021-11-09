@@ -59,7 +59,6 @@ func (o *V2InstallHostReader) ReadResponse(response runtime.ClientResponse, cons
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewV2InstallHostAccepted() *V2InstallHostAccepted {
 	return &V2InstallHostAccepted{}
 }
 
-/*V2InstallHostAccepted handles this case with default header values.
+/* V2InstallHostAccepted describes a response with status code 202, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type V2InstallHostAccepted struct {
 func (o *V2InstallHostAccepted) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostAccepted  %+v", 202, o.Payload)
 }
-
 func (o *V2InstallHostAccepted) GetPayload() *models.Host {
 	return o.Payload
 }
@@ -103,7 +101,7 @@ func NewV2InstallHostUnauthorized() *V2InstallHostUnauthorized {
 	return &V2InstallHostUnauthorized{}
 }
 
-/*V2InstallHostUnauthorized handles this case with default header values.
+/* V2InstallHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -114,7 +112,6 @@ type V2InstallHostUnauthorized struct {
 func (o *V2InstallHostUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2InstallHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -136,7 +133,7 @@ func NewV2InstallHostForbidden() *V2InstallHostForbidden {
 	return &V2InstallHostForbidden{}
 }
 
-/*V2InstallHostForbidden handles this case with default header values.
+/* V2InstallHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,7 +144,6 @@ type V2InstallHostForbidden struct {
 func (o *V2InstallHostForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2InstallHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +165,7 @@ func NewV2InstallHostNotFound() *V2InstallHostNotFound {
 	return &V2InstallHostNotFound{}
 }
 
-/*V2InstallHostNotFound handles this case with default header values.
+/* V2InstallHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -180,7 +176,6 @@ type V2InstallHostNotFound struct {
 func (o *V2InstallHostNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2InstallHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -202,7 +197,7 @@ func NewV2InstallHostConflict() *V2InstallHostConflict {
 	return &V2InstallHostConflict{}
 }
 
-/*V2InstallHostConflict handles this case with default header values.
+/* V2InstallHostConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -213,7 +208,6 @@ type V2InstallHostConflict struct {
 func (o *V2InstallHostConflict) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2InstallHostConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +229,7 @@ func NewV2InstallHostInternalServerError() *V2InstallHostInternalServerError {
 	return &V2InstallHostInternalServerError{}
 }
 
-/*V2InstallHostInternalServerError handles this case with default header values.
+/* V2InstallHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -246,7 +240,6 @@ type V2InstallHostInternalServerError struct {
 func (o *V2InstallHostInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2InstallHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
@@ -129,7 +130,6 @@ func (m *Event) validateCategoryEnum(path, location string, value string) error 
 }
 
 func (m *Event) validateCategory(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Category) { // not required
 		return nil
 	}
@@ -143,7 +143,6 @@ func (m *Event) validateCategory(formats strfmt.Registry) error {
 }
 
 func (m *Event) validateClusterID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ClusterID) { // not required
 		return nil
 	}
@@ -169,7 +168,6 @@ func (m *Event) validateEventTime(formats strfmt.Registry) error {
 }
 
 func (m *Event) validateHostID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.HostID) { // not required
 		return nil
 	}
@@ -182,7 +180,6 @@ func (m *Event) validateHostID(formats strfmt.Registry) error {
 }
 
 func (m *Event) validateInfraEnvID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.InfraEnvID) { // not required
 		return nil
 	}
@@ -204,7 +201,6 @@ func (m *Event) validateMessage(formats strfmt.Registry) error {
 }
 
 func (m *Event) validateRequestID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.RequestID) { // not required
 		return nil
 	}
@@ -262,6 +258,11 @@ func (m *Event) validateSeverity(formats strfmt.Registry) error {
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this event based on context it is used
+func (m *Event) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

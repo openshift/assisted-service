@@ -71,7 +71,6 @@ func (o *DeregisterInfraEnvReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewDeregisterInfraEnvNoContent() *DeregisterInfraEnvNoContent {
 	return &DeregisterInfraEnvNoContent{}
 }
 
-/*DeregisterInfraEnvNoContent handles this case with default header values.
+/* DeregisterInfraEnvNoContent describes a response with status code 204, with default header values.
 
 Success.
 */
@@ -103,7 +102,7 @@ func NewDeregisterInfraEnvUnauthorized() *DeregisterInfraEnvUnauthorized {
 	return &DeregisterInfraEnvUnauthorized{}
 }
 
-/*DeregisterInfraEnvUnauthorized handles this case with default header values.
+/* DeregisterInfraEnvUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -114,7 +113,6 @@ type DeregisterInfraEnvUnauthorized struct {
 func (o *DeregisterInfraEnvUnauthorized) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *DeregisterInfraEnvUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -136,7 +134,7 @@ func NewDeregisterInfraEnvForbidden() *DeregisterInfraEnvForbidden {
 	return &DeregisterInfraEnvForbidden{}
 }
 
-/*DeregisterInfraEnvForbidden handles this case with default header values.
+/* DeregisterInfraEnvForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,7 +145,6 @@ type DeregisterInfraEnvForbidden struct {
 func (o *DeregisterInfraEnvForbidden) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvForbidden  %+v", 403, o.Payload)
 }
-
 func (o *DeregisterInfraEnvForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +166,7 @@ func NewDeregisterInfraEnvNotFound() *DeregisterInfraEnvNotFound {
 	return &DeregisterInfraEnvNotFound{}
 }
 
-/*DeregisterInfraEnvNotFound handles this case with default header values.
+/* DeregisterInfraEnvNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -180,7 +177,6 @@ type DeregisterInfraEnvNotFound struct {
 func (o *DeregisterInfraEnvNotFound) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNotFound  %+v", 404, o.Payload)
 }
-
 func (o *DeregisterInfraEnvNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -202,7 +198,7 @@ func NewDeregisterInfraEnvMethodNotAllowed() *DeregisterInfraEnvMethodNotAllowed
 	return &DeregisterInfraEnvMethodNotAllowed{}
 }
 
-/*DeregisterInfraEnvMethodNotAllowed handles this case with default header values.
+/* DeregisterInfraEnvMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -213,7 +209,6 @@ type DeregisterInfraEnvMethodNotAllowed struct {
 func (o *DeregisterInfraEnvMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *DeregisterInfraEnvMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +230,7 @@ func NewDeregisterInfraEnvConflict() *DeregisterInfraEnvConflict {
 	return &DeregisterInfraEnvConflict{}
 }
 
-/*DeregisterInfraEnvConflict handles this case with default header values.
+/* DeregisterInfraEnvConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -246,7 +241,6 @@ type DeregisterInfraEnvConflict struct {
 func (o *DeregisterInfraEnvConflict) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvConflict  %+v", 409, o.Payload)
 }
-
 func (o *DeregisterInfraEnvConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -268,7 +262,7 @@ func NewDeregisterInfraEnvInternalServerError() *DeregisterInfraEnvInternalServe
 	return &DeregisterInfraEnvInternalServerError{}
 }
 
-/*DeregisterInfraEnvInternalServerError handles this case with default header values.
+/* DeregisterInfraEnvInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -279,7 +273,6 @@ type DeregisterInfraEnvInternalServerError struct {
 func (o *DeregisterInfraEnvInternalServerError) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *DeregisterInfraEnvInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -301,7 +294,7 @@ func NewDeregisterInfraEnvNotImplemented() *DeregisterInfraEnvNotImplemented {
 	return &DeregisterInfraEnvNotImplemented{}
 }
 
-/*DeregisterInfraEnvNotImplemented handles this case with default header values.
+/* DeregisterInfraEnvNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -312,7 +305,6 @@ type DeregisterInfraEnvNotImplemented struct {
 func (o *DeregisterInfraEnvNotImplemented) Error() string {
 	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *DeregisterInfraEnvNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }

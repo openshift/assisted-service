@@ -71,7 +71,6 @@ func (o *V2CreateClusterManifestReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewV2CreateClusterManifestCreated() *V2CreateClusterManifestCreated {
 	return &V2CreateClusterManifestCreated{}
 }
 
-/*V2CreateClusterManifestCreated handles this case with default header values.
+/* V2CreateClusterManifestCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type V2CreateClusterManifestCreated struct {
 func (o *V2CreateClusterManifestCreated) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestCreated  %+v", 201, o.Payload)
 }
-
 func (o *V2CreateClusterManifestCreated) GetPayload() *models.Manifest {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewV2CreateClusterManifestBadRequest() *V2CreateClusterManifestBadRequest {
 	return &V2CreateClusterManifestBadRequest{}
 }
 
-/*V2CreateClusterManifestBadRequest handles this case with default header values.
+/* V2CreateClusterManifestBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -126,7 +124,6 @@ type V2CreateClusterManifestBadRequest struct {
 func (o *V2CreateClusterManifestBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2CreateClusterManifestBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewV2CreateClusterManifestUnauthorized() *V2CreateClusterManifestUnauthoriz
 	return &V2CreateClusterManifestUnauthorized{}
 }
 
-/*V2CreateClusterManifestUnauthorized handles this case with default header values.
+/* V2CreateClusterManifestUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -159,7 +156,6 @@ type V2CreateClusterManifestUnauthorized struct {
 func (o *V2CreateClusterManifestUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2CreateClusterManifestUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewV2CreateClusterManifestForbidden() *V2CreateClusterManifestForbidden {
 	return &V2CreateClusterManifestForbidden{}
 }
 
-/*V2CreateClusterManifestForbidden handles this case with default header values.
+/* V2CreateClusterManifestForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -192,7 +188,6 @@ type V2CreateClusterManifestForbidden struct {
 func (o *V2CreateClusterManifestForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2CreateClusterManifestForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewV2CreateClusterManifestNotFound() *V2CreateClusterManifestNotFound {
 	return &V2CreateClusterManifestNotFound{}
 }
 
-/*V2CreateClusterManifestNotFound handles this case with default header values.
+/* V2CreateClusterManifestNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -225,7 +220,6 @@ type V2CreateClusterManifestNotFound struct {
 func (o *V2CreateClusterManifestNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2CreateClusterManifestNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewV2CreateClusterManifestMethodNotAllowed() *V2CreateClusterManifestMethod
 	return &V2CreateClusterManifestMethodNotAllowed{}
 }
 
-/*V2CreateClusterManifestMethodNotAllowed handles this case with default header values.
+/* V2CreateClusterManifestMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -258,7 +252,6 @@ type V2CreateClusterManifestMethodNotAllowed struct {
 func (o *V2CreateClusterManifestMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2CreateClusterManifestMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewV2CreateClusterManifestConflict() *V2CreateClusterManifestConflict {
 	return &V2CreateClusterManifestConflict{}
 }
 
-/*V2CreateClusterManifestConflict handles this case with default header values.
+/* V2CreateClusterManifestConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -291,7 +284,6 @@ type V2CreateClusterManifestConflict struct {
 func (o *V2CreateClusterManifestConflict) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2CreateClusterManifestConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewV2CreateClusterManifestInternalServerError() *V2CreateClusterManifestInt
 	return &V2CreateClusterManifestInternalServerError{}
 }
 
-/*V2CreateClusterManifestInternalServerError handles this case with default header values.
+/* V2CreateClusterManifestInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -324,7 +316,6 @@ type V2CreateClusterManifestInternalServerError struct {
 func (o *V2CreateClusterManifestInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2CreateClusterManifestInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

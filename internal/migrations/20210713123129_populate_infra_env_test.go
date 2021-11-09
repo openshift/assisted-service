@@ -116,7 +116,7 @@ var _ = Describe("populateInfraEnv", func() {
 		Expect(*infra_env.SizeBytes).To(Equal(SizeBytes))
 		Expect(infra_env.SSHAuthorizedKey).To(Equal(SshPublicKey))
 		Expect(infra_env.StaticNetworkConfig).To(Equal(StaticNetworkConfig))
-		Expect(infra_env.Type).To(Equal(ImageType))
+		Expect(common.ImageTypeValue(infra_env.Type)).To(Equal(ImageType))
 		Expect(infra_env.OpenshiftVersion).To(Equal(OpenshiftVersion))
 
 		var host common.Host

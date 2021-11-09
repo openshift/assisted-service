@@ -2491,6 +2491,8 @@ var _ = Describe("Deregister inactive clusters", func() {
 		inactiveCluster2 := registerCluster()
 		inactiveCluster3 := registerCluster()
 
+		// To verify that lastActive is greater than the updatedAt field of inactiveCluster3
+		time.Sleep(time.Millisecond)
 		lastActive := strfmt.DateTime(time.Now())
 
 		activeCluster1 := registerCluster()

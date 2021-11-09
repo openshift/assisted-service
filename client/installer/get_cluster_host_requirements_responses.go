@@ -59,7 +59,6 @@ func (o *GetClusterHostRequirementsReader) ReadResponse(response runtime.ClientR
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewGetClusterHostRequirementsOK() *GetClusterHostRequirementsOK {
 	return &GetClusterHostRequirementsOK{}
 }
 
-/*GetClusterHostRequirementsOK handles this case with default header values.
+/* GetClusterHostRequirementsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type GetClusterHostRequirementsOK struct {
 func (o *GetClusterHostRequirementsOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsOK  %+v", 200, o.Payload)
 }
-
 func (o *GetClusterHostRequirementsOK) GetPayload() models.ClusterHostRequirementsList {
 	return o.Payload
 }
@@ -101,7 +99,7 @@ func NewGetClusterHostRequirementsUnauthorized() *GetClusterHostRequirementsUnau
 	return &GetClusterHostRequirementsUnauthorized{}
 }
 
-/*GetClusterHostRequirementsUnauthorized handles this case with default header values.
+/* GetClusterHostRequirementsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -112,7 +110,6 @@ type GetClusterHostRequirementsUnauthorized struct {
 func (o *GetClusterHostRequirementsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GetClusterHostRequirementsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -134,7 +131,7 @@ func NewGetClusterHostRequirementsForbidden() *GetClusterHostRequirementsForbidd
 	return &GetClusterHostRequirementsForbidden{}
 }
 
-/*GetClusterHostRequirementsForbidden handles this case with default header values.
+/* GetClusterHostRequirementsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -145,7 +142,6 @@ type GetClusterHostRequirementsForbidden struct {
 func (o *GetClusterHostRequirementsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GetClusterHostRequirementsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -167,7 +163,7 @@ func NewGetClusterHostRequirementsNotFound() *GetClusterHostRequirementsNotFound
 	return &GetClusterHostRequirementsNotFound{}
 }
 
-/*GetClusterHostRequirementsNotFound handles this case with default header values.
+/* GetClusterHostRequirementsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -178,7 +174,6 @@ type GetClusterHostRequirementsNotFound struct {
 func (o *GetClusterHostRequirementsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *GetClusterHostRequirementsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -200,7 +195,7 @@ func NewGetClusterHostRequirementsMethodNotAllowed() *GetClusterHostRequirements
 	return &GetClusterHostRequirementsMethodNotAllowed{}
 }
 
-/*GetClusterHostRequirementsMethodNotAllowed handles this case with default header values.
+/* GetClusterHostRequirementsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -211,7 +206,6 @@ type GetClusterHostRequirementsMethodNotAllowed struct {
 func (o *GetClusterHostRequirementsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *GetClusterHostRequirementsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -233,7 +227,7 @@ func NewGetClusterHostRequirementsInternalServerError() *GetClusterHostRequireme
 	return &GetClusterHostRequirementsInternalServerError{}
 }
 
-/*GetClusterHostRequirementsInternalServerError handles this case with default header values.
+/* GetClusterHostRequirementsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -244,7 +238,6 @@ type GetClusterHostRequirementsInternalServerError struct {
 func (o *GetClusterHostRequirementsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GetClusterHostRequirementsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

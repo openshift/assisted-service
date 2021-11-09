@@ -16,7 +16,8 @@ import (
 )
 
 // NewV2GetPresignedForClusterFilesParams creates a new V2GetPresignedForClusterFilesParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2GetPresignedForClusterFilesParams() V2GetPresignedForClusterFilesParams {
 
 	return V2GetPresignedForClusterFilesParams{}
@@ -90,7 +91,6 @@ func (o *V2GetPresignedForClusterFilesParams) BindRequest(r *http.Request, route
 	if err := o.bindLogsType(qLogsType, qhkLogsType, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -106,10 +106,10 @@ func (o *V2GetPresignedForClusterFilesParams) bindAdditionalName(rawData []strin
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.AdditionalName = &raw
 
 	return nil
@@ -160,10 +160,10 @@ func (o *V2GetPresignedForClusterFilesParams) bindFileName(rawData []string, has
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("file_name", "query", raw); err != nil {
 		return err
 	}
-
 	o.FileName = raw
 
 	if err := o.validateFileName(formats); err != nil {
@@ -192,6 +192,7 @@ func (o *V2GetPresignedForClusterFilesParams) bindHostID(rawData []string, hasKe
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
@@ -228,10 +229,10 @@ func (o *V2GetPresignedForClusterFilesParams) bindLogsType(rawData []string, has
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.LogsType = &raw
 
 	if err := o.validateLogsType(formats); err != nil {

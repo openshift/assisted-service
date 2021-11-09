@@ -16,52 +16,66 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetClusterDefaultConfigParams creates a new GetClusterDefaultConfigParams object
-// with the default values initialized.
+// NewGetClusterDefaultConfigParams creates a new GetClusterDefaultConfigParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetClusterDefaultConfigParams() *GetClusterDefaultConfigParams {
-
 	return &GetClusterDefaultConfigParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetClusterDefaultConfigParamsWithTimeout creates a new GetClusterDefaultConfigParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetClusterDefaultConfigParamsWithTimeout(timeout time.Duration) *GetClusterDefaultConfigParams {
-
 	return &GetClusterDefaultConfigParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetClusterDefaultConfigParamsWithContext creates a new GetClusterDefaultConfigParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetClusterDefaultConfigParamsWithContext(ctx context.Context) *GetClusterDefaultConfigParams {
-
 	return &GetClusterDefaultConfigParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetClusterDefaultConfigParamsWithHTTPClient creates a new GetClusterDefaultConfigParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetClusterDefaultConfigParamsWithHTTPClient(client *http.Client) *GetClusterDefaultConfigParams {
-
 	return &GetClusterDefaultConfigParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetClusterDefaultConfigParams contains all the parameters to send to the API endpoint
-for the get cluster default config operation typically these are written to a http.Request
+/* GetClusterDefaultConfigParams contains all the parameters to send to the API endpoint
+   for the get cluster default config operation.
+
+   Typically these are written to a http.Request.
 */
 type GetClusterDefaultConfigParams struct {
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get cluster default config params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetClusterDefaultConfigParams) WithDefaults() *GetClusterDefaultConfigParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get cluster default config params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetClusterDefaultConfigParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get cluster default config params

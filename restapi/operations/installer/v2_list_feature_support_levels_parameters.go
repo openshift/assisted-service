@@ -13,7 +13,8 @@ import (
 )
 
 // NewV2ListFeatureSupportLevelsParams creates a new V2ListFeatureSupportLevelsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2ListFeatureSupportLevelsParams() V2ListFeatureSupportLevelsParams {
 
 	return V2ListFeatureSupportLevelsParams{}

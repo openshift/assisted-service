@@ -59,7 +59,6 @@ func (o *GetFreeAddressesReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewGetFreeAddressesOK() *GetFreeAddressesOK {
 	return &GetFreeAddressesOK{}
 }
 
-/*GetFreeAddressesOK handles this case with default header values.
+/* GetFreeAddressesOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type GetFreeAddressesOK struct {
 func (o *GetFreeAddressesOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesOK  %+v", 200, o.Payload)
 }
-
 func (o *GetFreeAddressesOK) GetPayload() models.FreeAddressesList {
 	return o.Payload
 }
@@ -101,7 +99,7 @@ func NewGetFreeAddressesUnauthorized() *GetFreeAddressesUnauthorized {
 	return &GetFreeAddressesUnauthorized{}
 }
 
-/*GetFreeAddressesUnauthorized handles this case with default header values.
+/* GetFreeAddressesUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -112,7 +110,6 @@ type GetFreeAddressesUnauthorized struct {
 func (o *GetFreeAddressesUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GetFreeAddressesUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -134,7 +131,7 @@ func NewGetFreeAddressesForbidden() *GetFreeAddressesForbidden {
 	return &GetFreeAddressesForbidden{}
 }
 
-/*GetFreeAddressesForbidden handles this case with default header values.
+/* GetFreeAddressesForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -145,7 +142,6 @@ type GetFreeAddressesForbidden struct {
 func (o *GetFreeAddressesForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GetFreeAddressesForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -167,7 +163,7 @@ func NewGetFreeAddressesNotFound() *GetFreeAddressesNotFound {
 	return &GetFreeAddressesNotFound{}
 }
 
-/*GetFreeAddressesNotFound handles this case with default header values.
+/* GetFreeAddressesNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -178,7 +174,6 @@ type GetFreeAddressesNotFound struct {
 func (o *GetFreeAddressesNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesNotFound  %+v", 404, o.Payload)
 }
-
 func (o *GetFreeAddressesNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -200,7 +195,7 @@ func NewGetFreeAddressesMethodNotAllowed() *GetFreeAddressesMethodNotAllowed {
 	return &GetFreeAddressesMethodNotAllowed{}
 }
 
-/*GetFreeAddressesMethodNotAllowed handles this case with default header values.
+/* GetFreeAddressesMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -211,7 +206,6 @@ type GetFreeAddressesMethodNotAllowed struct {
 func (o *GetFreeAddressesMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *GetFreeAddressesMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -233,7 +227,7 @@ func NewGetFreeAddressesInternalServerError() *GetFreeAddressesInternalServerErr
 	return &GetFreeAddressesInternalServerError{}
 }
 
-/*GetFreeAddressesInternalServerError handles this case with default header values.
+/* GetFreeAddressesInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -244,7 +238,6 @@ type GetFreeAddressesInternalServerError struct {
 func (o *GetFreeAddressesInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GetFreeAddressesInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

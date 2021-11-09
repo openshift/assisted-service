@@ -15,7 +15,8 @@ import (
 )
 
 // NewV2ResetHostValidationParams creates a new V2ResetHostValidationParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2ResetHostValidationParams() V2ResetHostValidationParams {
 
 	return V2ResetHostValidationParams{}
@@ -70,7 +71,6 @@ func (o *V2ResetHostValidationParams) BindRequest(r *http.Request, route *middle
 	if err := o.bindValidationID(rValidationID, rhkValidationID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -152,7 +152,6 @@ func (o *V2ResetHostValidationParams) bindValidationID(rawData []string, hasKey 
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.ValidationID = raw
 
 	return nil

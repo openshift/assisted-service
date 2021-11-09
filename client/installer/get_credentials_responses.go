@@ -65,7 +65,6 @@ func (o *GetCredentialsReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewGetCredentialsOK() *GetCredentialsOK {
 	return &GetCredentialsOK{}
 }
 
-/*GetCredentialsOK handles this case with default header values.
+/* GetCredentialsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type GetCredentialsOK struct {
 func (o *GetCredentialsOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsOK  %+v", 200, o.Payload)
 }
-
 func (o *GetCredentialsOK) GetPayload() *models.Credentials {
 	return o.Payload
 }
@@ -109,7 +107,7 @@ func NewGetCredentialsUnauthorized() *GetCredentialsUnauthorized {
 	return &GetCredentialsUnauthorized{}
 }
 
-/*GetCredentialsUnauthorized handles this case with default header values.
+/* GetCredentialsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -120,7 +118,6 @@ type GetCredentialsUnauthorized struct {
 func (o *GetCredentialsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GetCredentialsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -142,7 +139,7 @@ func NewGetCredentialsForbidden() *GetCredentialsForbidden {
 	return &GetCredentialsForbidden{}
 }
 
-/*GetCredentialsForbidden handles this case with default header values.
+/* GetCredentialsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -153,7 +150,6 @@ type GetCredentialsForbidden struct {
 func (o *GetCredentialsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GetCredentialsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -175,7 +171,7 @@ func NewGetCredentialsNotFound() *GetCredentialsNotFound {
 	return &GetCredentialsNotFound{}
 }
 
-/*GetCredentialsNotFound handles this case with default header values.
+/* GetCredentialsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -186,7 +182,6 @@ type GetCredentialsNotFound struct {
 func (o *GetCredentialsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *GetCredentialsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -208,7 +203,7 @@ func NewGetCredentialsMethodNotAllowed() *GetCredentialsMethodNotAllowed {
 	return &GetCredentialsMethodNotAllowed{}
 }
 
-/*GetCredentialsMethodNotAllowed handles this case with default header values.
+/* GetCredentialsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -219,7 +214,6 @@ type GetCredentialsMethodNotAllowed struct {
 func (o *GetCredentialsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *GetCredentialsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -241,7 +235,7 @@ func NewGetCredentialsConflict() *GetCredentialsConflict {
 	return &GetCredentialsConflict{}
 }
 
-/*GetCredentialsConflict handles this case with default header values.
+/* GetCredentialsConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -252,7 +246,6 @@ type GetCredentialsConflict struct {
 func (o *GetCredentialsConflict) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsConflict  %+v", 409, o.Payload)
 }
-
 func (o *GetCredentialsConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -274,7 +267,7 @@ func NewGetCredentialsInternalServerError() *GetCredentialsInternalServerError {
 	return &GetCredentialsInternalServerError{}
 }
 
-/*GetCredentialsInternalServerError handles this case with default header values.
+/* GetCredentialsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -285,7 +278,6 @@ type GetCredentialsInternalServerError struct {
 func (o *GetCredentialsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GetCredentialsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

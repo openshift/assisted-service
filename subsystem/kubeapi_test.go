@@ -1399,7 +1399,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Validate additional NTP settings.")
 		Expect(infraEnv.AdditionalNtpSources).Should(ContainSubstring("192.168.1.4"))
 		By("InfraEnv image type defaults to minimal-iso.")
-		Expect(infraEnv.Type).Should(Equal(models.ImageTypeMinimalIso))
+		Expect(common.ImageTypeValue(infraEnv.Type)).Should(Equal(models.ImageTypeMinimalIso))
 	})
 
 	It("deploy clusterDeployment and infraEnv with ignition override", func() {

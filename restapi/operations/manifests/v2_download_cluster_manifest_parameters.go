@@ -81,7 +81,6 @@ func (o *V2DownloadClusterManifestParams) BindRequest(r *http.Request, route *mi
 	if err := o.bindFolder(qFolder, qhkFolder, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -133,10 +132,10 @@ func (o *V2DownloadClusterManifestParams) bindFileName(rawData []string, hasKey 
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("file_name", "query", raw); err != nil {
 		return err
 	}
-
 	o.FileName = raw
 
 	return nil
@@ -151,11 +150,11 @@ func (o *V2DownloadClusterManifestParams) bindFolder(rawData []string, hasKey bo
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		// Default values have been previously initialized by NewV2DownloadClusterManifestParams()
 		return nil
 	}
-
 	o.Folder = &raw
 
 	if err := o.validateFolder(formats); err != nil {

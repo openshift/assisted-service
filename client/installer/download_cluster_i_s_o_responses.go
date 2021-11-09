@@ -72,7 +72,6 @@ func (o *DownloadClusterISOReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -81,11 +80,12 @@ func (o *DownloadClusterISOReader) ReadResponse(response runtime.ClientResponse,
 // NewDownloadClusterISOOK creates a DownloadClusterISOOK with default headers values
 func NewDownloadClusterISOOK(writer io.Writer) *DownloadClusterISOOK {
 	return &DownloadClusterISOOK{
+
 		Payload: writer,
 	}
 }
 
-/*DownloadClusterISOOK handles this case with default header values.
+/* DownloadClusterISOOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -96,7 +96,6 @@ type DownloadClusterISOOK struct {
 func (o *DownloadClusterISOOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOOK  %+v", 200, o.Payload)
 }
-
 func (o *DownloadClusterISOOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -116,7 +115,7 @@ func NewDownloadClusterISOBadRequest() *DownloadClusterISOBadRequest {
 	return &DownloadClusterISOBadRequest{}
 }
 
-/*DownloadClusterISOBadRequest handles this case with default header values.
+/* DownloadClusterISOBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -127,7 +126,6 @@ type DownloadClusterISOBadRequest struct {
 func (o *DownloadClusterISOBadRequest) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *DownloadClusterISOBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -149,7 +147,7 @@ func NewDownloadClusterISOUnauthorized() *DownloadClusterISOUnauthorized {
 	return &DownloadClusterISOUnauthorized{}
 }
 
-/*DownloadClusterISOUnauthorized handles this case with default header values.
+/* DownloadClusterISOUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -160,7 +158,6 @@ type DownloadClusterISOUnauthorized struct {
 func (o *DownloadClusterISOUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *DownloadClusterISOUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -182,7 +179,7 @@ func NewDownloadClusterISOForbidden() *DownloadClusterISOForbidden {
 	return &DownloadClusterISOForbidden{}
 }
 
-/*DownloadClusterISOForbidden handles this case with default header values.
+/* DownloadClusterISOForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -193,7 +190,6 @@ type DownloadClusterISOForbidden struct {
 func (o *DownloadClusterISOForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOForbidden  %+v", 403, o.Payload)
 }
-
 func (o *DownloadClusterISOForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -215,7 +211,7 @@ func NewDownloadClusterISONotFound() *DownloadClusterISONotFound {
 	return &DownloadClusterISONotFound{}
 }
 
-/*DownloadClusterISONotFound handles this case with default header values.
+/* DownloadClusterISONotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -226,7 +222,6 @@ type DownloadClusterISONotFound struct {
 func (o *DownloadClusterISONotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISONotFound  %+v", 404, o.Payload)
 }
-
 func (o *DownloadClusterISONotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -248,7 +243,7 @@ func NewDownloadClusterISOMethodNotAllowed() *DownloadClusterISOMethodNotAllowed
 	return &DownloadClusterISOMethodNotAllowed{}
 }
 
-/*DownloadClusterISOMethodNotAllowed handles this case with default header values.
+/* DownloadClusterISOMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -269,7 +264,7 @@ func NewDownloadClusterISOConflict() *DownloadClusterISOConflict {
 	return &DownloadClusterISOConflict{}
 }
 
-/*DownloadClusterISOConflict handles this case with default header values.
+/* DownloadClusterISOConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -280,7 +275,6 @@ type DownloadClusterISOConflict struct {
 func (o *DownloadClusterISOConflict) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOConflict  %+v", 409, o.Payload)
 }
-
 func (o *DownloadClusterISOConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -302,7 +296,7 @@ func NewDownloadClusterISOInternalServerError() *DownloadClusterISOInternalServe
 	return &DownloadClusterISOInternalServerError{}
 }
 
-/*DownloadClusterISOInternalServerError handles this case with default header values.
+/* DownloadClusterISOInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -313,7 +307,6 @@ type DownloadClusterISOInternalServerError struct {
 func (o *DownloadClusterISOInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *DownloadClusterISOInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2CancelInstallationParams creates a new V2CancelInstallationParams object
-// with the default values initialized.
+// NewV2CancelInstallationParams creates a new V2CancelInstallationParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2CancelInstallationParams() *V2CancelInstallationParams {
-	var ()
 	return &V2CancelInstallationParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2CancelInstallationParamsWithTimeout creates a new V2CancelInstallationParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2CancelInstallationParamsWithTimeout(timeout time.Duration) *V2CancelInstallationParams {
-	var ()
 	return &V2CancelInstallationParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2CancelInstallationParamsWithContext creates a new V2CancelInstallationParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2CancelInstallationParamsWithContext(ctx context.Context) *V2CancelInstallationParams {
-	var ()
 	return &V2CancelInstallationParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2CancelInstallationParamsWithHTTPClient creates a new V2CancelInstallationParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2CancelInstallationParamsWithHTTPClient(client *http.Client) *V2CancelInstallationParams {
-	var ()
 	return &V2CancelInstallationParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2CancelInstallationParams contains all the parameters to send to the API endpoint
-for the v2 cancel installation operation typically these are written to a http.Request
+/* V2CancelInstallationParams contains all the parameters to send to the API endpoint
+   for the v2 cancel installation operation.
+
+   Typically these are written to a http.Request.
 */
 type V2CancelInstallationParams struct {
 
-	/*ClusterID
-	  The cluster whose installation is to be canceled.
+	/* ClusterID.
 
+	   The cluster whose installation is to be canceled.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 cancel installation params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2CancelInstallationParams) WithDefaults() *V2CancelInstallationParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 cancel installation params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2CancelInstallationParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 cancel installation params

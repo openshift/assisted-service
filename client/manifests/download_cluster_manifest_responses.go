@@ -66,7 +66,6 @@ func (o *DownloadClusterManifestReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -75,11 +74,12 @@ func (o *DownloadClusterManifestReader) ReadResponse(response runtime.ClientResp
 // NewDownloadClusterManifestOK creates a DownloadClusterManifestOK with default headers values
 func NewDownloadClusterManifestOK(writer io.Writer) *DownloadClusterManifestOK {
 	return &DownloadClusterManifestOK{
+
 		Payload: writer,
 	}
 }
 
-/*DownloadClusterManifestOK handles this case with default header values.
+/* DownloadClusterManifestOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -90,7 +90,6 @@ type DownloadClusterManifestOK struct {
 func (o *DownloadClusterManifestOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestOK  %+v", 200, o.Payload)
 }
-
 func (o *DownloadClusterManifestOK) GetPayload() io.Writer {
 	return o.Payload
 }
@@ -110,7 +109,7 @@ func NewDownloadClusterManifestUnauthorized() *DownloadClusterManifestUnauthoriz
 	return &DownloadClusterManifestUnauthorized{}
 }
 
-/*DownloadClusterManifestUnauthorized handles this case with default header values.
+/* DownloadClusterManifestUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -121,7 +120,6 @@ type DownloadClusterManifestUnauthorized struct {
 func (o *DownloadClusterManifestUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *DownloadClusterManifestUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -143,7 +141,7 @@ func NewDownloadClusterManifestForbidden() *DownloadClusterManifestForbidden {
 	return &DownloadClusterManifestForbidden{}
 }
 
-/*DownloadClusterManifestForbidden handles this case with default header values.
+/* DownloadClusterManifestForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -154,7 +152,6 @@ type DownloadClusterManifestForbidden struct {
 func (o *DownloadClusterManifestForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestForbidden  %+v", 403, o.Payload)
 }
-
 func (o *DownloadClusterManifestForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -176,7 +173,7 @@ func NewDownloadClusterManifestNotFound() *DownloadClusterManifestNotFound {
 	return &DownloadClusterManifestNotFound{}
 }
 
-/*DownloadClusterManifestNotFound handles this case with default header values.
+/* DownloadClusterManifestNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -187,7 +184,6 @@ type DownloadClusterManifestNotFound struct {
 func (o *DownloadClusterManifestNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestNotFound  %+v", 404, o.Payload)
 }
-
 func (o *DownloadClusterManifestNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -209,7 +205,7 @@ func NewDownloadClusterManifestMethodNotAllowed() *DownloadClusterManifestMethod
 	return &DownloadClusterManifestMethodNotAllowed{}
 }
 
-/*DownloadClusterManifestMethodNotAllowed handles this case with default header values.
+/* DownloadClusterManifestMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -220,7 +216,6 @@ type DownloadClusterManifestMethodNotAllowed struct {
 func (o *DownloadClusterManifestMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *DownloadClusterManifestMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -242,7 +237,7 @@ func NewDownloadClusterManifestConflict() *DownloadClusterManifestConflict {
 	return &DownloadClusterManifestConflict{}
 }
 
-/*DownloadClusterManifestConflict handles this case with default header values.
+/* DownloadClusterManifestConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -253,7 +248,6 @@ type DownloadClusterManifestConflict struct {
 func (o *DownloadClusterManifestConflict) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestConflict  %+v", 409, o.Payload)
 }
-
 func (o *DownloadClusterManifestConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -275,7 +269,7 @@ func NewDownloadClusterManifestInternalServerError() *DownloadClusterManifestInt
 	return &DownloadClusterManifestInternalServerError{}
 }
 
-/*DownloadClusterManifestInternalServerError handles this case with default header values.
+/* DownloadClusterManifestInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -286,7 +280,6 @@ type DownloadClusterManifestInternalServerError struct {
 func (o *DownloadClusterManifestInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *DownloadClusterManifestInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

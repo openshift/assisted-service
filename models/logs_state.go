@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
@@ -17,6 +18,11 @@ import (
 //
 // swagger:model logs_state
 type LogsState string
+
+func NewLogsState(value LogsState) *LogsState {
+	v := value
+	return &v
+}
 
 const (
 
@@ -68,5 +74,10 @@ func (m LogsState) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this logs state based on context it is used
+func (m LogsState) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

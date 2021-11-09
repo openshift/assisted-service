@@ -16,64 +16,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2DownloadHostIgnitionParams creates a new V2DownloadHostIgnitionParams object
-// with the default values initialized.
+// NewV2DownloadHostIgnitionParams creates a new V2DownloadHostIgnitionParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2DownloadHostIgnitionParams() *V2DownloadHostIgnitionParams {
-	var ()
 	return &V2DownloadHostIgnitionParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2DownloadHostIgnitionParamsWithTimeout creates a new V2DownloadHostIgnitionParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2DownloadHostIgnitionParamsWithTimeout(timeout time.Duration) *V2DownloadHostIgnitionParams {
-	var ()
 	return &V2DownloadHostIgnitionParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2DownloadHostIgnitionParamsWithContext creates a new V2DownloadHostIgnitionParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2DownloadHostIgnitionParamsWithContext(ctx context.Context) *V2DownloadHostIgnitionParams {
-	var ()
 	return &V2DownloadHostIgnitionParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2DownloadHostIgnitionParamsWithHTTPClient creates a new V2DownloadHostIgnitionParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2DownloadHostIgnitionParamsWithHTTPClient(client *http.Client) *V2DownloadHostIgnitionParams {
-	var ()
 	return &V2DownloadHostIgnitionParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2DownloadHostIgnitionParams contains all the parameters to send to the API endpoint
-for the v2 download host ignition operation typically these are written to a http.Request
+/* V2DownloadHostIgnitionParams contains all the parameters to send to the API endpoint
+   for the v2 download host ignition operation.
+
+   Typically these are written to a http.Request.
 */
 type V2DownloadHostIgnitionParams struct {
 
-	/*HostID
-	  The host whose ignition file should be downloaded.
+	/* HostID.
 
+	   The host whose ignition file should be downloaded.
+
+	   Format: uuid
 	*/
 	HostID strfmt.UUID
-	/*InfraEnvID
-	  The infra-env of the host whose ignition file should be downloaded.
 
+	/* InfraEnvID.
+
+	   The infra-env of the host whose ignition file should be downloaded.
+
+	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 download host ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DownloadHostIgnitionParams) WithDefaults() *V2DownloadHostIgnitionParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 download host ignition params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DownloadHostIgnitionParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 download host ignition params

@@ -29,7 +29,7 @@ func NewGetPresignedForAssistedServiceISO(ctx *middleware.Context, handler GetPr
 	return &GetPresignedForAssistedServiceISO{Context: ctx, Handler: handler}
 }
 
-/*GetPresignedForAssistedServiceISO swagger:route GET /v1/assisted-service-iso/presigned assisted-service-iso getPresignedForAssistedServiceISO
+/* GetPresignedForAssistedServiceISO swagger:route GET /v1/assisted-service-iso/presigned assisted-service-iso getPresignedForAssistedServiceISO
 
 Retrieves a pre-signed S3 URL for downloading assisted-service ISO.
 
@@ -42,21 +42,20 @@ type GetPresignedForAssistedServiceISO struct {
 func (o *GetPresignedForAssistedServiceISO) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewGetPresignedForAssistedServiceISOParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *GetPresignedForAssistedServiceISO) ServeHTTP(rw http.ResponseWriter, r 
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

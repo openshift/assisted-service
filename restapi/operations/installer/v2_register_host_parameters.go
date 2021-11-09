@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewV2RegisterHostParams creates a new V2RegisterHostParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2RegisterHostParams() V2RegisterHostParams {
 
 	return V2RegisterHostParams{}
@@ -83,6 +85,11 @@ func (o *V2RegisterHostParams) BindRequest(r *http.Request, route *middleware.Ma
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.NewHostParams = &body
 			}
@@ -108,7 +115,6 @@ func (o *V2RegisterHostParams) bindDiscoveryAgentVersion(rawData []string, hasKe
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.DiscoveryAgentVersion = &raw
 
 	return nil

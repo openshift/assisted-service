@@ -29,7 +29,7 @@ func NewDeregisterHost(ctx *middleware.Context, handler DeregisterHostHandler) *
 	return &DeregisterHost{Context: ctx, Handler: handler}
 }
 
-/*DeregisterHost swagger:route DELETE /v1/clusters/{cluster_id}/hosts/{host_id} installer deregisterHost
+/* DeregisterHost swagger:route DELETE /v1/clusters/{cluster_id}/hosts/{host_id} installer deregisterHost
 
 Deregisters an OpenShift host.
 
@@ -42,21 +42,20 @@ type DeregisterHost struct {
 func (o *DeregisterHost) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewDeregisterHostParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *DeregisterHost) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

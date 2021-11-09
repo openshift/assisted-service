@@ -59,7 +59,6 @@ func (o *V2ListOfClusterOperatorsReader) ReadResponse(response runtime.ClientRes
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewV2ListOfClusterOperatorsOK() *V2ListOfClusterOperatorsOK {
 	return &V2ListOfClusterOperatorsOK{}
 }
 
-/*V2ListOfClusterOperatorsOK handles this case with default header values.
+/* V2ListOfClusterOperatorsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type V2ListOfClusterOperatorsOK struct {
 func (o *V2ListOfClusterOperatorsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/monitored-operators][%d] v2ListOfClusterOperatorsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ListOfClusterOperatorsOK) GetPayload() models.MonitoredOperatorsList {
 	return o.Payload
 }
@@ -101,7 +99,7 @@ func NewV2ListOfClusterOperatorsUnauthorized() *V2ListOfClusterOperatorsUnauthor
 	return &V2ListOfClusterOperatorsUnauthorized{}
 }
 
-/*V2ListOfClusterOperatorsUnauthorized handles this case with default header values.
+/* V2ListOfClusterOperatorsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -112,7 +110,6 @@ type V2ListOfClusterOperatorsUnauthorized struct {
 func (o *V2ListOfClusterOperatorsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/monitored-operators][%d] v2ListOfClusterOperatorsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2ListOfClusterOperatorsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -134,7 +131,7 @@ func NewV2ListOfClusterOperatorsForbidden() *V2ListOfClusterOperatorsForbidden {
 	return &V2ListOfClusterOperatorsForbidden{}
 }
 
-/*V2ListOfClusterOperatorsForbidden handles this case with default header values.
+/* V2ListOfClusterOperatorsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -145,7 +142,6 @@ type V2ListOfClusterOperatorsForbidden struct {
 func (o *V2ListOfClusterOperatorsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/monitored-operators][%d] v2ListOfClusterOperatorsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2ListOfClusterOperatorsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -167,7 +163,7 @@ func NewV2ListOfClusterOperatorsNotFound() *V2ListOfClusterOperatorsNotFound {
 	return &V2ListOfClusterOperatorsNotFound{}
 }
 
-/*V2ListOfClusterOperatorsNotFound handles this case with default header values.
+/* V2ListOfClusterOperatorsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -178,7 +174,6 @@ type V2ListOfClusterOperatorsNotFound struct {
 func (o *V2ListOfClusterOperatorsNotFound) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/monitored-operators][%d] v2ListOfClusterOperatorsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2ListOfClusterOperatorsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -200,7 +195,7 @@ func NewV2ListOfClusterOperatorsMethodNotAllowed() *V2ListOfClusterOperatorsMeth
 	return &V2ListOfClusterOperatorsMethodNotAllowed{}
 }
 
-/*V2ListOfClusterOperatorsMethodNotAllowed handles this case with default header values.
+/* V2ListOfClusterOperatorsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -211,7 +206,6 @@ type V2ListOfClusterOperatorsMethodNotAllowed struct {
 func (o *V2ListOfClusterOperatorsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/monitored-operators][%d] v2ListOfClusterOperatorsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2ListOfClusterOperatorsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -233,7 +227,7 @@ func NewV2ListOfClusterOperatorsInternalServerError() *V2ListOfClusterOperatorsI
 	return &V2ListOfClusterOperatorsInternalServerError{}
 }
 
-/*V2ListOfClusterOperatorsInternalServerError handles this case with default header values.
+/* V2ListOfClusterOperatorsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -244,7 +238,6 @@ type V2ListOfClusterOperatorsInternalServerError struct {
 func (o *V2ListOfClusterOperatorsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/monitored-operators][%d] v2ListOfClusterOperatorsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2ListOfClusterOperatorsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

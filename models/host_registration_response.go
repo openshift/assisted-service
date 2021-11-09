@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -95,6 +97,43 @@ func (m *HostRegistrationResponse) validateNextStepRunnerCommand(formats strfmt.
 		if err := m.NextStepRunnerCommand.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("next_step_runner_command")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("next_step_runner_command")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this host registration response based on the context it is used
+func (m *HostRegistrationResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	// validation for a type composition with Host
+	if err := m.Host.ContextValidate(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateNextStepRunnerCommand(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *HostRegistrationResponse) contextValidateNextStepRunnerCommand(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.NextStepRunnerCommand != nil {
+		if err := m.NextStepRunnerCommand.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("next_step_runner_command")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("next_step_runner_command")
 			}
 			return err
 		}
@@ -138,6 +177,11 @@ type HostRegistrationResponseAO1NextStepRunnerCommand struct {
 
 // Validate validates this host registration response a o1 next step runner command
 func (m *HostRegistrationResponseAO1NextStepRunnerCommand) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this host registration response a o1 next step runner command based on context it is used
+func (m *HostRegistrationResponseAO1NextStepRunnerCommand) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

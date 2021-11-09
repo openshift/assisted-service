@@ -16,52 +16,66 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewListManagedDomainsParams creates a new ListManagedDomainsParams object
-// with the default values initialized.
+// NewListManagedDomainsParams creates a new ListManagedDomainsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewListManagedDomainsParams() *ListManagedDomainsParams {
-
 	return &ListManagedDomainsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewListManagedDomainsParamsWithTimeout creates a new ListManagedDomainsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewListManagedDomainsParamsWithTimeout(timeout time.Duration) *ListManagedDomainsParams {
-
 	return &ListManagedDomainsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewListManagedDomainsParamsWithContext creates a new ListManagedDomainsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewListManagedDomainsParamsWithContext(ctx context.Context) *ListManagedDomainsParams {
-
 	return &ListManagedDomainsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewListManagedDomainsParamsWithHTTPClient creates a new ListManagedDomainsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewListManagedDomainsParamsWithHTTPClient(client *http.Client) *ListManagedDomainsParams {
-
 	return &ListManagedDomainsParams{
 		HTTPClient: client,
 	}
 }
 
-/*ListManagedDomainsParams contains all the parameters to send to the API endpoint
-for the list managed domains operation typically these are written to a http.Request
+/* ListManagedDomainsParams contains all the parameters to send to the API endpoint
+   for the list managed domains operation.
+
+   Typically these are written to a http.Request.
 */
 type ListManagedDomainsParams struct {
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the list managed domains params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListManagedDomainsParams) WithDefaults() *ListManagedDomainsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the list managed domains params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListManagedDomainsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the list managed domains params

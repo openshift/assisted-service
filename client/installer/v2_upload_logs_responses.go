@@ -71,7 +71,6 @@ func (o *V2UploadLogsReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewV2UploadLogsNoContent() *V2UploadLogsNoContent {
 	return &V2UploadLogsNoContent{}
 }
 
-/*V2UploadLogsNoContent handles this case with default header values.
+/* V2UploadLogsNoContent describes a response with status code 204, with default header values.
 
 Success.
 */
@@ -103,7 +102,7 @@ func NewV2UploadLogsUnauthorized() *V2UploadLogsUnauthorized {
 	return &V2UploadLogsUnauthorized{}
 }
 
-/*V2UploadLogsUnauthorized handles this case with default header values.
+/* V2UploadLogsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -114,7 +113,6 @@ type V2UploadLogsUnauthorized struct {
 func (o *V2UploadLogsUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2UploadLogsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -136,7 +134,7 @@ func NewV2UploadLogsForbidden() *V2UploadLogsForbidden {
 	return &V2UploadLogsForbidden{}
 }
 
-/*V2UploadLogsForbidden handles this case with default header values.
+/* V2UploadLogsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,7 +145,6 @@ type V2UploadLogsForbidden struct {
 func (o *V2UploadLogsForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2UploadLogsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +166,7 @@ func NewV2UploadLogsNotFound() *V2UploadLogsNotFound {
 	return &V2UploadLogsNotFound{}
 }
 
-/*V2UploadLogsNotFound handles this case with default header values.
+/* V2UploadLogsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -180,7 +177,6 @@ type V2UploadLogsNotFound struct {
 func (o *V2UploadLogsNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2UploadLogsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -202,7 +198,7 @@ func NewV2UploadLogsMethodNotAllowed() *V2UploadLogsMethodNotAllowed {
 	return &V2UploadLogsMethodNotAllowed{}
 }
 
-/*V2UploadLogsMethodNotAllowed handles this case with default header values.
+/* V2UploadLogsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -213,7 +209,6 @@ type V2UploadLogsMethodNotAllowed struct {
 func (o *V2UploadLogsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2UploadLogsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +230,7 @@ func NewV2UploadLogsConflict() *V2UploadLogsConflict {
 	return &V2UploadLogsConflict{}
 }
 
-/*V2UploadLogsConflict handles this case with default header values.
+/* V2UploadLogsConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -246,7 +241,6 @@ type V2UploadLogsConflict struct {
 func (o *V2UploadLogsConflict) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2UploadLogsConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -268,7 +262,7 @@ func NewV2UploadLogsInternalServerError() *V2UploadLogsInternalServerError {
 	return &V2UploadLogsInternalServerError{}
 }
 
-/*V2UploadLogsInternalServerError handles this case with default header values.
+/* V2UploadLogsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -279,7 +273,6 @@ type V2UploadLogsInternalServerError struct {
 func (o *V2UploadLogsInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2UploadLogsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -301,7 +294,7 @@ func NewV2UploadLogsServiceUnavailable() *V2UploadLogsServiceUnavailable {
 	return &V2UploadLogsServiceUnavailable{}
 }
 
-/*V2UploadLogsServiceUnavailable handles this case with default header values.
+/* V2UploadLogsServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -312,7 +305,6 @@ type V2UploadLogsServiceUnavailable struct {
 func (o *V2UploadLogsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2UploadLogsServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

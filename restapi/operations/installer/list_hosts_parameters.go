@@ -15,7 +15,8 @@ import (
 )
 
 // NewListHostsParams creates a new ListHostsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewListHostsParams() ListHostsParams {
 
 	return ListHostsParams{}
@@ -58,7 +59,6 @@ func (o *ListHostsParams) BindRequest(r *http.Request, route *middleware.Matched
 	if err := o.bindDiscoveryAgentVersion(r.Header[http.CanonicalHeaderKey("discovery_agent_version")], true, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -110,7 +110,6 @@ func (o *ListHostsParams) bindDiscoveryAgentVersion(rawData []string, hasKey boo
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.DiscoveryAgentVersion = &raw
 
 	return nil

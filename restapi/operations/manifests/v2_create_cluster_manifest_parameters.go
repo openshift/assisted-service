@@ -6,6 +6,7 @@ package manifests
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewV2CreateClusterManifestParams creates a new V2CreateClusterManifestParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2CreateClusterManifestParams() V2CreateClusterManifestParams {
 
 	return V2CreateClusterManifestParams{}
@@ -70,6 +72,11 @@ func (o *V2CreateClusterManifestParams) BindRequest(r *http.Request, route *midd
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.CreateManifestParams = &body
 			}
@@ -77,11 +84,11 @@ func (o *V2CreateClusterManifestParams) BindRequest(r *http.Request, route *midd
 	} else {
 		res = append(res, errors.Required("createManifestParams", "body", ""))
 	}
+
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

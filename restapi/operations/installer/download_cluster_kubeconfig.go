@@ -29,7 +29,7 @@ func NewDownloadClusterKubeconfig(ctx *middleware.Context, handler DownloadClust
 	return &DownloadClusterKubeconfig{Context: ctx, Handler: handler}
 }
 
-/*DownloadClusterKubeconfig swagger:route GET /v1/clusters/{cluster_id}/downloads/kubeconfig installer downloadClusterKubeconfig
+/* DownloadClusterKubeconfig swagger:route GET /v1/clusters/{cluster_id}/downloads/kubeconfig installer downloadClusterKubeconfig
 
 Downloads the kubeconfig file for this cluster.
 
@@ -42,21 +42,20 @@ type DownloadClusterKubeconfig struct {
 func (o *DownloadClusterKubeconfig) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewDownloadClusterKubeconfigParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *DownloadClusterKubeconfig) ServeHTTP(rw http.ResponseWriter, r *http.Re
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

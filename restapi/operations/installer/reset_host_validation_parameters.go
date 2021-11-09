@@ -15,7 +15,8 @@ import (
 )
 
 // NewResetHostValidationParams creates a new ResetHostValidationParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewResetHostValidationParams() ResetHostValidationParams {
 
 	return ResetHostValidationParams{}
@@ -70,7 +71,6 @@ func (o *ResetHostValidationParams) BindRequest(r *http.Request, route *middlewa
 	if err := o.bindValidationID(rValidationID, rhkValidationID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -152,7 +152,6 @@ func (o *ResetHostValidationParams) bindValidationID(rawData []string, hasKey bo
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.ValidationID = raw
 
 	return nil

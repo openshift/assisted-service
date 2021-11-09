@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewUpdateClusterParams creates a new UpdateClusterParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewUpdateClusterParams() UpdateClusterParams {
 
 	return UpdateClusterParams{}
@@ -70,6 +72,11 @@ func (o *UpdateClusterParams) BindRequest(r *http.Request, route *middleware.Mat
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.ClusterUpdateParams = &body
 			}
@@ -77,11 +84,11 @@ func (o *UpdateClusterParams) BindRequest(r *http.Request, route *middleware.Mat
 	} else {
 		res = append(res, errors.Required("clusterUpdateParams", "body", ""))
 	}
+
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

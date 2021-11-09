@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -28,7 +29,7 @@ type InfraEnvUpdateParams struct {
 	ImageType ImageType `json:"image_type,omitempty"`
 
 	// proxy
-	Proxy *Proxy `json:"proxy,omitempty"`
+	Proxy *Proxy `json:"proxy,omitempty" gorm:"embedded;embedded_prefix:proxy_"`
 
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
 	PullSecret string `json:"pull_secret,omitempty"`
@@ -63,7 +64,6 @@ func (m *InfraEnvUpdateParams) Validate(formats strfmt.Registry) error {
 }
 
 func (m *InfraEnvUpdateParams) validateImageType(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ImageType) { // not required
 		return nil
 	}
@@ -71,6 +71,8 @@ func (m *InfraEnvUpdateParams) validateImageType(formats strfmt.Registry) error 
 	if err := m.ImageType.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("image_type")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("image_type")
 		}
 		return err
 	}
@@ -79,7 +81,6 @@ func (m *InfraEnvUpdateParams) validateImageType(formats strfmt.Registry) error 
 }
 
 func (m *InfraEnvUpdateParams) validateProxy(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Proxy) { // not required
 		return nil
 	}
@@ -88,6 +89,8 @@ func (m *InfraEnvUpdateParams) validateProxy(formats strfmt.Registry) error {
 		if err := m.Proxy.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("proxy")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("proxy")
 			}
 			return err
 		}
@@ -97,7 +100,6 @@ func (m *InfraEnvUpdateParams) validateProxy(formats strfmt.Registry) error {
 }
 
 func (m *InfraEnvUpdateParams) validateStaticNetworkConfig(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StaticNetworkConfig) { // not required
 		return nil
 	}
@@ -111,6 +113,80 @@ func (m *InfraEnvUpdateParams) validateStaticNetworkConfig(formats strfmt.Regist
 			if err := m.StaticNetworkConfig[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("static_network_config" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("static_network_config" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this infra env update params based on the context it is used
+func (m *InfraEnvUpdateParams) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateImageType(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateProxy(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateStaticNetworkConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *InfraEnvUpdateParams) contextValidateImageType(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.ImageType.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("image_type")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("image_type")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *InfraEnvUpdateParams) contextValidateProxy(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Proxy != nil {
+		if err := m.Proxy.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("proxy")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("proxy")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *InfraEnvUpdateParams) contextValidateStaticNetworkConfig(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.StaticNetworkConfig); i++ {
+
+		if m.StaticNetworkConfig[i] != nil {
+			if err := m.StaticNetworkConfig[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("static_network_config" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("static_network_config" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

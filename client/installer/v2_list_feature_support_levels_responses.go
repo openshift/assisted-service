@@ -47,7 +47,6 @@ func (o *V2ListFeatureSupportLevelsReader) ReadResponse(response runtime.ClientR
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -58,7 +57,7 @@ func NewV2ListFeatureSupportLevelsOK() *V2ListFeatureSupportLevelsOK {
 	return &V2ListFeatureSupportLevelsOK{}
 }
 
-/*V2ListFeatureSupportLevelsOK handles this case with default header values.
+/* V2ListFeatureSupportLevelsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -69,7 +68,6 @@ type V2ListFeatureSupportLevelsOK struct {
 func (o *V2ListFeatureSupportLevelsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/feature-support-levels][%d] v2ListFeatureSupportLevelsOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ListFeatureSupportLevelsOK) GetPayload() models.FeatureSupportLevels {
 	return o.Payload
 }
@@ -89,7 +87,7 @@ func NewV2ListFeatureSupportLevelsUnauthorized() *V2ListFeatureSupportLevelsUnau
 	return &V2ListFeatureSupportLevelsUnauthorized{}
 }
 
-/*V2ListFeatureSupportLevelsUnauthorized handles this case with default header values.
+/* V2ListFeatureSupportLevelsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -100,7 +98,6 @@ type V2ListFeatureSupportLevelsUnauthorized struct {
 func (o *V2ListFeatureSupportLevelsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/feature-support-levels][%d] v2ListFeatureSupportLevelsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2ListFeatureSupportLevelsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -122,7 +119,7 @@ func NewV2ListFeatureSupportLevelsForbidden() *V2ListFeatureSupportLevelsForbidd
 	return &V2ListFeatureSupportLevelsForbidden{}
 }
 
-/*V2ListFeatureSupportLevelsForbidden handles this case with default header values.
+/* V2ListFeatureSupportLevelsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -133,7 +130,6 @@ type V2ListFeatureSupportLevelsForbidden struct {
 func (o *V2ListFeatureSupportLevelsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/feature-support-levels][%d] v2ListFeatureSupportLevelsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2ListFeatureSupportLevelsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -155,7 +151,7 @@ func NewV2ListFeatureSupportLevelsServiceUnavailable() *V2ListFeatureSupportLeve
 	return &V2ListFeatureSupportLevelsServiceUnavailable{}
 }
 
-/*V2ListFeatureSupportLevelsServiceUnavailable handles this case with default header values.
+/* V2ListFeatureSupportLevelsServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -166,7 +162,6 @@ type V2ListFeatureSupportLevelsServiceUnavailable struct {
 func (o *V2ListFeatureSupportLevelsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/feature-support-levels][%d] v2ListFeatureSupportLevelsServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *V2ListFeatureSupportLevelsServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

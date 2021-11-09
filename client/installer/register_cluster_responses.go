@@ -59,7 +59,6 @@ func (o *RegisterClusterReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewRegisterClusterCreated() *RegisterClusterCreated {
 	return &RegisterClusterCreated{}
 }
 
-/*RegisterClusterCreated handles this case with default header values.
+/* RegisterClusterCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type RegisterClusterCreated struct {
 func (o *RegisterClusterCreated) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterCreated  %+v", 201, o.Payload)
 }
-
 func (o *RegisterClusterCreated) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -103,7 +101,7 @@ func NewRegisterClusterBadRequest() *RegisterClusterBadRequest {
 	return &RegisterClusterBadRequest{}
 }
 
-/*RegisterClusterBadRequest handles this case with default header values.
+/* RegisterClusterBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -114,7 +112,6 @@ type RegisterClusterBadRequest struct {
 func (o *RegisterClusterBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *RegisterClusterBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -136,7 +133,7 @@ func NewRegisterClusterUnauthorized() *RegisterClusterUnauthorized {
 	return &RegisterClusterUnauthorized{}
 }
 
-/*RegisterClusterUnauthorized handles this case with default header values.
+/* RegisterClusterUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -147,7 +144,6 @@ type RegisterClusterUnauthorized struct {
 func (o *RegisterClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *RegisterClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +165,7 @@ func NewRegisterClusterForbidden() *RegisterClusterForbidden {
 	return &RegisterClusterForbidden{}
 }
 
-/*RegisterClusterForbidden handles this case with default header values.
+/* RegisterClusterForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -180,7 +176,6 @@ type RegisterClusterForbidden struct {
 func (o *RegisterClusterForbidden) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterForbidden  %+v", 403, o.Payload)
 }
-
 func (o *RegisterClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -202,7 +197,7 @@ func NewRegisterClusterMethodNotAllowed() *RegisterClusterMethodNotAllowed {
 	return &RegisterClusterMethodNotAllowed{}
 }
 
-/*RegisterClusterMethodNotAllowed handles this case with default header values.
+/* RegisterClusterMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -213,7 +208,6 @@ type RegisterClusterMethodNotAllowed struct {
 func (o *RegisterClusterMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *RegisterClusterMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +229,7 @@ func NewRegisterClusterInternalServerError() *RegisterClusterInternalServerError
 	return &RegisterClusterInternalServerError{}
 }
 
-/*RegisterClusterInternalServerError handles this case with default header values.
+/* RegisterClusterInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -246,7 +240,6 @@ type RegisterClusterInternalServerError struct {
 func (o *RegisterClusterInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *RegisterClusterInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

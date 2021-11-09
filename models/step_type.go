@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
@@ -17,6 +18,11 @@ import (
 //
 // swagger:model step-type
 type StepType string
+
+func NewStepType(value StepType) *StepType {
+	v := value
+	return &v
+}
 
 const (
 
@@ -89,5 +95,10 @@ func (m StepType) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this step type based on context it is used
+func (m StepType) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

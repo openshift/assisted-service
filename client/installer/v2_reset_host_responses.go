@@ -59,7 +59,6 @@ func (o *V2ResetHostReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewV2ResetHostOK() *V2ResetHostOK {
 	return &V2ResetHostOK{}
 }
 
-/*V2ResetHostOK handles this case with default header values.
+/* V2ResetHostOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type V2ResetHostOK struct {
 func (o *V2ResetHostOK) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostOK  %+v", 200, o.Payload)
 }
-
 func (o *V2ResetHostOK) GetPayload() *models.Host {
 	return o.Payload
 }
@@ -103,7 +101,7 @@ func NewV2ResetHostUnauthorized() *V2ResetHostUnauthorized {
 	return &V2ResetHostUnauthorized{}
 }
 
-/*V2ResetHostUnauthorized handles this case with default header values.
+/* V2ResetHostUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -114,7 +112,6 @@ type V2ResetHostUnauthorized struct {
 func (o *V2ResetHostUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2ResetHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -136,7 +133,7 @@ func NewV2ResetHostForbidden() *V2ResetHostForbidden {
 	return &V2ResetHostForbidden{}
 }
 
-/*V2ResetHostForbidden handles this case with default header values.
+/* V2ResetHostForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,7 +144,6 @@ type V2ResetHostForbidden struct {
 func (o *V2ResetHostForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2ResetHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +165,7 @@ func NewV2ResetHostNotFound() *V2ResetHostNotFound {
 	return &V2ResetHostNotFound{}
 }
 
-/*V2ResetHostNotFound handles this case with default header values.
+/* V2ResetHostNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -180,7 +176,6 @@ type V2ResetHostNotFound struct {
 func (o *V2ResetHostNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2ResetHostNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -202,7 +197,7 @@ func NewV2ResetHostConflict() *V2ResetHostConflict {
 	return &V2ResetHostConflict{}
 }
 
-/*V2ResetHostConflict handles this case with default header values.
+/* V2ResetHostConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -213,7 +208,6 @@ type V2ResetHostConflict struct {
 func (o *V2ResetHostConflict) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2ResetHostConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +229,7 @@ func NewV2ResetHostInternalServerError() *V2ResetHostInternalServerError {
 	return &V2ResetHostInternalServerError{}
 }
 
-/*V2ResetHostInternalServerError handles this case with default header values.
+/* V2ResetHostInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -246,7 +240,6 @@ type V2ResetHostInternalServerError struct {
 func (o *V2ResetHostInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2ResetHostInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

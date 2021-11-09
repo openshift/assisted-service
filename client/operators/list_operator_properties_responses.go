@@ -53,7 +53,6 @@ func (o *ListOperatorPropertiesReader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -64,7 +63,7 @@ func NewListOperatorPropertiesOK() *ListOperatorPropertiesOK {
 	return &ListOperatorPropertiesOK{}
 }
 
-/*ListOperatorPropertiesOK handles this case with default header values.
+/* ListOperatorPropertiesOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -75,7 +74,6 @@ type ListOperatorPropertiesOK struct {
 func (o *ListOperatorPropertiesOK) Error() string {
 	return fmt.Sprintf("[GET /v1/supported-operators/{operator_name}][%d] listOperatorPropertiesOK  %+v", 200, o.Payload)
 }
-
 func (o *ListOperatorPropertiesOK) GetPayload() models.OperatorProperties {
 	return o.Payload
 }
@@ -95,7 +93,7 @@ func NewListOperatorPropertiesUnauthorized() *ListOperatorPropertiesUnauthorized
 	return &ListOperatorPropertiesUnauthorized{}
 }
 
-/*ListOperatorPropertiesUnauthorized handles this case with default header values.
+/* ListOperatorPropertiesUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -106,7 +104,6 @@ type ListOperatorPropertiesUnauthorized struct {
 func (o *ListOperatorPropertiesUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/supported-operators/{operator_name}][%d] listOperatorPropertiesUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *ListOperatorPropertiesUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -128,7 +125,7 @@ func NewListOperatorPropertiesForbidden() *ListOperatorPropertiesForbidden {
 	return &ListOperatorPropertiesForbidden{}
 }
 
-/*ListOperatorPropertiesForbidden handles this case with default header values.
+/* ListOperatorPropertiesForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -139,7 +136,6 @@ type ListOperatorPropertiesForbidden struct {
 func (o *ListOperatorPropertiesForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/supported-operators/{operator_name}][%d] listOperatorPropertiesForbidden  %+v", 403, o.Payload)
 }
-
 func (o *ListOperatorPropertiesForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -161,7 +157,7 @@ func NewListOperatorPropertiesNotFound() *ListOperatorPropertiesNotFound {
 	return &ListOperatorPropertiesNotFound{}
 }
 
-/*ListOperatorPropertiesNotFound handles this case with default header values.
+/* ListOperatorPropertiesNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -172,7 +168,6 @@ type ListOperatorPropertiesNotFound struct {
 func (o *ListOperatorPropertiesNotFound) Error() string {
 	return fmt.Sprintf("[GET /v1/supported-operators/{operator_name}][%d] listOperatorPropertiesNotFound  %+v", 404, o.Payload)
 }
-
 func (o *ListOperatorPropertiesNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -194,7 +189,7 @@ func NewListOperatorPropertiesInternalServerError() *ListOperatorPropertiesInter
 	return &ListOperatorPropertiesInternalServerError{}
 }
 
-/*ListOperatorPropertiesInternalServerError handles this case with default header values.
+/* ListOperatorPropertiesInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -205,7 +200,6 @@ type ListOperatorPropertiesInternalServerError struct {
 func (o *ListOperatorPropertiesInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/supported-operators/{operator_name}][%d] listOperatorPropertiesInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *ListOperatorPropertiesInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

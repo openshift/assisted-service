@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -76,7 +78,6 @@ func (m *OvirtPlatform) Validate(formats strfmt.Registry) error {
 }
 
 func (m *OvirtPlatform) validateClusterID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ClusterID) { // not required
 		return nil
 	}
@@ -89,7 +90,6 @@ func (m *OvirtPlatform) validateClusterID(formats strfmt.Registry) error {
 }
 
 func (m *OvirtPlatform) validatePassword(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Password) { // not required
 		return nil
 	}
@@ -102,7 +102,6 @@ func (m *OvirtPlatform) validatePassword(formats strfmt.Registry) error {
 }
 
 func (m *OvirtPlatform) validateStorageDomainID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StorageDomainID) { // not required
 		return nil
 	}
@@ -115,7 +114,6 @@ func (m *OvirtPlatform) validateStorageDomainID(formats strfmt.Registry) error {
 }
 
 func (m *OvirtPlatform) validateVnicProfileID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.VnicProfileID) { // not required
 		return nil
 	}
@@ -124,6 +122,11 @@ func (m *OvirtPlatform) validateVnicProfileID(formats strfmt.Registry) error {
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this ovirt platform based on context it is used
+func (m *OvirtPlatform) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

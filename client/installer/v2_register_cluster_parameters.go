@@ -18,59 +18,73 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewV2RegisterClusterParams creates a new V2RegisterClusterParams object
-// with the default values initialized.
+// NewV2RegisterClusterParams creates a new V2RegisterClusterParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2RegisterClusterParams() *V2RegisterClusterParams {
-	var ()
 	return &V2RegisterClusterParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2RegisterClusterParamsWithTimeout creates a new V2RegisterClusterParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2RegisterClusterParamsWithTimeout(timeout time.Duration) *V2RegisterClusterParams {
-	var ()
 	return &V2RegisterClusterParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2RegisterClusterParamsWithContext creates a new V2RegisterClusterParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2RegisterClusterParamsWithContext(ctx context.Context) *V2RegisterClusterParams {
-	var ()
 	return &V2RegisterClusterParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2RegisterClusterParamsWithHTTPClient creates a new V2RegisterClusterParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2RegisterClusterParamsWithHTTPClient(client *http.Client) *V2RegisterClusterParams {
-	var ()
 	return &V2RegisterClusterParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2RegisterClusterParams contains all the parameters to send to the API endpoint
-for the v2 register cluster operation typically these are written to a http.Request
+/* V2RegisterClusterParams contains all the parameters to send to the API endpoint
+   for the v2 register cluster operation.
+
+   Typically these are written to a http.Request.
 */
 type V2RegisterClusterParams struct {
 
-	/*NewClusterParams
-	  The properties describing the new cluster.
+	/* NewClusterParams.
 
+	   The properties describing the new cluster.
 	*/
 	NewClusterParams *models.ClusterCreateParams
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 register cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2RegisterClusterParams) WithDefaults() *V2RegisterClusterParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 register cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2RegisterClusterParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 register cluster params
@@ -124,7 +138,6 @@ func (o *V2RegisterClusterParams) WriteToRequest(r runtime.ClientRequest, reg st
 		return err
 	}
 	var res []error
-
 	if o.NewClusterParams != nil {
 		if err := r.SetBodyParam(o.NewClusterParams); err != nil {
 			return err

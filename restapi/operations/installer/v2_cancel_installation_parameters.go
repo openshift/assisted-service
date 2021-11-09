@@ -15,7 +15,8 @@ import (
 )
 
 // NewV2CancelInstallationParams creates a new V2CancelInstallationParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2CancelInstallationParams() V2CancelInstallationParams {
 
 	return V2CancelInstallationParams{}
@@ -50,7 +51,6 @@ func (o *V2CancelInstallationParams) BindRequest(r *http.Request, route *middlew
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

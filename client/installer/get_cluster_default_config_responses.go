@@ -47,7 +47,6 @@ func (o *GetClusterDefaultConfigReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -58,7 +57,7 @@ func NewGetClusterDefaultConfigOK() *GetClusterDefaultConfigOK {
 	return &GetClusterDefaultConfigOK{}
 }
 
-/*GetClusterDefaultConfigOK handles this case with default header values.
+/* GetClusterDefaultConfigOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -69,7 +68,6 @@ type GetClusterDefaultConfigOK struct {
 func (o *GetClusterDefaultConfigOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/default-config][%d] getClusterDefaultConfigOK  %+v", 200, o.Payload)
 }
-
 func (o *GetClusterDefaultConfigOK) GetPayload() *models.ClusterDefaultConfig {
 	return o.Payload
 }
@@ -91,7 +89,7 @@ func NewGetClusterDefaultConfigUnauthorized() *GetClusterDefaultConfigUnauthoriz
 	return &GetClusterDefaultConfigUnauthorized{}
 }
 
-/*GetClusterDefaultConfigUnauthorized handles this case with default header values.
+/* GetClusterDefaultConfigUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -102,7 +100,6 @@ type GetClusterDefaultConfigUnauthorized struct {
 func (o *GetClusterDefaultConfigUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/default-config][%d] getClusterDefaultConfigUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *GetClusterDefaultConfigUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -124,7 +121,7 @@ func NewGetClusterDefaultConfigForbidden() *GetClusterDefaultConfigForbidden {
 	return &GetClusterDefaultConfigForbidden{}
 }
 
-/*GetClusterDefaultConfigForbidden handles this case with default header values.
+/* GetClusterDefaultConfigForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -135,7 +132,6 @@ type GetClusterDefaultConfigForbidden struct {
 func (o *GetClusterDefaultConfigForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/default-config][%d] getClusterDefaultConfigForbidden  %+v", 403, o.Payload)
 }
-
 func (o *GetClusterDefaultConfigForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -157,7 +153,7 @@ func NewGetClusterDefaultConfigInternalServerError() *GetClusterDefaultConfigInt
 	return &GetClusterDefaultConfigInternalServerError{}
 }
 
-/*GetClusterDefaultConfigInternalServerError handles this case with default header values.
+/* GetClusterDefaultConfigInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -168,7 +164,6 @@ type GetClusterDefaultConfigInternalServerError struct {
 func (o *GetClusterDefaultConfigInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/default-config][%d] getClusterDefaultConfigInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *GetClusterDefaultConfigInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

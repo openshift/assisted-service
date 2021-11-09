@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
@@ -85,7 +86,6 @@ func (m *DiskEncryption) validateEnableOnEnum(path, location string, value strin
 }
 
 func (m *DiskEncryption) validateEnableOn(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.EnableOn) { // not required
 		return nil
 	}
@@ -128,7 +128,6 @@ func (m *DiskEncryption) validateModeEnum(path, location string, value string) e
 }
 
 func (m *DiskEncryption) validateMode(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Mode) { // not required
 		return nil
 	}
@@ -138,6 +137,11 @@ func (m *DiskEncryption) validateMode(formats strfmt.Registry) error {
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this disk encryption based on context it is used
+func (m *DiskEncryption) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

@@ -71,7 +71,6 @@ func (o *V2UpdateHostIgnitionReader) ReadResponse(response runtime.ClientRespons
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewV2UpdateHostIgnitionCreated() *V2UpdateHostIgnitionCreated {
 	return &V2UpdateHostIgnitionCreated{}
 }
 
-/*V2UpdateHostIgnitionCreated handles this case with default header values.
+/* V2UpdateHostIgnitionCreated describes a response with status code 201, with default header values.
 
 Success.
 */
@@ -103,7 +102,7 @@ func NewV2UpdateHostIgnitionBadRequest() *V2UpdateHostIgnitionBadRequest {
 	return &V2UpdateHostIgnitionBadRequest{}
 }
 
-/*V2UpdateHostIgnitionBadRequest handles this case with default header values.
+/* V2UpdateHostIgnitionBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -114,7 +113,6 @@ type V2UpdateHostIgnitionBadRequest struct {
 func (o *V2UpdateHostIgnitionBadRequest) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2UpdateHostIgnitionBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -136,7 +134,7 @@ func NewV2UpdateHostIgnitionUnauthorized() *V2UpdateHostIgnitionUnauthorized {
 	return &V2UpdateHostIgnitionUnauthorized{}
 }
 
-/*V2UpdateHostIgnitionUnauthorized handles this case with default header values.
+/* V2UpdateHostIgnitionUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -147,7 +145,6 @@ type V2UpdateHostIgnitionUnauthorized struct {
 func (o *V2UpdateHostIgnitionUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2UpdateHostIgnitionUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -169,7 +166,7 @@ func NewV2UpdateHostIgnitionForbidden() *V2UpdateHostIgnitionForbidden {
 	return &V2UpdateHostIgnitionForbidden{}
 }
 
-/*V2UpdateHostIgnitionForbidden handles this case with default header values.
+/* V2UpdateHostIgnitionForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -180,7 +177,6 @@ type V2UpdateHostIgnitionForbidden struct {
 func (o *V2UpdateHostIgnitionForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2UpdateHostIgnitionForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -202,7 +198,7 @@ func NewV2UpdateHostIgnitionNotFound() *V2UpdateHostIgnitionNotFound {
 	return &V2UpdateHostIgnitionNotFound{}
 }
 
-/*V2UpdateHostIgnitionNotFound handles this case with default header values.
+/* V2UpdateHostIgnitionNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -213,7 +209,6 @@ type V2UpdateHostIgnitionNotFound struct {
 func (o *V2UpdateHostIgnitionNotFound) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2UpdateHostIgnitionNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +230,7 @@ func NewV2UpdateHostIgnitionMethodNotAllowed() *V2UpdateHostIgnitionMethodNotAll
 	return &V2UpdateHostIgnitionMethodNotAllowed{}
 }
 
-/*V2UpdateHostIgnitionMethodNotAllowed handles this case with default header values.
+/* V2UpdateHostIgnitionMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -246,7 +241,6 @@ type V2UpdateHostIgnitionMethodNotAllowed struct {
 func (o *V2UpdateHostIgnitionMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2UpdateHostIgnitionMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -268,7 +262,7 @@ func NewV2UpdateHostIgnitionInternalServerError() *V2UpdateHostIgnitionInternalS
 	return &V2UpdateHostIgnitionInternalServerError{}
 }
 
-/*V2UpdateHostIgnitionInternalServerError handles this case with default header values.
+/* V2UpdateHostIgnitionInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -279,7 +273,6 @@ type V2UpdateHostIgnitionInternalServerError struct {
 func (o *V2UpdateHostIgnitionInternalServerError) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2UpdateHostIgnitionInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -301,7 +294,7 @@ func NewV2UpdateHostIgnitionNotImplemented() *V2UpdateHostIgnitionNotImplemented
 	return &V2UpdateHostIgnitionNotImplemented{}
 }
 
-/*V2UpdateHostIgnitionNotImplemented handles this case with default header values.
+/* V2UpdateHostIgnitionNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -312,7 +305,6 @@ type V2UpdateHostIgnitionNotImplemented struct {
 func (o *V2UpdateHostIgnitionNotImplemented) Error() string {
 	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *V2UpdateHostIgnitionNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }

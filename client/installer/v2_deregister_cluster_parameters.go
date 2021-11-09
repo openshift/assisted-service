@@ -16,59 +16,75 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewV2DeregisterClusterParams creates a new V2DeregisterClusterParams object
-// with the default values initialized.
+// NewV2DeregisterClusterParams creates a new V2DeregisterClusterParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2DeregisterClusterParams() *V2DeregisterClusterParams {
-	var ()
 	return &V2DeregisterClusterParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2DeregisterClusterParamsWithTimeout creates a new V2DeregisterClusterParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2DeregisterClusterParamsWithTimeout(timeout time.Duration) *V2DeregisterClusterParams {
-	var ()
 	return &V2DeregisterClusterParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2DeregisterClusterParamsWithContext creates a new V2DeregisterClusterParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2DeregisterClusterParamsWithContext(ctx context.Context) *V2DeregisterClusterParams {
-	var ()
 	return &V2DeregisterClusterParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2DeregisterClusterParamsWithHTTPClient creates a new V2DeregisterClusterParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2DeregisterClusterParamsWithHTTPClient(client *http.Client) *V2DeregisterClusterParams {
-	var ()
 	return &V2DeregisterClusterParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2DeregisterClusterParams contains all the parameters to send to the API endpoint
-for the v2 deregister cluster operation typically these are written to a http.Request
+/* V2DeregisterClusterParams contains all the parameters to send to the API endpoint
+   for the v2 deregister cluster operation.
+
+   Typically these are written to a http.Request.
 */
 type V2DeregisterClusterParams struct {
 
-	/*ClusterID
-	  The cluster to be deregistered.
+	/* ClusterID.
 
+	   The cluster to be deregistered.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 deregister cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DeregisterClusterParams) WithDefaults() *V2DeregisterClusterParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 deregister cluster params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2DeregisterClusterParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 deregister cluster params

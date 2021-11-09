@@ -17,8 +17,16 @@ import (
 	"github.com/go-openapi/validate"
 )
 
+// V2UploadLogsMaxParseMemory sets the maximum size in bytes for
+// the multipart form parser for this operation.
+//
+// The default value is 32 MB.
+// The multipart parser stores up to this + 10MB.
+var V2UploadLogsMaxParseMemory int64 = 32 << 20
+
 // NewV2UploadLogsParams creates a new V2UploadLogsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewV2UploadLogsParams() V2UploadLogsParams {
 
 	return V2UploadLogsParams{}
@@ -69,7 +77,7 @@ func (o *V2UploadLogsParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	qs := runtime.Values(r.URL.Query())
 
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+	if err := r.ParseMultipartForm(V2UploadLogsMaxParseMemory); err != nil {
 		if err != http.ErrNotMultipart {
 			return errors.New(400, "%v", err)
 		} else if err := r.ParseForm(); err != nil {
@@ -107,7 +115,6 @@ func (o *V2UploadLogsParams) BindRequest(r *http.Request, route *middleware.Matc
 	} else {
 		o.Upfile = &runtime.File{Data: upfile, Header: upfileHeader}
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -156,6 +163,7 @@ func (o *V2UploadLogsParams) bindHostID(rawData []string, hasKey bool, formats s
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
@@ -192,6 +200,7 @@ func (o *V2UploadLogsParams) bindInfraEnvID(rawData []string, hasKey bool, forma
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
@@ -231,10 +240,10 @@ func (o *V2UploadLogsParams) bindLogsType(rawData []string, hasKey bool, formats
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("logs_type", "query", raw); err != nil {
 		return err
 	}
-
 	o.LogsType = raw
 
 	if err := o.validateLogsType(formats); err != nil {

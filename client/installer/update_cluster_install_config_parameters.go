@@ -16,64 +16,81 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewUpdateClusterInstallConfigParams creates a new UpdateClusterInstallConfigParams object
-// with the default values initialized.
+// NewUpdateClusterInstallConfigParams creates a new UpdateClusterInstallConfigParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUpdateClusterInstallConfigParams() *UpdateClusterInstallConfigParams {
-	var ()
 	return &UpdateClusterInstallConfigParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUpdateClusterInstallConfigParamsWithTimeout creates a new UpdateClusterInstallConfigParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUpdateClusterInstallConfigParamsWithTimeout(timeout time.Duration) *UpdateClusterInstallConfigParams {
-	var ()
 	return &UpdateClusterInstallConfigParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUpdateClusterInstallConfigParamsWithContext creates a new UpdateClusterInstallConfigParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUpdateClusterInstallConfigParamsWithContext(ctx context.Context) *UpdateClusterInstallConfigParams {
-	var ()
 	return &UpdateClusterInstallConfigParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUpdateClusterInstallConfigParamsWithHTTPClient creates a new UpdateClusterInstallConfigParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUpdateClusterInstallConfigParamsWithHTTPClient(client *http.Client) *UpdateClusterInstallConfigParams {
-	var ()
 	return &UpdateClusterInstallConfigParams{
 		HTTPClient: client,
 	}
 }
 
-/*UpdateClusterInstallConfigParams contains all the parameters to send to the API endpoint
-for the update cluster install config operation typically these are written to a http.Request
+/* UpdateClusterInstallConfigParams contains all the parameters to send to the API endpoint
+   for the update cluster install config operation.
+
+   Typically these are written to a http.Request.
 */
 type UpdateClusterInstallConfigParams struct {
 
-	/*ClusterID
-	  The cluster whose install config is being updated.
+	/* ClusterID.
 
+	   The cluster whose install config is being updated.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*InstallConfigParams
-	  Install config overrides.
 
+	/* InstallConfigParams.
+
+	   Install config overrides.
 	*/
 	InstallConfigParams string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the update cluster install config params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateClusterInstallConfigParams) WithDefaults() *UpdateClusterInstallConfigParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the update cluster install config params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UpdateClusterInstallConfigParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the update cluster install config params
@@ -143,7 +160,6 @@ func (o *UpdateClusterInstallConfigParams) WriteToRequest(r runtime.ClientReques
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
-
 	if err := r.SetBodyParam(o.InstallConfigParams); err != nil {
 		return err
 	}

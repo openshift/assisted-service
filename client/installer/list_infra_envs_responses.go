@@ -65,7 +65,6 @@ func (o *ListInfraEnvsReader) ReadResponse(response runtime.ClientResponse, cons
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -76,7 +75,7 @@ func NewListInfraEnvsOK() *ListInfraEnvsOK {
 	return &ListInfraEnvsOK{}
 }
 
-/*ListInfraEnvsOK handles this case with default header values.
+/* ListInfraEnvsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -87,7 +86,6 @@ type ListInfraEnvsOK struct {
 func (o *ListInfraEnvsOK) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsOK  %+v", 200, o.Payload)
 }
-
 func (o *ListInfraEnvsOK) GetPayload() models.InfraEnvList {
 	return o.Payload
 }
@@ -107,7 +105,7 @@ func NewListInfraEnvsUnauthorized() *ListInfraEnvsUnauthorized {
 	return &ListInfraEnvsUnauthorized{}
 }
 
-/*ListInfraEnvsUnauthorized handles this case with default header values.
+/* ListInfraEnvsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -118,7 +116,6 @@ type ListInfraEnvsUnauthorized struct {
 func (o *ListInfraEnvsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *ListInfraEnvsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -140,7 +137,7 @@ func NewListInfraEnvsForbidden() *ListInfraEnvsForbidden {
 	return &ListInfraEnvsForbidden{}
 }
 
-/*ListInfraEnvsForbidden handles this case with default header values.
+/* ListInfraEnvsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -151,7 +148,6 @@ type ListInfraEnvsForbidden struct {
 func (o *ListInfraEnvsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *ListInfraEnvsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -173,7 +169,7 @@ func NewListInfraEnvsMethodNotAllowed() *ListInfraEnvsMethodNotAllowed {
 	return &ListInfraEnvsMethodNotAllowed{}
 }
 
-/*ListInfraEnvsMethodNotAllowed handles this case with default header values.
+/* ListInfraEnvsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -184,7 +180,6 @@ type ListInfraEnvsMethodNotAllowed struct {
 func (o *ListInfraEnvsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *ListInfraEnvsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -206,7 +201,7 @@ func NewListInfraEnvsInternalServerError() *ListInfraEnvsInternalServerError {
 	return &ListInfraEnvsInternalServerError{}
 }
 
-/*ListInfraEnvsInternalServerError handles this case with default header values.
+/* ListInfraEnvsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -217,7 +212,6 @@ type ListInfraEnvsInternalServerError struct {
 func (o *ListInfraEnvsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *ListInfraEnvsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -239,7 +233,7 @@ func NewListInfraEnvsNotImplemented() *ListInfraEnvsNotImplemented {
 	return &ListInfraEnvsNotImplemented{}
 }
 
-/*ListInfraEnvsNotImplemented handles this case with default header values.
+/* ListInfraEnvsNotImplemented describes a response with status code 501, with default header values.
 
 Not implemented.
 */
@@ -250,7 +244,6 @@ type ListInfraEnvsNotImplemented struct {
 func (o *ListInfraEnvsNotImplemented) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsNotImplemented  %+v", 501, o.Payload)
 }
-
 func (o *ListInfraEnvsNotImplemented) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -272,7 +265,7 @@ func NewListInfraEnvsServiceUnavailable() *ListInfraEnvsServiceUnavailable {
 	return &ListInfraEnvsServiceUnavailable{}
 }
 
-/*ListInfraEnvsServiceUnavailable handles this case with default header values.
+/* ListInfraEnvsServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -283,7 +276,6 @@ type ListInfraEnvsServiceUnavailable struct {
 func (o *ListInfraEnvsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *ListInfraEnvsServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

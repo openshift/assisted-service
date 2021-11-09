@@ -15,7 +15,8 @@ import (
 )
 
 // NewResetClusterParams creates a new ResetClusterParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewResetClusterParams() ResetClusterParams {
 
 	return ResetClusterParams{}
@@ -50,7 +51,6 @@ func (o *ResetClusterParams) BindRequest(r *http.Request, route *middleware.Matc
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}

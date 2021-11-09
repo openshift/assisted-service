@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -60,12 +62,11 @@ func (m *ClusterDefaultConfig) Validate(formats strfmt.Registry) error {
 }
 
 func (m *ClusterDefaultConfig) validateClusterNetworkCidr(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ClusterNetworkCidr) { // not required
 		return nil
 	}
 
-	if err := validate.Pattern("cluster_network_cidr", "body", string(m.ClusterNetworkCidr), `^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\/]([1-9]|[1-2][0-9]|3[0-2]?)$`); err != nil {
+	if err := validate.Pattern("cluster_network_cidr", "body", m.ClusterNetworkCidr, `^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\/]([1-9]|[1-2][0-9]|3[0-2]?)$`); err != nil {
 		return err
 	}
 
@@ -73,16 +74,15 @@ func (m *ClusterDefaultConfig) validateClusterNetworkCidr(formats strfmt.Registr
 }
 
 func (m *ClusterDefaultConfig) validateClusterNetworkHostPrefix(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ClusterNetworkHostPrefix) { // not required
 		return nil
 	}
 
-	if err := validate.MinimumInt("cluster_network_host_prefix", "body", int64(m.ClusterNetworkHostPrefix), 1, false); err != nil {
+	if err := validate.MinimumInt("cluster_network_host_prefix", "body", m.ClusterNetworkHostPrefix, 1, false); err != nil {
 		return err
 	}
 
-	if err := validate.MaximumInt("cluster_network_host_prefix", "body", int64(m.ClusterNetworkHostPrefix), 32, false); err != nil {
+	if err := validate.MaximumInt("cluster_network_host_prefix", "body", m.ClusterNetworkHostPrefix, 32, false); err != nil {
 		return err
 	}
 
@@ -90,15 +90,19 @@ func (m *ClusterDefaultConfig) validateClusterNetworkHostPrefix(formats strfmt.R
 }
 
 func (m *ClusterDefaultConfig) validateServiceNetworkCidr(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ServiceNetworkCidr) { // not required
 		return nil
 	}
 
-	if err := validate.Pattern("service_network_cidr", "body", string(m.ServiceNetworkCidr), `^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\/]([1-9]|[1-2][0-9]|3[0-2]?)$`); err != nil {
+	if err := validate.Pattern("service_network_cidr", "body", m.ServiceNetworkCidr, `^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\/]([1-9]|[1-2][0-9]|3[0-2]?)$`); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this cluster default config based on context it is used
+func (m *ClusterDefaultConfig) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

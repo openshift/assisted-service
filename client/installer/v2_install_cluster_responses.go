@@ -71,7 +71,6 @@ func (o *V2InstallClusterReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -82,7 +81,7 @@ func NewV2InstallClusterAccepted() *V2InstallClusterAccepted {
 	return &V2InstallClusterAccepted{}
 }
 
-/*V2InstallClusterAccepted handles this case with default header values.
+/* V2InstallClusterAccepted describes a response with status code 202, with default header values.
 
 Success.
 */
@@ -93,7 +92,6 @@ type V2InstallClusterAccepted struct {
 func (o *V2InstallClusterAccepted) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/install][%d] v2InstallClusterAccepted  %+v", 202, o.Payload)
 }
-
 func (o *V2InstallClusterAccepted) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -115,7 +113,7 @@ func NewV2InstallClusterBadRequest() *V2InstallClusterBadRequest {
 	return &V2InstallClusterBadRequest{}
 }
 
-/*V2InstallClusterBadRequest handles this case with default header values.
+/* V2InstallClusterBadRequest describes a response with status code 400, with default header values.
 
 Error.
 */
@@ -126,7 +124,6 @@ type V2InstallClusterBadRequest struct {
 func (o *V2InstallClusterBadRequest) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/install][%d] v2InstallClusterBadRequest  %+v", 400, o.Payload)
 }
-
 func (o *V2InstallClusterBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -148,7 +145,7 @@ func NewV2InstallClusterUnauthorized() *V2InstallClusterUnauthorized {
 	return &V2InstallClusterUnauthorized{}
 }
 
-/*V2InstallClusterUnauthorized handles this case with default header values.
+/* V2InstallClusterUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -159,7 +156,6 @@ type V2InstallClusterUnauthorized struct {
 func (o *V2InstallClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/install][%d] v2InstallClusterUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *V2InstallClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -181,7 +177,7 @@ func NewV2InstallClusterForbidden() *V2InstallClusterForbidden {
 	return &V2InstallClusterForbidden{}
 }
 
-/*V2InstallClusterForbidden handles this case with default header values.
+/* V2InstallClusterForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -192,7 +188,6 @@ type V2InstallClusterForbidden struct {
 func (o *V2InstallClusterForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/install][%d] v2InstallClusterForbidden  %+v", 403, o.Payload)
 }
-
 func (o *V2InstallClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -214,7 +209,7 @@ func NewV2InstallClusterNotFound() *V2InstallClusterNotFound {
 	return &V2InstallClusterNotFound{}
 }
 
-/*V2InstallClusterNotFound handles this case with default header values.
+/* V2InstallClusterNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -225,7 +220,6 @@ type V2InstallClusterNotFound struct {
 func (o *V2InstallClusterNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/install][%d] v2InstallClusterNotFound  %+v", 404, o.Payload)
 }
-
 func (o *V2InstallClusterNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -247,7 +241,7 @@ func NewV2InstallClusterMethodNotAllowed() *V2InstallClusterMethodNotAllowed {
 	return &V2InstallClusterMethodNotAllowed{}
 }
 
-/*V2InstallClusterMethodNotAllowed handles this case with default header values.
+/* V2InstallClusterMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -258,7 +252,6 @@ type V2InstallClusterMethodNotAllowed struct {
 func (o *V2InstallClusterMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/install][%d] v2InstallClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *V2InstallClusterMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -280,7 +273,7 @@ func NewV2InstallClusterConflict() *V2InstallClusterConflict {
 	return &V2InstallClusterConflict{}
 }
 
-/*V2InstallClusterConflict handles this case with default header values.
+/* V2InstallClusterConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -291,7 +284,6 @@ type V2InstallClusterConflict struct {
 func (o *V2InstallClusterConflict) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/install][%d] v2InstallClusterConflict  %+v", 409, o.Payload)
 }
-
 func (o *V2InstallClusterConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -313,7 +305,7 @@ func NewV2InstallClusterInternalServerError() *V2InstallClusterInternalServerErr
 	return &V2InstallClusterInternalServerError{}
 }
 
-/*V2InstallClusterInternalServerError handles this case with default header values.
+/* V2InstallClusterInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -324,7 +316,6 @@ type V2InstallClusterInternalServerError struct {
 func (o *V2InstallClusterInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/install][%d] v2InstallClusterInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *V2InstallClusterInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

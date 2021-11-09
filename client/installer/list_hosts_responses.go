@@ -59,7 +59,6 @@ func (o *ListHostsReader) ReadResponse(response runtime.ClientResponse, consumer
 			return nil, err
 		}
 		return nil, result
-
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -70,7 +69,7 @@ func NewListHostsOK() *ListHostsOK {
 	return &ListHostsOK{}
 }
 
-/*ListHostsOK handles this case with default header values.
+/* ListHostsOK describes a response with status code 200, with default header values.
 
 Success.
 */
@@ -81,7 +80,6 @@ type ListHostsOK struct {
 func (o *ListHostsOK) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsOK  %+v", 200, o.Payload)
 }
-
 func (o *ListHostsOK) GetPayload() models.HostList {
 	return o.Payload
 }
@@ -101,7 +99,7 @@ func NewListHostsUnauthorized() *ListHostsUnauthorized {
 	return &ListHostsUnauthorized{}
 }
 
-/*ListHostsUnauthorized handles this case with default header values.
+/* ListHostsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -112,7 +110,6 @@ type ListHostsUnauthorized struct {
 func (o *ListHostsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsUnauthorized  %+v", 401, o.Payload)
 }
-
 func (o *ListHostsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -134,7 +131,7 @@ func NewListHostsForbidden() *ListHostsForbidden {
 	return &ListHostsForbidden{}
 }
 
-/*ListHostsForbidden handles this case with default header values.
+/* ListHostsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -145,7 +142,6 @@ type ListHostsForbidden struct {
 func (o *ListHostsForbidden) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsForbidden  %+v", 403, o.Payload)
 }
-
 func (o *ListHostsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -167,7 +163,7 @@ func NewListHostsMethodNotAllowed() *ListHostsMethodNotAllowed {
 	return &ListHostsMethodNotAllowed{}
 }
 
-/*ListHostsMethodNotAllowed handles this case with default header values.
+/* ListHostsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -178,7 +174,6 @@ type ListHostsMethodNotAllowed struct {
 func (o *ListHostsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsMethodNotAllowed  %+v", 405, o.Payload)
 }
-
 func (o *ListHostsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -200,7 +195,7 @@ func NewListHostsInternalServerError() *ListHostsInternalServerError {
 	return &ListHostsInternalServerError{}
 }
 
-/*ListHostsInternalServerError handles this case with default header values.
+/* ListHostsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -211,7 +206,6 @@ type ListHostsInternalServerError struct {
 func (o *ListHostsInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *ListHostsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -233,7 +227,7 @@ func NewListHostsServiceUnavailable() *ListHostsServiceUnavailable {
 	return &ListHostsServiceUnavailable{}
 }
 
-/*ListHostsServiceUnavailable handles this case with default header values.
+/* ListHostsServiceUnavailable describes a response with status code 503, with default header values.
 
 Unavailable.
 */
@@ -244,7 +238,6 @@ type ListHostsServiceUnavailable struct {
 func (o *ListHostsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsServiceUnavailable  %+v", 503, o.Payload)
 }
-
 func (o *ListHostsServiceUnavailable) GetPayload() *models.Error {
 	return o.Payload
 }

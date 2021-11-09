@@ -18,64 +18,81 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewV2CreateClusterManifestParams creates a new V2CreateClusterManifestParams object
-// with the default values initialized.
+// NewV2CreateClusterManifestParams creates a new V2CreateClusterManifestParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewV2CreateClusterManifestParams() *V2CreateClusterManifestParams {
-	var ()
 	return &V2CreateClusterManifestParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewV2CreateClusterManifestParamsWithTimeout creates a new V2CreateClusterManifestParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewV2CreateClusterManifestParamsWithTimeout(timeout time.Duration) *V2CreateClusterManifestParams {
-	var ()
 	return &V2CreateClusterManifestParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewV2CreateClusterManifestParamsWithContext creates a new V2CreateClusterManifestParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewV2CreateClusterManifestParamsWithContext(ctx context.Context) *V2CreateClusterManifestParams {
-	var ()
 	return &V2CreateClusterManifestParams{
-
 		Context: ctx,
 	}
 }
 
 // NewV2CreateClusterManifestParamsWithHTTPClient creates a new V2CreateClusterManifestParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewV2CreateClusterManifestParamsWithHTTPClient(client *http.Client) *V2CreateClusterManifestParams {
-	var ()
 	return &V2CreateClusterManifestParams{
 		HTTPClient: client,
 	}
 }
 
-/*V2CreateClusterManifestParams contains all the parameters to send to the API endpoint
-for the v2 create cluster manifest operation typically these are written to a http.Request
+/* V2CreateClusterManifestParams contains all the parameters to send to the API endpoint
+   for the v2 create cluster manifest operation.
+
+   Typically these are written to a http.Request.
 */
 type V2CreateClusterManifestParams struct {
 
-	/*CreateManifestParams
-	  The new manifest to create.
+	/* CreateManifestParams.
 
+	   The new manifest to create.
 	*/
 	CreateManifestParams *models.CreateManifestParams
-	/*ClusterID
-	  The cluster for which a new manifest should be created.
 
+	/* ClusterID.
+
+	   The cluster for which a new manifest should be created.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the v2 create cluster manifest params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2CreateClusterManifestParams) WithDefaults() *V2CreateClusterManifestParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the v2 create cluster manifest params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *V2CreateClusterManifestParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the v2 create cluster manifest params
@@ -140,7 +157,6 @@ func (o *V2CreateClusterManifestParams) WriteToRequest(r runtime.ClientRequest, 
 		return err
 	}
 	var res []error
-
 	if o.CreateManifestParams != nil {
 		if err := r.SetBodyParam(o.CreateManifestParams); err != nil {
 			return err

@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
@@ -70,7 +71,7 @@ func (m *CreateManifestParams) validateFileName(formats strfmt.Registry) error {
 		return err
 	}
 
-	if err := validate.Pattern("file_name", "body", string(*m.FileName), `^[^/]*\.(yaml|yml|json)$`); err != nil {
+	if err := validate.Pattern("file_name", "body", *m.FileName, `^[^/]*\.(yaml|yml|json)$`); err != nil {
 		return err
 	}
 
@@ -107,7 +108,6 @@ func (m *CreateManifestParams) validateFolderEnum(path, location string, value s
 }
 
 func (m *CreateManifestParams) validateFolder(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Folder) { // not required
 		return nil
 	}
@@ -117,6 +117,11 @@ func (m *CreateManifestParams) validateFolder(formats strfmt.Registry) error {
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this create manifest params based on context it is used
+func (m *CreateManifestParams) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

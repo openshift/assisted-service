@@ -18,64 +18,81 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewReportMonitoredOperatorStatusParams creates a new ReportMonitoredOperatorStatusParams object
-// with the default values initialized.
+// NewReportMonitoredOperatorStatusParams creates a new ReportMonitoredOperatorStatusParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewReportMonitoredOperatorStatusParams() *ReportMonitoredOperatorStatusParams {
-	var ()
 	return &ReportMonitoredOperatorStatusParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewReportMonitoredOperatorStatusParamsWithTimeout creates a new ReportMonitoredOperatorStatusParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewReportMonitoredOperatorStatusParamsWithTimeout(timeout time.Duration) *ReportMonitoredOperatorStatusParams {
-	var ()
 	return &ReportMonitoredOperatorStatusParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewReportMonitoredOperatorStatusParamsWithContext creates a new ReportMonitoredOperatorStatusParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewReportMonitoredOperatorStatusParamsWithContext(ctx context.Context) *ReportMonitoredOperatorStatusParams {
-	var ()
 	return &ReportMonitoredOperatorStatusParams{
-
 		Context: ctx,
 	}
 }
 
 // NewReportMonitoredOperatorStatusParamsWithHTTPClient creates a new ReportMonitoredOperatorStatusParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewReportMonitoredOperatorStatusParamsWithHTTPClient(client *http.Client) *ReportMonitoredOperatorStatusParams {
-	var ()
 	return &ReportMonitoredOperatorStatusParams{
 		HTTPClient: client,
 	}
 }
 
-/*ReportMonitoredOperatorStatusParams contains all the parameters to send to the API endpoint
-for the report monitored operator status operation typically these are written to a http.Request
+/* ReportMonitoredOperatorStatusParams contains all the parameters to send to the API endpoint
+   for the report monitored operator status operation.
+
+   Typically these are written to a http.Request.
 */
 type ReportMonitoredOperatorStatusParams struct {
 
-	/*ClusterID
-	  The cluster whose operators are being monitored.
+	/* ClusterID.
 
+	   The cluster whose operators are being monitored.
+
+	   Format: uuid
 	*/
 	ClusterID strfmt.UUID
-	/*ReportParams
-	  The operators monitor report.
 
+	/* ReportParams.
+
+	   The operators monitor report.
 	*/
 	ReportParams *models.OperatorMonitorReport
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the report monitored operator status params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ReportMonitoredOperatorStatusParams) WithDefaults() *ReportMonitoredOperatorStatusParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the report monitored operator status params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ReportMonitoredOperatorStatusParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the report monitored operator status params
@@ -145,7 +162,6 @@ func (o *ReportMonitoredOperatorStatusParams) WriteToRequest(r runtime.ClientReq
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
-
 	if o.ReportParams != nil {
 		if err := r.SetBodyParam(o.ReportParams); err != nil {
 			return err

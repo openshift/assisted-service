@@ -16,7 +16,8 @@ import (
 )
 
 // NewDownloadClusterLogsParams creates a new DownloadClusterLogsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewDownloadClusterLogsParams() DownloadClusterLogsParams {
 
 	return DownloadClusterLogsParams{}
@@ -71,7 +72,6 @@ func (o *DownloadClusterLogsParams) BindRequest(r *http.Request, route *middlewa
 	if err := o.bindLogsType(qLogsType, qhkLogsType, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -120,6 +120,7 @@ func (o *DownloadClusterLogsParams) bindHostID(rawData []string, hasKey bool, fo
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
@@ -156,10 +157,10 @@ func (o *DownloadClusterLogsParams) bindLogsType(rawData []string, hasKey bool, 
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.LogsType = &raw
 
 	if err := o.validateLogsType(formats); err != nil {

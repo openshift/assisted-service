@@ -29,7 +29,7 @@ func NewDownloadInfraEnvDiscoveryImageHeaders(ctx *middleware.Context, handler D
 	return &DownloadInfraEnvDiscoveryImageHeaders{Context: ctx, Handler: handler}
 }
 
-/*DownloadInfraEnvDiscoveryImageHeaders swagger:route HEAD /v2/infra-envs/{infra_env_id}/downloads/image installer downloadInfraEnvDiscoveryImageHeaders
+/* DownloadInfraEnvDiscoveryImageHeaders swagger:route HEAD /v2/infra-envs/{infra_env_id}/downloads/image installer downloadInfraEnvDiscoveryImageHeaders
 
 Downloads the discovery image Headers only.
 
@@ -42,21 +42,20 @@ type DownloadInfraEnvDiscoveryImageHeaders struct {
 func (o *DownloadInfraEnvDiscoveryImageHeaders) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewDownloadInfraEnvDiscoveryImageHeadersParams()
-
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 	if aCtx != nil {
-		r = aCtx
+		*r = *aCtx
 	}
 	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -65,7 +64,6 @@ func (o *DownloadInfraEnvDiscoveryImageHeaders) ServeHTTP(rw http.ResponseWriter
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

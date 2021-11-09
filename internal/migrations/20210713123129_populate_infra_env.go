@@ -1,6 +1,7 @@
 package migrations
 
 import (
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
@@ -41,7 +42,7 @@ func populateInfraEnv() *gormigrate.Migration {
 				infraenv := common.InfraEnv{
 					PullSecret:     cluster.PullSecret,
 					ImageExpiresAt: cluster.ImageInfo.ExpiresAt,
-					GeneratedAt:    cluster.ImageInfo.CreatedAt,
+					GeneratedAt:    strfmt.DateTime(cluster.ImageInfo.CreatedAt),
 					Generated:      cluster.ImageGenerated,
 					ProxyHash:      cluster.ProxyHash,
 					InfraEnv: models.InfraEnv{
@@ -63,7 +64,7 @@ func populateInfraEnv() *gormigrate.Migration {
 						SizeBytes:           cluster.ImageInfo.SizeBytes,
 						SSHAuthorizedKey:    cluster.ImageInfo.SSHPublicKey,
 						StaticNetworkConfig: cluster.ImageInfo.StaticNetworkConfig,
-						Type:                cluster.ImageInfo.Type,
+						Type:                common.ImageTypePtr(cluster.ImageInfo.Type),
 						OpenshiftVersion:    cluster.OpenshiftVersion,
 					},
 				}
