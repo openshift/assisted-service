@@ -3,6 +3,7 @@ package hostcommands
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -49,7 +50,30 @@ var _ = Describe("upload_logs", func() {
 		Expect(stepReply[0].Args).Should(ContainElement(clusterId.String()))
 		Expect(stepReply[0].Args).Should(ContainElement(id.String()))
 		Expect(stepReply[0].Args).Should(ContainElement(infraEnvId.String()))
+		Expect(stepReply[0].Args).ShouldNot(ContainElement("--cacert"))
+		Expect(stepReply[0].Args).ShouldNot(ContainElement(common.HostCACertPath))
+		Expect(stepReply[0].Args).ShouldNot(ContainElement(fmt.Sprintf("%s:%s", common.HostCACertPath, common.HostCACertPath)))
 	})
+
+	It("get_step with logs", func() {
+		DefaultInstructionConfig.ServiceCACertPath = common.HostCACertPath
+		logsCmd = NewLogsCmd(common.GetTestLog(), db, DefaultInstructionConfig)
+		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeExecute))
+		Expect(stepErr).ShouldNot(HaveOccurred())
+		Expect(stepReply[0].Command).Should(Equal("timeout"))
+		Expect(stepReply[0].Args).Should(ContainElement("podman"))
+		Expect(stepReply[0].Args).Should(ContainElement("-cluster-id"))
+		Expect(stepReply[0].Args).Should(ContainElement("-host-id"))
+		Expect(stepReply[0].Args).Should(ContainElement("-infra-env-id"))
+		Expect(stepReply[0].Args).Should(ContainElement(clusterId.String()))
+		Expect(stepReply[0].Args).Should(ContainElement(id.String()))
+		Expect(stepReply[0].Args).Should(ContainElement(infraEnvId.String()))
+		Expect(stepReply[0].Args).Should(ContainElement("--cacert"))
+		Expect(stepReply[0].Args).Should(ContainElement(common.HostCACertPath))
+		Expect(stepReply[0].Args).Should(ContainElement(fmt.Sprintf("%s:%s", common.HostCACertPath, common.HostCACertPath)))
+	})
+
 	It("get_step without logs", func() {
 		host.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host)
