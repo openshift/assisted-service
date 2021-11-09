@@ -215,9 +215,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: host_installer_args_applied
@@ -225,9 +225,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: host_bootstrap_set
@@ -235,9 +235,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: host_status_updated
@@ -268,9 +268,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
     image_status: string
     result: string
@@ -281,9 +281,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: host_installation_started
@@ -291,9 +291,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: host_cancel_installation_failed
@@ -301,9 +301,9 @@ x-events:
   event_type: host
   severity: "error"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
     error: string
 
@@ -312,9 +312,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: host_installation_reset_failed
@@ -322,9 +322,9 @@ x-events:
   event_type: host
   severity: "error"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
     error: string
 
@@ -333,9 +333,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: host_set_status_failed
@@ -343,9 +343,9 @@ x-events:
   event_type: host
   severity: "error"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
     error: string
 
@@ -354,9 +354,9 @@ x-events:
   event_type: host
   severity: "warning"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
     validation_id: string
 
@@ -365,9 +365,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
     validation_id: string
 
@@ -376,9 +376,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
     disk_name: string
     disk_id: string
@@ -504,9 +504,9 @@ x-events:
   event_type: host
   severity: "warning"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_disk: string
     fdatasync_duration: int64
 
@@ -515,9 +515,9 @@ x-events:
   event_type: host
   severity: "error"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: host_disable_failed
@@ -525,9 +525,9 @@ x-events:
   event_type: host
   severity: "error"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: host_disabled
@@ -535,9 +535,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: enable_host_fetch_failed
@@ -545,9 +545,9 @@ x-events:
   event_type: host
   severity: "error"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: enable_host_disable_failed
@@ -555,9 +555,9 @@ x-events:
   event_type: host
   severity: "error"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: host_enabled
@@ -565,9 +565,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: host_discovery_ignition_config_applied
@@ -593,9 +593,9 @@ x-events:
   event_type: host
   severity: "info"
   properties:
-    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: cluster_logs_uploaded

@@ -621,7 +621,7 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}
-		eventgen.SendHostBootstrapSetEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(h))
+		eventgen.SendHostBootstrapSetEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID, hostutil.GetHostnameForMsg(h))
 	}
 	return nil
 }
@@ -749,7 +749,7 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 				newImageStatus.Time, newImageStatus.SizeBytes, newImageStatus.DownloadRate)
 		}
 
-		eventgen.SendImageStatusUpdatedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID,
+		eventgen.SendImageStatusUpdatedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
 			hostutil.GetHostnameForMsg(h), newImageStatus.Name, string(newImageStatus.Result), eventInfo)
 	}
 	marshalledStatuses, err := common.MarshalImageStatuses(hostImageStatuses)
@@ -822,11 +822,11 @@ func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason
 	defer func() {
 		if shouldAddEvent {
 			if isFailed {
-				eventgen.SendHostCancelInstallationFailedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
-					h.InfraEnvID, hostutil.GetHostnameForMsg(h), err.Error())
+				eventgen.SendHostCancelInstallationFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
+					hostutil.GetHostnameForMsg(h), err.Error())
 			} else {
-				eventgen.SendHostInstallationCancelledEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
-					h.InfraEnvID, hostutil.GetHostnameForMsg(h))
+				eventgen.SendHostInstallationCancelledEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
+					hostutil.GetHostnameForMsg(h))
 			}
 		}
 	}()
@@ -869,11 +869,11 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 	defer func() {
 		if shouldAddEvent {
 			if isFailed {
-				eventgen.SendHostInstallationResetFailedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
-					h.InfraEnvID, hostutil.GetHostnameForMsg(h), err.Error())
+				eventgen.SendHostInstallationResetFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
+					hostutil.GetHostnameForMsg(h), err.Error())
 			} else {
-				eventgen.SendHostInstallationResetEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
-					h.InfraEnvID, hostutil.GetHostnameForMsg(h))
+				eventgen.SendHostInstallationResetEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
+					hostutil.GetHostnameForMsg(h))
 			}
 		}
 	}()
@@ -912,11 +912,11 @@ func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db
 	defer func() {
 		if shouldAddEvent {
 			if isFailed {
-				eventgen.SendHostSetStatusFailedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
-					h.InfraEnvID, hostutil.GetHostnameForMsg(h), err.Error())
+				eventgen.SendHostSetStatusFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
+					hostutil.GetHostnameForMsg(h), err.Error())
 			} else {
-				eventgen.SendUserRequiredCompleteInstallationResetEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
-					h.InfraEnvID, hostutil.GetHostnameForMsg(h))
+				eventgen.SendUserRequiredCompleteInstallationResetEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
+					hostutil.GetHostnameForMsg(h))
 			}
 		}
 	}()
@@ -1012,13 +1012,13 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 					} else if vc.infraEnv != nil {
 						m.metricApi.HostValidationChanged(vc.infraEnv.OpenshiftVersion, vc.infraEnv.EmailDomain, models.HostValidationID(v.ID))
 					}
-					eventgen.SendHostValidationFailedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
-						h.InfraEnvID, hostutil.GetHostnameForMsg(h), v.ID.String())
+					eventgen.SendHostValidationFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
+						hostutil.GetHostnameForMsg(h), v.ID.String())
 				}
 				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
 					log.Infof("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
-					eventgen.SendHostValidationFixedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID,
-						h.InfraEnvID, hostutil.GetHostnameForMsg(h), v.ID.String())
+					eventgen.SendHostValidationFixedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
+						hostutil.GetHostnameForMsg(h), v.ID.String())
 				}
 			}
 		}

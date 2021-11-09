@@ -1847,24 +1847,24 @@ func (e *DownloadImageFetchFailedEvent) FormatMessage() string {
 // Event host_deregistered
 //
 type HostDeregisteredEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var HostDeregisteredEventName string = "host_deregistered"
 
 func NewHostDeregisteredEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *HostDeregisteredEvent {
     return &HostDeregisteredEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -1872,14 +1872,14 @@ func NewHostDeregisteredEvent(
 func SendHostDeregisteredEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewHostDeregisteredEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -1888,15 +1888,15 @@ func SendHostDeregisteredEvent(
 func SendHostDeregisteredEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewHostDeregisteredEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -1921,9 +1921,9 @@ func (e *HostDeregisteredEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostDeregisteredEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -1938,24 +1938,24 @@ func (e *HostDeregisteredEvent) FormatMessage() string {
 // Event host_installer_args_applied
 //
 type HostInstallerArgsAppliedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var HostInstallerArgsAppliedEventName string = "host_installer_args_applied"
 
 func NewHostInstallerArgsAppliedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *HostInstallerArgsAppliedEvent {
     return &HostInstallerArgsAppliedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -1963,14 +1963,14 @@ func NewHostInstallerArgsAppliedEvent(
 func SendHostInstallerArgsAppliedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewHostInstallerArgsAppliedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -1979,15 +1979,15 @@ func SendHostInstallerArgsAppliedEvent(
 func SendHostInstallerArgsAppliedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewHostInstallerArgsAppliedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -2012,9 +2012,9 @@ func (e *HostInstallerArgsAppliedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostInstallerArgsAppliedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -2029,24 +2029,24 @@ func (e *HostInstallerArgsAppliedEvent) FormatMessage() string {
 // Event host_bootstrap_set
 //
 type HostBootstrapSetEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var HostBootstrapSetEventName string = "host_bootstrap_set"
 
 func NewHostBootstrapSetEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *HostBootstrapSetEvent {
     return &HostBootstrapSetEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -2054,14 +2054,14 @@ func NewHostBootstrapSetEvent(
 func SendHostBootstrapSetEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewHostBootstrapSetEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -2070,15 +2070,15 @@ func SendHostBootstrapSetEvent(
 func SendHostBootstrapSetEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewHostBootstrapSetEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -2103,9 +2103,9 @@ func (e *HostBootstrapSetEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostBootstrapSetEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -2326,9 +2326,9 @@ func (e *HostRoleUpdatedEvent) FormatMessage() string {
 // Event image_status_updated
 //
 type ImageStatusUpdatedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
     ImageStatus string
     Result string
@@ -2338,18 +2338,18 @@ type ImageStatusUpdatedEvent struct {
 var ImageStatusUpdatedEventName string = "image_status_updated"
 
 func NewImageStatusUpdatedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     imageStatus string,
     result string,
     info string,
 ) *ImageStatusUpdatedEvent {
     return &ImageStatusUpdatedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
         ImageStatus: imageStatus,
         Result: result,
@@ -2360,17 +2360,17 @@ func NewImageStatusUpdatedEvent(
 func SendImageStatusUpdatedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     imageStatus string,
     result string,
     info string,) {
     ev := NewImageStatusUpdatedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         imageStatus,
         result,
@@ -2382,18 +2382,18 @@ func SendImageStatusUpdatedEvent(
 func SendImageStatusUpdatedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     imageStatus string,
     result string,
     info string,
     eventTime time.Time) {
     ev := NewImageStatusUpdatedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         imageStatus,
         result,
@@ -2421,9 +2421,9 @@ func (e *ImageStatusUpdatedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *ImageStatusUpdatedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
         "{image_status}", fmt.Sprint(e.ImageStatus),
         "{result}", fmt.Sprint(e.Result),
@@ -2441,24 +2441,24 @@ func (e *ImageStatusUpdatedEvent) FormatMessage() string {
 // Event host_installation_cancelled
 //
 type HostInstallationCancelledEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var HostInstallationCancelledEventName string = "host_installation_cancelled"
 
 func NewHostInstallationCancelledEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *HostInstallationCancelledEvent {
     return &HostInstallationCancelledEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -2466,14 +2466,14 @@ func NewHostInstallationCancelledEvent(
 func SendHostInstallationCancelledEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewHostInstallationCancelledEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -2482,15 +2482,15 @@ func SendHostInstallationCancelledEvent(
 func SendHostInstallationCancelledEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewHostInstallationCancelledEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -2515,9 +2515,9 @@ func (e *HostInstallationCancelledEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostInstallationCancelledEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -2532,24 +2532,24 @@ func (e *HostInstallationCancelledEvent) FormatMessage() string {
 // Event host_installation_started
 //
 type HostInstallationStartedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var HostInstallationStartedEventName string = "host_installation_started"
 
 func NewHostInstallationStartedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *HostInstallationStartedEvent {
     return &HostInstallationStartedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -2557,14 +2557,14 @@ func NewHostInstallationStartedEvent(
 func SendHostInstallationStartedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewHostInstallationStartedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -2573,15 +2573,15 @@ func SendHostInstallationStartedEvent(
 func SendHostInstallationStartedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewHostInstallationStartedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -2606,9 +2606,9 @@ func (e *HostInstallationStartedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostInstallationStartedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -2623,9 +2623,9 @@ func (e *HostInstallationStartedEvent) FormatMessage() string {
 // Event host_cancel_installation_failed
 //
 type HostCancelInstallationFailedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
     Error string
 }
@@ -2633,16 +2633,16 @@ type HostCancelInstallationFailedEvent struct {
 var HostCancelInstallationFailedEventName string = "host_cancel_installation_failed"
 
 func NewHostCancelInstallationFailedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     error string,
 ) *HostCancelInstallationFailedEvent {
     return &HostCancelInstallationFailedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
         Error: error,
     }
@@ -2651,15 +2651,15 @@ func NewHostCancelInstallationFailedEvent(
 func SendHostCancelInstallationFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     error string,) {
     ev := NewHostCancelInstallationFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         error,
     )
@@ -2669,16 +2669,16 @@ func SendHostCancelInstallationFailedEvent(
 func SendHostCancelInstallationFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     error string,
     eventTime time.Time) {
     ev := NewHostCancelInstallationFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         error,
     )
@@ -2704,9 +2704,9 @@ func (e *HostCancelInstallationFailedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostCancelInstallationFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
         "{error}", fmt.Sprint(e.Error),
     )
@@ -2722,24 +2722,24 @@ func (e *HostCancelInstallationFailedEvent) FormatMessage() string {
 // Event host_installation_reset
 //
 type HostInstallationResetEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var HostInstallationResetEventName string = "host_installation_reset"
 
 func NewHostInstallationResetEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *HostInstallationResetEvent {
     return &HostInstallationResetEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -2747,14 +2747,14 @@ func NewHostInstallationResetEvent(
 func SendHostInstallationResetEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewHostInstallationResetEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -2763,15 +2763,15 @@ func SendHostInstallationResetEvent(
 func SendHostInstallationResetEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewHostInstallationResetEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -2796,9 +2796,9 @@ func (e *HostInstallationResetEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostInstallationResetEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -2813,9 +2813,9 @@ func (e *HostInstallationResetEvent) FormatMessage() string {
 // Event host_installation_reset_failed
 //
 type HostInstallationResetFailedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
     Error string
 }
@@ -2823,16 +2823,16 @@ type HostInstallationResetFailedEvent struct {
 var HostInstallationResetFailedEventName string = "host_installation_reset_failed"
 
 func NewHostInstallationResetFailedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     error string,
 ) *HostInstallationResetFailedEvent {
     return &HostInstallationResetFailedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
         Error: error,
     }
@@ -2841,15 +2841,15 @@ func NewHostInstallationResetFailedEvent(
 func SendHostInstallationResetFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     error string,) {
     ev := NewHostInstallationResetFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         error,
     )
@@ -2859,16 +2859,16 @@ func SendHostInstallationResetFailedEvent(
 func SendHostInstallationResetFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     error string,
     eventTime time.Time) {
     ev := NewHostInstallationResetFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         error,
     )
@@ -2894,9 +2894,9 @@ func (e *HostInstallationResetFailedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostInstallationResetFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
         "{error}", fmt.Sprint(e.Error),
     )
@@ -2912,24 +2912,24 @@ func (e *HostInstallationResetFailedEvent) FormatMessage() string {
 // Event user_required_complete_installation_reset
 //
 type UserRequiredCompleteInstallationResetEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var UserRequiredCompleteInstallationResetEventName string = "user_required_complete_installation_reset"
 
 func NewUserRequiredCompleteInstallationResetEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *UserRequiredCompleteInstallationResetEvent {
     return &UserRequiredCompleteInstallationResetEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -2937,14 +2937,14 @@ func NewUserRequiredCompleteInstallationResetEvent(
 func SendUserRequiredCompleteInstallationResetEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewUserRequiredCompleteInstallationResetEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -2953,15 +2953,15 @@ func SendUserRequiredCompleteInstallationResetEvent(
 func SendUserRequiredCompleteInstallationResetEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewUserRequiredCompleteInstallationResetEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -2986,9 +2986,9 @@ func (e *UserRequiredCompleteInstallationResetEvent) GetInfraEnvId() strfmt.UUID
 
 func (e *UserRequiredCompleteInstallationResetEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -3003,9 +3003,9 @@ func (e *UserRequiredCompleteInstallationResetEvent) FormatMessage() string {
 // Event host_set_status_failed
 //
 type HostSetStatusFailedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
     Error string
 }
@@ -3013,16 +3013,16 @@ type HostSetStatusFailedEvent struct {
 var HostSetStatusFailedEventName string = "host_set_status_failed"
 
 func NewHostSetStatusFailedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     error string,
 ) *HostSetStatusFailedEvent {
     return &HostSetStatusFailedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
         Error: error,
     }
@@ -3031,15 +3031,15 @@ func NewHostSetStatusFailedEvent(
 func SendHostSetStatusFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     error string,) {
     ev := NewHostSetStatusFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         error,
     )
@@ -3049,16 +3049,16 @@ func SendHostSetStatusFailedEvent(
 func SendHostSetStatusFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     error string,
     eventTime time.Time) {
     ev := NewHostSetStatusFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         error,
     )
@@ -3084,9 +3084,9 @@ func (e *HostSetStatusFailedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostSetStatusFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
         "{error}", fmt.Sprint(e.Error),
     )
@@ -3102,9 +3102,9 @@ func (e *HostSetStatusFailedEvent) FormatMessage() string {
 // Event host_validation_failed
 //
 type HostValidationFailedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
     ValidationId string
 }
@@ -3112,16 +3112,16 @@ type HostValidationFailedEvent struct {
 var HostValidationFailedEventName string = "host_validation_failed"
 
 func NewHostValidationFailedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     validationId string,
 ) *HostValidationFailedEvent {
     return &HostValidationFailedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
         ValidationId: validationId,
     }
@@ -3130,15 +3130,15 @@ func NewHostValidationFailedEvent(
 func SendHostValidationFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     validationId string,) {
     ev := NewHostValidationFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         validationId,
     )
@@ -3148,16 +3148,16 @@ func SendHostValidationFailedEvent(
 func SendHostValidationFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     validationId string,
     eventTime time.Time) {
     ev := NewHostValidationFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         validationId,
     )
@@ -3183,9 +3183,9 @@ func (e *HostValidationFailedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostValidationFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
         "{validation_id}", fmt.Sprint(e.ValidationId),
     )
@@ -3201,9 +3201,9 @@ func (e *HostValidationFailedEvent) FormatMessage() string {
 // Event host_validation_fixed
 //
 type HostValidationFixedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
     ValidationId string
 }
@@ -3211,16 +3211,16 @@ type HostValidationFixedEvent struct {
 var HostValidationFixedEventName string = "host_validation_fixed"
 
 func NewHostValidationFixedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     validationId string,
 ) *HostValidationFixedEvent {
     return &HostValidationFixedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
         ValidationId: validationId,
     }
@@ -3229,15 +3229,15 @@ func NewHostValidationFixedEvent(
 func SendHostValidationFixedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     validationId string,) {
     ev := NewHostValidationFixedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         validationId,
     )
@@ -3247,16 +3247,16 @@ func SendHostValidationFixedEvent(
 func SendHostValidationFixedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     validationId string,
     eventTime time.Time) {
     ev := NewHostValidationFixedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         validationId,
     )
@@ -3282,9 +3282,9 @@ func (e *HostValidationFixedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostValidationFixedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
         "{validation_id}", fmt.Sprint(e.ValidationId),
     )
@@ -3300,9 +3300,9 @@ func (e *HostValidationFixedEvent) FormatMessage() string {
 // Event quick_disk_format_performed
 //
 type QuickDiskFormatPerformedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
     DiskName string
     DiskId string
@@ -3311,17 +3311,17 @@ type QuickDiskFormatPerformedEvent struct {
 var QuickDiskFormatPerformedEventName string = "quick_disk_format_performed"
 
 func NewQuickDiskFormatPerformedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     diskName string,
     diskId string,
 ) *QuickDiskFormatPerformedEvent {
     return &QuickDiskFormatPerformedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
         DiskName: diskName,
         DiskId: diskId,
@@ -3331,16 +3331,16 @@ func NewQuickDiskFormatPerformedEvent(
 func SendQuickDiskFormatPerformedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     diskName string,
     diskId string,) {
     ev := NewQuickDiskFormatPerformedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         diskName,
         diskId,
@@ -3351,17 +3351,17 @@ func SendQuickDiskFormatPerformedEvent(
 func SendQuickDiskFormatPerformedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     diskName string,
     diskId string,
     eventTime time.Time) {
     ev := NewQuickDiskFormatPerformedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
         diskName,
         diskId,
@@ -3388,9 +3388,9 @@ func (e *QuickDiskFormatPerformedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *QuickDiskFormatPerformedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
         "{disk_name}", fmt.Sprint(e.DiskName),
         "{disk_id}", fmt.Sprint(e.DiskId),
@@ -4439,9 +4439,9 @@ func (e *ProxySettingsChangedEvent) FormatMessage() string {
 // Event disk_speed_slower_than_supported
 //
 type DiskSpeedSlowerThanSupportedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostDisk string
     FdatasyncDuration int64
 }
@@ -4449,16 +4449,16 @@ type DiskSpeedSlowerThanSupportedEvent struct {
 var DiskSpeedSlowerThanSupportedEventName string = "disk_speed_slower_than_supported"
 
 func NewDiskSpeedSlowerThanSupportedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostDisk string,
     fdatasyncDuration int64,
 ) *DiskSpeedSlowerThanSupportedEvent {
     return &DiskSpeedSlowerThanSupportedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostDisk: hostDisk,
         FdatasyncDuration: fdatasyncDuration,
     }
@@ -4467,15 +4467,15 @@ func NewDiskSpeedSlowerThanSupportedEvent(
 func SendDiskSpeedSlowerThanSupportedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostDisk string,
     fdatasyncDuration int64,) {
     ev := NewDiskSpeedSlowerThanSupportedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostDisk,
         fdatasyncDuration,
     )
@@ -4485,16 +4485,16 @@ func SendDiskSpeedSlowerThanSupportedEvent(
 func SendDiskSpeedSlowerThanSupportedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostDisk string,
     fdatasyncDuration int64,
     eventTime time.Time) {
     ev := NewDiskSpeedSlowerThanSupportedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostDisk,
         fdatasyncDuration,
     )
@@ -4520,9 +4520,9 @@ func (e *DiskSpeedSlowerThanSupportedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *DiskSpeedSlowerThanSupportedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_disk}", fmt.Sprint(e.HostDisk),
         "{fdatasync_duration}", fmt.Sprint(e.FdatasyncDuration),
     )
@@ -4538,24 +4538,24 @@ func (e *DiskSpeedSlowerThanSupportedEvent) FormatMessage() string {
 // Event disable_host_fetch_failed
 //
 type DisableHostFetchFailedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var DisableHostFetchFailedEventName string = "disable_host_fetch_failed"
 
 func NewDisableHostFetchFailedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *DisableHostFetchFailedEvent {
     return &DisableHostFetchFailedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -4563,14 +4563,14 @@ func NewDisableHostFetchFailedEvent(
 func SendDisableHostFetchFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewDisableHostFetchFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -4579,15 +4579,15 @@ func SendDisableHostFetchFailedEvent(
 func SendDisableHostFetchFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewDisableHostFetchFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -4612,9 +4612,9 @@ func (e *DisableHostFetchFailedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *DisableHostFetchFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -4629,24 +4629,24 @@ func (e *DisableHostFetchFailedEvent) FormatMessage() string {
 // Event host_disable_failed
 //
 type HostDisableFailedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var HostDisableFailedEventName string = "host_disable_failed"
 
 func NewHostDisableFailedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *HostDisableFailedEvent {
     return &HostDisableFailedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -4654,14 +4654,14 @@ func NewHostDisableFailedEvent(
 func SendHostDisableFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewHostDisableFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -4670,15 +4670,15 @@ func SendHostDisableFailedEvent(
 func SendHostDisableFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewHostDisableFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -4703,9 +4703,9 @@ func (e *HostDisableFailedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostDisableFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -4720,24 +4720,24 @@ func (e *HostDisableFailedEvent) FormatMessage() string {
 // Event host_disabled
 //
 type HostDisabledEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var HostDisabledEventName string = "host_disabled"
 
 func NewHostDisabledEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *HostDisabledEvent {
     return &HostDisabledEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -4745,14 +4745,14 @@ func NewHostDisabledEvent(
 func SendHostDisabledEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewHostDisabledEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -4761,15 +4761,15 @@ func SendHostDisabledEvent(
 func SendHostDisabledEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewHostDisabledEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -4794,9 +4794,9 @@ func (e *HostDisabledEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostDisabledEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -4811,24 +4811,24 @@ func (e *HostDisabledEvent) FormatMessage() string {
 // Event enable_host_fetch_failed
 //
 type EnableHostFetchFailedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var EnableHostFetchFailedEventName string = "enable_host_fetch_failed"
 
 func NewEnableHostFetchFailedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *EnableHostFetchFailedEvent {
     return &EnableHostFetchFailedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -4836,14 +4836,14 @@ func NewEnableHostFetchFailedEvent(
 func SendEnableHostFetchFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewEnableHostFetchFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -4852,15 +4852,15 @@ func SendEnableHostFetchFailedEvent(
 func SendEnableHostFetchFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewEnableHostFetchFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -4885,9 +4885,9 @@ func (e *EnableHostFetchFailedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *EnableHostFetchFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -4902,24 +4902,24 @@ func (e *EnableHostFetchFailedEvent) FormatMessage() string {
 // Event enable_host_disable_failed
 //
 type EnableHostDisableFailedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var EnableHostDisableFailedEventName string = "enable_host_disable_failed"
 
 func NewEnableHostDisableFailedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *EnableHostDisableFailedEvent {
     return &EnableHostDisableFailedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -4927,14 +4927,14 @@ func NewEnableHostDisableFailedEvent(
 func SendEnableHostDisableFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewEnableHostDisableFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -4943,15 +4943,15 @@ func SendEnableHostDisableFailedEvent(
 func SendEnableHostDisableFailedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewEnableHostDisableFailedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -4976,9 +4976,9 @@ func (e *EnableHostDisableFailedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *EnableHostDisableFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -4993,24 +4993,24 @@ func (e *EnableHostDisableFailedEvent) FormatMessage() string {
 // Event host_enabled
 //
 type HostEnabledEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var HostEnabledEventName string = "host_enabled"
 
 func NewHostEnabledEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *HostEnabledEvent {
     return &HostEnabledEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -5018,14 +5018,14 @@ func NewHostEnabledEvent(
 func SendHostEnabledEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewHostEnabledEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -5034,15 +5034,15 @@ func SendHostEnabledEvent(
 func SendHostEnabledEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewHostEnabledEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -5067,9 +5067,9 @@ func (e *HostEnabledEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostEnabledEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
@@ -5250,24 +5250,24 @@ func (e *HostResetFetchFailedEvent) FormatMessage() string {
 // Event host_logs_uploaded
 //
 type HostLogsUploadedEvent struct {
-    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
 var HostLogsUploadedEventName string = "host_logs_uploaded"
 
 func NewHostLogsUploadedEvent(
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
 ) *HostLogsUploadedEvent {
     return &HostLogsUploadedEvent{
-        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
@@ -5275,14 +5275,14 @@ func NewHostLogsUploadedEvent(
 func SendHostLogsUploadedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
     ev := NewHostLogsUploadedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -5291,15 +5291,15 @@ func SendHostLogsUploadedEvent(
 func SendHostLogsUploadedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
     ev := NewHostLogsUploadedEvent(
-        clusterId,
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -5324,9 +5324,9 @@ func (e *HostLogsUploadedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostLogsUploadedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
