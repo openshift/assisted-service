@@ -1,7 +1,9 @@
 import argparse
 import os
+import shutil
 import subprocess
-from typing import Dict
+from pathlib import Path
+from typing import Dict, List
 
 
 class Setup:
@@ -59,8 +61,9 @@ class SetupInitializer:
     DEFAULT_VERSION_PATH = "version.txt"
     DEFAULT_README_PATH = "README.md"
 
-    def __init__(self, project_path: str, url: str) -> None:
+    def __init__(self, project_path: str, url: str, client_added_files: str) -> None:
         self._project_path = project_path
+        self._client_added_files_dir = client_added_files
         self._setup_path = os.path.join(project_path, self.DEFAULT_SETUP_PATH)
         self._url = url
         self._version = None
@@ -73,6 +76,10 @@ class SetupInitializer:
 
         with open(os.path.join(self._project_path, "MANIFEST.in"), "w") as f:
             f.write(f"include {self.DEFAULT_README_PATH}")
+
+    def _copy_client_extra_modules(self) -> None:
+        for src_file in Path(self._client_added_files_dir).glob("*.py"):
+            shutil.copy(src_file, os.path.join(self._project_path, "assisted_service_client"))
 
     def _load_readme(self) -> None:
         with open(os.path.join(self._project_path, "README.md")) as f:
@@ -97,6 +104,7 @@ class SetupInitializer:
                 data += line
 
         setup = self._execute(data)["SETUP"]
+        self._append_missing_requirements(setup)
         for key in self._setup_data.keys():
             try:
                 setup.pop(key)
@@ -105,8 +113,19 @@ class SetupInitializer:
 
         self._setup_data.update(setup)
 
+    def _append_missing_requirements(self, setup: Dict[str, List]):
+        # Add requirements from external requirements.txt file for the external
+        # modules that on tools/python_api_client_extra_files
+        with open(Path(self._client_added_files_dir).joinpath("requirements.txt")) as f:
+            requirements = f.readlines()
+        for line in requirements:
+            package = line.replace("==", ">=").replace("~=", ">=")
+            if package not in "\n".join(setup[Setup.INSTALL_REQUIRES_KEY]):
+                setup[Setup.INSTALL_REQUIRES_KEY].append(line)
+
     def load(self) -> "SetupInitializer":
         self._load_readme()
+        self._copy_client_extra_modules()
         self._load_setup()
 
         return self
@@ -150,9 +169,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Swagger package builder")
     parser.add_argument("base_path", help="Generated Python project directory path", type=str)
     parser.add_argument("url", help="Project url", type=str)
+    parser.add_argument("client_extra_files_dir", help="External modules to add to the python api client", type=str)
     parser.add_argument("--build", help="If exists, generate wheel artifact", action="store_true")
     args = parser.parse_args()
 
-    pkg = SetupInitializer(args.base_path, args.url).load().dump()
+    pkg = SetupInitializer(args.base_path, args.url, args.client_extra_files_dir).load().dump()
     if args.build:
         pkg.build()
