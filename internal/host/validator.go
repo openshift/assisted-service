@@ -359,7 +359,7 @@ func isDiskEncryptionEnabledForRole(encryption models.DiskEncryption, role model
 
 func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) ValidationStatus {
 
-	if c.infraEnv != nil || swag.StringValue(c.cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
+	if c.infraEnv != nil || swag.StringValue(c.cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone || hostutil.IsDay2Host(c.host) {
 		return ValidationSuccessSuppressOutput
 	}
 
