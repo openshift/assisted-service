@@ -57,14 +57,16 @@ var _ = Describe("Infra_Env", func() {
 		infraEnvID = *infraEnv.ID
 	})
 
-	It("download full-iso image success", func() {
-		file, err := ioutil.TempFile("", "tmp")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.Remove(file.Name())
-		_, err = userBMClient.Installer.DownloadInfraEnvDiscoveryImage(ctx, &installer.DownloadInfraEnvDiscoveryImageParams{InfraEnvID: infraEnvID}, file)
+	getInfraEnv := func() {
+		resp, err := userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
 		Expect(err).NotTo(HaveOccurred())
+
+		infraEnv = resp.Payload
+	}
+
+	It("download full-iso image success", func() {
+		getInfraEnv()
+		downloadIso(ctx, infraEnv.DownloadURL)
 	})
 
 	It("update infra env", func() {
@@ -96,18 +98,12 @@ var _ = Describe("Infra_Env", func() {
 	})
 
 	It("download minimal-iso image success", func() {
-		time.Sleep(time.Second * 10)
 		_, err := userBMClient.Installer.UpdateInfraEnv(ctx,
 			&installer.UpdateInfraEnvParams{InfraEnvID: infraEnvID,
 				InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso}})
 		Expect(err).NotTo(HaveOccurred())
-		file, err := ioutil.TempFile("", "tmp")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.Remove(file.Name())
-		_, err = userBMClient.Installer.DownloadInfraEnvDiscoveryImage(ctx, &installer.DownloadInfraEnvDiscoveryImageParams{InfraEnvID: infraEnvID}, file)
-		Expect(err).NotTo(HaveOccurred())
+		getInfraEnv()
+		downloadIso(ctx, infraEnv.DownloadURL)
 	})
 
 	It("download minimal-initrd success", func() {

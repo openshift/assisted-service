@@ -705,3 +705,11 @@ x-events:
   properties:
     cluster_id: UUID
     message: string
+
+- name: image_info_updated
+  message: "Updated image information ({details})"
+  event_type: infra_env
+  severity: "info"
+  properties:
+    infra_env_id: UUID
+    details: string

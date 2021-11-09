@@ -1454,6 +1454,9 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 			return err
 		}
 
+		details := b.getIgnitionConfigForLogging(ctx, infraEnv, log, imageType)
+		eventgen.SendImageInfoUpdatedEvent(ctx, b.eventsHandler, *infraEnv.ID, details)
+
 		return nil
 	} else if imageExists {
 		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, imageType, false, v2); err != nil {
