@@ -343,7 +343,7 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 		if err != nil {
 			return err
 		}
-		eventgen.SendHostLogsUploadedEvent(ctx, b.eventsHandler, &params.ClusterID, *params.HostID, dbHost.InfraEnvID,
+		eventgen.SendHostLogsUploadedEvent(ctx, b.eventsHandler, *params.HostID, dbHost.InfraEnvID, &params.ClusterID,
 			hostutil.GetHostnameForMsg(&dbHost.Host))
 		return nil
 	}

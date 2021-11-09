@@ -970,7 +970,7 @@ func (b *bareMetalInventory) deleteOrUnbindHosts(ctx context.Context, cluster *c
 				log.WithError(err).Errorf("failed to delete host: %s", h.ID.String())
 				return err
 			}
-			eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, cluster.ID, *h.ID, h.InfraEnvID,
+			eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, *h.ID, h.InfraEnvID, cluster.ID,
 				hostutil.GetHostnameForMsg(h))
 		} else if h.ClusterID != nil {
 			if err = b.hostApi.UnbindHost(ctx, h, b.db); err != nil {
@@ -1828,7 +1828,7 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 		return err
 	}
 	txSuccess = true
-	eventgen.SendHostInstallationStartedEvent(ctx, b.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(&h.Host))
+	eventgen.SendHostInstallationStartedEvent(ctx, b.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
 
 	return nil
 }
@@ -3757,7 +3757,7 @@ func (b *bareMetalInventory) DeregisterHostInternal(ctx context.Context, params 
 	}
 
 	// TODO: need to check that host can be deleted from the cluster
-	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, params.HostID, h.InfraEnvID, &params.ClusterID,
 		hostutil.GetHostnameForMsg(&h.Host))
 	return nil
 }
@@ -3783,7 +3783,7 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 		return err
 	}
 	clusterID = infraEnv.ClusterID
-	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, &clusterID, params.HostID, params.InfraEnvID,
+	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, &clusterID,
 		hostutil.GetHostnameForMsg(&h.Host))
 	return nil
 }
@@ -3854,7 +3854,7 @@ func (b *bareMetalInventory) UpdateHostInstallerArgsInternal(ctx context.Context
 	}
 
 	// TODO: pass InfraEnvID instead of ClusterID
-	eventgen.SendHostInstallerArgsAppliedEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
+	eventgen.SendHostInstallerArgsAppliedEvent(ctx, b.eventsHandler, params.HostID, h.InfraEnvID, &params.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
 	log.Infof("Custom installer arguments were applied to host %s in cluster %s", params.HostID, params.ClusterID)
 
 	h, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
@@ -4064,7 +4064,8 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 			msg := fmt.Sprintf("Host's disk %s is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: %d ms)",
 				diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 			log.Warnf(msg)
-			eventgen.SendDiskSpeedSlowerThanSupportedEvent(ctx, b.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
+			eventgen.SendDiskSpeedSlowerThanSupportedEvent(ctx, b.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
+				diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 		}
 	}
 
@@ -4236,14 +4237,14 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", params.HostID)
-		eventgen.SendDisableHostFetchFailedEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+		eventgen.SendDisableHostFetchFailedEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
 			hostutil.GetHostnameForMsg(&host.Host))
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if err = b.hostApi.DisableHost(ctx, &host.Host, tx); err != nil {
 		log.WithError(err).Errorf("failed to disable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
-		eventgen.SendHostDisableFailedEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+		eventgen.SendHostDisableFailedEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
 			hostutil.GetHostnameForMsg(&host.Host))
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
@@ -4260,7 +4261,7 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 	}
 	txSuccess = true
 
-	eventgen.SendHostDisabledEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+	eventgen.SendHostDisabledEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
 		hostutil.GetHostnameForMsg(&host.Host))
 
 	c, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *c.ID})
@@ -4296,7 +4297,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", params.HostID)
-		eventgen.SendEnableHostFetchFailedEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+		eventgen.SendEnableHostFetchFailedEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
 			hostutil.GetHostnameForMsg(&host.Host))
 
 		return common.NewApiError(http.StatusInternalServerError, err)
@@ -4304,8 +4305,8 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 
 	if err = b.hostApi.EnableHost(ctx, &host.Host, tx); err != nil {
 		log.WithError(err).Errorf("failed to enable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
-		eventgen.SendEnableHostDisableFailedEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID,
-			params.ClusterID, hostutil.GetHostnameForMsg(&host.Host))
+		eventgen.SendEnableHostDisableFailedEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
+			hostutil.GetHostnameForMsg(&host.Host))
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
 
@@ -4320,7 +4321,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 	}
 	txSuccess = true
 
-	eventgen.SendHostEnabledEvent(ctx, b.eventsHandler, &params.ClusterID, params.HostID, params.ClusterID,
+	eventgen.SendHostEnabledEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
 		hostutil.GetHostnameForMsg(&host.Host))
 
 	c, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *c.ID})
@@ -5314,7 +5315,7 @@ func (b *bareMetalInventory) v1uploadLogs(ctx context.Context, params installer.
 			return err
 		}
 
-		eventgen.SendHostLogsUploadedEvent(ctx, b.eventsHandler, &params.ClusterID, *params.HostID, params.ClusterID,
+		eventgen.SendHostLogsUploadedEvent(ctx, b.eventsHandler, *params.HostID, dbHost.InfraEnvID, &params.ClusterID,
 			hostutil.GetHostnameForMsg(&dbHost.Host))
 		return nil
 	}
@@ -6643,7 +6644,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallerArgsInternal(ctx context.Conte
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	eventgen.SendHostInstallerArgsAppliedEvent(ctx, b.eventsHandler, &params.InfraEnvID, params.HostID, params.InfraEnvID,
+	eventgen.SendHostInstallerArgsAppliedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, h.ClusterID,
 		hostutil.GetHostnameForMsg(&h.Host))
 	log.Infof("Custom installer arguments were applied to host %s in infra env %s", params.HostID, params.InfraEnvID)
 

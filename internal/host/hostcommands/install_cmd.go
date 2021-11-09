@@ -263,7 +263,7 @@ func (i *installCmd) getDisksToFormat(ctx context.Context, host models.Host) ([]
 		isMmcblk := strings.Contains(disk.ByPath, "mmcblk") //mmc devices should be treated as removable
 		if disk.Bootable && !disk.Removable && !isMmcblk && !isFcIscsi && !disk.IsInstallationMedia {
 			formatDisks = append(formatDisks, hostutil.GetDeviceIdentifier(disk))
-			eventgen.SendQuickDiskFormatPerformedEvent(ctx, i.eventsHandler, host.ClusterID, *host.ID, host.InfraEnvID,
+			eventgen.SendQuickDiskFormatPerformedEvent(ctx, i.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID,
 				hostutil.GetHostnameForMsg(&host), disk.Name, hostutil.GetDeviceIdentifier(disk))
 		}
 	}
