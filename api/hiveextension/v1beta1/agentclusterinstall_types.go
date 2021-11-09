@@ -151,6 +151,10 @@ type AgentClusterInstallSpec struct {
 	// IgnitionEndpoint stores the data of the custom ignition endpoint.
 	// +optional
 	IgnitionEndpoint *IgnitionEndpoint `json:"ignitionEndpoint,omitempty"`
+
+	// DiskEncryption is the configuration to enable/disable disk encryption for cluster nodes.
+	// +optional
+	DiskEncryption *DiskEncryption `json:"diskEncryption,omitempty"`
 }
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.
@@ -301,6 +305,21 @@ type AgentMachinePool struct {
 	// For the control plane machine pool, the name will always be "master".
 	// For the compute machine pools, the only valid name is "worker".
 	Name string `json:"name"`
+}
+
+type DiskEncryption struct {
+	// Enable/disable disk encryption on master nodes, worker nodes, or all nodes.
+	//
+	// +kubebuilder:default=none
+	// +kubebuilder:validation:Enum=none;all;masters;workers
+	EnableOn *string `json:"enableOn,omitempty"`
+
+	// The disk encryption mode to use.
+	// +kubebuilder:validation:Enum=tpmv2;tang
+	Mode *string `json:"mode,omitempty"`
+
+	// JSON-formatted string containing additional information regarding tang's configuration
+	TangServers string `json:"tangServers,omitempty" gorm:"type:text"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
