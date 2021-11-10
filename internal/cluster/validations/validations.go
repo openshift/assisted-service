@@ -251,8 +251,15 @@ func ValidateClusterNameFormat(name string) error {
 }
 
 // ValidateHTTPFormat validates the HTTP and HTTPS format
-func ValidateHTTPFormat(url string) error {
-	return ValidateHTTPProxyFormat(url)
+func ValidateHTTPFormat(theurl string) error {
+	u, err := url.Parse(theurl)
+	if err != nil {
+		return fmt.Errorf("URL '%s' format is not valid: %w", theurl, err)
+	}
+	if !(u.Scheme == "http" || u.Scheme == "https") {
+		return errors.Errorf("The URL scheme must be http(s) and specified in the URL: '%s'", theurl)
+	}
+	return nil
 }
 
 // ValidateHTTPProxyFormat validates the HTTP Proxy and HTTPS Proxy format

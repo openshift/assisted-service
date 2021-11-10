@@ -233,7 +233,7 @@ var _ = Describe("Cluster name validation", func() {
 	})
 })
 
-var _ = Describe("Proxy validations", func() {
+var _ = Describe("URL validations", func() {
 
 	Context("test proxy URL", func() {
 		var parameters = []struct {
@@ -280,6 +280,48 @@ var _ = Describe("Proxy validations", func() {
 		It("validates proxy URL input", func() {
 			for _, param := range parameters {
 				err := ValidateHTTPProxyFormat(param.input)
+				if param.err == "" {
+					Expect(err).Should(BeNil())
+				} else {
+					Expect(err).ShouldNot(BeNil())
+					Expect(err.Error()).To(Equal(param.err))
+				}
+			}
+		})
+	})
+
+	Context("test URL", func() {
+		var parameters = []struct {
+			input, err string
+		}{
+			{"http://ignition.org:3128", ""},
+			{"https://ignition.org:3128", ""},
+			{"http://ignition.org:3128/config", ""},
+			{"https://ignition.org:3128/config", ""},
+			{"http://10.9.8.7:123", ""},
+			{"http://10.9.8.7:123/config", ""},
+			{"", "The URL scheme must be http(s) and specified in the URL: ''"},
+			{
+				"://!@#$!@#$",
+				"URL '://!@#$!@#$' format is not valid: parse \"://!@\": missing protocol scheme",
+			},
+			{
+				"ftp://ignition.com:3128",
+				"The URL scheme must be http(s) and specified in the URL: 'ftp://ignition.com:3128'",
+			},
+			{
+				"httpx://ignition.com:3128",
+				"The URL scheme must be http(s) and specified in the URL: 'httpx://ignition.com:3128'",
+			},
+			{
+				"ignition.com:3128",
+				"The URL scheme must be http(s) and specified in the URL: 'ignition.com:3128'",
+			},
+		}
+
+		It("validates URL input", func() {
+			for _, param := range parameters {
+				err := ValidateHTTPFormat(param.input)
 				if param.err == "" {
 					Expect(err).Should(BeNil())
 				} else {
