@@ -13736,6 +13736,47 @@ var _ = Describe("Platform tests", func() {
 				},
 			}
 		}
+
+		ovirtFqdn            = "ovirt.example.com"
+		ovirtUsername        = "admin@internal"
+		ovirtPassword        = "redhat"
+		ovirtClusterID       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+		ovirtStorageDomainID = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+		ovirtNetworkName     = "ovirtmgmt"
+		ovirtVnicProfileID   = "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz"
+		ovirtInsecure        = false
+		ovirtCaBundle        = `
+		subject=C = US, ST = North Carolina, L = Raleigh, O = "Red Hat, Inc.",\
+		OU = Red Hat IT, CN = Red Hat IT Root CA, emailAddress = infosec@redhat.com
+
+		issuer=C = US, ST = North Carolina, L = Raleigh, O = "Red Hat, Inc.",\
+		OU = Red Hat IT, CN = Red Hat IT Root CA, emailAddress = infosec@redhat.com
+
+		-----BEGIN CERTIFICATE-----
+		test test test
+		-----END CERTIFICATE-----
+		`
+		getovirtPlatform = func() *models.Platform {
+			Password := strfmt.Password(ovirtPassword)
+			ClusterID := strfmt.UUID(ovirtClusterID)
+			StorageDomainID := strfmt.UUID(ovirtStorageDomainID)
+			VnicProfileID := strfmt.UUID(ovirtVnicProfileID)
+
+			return &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeOvirt),
+				Ovirt: &models.OvirtPlatform{
+					Fqdn:            swag.String(ovirtFqdn),
+					Insecure:        swag.Bool(ovirtInsecure),
+					CaBundle:        swag.String(ovirtCaBundle),
+					Username:        swag.String(ovirtUsername),
+					Password:        &Password,
+					ClusterID:       &ClusterID,
+					StorageDomainID: &StorageDomainID,
+					NetworkName:     swag.String(ovirtNetworkName),
+					VnicProfileID:   &VnicProfileID,
+				},
+			}
+		}
 	)
 
 	BeforeEach(func() {
@@ -13794,6 +13835,30 @@ var _ = Describe("Platform tests", func() {
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeVsphere))
 			Expect(cluster.Platform.Vsphere).ShouldNot(BeNil())
+		})
+
+		It("ovirt platform", func() {
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type:  common.PlatformTypePtr(models.PlatformTypeOvirt),
+				Ovirt: &models.OvirtPlatform{},
+			}
+
+			reply := bm.RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			cluster := reply.(*installer.RegisterClusterCreated).Payload
+			Expect(cluster.Platform).ShouldNot(BeNil())
+			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeOvirt))
+			Expect(cluster.Platform.Ovirt).ShouldNot(BeNil())
+		})
+
+		It("ovirt platform with credentials", func() {
+			registerParams.NewClusterParams.Platform = getovirtPlatform()
+			reply := bm.RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			cluster := reply.(*installer.RegisterClusterCreated).Payload
+			Expect(cluster.Platform).ShouldNot(BeNil())
+			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeOvirt))
+			Expect(cluster.Platform.Ovirt).ShouldNot(BeNil())
 		})
 	})
 })
