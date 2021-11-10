@@ -309,10 +309,11 @@ we will set error in Sync condition only if cluster will be ready for installati
 
 ## Teardown procedure
 
-Deleting the ClusterDeployment will automatically trigger the deletion of its referenced AgentClusterInstall and the deletion of all the Agents connected to it.
+Deleting the ClusterDeployment will automatically trigger the deletion of its referenced AgentClusterInstall and the deletion of all the Agents connected to it (Unless late binding was used, see [here](./late-binding.md)).
+
 Note that the installed OCP cluster, if exists, will not be affected by the deletion of the ClusterDeployment.
 
-Deleting only the AgentClusterInstall will delete the Agents connected to it, but the ClusterDeployment will remain.
+Deleting only the AgentClusterInstall will delete the Agents connected to it (Unless late binding was used), but the ClusterDeployment will remain.
 
 BareMetalHost, InfraEnv, ClusterImageSet and NMStateConfig deletion will not trigger deletion of other resources.
 
