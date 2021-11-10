@@ -53,6 +53,7 @@ var _ = Describe("upload_logs", func() {
 		Expect(stepReply[0].Args).ShouldNot(ContainElement("--cacert"))
 		Expect(stepReply[0].Args).ShouldNot(ContainElement(common.HostCACertPath))
 		Expect(stepReply[0].Args).ShouldNot(ContainElement(fmt.Sprintf("%s:%s", common.HostCACertPath, common.HostCACertPath)))
+		Expect(stepReply[0].Args).ShouldNot(ContainElement("/root/.ssh:/root/.ssh"))
 	})
 
 	It("get_step with logs", func() {
@@ -94,6 +95,7 @@ var _ = Describe("upload_logs", func() {
 		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ShouldNot(HaveOccurred())
 		Expect(stepReply[0].Args).Should(ContainElement("-masters-ips=1.2.3.4"))
+		Expect(stepReply[0].Args).Should(ContainElement("/root/.ssh:/root/.ssh"))
 	})
 	It("get_step logs Masters IPs user-managed-networking ", func() {
 		host.Bootstrap = true
