@@ -7713,6 +7713,75 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/downloads/image-url": {
+      "get": {
+        "description": "Creates a new pre-signed image download URL for the infra-env.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetInfraEnvDownloadURL",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra-env to be retrieved.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/infra-env-image-url"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/downloads/minimal-initrd": {
       "get": {
         "security": [
@@ -12016,6 +12085,20 @@ func init() {
           "items": {
             "$ref": "#/definitions/host_static_network_config"
           }
+        }
+      }
+    },
+    "infra-env-image-url": {
+      "type": "object",
+      "properties": {
+        "expires_at": {
+          "description": "Expiration time for the URL token.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "url": {
+          "description": "Pre-signed URL for downloading the infra-env discovery image.",
+          "type": "string"
         }
       }
     },
@@ -21093,6 +21176,75 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/downloads/image-url": {
+      "get": {
+        "description": "Creates a new pre-signed image download URL for the infra-env.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetInfraEnvDownloadURL",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra-env to be retrieved.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/infra-env-image-url"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/downloads/minimal-initrd": {
       "get": {
         "security": [
@@ -25469,6 +25621,20 @@ func init() {
           "items": {
             "$ref": "#/definitions/host_static_network_config"
           }
+        }
+      }
+    },
+    "infra-env-image-url": {
+      "type": "object",
+      "properties": {
+        "expires_at": {
+          "description": "Expiration time for the URL token.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "url": {
+          "description": "Pre-signed URL for downloading the infra-env discovery image.",
+          "type": "string"
         }
       }
     },

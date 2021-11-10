@@ -113,6 +113,9 @@ type API interface {
 	   GetInfraEnv Retrieves the details of the InfraEnv.*/
 	GetInfraEnv(ctx context.Context, params *GetInfraEnvParams) (*GetInfraEnvOK, error)
 	/*
+	   GetInfraEnvDownloadURL Creates a new pre-signed image download URL for the infra-env.*/
+	GetInfraEnvDownloadURL(ctx context.Context, params *GetInfraEnvDownloadURLParams) (*GetInfraEnvDownloadURLOK, error)
+	/*
 	   GetPreflightRequirements Get preflight requirements for a cluster.*/
 	GetPreflightRequirements(ctx context.Context, params *GetPreflightRequirementsParams) (*GetPreflightRequirementsOK, error)
 	/*
@@ -1100,6 +1103,31 @@ func (a *Client) GetInfraEnv(ctx context.Context, params *GetInfraEnvParams) (*G
 		return nil, err
 	}
 	return result.(*GetInfraEnvOK), nil
+
+}
+
+/*
+GetInfraEnvDownloadURL Creates a new pre-signed image download URL for the infra-env.
+*/
+func (a *Client) GetInfraEnvDownloadURL(ctx context.Context, params *GetInfraEnvDownloadURLParams) (*GetInfraEnvDownloadURLOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetInfraEnvDownloadURL",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/downloads/image-url",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetInfraEnvDownloadURLReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetInfraEnvDownloadURLOK), nil
 
 }
 
