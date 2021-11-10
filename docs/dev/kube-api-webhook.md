@@ -10,19 +10,14 @@ For example, changing the Spec of AgentClusterInstall during the installation is
 
 The [generic-admission-server](https://github.com/openshift/generic-admission-server) library is used to run the webhooks as an [Kubernetes aggregated API server](https://github.com/kubernetes/apiserver).
 
-To deploy the admission web hook run:
-```sh
-skipper make deploy-webhooks ENABLE_KUBE_API=true
-```
+The admission web hook is deployed with the (operator)[../operator.md].
 
-This command will deploy the following components:
-- [ValidatingWebhookConfiguration](../../deploy/webhooks/agentclusterinstall-webhook.yaml): The configuration defining on which CRD the webhook is called, on which operations, what is the URL path that will be called, etc...
-- [Deployment](../../deploy/webhooks/deployment.yaml): The configuration of the pod running the HTTPS server accepting admission requests.
-- [Service](../../deploy/webhooks/service.yaml) and [Service Account](../../deploy/webhooks/service-account.yaml): Expose the HTTPS server.
-- [APIService](../../deploy/webhooks/apiservice.yaml): Register the above service as an aggregated API server.
-- [ClusterRole](../../deploy/webhooks/agentinstalladmission_rbac_role_binding.yaml) and [ClusterRoleBinding](../../deploy/webhooks/agentinstalladmission_rbac_role_binding.yaml): Assign needed permission to the Service.
-
-Also for local deployment, a secret with certificate is created for the Service.
+The following components will be deployed:
+- ValidatingWebhookConfiguration: The configuration defining on which CRD the webhook is called, on which operations, what is the URL path that will be called, etc...
+- Deployment: The configuration of the pod running the HTTPS server accepting admission requests.
+- Service and Service Account: Expose the HTTPS server.
+- APIService: Register the above service as an aggregated API server.
+- ClusterRole and ClusterRoleBinding: Assign needed permission to the Service.
 
 In OpenShift deployment, the certificates are handled by the [OpenShift Service CA Operator](https://github.com/openshift/service-ca-operator) by annotations on the Service and APIService.
 
