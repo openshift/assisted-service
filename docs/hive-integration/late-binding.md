@@ -3,7 +3,7 @@
 With late binding, a discovery ISO can be created without the need of a reference to a Cluster Deployment.
 Hosts booted with such an ISO can be bound to different clusters at a later stage.
 
-See full enhancement document [here](../enhancements/agent-late-binding.md).
+See full enhancement documents here: [late binding](../enhancements/agent-late-binding.md) and [returning agents to InfraEnv](../enhancements/agents-back-to-infraenv.md).
 
 ## High Level Flow
 - The user creates an InfraEnv CR without a Cluster Reference. See example [here](crds/infraEnvLateBinding.yaml)
@@ -20,9 +20,15 @@ kubectl -n my_namespace patch agents.agent-install.openshift.io my_agent -p '{"s
 
 An agent can be unbound from a Cluster Deployment as long as the installation did not start.
 
+If an agent is unbound after it was installed or if it is in `error`/`canceled` state, the Agent's `Bound` condition will be `False` with `UnbindingPendingUserAction` reason. In this state, it is the responsibility of the user to reboot the host with the discovery ISO.
+
+With BareMetalOperator integration, the host will be rebooted automatically.
+
 Note that the Pull Secret of the InfraEnv can be different from the one specified in the Cluster Deployment.
 
 ## Teardown
+
+When a Cluster/Deployment is deleted, the Agents created with late binding will be returned to the InfraEnv.
 
 When an InfraEnv CR is deleted, the hosts related to it will be deleted if they are Unbound or Installed.
 If no more hosts are connected, the InfraEnv will be deleted.
