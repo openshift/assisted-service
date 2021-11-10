@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -19,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/transaction"
@@ -450,4 +452,40 @@ func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Con
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return installer.NewV2GetPresignedForClusterCredentialsOK().WithPayload(&models.Presigned{URL: &url})
+}
+
+func (b *bareMetalInventory) generateImageDownloadURL(infraEnvID, imageType, version, arch, imageTokenKey string) (string, error) {
+	baseURL, err := url.Parse(b.ImageServiceBaseURL)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse image service base URL")
+	}
+	downloadURL := url.URL{
+		Scheme: baseURL.Scheme,
+		Host:   baseURL.Host,
+		Path:   fmt.Sprintf("/images/%s", infraEnvID),
+	}
+	queryValues := url.Values{}
+	queryValues.Set("type", imageType)
+	queryValues.Set("version", version)
+	queryValues.Set("arch", arch)
+	downloadURL.RawQuery = queryValues.Encode()
+	urlString := downloadURL.String()
+
+	if b.authHandler.AuthType() == auth.TypeLocal {
+		urlString, err = gencrypto.SignURL(urlString, infraEnvID, gencrypto.InfraEnvKey)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to sign image URL")
+		}
+	} else if b.authHandler.AuthType() == auth.TypeRHSSO {
+		var token string
+		token, err = gencrypto.JWTForSymmetricKey([]byte(imageTokenKey), b.ImageExpirationTime, infraEnvID)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to generate token for infraEnv %s", infraEnvID)
+		}
+		urlString, err = gencrypto.SignURLWithToken(urlString, "image_token", token)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to sign image URL with token")
+		}
+	}
+	return urlString, nil
 }
