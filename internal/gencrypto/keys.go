@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 )
 
@@ -50,4 +51,19 @@ func ECDSAKeyPairPEM() (string, string, error) {
 	}
 
 	return pubKeyPEM.String(), privKeyPEM.String(), nil
+}
+
+// HMACKey generates a hex string representing n random bytes
+//
+// This string is intended to be used as a private key for signing and
+// verifying jwt tokens. Specifically ones used for downloading images
+// when using rhsso auth and the image service.
+func HMACKey(n int) (string, error) {
+	buf := make([]byte, n)
+	_, err := rand.Read(buf)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(buf), nil
 }

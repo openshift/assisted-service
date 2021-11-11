@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
@@ -12,87 +13,137 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("JWT creation", func() {
-	It("LocalJWT fails when EC_PRIVATE_KEY_PEM is unset", func() {
+var _ = Describe("LocalJWT", func() {
+	It("fails when EC_PRIVATE_KEY_PEM is unset", func() {
 		os.Unsetenv("EC_PRIVATE_KEY_PEM")
 		_, err := LocalJWT(uuid.New().String(), InfraEnvKey)
 		Expect(err).To(HaveOccurred())
 	})
 
-	It("LocalJWT fails when EC_PRIVATE_KEY_PEM is empty", func() {
+	It("fails when EC_PRIVATE_KEY_PEM is empty", func() {
 		os.Setenv("EC_PRIVATE_KEY_PEM", "")
 		_, err := LocalJWT(uuid.New().String(), InfraEnvKey)
 		Expect(err).To(HaveOccurred())
 		os.Unsetenv("EC_PRIVATE_KEY_PEM")
 	})
+})
 
-	Context("with a private key", func() {
-		var (
-			publicKey     crypto.PublicKey
-			privateKeyPEM string
-		)
+var _ = Context("with an ECDSA key pair", func() {
+	var (
+		publicKey     crypto.PublicKey
+		privateKeyPEM string
+	)
 
+	BeforeEach(func() {
+		var err error
+		var publicKeyPEM string
+		publicKeyPEM, privateKeyPEM, err = ECDSAKeyPairPEM()
+		Expect(err).NotTo(HaveOccurred())
+		publicKey, err = jwt.ParseECPublicKeyFromPEM([]byte(publicKeyPEM))
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	validateToken := func(token string, pub crypto.PublicKey, id string) {
+		parser := &jwt.Parser{ValidMethods: []string{jwt.SigningMethodES256.Alg()}}
+		parsed, err := parser.Parse(token, func(t *jwt.Token) (interface{}, error) { return pub, nil })
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(parsed.Valid).To(BeTrue())
+
+		claims, ok := parsed.Claims.(jwt.MapClaims)
+		Expect(ok).To(BeTrue())
+
+		clusterID, ok := claims["infra_env_id"].(string)
+		Expect(ok).To(BeTrue())
+		Expect(clusterID).To(Equal(id))
+	}
+
+	Context("with EC_PRIVATE_KEY_PEM set", func() {
 		BeforeEach(func() {
-			var err error
-			var publicKeyPEM string
-			publicKeyPEM, privateKeyPEM, err = ECDSAKeyPairPEM()
-			Expect(err).NotTo(HaveOccurred())
-			publicKey, err = jwt.ParseECPublicKeyFromPEM([]byte(publicKeyPEM))
-			Expect(err).NotTo(HaveOccurred())
+			os.Setenv("EC_PRIVATE_KEY_PEM", privateKeyPEM)
 		})
 
-		validateToken := func(token string, pub crypto.PublicKey, id string) {
-			parser := &jwt.Parser{ValidMethods: []string{jwt.SigningMethodES256.Alg()}}
-			parsed, err := parser.Parse(token, func(t *jwt.Token) (interface{}, error) { return pub, nil })
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(parsed.Valid).To(BeTrue())
-
-			claims, ok := parsed.Claims.(jwt.MapClaims)
-			Expect(ok).To(BeTrue())
-
-			clusterID, ok := claims["infra_env_id"].(string)
-			Expect(ok).To(BeTrue())
-			Expect(clusterID).To(Equal(id))
-		}
-
-		Context("with EC_PRIVATE_KEY_PEM set", func() {
-			BeforeEach(func() {
-				os.Setenv("EC_PRIVATE_KEY_PEM", privateKeyPEM)
-			})
-
-			AfterEach(func() {
-				os.Unsetenv("EC_PRIVATE_KEY_PEM")
-			})
-
-			It("LocalJWT creates a valid token", func() {
-				id := uuid.New().String()
-				tokenString, err := LocalJWT(id, InfraEnvKey)
-				Expect(err).ToNot(HaveOccurred())
-
-				validateToken(tokenString, publicKey, id)
-			})
-
-			It("SignURL creates a url with a valid token", func() {
-				id := "2dc9400e-1b5e-4e41-bdb5-39b76b006f97"
-				u := fmt.Sprintf("https://ai.example.com/api/assisted-install/v1/clusters/%s/downloads/image", id)
-
-				signed, err := SignURL(u, id, InfraEnvKey)
-				Expect(err).NotTo(HaveOccurred())
-				parsedURL, err := url.Parse(signed)
-				Expect(err).NotTo(HaveOccurred())
-
-				q := parsedURL.Query()
-				validateToken(q.Get("api_key"), publicKey, id)
-			})
+		AfterEach(func() {
+			os.Unsetenv("EC_PRIVATE_KEY_PEM")
 		})
 
-		It("LocalJWTForKey creates a valid token", func() {
+		It("LocalJWT creates a valid token", func() {
 			id := uuid.New().String()
-			tokenString, err := LocalJWTForKey(id, privateKeyPEM, InfraEnvKey)
+			tokenString, err := LocalJWT(id, InfraEnvKey)
 			Expect(err).ToNot(HaveOccurred())
 
 			validateToken(tokenString, publicKey, id)
 		})
+
+		It("SignURL creates a url with a valid token", func() {
+			id := "2dc9400e-1b5e-4e41-bdb5-39b76b006f97"
+			u := fmt.Sprintf("https://ai.example.com/api/assisted-install/v1/clusters/%s/downloads/image", id)
+
+			signed, err := SignURL(u, id, InfraEnvKey)
+			Expect(err).NotTo(HaveOccurred())
+			parsedURL, err := url.Parse(signed)
+			Expect(err).NotTo(HaveOccurred())
+
+			q := parsedURL.Query()
+			validateToken(q.Get("api_key"), publicKey, id)
+		})
+	})
+
+	It("LocalJWTForKey creates a valid token", func() {
+		id := uuid.New().String()
+		tokenString, err := LocalJWTForKey(id, privateKeyPEM, InfraEnvKey)
+		Expect(err).ToNot(HaveOccurred())
+
+		validateToken(tokenString, publicKey, id)
+	})
+})
+
+var _ = Describe("JWTForSymmetricKey", func() {
+	It("generates a valid jwt", func() {
+		key := []byte("1234qwerasdfzxcv")
+		token, err := JWTForSymmetricKey(key, 4*time.Hour, "subject")
+		Expect(err).ToNot(HaveOccurred())
+
+		parser := &jwt.Parser{ValidMethods: []string{jwt.SigningMethodHS256.Alg()}}
+		parsed, err := parser.Parse(token, func(t *jwt.Token) (interface{}, error) { return key, nil })
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(parsed.Valid).To(BeTrue())
+
+		claims, ok := parsed.Claims.(jwt.MapClaims)
+		Expect(ok).To(BeTrue())
+
+		_, ok = claims["exp"].(float64)
+		Expect(ok).To(BeTrue())
+
+		sub, ok := claims["sub"].(string)
+		Expect(ok).To(BeTrue())
+		Expect(sub).To(Equal("subject"))
+	})
+})
+
+var _ = Describe("SignURLWithToken", func() {
+	It("adds a url query parameter", func() {
+		result, err := SignURLWithToken("https://example.com/things", "api_key", "12345abcde")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(Equal("https://example.com/things?api_key=12345abcde"))
+	})
+
+	It("adds a url query parameter with existing query parameters", func() {
+		result, err := SignURLWithToken("https://example.com/things?key=value&thing=other", "api_key", "12345abcde")
+		Expect(err).ToNot(HaveOccurred())
+
+		parsedURL, err := url.Parse(result)
+		Expect(err).NotTo(HaveOccurred())
+
+		q := parsedURL.Query()
+		Expect(q.Get("api_key")).To(Equal("12345abcde"))
+		Expect(q.Get("key")).To(Equal("value"))
+		Expect(q.Get("thing")).To(Equal("other"))
+	})
+
+	It("fails for an invalid url", func() {
+		_, err := SignURLWithToken("https://not a valid url", "api_key", "12345abcde")
+		Expect(err).To(HaveOccurred())
 	})
 })

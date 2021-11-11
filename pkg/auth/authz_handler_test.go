@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -24,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/client/versions"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	params "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/patrickmn/go-cache"
@@ -998,3 +1000,64 @@ func v2ListFeatureSupportLevels(ctx context.Context, cli *client.AssistedInstall
 	_, err := cli.Installer.V2ListFeatureSupportLevels(ctx, &installer.V2ListFeatureSupportLevelsParams{})
 	return err
 }
+
+var _ = Describe("imageTokenAuthorizer", func() {
+	var (
+		a   *AuthzHandler
+		ctx context.Context
+	)
+
+	BeforeEach(func() {
+		log := logrus.New()
+		log.SetOutput(ioutil.Discard)
+		a = &AuthzHandler{log: log.WithField("pkg", "auth")}
+		ctx = context.Background()
+	})
+
+	It("succeeds when the request id matches the claim id", func() {
+		id := "ed172693-7c24-4add-8dfc-2bfa536b0cbb"
+		claims := jwt.MapClaims{"sub": id}
+		ctx = context.WithValue(ctx, restapi.AuthKey, claims)
+		ctx = params.SetParam(ctx, "infra_env_id", id)
+
+		Expect(a.imageTokenAuthorizer(ctx)).To(Succeed())
+	})
+
+	It("fails if the auth payload is missing", func() {
+		id := "ed172693-7c24-4add-8dfc-2bfa536b0cbb"
+		ctx = params.SetParam(ctx, "infra_env_id", id)
+
+		Expect(a.imageTokenAuthorizer(ctx)).NotTo(Succeed())
+	})
+
+	It("fails if the claims are the wrong type", func() {
+		id := "ed172693-7c24-4add-8dfc-2bfa536b0cbb"
+		claims := map[string]string{"sub": id}
+		ctx = context.WithValue(ctx, restapi.AuthKey, claims)
+		ctx = params.SetParam(ctx, "infra_env_id", id)
+
+		Expect(a.imageTokenAuthorizer(ctx)).NotTo(Succeed())
+	})
+
+	It("fails if the sub claim is missing", func() {
+		ctx = context.WithValue(ctx, restapi.AuthKey, jwt.MapClaims{})
+		ctx = params.SetParam(ctx, "infra_env_id", "ed172693-7c24-4add-8dfc-2bfa536b0cbb")
+		Expect(a.imageTokenAuthorizer(ctx)).NotTo(Succeed())
+	})
+
+	It("fails if the infraEnv ID isn't in the request", func() {
+		id := "ed172693-7c24-4add-8dfc-2bfa536b0cbb"
+		claims := jwt.MapClaims{"sub": id}
+		ctx = context.WithValue(ctx, restapi.AuthKey, claims)
+
+		Expect(a.imageTokenAuthorizer(ctx)).NotTo(Succeed())
+	})
+
+	It("fails if the request id doesn't match the claim id", func() {
+		claims := jwt.MapClaims{"sub": "ed172693-7c24-4add-8dfc-2bfa536b0cbb"}
+		ctx = context.WithValue(ctx, restapi.AuthKey, claims)
+		ctx = params.SetParam(ctx, "infra_env_id", "76c37ebc-94e5-4ddf-bcf8-3cf27c5edab6")
+
+		Expect(a.imageTokenAuthorizer(ctx)).NotTo(Succeed())
+	})
+})

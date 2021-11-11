@@ -1186,6 +1186,16 @@ func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, 
 			if err != nil {
 				return errors.Wrap(err, "failed to sign image URL")
 			}
+		} else if b.authHandler.AuthType() == auth.TypeRHSSO {
+			var token string
+			token, err = gencrypto.JWTForSymmetricKey([]byte(infraEnv.ImageTokenKey), b.ImageExpirationTime, infraEnv.ID.String())
+			if err != nil {
+				return errors.Wrapf(err, "failed to generate token for infraEnv %s", infraEnv.ID)
+			}
+			infraEnv.DownloadURL, err = gencrypto.SignURLWithToken(downloadURL.String(), "image_token", token)
+			if err != nil {
+				return errors.Wrap(err, "failed to sign image URL with token")
+			}
 		}
 		updates["download_url"] = infraEnv.DownloadURL
 		updates["generated"] = true
@@ -5814,6 +5824,12 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		kubeKey = &types.NamespacedName{}
 	}
 
+	// generate key for signing rhsso image auth tokens
+	imageTokenKey, err := gencrypto.HMACKey(32)
+	if err != nil {
+		return nil, err
+	}
+
 	infraEnv := common.InfraEnv{
 		Generated: false,
 		InfraEnv: models.InfraEnv{
@@ -5833,6 +5849,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
 		},
 		KubeKeyNamespace: kubeKey.Namespace,
+		ImageTokenKey:    imageTokenKey,
 	}
 
 	if params.InfraenvCreateParams.ClusterID != nil {

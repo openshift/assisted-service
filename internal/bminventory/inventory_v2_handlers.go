@@ -16,6 +16,7 @@ import (
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/featuresupport"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
@@ -403,7 +404,29 @@ func (b *bareMetalInventory) V2ImportCluster(ctx context.Context, params install
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2ImportClusterCreated().WithPayload(&c.Cluster)
+}
 
+func (b *bareMetalInventory) RegenerateInfraEnvSigningKey(ctx context.Context, params installer.RegenerateInfraEnvSigningKeyParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	// generate key for signing rhsso image auth tokens
+	imageTokenKey, err := gencrypto.HMACKey(32)
+	if err != nil {
+		log.WithError(err).Error("Failed to generate new infraEnv image token key")
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if err = b.db.Model(infraEnv).Update("image_token_key", imageTokenKey).Error; err != nil {
+		log.WithError(err).Errorf("Failed to update image token key for infraEnv %s", params.InfraEnvID)
+		return common.GenerateErrorResponder(err)
+	}
+
+	return installer.NewRegenerateInfraEnvSigningKeyNoContent()
 }
 
 func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Context, params installer.V2GetPresignedForClusterCredentialsParams) middleware.Responder {

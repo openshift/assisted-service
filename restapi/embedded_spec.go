@@ -7449,6 +7449,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "imageAuth": []
           }
         ],
         "description": "Downloads the customized ignition file for this host",
@@ -7722,6 +7725,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "imageAuth": []
           }
         ],
         "description": "Get the initial ramdisk for minimal ISO based installations.\n",
@@ -9190,6 +9196,60 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/regenerate-signing-key": {
+      "post": {
+        "description": "Regenerate InfraEnv token signing key.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "RegenerateInfraEnvSigningKey",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The target InfraEnv.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -13276,6 +13336,11 @@ func init() {
     "agentAuth": {
       "type": "apiKey",
       "name": "X-Secret-Key",
+      "in": "header"
+    },
+    "imageAuth": {
+      "type": "apiKey",
+      "name": "Image-Token",
       "in": "header"
     },
     "urlAuth": {
@@ -20764,6 +20829,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "imageAuth": []
           }
         ],
         "description": "Downloads the customized ignition file for this host",
@@ -21037,6 +21105,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "imageAuth": []
           }
         ],
         "description": "Get the initial ramdisk for minimal ISO based installations.\n",
@@ -22505,6 +22576,60 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/regenerate-signing-key": {
+      "post": {
+        "description": "Regenerate InfraEnv token signing key.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "RegenerateInfraEnvSigningKey",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The target InfraEnv.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -26653,6 +26778,11 @@ func init() {
     "agentAuth": {
       "type": "apiKey",
       "name": "X-Secret-Key",
+      "in": "header"
+    },
+    "imageAuth": {
+      "type": "apiKey",
+      "name": "Image-Token",
       "in": "header"
     },
     "urlAuth": {

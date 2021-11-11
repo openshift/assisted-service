@@ -24,6 +24,7 @@ type Authenticator interface {
 	AuthUserAuth(token string) (interface{}, error)
 	AuthAgentAuth(token string) (interface{}, error)
 	AuthURLAuth(token string) (interface{}, error)
+	AuthImageAuth(token string) (interface{}, error)
 	AuthType() AuthType
 }
 

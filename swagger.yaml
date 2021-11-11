@@ -47,6 +47,10 @@ securityDefinitions:
     type: apiKey
     in: query
     name: api_key
+  imageAuth:
+    type: apiKey
+    in: header
+    name: Image-Token
 
 security:
   - userAuth: [admin, user]
@@ -4488,6 +4492,7 @@ paths:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
         - urlAuth: []
+        - imageAuth: []
       description: Downloads the customized ignition file for this host
       operationId: v2DownloadInfraEnvFiles
       produces:
@@ -4603,6 +4608,43 @@ paths:
             $ref: '#/definitions/error'
         "503":
           description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/infra-envs/{infra_env_id}/regenerate-signing-key:
+    post:
+      tags:
+        - installer
+      description: Regenerate InfraEnv token signing key.
+      operationId: RegenerateInfraEnvSigningKey
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The target InfraEnv.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "204":
+          description: Success.
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
           schema:
             $ref: '#/definitions/error'
 
@@ -4934,6 +4976,7 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - urlAuth: []
+        - imageAuth: []
       description: |
         Get the initial ramdisk for minimal ISO based installations.
       operationId: DownloadMinimalInitrd

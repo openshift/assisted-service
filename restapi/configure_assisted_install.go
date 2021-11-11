@@ -175,6 +175,9 @@ type InstallerAPI interface {
 	/* ListInfraEnvs Retrieves the list of InfraEnvs. */
 	ListInfraEnvs(ctx context.Context, params installer.ListInfraEnvsParams) middleware.Responder
 
+	/* RegenerateInfraEnvSigningKey Regenerate InfraEnv token signing key. */
+	RegenerateInfraEnvSigningKey(ctx context.Context, params installer.RegenerateInfraEnvSigningKeyParams) middleware.Responder
+
 	/* RegisterAddHostsCluster Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster. */
 	RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder
 
@@ -463,6 +466,9 @@ type Config struct {
 	// AuthAgentAuth Applies when the "X-Secret-Key" header is set
 	AuthAgentAuth func(token string) (interface{}, error)
 
+	// AuthImageAuth Applies when the "Image-Token" header is set
+	AuthImageAuth func(token string) (interface{}, error)
+
 	// AuthURLAuth Applies when the "api_key" query is set
 	AuthURLAuth func(token string) (interface{}, error)
 
@@ -515,6 +521,13 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 			return token, nil
 		}
 		return c.AuthAgentAuth(token)
+	}
+
+	api.ImageAuthAuth = func(token string) (interface{}, error) {
+		if c.AuthImageAuth == nil {
+			return token, nil
+		}
+		return c.AuthImageAuth(token)
 	}
 
 	api.URLAuthAuth = func(token string) (interface{}, error) {
@@ -791,6 +804,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.OperatorsAPI.ListSupportedOperators(ctx, params)
+	})
+	api.InstallerRegenerateInfraEnvSigningKeyHandler = installer.RegenerateInfraEnvSigningKeyHandlerFunc(func(params installer.RegenerateInfraEnvSigningKeyParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.RegenerateInfraEnvSigningKey(ctx, params)
 	})
 	api.InstallerRegisterAddHostsClusterHandler = installer.RegisterAddHostsClusterHandlerFunc(func(params installer.RegisterAddHostsClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

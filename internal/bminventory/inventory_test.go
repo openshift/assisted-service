@@ -7662,6 +7662,10 @@ var _ = Describe("infraEnvs", func() {
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
 			actual := reply.(*installer.RegisterInfraEnvCreated)
 			Expect(*actual.Payload.Name).To(Equal("some-infra-env-name"))
+
+			var dbInfraEnv common.InfraEnv
+			Expect(db.First(&dbInfraEnv, "id = ?", actual.Payload.ID.String()).Error).To(Succeed())
+			Expect(dbInfraEnv.ImageTokenKey).NotTo(Equal(""))
 		})
 
 		It("Create with ClusterID - CPU architecture match", func() {
@@ -13795,3 +13799,50 @@ func containsMonitoredOperator(l []*models.MonitoredOperator, m *models.Monitore
 	}
 	return false
 }
+
+var _ = Describe("RegenerateInfraEnvSigningKey", func() {
+	var (
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		ctx        = context.Background()
+		dbName     string
+		infraEnvID strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		ie := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &infraEnvID,
+			},
+			ImageTokenKey: "initialkeyhere",
+		}
+		Expect(db.Create(ie).Error).To(Succeed())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("returns NotFound for a missing infraEnv", func() {
+		otherInfraEnvID := strfmt.UUID(uuid.New().String())
+		params := installer.RegenerateInfraEnvSigningKeyParams{InfraEnvID: otherInfraEnvID}
+		resp := bm.RegenerateInfraEnvSigningKey(ctx, params)
+		verifyApiError(resp, http.StatusNotFound)
+	})
+
+	It("resets the infraEnv image_token_key", func() {
+		params := installer.RegenerateInfraEnvSigningKeyParams{InfraEnvID: infraEnvID}
+		resp := bm.RegenerateInfraEnvSigningKey(ctx, params)
+		Expect(resp).Should(BeAssignableToTypeOf(installer.NewRegenerateInfraEnvSigningKeyNoContent()))
+
+		var infraEnv common.InfraEnv
+		Expect(db.First(&infraEnv, "id = ?", infraEnvID.String()).Error).To(Succeed())
+		Expect(infraEnv.ImageTokenKey).NotTo(Equal("initialkeyhere"))
+	})
+})

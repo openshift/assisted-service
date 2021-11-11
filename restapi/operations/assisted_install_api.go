@@ -208,6 +208,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		OperatorsListSupportedOperatorsHandler: operators.ListSupportedOperatorsHandlerFunc(func(params operators.ListSupportedOperatorsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation operators.ListSupportedOperators has not yet been implemented")
 		}),
+		InstallerRegenerateInfraEnvSigningKeyHandler: installer.RegenerateInfraEnvSigningKeyHandlerFunc(func(params installer.RegenerateInfraEnvSigningKeyParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.RegenerateInfraEnvSigningKey has not yet been implemented")
+		}),
 		InstallerRegisterAddHostsClusterHandler: installer.RegisterAddHostsClusterHandlerFunc(func(params installer.RegisterAddHostsClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterAddHostsCluster has not yet been implemented")
 		}),
@@ -432,6 +435,10 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		AgentAuthAuth: func(token string) (interface{}, error) {
 			return nil, errors.NotImplemented("api key auth (agentAuth) X-Secret-Key from header param [X-Secret-Key] has not yet been implemented")
 		},
+		// Applies when the "Image-Token" header is set
+		ImageAuthAuth: func(token string) (interface{}, error) {
+			return nil, errors.NotImplemented("api key auth (imageAuth) Image-Token from header param [Image-Token] has not yet been implemented")
+		},
 		// Applies when the "api_key" query is set
 		URLAuthAuth: func(token string) (interface{}, error) {
 			return nil, errors.NotImplemented("api key auth (urlAuth) api_key from query param [api_key] has not yet been implemented")
@@ -487,6 +494,10 @@ type AssistedInstallAPI struct {
 	// AgentAuthAuth registers a function that takes a token and returns a principal
 	// it performs authentication based on an api key X-Secret-Key provided in the header
 	AgentAuthAuth func(string) (interface{}, error)
+
+	// ImageAuthAuth registers a function that takes a token and returns a principal
+	// it performs authentication based on an api key Image-Token provided in the header
+	ImageAuthAuth func(string) (interface{}, error)
 
 	// URLAuthAuth registers a function that takes a token and returns a principal
 	// it performs authentication based on an api key api_key provided in the query
@@ -603,6 +614,8 @@ type AssistedInstallAPI struct {
 	VersionsListSupportedOpenshiftVersionsHandler versions.ListSupportedOpenshiftVersionsHandler
 	// OperatorsListSupportedOperatorsHandler sets the operation handler for the list supported operators operation
 	OperatorsListSupportedOperatorsHandler operators.ListSupportedOperatorsHandler
+	// InstallerRegenerateInfraEnvSigningKeyHandler sets the operation handler for the regenerate infra env signing key operation
+	InstallerRegenerateInfraEnvSigningKeyHandler installer.RegenerateInfraEnvSigningKeyHandler
 	// InstallerRegisterAddHostsClusterHandler sets the operation handler for the register add hosts cluster operation
 	InstallerRegisterAddHostsClusterHandler installer.RegisterAddHostsClusterHandler
 	// InstallerRegisterClusterHandler sets the operation handler for the register cluster operation
@@ -835,6 +848,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.AgentAuthAuth == nil {
 		unregistered = append(unregistered, "XSecretKeyAuth")
 	}
+	if o.ImageAuthAuth == nil {
+		unregistered = append(unregistered, "ImageTokenAuth")
+	}
 	if o.URLAuthAuth == nil {
 		unregistered = append(unregistered, "APIKeyAuth")
 	}
@@ -997,6 +1013,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.OperatorsListSupportedOperatorsHandler == nil {
 		unregistered = append(unregistered, "operators.ListSupportedOperatorsHandler")
+	}
+	if o.InstallerRegenerateInfraEnvSigningKeyHandler == nil {
+		unregistered = append(unregistered, "installer.RegenerateInfraEnvSigningKeyHandler")
 	}
 	if o.InstallerRegisterAddHostsClusterHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterAddHostsClusterHandler")
@@ -1238,6 +1257,10 @@ func (o *AssistedInstallAPI) AuthenticatorsFor(schemes map[string]spec.SecurityS
 		case "agentAuth":
 			scheme := schemes[name]
 			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, o.AgentAuthAuth)
+
+		case "imageAuth":
+			scheme := schemes[name]
+			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, o.ImageAuthAuth)
 
 		case "urlAuth":
 			scheme := schemes[name]
@@ -1534,6 +1557,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v1/supported-operators"] = operators.NewListSupportedOperators(o.context, o.OperatorsListSupportedOperatorsHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/regenerate-signing-key"] = installer.NewRegenerateInfraEnvSigningKey(o.context, o.InstallerRegenerateInfraEnvSigningKeyHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

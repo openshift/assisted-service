@@ -137,6 +137,9 @@ type API interface {
 	   ListInfraEnvs Retrieves the list of InfraEnvs.*/
 	ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams) (*ListInfraEnvsOK, error)
 	/*
+	   RegenerateInfraEnvSigningKey Regenerate InfraEnv token signing key.*/
+	RegenerateInfraEnvSigningKey(ctx context.Context, params *RegenerateInfraEnvSigningKeyParams) (*RegenerateInfraEnvSigningKeyNoContent, error)
+	/*
 	   RegisterAddHostsCluster Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.*/
 	RegisterAddHostsCluster(ctx context.Context, params *RegisterAddHostsClusterParams) (*RegisterAddHostsClusterCreated, error)
 	/*
@@ -1297,6 +1300,31 @@ func (a *Client) ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams)
 		return nil, err
 	}
 	return result.(*ListInfraEnvsOK), nil
+
+}
+
+/*
+RegenerateInfraEnvSigningKey Regenerate InfraEnv token signing key.
+*/
+func (a *Client) RegenerateInfraEnvSigningKey(ctx context.Context, params *RegenerateInfraEnvSigningKeyParams) (*RegenerateInfraEnvSigningKeyNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "RegenerateInfraEnvSigningKey",
+		Method:             "POST",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/regenerate-signing-key",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &RegenerateInfraEnvSigningKeyReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*RegenerateInfraEnvSigningKeyNoContent), nil
 
 }
 
