@@ -9,25 +9,24 @@
   <meta name="author" content="Openshift Assisted Service Team">
   
   <link rel="shortcut icon" href="../../img/favicon.ico">
-  <title>User Guide Index - Openshift Assisted Service</title>
+  <title>Introduction - Openshift Assisted Service</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
   <link rel="stylesheet" href="../../css/theme.css" />
   <link rel="stylesheet" href="../../css/theme_extra.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
   
   <script>
     // Current page data
-    var mkdocs_page_name = "User Guide Index";
-    var mkdocs_page_input_path = "user-guide/user-guide.md";
+    var mkdocs_page_name = "Introduction";
+    var mkdocs_page_input_path = "user-guide/restful-api-guide.md";
     var mkdocs_page_url = null;
   </script>
   
   <script src="../../js/jquery-2.1.1.min.js" defer></script>
   <script src="../../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
   <script>hljs.initHighlightingOnLoad();</script> 
-  
 </head>
 
 <body class="wy-body-for-nav" role="document">
@@ -41,7 +40,7 @@
         <a href="../.." class="icon icon-home"> Openshift Assisted Service</a>
         <div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
@@ -59,10 +58,8 @@
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">Openshift Deployment</span></p>
-                <ul class="current">
-                    <li class="toctree-l1 current"><a class="reference internal current" href="./">User Guide Index</a>
-    <ul class="current">
-    </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="" href="../user-guide.md">User Guide Index</a>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="../deploy-on-local/">OCP Deployment on Local</a>
                     </li>
@@ -100,12 +97,8 @@
     <li><a href="../..">Docs</a> &raquo;</li>
     
       
-        
-          <li>Openshift Deployment &raquo;</li>
-        
-      
     
-    <li>User Guide Index</li>
+    <li>Introduction</li>
     <li class="wy-breadcrumbs-aside">
       
     </li>
@@ -113,32 +106,92 @@
   
   <hr/>
 </div>
+
           <div role="main">
             <div class="section">
               
-                <h1 id="user-guide">User Guide</h1>
-<p>Welcome to the Openshift Assisted Service User Guide.</p>
-<p>Here we will look for the best way to help you deploying Openshift 4 in the provider you desire.</p>
-<ul>
-<li><a href="../deploy-on-local/">OCP Deployment on Local</a></li>
-<li><a href="../deploy-on-bare-metal/">OCP Deployment on Bare Metal</a></li>
-<li><a href="../deploy-on-vsphere/">OCP Deployment on vSphere</a></li>
-<li><a href="../deploy-on-RHEV/">OCP Deployment on RHEV</a></li>
-<li><a href="../deploy-on-OSP/">OCP Deployment on Openstack</a></li>
-</ul>
+                <h1 id="introduction">Introduction</h1>
+<p>The purpose of this guide is to assist users in using the RESTful API for interacting with the assisted-service.</p>
+<h1 id="setting-static-network-config">Setting Static Network Config</h1>
+<p>User may provide static network configurations when generating the discovery ISO.
+The static network configurations per each host should contain:
+* <a href="https://www.nmstate.io/">nmstate</a> file in YAML format, specifying the desired network configuration for the host
+  * The file will contain interface logical names that will be replaced with host's actual interface name at discovery time
+* A map (mac-interface-mapping) containing the mapping of mac-address to the logical interface name</p>
+<p>In the following example <code>server-a.yaml</code> and <code>server-b.yaml</code> files contain the nmstate configuration in YAML format for two nodes.
+Here is an example of the content of <code>server-a.yaml</code>, setting network configuration for two of its network interfaces:</p>
+<pre><code>dns-resolver:
+  config:
+    server:
+    - 192.168.126.1
+interfaces:
+- ipv4:
+    address:
+    - ip: 192.168.126.30
+      prefix-length: 24
+    dhcp: false
+    enabled: true
+  name: eth0
+  state: up
+  type: ethernet
+- ipv4:
+    address:
+    - ip: 192.168.141.30
+      prefix-length: 24
+    dhcp: false
+    enabled: true
+  name: eth1
+  state: up
+  type: ethernet
+routes:
+  config:
+  - destination: 0.0.0.0/0
+    next-hop-address: 192.168.126.1
+    next-hop-interface: eth0
+    table-id: 254
+</code></pre>
+<p>The <code>mac-interface-mapping</code> attribute should map the MAC Addresses of the host to the logical interface name as used in the <code>network_yaml</code> element (nmstate files):</p>
+<pre><code>mac_interface_map: [
+    {
+      mac_address: 02:00:00:2c:23:a5,
+      logical_nic_name: eth0
+    },
+    {
+      mac_address: 02:00:00:68:73:dc,
+      logical_nic_name: eth1
+    }
+]
+</code></pre>
+<p>In order to use <code>curl</code> to send a request for setting static network configuration, there is a need to JSON-encode the content of those files.
+This can be achieved using the <code>jq</code> tool as shown below:</p>
+<pre><code>ASSISTED_SERVICE_URL=http://${host_address}:${port}
+CLUSTER_ID=...
+NODE_SSH_KEY=&quot;...&quot;
+request_body=$(mktemp)
+
+jq -n --arg SSH_KEY &quot;$NODE_SSH_KEY&quot; --arg NMSTATE_YAML1 &quot;$(cat server-a.yaml)&quot; --arg NMSTATE_YAML2 &quot;$(cat server-b.yaml)&quot; \
+'{
+  &quot;ssh_public_key&quot;: $SSH_KEY,
+  &quot;image_type&quot;: &quot;full-iso&quot;,
+  &quot;static_network_config&quot;: [
+    {
+      &quot;network_yaml&quot;: $NMSTATE_YAML1,
+      &quot;mac_interface_map&quot;: [{&quot;mac_address&quot;: &quot;02:00:00:2c:23:a5&quot;, &quot;logical_nic_name&quot;: &quot;eth0&quot;}, {&quot;mac_address&quot;: &quot;02:00:00:68:73:dc&quot;, &quot;logical_nic_name&quot;: &quot;eth1&quot;}]
+    },
+    {
+      &quot;network_yaml&quot;: $NMSTATE_YAML2,
+      &quot;mac_interface_map&quot;: [{&quot;mac_address&quot;: &quot;02:00:00:9f:85:eb&quot;, &quot;logical_nic_name&quot;: &quot;eth1&quot;}, {&quot;mac_address&quot;: &quot;02:00:00:c8:be:9b&quot;, &quot;logical_nic_name&quot;: &quot;eth0&quot;}]
+     }
+  ]
+}' &gt;&gt; $request_body
+</code></pre>
+<p>The request will be stored in a temporary file <code>$request_body</code> and will be used as the request body of the <code>curl</code> command:</p>
+<pre><code>curl -H &quot;Content-Type: application/json&quot; -X POST -d @$request_body ${ASSISTED_SERVICE_URL}/api/assisted-install/v1/clusters/$CLUSTER_ID/downloads/image
+</code></pre>
               
             </div>
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="../deploy-on-local/" class="btn btn-neutral float-right" title="OCP Deployment on Local">Next <span class="icon icon-circle-arrow-right"></span></a>
-      
-      
-        <a href="../assisted-service-on-openshift/" class="btn btn-neutral" title="OAS Running on Openshift"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
-    </div>
   
 
   <hr/>
@@ -159,19 +212,18 @@
   </div>
 
   <div class="rst-versions" role="note" aria-label="versions">
-    <span class="rst-current-version" data-toggle="rst-current-version">
-      
-          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
-      
-      
-        <span><a href="../assisted-service-on-openshift/" style="color: #fcfcfc;">&laquo; Previous</a></span>
-      
-      
-        <span style="margin-left: 15px"><a href="../deploy-on-local/" style="color: #fcfcfc">Next &raquo;</a></span>
-      
-    </span>
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+  </span>
 </div>
     <script>var base_url = '../..';</script>
+    <script src="../../js/theme_extra.js" defer></script>
     <script src="../../js/theme.js" defer></script>
       <script src="../../search/main.js" defer></script>
     <script defer>

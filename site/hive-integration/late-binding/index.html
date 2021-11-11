@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Openshift Assisted Service Team">
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>Late Binding - Openshift Assisted Service</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../../css/theme.css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Late Binding";
+    var mkdocs_page_input_path = "hive-integration/late-binding.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Openshift Assisted Service</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../..">OAS Home</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-local/">OAS Running on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-openshift/">OAS Running on Openshift</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Openshift Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="" href="../../user-guide/user-guide.md">User Guide Index</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-local/">OCP Deployment on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-bare-metal/">OCP Deployment on Bare Metal</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-vsphere/">OCP Deployment on vSphere</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-RHEV/">OCP Deployment on RHEV</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-OSP/">OCP Deployment on Openstack</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Development</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../dev/migrations/">Migrations</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Openshift Assisted Service</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Late Binding</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="late-binding">Late Binding</h1>
+<p>With late binding, a discovery ISO can be created without the need of a reference to a Cluster Deployment.
+Hosts booted with such an ISO can be bound to different clusters at a later stage.</p>
+<p>See full enhancement documents here: <a href="../../enhancements/agent-late-binding/">late binding</a> and <a href="../../enhancements/agents-back-to-infraenv/">returning agents to InfraEnv</a>.</p>
+<h2 id="high-level-flow">High Level Flow</h2>
+<ul>
+<li>The user creates an InfraEnv CR without a Cluster Reference. See example <a href="../crds/infraEnvLateBinding.yaml">here</a></li>
+<li>The version of the base RHCOS live ISO is selected automatically to the latest available.</li>
+<li>The Agent CR created from an host booted from this ISO will not have a Cluster Deployment reference set in it. (<code>spec.clusterDeploymentName</code>)</li>
+<li>The user creates a Cluster Deployment and Agent Cluster Install CR.</li>
+<li>The user updates the Agent's Cluster Deployment reference to the CD name:</li>
+</ul>
+<pre><code class="language-bash">kubectl -n my_namespace patch agents.agent-install.openshift.io my_agent -p '{&quot;spec&quot;:{&quot;clusterDeploymentName&quot;:{&quot;name&quot;:&quot;my_cd&quot;,&quot;namespace&quot;:&quot;my_cd_ns&quot;}}}' --type merge
+</code></pre>
+<ul>
+<li>The process of the agent binding can be followed on the <code>Bound</code> condition available on the Agent CR. See [here]
+(kube-api-conditions.md#agent-conditions)</li>
+<li>Once the agent is bound, the flow for installation is as before.</li>
+</ul>
+<p>An agent can be unbound from a Cluster Deployment as long as the installation did not start.</p>
+<p>If an agent is unbound after it was installed or if it is in <code>error</code>/<code>canceled</code> state, the Agent's <code>Bound</code> condition will be <code>False</code> with <code>UnbindingPendingUserAction</code> reason. In this state, it is the responsibility of the user to reboot the host with the discovery ISO.</p>
+<p>With BareMetalOperator integration, the host will be rebooted automatically.</p>
+<p>Note that the Pull Secret of the InfraEnv can be different from the one specified in the Cluster Deployment.</p>
+<h2 id="teardown">Teardown</h2>
+<p>When a Cluster/Deployment is deleted, the Agents created with late binding will be returned to the InfraEnv.</p>
+<p>When an InfraEnv CR is deleted, the hosts related to it will be deleted if they are Unbound or Installed.
+If no more hosts are connected, the InfraEnv will be deleted.
+If there are still hosts connected, the InfraEnv CR will not be deleted until all the related hosts are deleted or Unbound.</p>
+<h2 id="unsupported-flows">Unsupported flows</h2>
+<p>The following operations are not supported:</p>
+<ul>
+<li>Update/Add/Delete a Cluster Deployment reference of an InfraEnv.</li>
+<li>Update a Cluster Deployment reference of an Agent after installation started.</li>
+</ul>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+  </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme_extra.js" defer></script>
+    <script src="../../js/theme.js" defer></script>
+      <script src="../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

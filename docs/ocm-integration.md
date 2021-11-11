@@ -48,7 +48,7 @@ In addition, in case `external_cluster_id` was already updated in the subscripti
 
 ### Cluster is sending metrics to Openshift Telemeter
 
-Once metrics from the installed cluster reach the Telemeter server, Telemeter will notify AMS and AMS will search for a subscription with a matching `external_cluster_id` (which is included in the metrics that the cluster sends). If it finds such a subscription it will add a `metrics` field to the subscription, otherwise, it will create a new subscription for that "unsubscribed" cluster but in this case, all the data patched by AI will be missing - this should be a bug indication. 
+Once metrics from the installed cluster reach the Telemeter server, Telemeter will notify AMS and AMS will search for a subscription with a matching `external_cluster_id` (which is included in the metrics that the cluster sends). If it finds such a subscription it will add a `metrics` field to the subscription, otherwise, it will create a new subscription for that "unsubscribed" cluster but in this case, all the data patched by AI will be missing - this should be a bug indication.
 
 ### Cluster deletion
 
@@ -71,7 +71,7 @@ First, follow how to [install](https://github.com/openshift-online/ocm-cli#insta
 
 Then you need to log in to your user:
 ```
-ocm login --token <your token from https://cloud.redhat.com/openshift/token>
+ocm login --token <your token from https://console.redhat.com/openshift/token>
 ```
 
 You can also use assisted-service service-account authZ to get subscription that are owned by other users using the following command:

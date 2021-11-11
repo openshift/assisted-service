@@ -297,10 +297,10 @@ _NOTE: To use these features, you need to have mkdocs installed in your system, 
 Image in charge of generating the Fedora-coreOs image used to install the host with the relevant ignition file.\
 Image is uploaded to deployed S3 under the name template "installer-image-\<cluster-id\>".
 
-## Assisted Service on cloud.redhat.com
-The Assisted Installer is also available for users as a SAAS hosted in cloud.redhat.com.
+## Assisted Service on console.redhat.com
+The Assisted Installer is also available for users as a SAAS hosted in console.redhat.com.
 
-More information is available here: [Assisted Installer on cloud.redhat.com](docs/cloud.md)
+More information is available here: [Assisted Installer on console.redhat.com](docs/cloud.md)
 
 ## Setting a custom discovery ISO password
 It's possible to modify the discovery ISO (via the API) to enable password login for troubleshooting purposes.

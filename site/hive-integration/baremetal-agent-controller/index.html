@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Openshift Assisted Service Team">
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>Baremetal agent controller - Openshift Assisted Service</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../../css/theme.css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Baremetal agent controller";
+    var mkdocs_page_input_path = "hive-integration/baremetal-agent-controller.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Openshift Assisted Service</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../..">OAS Home</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-local/">OAS Running on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-openshift/">OAS Running on Openshift</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Openshift Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="" href="../../user-guide/user-guide.md">User Guide Index</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-local/">OCP Deployment on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-bare-metal/">OCP Deployment on Bare Metal</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-vsphere/">OCP Deployment on vSphere</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-RHEV/">OCP Deployment on RHEV</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-OSP/">OCP Deployment on Openstack</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Development</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../dev/migrations/">Migrations</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Openshift Assisted Service</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Baremetal agent controller</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="baremetal-agent-controller-aka-bmac">Baremetal Agent Controller (a.k.a BMAC)</h1>
+<p>BMAC is a Kubernetes controller responsible for reconciling <a href="https://github.com/openshift/baremetal-operator">BareMetalHost</a> and Agent (defined
+and maintained in this repo) resources for the agent-based deployment scenario.</p>
+<h1 id="testing">Testing</h1>
+<p>The testing environment for BMAC consists of</p>
+<ul>
+<li><a href="https://github.com/openshift-metal3/dev-scripts/">Downstream dev-scripts</a> deployment</li>
+<li><a href="https://github.com/openshift/baremetal-operator">Baremetal Operator</a>: It defines the BareMetalHost custom resource</li>
+<li><a href="./operator.md">Assisted Installer Operator</a>: To deploy and manage the  assisted installer
+  deployment. Read the operator docs to know more about its dependencies and installation process.</li>
+</ul>
+<p>Each of the components listed above provide their own documentation on how to deploy and configure
+them. However, you can find below a set of recommended configs that can be used for each of these
+components:</p>
+<h1 id="dev-scripts">Dev Scripts</h1>
+<pre><code class="language-bash"># Giving Master nodes some extra CPU since we won't be
+# deploying any workers
+export MASTER_VCPU=4
+export MASTER_MEMORY=20000
+
+# Set specs for workers
+export WORKER_VCPU=4
+export WORKER_MEMORY=20000
+export WORKER_DISK=60
+
+# No workers are needed to test BMAC
+export NUM_WORKERS=0
+
+# Add extra workers so we can use it for the deployment.
+# SNO requires 1 extra machine to be created.
+export NUM_EXTRA_WORKERS=1
+
+# At the time of this writing, this requires the 1195 PR
+# mentioned below.
+export PROVISIONING_NETWORK_PROFILE=Disabled
+
+# Add extradisks to VMs
+export VM_EXTRADISKS=true
+export VM_EXTRADISKS_LIST=&quot;vda vdb&quot;
+export VM_EXTRADISKS_SIZE=&quot;30G&quot;
+
+export REDFISH_EMULATOR_IGNORE_BOOT_DEVICE=True
+</code></pre>
+<p>The config above should provide you with an environment that is ready to be used for the operator,
+assisted installer, and BMAC tests. Here are a few tips that would help simplifying the environment
+and the steps required:</p>
+<ul>
+<li>Clone <a href="https://github.com/openshift/baremetal-operator">baremetal-operator</a> somewhere and set the <code>BAREMETAL_OPERATOR_LOCAL_IMAGE</code> in your config.</li>
+</ul>
+<p><strong>NOTE</strong></p>
+<p>The default hardware requirements for the OCP cluster are higher than the values provided below. A guide on how to customize validator requirements can be found <a href="../../dev/hardware-requirements/">here</a>.</p>
+<h1 id="local-baremetal-operator-optional">Local Baremetal Operator (optional)</h1>
+<p><strong>NOTE</strong></p>
+<p>This section is completely optional. If you don't need to run your own clone of the
+<a href="https://github.com/openshift/baremetal-operator">baremetal-operator</a>, just ignore it and proceed to the next step.</p>
+<hr />
+<p>The <a href="https://github.com/openshift/baremetal-operator">baremetal-operator</a> will define the BareMetalHost custom resource required by the agent
+based install process. Setting the <code>BAREMETAL_OPERATOR_LOCAL_IMAGE</code> should build and run the BMO
+already. However, it's recommended to run the <a href="https://github.com/openshift-metal3/dev-scripts/blob/master/metal3-dev/local-bmo.sh">local-bmo</a> script to facilitate the
+deployment and monitoring of the BMO. Here's what using <a href="https://github.com/openshift-metal3/dev-scripts/blob/master/metal3-dev/local-bmo.sh">local-bmo</a> looks like:</p>
+<p>It's possible to disable inspection for the master (and workers) nodes before running the local-bmo
+script. This will make the script less noisy which will make debugging easier.</p>
+<pre><code class="language-bash">./metal3-dev/pause-control-plane.sh
+</code></pre>
+<p>The <code>pause-control-plane.sh</code> script only pauses the control plane. You can do the same for the worker
+nodes with the following command</p>
+<pre><code class="language-bash">for host in $(oc get baremetalhost -n openshift-machine-api -o name | grep -e '-worker-'); do
+    oc annotate --overwrite -n openshift-machine-api &quot;$host&quot; \
+       'baremetalhost.metal3.io/paused=&quot;&quot;'
+done
+</code></pre>
+<p>The steps mentioned above are optional, and only recommended for debugging purposes. Let's now run
+<a href="https://github.com/openshift-metal3/dev-scripts/blob/master/metal3-dev/local-bmo.sh">local-bmo</a> and move on. This script will tail the logs so do it in a separate buffer so
+that it can be kept running.</p>
+<pre><code class="language-bash"># Note variable is different from the one in your dev-script
+# config file. You can set it to the same path, though.
+export BAREMETAL_OPERATOR_PATH=/path/to/your/local/clone
+./metal3-dev/local-bmo.sh
+</code></pre>
+<h1 id="assisted-installer-operator">Assisted Installer Operator</h1>
+<p>Once the dev-script environment is up-and-running, and the <a href="https://github.com/openshift/baremetal-operator">bmo</a> has been deployed, you can
+proceed to deploying the Assisted Installer Operator. There's a script in the dev-scripts repo that
+facilitates this step:</p>
+<pre><code>[dev@edge-10 dev-scripts]$ ./assisted_deployment.sh install_assisted_service
+</code></pre>
+<p>Take a look at the <a href="https://github.com/openshift-metal3/dev-scripts/blob/master/assisted_deployment.sh">script itself</a>
+to know what variables can be customized for the Assisted Installer Operator deployment.</p>
+<h1 id="creating-agentclusterinstall-clusterdeployment-and-infraenv-resources">Creating AgentClusterInstall, ClusterDeployment and InfraEnv resources</h1>
+<p>A number of resources has to be created in order to have the deployment fully ready for deploying OCP clusters. A typical workflow is as follows</p>
+<ul>
+<li>create the <a href="../crds/pullsecret.yaml">PullSecret</a></li>
+<li>in order to create it directly from file you can use the following
+  <code>kubectl create secret -n assisted-installer generic pull-secret --from-file=.dockerconfigjson=pull_secret.json</code></li>
+<li>create the <a href="../crds/clusterImageSet.yaml">ClusterImageSet</a></li>
+<li>optionally create a <a href="operator.md#specifying-environmental-variables-via-configmap">custom <code>ConfigMap</code> overriding default Assisted Service configuration</a></li>
+<li>create the <a href="../crds/agentClusterInstall.yaml">AgentClusterInstall</a> or <a href="../crds/agentClusterInstall-SNO.yaml">AgentClusterInstall for SNO</a></li>
+<li>more manifests (e.g. IPv6 deployments) can be found <a href="https://docs.google.com/document/d/1jDrwSyKFssIh-yxJ-wSdB-OCcPvsfm06P54oTk1C6BI/edit#heading=h.acv4csx2xph6">here</a></li>
+<li>create the <a href="../crds/clusterDeployment.yaml">ClusterDeployment</a></li>
+<li>create the <a href="../crds/infraEnv.yaml">InfraEnv</a></li>
+<li>patch BareMetalOperator to watch namespaces other than <code>openshift-machine-api</code>
+  <code>$ oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true}}'</code></li>
+</ul>
+<hr />
+<p><strong>NOTE</strong></p>
+<p>When deploying <code>AgentClusterInstall</code> for SNO it is important to make sure that <code>machineNetwork</code> subnet matches the subnet used by libvirt VMs (configured by passing <code>EXTERNAL_SUBNET_V4</code> to the <a href="https://github.com/openshift-metal3/dev-scripts/blob/master/config_example.sh">dev-scripts config</a>). It defaults to <code>192.168.111.0/24</code> therefore the sample manifest linked above needs to be adapted.</p>
+<p>At this moment it's good to check logs and verify that there are no conflicting parameters, the ISO has been created correctly and that the installation can be started once a suitable node is provided.</p>
+<p>To check if the ISO has been created correctly, do</p>
+<pre><code>oc get infraenv myinfraenv -o jsonpath='{.status.isoDownloadURL}' -n assisted-installer
+</code></pre>
+<h1 id="creating-baremetalhost-resources">Creating BareMetalHost resources</h1>
+<p>The <a href="https://github.com/openshift/baremetal-operator">baremetal operator</a> creates the <code>BareMetalHost</code> resources for the existing nodes
+automatically. For scenarios using extra worker nodes (like SNO), it will be necessary to create
+<code>BareMetalHost</code> resources manually. Luckily enough, <code>assisted_deployment.sh</code> is one step ahead
+and it has prepared the manifest for us already.</p>
+<pre><code>less ocp/ostest/saved-assets/assisted-installer-manifests/06-extra-host-manifests.yaml
+</code></pre>
+<p>The created <code>BareMetalHost</code> manifest contains already a correct namespace as well as annotations to disable the inspection and cleaning. Below is an example on what it could look like.</p>
+<p>Please remember to change the value of the <code>infraenvs.agent-install.openshift.io</code> label in case you are using different than the default one (<code>myinfraenv</code>).</p>
+<pre><code>apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: ostest-worker-0
+  namespace: assisted-installer
+  annotations:
+    inspect.metal3.io: disabled
+  labels:
+    infraenvs.agent-install.openshift.io: &quot;myinfraenv&quot;
+spec:
+  online: true
+  bootMACAddress: 00:ec:ee:f8:5a:ba
+  automatedCleaningMode: disabled
+  bmc:
+    address: ....
+    credentialsName: bmc-secret
+</code></pre>
+<p>Setting <code>automatedCleaningMode</code> field and the <code>inspect.metal3.io</code> is optional as BMAC will add
+them automatically. Without those the <code>BareMetalHost</code> will boot IPA and spend some time in the
+inspecting phase when the manifest is applied.</p>
+<p>Setting the <code>infraenvs.agent-install.openshift.io</code> is required and it must be set to the name of
+the InfraEnv to use. Without it, BMAC won't be able to set the ISO Url in the BareMetalHost resource.</p>
+<p>It is possible to specify <code>RootDeviceHints</code> for the <code>BareMetalHost</code> resource. Root device hints are
+used to tell the installer what disk to use as the installation disk. Refer to the
+<a href="https://github.com/metal3-io/baremetal-operator/blob/master/docs/api.md#rootdevicehints">baremetal-operator documentation</a> to know more.</p>
+<hr />
+<p><strong>NOTE</strong></p>
+<p>BMAC is always setting <code>automatedCleaningMode: disabled</code> even if the <code>BareMetalHost</code> manifest specifies another value (e.g. <code>automatedCleaningMode: metadata</code>). This may be changed in the future releases, but currently we do not support using Ironic to clean the node.</p>
+<h1 id="installation-flow">Installation flow</h1>
+<p>After all the resources described above are created the installation starts automatically. A detailed flow is out of scope of this document and can be found <a href="architecture.md#installation-flow">here</a>.</p>
+<p>An <code>Agent</code> resource will be created that can be monitored during the installation proces as in the example below</p>
+<pre><code>$ oc get agent -A
+$ oc get agentclusterinstalls test-agent-cluster-install -o json | jq '.status.conditions[] |select(.type | contains(&quot;Completed&quot;))'
+</code></pre>
+<p>After the installation succeeds there are two new secrets created in the <code>assisted-installer</code> namespace</p>
+<pre><code>assisted-installer  single-node-admin-kubeconfig  Opaque  1  12h
+assisted-installer  single-node-admin-password    Opaque  2  12h
+</code></pre>
+<p>Kubeconfig can be exported to the file with</p>
+<pre><code>$ oc get secret single-node-admin-kubeconfig -o json -n assisted-installer | jq '.data' | cut -d '&quot;' -f 4 | tr -d '{}' | base64 --decode &gt; /tmp/kubeconfig-sno.yml
+</code></pre>
+<hr />
+<p><strong>NOTE</strong></p>
+<p><code>ClusterDeployment</code> resource defines <code>baseDomain</code> for the installed OCP cluster. This one will be used in the generated kubeconfig file so it may happen (depending on the domain chosen) that there is no connectivity caused by name not being resolved. In such a scenario a manual intervention may be needed (e.g. manual entry in <code>/etc/hosts</code>).</p>
+<h1 id="troubleshooting">Troubleshooting</h1>
+<ul>
+<li>I have created the BMH, the ClusterDeployment, and the InfraEnv resources. Why doesn't the node start?</li>
+</ul>
+<p>The first thing to do is to verify that an ISO has been created and that it is associated with the
+BMH. Here are a few commands that can be run to achieve this:</p>
+<pre><code>$ oc describe infraenv $YOUR_INFRAENV | grep ISO
+$ oc describe bmh $YOUR_BMH | grep Image
+</code></pre>
+<hr />
+<ul>
+<li>InfraEnv's ISO Url doesn't have an URL set</li>
+</ul>
+<p>This means something may have gone wrong during the ISO generation. Check the assisted-service logs
+(and docs) to know what happened.</p>
+<hr />
+<ul>
+<li>InfraEnv has an URL associated but the BMH Image URL field is not set:</li>
+</ul>
+<p>Check that the <code>infraenvs.agent-install.openshift.io</code> label is set in your <code>BareMetalHost</code> resource
+and that the value matches the name of the InfraEnv's. Remember that both resources <strong>must</strong> be in
+the same namespace.</p>
+<p>Check that resources in the <code>openshift-machine-api</code> are up and running. <code>cluster-baremetal-operator</code>
+is responsible for handling the state of the BMH so if that one is not running, your BMH will never
+move forward.</p>
+<p>Check that <code>cluster-baremetal-operator</code> is not configured to ignore any namespaces or CRDs. You can
+do it by checking the <code>overrides</code> section in</p>
+<pre><code>$ oc describe clusterversion version --namespace openshift-cluster-version
+</code></pre>
+<hr />
+<ul>
+<li>URL is set everywhere, node still doesn't start</li>
+</ul>
+<p>Double check that the <code>BareMetalHost</code> definition has <code>online</code> set to true. BMAC should take care of
+this during the reconcile but, you know, software, computer gnomes, and dark magic.</p>
+<hr />
+<ul>
+<li>Node boots but it loooks like it is booting something else</li>
+</ul>
+<p>Check that the <code>inspect.metal3.io</code> and <code>automatedCleaningMode</code> are both set to <code>disabled</code>. This will
+prevent Ironic from doing inspection and any cleaning, which will speed up the deployment process
+and prevent it from running IPA before running the ISO.</p>
+<p>This should be set automatically by BMAC in the part linked <a href="https://github.com/openshift/assisted-service/blob/v1.0.22.1/internal/controller/controllers/bmh_agent_controller.go#L531-L545">here</a>
+but if that is not the case, start from checking the assisted-service logs as there may be more
+errors related to the BMH.</p>
+<hr />
+<ul>
+<li>Node boots, but nothing else seems to be happening</li>
+</ul>
+<p>Check that an agent has been registered for this cluster and BMH. You can verify this by chekcing
+the existing agents and find the one that has an interface with a MacAddress that matches the BMH
+<code>BootMACAddress</code>.</p>
+<p>Remember that in between the node booting from the Discovery ISO and the Agent CR being created you
+may need to wait a few minutes.</p>
+<p>If there is an agent, the next thing to check is that all validations have passed. This can be done
+by inspecting the <code>ClusterDeployment</code> and verify that the validation phase has succeeded.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+  </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme_extra.js" defer></script>
+    <script src="../../js/theme.js" defer></script>
+      <script src="../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

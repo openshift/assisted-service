@@ -9,7 +9,7 @@ stand-alone mode via `podman`.
 ## OpenShift User Pull Secret
 
 You will need a valid OpenShift user pull secret. Copy or download the pull
-secret from https://cloud.redhat.com/openshift/install/pull-secret
+secret from https://console.redhat.com/openshift/install/pull-secret
 
 # Running the Assisted Installer using Podman
 

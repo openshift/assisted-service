@@ -9449,7 +9449,7 @@ func init() {
           "type": "string"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
         "ssh_public_key": {
@@ -10005,7 +10005,7 @@ func init() {
           "$ref": "#/definitions/platform"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
         "schedulable_masters": {
@@ -10340,7 +10340,7 @@ func init() {
           "$ref": "#/definitions/platform"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string",
           "x-nullable": true
         },
@@ -12003,7 +12003,7 @@ func init() {
           "$ref": "#/definitions/proxy"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
         "ssh_authorized_key": {
@@ -12044,7 +12044,7 @@ func init() {
           "$ref": "#/definitions/proxy"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
         "ssh_authorized_key": {
@@ -13212,7 +13212,7 @@ func init() {
           "$ref": "#/definitions/platform"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string",
           "x-nullable": true
         },
@@ -23009,7 +23009,7 @@ func init() {
           "type": "string"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
         "ssh_public_key": {
@@ -23565,7 +23565,7 @@ func init() {
           "$ref": "#/definitions/platform"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
         "schedulable_masters": {
@@ -23860,7 +23860,7 @@ func init() {
           "$ref": "#/definitions/platform"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string",
           "x-nullable": true
         },
@@ -25456,7 +25456,7 @@ func init() {
           "$ref": "#/definitions/proxy"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
         "ssh_authorized_key": {
@@ -25497,7 +25497,7 @@ func init() {
           "$ref": "#/definitions/proxy"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
         "ssh_authorized_key": {
@@ -26654,7 +26654,7 @@ func init() {
           "$ref": "#/definitions/platform"
         },
         "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string",
           "x-nullable": true
         },

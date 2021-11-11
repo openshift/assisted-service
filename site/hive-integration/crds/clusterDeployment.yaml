@@ -1,0 +1,22 @@
+apiVersion: hive.openshift.io/v1
+kind: ClusterDeployment
+metadata:
+  name: single-node
+  namespace: spoke-cluster
+spec:
+  baseDomain: hive.example.com
+  clusterInstallRef:
+    group: extensions.hive.openshift.io
+    kind: AgentClusterInstall
+    name: test-agent-cluster-install
+    version: v1beta1
+  clusterName: test-cluster
+  controlPlaneConfig:
+    servingCertificates: {}
+  platform:
+    agentBareMetal:
+      agentSelector:
+        matchLabels:
+          bla: aaa
+  pullSecretRef:
+    name: pull-secret

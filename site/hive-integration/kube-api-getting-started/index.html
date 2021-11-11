@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Openshift Assisted Service Team">
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>Kube API - Getting Started Guide - Openshift Assisted Service</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../../css/theme.css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Kube API - Getting Started Guide";
+    var mkdocs_page_input_path = "hive-integration/kube-api-getting-started.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Openshift Assisted Service</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../..">OAS Home</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-local/">OAS Running on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-openshift/">OAS Running on Openshift</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Openshift Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="" href="../../user-guide/user-guide.md">User Guide Index</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-local/">OCP Deployment on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-bare-metal/">OCP Deployment on Bare Metal</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-vsphere/">OCP Deployment on vSphere</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-RHEV/">OCP Deployment on RHEV</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-OSP/">OCP Deployment on Openstack</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Development</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../dev/migrations/">Migrations</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Openshift Assisted Service</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Kube API - Getting Started Guide</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="kube-api-getting-started-guide">Kube API - Getting Started Guide</h1>
+<p>This document is a step-by-step guide that demonstrates how to deploy a single-node cluster end to end.</p>
+<p><strong>Note</strong>:
+* This document is not meant to expand on each and every resource in detail; <a href="../">other documents already do that</a>. Instead, expect the details needed to understand the context and what is currently happening.</p>
+<ul>
+<li>The order in which actions are performed here is <strong>optional</strong>, and you may choose to go by a different one. The one order restriction the API does have is in regards to creating <code>NMstateConfigs</code> (which are optional) before <code>InfraEnv</code>, for more details, <a href="../#NMStateConfig">check the warning mentioned here</a>.</li>
+</ul>
+<h2 id="what-to-expect">What To Expect</h2>
+<ul>
+<li>
+<p>A walk through of custom resource definitions (CRDs) and understand how they relate to each other.</p>
+</li>
+<li>
+<p>A clear understanding of what happened, both in OpenShift / Kubernetes and assisted-service backend per each action described below.</p>
+</li>
+</ul>
+<h2 id="how-to-use-this-guide">How To Use This guide</h2>
+<ul>
+<li>
+<p>Make sure that for each step you follow, you understand how and why it is done.</p>
+</li>
+<li>
+<p>You are encouraged to copy and paste the below-mentioned commands to your terminal and see things in action.</p>
+</li>
+<li>
+<p>Note the inline comments in the <code>yaml</code> examples. There is no need to remove those in case you which to copy and create the resources directly in your environment.</p>
+</li>
+</ul>
+<h2 id="assumptions">Assumptions</h2>
+<ul>
+<li>You have deployed both the operator and assisted-service by, for example, <a href="../../operator/">using these instructions</a>.  Alternatively, you may choose to deploy via OLM or as a part of ACM, which is also applicable.</li>
+<li>
+<p>Using the discovery image:</p>
+<ul>
+<li>
+<p><strong>Boot it yourself</strong>: You are able to use the generated discovery image to boot your host.</p>
+</li>
+<li>
+<p><strong>Zero Touch Provisioning (ZTP)</strong>:  Detailed in the <a href="#advanced-zero-touch-provisioning">advanced section</a>. Configure <code>BMH</code> / <code>BareMetalHost</code> to automate the host discovery procedure. This document uses <a href="https://github.com/openshift-metal3/dev-scripts/">dev-scripts</a> for that. <a href="../baremetal-agent-controller/">read about it here</a>.</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="resource-types-and-relationships">Resource Types and Relationships</h2>
+<p><img alt="kubeAPI4.9" src="../kubeAPI4.9.jpg" /></p>
+<h2 id="cluster-prerequisites">Cluster Prerequisites</h2>
+<h3 id="1-create-a-namespace-for-your-resources">1. Create a namespace for your resources</h3>
+<pre><code class="language-yaml">cat &lt;&lt;EOF | kubectl create -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-worker4 # Use any name, but note that using 'assisted-installer' is not recommended
+EOF
+</code></pre>
+<h3 id="2-create-a-pull-secret">2. Create a Pull Secret</h3>
+<ul>
+<li>Use the secret obtained from <a href="https://console.redhat.com/openshift/install/pull-secret">console.redhat.com</a></li>
+</ul>
+<pre><code class="language-yaml">cat &lt;&lt;EOF | kubectl create -f -
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/dockerconfigjson
+metadata:
+name: pull-secret
+namespace: demo-worker4
+stringData:
+.dockerconfigjson: '{&quot;auths&quot;:{&quot;cloud.openshift.com&quot;:{&quot;auth&quot;:&quot;your secret here&quot;,&quot;email&quot;:&quot;user@example.com&quot;}}}'
+EOF
+</code></pre>
+<h3 id="3-generate-clusterimageset-to-specify-the-openshift-version-to-be-used">3. Generate <code>ClusterImageSet</code>, to specify the OpenShift version to be used.</h3>
+<pre><code class="language-yaml">cat &lt;&lt;EOF | kubectl create -f -
+apiVersion: hive.openshift.io/v1
+kind: ClusterImageSet
+metadata:
+   name: openshift-v4.8.0
+spec:
+   releaseImage: quay.io/openshift-release-dev/ocp-release:4.8.0-rc.0-x86_64  # That version may change over time
+EOF
+</code></pre>
+<h2 id="creating-cluster-resources">Creating Cluster Resources</h2>
+<h3 id="define-a-cluster-with-assisted-service">Define a cluster with assisted-service</h3>
+<p>For that, you'll to need create two resources:</p>
+<h4 id="1-create-clusterdepoyment">1. Create <a href="../#clusterdeployment">ClusterDepoyment</a></h4>
+<pre><code class="language-yaml">   cat &lt;&lt;EOF | kubectl create -f -
+   apiVersion: hive.openshift.io/v1
+   kind: ClusterDeployment
+   metadata:
+      name: single-node
+      namespace: demo-worker4
+   spec:
+      baseDomain: hive.example.com
+      clusterInstallRef:
+         group: extensions.hive.openshift.io
+         kind: AgentClusterInstall
+         name: test-agent-cluster-install # Use the same name for AgentClusterInstall
+         version: v1beta1
+      clusterName: test-cluster
+      controlPlaneConfig:
+         servingCertificates: {}
+      platform:
+         agentBareMetal:
+            agentSelector:
+               matchLabels:
+                  bla: aaa
+      pullSecretRef:
+         name: pull-secret  # Use the pull secret name mentioned in Cluster Prerequisites step 2
+   EOF
+</code></pre>
+<h5 id="result">Result</h5>
+<ul>
+<li>At this point, there is no <code>AgentClusterInstall</code>, so it won't do much and won't even register the cluster.</li>
+</ul>
+<h6 id="clusterdeployment-resource-conditions">ClusterDeployment resource conditions:</h6>
+<pre><code class="language-bash">kubectl -n demo-worker4 get clusterdeployments.hive.openshift.io single-node -o=jsonpath=&quot;{.metadata.name}{'\n'}{range .status.conditions[*]}{.type}{'\t'}{.message}{'\n'}&quot;
+</code></pre>
+<pre><code class="language-bash">single-node
+RelocationFailed    no ClusterRelocates match
+Hibernating Condition Initialized
+AuthenticationFailure   Platform credentials passed authentication check
+</code></pre>
+<h6 id="assisted-service-log">assisted-service log:</h6>
+<pre><code class="language-go">time=&quot;2021-06-28T20:45:07Z&quot; level=info msg=&quot;ClusterDeployment Reconcile started&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:115&quot; cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=b5022e40-4a1e-4658-ba0a-5159938b7789
+time=&quot;2021-06-28T20:45:07Z&quot; level=info msg=&quot;AgentClusterInstall does not exist for ClusterDeployment single-node&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:147&quot; AgentClusterInstall=test-agent-cluster-install cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=b5022e40-4a1e-4658-ba0a-5159938b7789
+time=&quot;2021-06-28T20:45:07Z&quot; level=info msg=&quot;ClusterDeployment Reconcile ended&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile.func1&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:112&quot; cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=b5022e40-4a1e-4658-ba0a-5159938b7789
+</code></pre>
+<h4 id="2-create-agentclusterinstal">2. Create <a href="../#agentclusterinstall">AgentClusterInstal</a></h4>
+<pre><code class="language-yaml">cat &lt;&lt;EOF | kubectl create -f -
+apiVersion: extensions.hive.openshift.io/v1beta1
+kind: AgentClusterInstall
+metadata:
+  name: test-agent-cluster-install
+  namespace: demo-worker4
+spec:
+  clusterDeploymentRef:
+    name: single-node # Use the clusterDeployment name from the previous step
+  imageSetRef:
+    name: openshift-v4.8.0 # Use the ClusterImageSet name mentioned in Cluster Prerequisites step 3
+  networking:
+    clusterNetwork:
+    - cidr: 10.128.0.0/14
+      hostPrefix: 23
+    machineNetwork:
+    - cidr: 192.168.111.0/24
+    serviceNetwork:
+    - 172.30.0.0/16
+  provisionRequirements:
+    controlPlaneAgents: 1
+ #sshPublicKey: ssh-rsa your-public-key-here (optional)
+EOF
+</code></pre>
+<h5 id="result_1">Result</h5>
+<ul>
+<li>The cluster is fully defined in assisted-service backend (PostgreSQL DB).</li>
+<li>No discovery image has been created at this point.</li>
+</ul>
+<h6 id="agentclusterinstall-resource-conditions">AgentClusterInstall resource conditions:</h6>
+<pre><code class="language-bash">kubectl -n demo-worker4 get agentclusterinstalls.extensions.hive.openshift.io test-agent-cluster-install -o=jsonpath=&quot;{.metadata.name}{'\n'}{range .status.conditions[*]}{.type}{'\t'}{.message}{'\n'}&quot;
+</code></pre>
+<pre><code class="language-bash">test-agent-cluster-install
+SpecSynced  The Spec has been successfully applied
+RequirementsMet The cluster is not ready to begin the installation
+Validated   The cluster's validations are failing: Single-node clusters must have a single master node and no workers.
+Completed   The installation has not yet started
+Failed  The installation has not failed
+Stopped The installation is waiting to start or in progress
+</code></pre>
+<h6 id="assisted-service-log_1">assisted-service log:</h6>
+<pre><code class="language-go">time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;ClusterDeployment Reconcile started&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:115&quot; cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=562c4762-532a-4a2a-b99f-53fa57d0b966
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;Creating a new cluster single-node demo-worker4&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).createNewCluster&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:843&quot; agent_cluster_install=test-agent-cluster-install agent_cluster_install_namespace=demo-worker4 cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=562c4762-532a-4a2a-b99f-53fa57d0b966
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;Stored OCP version: 4.8.0-rc.0&quot; func=&quot;github.com/openshift/assisted-service/internal/versions.(*handler).AddOpenshiftVersion&quot; file=&quot;/go/src/github.com/openshift/origin/internal/versions/versions.go:240&quot; pkg=versions
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;Register cluster: test-cluster with id 02a89bb9-6141-4d14-a82e-42f254217502&quot; func=&quot;github.com/openshift/assisted-service/internal/bminventory.(*bareMetalInventory).RegisterClusterInternal&quot; file=&quot;/go/src/github.com/openshift/origin/internal/bminventory/inventory.go:344&quot; cluster_id=02a89bb9-6141-4d14-a82e-42f254217502 go-id=684 pkg=Inventory request_id=562c4762-532a-4a2a-b99f-53fa57d0b966
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;HA mode is None, setting UserManagedNetworking to true and VipDhcpAllocation to false&quot; func=&quot;github.com/openshift/assisted-service/internal/bminventory.(*bareMetalInventory).RegisterClusterInternal&quot; file=&quot;/go/src/github.com/openshift/origin/internal/bminventory/inventory.go:387&quot; cluster_id=02a89bb9-6141-4d14-a82e-42f254217502 go-id=684 pkg=Inventory request_id=562c4762-532a-4a2a-b99f-53fa57d0b966
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;Successfully registered cluster test-cluster with id 02a89bb9-6141-4d14-a82e-42f254217502&quot; func=&quot;github.com/openshift/assisted-service/internal/bminventory.(*bareMetalInventory).RegisterClusterInternal.func1&quot; file=&quot;/go/src/github.com/openshift/origin/internal/bminventory/inventory.go:351&quot; cluster_id=02a89bb9-6141-4d14-a82e-42f254217502 go-id=684 pkg=Inventory request_id=562c4762-532a-4a2a-b99f-53fa57d0b966
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;no infraEnv for the clusterDeployment single-node in namespace demo-worker4&quot; func=github.com/openshift/assisted-service/internal/controller/controllers.getInfraEnvByClusterDeployment file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/common.go:67&quot; agent_cluster_install=test-agent-cluster-install agent_cluster_install_namespace=demo-worker4 cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=562c4762-532a-4a2a-b99f-53fa57d0b966
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;ClusterDeployment Reconcile ended&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile.func1&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:112&quot; agent_cluster_install=test-agent-cluster-install agent_cluster_install_namespace=demo-worker4 cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=562c4762-532a-4a2a-b99f-53fa57d0b966
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;ClusterDeployment Reconcile started&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:115&quot; cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=98cac786-f3c2-4237-ae7c-f5c1a9e6e85b
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;update cluster 02a89bb9-6141-4d14-a82e-42f254217502 with params: &amp;{AdditionalNtpSource:&lt;nil&gt; APIVip:&lt;nil&gt; APIVipDNSName:&lt;nil&gt; BaseDNSDomain:&lt;nil&gt; ClusterNetworkCidr:&lt;nil&gt; ClusterNetworkHostPrefix:&lt;nil&gt; DisksSelectedConfig:[] HostsMachineConfigPoolNames:[] HostsNames:[] HostsRoles:[] HTTPProxy:&lt;nil&gt; HTTPSProxy:&lt;nil&gt; Hyperthreading:&lt;nil&gt; IngressVip:&lt;nil&gt; MachineNetworkCidr:0xc003c5e760 Name:&lt;nil&gt; NoProxy:&lt;nil&gt; OlmOperators:[] PullSecret:&lt;nil&gt; ServiceNetworkCidr:&lt;nil&gt; SSHPublicKey:&lt;nil&gt; UserManagedNetworking:&lt;nil&gt; VipDhcpAllocation:&lt;nil&gt;}&quot; func=&quot;github.com/openshift/assisted-service/internal/bminventory.(*bareMetalInventory).updateClusterInternal&quot; file=&quot;/go/src/github.com/openshift/origin/internal/bminventory/inventory.go:1715&quot; go-id=684 pkg=Inventory request_id=98cac786-f3c2-4237-ae7c-f5c1a9e6e85b
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;no infraEnv for the clusterDeployment single-node in namespace demo-worker4&quot; func=github.com/openshift/assisted-service/internal/controller/controllers.getInfraEnvByClusterDeployment file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/common.go:67&quot; agent_cluster_install=test-agent-cluster-install agent_cluster_install_namespace=demo-worker4 cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=98cac786-f3c2-4237-ae7c-f5c1a9e6e85b
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;Updated clusterDeployment demo-worker4/single-node&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).updateIfNeeded&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:714&quot; agent_cluster_install=test-agent-cluster-install agent_cluster_install_namespace=demo-worker4 cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=98cac786-f3c2-4237-ae7c-f5c1a9e6e85b
+time=&quot;2021-06-28T21:01:31Z&quot; level=info msg=&quot;ClusterDeployment Reconcile ended&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile.func1&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:112&quot; agent_cluster_install=test-agent-cluster-install agent_cluster_install_namespace=demo-worker4 cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=98cac786-f3c2-4237-ae7c-f5c1a9e6e85b
+</code></pre>
+<h3 id="generate-cluster-discovery-image">Generate Cluster Discovery Image</h3>
+<h4 id="1-optional-create-nmstateconfig">1. Optional - Create <a href="../#NMStateConfig">NMStateConfig</a></h4>
+<ul>
+<li>Needed for optional host-level network configuration, such as static IP addresses and more.</li>
+</ul>
+<pre><code class="language-yaml">cat &lt;&lt;EOF | kubectl create -f -
+apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: mynmstateconfig
+  namespace: demo-worker4
+  labels:
+    demo-nmstate-label: some-value # both the label name and value must be included in InfraEnv nmStateConfigLabelSelector matchLabels
+spec:
+  config:
+    interfaces:
+      - name: eth0
+        type: ethernet
+        state: up
+        mac-address: 02:00:00:80:12:14
+        ipv4:
+          enabled: true
+          address:
+            - ip: 192.168.111.30
+              prefix-length: 24
+          dhcp: false
+      - name: eth1
+        type: ethernet
+        state: up
+        mac-address: 02:00:00:80:12:15
+        ipv4:
+          enabled: true
+          address:
+            - ip: 192.168.140.30
+              prefix-length: 24
+          dhcp: false
+    dns-resolver:
+      config:
+        server:
+          - 192.168.126.1
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.111.1
+          next-hop-interface: eth1
+          table-id: 254
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.140.1
+          next-hop-interface: eth1
+          table-id: 254
+  interfaces:
+    - name: &quot;eth0&quot;
+      macAddress: &quot;02:00:00:80:12:14&quot;
+    - name: &quot;eth1&quot;
+      macAddress: &quot;02:00:00:80:12:15&quot;
+EOF
+</code></pre>
+<h4 id="2-create-infraenv">2. Create <a href="../#InfraEnv">InfraEnv</a></h4>
+<ul>
+<li>The <code>InfraEnv</code> resource describes everything about the infrastructure environment that is needed in order to create a discovery ISO.</li>
+</ul>
+<pre><code class="language-yaml">cat &lt;&lt;EOF | kubectl create -f -
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: myinfraenv
+  namespace: demo-worker4
+spec:
+  clusterRef:
+    name: single-node  # Use the above created clusterDeployment resource name and namespace
+    namespace: demo-worker4
+  pullSecretRef: # currently ignored by InfraEnv controller
+    name: pull-secret
+ #sshAuthorizedKey: 'your_pub_key_here' (optional) , this key will allow to connect to machines booted from the discovery ISO.
+  nmStateConfigLabelSelector:
+    matchLabels:
+      demo-nmstate-label: some-value # both the label name and value must match the NMStateConfig label section
+EOF
+</code></pre>
+<h5 id="result_2">Result</h5>
+<ul>
+<li>Discovery Image Created.</li>
+<li>Note that the log does specify that nmStateConfigs were included.</li>
+</ul>
+<h6 id="infraenv-resource-conditions">InfraEnv resource conditions:</h6>
+<pre><code class="language-bash">kubectl -n demo-worker4 get infraenvs.agent-install.openshift.io myinfraenv -o=jsonpath=&quot;{.metadata.name}{'\n'}{range .status.conditions[*]}{.type}{'\t'}{.message}{'\n'}&quot;
+</code></pre>
+<pre><code class="language-bash">myinfraenv
+ImageCreated    Image has been created
+</code></pre>
+<h6 id="custom-resource-isodownloadurl">custom resource isoDownloadURL:</h6>
+<pre><code class="language-bash">kubectl -n demo-worker4 get infraenvs.agent-install.openshift.io myinfraenv  -o=jsonpath=&quot;{.status.createdTime}{'\n'}{.status.isoDownloadURL}{'\n'}&quot;
+</code></pre>
+<pre><code class="language-bash">2021-06-28T21:42:19Z
+https://assisted-service-assisted-installer.apps.ostest.test.metalkube.org/api/assisted-install/v1/clusters/02a89bb9-6141-4d14-a82e-42f254217502/downloads/image?api_key=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbHVzdGVyX2lkIjoiMDJhODliYjktNjE0MS00ZDE0LWE4MmUtNDJmMjU0MjE3NTAyIn0.ciL2w3g89ftu-R-Z3-KwrDtlll2kd4EMhbrE3YLZkQNQBEdCJ1gg5Sjgjfj4Ekbi7C3XsDEsIRSYTGJPL-Pu8A
+</code></pre>
+<h6 id="assisted-service-log_2">assisted-service log:</h6>
+<pre><code class="language-go">time=&quot;2021-06-28T21:42:19Z&quot; level=info msg=&quot;InfraEnv Reconcile started&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*InfraEnvReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/infraenv_controller.go:81&quot; go-id=654 infra_env=myinfraenv infra_env_namespace=demo-worker4 request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
+time=&quot;2021-06-28T21:42:19Z&quot; level=info msg=&quot;the amount of nmStateConfigs included in the image is: 1&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*InfraEnvReconciler).ensureISO&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/infraenv_controller.go:288&quot; go-id=654 infra_env=myinfraenv infra_env_namespace=demo-worker4 request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
+time=&quot;2021-06-28T21:42:19Z&quot; level=info msg=&quot;prepare image for cluster 02a89bb9-6141-4d14-a82e-42f254217502&quot; func=&quot;github.com/openshift/assisted-service/internal/bminventory.(*bareMetalInventory).GenerateClusterISOInternal&quot; file=&quot;/go/src/github.com/openshift/origin/internal/bminventory/inventory.go:865&quot; go-id=654 pkg=Inventory request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
+time=&quot;2021-06-28T21:42:19Z&quot; level=info msg=&quot;Successfully uploaded file 02a89bb9-6141-4d14-a82e-42f254217502/discovery.ign&quot; func=&quot;github.com/openshift/assisted-service/pkg/s3wrapper.(*FSClient).Upload&quot; file=&quot;/go/src/github.com/openshift/origin/pkg/s3wrapper/filesystem.go:76&quot; go-id=654 request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
+time=&quot;2021-06-28T21:42:19Z&quot; level=info msg=&quot;Filesystem '/data/' usage is 3.6%&quot; func=&quot;github.com/openshift/assisted-service/pkg/s3wrapper.(*FSClientDecorator).conditionalLog&quot; file=&quot;/go/src/github.com/openshift/origin/pkg/s3wrapper/filesystem.go:426&quot;
+time=&quot;2021-06-28T21:42:19Z&quot; level=info msg=&quot;Creating minimal ISO for cluster 02a89bb9-6141-4d14-a82e-42f254217502&quot; func=&quot;github.com/openshift/assisted-service/internal/bminventory.(*bareMetalInventory).generateClusterMinimalISO.func1&quot; file=&quot;/go/src/github.com/openshift/origin/internal/bminventory/inventory.go:1102&quot; go-id=654 pkg=Inventory request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
+time=&quot;2021-06-28T21:42:20Z&quot; level=info msg=&quot;Start configuring static network for 1 hosts&quot; func=&quot;github.com/openshift/assisted-service/pkg/staticnetworkconfig.(*StaticNetworkConfigGenerator).GenerateStaticNetworkConfigData&quot; file=&quot;/go/src/github.com/openshift/origin/pkg/staticnetworkconfig/generator.go:45&quot; pkg=static_network_config
+time=&quot;2021-06-28T21:42:20Z&quot; level=info msg=&quot;Adding NMConnection file &lt;eth0.nmconnection&gt;&quot; func=&quot;github.com/openshift/assisted-service/pkg/staticnetworkconfig.(*StaticNetworkConfigGenerator).createNMConnectionFiles&quot; file=&quot;/go/src/github.com/openshift/origin/pkg/staticnetworkconfig/generator.go:128&quot; pkg=static_network_config
+time=&quot;2021-06-28T21:42:20Z&quot; level=info msg=&quot;Adding NMConnection file &lt;eth1.nmconnection&gt;&quot; func=&quot;github.com/openshift/assisted-service/pkg/staticnetworkconfig.(*StaticNetworkConfigGenerator).createNMConnectionFiles&quot; file=&quot;/go/src/github.com/openshift/origin/pkg/staticnetworkconfig/generator.go:128&quot; pkg=static_network_config
+time=&quot;2021-06-28T21:42:20Z&quot; level=info msg=&quot;Uploading minimal ISO for cluster 02a89bb9-6141-4d14-a82e-42f254217502&quot; func=&quot;github.com/openshift/assisted-service/internal/bminventory.(*bareMetalInventory).generateClusterMinimalISO&quot; file=&quot;/go/src/github.com/openshift/origin/internal/bminventory/inventory.go:1118&quot; go-id=654 pkg=Inventory request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
+time=&quot;2021-06-28T21:42:20Z&quot; level=info msg=&quot;Successfully uploaded file discovery-image-02a89bb9-6141-4d14-a82e-42f254217502.iso&quot; func=&quot;github.com/openshift/assisted-service/pkg/s3wrapper.(*FSClient).UploadStream&quot; file=&quot;/go/src/github.com/openshift/origin/pkg/s3wrapper/filesystem.go:159&quot; go-id=654 request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
+time=&quot;2021-06-28T21:42:20Z&quot; level=info msg=&quot;Generated cluster &lt;02a89bb9-6141-4d14-a82e-42f254217502&gt; image with ignition config {\n  \&quot;ignition\&quot;: {\n    \&quot;version\&quot;: \&quot;3.1.0\&quot;\n  },\n  \&quot;passwd\&quot;: {\n    \&quot;users\&quot;: [\n      *****\n    ]\n  },\n  \&quot;systemd\&quot;: {\n    \&quot;units\&quot;: [{\n      \&quot;name\&quot;: \&quot;agent.service\&quot;,\n      \&quot;enabled\&quot;: true,\n      \&quot;contents\&quot;: \&quot;[Service]\\nType=simple\\nRestart=always\\nRestartSec=3\\nStartLimitInterval=0\\nEnvironment=HTTP_PROXY=\\nEnvironment=http_proxy=\\nEnvironment=HTTPS_PROXY=\\nEnvironment=https_proxy=\\nEnvironment=NO_PROXY=\\nEnvironment=no_proxy=\\nEnvironment=PULL_SECRET_TOKEN=*****\\nTimeoutStartSec=180\\nExecStartPre=/usr/local/bin/agent-fix-bz1964591 quay.io/ocpmetal/assisted-installer-agent:latest\\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin quay.io/ocpmetal/assisted-installer-agent:latest cp /usr/bin/agent /hostbin\\nExecStart=/usr/local/bin/agent --url https://assisted-service-assisted-installer.apps.ostest.test.metalkube.org --cluster-id 02a89bb9-6141-4d14-a82e-42f254217502 --agent-version quay.io/ocpmetal/assisted-installer-agent:latest --insecure=false  --cacert /etc/assisted-service/service-ca-cert.crt\\n\\n[Unit]\\nWants=network-online.target\\nAfter=network-online.target\\n\\n[Install]\\nWantedBy=multi-user.target\&quot;\n    },\n    {\n        \&quot;name\&quot;: \&quot;selinux.service\&quot;,\n        \&quot;enabled\&quot;: true,\n        \&quot;contents\&quot;: \&quot;[Service]\\nType=oneshot\\nExecStartPre=checkmodule -M -m -o /root/assisted.mod /root/assisted.te\\nExecStartPre=semodule_package -o /root/assisted.pp -m /root/assisted.mod\\nExecStart=semodule -i /root/assisted.pp\\n\\n[Install]\\nWantedBy=multi-user.target\&quot;\n    }\n    ]\n  },\n  \&quot;storage\&quot;: {\n    \&quot;files\&quot;: [{\n      \&quot;overwrite\&quot;: true,\n      \&quot;path\&quot;: \&quot;/usr/local/bin/agent-fix-bz1964591\&quot;,\n      \&quot;mode\&quot;: 755,\n      \&quot;user\&quot;: {\n          \&quot;name\&quot;: \&quot;root\&quot;\n      },\n      \&quot;contents\&quot;: { \&quot;source\&quot;: \&quot;data:,%23%21%2Fusr%2Fbin%2Fsh%0A%0A%23%20This%20script%20is%20a%20workaround%20for%20bugzilla%201964591%20where%20symlinks%20inside%20%2Fvar%2Flib%2Fcontainers%2F%20get%0A%23%20corrupted%20under%20some%20circumstances.%0A%23%0A%23%20In%20order%20to%20let%20agent.service%20start%20correctly%20we%20are%20checking%20here%20whether%20the%20requested%0A%23%20container%20image%20exists%20and%20in%20case%20%22podman%20images%22%20returns%20an%20error%20we%20try%20removing%20the%20faulty%0A%23%20image.%0A%23%0A%23%20In%20such%20a%20scenario%20agent.service%20will%20detect%20the%20image%20is%20not%20present%20and%20pull%20it%20again.%20In%20case%0A%23%20the%20image%20is%20present%20and%20can%20be%20detected%20correctly%2C%20no%20any%20action%20is%20required.%0A%0AIMAGE=$%28echo%20$1%20%7C%20sed%20%27s%2F:.%2A%2F%2F%27%29%0Apodman%20images%20%7C%20grep%20$IMAGE%20%7C%7C%20podman%20rmi%20--force%20$1%20%7C%7C%20true%0A\&quot; }\n    },\n    {\n      \&quot;overwrite\&quot;: true,\n      \&quot;path\&quot;: \&quot;/etc/motd\&quot;,\n      \&quot;mode\&quot;: 420,\n      \&quot;user\&quot;: {\n          \&quot;name\&quot;: \&quot;root\&quot;\n      },\n      \&quot;contents\&quot;: { \&quot;source\&quot;: \&quot;data:,%0A%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%0AThis%20is%20a%20host%20being%20installed%20by%20the%20OpenShift%20Assisted%20Installer.%0AIt%20will%20be%20installed%20from%20scratch%20during%20the%20installation.%0AThe%20primary%20service%20is%20agent.service.%20%20To%20watch%20its%20status%20run%20e.g%0Asudo%20journalctl%20-u%20agent.service%0A%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%20%20%2A%2A%0A\&quot; }\n    },\n    {\n      \&quot;overwrite\&quot;: true,\n      \&quot;path\&quot;: \&quot;/etc/NetworkManager/conf.d/01-ipv6.conf\&quot;,\n      \&quot;mode\&quot;: 420,\n      \&quot;user\&quot;: {\n          \&quot;name\&quot;: \&quot;root\&quot;\n      },\n      \&quot;contents\&quot;: { \&quot;source\&quot;: \&quot;data:,%0A%5Bconnection%5D%0Aipv6.dhcp-iaid=mac%0Aipv6.dhcp-duid=ll%0A\&quot; }\n    },\n    {\n        \&quot;overwrite\&quot;: true,\n        \&quot;path\&quot;: \&quot;/root/.docker/config.json\&quot;,\n        \&quot;mode\&quot;: 420,\n        \&quot;user\&quot;: {\n            \&quot;name\&quot;: \&quot;root\&quot;\n        },\n        \&quot;contents\&quot;: { \&quot;source\&quot;: \&quot;data:,*****\&quot; }\n    },\n    {\n        \&quot;overwrite\&quot;: true,\n        \&quot;path\&quot;: \&quot;/root/assisted.te\&quot;,\n        \&quot;mode\&quot;: 420,\n        \&quot;user\&quot;: {\n            \&quot;name\&quot;: \&quot;root\&quot;\n        },\n        \&quot;contents\&quot;: { \&quot;source\&quot;: \&quot;data:text/plain;base64,Cm1vZHVsZSBhc3Npc3RlZCAxLjA7CnJlcXVpcmUgewogICAgICAgIHR5cGUgY2hyb255ZF90OwogICAgICAgIHR5cGUgY29udGFpbmVyX2ZpbGVfdDsKICAgICAgICB0eXBlIHNwY190OwogICAgICAgIGNsYXNzIHVuaXhfZGdyYW1fc29ja2V0IHNlbmR0bzsKICAgICAgICBjbGFzcyBkaXIgc2VhcmNoOwogICAgICAgIGNsYXNzIHNvY2tfZmlsZSB3cml0ZTsKfQojPT09PT09PT09PT09PSBjaHJvbnlkX3QgPT09PT09PT09PT09PT0KYWxsb3cgY2hyb255ZF90IGNvbnRhaW5lcl9maWxlX3Q6ZGlyIHNlYXJjaDsKYWxsb3cgY2hyb255ZF90IGNvbnRhaW5lcl9maWxlX3Q6c29ja19maWxlIHdyaXRlOwphbGxvdyBjaHJvbnlkX3Qgc3BjX3Q6dW5peF9kZ3JhbV9zb2NrZXQgc2VuZHRvOwo=\&quot; }\n    },\n    {\n      \&quot;overwrite\&quot;: true,\n      \&quot;path\&quot;: \&quot;/etc/pki/ca-trust/source/anchors/rh-it-root-ca.crt\&quot;,\n      \&quot;mode\&quot;: 420,\n      \&quot;user\&quot;: {\n          \&quot;name\&quot;: \&quot;root\&quot;\n      },\n      \&quot;contents\&quot;: { \&quot;source\&quot;: \&quot;data:,*****\&quot; }\n    },\n    {\n      \&quot;path\&quot;: \&quot;/etc/assisted-service/service-ca-cert.crt\&quot;,\n      \&quot;mode\&quot;: 420,\n      \&quot;overwrite\&quot;: true,\n      \&quot;user\&quot;: {\n        \&quot;name\&quot;: \&quot;root\&quot;\n      },\n      \&quot;contents\&quot;: { \&quot;source\&quot;: \&quot;data:text/plain;charset=utf-8;base64,LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURkekNDQWwrZ0F3SUJBZ0lJWTVQM1lsaUt1azB3RFFZSktvWklodmNOQVFFTEJRQXdKakVrTUNJR0ExVUUKQXd3YmFXNW5jbVZ6Y3kxdmNHVnlZWFJ2Y2tBeE5qSTBORFExT0RNMU1CNFhEVEl4TURZeU16RXhNREF3TlZvWApEVEl6TURZeU16RXhNREF3Tmxvd0t6RXBNQ2NHQTFVRUF3d2dLaTVoY0hCekxtOXpkR1Z6ZEM1MFpYTjBMbTFsCmRHRnNhM1ZpWlM1dmNtY3dnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUtBb0lCQVFEbkVudGoKWHFIdjdtK3grMis5Z0JHNlJ5d2VjcU5KeUYvdkk3S1h3Y21GcWJNbkhFdXlpZysyc2NTeEdVL2psNURwK1pHNgp4KzFyL0lPNjh6UGxPYjJGTXhOYk9GVmFCTG4rODd2QXpZSUREaW9GVE5nL25RVnBDYlI1SzBOMGY5TVk5OWRtCkVHaGNXRW9IYmVMcDdLeThqL0ZYWEdxV1BmNzNaSmhFVk5wTmVpUUMxcXVpcnhNa3Nha09yQXdXaVpuVy95SnEKZkUzdlZ4K25NeFQ2SHdJZ010WURPUmxkTloxdk9MeXU1eVdiZXRZY05GM1ROSzVsZmh5OURWWUJRTFNBTkhuSQprTXJvbmg0aHhpRXJXQlQ2OVhqd29VMFNPU2QyZGFvN1p1bmdZTjZWaGNyMEpxbjVvVVdNaFR0emVkS3h6V1lXCmdlaDlwa1FRcVFWQ0hqRXhBZ01CQUFHamdhTXdnYUF3RGdZRFZSMFBBUUgvQkFRREFnV2dNQk1HQTFVZEpRUU0KTUFvR0NDc0dBUVVGQndNQk1Bd0dBMVVkRXdFQi93UUNNQUF3SFFZRFZSME9CQllFRkppVld5UU1jNUVwbWsxawpGajZocGZmUWROR3dNQjhHQTFVZEl3UVlNQmFBRkhrUEk2Q2ZQWVJrc1Z1anRPa1o1eTRCSmlJdU1Dc0dBMVVkCkVRUWtNQ0tDSUNvdVlYQndjeTV2YzNSbGMzUXVkR1Z6ZEM1dFpYUmhiR3QxWW1VdWIzSm5NQTBHQ1NxR1NJYjMKRFFFQkN3VUFBNElCQVFCUkgzOTlzNmhray94VzdwV3NsRTdXYU1icGdMTWZ4TU8rQXlFVTNKblFhQUo1aVdIVQo2NFcxZG5VWUdNY1dTZ1FUS0JRVTJOZ2kxSUFBajA5OWVuOHhtbTFFUzZoNzF6bU5NSXhsMXVrd0FPUjRha0QvCk5VMUsxUis2cG9vS3hTQ2xEaVB4UHBmK3JFNDA2ZzFjRVhqODhHOTh3TWNGcDRtdnZFcjdNU0ptSGFOMUNobjQKdHk4SVZDa0w5MzFsNjNCRStkM29QS0M2TCtsWXBIZ29pSHp5c0hIc1FaaUhhWU9aMk9tY3EvbWZQQnRSRHVTcwp4WDhjRlpGemFBR3RpTTZvZFNTOElWTDdPVkpBTldGbWI1RnBUUGxjbDZpNWEvQ2R5RWZCQkdPeDJXbFNHWHYyCmphQlBDWnNKeWdicURmMjRYZFBXckpqNW5DNTdkTGxPWklDMwotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCi0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLQpNSUlERERDQ0FmU2dBd0lCQWdJQkFUQU5CZ2txaGtpRzl3MEJBUXNGQURBbU1TUXdJZ1lEVlFRRERCdHBibWR5ClpYTnpMVzl3WlhKaGRHOXlRREUyTWpRME5EVTRNelV3SGhjTk1qRXdOakl6TVRBMU56RTFXaGNOTWpNd05qSXoKTVRBMU56RTJXakFtTVNRd0lnWURWUVFEREJ0cGJtZHlaWE56TFc5d1pYSmhkRzl5UURFMk1qUTBORFU0TXpVdwpnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUtBb0lCQVFEbE5DOU96bVNpTnU1d01zTjNYSFlYCnhMTmpPZjFHUmFIbi9OVVdvU2JXMHhpK3ZVY05VNW0yMXQ2cjFnZ3FXekNvR3Y4L0pTZVhWTWR0bVVhOGxSaTkKa21sZTFDMUROZEJJbEM0R21rcmlDaHE3dDN2bnVpOTB5REtaYUFKVExYRzE5WGZOVHBTbHI4anFIZUJ6Z29aegpDWHZrZGNlZUVFVDg3bEgzUFBNWXhMTE1ZRG15UjNlSU9mdzNLcVlxalg5ZE1jZzhtMU1uMHFPbVg1cXJodVROCnRtRWo3Q3NEVVJUd1dVRHlCVDNDdDVsTUFsR1NKeWEwNE5EUDYwaS9pYWk1cmdsZEJrb1lCd0F6TXRBRUdoUisKUkZCajdBamk3c2JtZGpUZGhQbXBYS0Q4QjYrbmljTmNWeUw5OEora0pDQVJWQXRIVXNGdjM3elY4UnNHN2N2WApBZ01CQUFHalJUQkRNQTRHQTFVZER3RUIvd1FFQXdJQ3BEQVNCZ05WSFJNQkFmOEVDREFHQVFIL0FnRUFNQjBHCkExVWREZ1FXQkJSNUR5T2duejJFWkxGYm83VHBHZWN1QVNZaUxqQU5CZ2txaGtpRzl3MEJBUXNGQUFPQ0FRRUEKTkF1RUNUSUxBMTFiNVJDWmtqbTd4STBDMjJVcTFiTWNyRGJTaVBxaDhCaHZTWW1lVERvWmFyRXhFMGdRTDdoMQpQRWhWWHdXZDU4eVQzQ0JGbHE1Wlc0UnhPMkFtbS8zRUNsS3htZU9kRWtFR1lyczhZbzJvcEVDQ2M5YWd0WXBRCnhKZVJZQzZJMERBL0dudmNaK3Q2YXh3UHhnZHpvT3JLdmhTaDd0ZUUxeFdVSStId3p0cTY1L2VOMDl0MWMzZkcKVnVCc3ZoUkNZQytWZmNuZFJxaTBzUzJvQk5RWW1QbU02bWhxRVJxSzczeDhhT2RYSWdVZjM4bXh4bWF4b3NiYQo2QmlQMDhWemN0SFlmZGdFSVpEVElUNXlUcUhQcHgxNWVIVksrTVlTc2FaK2tJdG9YcHB0Y1FBZzhxN09BVUlkCjZ4czdjM0ZqWlhtaUVidHZlZDE1ZXc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==\&quot; }\n    }]\n  }\n}&quot; func=&quot;github.com/openshift/assisted-service/internal/bminventory.(*bareMetalInventory).getIgnitionConfigForLogging&quot; file=&quot;/go/src/github.com/openshift/origin/internal/bminventory/inventory.go:1064&quot; go-id=654 pkg=Inventory request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
+time=&quot;2021-06-28T21:42:20Z&quot; level=info msg=&quot;ClusterDeployment Reconcile started&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:115&quot; cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=f417920f-897c-49af-ba3e-b467026c94b0
+time=&quot;2021-06-28T21:42:20Z&quot; level=info msg=&quot;ISODownloadURL changed from  to https://assisted-service-assisted-installer.apps.ostest.test.metalkube.org/api/assisted-install/v1/clusters/02a89bb9-6141-4d14-a82e-42f254217502/downloads/image?api_key=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbHVzdGVyX2lkIjoiMDJhODliYjktNjE0MS00ZDE0LWE4MmUtNDJmMjU0MjE3NTAyIn0.ciL2w3g89ftu-R-Z3-KwrDtlll2kd4EMhbrE3YLZkQNQBEdCJ1gg5Sjgjfj4Ekbi7C3XsDEsIRSYTGJPL-Pu8A&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*InfraEnvReconciler).updateEnsureISOSuccess&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/infraenv_controller.go:318&quot; go-id=654 infra_env=myinfraenv infra_env_namespace=demo-worker4 request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
+time=&quot;2021-06-28T21:42:20Z&quot; level=info msg=&quot;InfraEnv Reconcile ended&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*InfraEnvReconciler).Reconcile.func1&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/infraenv_controller.go:78&quot; go-id=654 infra_env=myinfraenv infra_env_namespace=demo-worker4 request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
+time=&quot;2021-06-28T21:42:20Z&quot; level=info msg=&quot;InfraEnv Reconcile started&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*InfraEnvReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/infraenv_controller.go:81&quot; go-id=654 infra_env=myinfraenv infra_env_namespace=demo-worker4 request_id=0d9c0da4-beab-4a41-85a3-4444728dd6f0
+time=&quot;2021-06-28T21:42:20Z&quot; level=info msg=&quot;the amount of nmStateConfigs included in the image is: 1&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*InfraEnvReconciler).ensureISO&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/infraenv_controller.go:288&quot; go-id=654 infra_env=myinfraenv infra_env_namespace=demo-worker4 request_id=0d9c0da4-beab-4a41-85a3-4444728dd6f0
+</code></pre>
+<h6 id="inspect-assisted-service-cluster-events">Inspect Assisted Service Cluster Events</h6>
+<p>Get the full event list here:</p>
+<pre><code class="language-bash">curl -s -k $(kubectl -n demo-worker4 get agentclusterinstalls.extensions.hive.openshift.io test-agent-cluster-install -o=jsonpath=&quot;{.status.debugInfo.eventsURL}&quot;)  | jq &quot;.&quot;
+</code></pre>
+<p>At this point, you should expect to see events such as:</p>
+<pre><code class="language-json">  {
+    &quot;cluster_id&quot;: &quot;02a89bb9-6141-4d14-a82e-42f254217502&quot;,
+    &quot;event_time&quot;: &quot;2021-06-28T21:01:31.938Z&quot;,
+    &quot;message&quot;: &quot;Registered cluster \&quot;test-cluster\&quot;&quot;,
+    &quot;severity&quot;: &quot;info&quot;
+  },
+  {
+    &quot;cluster_id&quot;: &quot;02a89bb9-6141-4d14-a82e-42f254217502&quot;,
+    &quot;event_time&quot;: &quot;2021-06-28T21:01:31.941Z&quot;,
+    &quot;message&quot;: &quot;Successfully registered cluster test-cluster with id 02a89bb9-6141-4d14-a82e-42f254217502&quot;,
+    &quot;severity&quot;: &quot;info&quot;
+  },
+  {
+    &quot;cluster_id&quot;: &quot;02a89bb9-6141-4d14-a82e-42f254217502&quot;,
+    &quot;event_time&quot;: &quot;2021-06-28T21:42:20.768Z&quot;,
+    &quot;message&quot;: &quot;Generated image (Image type is \&quot;minimal-iso\&quot;, SSH public key is not set)&quot;,
+    &quot;severity&quot;: &quot;info&quot;
+  },
+</code></pre>
+<h3 id="boot-the-host-from-the-discovery-image">Boot The Host From The Discovery Image</h3>
+<ul>
+<li>The procedure described below is called: <strong>Boot It Yourself</strong>.</li>
+<li>There is an alternative automated procedure using <code>BMH</code>. For details, check the <a href="#advanced-zero-touch-provisioning">Zero Touch Provisioning (ZTP) advanced section</a>.</li>
+</ul>
+<h4 id="1-download-the-image">1. Download the image</h4>
+<ul>
+<li>Minimal-ISO is the default image type here; therefore, expect an image at the size of ~100MB.</li>
+</ul>
+<pre><code class="language-bash">curl --insecure -o image.iso $(kubectl -n demo-worker4 get infraenvs.agent-install.openshift.io myinfraenv -o=jsonpath=&quot;{.status.isoDownloadURL}&quot;)
+</code></pre>
+<h4 id="2-boot-the-host-from-image">2. Boot the host from image</h4>
+<ul>
+<li>Use virtual media / USB drive / other methods to boot your host using the discovery image.</li>
+</ul>
+<h3 id="3-host-discovery-and-approval">3. Host discovery and approval</h3>
+<ul>
+<li>The Agent CRD represents a Host that boot from a discovery image and registered to a cluster, and created automatically by assisted-service. <a href="../#agent">Find more details about the agent CRD here</a>.</li>
+<li>At first, it will look as follows:</li>
+</ul>
+<pre><code class="language-bash">kubectl -n demo-worker4 get agents
+</code></pre>
+<pre><code class="language-bash">NAME                                   CLUSTER        APPROVED
+07e80ea9-200c-4f82-aff4-4932acb773d4   test-cluster   false
+</code></pre>
+<ul>
+<li>To trigger the installation, you will need to approve the agent</li>
+</ul>
+<pre><code class="language-bash">kubectl -n demo-worker4 patch agents.agent-install.openshift.io 07e80ea9-200c-4f82-aff4-4932acb773d4 -p '{&quot;spec&quot;:{&quot;approved&quot;:true}}' --type merge
+</code></pre>
+<ul>
+<li>You should now see it got approved</li>
+</ul>
+<pre><code class="language-bash">NAME                                   CLUSTER        APPROVED
+07e80ea9-200c-4f82-aff4-4932acb773d4   test-cluster   true
+</code></pre>
+<h3 id="4-cluster-installation">4. Cluster Installation</h3>
+<ul>
+<li>Installation has started, to monitor the progress you may inspect cluster events:</li>
+</ul>
+<pre><code class="language-bash">curl -s -k $(kubectl -n demo-worker4 get agentclusterinstalls.extensions.hive.openshift.io test-agent-cluster-install -o=jsonpath=&quot;{.status.debugInfo.eventsURL}&quot;)  | jq &quot;.&quot;
+</code></pre>
+<ul>
+<li>Another option is to inspect <code>AgentClusterInstall</code> conditions, <a href="#AgentClusterInstall-resource-conditions">as mentioned above</a>.</li>
+</ul>
+<h3 id="5-end-result">5. End Result</h3>
+<ul>
+<li>Lastly, when installed successfully:</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;cluster_id&quot;: &quot;02a89bb9-6141-4d14-a82e-42f254217502&quot;,
+  &quot;event_time&quot;: &quot;2021-06-29T16:45:21.643Z&quot;,
+  &quot;message&quot;: &quot;Successfully finished installing cluster test-cluster&quot;,
+  &quot;severity&quot;: &quot;info&quot;
+}
+</code></pre>
+<h2 id="advanced-zero-touch-provisioning">Advanced: Zero Touch Provisioning</h2>
+<ul>
+<li>The procedure described below is called: <strong>Zero Touch Provisioning (ZTP)</strong>.</li>
+<li>There is an alternative manual procedure, not involving <code>BMH</code>. For details, check the <a href="#boot-the-host-from-the-discovery-image">Boot The Host From The Discovery Image</a>.</li>
+</ul>
+<h3 id="utilize-baremetalhost">Utilize BareMetalHost</h3>
+<ul>
+<li>Examples below generated by <a href="https://github.com/openshift-metal3/dev-scripts/">dev-scripts</a> and were modified manually.</li>
+<li>Control the host via BMC, which allows a host remote connection and ability to power cycle independently from the host operating system.</li>
+</ul>
+<h4 id="1-create-bmc-secret">1. Create BMC Secret</h4>
+<pre><code class="language-yaml">cat &lt;&lt;EOF | kubectl create -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ostest-extraworker-4-bmc-secret
+  namespace: demo-worker4
+type: Opaque
+data:
+  username: foo # Change me
+  password: bar # Change me
+EOF
+</code></pre>
+<h4 id="2-create-baremetalhost">2. Create <a href="../baremetal-agent-controller/#creating-baremetalhost-resources">BareMetalHost</a></h4>
+<pre><code class="language-yaml">cat &lt;&lt;EOF | kubectl create -f -
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: ostest-extraworker-4
+  namespace: demo-worker4
+  annotations:
+    inspect.metal3.io: disabled
+  labels:
+    infraenvs.agent-install.openshift.io: &quot;myinfraenv&quot; # Must match the InfraEnv name and exist in the same namespace
+spec:
+  online: true
+  automatedCleaningMode: disabled
+  bootMACAddress: 00:cd:16:5c:68:47  # Change to your mac address
+  bmc:
+    address: redfish-virtualmedia+http://192.168.111.1:8000/redfish/v1/Systems/dd8071d3-4ab5-47c1-aa1d-b2f1e9db0d0c # Should be changed to match your machine
+    credentialsName: ostest-extraworker-4-bmc-secret  # Must match the bmc secret you have just created
+EOF
+</code></pre>
+<hr />
+<p><strong>NOTE</strong></p>
+<p>We are always setting <code>automatedCleaningMode: disabled</code> even if the <code>BareMetalHost</code> manifest specifies another value (e.g. <code>automatedCleaningMode: metadata</code>). This may be changed in the future releases, but currently we do not support using Ironic to clean the node.</p>
+<hr />
+<h5 id="result_3">Result</h5>
+<ul>
+<li>Host turned on.</li>
+<li>Image download started. This might take a while.</li>
+<li>Host discovery happened. An <code>Agent</code> CR got created automatically.</li>
+</ul>
+<p>Having issues? try this <a href="../baremetal-agent-controller/#Troubleshooting">troubleshooting section</a></p>
+<h6 id="virsh-status-example">virsh status example:</h6>
+<ul>
+<li>Relevant only for deployments that use virtual machines (managed by libvirt) for simulating bare metal hosts.</li>
+</ul>
+<pre><code class="language-bash"> Id   Name                   State
+---------------------------------------
+ 5    ostest_master_1        running
+ 6    ostest_master_2        running
+ 7    ostest_master_0        running
+ 10   ostest_worker_1        running
+ 11   ostest_worker_0        running
+ 15   ostest_extraworker_4   running  # Our host is now up and running
+</code></pre>
+<h6 id="custom-resource-events">custom resource events:</h6>
+<pre><code class="language-bash">kubectl -n demo-worker4 describe baremetalhosts.metal3.io ostest-extraworker-4 | grep Events\: -A30
+</code></pre>
+<pre><code class="language-bash">Events:
+  Type    Reason                Age   From                         Message
+  ----    ------                ----  ----                         -------
+  Normal  Registered            19m   metal3-baremetal-controller  Registered new host
+  Normal  BMCAccessValidated    19m   metal3-baremetal-controller  Verified access to BMC
+  Normal  InspectionSkipped     19m   metal3-baremetal-controller  disabled by annotation
+  Normal  ProfileSet            19m   metal3-baremetal-controller  Hardware profile set: unknown
+  Normal  ProvisioningStarted   19m   metal3-baremetal-controller  Image provisioning started for https://assisted-service-assisted-installer.apps.ostest.test.metalkube.org/api/assisted-install/v1/clusters/02a89bb9-6141-4d14-a82e-42f254217502/downloads/image?api_key=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbHVzdGVyX2lkIjoiMDJhODliYjktNjE0MS00ZDE0LWE4MmUtNDJmMjU0MjE3NTAyIn0.ciL2w3g89ftu-R-Z3-KwrDtlll2kd4EMhbrE3YLZkQNQBEdCJ1gg5Sjgjfj4Ekbi7C3XsDEsIRSYTGJPL-Pu8A
+  Normal  ProvisioningComplete  19m   metal3-baremetal-controller  Image provisioning completed for https://assisted-service-assisted-installer.apps.ostest.test.metalkube.org/api/assisted-install/v1/clusters/02a89bb9-6141-4d14-a82e-42f254217502/downloads/image?api_key=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbHVzdGVyX2lkIjoiMDJhODliYjktNjE0MS00ZDE0LWE4MmUtNDJmMjU0MjE3NTAyIn0.ciL2w3g89ftu-R-Z3-KwrDtlll2kd4EMhbrE3YLZkQNQBEdCJ1gg5Sjgjfj4Ekbi7C3XsDEsIRSYTGJPL-Pu8A
+</code></pre>
+<h6 id="assisted-service-log_3">assisted-service log:</h6>
+<pre><code class="language-go">time=&quot;2021-06-29T15:45:19Z&quot; level=info msg=&quot;BareMetalHost Reconcile started&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:139&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=e526f6a1-77a1-4aea-8331-4872dbfe3b4a
+time=&quot;2021-06-29T15:45:19Z&quot; level=debug msg=&quot;Started BMH reconcile for demo-worker4/ostest-extraworker-4&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).reconcileBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:503&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=e526f6a1-77a1-4aea-8331-4872dbfe3b4a
+time=&quot;2021-06-29T15:45:19Z&quot; level=debug msg=&quot;BMH value &amp;{{BareMetalHost metal3.io/v1alpha1} {ostest-extraworker-4  demo-worker4  261f7856-e01c-48cb-9b6c-cd6873bf38be 4580659 1 2021-06-29 15:45:19 +0000 UTC &lt;nil&gt; &lt;nil&gt; map[infraenvs.agent-install.openshift.io:myinfraenv] map[inspect.metal3.io:disabled] [] []  [{kubectl-create Update metal3.io/v1alpha1 2021-06-29 15:45:19 +0000 UTC FieldsV1 {\&quot;f:metadata\&quot;:{\&quot;f:annotations\&quot;:{\&quot;.\&quot;:{},\&quot;f:inspect.metal3.io\&quot;:{}},\&quot;f:labels\&quot;:{\&quot;.\&quot;:{},\&quot;f:infraenvs.agent-install.openshift.io\&quot;:{}}},\&quot;f:spec\&quot;:{\&quot;.\&quot;:{},\&quot;f:automatedCleaningMode\&quot;:{},\&quot;f:bmc\&quot;:{\&quot;.\&quot;:{},\&quot;f:address\&quot;:{},\&quot;f:credentialsName\&quot;:{}},\&quot;f:bootMACAddress\&quot;:{},\&quot;f:online\&quot;:{}}}}]} {[] {redfish-virtualmedia+http://192.168.111.1:8000/redfish/v1/Systems/dd8071d3-4ab5-47c1-aa1d-b2f1e9db0d0c ostest-extraworker-4-bmc-secret false} &lt;nil&gt;  &lt;nil&gt;  00:cd:16:5c:68:47 true nil &lt;nil&gt; nil nil nil  false disabled} {  &lt;nil&gt;  &lt;nil&gt; {  {   &lt;nil&gt;} &lt;nil&gt;  &lt;nil&gt;} {nil } {nil }  false {{0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} {0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} {0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} {0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC}} 0}}&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).reconcileBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:504&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=e526f6a1-77a1-4aea-8331-4872dbfe3b4a
+time=&quot;2021-06-29T15:45:19Z&quot; level=debug msg=&quot;BMH label infraenvs.agent-install.openshift.io value myinfraenv&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).findInfraEnvForBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:472&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=e526f6a1-77a1-4aea-8331-4872dbfe3b4a
+time=&quot;2021-06-29T15:45:19Z&quot; level=debug msg=&quot;Loading InfraEnv myinfraenv&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).findInfraEnvForBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:479&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=e526f6a1-77a1-4aea-8331-4872dbfe3b4a
+time=&quot;2021-06-29T15:45:19Z&quot; level=debug msg=&quot;Updating dirty BMH &amp;{{BareMetalHost metal3.io/v1alpha1} {ostest-extraworker-4  demo-worker4  261f7856-e01c-48cb-9b6c-cd6873bf38be 4580659 1 2021-06-29 15:45:19 +0000 UTC &lt;nil&gt; &lt;nil&gt; map[infraenvs.agent-install.openshift.io:myinfraenv] map[inspect.metal3.io:disabled] [] []  [{kubectl-create Update metal3.io/v1alpha1 2021-06-29 15:45:19 +0000 UTC FieldsV1 {\&quot;f:metadata\&quot;:{\&quot;f:annotations\&quot;:{\&quot;.\&quot;:{},\&quot;f:inspect.metal3.io\&quot;:{}},\&quot;f:labels\&quot;:{\&quot;.\&quot;:{},\&quot;f:infraenvs.agent-install.openshift.io\&quot;:{}}},\&quot;f:spec\&quot;:{\&quot;.\&quot;:{},\&quot;f:automatedCleaningMode\&quot;:{},\&quot;f:bmc\&quot;:{\&quot;.\&quot;:{},\&quot;f:address\&quot;:{},\&quot;f:credentialsName\&quot;:{}},\&quot;f:bootMACAddress\&quot;:{},\&quot;f:online\&quot;:{}}}}]} {[] {redfish-virtualmedia+http://192.168.111.1:8000/redfish/v1/Systems/dd8071d3-4ab5-47c1-aa1d-b2f1e9db0d0c ostest-extraworker-4-bmc-secret false} &lt;nil&gt;  &lt;nil&gt;  00:cd:16:5c:68:47 true nil &lt;nil&gt; nil nil nil  false disabled} {  &lt;nil&gt;  &lt;nil&gt; {  {   &lt;nil&gt;} &lt;nil&gt;  &lt;nil&gt;} {nil } {nil }  false {{0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} {0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} {0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} {0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC}} 0}}&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:152&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=e526f6a1-77a1-4aea-8331-4872dbfe3b4a
+time=&quot;2021-06-29T15:45:19Z&quot; level=info msg=&quot;BareMetalHost Reconcile ended&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).Reconcile.func1&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:136&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=e526f6a1-77a1-4aea-8331-4872dbfe3b4a
+...
+time=&quot;2021-06-29T15:45:30Z&quot; level=info msg=&quot;BareMetalHost Reconcile started&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:139&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=aae0e368-3e1b-44d4-a4df-047080e7cd18
+time=&quot;2021-06-29T15:45:30Z&quot; level=debug msg=&quot;Started BMH reconcile for demo-worker4/ostest-extraworker-4&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).reconcileBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:503&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=aae0e368-3e1b-44d4-a4df-047080e7cd18
+time=&quot;2021-06-29T15:45:30Z&quot; level=debug msg=&quot;BMH value &amp;{{BareMetalHost metal3.io/v1alpha1} {ostest-extraworker-4  demo-worker4  261f7856-e01c-48cb-9b6c-cd6873bf38be 4580764 2 2021-06-29 15:45:19 +0000 UTC &lt;nil&gt; &lt;nil&gt; map[infraenvs.agent-install.openshift.io:myinfraenv] map[inspect.metal3.io:disabled] [] [baremetalhost.metal3.io]  [{kubectl-create Update metal3.io/v1alpha1 2021-06-29 15:45:19 +0000 UTC FieldsV1 {\&quot;f:metadata\&quot;:{\&quot;f:annotations\&quot;:{\&quot;.\&quot;:{},\&quot;f:inspect.metal3.io\&quot;:{}},\&quot;f:labels\&quot;:{\&quot;.\&quot;:{},\&quot;f:infraenvs.agent-install.openshift.io\&quot;:{}}},\&quot;f:spec\&quot;:{\&quot;.\&quot;:{},\&quot;f:automatedCleaningMode\&quot;:{},\&quot;f:bmc\&quot;:{\&quot;.\&quot;:{},\&quot;f:address\&quot;:{},\&quot;f:credentialsName\&quot;:{}},\&quot;f:bootMACAddress\&quot;:{},\&quot;f:online\&quot;:{}}}} {assisted-service Update metal3.io/v1alpha1 2021-06-29 15:45:30 +0000 UTC FieldsV1 {\&quot;f:spec\&quot;:{\&quot;f:image\&quot;:{\&quot;.\&quot;:{},\&quot;f:format\&quot;:{},\&quot;f:url\&quot;:{}}}}} {baremetal-operator Update metal3.io/v1alpha1 2021-06-29 15:45:30 +0000 UTC FieldsV1 {\&quot;f:metadata\&quot;:{\&quot;f:finalizers\&quot;:{\&quot;.\&quot;:{},\&quot;v:\\\&quot;baremetalhost.metal3.io\\\&quot;\&quot;:{}}},\&quot;f:status\&quot;:{\&quot;.\&quot;:{},\&quot;f:errorCount\&quot;:{},\&quot;f:errorMessage\&quot;:{},\&quot;f:goodCredentials\&quot;:{\&quot;.\&quot;:{},\&quot;f:credentials\&quot;:{\&quot;.\&quot;:{},\&quot;f:name\&quot;:{},\&quot;f:namespace\&quot;:{}},\&quot;f:credentialsVersion\&quot;:{}},\&quot;f:hardwareProfile\&quot;:{},\&quot;f:lastUpdated\&quot;:{},\&quot;f:operationHistory\&quot;:{\&quot;.\&quot;:{},\&quot;f:deprovision\&quot;:{\&quot;.\&quot;:{},\&quot;f:end\&quot;:{},\&quot;f:start\&quot;:{}},\&quot;f:inspect\&quot;:{\&quot;.\&quot;:{},\&quot;f:end\&quot;:{},\&quot;f:start\&quot;:{}},\&quot;f:provision\&quot;:{\&quot;.\&quot;:{},\&quot;f:end\&quot;:{},\&quot;f:start\&quot;:{}},\&quot;f:register\&quot;:{\&quot;.\&quot;:{},\&quot;f:end\&quot;:{},\&quot;f:start\&quot;:{}}},\&quot;f:operationalStatus\&quot;:{},\&quot;f:poweredOn\&quot;:{},\&quot;f:provisioning\&quot;:{\&quot;.\&quot;:{},\&quot;f:ID\&quot;:{},\&quot;f:bootMode\&quot;:{},\&quot;f:image\&quot;:{\&quot;.\&quot;:{},\&quot;f:url\&quot;:{}},\&quot;f:rootDeviceHints\&quot;:{\&quot;.\&quot;:{},\&quot;f:deviceName\&quot;:{}},\&quot;f:state\&quot;:{}},\&quot;f:triedCredentials\&quot;:{\&quot;.\&quot;:{},\&quot;f:credentials\&quot;:{\&quot;.\&quot;:{},\&quot;f:name\&quot;:{},\&quot;f:namespace\&quot;:{}},\&quot;f:credentialsVersion\&quot;:{}}}}}]} {[] {redfish-virtualmedia+http://192.168.111.1:8000/redfish/v1/Systems/dd8071d3-4ab5-47c1-aa1d-b2f1e9db0d0c ostest-extraworker-4-bmc-secret false} &lt;nil&gt;  &lt;nil&gt;  00:cd:16:5c:68:47 true nil 0xc0013bec40 nil nil nil  false disabled} {OK  2021-06-29 15:45:30 +0000 UTC unknown &lt;nil&gt; {ready 5600a851-4a0f-4b9b-b9f7-c4131b63180d {   &lt;nil&gt;} 0xc00427fef0 UEFI &lt;nil&gt;} {&amp;SecretReference{Name:ostest-extraworker-4-bmc-secret,Namespace:demo-worker4,} 4580662} {&amp;SecretReference{Name:ostest-extraworker-4-bmc-secret,Namespace:demo-worker4,} 4580662}  false {{2021-06-29 15:45:19 +0000 UTC 2021-06-29 15:45:30 +0000 UTC} {2021-06-29 15:45:30 +0000 UTC 2021-06-29 15:45:30 +0000 UTC} {0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} {0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC}} 0}}&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).reconcileBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:504&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=aae0e368-3e1b-44d4-a4df-047080e7cd18
+time=&quot;2021-06-29T15:45:30Z&quot; level=debug msg=&quot;BMH label infraenvs.agent-install.openshift.io value myinfraenv&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).findInfraEnvForBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:472&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=aae0e368-3e1b-44d4-a4df-047080e7cd18
+time=&quot;2021-06-29T15:45:30Z&quot; level=debug msg=&quot;Loading InfraEnv myinfraenv&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).findInfraEnvForBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:479&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=aae0e368-3e1b-44d4-a4df-047080e7cd18
+time=&quot;2021-06-29T15:45:30Z&quot; level=info msg=&quot;Stopping reconcileBMH: Either the InfraEnv image is not ready or there is nothing to update.&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).reconcileBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:550&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=aae0e368-3e1b-44d4-a4df-047080e7cd18
+time=&quot;2021-06-29T15:45:30Z&quot; level=info msg=&quot;BareMetalHost Reconcile ended&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).Reconcile.func1&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:136&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=aae0e368-3e1b-44d4-a4df-047080e7cd18
+time=&quot;2021-06-29T15:45:30Z&quot; level=info msg=&quot;BareMetalHost Reconcile started&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:139&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=6eb8ccc7-80a6-49ea-8fa7-280489a233a7
+time=&quot;2021-06-29T15:45:30Z&quot; level=debug msg=&quot;Started BMH reconcile for demo-worker4/ostest-extraworker-4&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).reconcileBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:503&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=6eb8ccc7-80a6-49ea-8fa7-280489a233a7
+time=&quot;2021-06-29T15:45:30Z&quot; level=debug msg=&quot;BMH value &amp;{{BareMetalHost metal3.io/v1alpha1} {ostest-extraworker-4  demo-worker4  261f7856-e01c-48cb-9b6c-cd6873bf38be 4580765 2 2021-06-29 15:45:19 +0000 UTC &lt;nil&gt; &lt;nil&gt; map[infraenvs.agent-install.openshift.io:myinfraenv] map[inspect.metal3.io:disabled] [] [baremetalhost.metal3.io]  [{kubectl-create Update metal3.io/v1alpha1 2021-06-29 15:45:19 +0000 UTC FieldsV1 {\&quot;f:metadata\&quot;:{\&quot;f:annotations\&quot;:{\&quot;.\&quot;:{},\&quot;f:inspect.metal3.io\&quot;:{}},\&quot;f:labels\&quot;:{\&quot;.\&quot;:{},\&quot;f:infraenvs.agent-install.openshift.io\&quot;:{}}},\&quot;f:spec\&quot;:{\&quot;.\&quot;:{},\&quot;f:automatedCleaningMode\&quot;:{},\&quot;f:bmc\&quot;:{\&quot;.\&quot;:{},\&quot;f:address\&quot;:{},\&quot;f:credentialsName\&quot;:{}},\&quot;f:bootMACAddress\&quot;:{},\&quot;f:online\&quot;:{}}}} {assisted-service Update metal3.io/v1alpha1 2021-06-29 15:45:30 +0000 UTC FieldsV1 {\&quot;f:spec\&quot;:{\&quot;f:image\&quot;:{\&quot;.\&quot;:{},\&quot;f:format\&quot;:{},\&quot;f:url\&quot;:{}}}}} {baremetal-operator Update metal3.io/v1alpha1 2021-06-29 15:45:30 +0000 UTC FieldsV1 {\&quot;f:metadata\&quot;:{\&quot;f:finalizers\&quot;:{\&quot;.\&quot;:{},\&quot;v:\\\&quot;baremetalhost.metal3.io\\\&quot;\&quot;:{}}},\&quot;f:status\&quot;:{\&quot;.\&quot;:{},\&quot;f:errorCount\&quot;:{},\&quot;f:errorMessage\&quot;:{},\&quot;f:goodCredentials\&quot;:{\&quot;.\&quot;:{},\&quot;f:credentials\&quot;:{\&quot;.\&quot;:{},\&quot;f:name\&quot;:{},\&quot;f:namespace\&quot;:{}},\&quot;f:credentialsVersion\&quot;:{}},\&quot;f:hardwareProfile\&quot;:{},\&quot;f:lastUpdated\&quot;:{},\&quot;f:operationHistory\&quot;:{\&quot;.\&quot;:{},\&quot;f:deprovision\&quot;:{\&quot;.\&quot;:{},\&quot;f:end\&quot;:{},\&quot;f:start\&quot;:{}},\&quot;f:inspect\&quot;:{\&quot;.\&quot;:{},\&quot;f:end\&quot;:{},\&quot;f:start\&quot;:{}},\&quot;f:provision\&quot;:{\&quot;.\&quot;:{},\&quot;f:end\&quot;:{},\&quot;f:start\&quot;:{}},\&quot;f:register\&quot;:{\&quot;.\&quot;:{},\&quot;f:end\&quot;:{},\&quot;f:start\&quot;:{}}},\&quot;f:operationalStatus\&quot;:{},\&quot;f:poweredOn\&quot;:{},\&quot;f:provisioning\&quot;:{\&quot;.\&quot;:{},\&quot;f:ID\&quot;:{},\&quot;f:bootMode\&quot;:{},\&quot;f:image\&quot;:{\&quot;.\&quot;:{},\&quot;f:url\&quot;:{}},\&quot;f:rootDeviceHints\&quot;:{\&quot;.\&quot;:{},\&quot;f:deviceName\&quot;:{}},\&quot;f:state\&quot;:{}},\&quot;f:triedCredentials\&quot;:{\&quot;.\&quot;:{},\&quot;f:credentials\&quot;:{\&quot;.\&quot;:{},\&quot;f:name\&quot;:{},\&quot;f:namespace\&quot;:{}},\&quot;f:credentialsVersion\&quot;:{}}}}}]} {[] {redfish-virtualmedia+http://192.168.111.1:8000/redfish/v1/Systems/dd8071d3-4ab5-47c1-aa1d-b2f1e9db0d0c ostest-extraworker-4-bmc-secret false} &lt;nil&gt;  &lt;nil&gt;  00:cd:16:5c:68:47 true nil 0xc001068900 nil nil nil  false disabled} {OK  2021-06-29 15:45:30 +0000 UTC unknown &lt;nil&gt; {provisioning 5600a851-4a0f-4b9b-b9f7-c4131b63180d {   &lt;nil&gt;} 0xc00104acf0 UEFI &lt;nil&gt;} {&amp;SecretReference{Name:ostest-extraworker-4-bmc-secret,Namespace:demo-worker4,} 4580662} {&amp;SecretReference{Name:ostest-extraworker-4-bmc-secret,Namespace:demo-worker4,} 4580662}  false {{2021-06-29 15:45:19 +0000 UTC 2021-06-29 15:45:30 +0000 UTC} {2021-06-29 15:45:30 +0000 UTC 2021-06-29 15:45:30 +0000 UTC} {2021-06-29 15:45:30 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} {0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC}} 0}}&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).reconcileBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:504&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=6eb8ccc7-80a6-49ea-8fa7-280489a233a7
+time=&quot;2021-06-29T15:45:30Z&quot; level=debug msg=&quot;BMH label infraenvs.agent-install.openshift.io value myinfraenv&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).findInfraEnvForBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:472&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=6eb8ccc7-80a6-49ea-8fa7-280489a233a7
+time=&quot;2021-06-29T15:45:30Z&quot; level=debug msg=&quot;Loading InfraEnv myinfraenv&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).findInfraEnvForBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:479&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=6eb8ccc7-80a6-49ea-8fa7-280489a233a7
+time=&quot;2021-06-29T15:45:30Z&quot; level=info msg=&quot;Stopping reconcileBMH: Either the InfraEnv image is not ready or there is nothing to update.&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).reconcileBMH&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:550&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=6eb8ccc7-80a6-49ea-8fa7-280489a233a7
+time=&quot;2021-06-29T15:45:30Z&quot; level=info msg=&quot;BareMetalHost Reconcile ended&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).Reconcile.func1&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:136&quot; bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=6eb8ccc7-80a6-49ea-8fa7-280489a233a7
+time=&quot;2021-06-29T15:45:33Z&quot; level=debug msg=&quot;Request: {GET /api/assisted-install/v1/clusters/02a89bb9-6141-4d14-a82e-42f254217502/downloads/image?api_key=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbHVzdGVyX2lkIjoiMDJhODliYjktNjE0MS00ZDE0LWE4MmUtNDJmMjU0MjE3NTAyIn0.ciL2w3g89ftu-R-Z3-KwrDtlll2kd4EMhbrE3YLZkQNQBEdCJ1gg5Sjgjfj4Ekbi7C3XsDEsIRSYTGJPL-Pu8A HTTP/1.1 1 1 map[Accept:[*/*] Accept-Encoding:[gzip, deflate] Forwarded:[for=192.168.111.21;host=assisted-service-assisted-installer.apps.ostest.test.metalkube.org;proto=https] User-Agent:[python-requests/2.20.0] X-Forwarded-For:[192.168.111.21] X-Forwarded-Host:[assisted-service-assisted-installer.apps.ostest.test.metalkube.org] X-Forwarded-Port:[443] X-Forwarded-Proto:[https]] {} &lt;nil&gt; 0 [] false assisted-service-assisted-installer.apps.ostest.test.metalkube.org map[] map[] &lt;nil&gt; map[] 10.131.0.1:42932 /api/assisted-install/v1/clusters/02a89bb9-6141-4d14-a82e-42f254217502/downloads/image?api_key=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbHVzdGVyX2lkIjoiMDJhODliYjktNjE0MS00ZDE0LWE4MmUtNDJmMjU0MjE3NTAyIn0.ciL2w3g89ftu-R-Z3-KwrDtlll2kd4EMhbrE3YLZkQNQBEdCJ1gg5Sjgjfj4Ekbi7C3XsDEsIRSYTGJPL-Pu8A 0xc002f438c0 &lt;nil&gt; &lt;nil&gt; 0xc00170eff0}&quot; func=github.com/openshift/assisted-service/internal/metrics.Handler.func1 file=&quot;/go/src/github.com/openshift/origin/internal/metrics/reporter.go:20&quot; pkg=matched-h
+time=&quot;2021-06-29T15:45:33Z&quot; level=debug msg=&quot;Authenticating cluster 02a89bb9-6141-4d14-a82e-42f254217502 JWT&quot; func=&quot;github.com/openshift/assisted-service/pkg/auth.(*LocalAuthenticator).AuthAgentAuth&quot; file=&quot;/go/src/github.com/openshift/origin/pkg/auth/local_authenticator.go:82&quot; pkg=auth
+time=&quot;2021-06-29T15:45:33Z&quot; level=debug msg=&quot;Pushing cluster event single-node demo-worker4&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*controllerEventsWrapper).AddEvent&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/controller_event_wrapper.go:36&quot;
+time=&quot;2021-06-29T15:45:33Z&quot; level=info msg=&quot;ClusterDeployment Reconcile started&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:115&quot; cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=9d4b6bae-b3a2-420f-ad4b-12bb4fa3d5da
+time=&quot;2021-06-29T15:45:33Z&quot; level=info msg=&quot;ClusterDeployment Reconcile ended&quot; func=&quot;github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile.func1&quot; file=&quot;/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:112&quot; agent_cluster_install=test-agent-cluster-install agent_cluster_install_namespace=demo-worker4 cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=9d4b6bae-b3a2-420f-ad4b-12bb4fa3d5da
+</code></pre>
+<h6 id="inspect-assisted-service-cluster-events_1">Inspect Assisted Service Cluster Events</h6>
+<p>Get the full event list here:</p>
+<pre><code class="language-bash">curl -s -k $(kubectl -n demo-worker4 get agentclusterinstalls.extensions.hive.openshift.io test-agent-cluster-install -o=jsonpath=&quot;{.status.debugInfo.eventsURL}&quot;)  | jq &quot;.&quot;
+</code></pre>
+<p>Expect to see an event that indicate the image download started:</p>
+<pre><code class="language-json">  {
+    &quot;cluster_id&quot;: &quot;02a89bb9-6141-4d14-a82e-42f254217502&quot;,
+    &quot;event_time&quot;: &quot;2021-06-29T15:45:33.489Z&quot;,
+    &quot;message&quot;: &quot;Started image download (image type is \&quot;minimal-iso\&quot;)&quot;,
+    &quot;severity&quot;: &quot;info&quot;
+  }
+</code></pre>
+<h3 id="agent-discovery-and-installation">Agent Discovery and Installation</h3>
+<ul>
+<li>When the host boots from the discovery image, it gets registered to assisted-service. At first it will look like this:</li>
+</ul>
+<pre><code class="language-bash">kubectl -n demo-worker4 get agents
+</code></pre>
+<pre><code class="language-bash">NAME                                   CLUSTER        APPROVED
+07e80ea9-200c-4f82-aff4-4932acb773d4   test-cluster   false
+</code></pre>
+<ul>
+<li>BMAC will automatically approve the agent, which will start the installation.</li>
+</ul>
+<pre><code class="language-bash">NAME                                   CLUSTER        APPROVED
+07e80ea9-200c-4f82-aff4-4932acb773d4   test-cluster   true
+</code></pre>
+<p>Lastly, when installed successfully:</p>
+<pre><code class="language-json">{
+  &quot;cluster_id&quot;: &quot;02a89bb9-6141-4d14-a82e-42f254217502&quot;,
+  &quot;event_time&quot;: &quot;2021-06-29T16:45:21.643Z&quot;,
+  &quot;message&quot;: &quot;Successfully finished installing cluster test-cluster&quot;,
+  &quot;severity&quot;: &quot;info&quot;
+}
+</code></pre>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+  </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme_extra.js" defer></script>
+    <script src="../../js/theme.js" defer></script>
+      <script src="../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Openshift Assisted Service Team">
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>Events - Openshift Assisted Service</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../../css/theme.css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Events";
+    var mkdocs_page_input_path = "dev/events.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Openshift Assisted Service</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../..">OAS Home</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-local/">OAS Running on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-openshift/">OAS Running on Openshift</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Openshift Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="" href="../../user-guide/user-guide.md">User Guide Index</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-local/">OCP Deployment on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-bare-metal/">OCP Deployment on Bare Metal</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-vsphere/">OCP Deployment on vSphere</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-RHEV/">OCP Deployment on RHEV</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-OSP/">OCP Deployment on Openstack</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Development</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../migrations/">Migrations</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Openshift Assisted Service</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Events</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h2 id="events">Events</h2>
+<p>Events generation is designed to expose a uniformed method of
+initializing the assisted-service events.
+Each event definition requires a set of properties based on its type.
+The definition is used for generating a function for emitting the event with
+the required parameters.</p>
+<h3 id="adding-an-event">Adding an Event</h3>
+<p>In order to add a new event, follow the next steps:</p>
+<ol>
+<li>Add event definition to <a href="https://github.com/openshift/assisted-service/blob/master/docs/events.yaml">docs/events.yaml</a></li>
+<li>Generate the code for creating the event by: <code>skipper make generate-events</code></li>
+<li>Use the generated function for emitting the event from <a href="https://github.com/openshift/assisted-service/blob/master/internal/common/events/events.go">internal/common/events/event.go</a></li>
+</ol>
+<h3 id="event-definition">Event Definition</h3>
+<p>Event definition should specify the following attributes:
+1. <strong>name</strong>: A unique name of the event. The name needs to remain unique and constant
+as it may be referred by the service's clients (e.g. by the UI). The name should match
+the structure <code>&lt;event-context&gt;_&lt;past_tense&gt;</code>.
+2. <strong>message</strong>: A template of the message that will be rendered if it
+contains any references to the properties. E.g. the message <code>"Install
+cluster {cluster_id}"</code> expects the existence of a property named
+<code>cluster_id</code>.
+3. <strong>event_type</strong>: Can be either <code>cluster</code>, <code>host</code> or <code>infra_env</code>.
+   1. "cluster" type requires the existence of <code>cluster_id</code> in properties.
+   2. "host" type requires the existence of <code>host_id</code> and <code>infra_env_id</code> in properties.
+   3. "infra_env" type requires the existence of <code>infra_env_id</code> in properties.
+4. <strong>severity</strong>: Any of "info", "warning", "error" or "critical". See more info about severity levels <a href="../../events/">here</a>.
+5. <strong>properties</strong>: A list of properties to be rendered into the message (if
+   referred by) or metadata of the event (e.g. <code>cluster_id</code>, <code>host_id</code>).</p>
+<h3 id="testing">Testing</h3>
+<p>Having an explicit event per scenario assists in setting expectations in tests for the events.
+An event-matcher (<a href="https://github.com/openshift/assisted-service/blob/master/internal/events/eventstest/events_test_utils.go">internal/events/eventstest/events_test_utils.go</a>) simplifies the verification of expectations for each test.
+E.g.:</p>
+<pre><code class="language-go">mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+    eventstest.WithNameMatcher(eventgen.QuickDiskFormatEventName),
+    eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+    eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+    eventstest.WithMessageMatcher(message),
+    eventstest.WithHostIdMatcher(host.ID.String()))).Times(times)
+</code></pre>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+  </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme_extra.js" defer></script>
+    <script src="../../js/theme.js" defer></script>
+      <script src="../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

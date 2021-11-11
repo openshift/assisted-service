@@ -6635,7 +6635,7 @@ definitions:
         description: SSH public key for debugging the installation.
       pull_secret:
         type: string
-        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
 
   host-create-params:
     type: object
@@ -7025,7 +7025,7 @@ definitions:
         description: The virtual IP used for cluster ingress traffic.
       pull_secret:
         type: string
-        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
       ssh_public_key:
         type: string
         description: SSH public key for debugging OpenShift nodes.
@@ -7193,7 +7193,7 @@ definitions:
         x-nullable: true
       pull_secret:
         type: string
-        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
         x-nullable: true
       ssh_public_key:
         type: string
@@ -7379,7 +7379,7 @@ definitions:
         x-nullable: true
       pull_secret:
         type: string
-        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
         x-nullable: true
       ssh_public_key:
         type: string
@@ -9100,7 +9100,7 @@ definitions:
         x-nullable: true
       pull_secret:
         type: string
-        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
       static_network_config:
         type: array
         items:
@@ -9139,7 +9139,7 @@ definitions:
         x-nullable: true
       pull_secret:
         type: string
-        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
       static_network_config:
         type: array
         items:

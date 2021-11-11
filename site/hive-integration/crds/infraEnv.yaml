@@ -1,0 +1,19 @@
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: myinfraenv
+  namespace: spoke-cluster
+spec:
+  clusterRef:
+    name: single-node
+    namespace: spoke-cluster
+  pullSecretRef:
+    name: pull-secret
+  proxy:
+    httpProxy: http://11.11.11.33
+    httpsProxy: http://22.22.22.55
+ #sshAuthorizedKey: 'your_pub_key_here' (optional)
+  ignitionConfigOverride: '{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/etc/someconfig", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}'
+  nmStateConfigLabelSelector:
+    matchLabels:
+      some-user-defined-label-name: some-user-defined-label-value
