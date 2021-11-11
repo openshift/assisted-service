@@ -10800,6 +10800,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		cfg.DefaultNTPSource = ""
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
+		Expect(cfg.DiskEncryptionSupport).Should(BeTrue())
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
@@ -11124,6 +11125,288 @@ var _ = Describe("TestRegisterCluster", func() {
 				Expect(swag.StringValue(c.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTpmv2))
 			})
 		})
+	})
+
+	var _ = Describe("Disk encryption disabled", func() {
+
+		const errorMsg = "Disk encryption support is not enabled. Cannot apply configurations to the cluster"
+
+		BeforeEach(func() {
+			Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+			db, dbName = common.PrepareTestDB()
+			cfg.DiskEncryptionSupport = false
+			bm = createInventory(db, cfg)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
+			mockUsageReports()
+		})
+
+		AfterEach(func() {
+			common.DeleteTestDB(db, dbName)
+			ctrl.Finish()
+		})
+
+		Context("V1 Register cluster", func() {
+
+			It("Disk Encryption configuration enable on none", func() {
+				mockClusterRegisterSuccess(bm, true)
+				mockAMSSubscription(ctx)
+
+				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+						},
+					},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+				actual := reply.(*installer.RegisterClusterCreated)
+				Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnNone)))
+				Expect(actual.Payload.DiskEncryption.Mode).To(Equal(swag.String(models.DiskEncryptionModeTpmv2)))
+			})
+
+			It("Disk Encryption configuration enable on all", func() {
+				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("Disk Encryption configuration enable on masters", func() {
+				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("Disk Encryption configuration enable on workers", func() {
+				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+		})
+
+		Context("V2 Register cluster", func() {
+
+			It("Disk Encryption configuration enable on none", func() {
+				mockClusterRegisterSuccess(bm, true)
+				mockAMSSubscription(ctx)
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+						},
+					},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnNone)))
+				Expect(actual.Payload.DiskEncryption.Mode).To(Equal(swag.String(models.DiskEncryptionModeTpmv2)))
+			})
+
+			It("Disk Encryption configuration enable on all", func() {
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("Disk Encryption configuration enable on masters", func() {
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("Disk Encryption configuration enable on workers", func() {
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+		})
+
+		Context("V1 Update cluster", func() {
+
+			var clusterID strfmt.UUID
+
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:     &clusterID,
+					Kind:   swag.String(models.ClusterKindAddHostsCluster),
+					Status: swag.String(models.ClusterStatusInsufficient),
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				bm = createInventory(db, cfg)
+			})
+
+			It("Update cluster disk encryption configuration enable on all", func() {
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+							Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("Update cluster disk encryption configuration enable on masters", func() {
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+							Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("Update cluster disk encryption configuration enable on workers", func() {
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
+							Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("Update cluster disk encryption configuration enable on none", func() {
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockUsageReports()
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+							Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+						},
+					},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				c := reply.(*installer.UpdateClusterCreated).Payload
+				Expect(swag.StringValue(c.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnNone))
+				Expect(swag.StringValue(c.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTpmv2))
+			})
+		})
+
+		Context("V2 Update cluster", func() {
+
+			var clusterID strfmt.UUID
+
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:     &clusterID,
+					Kind:   swag.String(models.ClusterKindAddHostsCluster),
+					Status: swag.String(models.ClusterStatusInsufficient),
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				bm = createInventory(db, cfg)
+			})
+
+			It("Update cluster disk encryption configuration enable on all", func() {
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+							Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("Update cluster disk encryption configuration enable on masters", func() {
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+							Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("Update cluster disk encryption configuration enable on workers", func() {
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
+							Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+						},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+			})
+
+			It("Update cluster disk encryption configuration enable on none", func() {
+				mockUsageReports()
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+							Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+						},
+					},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				c := reply.(*installer.V2UpdateClusterCreated).Payload
+				Expect(swag.StringValue(c.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnNone))
+				Expect(swag.StringValue(c.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTpmv2))
+			})
+		})
+
 	})
 
 	Context("NTPSource", func() {

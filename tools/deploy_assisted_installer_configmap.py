@@ -30,6 +30,7 @@ def handle_arguments():
     parser.add_argument("--hw-requirements")
     parser.add_argument("--disabled-host-validations", default="")
     parser.add_argument("--disabled-steps", default="")
+    parser.add_argument("--disk-encryption-support", default="True")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -120,6 +121,8 @@ def main():
 
             if deploy_options.enable_kube_api:
                 y['data']['ENABLE_KUBE_API'] = 'true'
+
+            y['data']['DISK_ENCRYPTION_SUPPORT'] = deploy_options.disk_encryption_support
 
             data = yaml.dump(y)
             dst.write(data)

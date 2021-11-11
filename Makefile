@@ -59,6 +59,7 @@ OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 AUTH_TYPE := $(or ${AUTH_TYPE},none)
 CHECK_CLUSTER_VERSION := $(or ${CHECK_CLUSTER_VERSION},False)
 ENABLE_SINGLE_NODE_DNSMASQ := $(or ${ENABLE_SINGLE_NODE_DNSMASQ},True)
+DISK_ENCRYPTION_SUPPORT := $(or ${DISK_ENCRYPTION_SUPPORT},True)
 DELETE_PVC := $(or ${DELETE_PVC},False)
 TESTING_PUBLIC_CONTAINER_REGISTRIES := quay.io
 PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},$(TESTING_PUBLIC_CONTAINER_REGISTRIES))
@@ -292,7 +293,7 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
-		--hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' \
+		--disk-encryption-support $(DISK_ENCRYPTION_SUPPORT) --hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' \
 		--disabled-host-validations "$(DISABLED_HOST_VALIDATIONS)" --disabled-steps "$(DISABLED_STEPS)"
 ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
 	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
