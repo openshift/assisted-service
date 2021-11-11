@@ -5490,85 +5490,93 @@ func (e *HostApprovedUpdatedEvent) FormatMessage() string {
 }
 
 //
-// Event host_cluster_registered
+// Event host_registration_succeeded
 //
-type HostClusterRegisteredEvent struct {
+type HostRegistrationSucceededEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     HostName string
 }
 
-var HostClusterRegisteredEventName string = "host_cluster_registered"
+var HostRegistrationSucceededEventName string = "host_registration_succeeded"
 
-func NewHostClusterRegisteredEvent(
+func NewHostRegistrationSucceededEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
-) *HostClusterRegisteredEvent {
-    return &HostClusterRegisteredEvent{
+) *HostRegistrationSucceededEvent {
+    return &HostRegistrationSucceededEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         HostName: hostName,
     }
 }
 
-func SendHostClusterRegisteredEvent(
+func SendHostRegistrationSucceededEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,) {
-    ev := NewHostClusterRegisteredEvent(
+    ev := NewHostRegistrationSucceededEvent(
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEvent(ctx, ev)
 }
 
-func SendHostClusterRegisteredEventAtTime(
+func SendHostRegistrationSucceededEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     hostName string,
     eventTime time.Time) {
-    ev := NewHostClusterRegisteredEvent(
+    ev := NewHostRegistrationSucceededEvent(
         hostId,
         infraEnvId,
+        clusterId,
         hostName,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
 
-func (e *HostClusterRegisteredEvent) GetName() string {
-    return "host_cluster_registered"
+func (e *HostRegistrationSucceededEvent) GetName() string {
+    return "host_registration_succeeded"
 }
 
-func (e *HostClusterRegisteredEvent) GetSeverity() string {
+func (e *HostRegistrationSucceededEvent) GetSeverity() string {
     return "info"
 }
-func (e *HostClusterRegisteredEvent) GetClusterId() *strfmt.UUID {
-    return nil
+func (e *HostRegistrationSucceededEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
 }
-func (e *HostClusterRegisteredEvent) GetHostId() strfmt.UUID {
+func (e *HostRegistrationSucceededEvent) GetHostId() strfmt.UUID {
     return e.HostId
 }
-func (e *HostClusterRegisteredEvent) GetInfraEnvId() strfmt.UUID {
+func (e *HostRegistrationSucceededEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
 }
 
-func (e *HostClusterRegisteredEvent) format(message *string) string {
+func (e *HostRegistrationSucceededEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
     )
     return r.Replace(*message)
 }
 
-func (e *HostClusterRegisteredEvent) FormatMessage() string {
-    s := "Host {host_name}: registered to cluster"
+func (e *HostRegistrationSucceededEvent) FormatMessage() string {
+    s := "Host {host_name}: Successfully registered"
     return e.format(&s)
 }
 
