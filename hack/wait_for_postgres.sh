@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-PG_USER=admin
+PG_USER=postgres
 PG_DATABASE=postgres
 PG_HOST=127.0.0.1
 PG_PORT=5432
