@@ -6270,9 +6270,8 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		return common.GenerateErrorResponder(err)
 	}
 
-	// TODO Need event for infra-env instead of cluster
-	eventgen.SendHostClusterRegisteredEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID,
-		params.InfraEnvID, hostutil.GetHostnameForMsg(host))
+	eventgen.SendHostRegistrationSucceededEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID,
+		params.InfraEnvID, host.ClusterID, hostutil.GetHostnameForMsg(host))
 
 	hostRegistration := models.HostRegistrationResponse{
 		Host:                  *host,

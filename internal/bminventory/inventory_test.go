@@ -1348,7 +1348,7 @@ var _ = Describe("RegisterHost", func() {
 				mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.HostClusterRegisteredEventName),
+					eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
 					eventstest.WithHostIdMatcher(hostID.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
 
@@ -1393,7 +1393,7 @@ var _ = Describe("RegisterHost", func() {
 			}).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostClusterRegisteredEventName),
+			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
 			eventstest.WithHostIdMatcher(hostID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
 		mockHostApi.EXPECT().UnRegisterHost(ctx, hostID.String(), infraEnv.ID.String()).Return(nil).Times(1)
@@ -1531,7 +1531,7 @@ var _ = Describe("v2RegisterHost", func() {
 				mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.HostClusterRegisteredEventName),
+					eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
 					eventstest.WithHostIdMatcher(hostID.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
 
@@ -1578,7 +1578,7 @@ var _ = Describe("v2RegisterHost", func() {
 		mockHostApi.EXPECT().UnRegisterHost(ctx, hostID.String(), infraEnv.ID.String()).Return(nil).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostClusterRegisteredEventName),
+			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
 			eventstest.WithHostIdMatcher(hostID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
 		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
@@ -1643,7 +1643,7 @@ var _ = Describe("v2RegisterHost", func() {
 				return nil
 			}).Times(1)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostClusterRegisteredEventName),
+			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
 			eventstest.WithHostIdMatcher(hostId.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()))).Times(1)
 		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)

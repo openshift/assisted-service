@@ -615,13 +615,14 @@ x-events:
     host_name: string
     approved_value: bool
 
-- name: host_cluster_registered
-  message: "Host {host_name}: registered to cluster"
+- name: host_registration_succeeded
+  message: "Host {host_name}: Successfully registered"
   event_type: host
   severity: "info"
   properties:
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     host_name: string
 
 - name: generate_image_format_failed
