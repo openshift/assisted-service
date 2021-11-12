@@ -92,7 +92,7 @@ func (i *logsCmd) createUploadLogsCmd(host *models.Host, baseURL, agentImage, ma
 	cmdArgsTmpl += "timeout 1h podman run --rm --privileged --net=host " +
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 		"{{if .CACERTPATH}} -v {{.CACERTPATH}}:{{.CACERTPATH}} {{end}}" +
-		"{{if .BOOTSTRAP}} -v /root/.ssh:/root/.ssh -v /tmp:/tmp {{end}}" +
+		"{{if eq .BOOTSTRAP `true`}} -v /root/.ssh:/root/.ssh -v /tmp:/tmp {{end}}" +
 		"--env PULL_SECRET_TOKEN --name logs-sender --pid=host {{.AGENT_IMAGE}} logs_sender " +
 		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}} -infra-env-id {{.INFRA_ENV_ID}} " +
 		"--insecure={{.SKIP_CERT_VERIFICATION}} -bootstrap={{.BOOTSTRAP}} -with-installer-gather-logging={{.INSTALLER_GATHER}}" +
@@ -112,6 +112,7 @@ func (i *logsCmd) createUploadLogsCmd(host *models.Host, baseURL, agentImage, ma
 	if err := t.Execute(buf, data); err != nil {
 		return "", err
 	}
+
 	return buf.String(), nil
 }
 
