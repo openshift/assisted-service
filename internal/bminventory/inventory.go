@@ -1153,7 +1153,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, 
 	}
 
 	var version string
-	if osImage.Version != nil {
+	if osImage.OpenshiftVersion != nil {
 		version = *osImage.OpenshiftVersion
 	} else {
 		return errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage)

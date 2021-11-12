@@ -13903,6 +13903,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			Expect(u.Host).To(Equal("image-service.example.com:8080"))
 			Expect(u.Query().Get("image_token")).To(Equal(""))
 			Expect(u.Query().Get("api_key")).To(Equal(""))
+			Expect(u.Query().Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 		})
 	})
 
@@ -13935,6 +13936,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			tok := u.Query().Get("api_key")
 			_, err = bm.authHandler.AuthURLAuth(tok)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(u.Query().Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 		})
 	})
 
@@ -13956,6 +13958,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			tok := u.Query().Get("image_token")
 			_, err = bm.authHandler.AuthImageAuth(tok)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(u.Query().Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 		})
 	})
 

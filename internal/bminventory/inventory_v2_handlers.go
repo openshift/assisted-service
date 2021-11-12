@@ -469,11 +469,11 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	if osImage.Version == nil {
+	if osImage.OpenshiftVersion == nil {
 		return common.GenerateErrorResponder(errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage))
 	}
 
-	newURL, err := b.generateImageDownloadURL(infraEnv.ID.String(), string(*infraEnv.Type), *osImage.Version, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
+	newURL, err := b.generateImageDownloadURL(infraEnv.ID.String(), string(*infraEnv.Type), *osImage.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
