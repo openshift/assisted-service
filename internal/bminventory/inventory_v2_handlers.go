@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -452,6 +453,59 @@ func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Con
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return installer.NewV2GetPresignedForClusterCredentialsOK().WithPayload(&models.Presigned{URL: &url})
+}
+
+func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params installer.GetInfraEnvDownloadURLParams) middleware.Responder {
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	osImage, err := b.getOsImageOrLatest(&infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	if osImage.Version == nil {
+		return common.GenerateErrorResponder(errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage))
+	}
+
+	newURL, err := b.generateImageDownloadURL(infraEnv.ID.String(), string(*infraEnv.Type), *osImage.Version, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if err = b.db.Model(infraEnv).Update("download_url", newURL).Error; err != nil {
+		b.log.WithError(err).Errorf("Failed to update download_url for infraEnv %s", params.InfraEnvID)
+		return common.GenerateErrorResponder(err)
+	}
+
+	payload := models.InfraEnvImageURL{URL: newURL}
+
+	// parse the exp claim out of the url to return with the payload
+	parsedURL, err := url.Parse(newURL)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if tokenString := parsedURL.Query().Get("image_token"); tokenString != "" {
+		// we just created these claims so they are safe to parse unverified
+		token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
+		if err != nil {
+			return common.GenerateErrorResponder(err)
+		}
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return common.GenerateErrorResponder(errors.Errorf("malformed token claims in url"))
+		}
+		exp, ok := claims["exp"].(float64)
+		if !ok {
+			return common.GenerateErrorResponder(errors.Errorf("token missing 'exp' claim"))
+		}
+		expTime := time.Unix(int64(exp), 0)
+		payload.ExpiresAt = strfmt.DateTime(expTime)
+	}
+
+	return installer.NewGetInfraEnvDownloadURLOK().WithPayload(&payload)
 }
 
 func (b *bareMetalInventory) generateImageDownloadURL(infraEnvID, imageType, version, arch, imageTokenKey string) (string, error) {
