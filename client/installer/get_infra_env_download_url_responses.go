@@ -29,6 +29,12 @@ func (o *GetInfraEnvDownloadURLReader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return result, nil
+	case 400:
+		result := NewGetInfraEnvDownloadURLBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 401:
 		result := NewGetInfraEnvDownloadURLUnauthorized()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -99,6 +105,38 @@ func (o *GetInfraEnvDownloadURLOK) GetPayload() *models.InfraEnvImageURL {
 func (o *GetInfraEnvDownloadURLOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.InfraEnvImageURL)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetInfraEnvDownloadURLBadRequest creates a GetInfraEnvDownloadURLBadRequest with default headers values
+func NewGetInfraEnvDownloadURLBadRequest() *GetInfraEnvDownloadURLBadRequest {
+	return &GetInfraEnvDownloadURLBadRequest{}
+}
+
+/* GetInfraEnvDownloadURLBadRequest describes a response with status code 400, with default header values.
+
+Bad Request.
+*/
+type GetInfraEnvDownloadURLBadRequest struct {
+	Payload *models.Error
+}
+
+func (o *GetInfraEnvDownloadURLBadRequest) Error() string {
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlBadRequest  %+v", 400, o.Payload)
+}
+func (o *GetInfraEnvDownloadURLBadRequest) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetInfraEnvDownloadURLBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

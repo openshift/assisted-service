@@ -7737,6 +7737,12 @@ func init() {
               "$ref": "#/definitions/infra-env-image-url"
             }
           },
+          "400": {
+            "description": "Bad Request.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "401": {
             "description": "Unauthorized.",
             "schema": {
@@ -21198,6 +21204,12 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/infra-env-image-url"
+            }
+          },
+          "400": {
+            "description": "Bad Request.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "401": {

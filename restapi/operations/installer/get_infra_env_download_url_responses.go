@@ -57,6 +57,50 @@ func (o *GetInfraEnvDownloadURLOK) WriteResponse(rw http.ResponseWriter, produce
 	}
 }
 
+// GetInfraEnvDownloadURLBadRequestCode is the HTTP code returned for type GetInfraEnvDownloadURLBadRequest
+const GetInfraEnvDownloadURLBadRequestCode int = 400
+
+/*GetInfraEnvDownloadURLBadRequest Bad Request.
+
+swagger:response getInfraEnvDownloadUrlBadRequest
+*/
+type GetInfraEnvDownloadURLBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetInfraEnvDownloadURLBadRequest creates GetInfraEnvDownloadURLBadRequest with default headers values
+func NewGetInfraEnvDownloadURLBadRequest() *GetInfraEnvDownloadURLBadRequest {
+
+	return &GetInfraEnvDownloadURLBadRequest{}
+}
+
+// WithPayload adds the payload to the get infra env download Url bad request response
+func (o *GetInfraEnvDownloadURLBadRequest) WithPayload(payload *models.Error) *GetInfraEnvDownloadURLBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get infra env download Url bad request response
+func (o *GetInfraEnvDownloadURLBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetInfraEnvDownloadURLBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetInfraEnvDownloadURLUnauthorizedCode is the HTTP code returned for type GetInfraEnvDownloadURLUnauthorized
 const GetInfraEnvDownloadURLUnauthorizedCode int = 401
 

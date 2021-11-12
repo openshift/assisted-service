@@ -13900,6 +13900,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			Expect(payload.ExpiresAt.String()).To(Equal("0001-01-01T00:00:00.000Z"))
 			u, err := url.Parse(payload.URL)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(u.Host).To(Equal("image-service.example.com:8080"))
 			Expect(u.Query().Get("image_token")).To(Equal(""))
 			Expect(u.Query().Get("api_key")).To(Equal(""))
 		})
@@ -13930,6 +13931,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			u, err := url.Parse(payload.URL)
 			Expect(err).ToNot(HaveOccurred())
 
+			Expect(u.Host).To(Equal("image-service.example.com:8080"))
 			tok := u.Query().Get("api_key")
 			_, err = bm.authHandler.AuthURLAuth(tok)
 			Expect(err).NotTo(HaveOccurred())
@@ -13950,9 +13952,18 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			u, err := url.Parse(payload.URL)
 			Expect(err).ToNot(HaveOccurred())
 
+			Expect(u.Host).To(Equal("image-service.example.com:8080"))
 			tok := u.Query().Get("image_token")
 			_, err = bm.authHandler.AuthImageAuth(tok)
 			Expect(err).NotTo(HaveOccurred())
 		})
+	})
+
+	It("when not using the image service it returns 400", func() {
+		bm.ImageServiceBaseURL = ""
+
+		params := installer.GetInfraEnvDownloadURLParams{InfraEnvID: infraEnvID}
+		resp := bm.GetInfraEnvDownloadURL(ctx, params)
+		verifyApiError(resp, http.StatusBadRequest)
 	})
 })

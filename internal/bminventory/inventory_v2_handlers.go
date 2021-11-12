@@ -456,6 +456,10 @@ func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Con
 }
 
 func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params installer.GetInfraEnvDownloadURLParams) middleware.Responder {
+	if b.ImageServiceBaseURL == "" {
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("missing image service base URL"))
+	}
+
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
