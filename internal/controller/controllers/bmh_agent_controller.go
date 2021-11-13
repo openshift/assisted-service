@@ -206,6 +206,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	}
 
 	if result.Stop(ctx) {
+		log.Debugf("Stopping BMAC reconcile after reconcileBMH")
 		return result.Result()
 	}
 
@@ -219,6 +220,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	// handle multiple agents matching the
 	// same BMH's Mac Address
 	if agent == nil {
+		log.Debugf("Stopping BMAC reconcile after findAgent")
 		return result.Result()
 	}
 
@@ -236,6 +238,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	}
 
 	if result.Stop(ctx) {
+		log.Debugf("Stopping BMAC reconcile after reconcileAgentSpec")
 		return result.Result()
 	}
 
@@ -249,6 +252,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	}
 
 	if result.Stop(ctx) {
+		log.Debugf("Stopping BMAC reconcile after reconcileAgentInventory")
 		return result.Result()
 	}
 
@@ -262,6 +266,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	}
 
 	if result.Stop(ctx) {
+		log.Debugf("Stopping BMAC reconcile after ensureMCSCert")
 		return result.Result()
 	}
 
@@ -277,6 +282,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	}
 
 	if result.Stop(ctx) {
+		log.Debugf("Stopping BMAC reconcile after add detached annotation")
 		return result.Result()
 	}
 
@@ -408,12 +414,14 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 
 	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
 	if _, ok := bmhAnnotations[BMH_HARDWARE_DETAILS_ANNOTATION]; ok {
+		log.Debugf("%s annotation exists", BMH_HARDWARE_DETAILS_ANNOTATION)
 		return reconcileComplete{}
 	}
 
 	// Check whether HardwareDetails has been set already. This annotation
 	// status should only be set through this Reconcile in this scenario.
 	if bmh.Status.HardwareDetails != nil && bmh.Status.HardwareDetails.Hostname != "" {
+		log.Debugf("HardwareDetails or Hostname already present in the BMH")
 		return reconcileComplete{}
 	}
 
@@ -1028,6 +1036,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 
 	secret, err := getSecret(ctx, r.Client, r.APIReader, key)
 	if err != nil {
+		log.WithError(err).Errorf("failed to get secret %s", key)
 		return reconcileError{err}
 	}
 
@@ -1039,6 +1048,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 
 	MCSCert, ignitionWithMCSCert, err := r.createIgnitionWithMCSCert(ctx, log, spokeClient)
 	if err != nil {
+		log.WithError(err).Errorf("failed to create ignition with mcs cert")
 		return reconcileError{err}
 	}
 	if bmh.ObjectMeta.Annotations == nil {
