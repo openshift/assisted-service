@@ -1232,11 +1232,14 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 
 func (r *BMACReconciler) getSpokeClient(secret *corev1.Secret) (client.Client, error) {
 	var err error
+	// We only set `spokeClient` during tests. Do not
+	// set it as it would cache the client, which would
+	// make the reconcile useless to manage multiple spoke
+	// clusters.
 	if r.spokeClient != nil {
 		return r.spokeClient, err
 	}
-	r.spokeClient, err = getSpokeClient(secret)
-	return r.spokeClient, err
+	return getSpokeClient(secret)
 }
 
 // Returns a list of BMH ReconcileRequests for a given Agent
