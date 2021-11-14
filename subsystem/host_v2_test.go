@@ -204,6 +204,24 @@ var _ = Describe("Host tests v2", func() {
 		steps := getNextSteps(host.InfraEnvID, *host.ID)
 		Expect(len(steps.Instructions)).Should(Equal(0))
 	})
+
+	It("bind host in insufficient state should fail", func() {
+		host := &registerHost(infraEnvID).Host
+		waitForHostStateV2(ctx, models.HostStatusDiscoveringUnbound, defaultWaitForHostStateTimeout, host)
+		By("move the host to insufficient")
+		Expect(db.Model(host).UpdateColumns(&models.Host{Inventory: defaultInventory(),
+			Status:             swag.String(models.HostStatusInsufficient),
+			InstallationDiskID: "wwn-0x1111111111111111111111"}).Error).NotTo(HaveOccurred())
+		By("reject host in insufficient state")
+		_, err := userBMClient.Installer.BindHost(context.Background(), &installer.BindHostParams{
+			HostID:     *host.ID,
+			InfraEnvID: infraEnvID,
+			BindHostParams: &models.BindHostParams{
+				ClusterID: &clusterID,
+			},
+		})
+		Expect(err).NotTo(BeNil())
+	})
 })
 
 var _ = Describe("Day2 Host tests v2", func() {

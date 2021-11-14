@@ -16,6 +16,22 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+var registerInfraEnv = func(clusterID *strfmt.UUID) *models.InfraEnv {
+	request, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+		InfraenvCreateParams: &models.InfraEnvCreateParams{
+			Name:             swag.String("test-infra-env"),
+			OpenshiftVersion: swag.String(openshiftVersion),
+			PullSecret:       swag.String(pullSecret),
+			SSHAuthorizedKey: swag.String(sshPublicKey),
+			ImageType:        models.ImageTypeFullIso,
+			ClusterID:        clusterID,
+		},
+	})
+
+	Expect(err).NotTo(HaveOccurred())
+	return request.GetPayload()
+}
+
 var _ = Describe("Infra_Env", func() {
 	ctx := context.Background()
 	// var infraEnv *installer.RegisterInfraEnvCreated
@@ -144,7 +160,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("deregister non-empty infra-env shold fail", func() {
+	It("deregister non-empty infra-env should fail", func() {
 		hostID := strToUUID(uuid.New().String())
 		// register to infra-env
 		_, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{

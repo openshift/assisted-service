@@ -100,6 +100,15 @@ func bindHost(infraEnvID, hostID, clusterID strfmt.UUID) *models.Host {
 	return host.GetPayload()
 }
 
+func unbindHost(infraEnvID, hostID strfmt.UUID) *models.Host {
+	host, err := userBMClient.Installer.UnbindHost(context.Background(), &installer.UnbindHostParams{
+		HostID:     hostID,
+		InfraEnvID: infraEnvID,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	return host.GetPayload()
+}
+
 func getHost(clusterID, hostID strfmt.UUID) *models.Host {
 	host, err := userBMClient.Installer.GetHost(context.Background(), &installer.GetHostParams{
 		ClusterID: clusterID,
@@ -330,10 +339,14 @@ func generateContainerImageAvailabilityPostStepReply(ctx context.Context, h *mod
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func generateEssentialHostSteps(ctx context.Context, h *models.Host, name, cidr string) {
+func getDefaultInventory(cidr string) *models.Inventory {
 	hwInfo := validHwInfo
 	hwInfo.Interfaces[0].IPV4Addresses = []string{cidr}
-	generateEssentialHostStepsWithInventory(ctx, h, name, hwInfo)
+	return hwInfo
+}
+
+func generateEssentialHostSteps(ctx context.Context, h *models.Host, name, cidr string) {
+	generateEssentialHostStepsWithInventory(ctx, h, name, getDefaultInventory(cidr))
 }
 
 func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host, name string, inventory *models.Inventory) {

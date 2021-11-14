@@ -59,6 +59,12 @@ func (o *UnbindHostReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return nil, result
+	case 409:
+		result := NewUnbindHostConflict()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewUnbindHostInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -263,6 +269,38 @@ func (o *UnbindHostMethodNotAllowed) GetPayload() *models.Error {
 }
 
 func (o *UnbindHostMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUnbindHostConflict creates a UnbindHostConflict with default headers values
+func NewUnbindHostConflict() *UnbindHostConflict {
+	return &UnbindHostConflict{}
+}
+
+/* UnbindHostConflict describes a response with status code 409, with default header values.
+
+Conflict.
+*/
+type UnbindHostConflict struct {
+	Payload *models.Error
+}
+
+func (o *UnbindHostConflict) Error() string {
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind][%d] unbindHostConflict  %+v", 409, o.Payload)
+}
+func (o *UnbindHostConflict) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UnbindHostConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

@@ -8565,6 +8565,12 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "409": {
+            "description": "Conflict.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -21941,6 +21947,12 @@ func init() {
           },
           "405": {
             "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Conflict.",
             "schema": {
               "$ref": "#/definitions/error"
             }

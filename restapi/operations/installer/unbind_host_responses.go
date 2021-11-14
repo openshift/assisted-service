@@ -277,6 +277,50 @@ func (o *UnbindHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, produ
 	}
 }
 
+// UnbindHostConflictCode is the HTTP code returned for type UnbindHostConflict
+const UnbindHostConflictCode int = 409
+
+/*UnbindHostConflict Conflict.
+
+swagger:response unbindHostConflict
+*/
+type UnbindHostConflict struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUnbindHostConflict creates UnbindHostConflict with default headers values
+func NewUnbindHostConflict() *UnbindHostConflict {
+
+	return &UnbindHostConflict{}
+}
+
+// WithPayload adds the payload to the unbind host conflict response
+func (o *UnbindHostConflict) WithPayload(payload *models.Error) *UnbindHostConflict {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the unbind host conflict response
+func (o *UnbindHostConflict) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UnbindHostConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(409)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // UnbindHostInternalServerErrorCode is the HTTP code returned for type UnbindHostInternalServerError
 const UnbindHostInternalServerErrorCode int = 500
 
