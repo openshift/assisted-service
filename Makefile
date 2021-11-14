@@ -381,10 +381,10 @@ deploy-on-openshift-ci:
 	oc get pods
 
 docs:
-	mkdocs build
+	LC_ALL=en_US.utf8 mkdocs build
 
 docs_serve:
-	mkdocs serve
+	LC_ALL=en_US.utf8 mkdocs serve
 
 ########
 # Test #

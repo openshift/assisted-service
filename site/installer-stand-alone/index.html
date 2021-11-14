@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Openshift Assisted Service Team">
+  
+  <link rel="shortcut icon" href="../img/favicon.ico">
+  <title>Installer stand alone - Openshift Assisted Service</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Installer stand alone";
+    var mkdocs_page_input_path = "installer-stand-alone.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> Openshift Assisted Service</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="..">OAS Home</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../user-guide/assisted-service-on-local/">OAS Running on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../user-guide/assisted-service-on-openshift/">OAS Running on Openshift</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Openshift Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="" href="../user-guide/user-guide.md">User Guide Index</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../user-guide/deploy-on-local/">OCP Deployment on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../user-guide/deploy-on-bare-metal/">OCP Deployment on Bare Metal</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../user-guide/deploy-on-vsphere/">OCP Deployment on vSphere</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../user-guide/deploy-on-RHEV/">OCP Deployment on RHEV</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../user-guide/deploy-on-OSP/">OCP Deployment on Openstack</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Development</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../dev/migrations/">Migrations</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">Openshift Assisted Service</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Installer stand alone</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="assisted-installer-stand-alone">Assisted Installer Stand-Alone</h1>
+<p>This document describes the process of running the Assisted Installer in
+stand-alone mode via <code>podman</code>.</p>
+<h1 id="pre-requisites">Pre-Requisites</h1>
+<h2 id="openshift-user-pull-secret">OpenShift User Pull Secret</h2>
+<p>You will need a valid OpenShift user pull secret. Copy or download the pull
+secret from https://console.redhat.com/openshift/install/pull-secret</p>
+<h1 id="running-the-assisted-installer-using-podman">Running the Assisted Installer using Podman</h1>
+<h2 id="environment">Environment</h2>
+<p>The first thing you will need to do is grab the
+<a href="https://raw.githubusercontent.com/openshift/assisted-service/master/onprem-environment"><code>onprem-environment</code></a>
+file. Once you have this file, source it.</p>
+<pre><code>source onprem-environment
+</code></pre>
+<p><strong>NOTE</strong>
+* The remainder of this document relies on the values stored in
+    <code>onprem-environment</code> being set in the shell.
+* The <code>SERVICE_BASE_URL</code> is the <code>ip:port</code> where the assisted-service
+    API is being served. The Assisted Installer's agent uses the
+    <code>SERVICE_BASE_URL</code> to talk back to the API.</p>
+<h2 id="nginx-configuration">NGINX Configuration</h2>
+<p>Once you have sourced <code>onprem-environment</code>, you will need to grab the
+<a href="https://raw.githubusercontent.com/openshift/assisted-service/master/deploy/ui/nginx.conf"><code>nginx.conf</code></a>
+used to configure the Assisted Installer's UI. There are two fields of note:</p>
+<ol>
+<li><code>listen 8080;</code> refers to the port used to access the Assisted Installer's UI.
+  As an example, if you wanted the UI to listen on port <code>9090</code> to avoid conflict
+  with a port already used on the host you would <code>sed -i "s|listen.*;|listen 9090;|" nginx.conf</code>.</li>
+<li><code>proxy_pass http://localhost:8090;</code> is the default value of <code>SERVICE_BASE_URL</code>.
+  You could update this with, <code>sed -i "s|proxy_pass.*;|proxy_pass $SERVICE_BASE_URL;|" nginx.conf</code>.</li>
+</ol>
+<h2 id="create-the-assisted-installer-pod">Create the Assisted Installer Pod</h2>
+<p>Once you have made any adjustments to ports as necessary, you can create the
+assisted-installer pod.</p>
+<pre><code>podman pod create --name assisted-installer -p 5432:5432,8080:8080,8090:8090
+</code></pre>
+<p><strong>NOTE</strong>
+The ports allocated to the <code>assisted-installer</code> should be updated to reflect any
+changes required for your configuration.</p>
+<ul>
+<li><code>5432</code> is the port for Database communication</li>
+<li><code>8080</code> is the port for accessing the Assisted Installer's UI</li>
+<li><code>8090</code> is the port referenced in <code>SERVICE_BASE_URL</code>; the URL used by the
+    Assisted Installer's agent to talk back to the assisted-service.</li>
+</ul>
+<h2 id="start-postgresql">Start PostgreSQL</h2>
+<p>Use podman to run postgreSQL.</p>
+<pre><code>podman run -dt --pod assisted-installer \
+  --name db \
+  --env-file onprem-environment \
+  --pull always \
+  quay.io/ocpmetal/postgresql-12-centos7
+</code></pre>
+<p><strong>NOTE</strong>
+* <code>onprem-environment</code> is the file downloaded and modified previously</p>
+<h2 id="start-assisted-service">Start Assisted Service</h2>
+<p>Use podman to start the Assisted Service.</p>
+<pre><code>podman run -dt --pod assisted-installer \
+  --name installer \
+  --env-file onprem-environment \
+  --pull always \
+  --restart always \
+  quay.io/ocpmetal/assisted-service:latest /assisted-service
+</code></pre>
+<p><strong>NOTE</strong>
+* <code>onprem-environment</code> is the file downloaded and modified previously
+* If you modified the port for <code>SERVICE_BASE_URL</code> you would add <code>--port ${SERVICE_API_PORT}</code></p>
+<h2 id="start-assisted-installer-ui">Start Assisted Installer UI</h2>
+<pre><code>podman run -dt --pod assisted-installer \
+  --name ui \
+  --env-file onprem-environment \
+  --pull always \
+  -v ${PWD}/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z \
+  quay.io/ocpmetal/ocp-metal-ui:latest
+</code></pre>
+<p><strong>NOTE</strong>
+* <code>onprem-environment</code> is the file downloaded and modified previously
+* <code>$(PWD)/nginx.conf</code> references the previously downloaded -- and potentially
+    modified -- <code>nginx.conf</code></p>
+<h1 id="accessing-the-assisted-installer">Accessing the Assisted Installer</h1>
+<p>At this stage, you should be able to access the Assisted Installer UI at
+<code>http://localhost:8080</code></p>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+  </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

@@ -47,7 +47,7 @@ EOF
 
 ### 2. Create a Pull Secret
 
-   * Use the secret obtained from [cloud.openshift.com](https://cloud.redhat.com/openshift/install/pull-secret)
+   * Use the secret obtained from [console.redhat.com](https://console.redhat.com/openshift/install/pull-secret)
 ```yaml
 cat <<EOF | kubectl create -f -
 apiVersion: v1

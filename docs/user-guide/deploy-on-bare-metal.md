@@ -74,7 +74,7 @@ Now let's download that ISO in the provisioning machine, where the iPXE files wi
 export IPXE_DIR=/tmp/ipxe/ai
 export IMAGE_PATH=/tmp/discovery_image_ocp.iso
 
-wget -O ${IMAGE_PATH} 'http://cloud.redhat.com/api/assisted-install/v1/clusters/<cluster_id>/downloads/image'
+wget -O ${IMAGE_PATH} 'http://console.redhat.com/api/assisted-install/v1/clusters/<cluster_id>/downloads/image'
 ```
 
 - Now we need to create the folder and the _ipxe_ file definition
@@ -83,11 +83,11 @@ wget -O ${IMAGE_PATH} 'http://cloud.redhat.com/api/assisted-install/v1/clusters/
 mkdir -p ${IPXE_DIR}
 
 cat > $IPXE_DIR/ipxe << EOF
-#!ipxe                                                                                                                                                                                    
+#!ipxe
 set live_url $(hostname):8080
 kernel \${live_url}/vmlinuz ignition.config.url=\${live_url}/config.ign coreos.live.rootfs_url=\${live_url}/rootfs.img ${KERNEL_OPTS}
 initrd \${live_url}/initrd.img
-boot       
+boot
 EOF
 ```
 

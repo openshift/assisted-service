@@ -20,7 +20,7 @@ type AssistedServiceIsoCreateParams struct {
 	// Version of the OpenShift cluster.
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
-	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
+	// The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
 	PullSecret string `json:"pull_secret,omitempty"`
 
 	// SSH public key for debugging the installation.

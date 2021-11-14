@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Openshift Assisted Service Team">
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>image-service-cloud-authentication - Openshift Assisted Service</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../../css/theme.css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "image-service-cloud-authentication";
+    var mkdocs_page_input_path = "enhancements/image-service-cloud-authentication.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Openshift Assisted Service</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../..">OAS Home</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-local/">OAS Running on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-openshift/">OAS Running on Openshift</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Openshift Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="" href="../../user-guide/user-guide.md">User Guide Index</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-local/">OCP Deployment on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-bare-metal/">OCP Deployment on Bare Metal</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-vsphere/">OCP Deployment on vSphere</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-RHEV/">OCP Deployment on RHEV</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-OSP/">OCP Deployment on Openstack</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Development</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../dev/migrations/">Migrations</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Openshift Assisted Service</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>image-service-cloud-authentication</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="image-service-cloud-authentication">Image Service Cloud Authentication</h1>
+<h2 id="summary">Summary</h2>
+<p>Authentication between the image service and assisted service when deployed
+in the cloud requires a new strategy because the existing tokens used in the cloud
+are too large and too short lived to be included in a pre-signed URL. Instead
+of the existing authentication used in the cloud, assisted service will issue JWTs
+using a symmetric key specific to each infraEnv. This token will be used
+as authentication for requests to assisted service, specifically for the endpoints
+required by the image service.</p>
+<h2 id="motivation">Motivation</h2>
+<p>When the assisted service is deployed in the cloud, it relies on Red Hat
+SSO for user authentication and authentication tokens from Red Hat SSO are not
+usable with pre-signed URLs for two main reasons:</p>
+<ul>
+<li>Size - these tokens are typically ~2000 characters long</li>
+<li>Expiration - these tokens have a maximum lifespan of 15 minutes</li>
+</ul>
+<h3 id="goals">Goals</h3>
+<ul>
+<li>Define an authentication strategy suitable for pre-signed URLs in the cloud. This includes a
+token with a longer expiration (several hours) and a reasonable size (10s to 100s of characters)
+which will be included directly in a download URL</li>
+</ul>
+<h3 id="non-goals">Non-Goals</h3>
+<ul>
+<li>Tie an image download URL to a Red Hat account or organization</li>
+<li>Maintain public/private key pairs as service configuration to generate and issue tokens</li>
+<li>Add additional external identity management components</li>
+</ul>
+<h2 id="proposal">Proposal</h2>
+<p>The new authentication mechanism will be a JWT signed by the assisted service
+using a randomly generated key stored with the infraEnv. The JWT will include
+an <code>exp</code> claim as defined in RFC7519 and a <code>sub</code> claim containing the infraEnv
+ID. A token will be included as a parameter in the image download URL and
+assisted service authentication will pass if the token in the URL is not expired
+and validates using the key in the infraEnv record.</p>
+<p>Managing the signed URL and key will require a few API changes. The REST API will no
+longer return a <code>download_url</code> as a part of an infraEnv as the token in the URL could
+be expired at the time of the call. A new API will be added to fetch pre-signed URL
+which will include a new token. Another new API will be added to force a new key to be
+generated. This will allow a user to invalidate all existing non-expired tokens in case
+a download URL is leaked.</p>
+<h3 id="user-stories">User Stories</h3>
+<h4 id="story-1">Story 1</h4>
+<p>As a user of assisted service via console.redhat.com, I want a simple download
+URL to access the discovery ISO. This URL should be usable with standard download
+utilities (i.e. <code>curl</code>, <code>wget</code>) without the need for request headers or additional tools
+like the <code>ocm</code> CLI.</p>
+<h4 id="story-2">Story 2</h4>
+<p>As a user of assisted service via console.redhat.com, I want my sensitive credentials
+and infrastructure information contained within the discovery ISO to be kept secure.</p>
+<h4 id="story-3">Story 3</h4>
+<p>As a user of assisted service via console.redhat.com, I want the discovery ISO download
+URL to be usable by anyone I choose to give it to without disclosing my personal Red Hat
+account credentials or API tokens.</p>
+<h3 id="implementation-detailsnotesconstraints-optional">Implementation Details/Notes/Constraints [optional]</h3>
+<p>Assisted service will implement a new security definition to serve this purpose.
+The existing definitions already have well-defined use cases and scopes that do not
+fully match the requirements of this proposal. Specifically the existing urlAuth security
+definition applies to more endpoints than we would want to expose for this enhancement.</p>
+<p>This new security definition will apply only to the following endpoints:</p>
+<ul>
+<li><code>/v2/infra-envs/{infra_env_id}/downloads/files</code></li>
+<li><code>/v2/infra-envs/{infra_env_id}/downloads/minimal-initrd</code></li>
+</ul>
+<p>These are the endpoints that the image service uses to fetch image customization information.</p>
+<p>The symmetric key will be stored in a new column in the <code>infra_envs</code> database table and will not
+be accessible through the infraEnv API. The expiration time for tokens will be 4 hours by default
+(the same as the current image expiration time), but will also continue to be configurable.</p>
+<p>New API endpoints:</p>
+<ul>
+<li><code>GET /v2/infra-envs/{infra_env_id}/downloads/image-url</code></li>
+<li>Get a new pre-signed download URL for an infraEnv's discovery image</li>
+<li>Example response:<ul>
+<li><code>{"url": "https://image-service.example.com/images/{infra_env_id}?image_token=&lt;some-jwt&gt;&amp;version=4.9&amp;arch=x86_64&amp;type=full-iso", "exp": "1634571105"}</code></li>
+</ul>
+</li>
+<li><code>POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key</code></li>
+<li>Create a new symmetric key for an infraEnv (invalidates all existing JWTs)</li>
+</ul>
+<p>These new endpoints and will be protected by SSO user credential authentication and authorization.</p>
+<p>The image service will accept a new URL parameter, <code>image_token</code>, which will
+then be forwarded to assisted service in the <code>Image-Token</code> header key.</p>
+<h4 id="assisted-service-authentication-and-authorization-flow">Assisted Service Authentication and Authorization Flow</h4>
+<ol>
+<li>Request arrives to one of the infraEnv download endpoints with an <code>Image-Token</code> header</li>
+<li>Assisted service middleware stores infraEnv ID from the request path in the request context</li>
+<li>Authentication validates the token using the key associated with the infraEnv for the id in the token <code>sub</code> claim</li>
+<li>If a token is valid, authentication stores the <code>sub</code> claim in the request context</li>
+<li>Authorization ensures the infraEnv ID from the <code>sub</code> claim in the request context matches the infraEnv ID in the request path (also from the context)</li>
+<li>Request is processed</li>
+</ol>
+<h3 id="risks-and-mitigations">Risks and Mitigations</h3>
+<p>Accessing a database during authentication has a performance impact, but we should be able
+to cache keys by infraEnv id which would mitigate most of this. Additionally we already
+check the database for authorization and the added time to fetch the key should be small
+compared to the total download time so it likely won't be something users notice.</p>
+<p>Introducing a new authentication system always involves some risk that it will be implemented
+incorrectly, but this addition should be easy enough to understand and address any issues that
+could come up.</p>
+<h2 id="design-details-optional">Design Details [optional]</h2>
+<h3 id="open-questions">Open Questions</h3>
+<ul>
+<li>Should we also support RHSSO user tokens in a header for these endpoints?</li>
+<li>The image service could also pass a header through the assisted service</li>
+</ul>
+<h3 id="ui-impact">UI Impact</h3>
+<p>The UI is currently reading the image download URL from the infraEnv. This will need to change
+to request the URL separately after the infraEnv is created.</p>
+<h3 id="test-plan">Test Plan</h3>
+<ul>
+<li>Image downloads from the cloud with the image service and the new authentication work correctly.</li>
+<li>An image can not be downloaded without a token or with an invalid token.</li>
+<li>The <code>image-url</code> endpoint returns a URL with a new token with a new expiration claim.</li>
+<li>The regenerate signing key endpoint invalidates all existing tokens (requests no longer succeed with any previously generated URL).</li>
+<li>URLs with an existing token expire after 4 hours</li>
+</ul>
+<h2 id="drawbacks">Drawbacks</h2>
+<p>Implementing our own authentication system is generally risky. We already have a system
+(RHSSO) that works in the cloud, gives us authorization as well, and we don't maintain.
+The only reason we can't use this system for this use case is that we want to make
+the download easier for users. The most secure, and most flexible option would be
+to require an OCM JWT token for this download, just as we do for every other API call.</p>
+<h2 id="alternatives">Alternatives</h2>
+<ul>
+<li>Use RHSSO and a token in the header as we do for all other API requests</li>
+<li>Discussed in "Drawbacks", but this would be much less work and one less authentication
+    system to maintain.</li>
+<li>Downsides are UX</li>
+</ul>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+  </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme_extra.js" defer></script>
+    <script src="../../js/theme.js" defer></script>
+      <script src="../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

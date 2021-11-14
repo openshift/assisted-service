@@ -14,7 +14,7 @@
 
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/theme_extra.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
   
   <script>
     // Current page data
@@ -25,9 +25,8 @@
   
   <script src="js/jquery-2.1.1.min.js" defer></script>
   <script src="js/modernizr-2.8.3.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
   <script>hljs.initHighlightingOnLoad();</script> 
-  
 </head>
 
 <body class="wy-body-for-nav" role="document">
@@ -41,7 +40,7 @@
         <a href="." class="icon icon-home"> Openshift Assisted Service</a>
         <div role="search">
   <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
@@ -50,6 +49,12 @@
                 <ul class="current">
                     <li class="toctree-l1 current"><a class="reference internal current" href=".">OAS Home</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#about">About</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#demos-and-blog-posts">Demos and blog posts</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#user-documentation">User documentation</a>
+    </li>
     <li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#first-setup">First Setup</a>
@@ -60,23 +65,7 @@
     </li>
         </ul>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#test">Test</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#pre-configuration">Pre-configuration</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#run-system-tests">Run system tests</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#run-system-tests-with-regex">Run system tests with regex</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#run-only-unit-tests">Run only unit tests</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#run-unit-tests-for-specific-package">Run unit tests for specific package</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#run-unit-tests-with-regex">Run unit tests with regex</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#update-service-for-the-subsystem-tests">Update service for the subsystem tests</a>
-    </li>
-        </ul>
+    <li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#update-discovery-image-base-os">Update Discovery Image base OS</a>
     </li>
@@ -118,6 +107,12 @@
     </li>
         </ul>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#assisted-service-on-consoleredhatcom">Assisted Service on console.redhat.com</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#setting-a-custom-discovery-iso-password">Setting a custom discovery ISO password</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#contributing">Contributing</a>
+    </li>
     </ul>
                     </li>
                 </ul>
@@ -130,7 +125,7 @@
                 </ul>
                 <p class="caption"><span class="caption-text">Openshift Deployment</span></p>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="user-guide/user-guide/">User Guide Index</a>
+                    <li class="toctree-l1"><a class="" href="user-guide/user-guide.md">User Guide Index</a>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="user-guide/deploy-on-local/">OCP Deployment on Local</a>
                     </li>
@@ -177,6 +172,7 @@
   
   <hr/>
 </div>
+
           <div role="main">
             <div class="section">
               
@@ -184,12 +180,30 @@
 <p><a href="https://generator.swagger.io/?url=https://raw.githubusercontent.com/openshift/assisted-service/master/swagger.yaml"><img alt="Swagger API" src="https://raw.githubusercontent.com/swagger-api/swagger-ui/master/src/img/logo_small.png" /></a></p>
 <p><a href="https://goreportcard.com/report/github.com/openshift/assisted-service"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/openshift/assisted-service" /></a>
 <a href="https://opensource.org/licenses/Apache-2.0"><img alt="License Apache" src="https://img.shields.io/github/license/openshift/assisted-service" /></a></p>
+<h2 id="about">About</h2>
+<p>This repository provides a service that installs OpenShift.  Its main benefits include a minimum amount of prerequisites from the user's infrastructure, as well as comprehensive pre-flight validations to ensure a successful installation.  The service exposes either a REST API, or it can be deployed as an Operator where it exposes a Kubernetes-native API via Custom Resources.  A <a href="https://github.com/openshift-assisted/assisted-ui">UI</a> is available that uses the REST API.</p>
+<p>The Assisted Service can currently install clusters with highly-available control planes (3 hosts and above) and can also install Single-Node OpenShift (SNO).  Highly available clusters are configured to use OpenShift's <code>baremetal</code> platform (typically used in <a href="https://docs.openshift.com/container-platform/4.7/installing/installing_bare_metal_ipi/ipi-install-overview.html">bare metal IPI deployments</a>), while SNO uses <code>none</code> (typically used in <a href="https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html">UPI deployments</a>).</p>
+<p>The basic flow for creating a new OpenShift cluster using the Assisted Service via the UI or REST API is:
+1. Create a new Cluster resource with the minimal required properties.
+1. Generate and download a bootable image which is customized for that cluster. This image is based on RHCOS and is customized to automatically run an agent upon boot.
+1. Boot the hosts that will form the cluster with the image from the previous step. The boot method is left to the user (e.g., USB drive, virtual media, PXE, etc.).
+1. The agent running on each host contacts the Assisted Service via REST API and performs discovery (sends hardware inventory and connectivity information).
+1. The UI guides the user through the installation, with the service performing validations along the way.  Alternatively, this can be done via API.
+1. Once all validations pass, the user may initiate the installation.  Progress may be viewed via the UI or API, and logs are made available for download directly from the service.</p>
+<h2 id="demos-and-blog-posts">Demos and blog posts</h2>
+<p>Below are some recent demos and blog posts:
+* Blog, Jan 2021: <a href="https://www.openshift.com/blog/using-the-openshift-assisted-installer-service-to-deploy-an-openshift-cluster-on-metal-and-vsphere">Using the OpenShift Assisted Installer Service to Deploy an OpenShift Cluster on Bare Metal and vSphere</a>
+* Blog and demo, Dec 2020: <a href="https://www.openshift.com/blog/making-openshift-on-bare-metal-easy">Making OpenShift on Bare Metal easy</a>
+* Blog and demo, Oct 2020: <a href="https://www.openshift.com/blog/its-inside-the-house-assisted-installer-demonstration">It's Inside your House! Assisted Installer on Bare Metal Demonstration</a></p>
+<h2 id="user-documentation">User documentation</h2>
+<p>By continuing to read this document you will learn how to build and deploy Assisted Service. If you are interested in using Assisted Service to deploy an OCP cluster, please refer to the <a href="docs/user-guide/README.md">User Documentation</a>.</p>
 <h2 id="prerequisites">Prerequisites</h2>
 <ol>
 <li>Docker</li>
 <li>skipper <a href="https://github.com/stratoscale/skipper">https://github.com/stratoscale/skipper</a></li>
 <li>minikube (for tests)</li>
 <li>kubectl</li>
+<li>Python modules <code>pip install waiting</code></li>
 </ol>
 <h2 id="first-setup">First Setup</h2>
 <p>To push your build target to a Docker registry you first need to change the default target.</p>
@@ -212,32 +226,8 @@
 <p>After every change in the API (<code>swagger.yaml</code>) the code should be generated and the build must pass.</p>
 <pre><code class="language-shell">skipper make generate-from-swagger
 </code></pre>
-<h2 id="test">Test</h2>
-<h3 id="pre-configuration">Pre-configuration</h3>
-<ul>
-<li>Run minikube on your system.</li>
-<li>Deploy services <code>skipper make deploy-test</code></li>
-</ul>
-<h3 id="run-system-tests">Run system tests</h3>
-<pre><code class="language-shell">skipper make test
-</code></pre>
-<h3 id="run-system-tests-with-regex">Run system tests with regex</h3>
-<pre><code class="language-shell">skipper make test FOCUS=versions
-</code></pre>
-<h3 id="run-only-unit-tests">Run only unit tests</h3>
-<pre><code class="language-shell">skipper make unit-test
-</code></pre>
-<h3 id="run-unit-tests-for-specific-package">Run unit tests for specific package</h3>
-<pre><code class="language-shell">skipper make unit-test TEST=./internal/host
-</code></pre>
-<h3 id="run-unit-tests-with-regex">Run unit tests with regex</h3>
-<pre><code class="language-shell">skipper make unit-test FOCUS=cluster
-</code></pre>
-<h3 id="update-service-for-the-subsystem-tests">Update service for the subsystem tests</h3>
-<p>if you are making changes and don't want to deploy everything once again you can simply run this command:</p>
-<pre><code class="language-shell">make update-service &amp;&amp; kubectl get pod --namespace assisted-installer -o name | grep assisted-service | xargs kubectl delete --namespace assisted-installer
-</code></pre>
-<p>It will build and push a new image of the service to your Docker registry, then delete the service pod from minikube, the deployment will handle the update and pull the new image to start the service again.</p>
+<h2 id="testing">Testing</h2>
+<p>More information is available here: <a href="docs/dev/testing.md">Assisted Installer Testing</a></p>
 <h2 id="update-discovery-image-base-os">Update Discovery Image base OS</h2>
 <p>If you want to update the underlying operating system image used by the discovery iso, follow these steps:</p>
 <ol>
@@ -260,11 +250,11 @@
 <h2 id="deployment">Deployment</h2>
 <h3 id="deploy-to-minikube">Deploy to minikube</h3>
 <p>The deployment is a system deployment, it contains all the components the service need for all the operations to work (if implemented).
-S3 service (scality), DB and will use the image generator to create the images in the deployed S3 and create relevant bucket in S3.</p>
+S3 service (minio), DB and will use the image generator to create the images in the deployed S3 and create relevant bucket in S3.</p>
 <pre><code class="language-shell">skipper make deploy-all
 </code></pre>
 <h3 id="deploy-to-openshift">Deploy to OpenShift</h3>
-<p>Besides default minikube deployment, the service support deployment to OpenShift cluster using ingress as the access point to the service.</p>
+<p>Besides default minikube deployment, the service supports deployment to OpenShift cluster using ingress as the access point to the service.</p>
 <pre><code class="language-shell">skipper make deploy-all TARGET=oc-ingress
 </code></pre>
 <p>This deployment option have multiple optional parameters that should be used in case you are not the Admin of the cluster:</p>
@@ -277,12 +267,13 @@ S3 service (scality), DB and will use the image generator to create the images i
 </code></pre>
 <p>Note: All deployment configurations are under the <code>deploy</code> directory in case more detailed configuration is required.</p>
 <h3 id="deploy-ui">Deploy UI</h3>
-<p>This service support optional UI deployment.</p>
+<p>This service supports optional UI deployment.</p>
 <pre><code class="language-shell">skipper make deploy-ui
 </code></pre>
 <p>* In case you are using <em>podman</em> run the above command without <code>skipper</code>.</p>
 <p>For OpenShift users, look at the service deployment options on OpenShift platform.</p>
 <h3 id="deploy-monitoring">Deploy Monitoring</h3>
+<p>Note: This target is only for development purpose.</p>
 <p>This will allow you to deploy Prometheus and Grafana already integrated with Assisted installer:</p>
 <ul>
 <li>On Minikube</li>
@@ -357,8 +348,8 @@ The live ISO boots up and deploys the assisted-service using containers on host.
 <h3 id="storage">Storage</h3>
 <p>assisted-service maintains a cache of openshift-baremetal-install binaries at
 <code>$WORK_DIR/installercache/</code>. Persistent storage can optionally be mounted
-there to persist the cache accross container restarts. However, that storage
-should not be shared accross multiple assisted-service processes.</p>
+there to persist the cache across container restarts. However, that storage
+should not be shared across multiple assisted-service processes.</p>
 <h4 id="cache-expiration">Cache Expiration</h4>
 <p>Currently there is no mechanism to expire openshift-baremetal-install binaries
 out of the cache. The recommendation for now is to allow the cache to use the
@@ -381,6 +372,14 @@ allowing it to be effective most of the time.</p>
 <p><a href="https://github.com/oshercc/coreos_installation_iso">https://github.com/oshercc/coreos_installation_iso</a></p>
 <p>Image in charge of generating the Fedora-coreOs image used to install the host with the relevant ignition file.\
 Image is uploaded to deployed S3 under the name template "installer-image-\&lt;cluster-id>".</p>
+<h2 id="assisted-service-on-consoleredhatcom">Assisted Service on console.redhat.com</h2>
+<p>The Assisted Installer is also available for users as a SAAS hosted in console.redhat.com.</p>
+<p>More information is available here: <a href="docs/cloud.md">Assisted Installer on console.redhat.com</a></p>
+<h2 id="setting-a-custom-discovery-iso-password">Setting a custom discovery ISO password</h2>
+<p>It's possible to modify the discovery ISO (via the API) to enable password login for troubleshooting purposes.</p>
+<p>More information is available here: <a href="docs/set-discovery-password.md">Set discovery ISO user password example</a></p>
+<h2 id="contributing">Contributing</h2>
+<p>Please, read our <a href="https://github.com/openshift/assisted-service/blob/master/CONTRIBUTING.md">CONTRIBUTING</a> guidelines for more info about how to create, document, and review PRs.</p>
               
             </div>
           </div>
@@ -412,17 +411,20 @@ Image is uploaded to deployed S3 under the name template "installer-image-\&lt;c
   </div>
 
   <div class="rst-versions" role="note" aria-label="versions">
-    <span class="rst-current-version" data-toggle="rst-current-version">
-      
-          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
-      
-      
-      
-        <span style="margin-left: 15px"><a href="user-guide/assisted-service-on-local/" style="color: #fcfcfc">Next &raquo;</a></span>
-      
-    </span>
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+      <span><a href="user-guide/assisted-service-on-local/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
 </div>
     <script>var base_url = '.';</script>
+    <script src="js/theme_extra.js" defer></script>
     <script src="js/theme.js" defer></script>
       <script src="search/main.js" defer></script>
     <script defer>
@@ -435,6 +437,6 @@ Image is uploaded to deployed S3 under the name template "installer-image-\&lt;c
 </html>
 
 <!--
-MkDocs version : 1.1.2
-Build Date UTC : 2020-11-10 21:55:08.746244+00:00
+MkDocs version : 1.2.2
+Build Date UTC : 2021-11-11 20:18:36.882062+00:00
 -->

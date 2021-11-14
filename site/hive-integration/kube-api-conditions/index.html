@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Openshift Assisted Service Team">
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>Hive Integration - Conditions - Openshift Assisted Service</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../../css/theme.css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Hive Integration - Conditions";
+    var mkdocs_page_input_path = "hive-integration/kube-api-conditions.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Openshift Assisted Service</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../..">OAS Home</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-local/">OAS Running on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-openshift/">OAS Running on Openshift</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Openshift Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="" href="../../user-guide/user-guide.md">User Guide Index</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-local/">OCP Deployment on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-bare-metal/">OCP Deployment on Bare Metal</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-vsphere/">OCP Deployment on vSphere</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-RHEV/">OCP Deployment on RHEV</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-OSP/">OCP Deployment on Openstack</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Development</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../dev/migrations/">Migrations</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Openshift Assisted Service</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Hive Integration - Conditions</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="hive-integration-conditions">Hive Integration - Conditions</h1>
+<p>Conditions provide a standard mechanism for higher-level status reporting from a controller. Read more about conditions <a href="https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties">here</a></p>
+<h2 id="agentclusterinstall-conditions">AgentClusterInstall Conditions</h2>
+<p>AgentClusterInstall supported condition types are: <code>SpecSynced</code>, <code>RequirementsMet</code>, <code>Completed</code>, <code>Failed</code>, <code>Stopped</code> and <code>Validated</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Status</th>
+<th>Reason</th>
+<th>Message</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SpecSynced</td>
+<td>True</td>
+<td>SyncOK</td>
+<td>The Spec has been successfully applied</td>
+<td>If the Spec was successfully applied</td>
+</tr>
+<tr>
+<td>SpecSynced</td>
+<td>False</td>
+<td>BackendError</td>
+<td>The Spec could not be synced due to backend error: <err></td>
+<td>If the Spec was not applied due to 500 error</td>
+</tr>
+<tr>
+<td>SpecSynced</td>
+<td>False</td>
+<td>InputError</td>
+<td>The Spec could not be synced due to an input error: <err></td>
+<td>If the Spec was not applied due to 40X error</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Validated</td>
+<td>True</td>
+<td>ValidationsPassing</td>
+<td>The cluster's validations are passing</td>
+<td>Otherwise than other conditions</td>
+</tr>
+<tr>
+<td>Validated</td>
+<td>False</td>
+<td>ValidationsFailing</td>
+<td>The cluster's validations are failing: "summary of not-succeeded validations"</td>
+<td>If the cluster status is "insufficient"</td>
+</tr>
+<tr>
+<td>Validated</td>
+<td>False</td>
+<td>ValidationsUserPending</td>
+<td>The cluster's validations are pending for user: "summary of not-succeeded validations"</td>
+<td>If the cluster status is "pending-for-input"</td>
+</tr>
+<tr>
+<td>Validated</td>
+<td>Unknown</td>
+<td>ValidationsUnknown</td>
+<td>The cluster's validations have not yet been calculated</td>
+<td>If the validations have not yet been calculated</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>True</td>
+<td>ClusterIsReady</td>
+<td>The cluster is ready to begin the installation</td>
+<td>if the cluster status is "ready"</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>False</td>
+<td>ClusterNotReady</td>
+<td>The cluster is not ready to begin the installation</td>
+<td>If the cluster is before installation ("insufficient"/"pending-for-input")</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>True</td>
+<td>ClusterAlreadyInstalling</td>
+<td>The cluster requirements are met</td>
+<td>If the cluster has begun installing ("preparing-for-installation", "installing", "finalizing", "installing-pending-user-action", "adding-hosts")</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>True</td>
+<td>ClusterInstallationStopped</td>
+<td>The cluster installation stopped</td>
+<td>If the cluster has stopped installing ("installed", "error")</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>False</td>
+<td>InsufficientAgents</td>
+<td>The cluster currently requires <code>X</code> agents but only <code>Y</code> are ready</td>
+<td>If the cluster is ready but we don't have the expected number of ready agents</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>False</td>
+<td>UnapprovedAgents</td>
+<td>The installation is pending on the approval of <code>X</code> agents</td>
+<td>If the cluster is ready with the expected number of ready agents, but not all have been approved</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>False</td>
+<td>AdditionalAgents</td>
+<td>The cluster currently requires exactly <code>X</code> agents but have <code>Y</code> registered</td>
+<td>If the cluster is ready but more agents are registered than the number or required</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Completed</td>
+<td>True</td>
+<td>InstallationCompleted</td>
+<td>The installation has completed: "status_info"</td>
+<td>If the cluster status is "installed"</td>
+</tr>
+<tr>
+<td>Completed</td>
+<td>False</td>
+<td>InstallationFailed</td>
+<td>The installation has failed: "status_info"</td>
+<td>If the cluster status is "error"</td>
+</tr>
+<tr>
+<td>Completed</td>
+<td>False</td>
+<td>InstallationNotStarted</td>
+<td>The installation has not yet started</td>
+<td>If the cluster is before installation ("insufficient"/"pending-for-input"/"ready")</td>
+</tr>
+<tr>
+<td>Completed</td>
+<td>False</td>
+<td>InstallationOnHold</td>
+<td>The installation is on hold, to unhold set holdInstallation to false</td>
+<td>If the cluster is before installation and holdInstallation is set to true in the spec ("ready")</td>
+</tr>
+<tr>
+<td>Completed</td>
+<td>False</td>
+<td>InstallationInProgress</td>
+<td>The installation is in progress: "status_info"</td>
+<td>If the cluster is installing ("preparing-for-installation", "installing", "finalizing", "installing-pending-user-action")</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Failed</td>
+<td>True</td>
+<td>InstallationFailed</td>
+<td>The installation failed: "status_info"</td>
+<td>if the cluster status is "error"</td>
+</tr>
+<tr>
+<td>Failed</td>
+<td>False</td>
+<td>InstallationNotFailed</td>
+<td>The installation has not failed</td>
+<td>If the cluster status is not "error"</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Stopped</td>
+<td>True</td>
+<td>InstallationFailed</td>
+<td>The installation has stopped due to error</td>
+<td>if the cluster status is "error"</td>
+</tr>
+<tr>
+<td>Stopped</td>
+<td>True</td>
+<td>InstallationCancelled</td>
+<td>The installation has stopped because it was cancelled</td>
+<td>if the cluster status is "cancelled"</td>
+</tr>
+<tr>
+<td>Stopped</td>
+<td>True</td>
+<td>InstallationCompleted</td>
+<td>The installation has stopped because it completed successfully</td>
+<td>if the cluster status is "installed"</td>
+</tr>
+<tr>
+<td>Stopped</td>
+<td>False</td>
+<td>InstallationNotStopped</td>
+<td>The installation is waiting to start or in progress</td>
+<td>If the cluster status is not "error", "cancelled" or "installed</td>
+</tr>
+</tbody>
+</table>
+<p>Here an example of AgentClusterInstall conditions:</p>
+<pre><code class="language-sh">Status:
+  Conditions:
+    Last Probe Time:             2021-05-12T09:06:30Z
+    Last Transition Time:        2021-05-12T09:06:30Z
+    Message:                     The Spec has been successfully applied
+    Reason:                      SyncOK
+    Status:                      True
+    Type:                        SpecSynced
+    Last Probe Time:             2021-05-12T09:07:39Z
+    Last Transition Time:        2021-05-12T09:07:39Z
+    Message:                     The cluster requirements are met
+    Reason:                      ClusterAlreadyInstalling
+    Status:                      True
+    Type:                        RequirementsMet
+    Last Probe Time:             2021-05-12T09:07:39Z
+    Last Transition Time:        2021-05-12T09:07:39Z
+    Message:                     The cluster's validations are passing
+    Reason:                      ValidationsPassing
+    Status:                      True
+    Type:                        Validated
+    Last Probe Time:             2021-05-12T09:20:09Z
+    Last Transition Time:        2021-05-12T09:20:09Z
+    Message:                     The installation is in progress: Finalizing cluster installation
+    Reason:                      InstallationInProgress
+    Status:                      False
+    Type:                        Completed
+    Last Probe Time:             2021-05-12T09:06:30Z
+    Last Transition Time:        2021-05-12T09:06:30Z
+    Message:                     The installation has not failed
+    Reason:                      InstallationNotFailed
+    Status:                      False
+    Type:                        Failed
+    Last Probe Time:             2021-05-12T09:06:30Z
+    Last Transition Time:        2021-05-12T09:06:30Z
+    Message:                     The installation is waiting to start or in progress
+    Reason:                      InstallationNotStopped
+    Status:                      False
+    Type:                        Stopped
+</code></pre>
+<h2 id="agent-conditions">Agent Conditions</h2>
+<p>The Agent condition types supported are: <code>SpecSynced</code>, <code>Connected</code>, <code>RequirementsMet</code>, <code>Validated</code>, <code>Installed</code> and <code>Bound</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Status</th>
+<th>Reason</th>
+<th>Message</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SpecSynced</td>
+<td>True</td>
+<td>SyncOK</td>
+<td>The Spec has been successfully applied</td>
+<td>If the Spec was successfully applied</td>
+</tr>
+<tr>
+<td>SpecSynced</td>
+<td>False</td>
+<td>BackendError</td>
+<td>The Spec could not be synced due to backend error: <err></td>
+<td>If the Spec was not applied due to 500 error</td>
+</tr>
+<tr>
+<td>SpecSynced</td>
+<td>False</td>
+<td>InputError</td>
+<td>The Spec could not be synced due to an input error: <err></td>
+<td>If the Spec was not applied due to 40X error</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Validated</td>
+<td>True</td>
+<td>ValidationsPassing</td>
+<td>The agent's validations are passing</td>
+<td>Otherwise than other conditions</td>
+</tr>
+<tr>
+<td>Validated</td>
+<td>False</td>
+<td>ValidationsFailing</td>
+<td>The agent's validations are failing: "summary of not-succeeded validations"</td>
+<td>If the host status is "insufficient"</td>
+</tr>
+<tr>
+<td>Validated</td>
+<td>False</td>
+<td>ValidationsUserPending</td>
+<td>The agent's validations are pending for user: "summary of not-succeeded validations"</td>
+<td>If the host status is "pending-for-input"</td>
+</tr>
+<tr>
+<td>Validated</td>
+<td>Unknown</td>
+<td>ValidationsUnknown</td>
+<td>The agent's validations have not yet been calculated</td>
+<td>If the validations have not yet been calculated</td>
+</tr>
+<tr>
+<td>Validated</td>
+<td>False</td>
+<td>Binding</td>
+<td>The agent is currently binding to a cluster deployment</td>
+<td>If the host status is "binding"</td>
+</tr>
+<tr>
+<td>Validated</td>
+<td>False</td>
+<td>Unbinding</td>
+<td>The agent is currently unbinding from a cluster deployment</td>
+<td>If the host status is "unbinding" or "unbinding-pending-user-action"</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>True</td>
+<td>AgentIsReady</td>
+<td>The agent is ready to begin the installation</td>
+<td>If the host is approved and in status "known"</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>False</td>
+<td>AgentNotReady</td>
+<td>The agent is not ready to begin the installation</td>
+<td>If the host is before installation ("discovering"/"insufficient"/"disconnected"/"pending-input")</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>False</td>
+<td>AgentIsNotApproved</td>
+<td>The agent is not approved</td>
+<td>If the host is not approved and in status "known"</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>True</td>
+<td>AgentAlreadyInstalling</td>
+<td>Installation already started and is in progress</td>
+<td>If the agent has begun installing ("preparing-successful","preparing-for-installation", "installing")</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>True</td>
+<td>AgentInstallationStopped</td>
+<td>The agent installation stopped</td>
+<td>If the agent has stopped installing ("installed", "error")</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>False</td>
+<td>Binding</td>
+<td>The agent is currently binding to a cluster deployment</td>
+<td>If the host status is "binding"</td>
+</tr>
+<tr>
+<td>RequirementsMet</td>
+<td>False</td>
+<td>Unbinding</td>
+<td>The agent is currently unbinding from a cluster deployment</td>
+<td>If the host status is "unbinding" or "unbinding-pending-user-action"</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Installed</td>
+<td>True</td>
+<td>InstallationCompleted</td>
+<td>The installation has completed: "status_info"</td>
+<td>If the host status is "installed"</td>
+</tr>
+<tr>
+<td>Installed</td>
+<td>False</td>
+<td>InstallationFailed</td>
+<td>The installation has failed: "status_info"</td>
+<td>If the host status is "error"</td>
+</tr>
+<tr>
+<td>Installed</td>
+<td>False</td>
+<td>InstallationNotStarted</td>
+<td>The installation has not yet started</td>
+<td>If the cluster is before installation ("discovering"/"insufficient"/"disconnected"/"pending-input/known")</td>
+</tr>
+<tr>
+<td>Installed</td>
+<td>False</td>
+<td>InstallationInProgress</td>
+<td>The installation is in progress: "status_info"</td>
+<td>If the host is installing ("preparing-for-installation", "preparing-successful", "installing")</td>
+</tr>
+<tr>
+<td>Installed</td>
+<td>False</td>
+<td>Binding</td>
+<td>The agent is currently binding to a cluster deployment</td>
+<td>If the host status is "binding"</td>
+</tr>
+<tr>
+<td>Installed</td>
+<td>False</td>
+<td>Unbinding</td>
+<td>The agent is currently unbinding from a cluster deployment</td>
+<td>If the host status is "unbinding" or "unbinding-pending-user-action"</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Connected</td>
+<td>True</td>
+<td>AgentIsConnected</td>
+<td>The agent has not contacted the installation service in some time, user action should be taken</td>
+<td>If the host status is not "disconnected"</td>
+</tr>
+<tr>
+<td>Connected</td>
+<td>False</td>
+<td>AgentIsDisconnected</td>
+<td>The agent's connection to the installation service is unimpaired</td>
+<td>If the host status is "error"</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Bound</td>
+<td>True</td>
+<td>Bound</td>
+<td>The agent is bound to a cluster deployment</td>
+<td>If the host status is "known", "disconnected", "disconnected", "insufficient", "disabled" or "discovering"</td>
+</tr>
+<tr>
+<td>Bound</td>
+<td>False</td>
+<td>Bound</td>
+<td>The agent is not bound to any cluster deployment</td>
+<td>If the host status is "known-unbound", "disconnected-unbound", "disconnected-unbound", "insufficient-unbound", "disabled-unbound" or "discovering-unbound"</td>
+</tr>
+<tr>
+<td>Bound</td>
+<td>False</td>
+<td>Binding</td>
+<td>The agent is currently binding to a cluster deployment</td>
+<td>If the host status is "binding"</td>
+</tr>
+<tr>
+<td>Bound</td>
+<td>False</td>
+<td>Unbinding</td>
+<td>The agent is currently unbinding from a cluster deployment</td>
+<td>If the host status is "unbinding"</td>
+</tr>
+<tr>
+<td>Bound</td>
+<td>False</td>
+<td>UnbindingPendingUserAction</td>
+<td>The agent is currently unbinding; Pending host reboot from infraenv image</td>
+<td>If the host status is "unbinding-pending-user-action"</td>
+</tr>
+</tbody>
+</table>
+<p>Here an example of Agent conditions:</p>
+<pre><code class="language-sh">Status:
+  Conditions:
+    Last Transition Time:  2021-04-22T15:50:24Z
+    Message:               The Spec has been successfully applied
+    Reason:                SyncOK
+    Status:                True
+    Type:                  SpecSynced
+    Last Transition Time:  2021-04-22T15:50:24Z
+    Message:               The agent's connection to the installation service is unimpaired
+    Reason:                AgentIsConnected
+    Status:                True
+    Type:                  Connected
+    Last Transition Time:  2021-04-22T15:50:33Z
+    Message:               Installation already started and is in progress
+    Reason:                AgentAlreadyInstalling
+    Status:                True
+    Type:                  RequirementsMet
+    Last Transition Time:  2021-04-22T15:50:26Z
+    Message:               The agent's validations are passing
+    Reason:                ValidationsPassing
+    Status:                True
+    Type:                  Validated
+    Last Transition Time:  2021-04-22T15:50:24Z
+    Message:               The installation is in progress: Host is preparing for installation
+    Reason:                InstallationInProgress
+    Status:                False
+    Type:                  Installed
+</code></pre>
+<h2 id="infraenv-conditions">InfraEnv Conditions</h2>
+<p>The InfraEnv condition type supported is: <code>ImageCreated</code></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Status</th>
+<th>Reason</th>
+<th>Message</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ImageCreated</td>
+<td>True</td>
+<td>ImageCreated</td>
+<td>Image has been created</td>
+<td>If the ISO image was successfully created</td>
+</tr>
+<tr>
+<td>ImageCreated</td>
+<td>False</td>
+<td>ImageCreationError</td>
+<td>Failed to create image: "error message"</td>
+<td>If the ISO image was not successfully created</td>
+</tr>
+</tbody>
+</table>
+<p>Here an example of InfraEnv conditions:</p>
+<pre><code class="language-sh">Status:
+  Conditions:
+    Last Transition Time:  2021-04-22T15:49:35Z
+    Message:               Image has been created
+    Reason:                ImageCreated
+    Status:                True
+    Type:                  ImageCreated
+</code></pre>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+  </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme_extra.js" defer></script>
+    <script src="../../js/theme.js" defer></script>
+      <script src="../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

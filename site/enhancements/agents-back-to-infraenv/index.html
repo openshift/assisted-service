@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Openshift Assisted Service Team">
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>agents-back-to-infraenv - Openshift Assisted Service</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../../css/theme.css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "agents-back-to-infraenv";
+    var mkdocs_page_input_path = "enhancements/agents-back-to-infraenv.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Openshift Assisted Service</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../..">OAS Home</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-local/">OAS Running on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-openshift/">OAS Running on Openshift</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Openshift Deployment</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="" href="../../user-guide/user-guide.md">User Guide Index</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-local/">OCP Deployment on Local</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-bare-metal/">OCP Deployment on Bare Metal</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-vsphere/">OCP Deployment on vSphere</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-RHEV/">OCP Deployment on RHEV</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-OSP/">OCP Deployment on Openstack</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">OAS Development</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../dev/migrations/">Migrations</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Openshift Assisted Service</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>agents-back-to-infraenv</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="return-agents-back-to-infraenv-late-binding">Return Agents back to InfraEnv - late binding</h1>
+<h2 id="summary">Summary</h2>
+<p>When a user deletes a ClusterDeployment/AgentClusterInstall resource, the Agents resources bound to that CD should not be deleted. 
+In that case, the Agents should be unbound and if needed the host should be rebooted with the Discovery ISO.</p>
+<p>In addition, the user should be able to unbind a single Agent from a ClusterDeployment so that this Agent should be available back in the InfraEnv running with the Discovery ISO even if the Agent is already installed or in error/cancelled phases.</p>
+<p>Note that this mechanism should be available only for Agents created from an InFraEnv that is not associated to a ClusterDeployment.</p>
+<h2 id="motivation">Motivation</h2>
+<p>In the late binding flow, the cluster creator selects the Agents he wants to include in a new cluster from a collection of free Agents managed by the infrastructure administrator.</p>
+<p>Once the cluster creator deletes the cluster or unbinds a specific Agent, the Agents should be available back to the collection of free Agents for use in future clusters.</p>
+<h3 id="goals">Goals</h3>
+<ul>
+<li>Return Agents to the InfraEnv after the CD/ACI they are bound to is deleted.</li>
+<li>Return Agents to the InfraEnv after the Agent is unbound even if the Agent is already installed.</li>
+<li>If needed, the host should be rebooted with the Discovery ISO.</li>
+</ul>
+<h3 id="non-goals">Non-Goals</h3>
+<ul>
+<li>Graceful removal of nodes from an installed OpenShift cluster is out of scope of this proposal.</li>
+<li>Unbinding a single Agent that is in installation phases is not supported for now.</li>
+</ul>
+<h2 id="proposal">Proposal</h2>
+<p>Once a user deletes a CD/ACI created with late binding, the assisted-service will not delete the Agents/Hosts.
+It will remove the CD reference from the Agents and in case that it needs to be rebooted, the host will move to a new state <code>unbinding-requires-user-action</code>.</p>
+<p>If the user unbinds a single Agent that is already installed or in error/cancelled phases, the host will move to the state <code>unbinding-requires-user-action</code>.</p>
+<p>The host will move to the state <code>unbinding-requires-user-action</code> if it was in one of the following state: <code>Installed</code>, <code>Cancelled</code> , <code>Error</code> or <code>Added To Existing Cluster</code>.</p>
+<p>In case of Zero Touch Provisioning, the Bare Metal Agent Controller will detect the state and it will reboot the corresponding BareMetalHost with the Discovery ISO.</p>
+<p>In case of Boot It YourSelf, it is the user responsibility to reboot the host.</p>
+<h3 id="assisted-service">assisted-service</h3>
+<p>When a cluster is deleted:
+- For each of the hosts:
+  - If the Host's InfraEnv is associated to the Cluster (not late binding):
+    - Delete the Host
+  - If the Host's InfraEnv is not associated to the Cluster (late binding):
+    - Unbind the Host.</p>
+<h3 id="assisted-service-clusterdeployment-controller">assisted-service ClusterDeployment controller</h3>
+<p>When a ClusterDeployment/AgentClusterInstall is deleted:</p>
+<ul>
+<li>For each of the agents:</li>
+<li>If the Host's InfraEnv is associated to the Cluster (not late binding):<ul>
+<li>Delete the Agent CR</li>
+</ul>
+</li>
+<li>If the Host's InfraEnv is not associated to the Cluster (late binding):<ul>
+<li>Unbind by updating the Agent CR CD's reference to nil.</li>
+</ul>
+</li>
+</ul>
+<h3 id="agent-controller">Agent Controller</h3>
+<p>Support new <code>Reason</code> for <code>Unbound</code> condition in case the host is in <code>unbinding-requires-user-action</code> state.</p>
+<h3 id="assisted-service-host-state-machine">assisted-service host state machine</h3>
+<p>When <code>UnBindHost</code> is called, move to the state of <code>unbinding-requires-user-action</code> if the current state is in one of the following states: <code>Installed</code>, <code>Cancelled</code> , <code>Error</code> or <code>Added To Existing Cluster</code>.</p>
+<h3 id="bare-metal-agent-controller">Bare Metal Agent Controller</h3>
+<p>The Bare Metal Agent Controller will watch for Agents and monitor the <code>Bound</code> condition.
+If the Reason is <code>unbinding-requires-user-action</code>, the BareMetalHost will be rebooted with the Discovery ISO.</p>
+<h3 id="user-stories">User Stories</h3>
+<h4 id="story-1">Story 1</h4>
+<p>As an Infrastructure Admin, I want that hosts that are not used anymore by the Cluster Creator to be available back as unbound Agents in the original InfraEnv.</p>
+<h4 id="story-2">Story 2</h4>
+<p>As a Cluster Creator, I want to be able to delete a ClusterDeployment with Agents so that these Agents will be available to create
+a new Cluster.</p>
+<h4 id="story-3">Story 3</h4>
+<p>As a Cluster Creator, I want to be able to unbind an Agent from a ClusterDeployment so that this Agent will be available to use in a new Cluster even if the Agent is already installed or in error/cancelled stages.</p>
+<h3 id="implementation-detailsnotesconstraints">Implementation Details/Notes/Constraints</h3>
+<ul>
+<li>On Boot It Yourself flow, it is the user responsibility to reboot the host and remove the need-boot label.</li>
+</ul>
+<h3 id="risks-and-mitigations">Risks and Mitigations</h3>
+<h2 id="design-details-optional">Design Details [optional]</h2>
+<h3 id="open-questions">Open Questions</h3>
+<ul>
+<li>Should we support in the future to Unbind a single Host that is in installation phases?</li>
+<li>If the installation already started, should there be a mechanism to signal the Agent to stop the installation and register again? (Optimization path, instead of rebooting the host if Agent is still running)</li>
+</ul>
+<h3 id="ui-impact">UI Impact</h3>
+<p>There should be no impact for UI in Central Management Infrastructure flows.</p>
+<h3 id="test-plan">Test Plan</h3>
+<p>Test Cases:
+* Create a cluster with Agents not using late-binding
+  - Delete the cluster. Agents should be deleted.
+* Create a cluster with Agents using late-binding
+  - Delete the cluster. Agents should not be deleted.
+  - The Agents should not have a reference to the CD.
+  - <code>Bound</code> condition should be if <code>false</code> with reason <code>UnbindingPendingUserAction</code> if the agents were in <code>Installed</code>, <code>Cancelled</code>, <code>Error</code> or <code>Added To Existing Cluster</code>.
+  - If BMH is used, the host should be rebooted.
+* Install a cluster with Agents using late-binding
+  - Unbind an installed Agent
+  - <code>Bound</code> condition should be if <code>false</code> with reason <code>UnbindingPendingUserAction</code> if the agents were in <code>Installed</code>, <code>Cancelled</code>, <code>Error</code> or <code>Added To Existing Cluster</code>.
+  - If BMH is used, the host should be rebooted.</p>
+<h2 id="drawbacks">Drawbacks</h2>
+<h2 id="alternatives">Alternatives</h2>
+<p>Instead of the keeping the Agent, the controller can delete it, and mark the BMH to reboot from ISO.
+The Agent will be recreated after the reboot of the host.</p>
+<p>In this case, the spec of the Agent will be lost (Hostname, Role, Installation Disk) and all the hosts will be rebooted regardless of the Agent state.</p>
+<p>Note, that having the Agent CR provides easier debug source for the user.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+  </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme_extra.js" defer></script>
+    <script src="../../js/theme.js" defer></script>
+      <script src="../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

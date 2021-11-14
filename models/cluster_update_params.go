@@ -107,7 +107,7 @@ type ClusterUpdateParams struct {
 	// platform
 	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embedded_prefix:platform_"`
 
-	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
+	// The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
 	PullSecret *string `json:"pull_secret,omitempty"`
 
 	// Schedule workloads on masters
