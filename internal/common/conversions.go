@@ -1,6 +1,9 @@
 package common
 
-import "github.com/openshift/assisted-service/models"
+import (
+	"github.com/go-openapi/strfmt"
+	"github.com/openshift/assisted-service/models"
+)
 
 func PlatformTypePtr(p models.PlatformType) *models.PlatformType {
 	return &p
@@ -33,4 +36,11 @@ func LogStateValue(l *models.LogsState) models.LogsState {
 		return ""
 	}
 	return *l
+}
+
+func StrFmtUUIDVal(u *strfmt.UUID) strfmt.UUID {
+	if u == nil {
+		return ""
+	}
+	return *u
 }
