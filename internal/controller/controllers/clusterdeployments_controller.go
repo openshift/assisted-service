@@ -1059,6 +1059,12 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 		OpenshiftVersion: swag.String(*releaseImage.Version),
 	}
 
+	// add optional parameter
+	if clusterInstall.Spec.ClusterMetadata != nil {
+		cid := strfmt.UUID(clusterInstall.Spec.ClusterMetadata.ClusterID)
+		clusterParams.OpenshiftClusterID = &cid
+	}
+
 	c, err := r.Installer.V2ImportClusterInternal(ctx, &key, &id, installer.V2ImportClusterParams{
 		NewImportClusterParams: clusterParams,
 	}, true)

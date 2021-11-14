@@ -1313,33 +1313,6 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionUnknown))
 		})
 
-		It("Create day2 if day1 is already deleted none SNO", func() {
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
-			id := strfmt.UUID(uuid.New().String())
-			clusterReply := &common.Cluster{
-				Cluster: models.Cluster{
-					ID:     &id,
-					Status: swag.String(models.ClusterStatusAddingHosts),
-				},
-			}
-			mockInstallerInternal.EXPECT().V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), common.DoInfraEnvCreation).Return(clusterReply, nil)
-			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
-			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
-				Type:    hiveext.ClusterCompletedCondition,
-				Status:  corev1.ConditionTrue,
-				Reason:  hiveext.ClusterInstalledReason,
-				Message: hiveext.ClusterInstalledMsg,
-			})
-			Expect(c.Status().Update(ctx, aci)).Should(BeNil())
-			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(ctx, request)
-			Expect(err).To(BeNil())
-			Expect(result).To(Equal(ctrl.Result{}))
-
-			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
-		})
-
 		It("installed - fail to get kube config", func() {
 			openshiftID := strfmt.UUID(uuid.New().String())
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
@@ -2424,6 +2397,78 @@ var _ = Describe("cluster reconcile", func() {
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
+		})
+	})
+
+	Context("import installed cluster", func() {
+		var (
+			cluster *hivev1.ClusterDeployment
+			aci     *hiveext.AgentClusterInstall
+		)
+
+		BeforeEach(func() {
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
+			Expect(c.Create(ctx, imageSet)).To(BeNil())
+			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			cluster.Spec.Installed = true
+			Expect(c.Create(ctx, cluster)).To(BeNil())
+			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
+		})
+
+		It("success", func() {
+			cid := uuid.New().String()
+			aci.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
+				ClusterID: cid,
+			}
+			Expect(c.Update(ctx, aci)).To(BeNil())
+
+			id := strfmt.UUID(uuid.New().String())
+			clusterReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:     &id,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+				},
+			}
+
+			V2ImportClusterInternal := func(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID,
+				params installer.V2ImportClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error) {
+				Expect(string(*params.NewImportClusterParams.OpenshiftClusterID)).To(Equal(cid))
+				return clusterReply, nil
+			}
+			mockInstallerInternal.EXPECT().
+				V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), common.DoInfraEnvCreation).
+				DoAndReturn(V2ImportClusterInternal)
+			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+		})
+
+		It("failure creating cluster", func() {
+			mockInstallerInternal.EXPECT().
+				V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), common.DoInfraEnvCreation).
+				Return(nil, errors.Errorf("failed to import cluster"))
+			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{
+				RequeueAfter: defaultRequeueAfterOnError,
+			}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
 		})
 	})
 })
