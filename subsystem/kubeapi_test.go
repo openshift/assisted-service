@@ -3277,6 +3277,26 @@ spec:
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
 		checkAgentClusterInstallConditionConsistency(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
 	})
+
+	It("import installed cluster", func() {
+		By("deploy installed cluster deployment")
+		clusterDeploymentSpec.Installed = true
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		By("deploy agent cluster install")
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		By("check ACI conditions")
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterStoppedCompletedReason)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterValidatedCondition, hiveext.ClusterValidationsPassingReason)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterFailedCondition, hiveext.ClusterNotFailedReason)
+	})
+
 })
 
 var _ = Describe("bmac reconcile flow", func() {
