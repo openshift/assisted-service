@@ -77,7 +77,7 @@ type BindHostParams struct {
 
 	/* InfraEnvID.
 
-	   The infra env of the host that is being bound.
+	   The infra-env of the host that is being bound.
 
 	   Format: uuid
 	*/

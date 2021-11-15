@@ -31,7 +31,7 @@ type DownloadInfraEnvDiscoveryImageParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The InfraEnv whose image should be downloaded.
+	/*The infra-env whose image should be downloaded.
 	  Required: true
 	  In: path
 	*/

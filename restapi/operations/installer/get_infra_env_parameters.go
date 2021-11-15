@@ -31,7 +31,7 @@ type GetInfraEnvParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The InfraEnv to be retrieved.
+	/*The infra-env to be retrieved.
 	  Required: true
 	  In: path
 	*/

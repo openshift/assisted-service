@@ -41,7 +41,7 @@ type V2UpdateHostInstallerArgsParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The InfraEnv of the host whose installer arguments should be updated.
+	/*The infra-env of the host whose installer arguments should be updated.
 	  Required: true
 	  In: path
 	*/

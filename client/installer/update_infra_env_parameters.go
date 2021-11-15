@@ -69,7 +69,7 @@ type UpdateInfraEnvParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv to be updated.
+	   The infra-env to be updated.
 
 	   Format: uuid
 	*/

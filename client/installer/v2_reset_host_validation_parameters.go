@@ -69,7 +69,7 @@ type V2ResetHostValidationParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv of the host that its validation is being reset.
+	   The infra-env of the host that its validation is being reset.
 
 	   Format: uuid
 	*/

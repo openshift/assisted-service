@@ -61,7 +61,7 @@ type DownloadMinimalInitrdParams struct {
 
 	/* InfraEnvID.
 
-	   The infra env of the host that should be retrieved.
+	   The infra-env of the host that should be retrieved.
 
 	   Format: uuid
 	*/

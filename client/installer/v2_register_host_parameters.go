@@ -69,7 +69,7 @@ type V2RegisterHostParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv that the agent is associated with.
+	   The infra-env that the agent is associated with.
 
 	   Format: uuid
 	*/

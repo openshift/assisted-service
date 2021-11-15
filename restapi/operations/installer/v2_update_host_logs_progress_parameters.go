@@ -41,7 +41,7 @@ type V2UpdateHostLogsProgressParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The InfraEnv whose log progress is being updated.
+	/*The infra-env whose log progress is being updated.
 	  Required: true
 	  In: path
 	*/

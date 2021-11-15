@@ -40,7 +40,7 @@ type V2RegisterHostParams struct {
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-	/*The InfraEnv that the agent is associated with.
+	/*The infra-env that the agent is associated with.
 	  Required: true
 	  In: path
 	*/

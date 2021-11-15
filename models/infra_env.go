@@ -66,7 +66,7 @@ type InfraEnv struct {
 	// Enum: [InfraEnv]
 	Kind *string `json:"kind"`
 
-	// Name of the InfraEnv.
+	// Name of the infra-env.
 	// Required: true
 	Name *string `json:"name"`
 
@@ -96,7 +96,7 @@ type InfraEnv struct {
 	// Required: true
 	Type *ImageType `json:"type"`
 
-	// The last time that this infraenv was updated.
+	// The last time that this infra-env was updated.
 	// Required: true
 	// Format: date-time
 	UpdatedAt *timeext.Time `json:"updated_at" gorm:"type:timestamp with time zone"`

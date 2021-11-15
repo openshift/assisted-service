@@ -46,7 +46,7 @@ type BindHostParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The infra env of the host that is being bound.
+	/*The infra-env of the host that is being bound.
 	  Required: true
 	  In: path
 	*/

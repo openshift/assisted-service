@@ -61,7 +61,7 @@ type DownloadInfraEnvDiscoveryImageHeadersParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv whose image headers should be retrieved.
+	   The infra-env whose image headers should be retrieved.
 
 	   Format: uuid
 	*/

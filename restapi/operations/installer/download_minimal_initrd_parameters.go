@@ -31,7 +31,7 @@ type DownloadMinimalInitrdParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The infra env of the host that should be retrieved.
+	/*The infra-env of the host that should be retrieved.
 	  Required: true
 	  In: path
 	*/

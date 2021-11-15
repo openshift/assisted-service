@@ -3304,7 +3304,7 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      description: Retrieves the list of InfraEnvs.
+      description: Retrieves the list of infra-envs.
       operationId: ListInfraEnvs
       responses:
         "200":
@@ -3343,12 +3343,12 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
-      description: Retrieves the details of the InfraEnv.
+      description: Retrieves the details of the infra-env.
       operationId: GetInfraEnv
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv to be retrieved.
+          description: The infra-env to be retrieved.
           type: string
           format: uuid
           required: true
@@ -3389,12 +3389,12 @@ paths:
     patch:
       tags:
         - installer
-      description: Updates an InfraEnv.
+      description: Updates an infra-env.
       operationId: UpdateInfraEnv
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv to be updated.
+          description: The infra-env to be updated.
           type: string
           format: uuid
           required: true
@@ -3445,12 +3445,12 @@ paths:
     delete:
       tags:
         - installer
-      description: Deletes an InfraEnv.
+      description: Deletes an infra-env.
       operationId: DeregisterInfraEnv
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv to be deleted.
+          description: The infra-env to be deleted.
           format: uuid
           type: string
           required: true
@@ -3501,7 +3501,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv whose image should be downloaded.
+          description: The infra-env whose image should be downloaded.
           type: string
           format: uuid
           required: true
@@ -3553,7 +3553,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv whose image headers should be retrieved.
+          description: The infra-env whose image headers should be retrieved.
           type: string
           format: uuid
           required: true
@@ -3607,7 +3607,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv that the agent is associated with.
+          description: The infra-env that the agent is associated with.
           type: string
           format: uuid
           required: true
@@ -3669,12 +3669,12 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
-      description: Retrieves the list of OpenShift hosts that belong to infra-env.
+      description: Retrieves the list of OpenShift hosts that belong the infra-env.
       operationId: v2ListHosts
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv that the hosts are asociated with.
+          description: The infra-env that the hosts are asociated with.
           type: string
           format: uuid
           required: true
@@ -3719,7 +3719,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The infra env of the host that should be retrieved.
+          description: The infra-env of the host that should be retrieved.
           type: string
           format: uuid
           required: true
@@ -3766,7 +3766,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The infra_env_id of the host to be updated.
+          description: The infra-env ID of the host to be updated.
           type: string
           format: uuid
           required: true
@@ -3823,7 +3823,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The infra env of the host that should be deregistered.
+          description: The infra-env of the host that should be deregistered.
           type: string
           format: uuid
           required: true
@@ -3873,7 +3873,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The infra env of the host that is retrieving instructions.
+          description: The infra-env of the host that is retrieving instructions.
           type: string
           format: uuid
           required: true
@@ -3937,7 +3937,7 @@ paths:
           required: false
         - in: path
           name: infra_env_id
-          description: The infra env of the host that is posting results.
+          description: The infra-env of the host that is posting results.
           type: string
           format: uuid
           required: true
@@ -4004,7 +4004,7 @@ paths:
           required: false
         - in: path
           name: infra_env_id
-          description: The InfraEnv of the host being updated.
+          description: The infra-env of the host being updated.
           type: string
           format: uuid
           required: true
@@ -4057,7 +4057,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The infra env of the host that is being bound.
+          description: The infra-env of the host that is being bound.
           type: string
           format: uuid
           required: true
@@ -4120,7 +4120,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The infra env of the host that is being bound.
+          description: The infra-env of the host that is being bound.
           type: string
           format: uuid
           required: true
@@ -4182,7 +4182,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv of the host that its validation is being reset.
+          description: The infra-env of the host that its validation is being reset.
           type: string
           format: uuid
           required: true
@@ -4236,7 +4236,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv of the host that is being reset.
+          description: The infra-env of the host that is being reset.
           type: string
           format: uuid
           required: true
@@ -4281,7 +4281,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv of the host that is being installed.
+          description: The infra-env of the host that is being installed.
           type: string
           format: uuid
           required: true
@@ -4326,7 +4326,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv of the host whose installer arguments should be updated.
+          description: The infra-env of the host whose installer arguments should be updated.
           type: string
           format: uuid
           required: true
@@ -4389,7 +4389,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The infra env of the host whose ignition file should be obtained.
+          description: The infra-env of the host whose ignition file should be obtained.
           type: string
           format: uuid
           required: true
@@ -4440,7 +4440,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv of the host whose ignition file should be updated.
+          description: The infra-env of the host whose ignition file should be updated.
           type: string
           format: uuid
           required: true
@@ -4504,7 +4504,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv whose file should be downloaded.
+          description: The infra-env whose file should be downloaded.
           type: string
           format: uuid
           required: true
@@ -4563,7 +4563,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The InfraEnv whose log progress is being updated.
+          description: The infra-env whose log progress is being updated.
           type: string
           format: uuid
           required: true
@@ -4987,7 +4987,7 @@ paths:
       parameters:
         - in: path
           name: infra_env_id
-          description: The infra env of the host that should be retrieved.
+          description: The infra-env of the host that should be retrieved.
           type: string
           format: uuid
           required: true
@@ -5867,7 +5867,7 @@ paths:
           required: true
         - in: query
           name: infra_env_id
-          description: The infra_env_id of the host.
+          description: The infra-env ID of the host.
           type: string
           format: uuid
           required: false
@@ -6096,7 +6096,7 @@ paths:
           required: false
         - in: query
           name: infra_env_id
-          description: The infra env to return events for.
+          description: The infra-env to return events for.
           type: string
           format: uuid
           required: false
@@ -6588,7 +6588,7 @@ definitions:
       infra_env_id:
         type: string
         format: uuid
-        description: Unique identifier of the infra env this event relates to.
+        description: Unique identifier of the infra-env this event relates to.
         x-go-custom-tag: gorm:"index"
         x-nullable: true
       severity:
@@ -6703,7 +6703,7 @@ definitions:
         type: string
         format: uuid
         x-go-custom-tag: gorm:"primary_key;foreignkey:InfraEnvID"
-        description: The InfraEnv that this host is associated with.
+        description: The infra-env that this host is associated with.
       status:
         type: string
         enum:
@@ -8986,7 +8986,7 @@ definitions:
         description: Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
       name:
         type: string
-        description: Name of the InfraEnv.
+        description: Name of the infra-env.
       user_name:
         type: string
       org_id:
@@ -9034,7 +9034,7 @@ definitions:
           hints:
             noValidation: true
         x-go-custom-tag: gorm:"type:timestamp with time zone"
-        description: The last time that this infraenv was updated.
+        description: The last time that this infra-env was updated.
       created_at:
         type: string
         format: date-time
@@ -9091,7 +9091,7 @@ definitions:
     properties:
       name:
         type: string
-        description: Name of the InfraEnv.
+        description: Name of the infra-env.
       proxy:
         $ref: "#/definitions/proxy"
       additional_ntp_sources:

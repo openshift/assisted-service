@@ -69,7 +69,7 @@ type V2GetHostIgnitionParams struct {
 
 	/* InfraEnvID.
 
-	   The infra env of the host whose ignition file should be obtained.
+	   The infra-env of the host whose ignition file should be obtained.
 
 	   Format: uuid
 	*/

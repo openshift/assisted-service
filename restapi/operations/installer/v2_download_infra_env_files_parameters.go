@@ -37,7 +37,7 @@ type V2DownloadInfraEnvFilesParams struct {
 	  In: query
 	*/
 	FileName string
-	/*The InfraEnv whose file should be downloaded.
+	/*The infra-env whose file should be downloaded.
 	  Required: true
 	  In: path
 	*/

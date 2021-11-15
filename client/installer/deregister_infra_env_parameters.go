@@ -61,7 +61,7 @@ type DeregisterInfraEnvParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv to be deleted.
+	   The infra-env to be deleted.
 
 	   Format: uuid
 	*/

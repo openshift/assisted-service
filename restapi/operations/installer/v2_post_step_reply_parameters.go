@@ -44,7 +44,7 @@ type V2PostStepReplyParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The infra env of the host that is posting results.
+	/*The infra-env of the host that is posting results.
 	  Required: true
 	  In: path
 	*/

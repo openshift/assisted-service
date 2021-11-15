@@ -78,7 +78,7 @@ type Host struct {
 	// Array of image statuses.
 	ImagesStatus string `json:"images_status,omitempty" gorm:"type:text"`
 
-	// The InfraEnv that this host is associated with.
+	// The infra-env that this host is associated with.
 	// Format: uuid
 	InfraEnvID strfmt.UUID `json:"infra_env_id,omitempty" gorm:"primary_key;foreignkey:InfraEnvID"`
 

@@ -40,7 +40,7 @@ type V2GetNextStepsParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The infra env of the host that is retrieving instructions.
+	/*The infra-env of the host that is retrieving instructions.
 	  Required: true
 	  In: path
 	*/

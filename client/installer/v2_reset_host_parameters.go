@@ -69,7 +69,7 @@ type V2ResetHostParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv of the host that is being reset.
+	   The infra-env of the host that is being reset.
 
 	   Format: uuid
 	*/

@@ -69,7 +69,7 @@ type V2InstallHostParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv of the host that is being installed.
+	   The infra-env of the host that is being installed.
 
 	   Format: uuid
 	*/

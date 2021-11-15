@@ -46,7 +46,7 @@ type V2UpdateHostParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The infra_env_id of the host to be updated.
+	/*The infra-env ID of the host to be updated.
 	  Required: true
 	  In: path
 	*/

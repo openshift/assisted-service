@@ -36,7 +36,7 @@ type V2ResetHostValidationParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The InfraEnv of the host that its validation is being reset.
+	/*The infra-env of the host that its validation is being reset.
 	  Required: true
 	  In: path
 	*/

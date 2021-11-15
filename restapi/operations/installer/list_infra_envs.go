@@ -31,7 +31,7 @@ func NewListInfraEnvs(ctx *middleware.Context, handler ListInfraEnvsHandler) *Li
 
 /* ListInfraEnvs swagger:route GET /v2/infra-envs installer listInfraEnvs
 
-Retrieves the list of InfraEnvs.
+Retrieves the list of infra-envs.
 
 */
 type ListInfraEnvs struct {

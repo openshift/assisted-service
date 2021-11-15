@@ -41,7 +41,7 @@ type UpdateInfraEnvParams struct {
 	  In: body
 	*/
 	InfraEnvUpdateParams *models.InfraEnvUpdateParams
-	/*The InfraEnv to be updated.
+	/*The infra-env to be updated.
 	  Required: true
 	  In: path
 	*/

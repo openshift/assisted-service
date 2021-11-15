@@ -37,7 +37,7 @@ type Event struct {
 	// Format: uuid
 	HostID *strfmt.UUID `json:"host_id,omitempty" gorm:"index"`
 
-	// Unique identifier of the infra env this event relates to.
+	// Unique identifier of the infra-env this event relates to.
 	// Format: uuid
 	InfraEnvID *strfmt.UUID `json:"infra_env_id,omitempty" gorm:"index"`
 

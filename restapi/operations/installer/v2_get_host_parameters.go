@@ -36,7 +36,7 @@ type V2GetHostParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The infra env of the host that should be retrieved.
+	/*The infra-env of the host that should be retrieved.
 	  Required: true
 	  In: path
 	*/

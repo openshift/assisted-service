@@ -77,7 +77,7 @@ type V2PostStepReplyParams struct {
 
 	/* InfraEnvID.
 
-	   The infra env of the host that is posting results.
+	   The infra-env of the host that is posting results.
 
 	   Format: uuid
 	*/
