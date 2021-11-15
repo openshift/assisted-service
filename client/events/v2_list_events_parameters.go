@@ -84,7 +84,7 @@ type V2ListEventsParams struct {
 
 	/* InfraEnvID.
 
-	   The infra env to return events for.
+	   The infra-env to return events for.
 
 	   Format: uuid
 	*/

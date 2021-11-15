@@ -46,7 +46,7 @@ type V2UpdateHostIgnitionParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The InfraEnv of the host whose ignition file should be updated.
+	/*The infra-env of the host whose ignition file should be updated.
 	  Required: true
 	  In: path
 	*/

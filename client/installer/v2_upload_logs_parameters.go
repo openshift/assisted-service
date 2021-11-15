@@ -77,7 +77,7 @@ type V2UploadLogsParams struct {
 
 	/* InfraEnvID.
 
-	   The infra_env_id of the host.
+	   The infra-env ID of the host.
 
 	   Format: uuid
 	*/

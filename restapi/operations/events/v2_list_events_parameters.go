@@ -45,7 +45,7 @@ type V2ListEventsParams struct {
 	  In: query
 	*/
 	HostID *strfmt.UUID
-	/*The infra env to return events for.
+	/*The infra-env to return events for.
 	  In: query
 	*/
 	InfraEnvID *strfmt.UUID

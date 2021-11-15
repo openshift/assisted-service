@@ -34,7 +34,7 @@ type API interface {
 	   DeregisterHost Deregisters an OpenShift host.*/
 	DeregisterHost(ctx context.Context, params *DeregisterHostParams) (*DeregisterHostNoContent, error)
 	/*
-	   DeregisterInfraEnv Deletes an InfraEnv.*/
+	   DeregisterInfraEnv Deletes an infra-env.*/
 	DeregisterInfraEnv(ctx context.Context, params *DeregisterInfraEnvParams) (*DeregisterInfraEnvNoContent, error)
 	/*
 	   DisableHost Disables a host for inclusion in the cluster.*/
@@ -110,7 +110,7 @@ type API interface {
 	   GetHostIgnition Get the customized ignition file for this host as a string*/
 	GetHostIgnition(ctx context.Context, params *GetHostIgnitionParams) (*GetHostIgnitionOK, error)
 	/*
-	   GetInfraEnv Retrieves the details of the InfraEnv.*/
+	   GetInfraEnv Retrieves the details of the infra-env.*/
 	GetInfraEnv(ctx context.Context, params *GetInfraEnvParams) (*GetInfraEnvOK, error)
 	/*
 	   GetPreflightRequirements Get preflight requirements for a cluster.*/
@@ -134,7 +134,7 @@ type API interface {
 	   ListHosts Retrieves the list of OpenShift hosts.*/
 	ListHosts(ctx context.Context, params *ListHostsParams) (*ListHostsOK, error)
 	/*
-	   ListInfraEnvs Retrieves the list of InfraEnvs.*/
+	   ListInfraEnvs Retrieves the list of infra-envs.*/
 	ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams) (*ListInfraEnvsOK, error)
 	/*
 	   RegenerateInfraEnvSigningKey Regenerate InfraEnv token signing key.*/
@@ -187,7 +187,7 @@ type API interface {
 	   UpdateHostLogsProgress Update log collection state and progress.*/
 	UpdateHostLogsProgress(ctx context.Context, params *UpdateHostLogsProgressParams) (*UpdateHostLogsProgressNoContent, error)
 	/*
-	   UpdateInfraEnv Updates an InfraEnv.*/
+	   UpdateInfraEnv Updates an infra-env.*/
 	UpdateInfraEnv(ctx context.Context, params *UpdateInfraEnvParams) (*UpdateInfraEnvCreated, error)
 	/*
 	   UploadClusterIngressCert Transfer the ingress certificate for the cluster.*/
@@ -277,7 +277,7 @@ type API interface {
 	   V2ListFeatureSupportLevels Retrieves the support levels for features for each OpenShift version.*/
 	V2ListFeatureSupportLevels(ctx context.Context, params *V2ListFeatureSupportLevelsParams) (*V2ListFeatureSupportLevelsOK, error)
 	/*
-	   V2ListHosts Retrieves the list of OpenShift hosts that belong to infra-env.*/
+	   V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env.*/
 	V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V2ListHostsOK, error)
 	/*
 	   V2PostStepReply Posts the result of the operations from the host agent.*/
@@ -469,7 +469,7 @@ func (a *Client) DeregisterHost(ctx context.Context, params *DeregisterHostParam
 }
 
 /*
-DeregisterInfraEnv Deletes an InfraEnv.
+DeregisterInfraEnv Deletes an infra-env.
 */
 func (a *Client) DeregisterInfraEnv(ctx context.Context, params *DeregisterInfraEnvParams) (*DeregisterInfraEnvNoContent, error) {
 
@@ -1079,7 +1079,7 @@ func (a *Client) GetHostIgnition(ctx context.Context, params *GetHostIgnitionPar
 }
 
 /*
-GetInfraEnv Retrieves the details of the InfraEnv.
+GetInfraEnv Retrieves the details of the infra-env.
 */
 func (a *Client) GetInfraEnv(ctx context.Context, params *GetInfraEnvParams) (*GetInfraEnvOK, error) {
 
@@ -1279,7 +1279,7 @@ func (a *Client) ListHosts(ctx context.Context, params *ListHostsParams) (*ListH
 }
 
 /*
-ListInfraEnvs Retrieves the list of InfraEnvs.
+ListInfraEnvs Retrieves the list of infra-envs.
 */
 func (a *Client) ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams) (*ListInfraEnvsOK, error) {
 
@@ -1706,7 +1706,7 @@ func (a *Client) UpdateHostLogsProgress(ctx context.Context, params *UpdateHostL
 }
 
 /*
-UpdateInfraEnv Updates an InfraEnv.
+UpdateInfraEnv Updates an infra-env.
 */
 func (a *Client) UpdateInfraEnv(ctx context.Context, params *UpdateInfraEnvParams) (*UpdateInfraEnvCreated, error) {
 
@@ -2456,7 +2456,7 @@ func (a *Client) V2ListFeatureSupportLevels(ctx context.Context, params *V2ListF
 }
 
 /*
-V2ListHosts Retrieves the list of OpenShift hosts that belong to infra-env.
+V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env.
 */
 func (a *Client) V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V2ListHostsOK, error) {
 

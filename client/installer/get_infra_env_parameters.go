@@ -61,7 +61,7 @@ type GetInfraEnvParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv to be retrieved.
+	   The infra-env to be retrieved.
 
 	   Format: uuid
 	*/

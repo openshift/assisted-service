@@ -31,7 +31,7 @@ type DownloadInfraEnvDiscoveryImageHeadersParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The InfraEnv whose image headers should be retrieved.
+	/*The infra-env whose image headers should be retrieved.
 	  Required: true
 	  In: path
 	*/

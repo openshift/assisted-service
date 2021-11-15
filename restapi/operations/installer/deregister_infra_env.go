@@ -31,7 +31,7 @@ func NewDeregisterInfraEnv(ctx *middleware.Context, handler DeregisterInfraEnvHa
 
 /* DeregisterInfraEnv swagger:route DELETE /v2/infra-envs/{infra_env_id} installer deregisterInfraEnv
 
-Deletes an InfraEnv.
+Deletes an infra-env.
 
 */
 type DeregisterInfraEnv struct {

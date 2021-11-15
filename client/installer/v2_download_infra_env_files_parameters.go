@@ -67,7 +67,7 @@ type V2DownloadInfraEnvFilesParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv whose file should be downloaded.
+	   The infra-env whose file should be downloaded.
 
 	   Format: uuid
 	*/

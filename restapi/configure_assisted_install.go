@@ -72,7 +72,7 @@ type InstallerAPI interface {
 	/* DeregisterHost Deregisters an OpenShift host. */
 	DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder
 
-	/* DeregisterInfraEnv Deletes an InfraEnv. */
+	/* DeregisterInfraEnv Deletes an infra-env. */
 	DeregisterInfraEnv(ctx context.Context, params installer.DeregisterInfraEnvParams) middleware.Responder
 
 	/* DisableHost Disables a host for inclusion in the cluster. */
@@ -148,7 +148,7 @@ type InstallerAPI interface {
 	/* GetHostIgnition Get the customized ignition file for this host as a string */
 	GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder
 
-	/* GetInfraEnv Retrieves the details of the InfraEnv. */
+	/* GetInfraEnv Retrieves the details of the infra-env. */
 	GetInfraEnv(ctx context.Context, params installer.GetInfraEnvParams) middleware.Responder
 
 	/* GetPreflightRequirements Get preflight requirements for a cluster. */
@@ -172,7 +172,7 @@ type InstallerAPI interface {
 	/* ListHosts Retrieves the list of OpenShift hosts. */
 	ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder
 
-	/* ListInfraEnvs Retrieves the list of InfraEnvs. */
+	/* ListInfraEnvs Retrieves the list of infra-envs. */
 	ListInfraEnvs(ctx context.Context, params installer.ListInfraEnvsParams) middleware.Responder
 
 	/* RegenerateInfraEnvSigningKey Regenerate InfraEnv token signing key. */
@@ -223,7 +223,7 @@ type InstallerAPI interface {
 	/* UpdateHostLogsProgress Update log collection state and progress. */
 	UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder
 
-	/* UpdateInfraEnv Updates an InfraEnv. */
+	/* UpdateInfraEnv Updates an infra-env. */
 	UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder
 
 	/* UploadClusterIngressCert Transfer the ingress certificate for the cluster. */
@@ -313,7 +313,7 @@ type InstallerAPI interface {
 	/* V2ListFeatureSupportLevels Retrieves the support levels for features for each OpenShift version. */
 	V2ListFeatureSupportLevels(ctx context.Context, params installer.V2ListFeatureSupportLevelsParams) middleware.Responder
 
-	/* V2ListHosts Retrieves the list of OpenShift hosts that belong to infra-env. */
+	/* V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env. */
 	V2ListHosts(ctx context.Context, params installer.V2ListHostsParams) middleware.Responder
 
 	/* V2PostStepReply Posts the result of the operations from the host agent. */

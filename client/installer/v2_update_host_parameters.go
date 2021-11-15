@@ -77,7 +77,7 @@ type V2UpdateHostParams struct {
 
 	/* InfraEnvID.
 
-	   The infra_env_id of the host to be updated.
+	   The infra-env ID of the host to be updated.
 
 	   Format: uuid
 	*/

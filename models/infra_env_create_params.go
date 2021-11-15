@@ -36,7 +36,7 @@ type InfraEnvCreateParams struct {
 	// image type
 	ImageType ImageType `json:"image_type,omitempty"`
 
-	// Name of the InfraEnv.
+	// Name of the infra-env.
 	// Required: true
 	Name *string `json:"name"`
 

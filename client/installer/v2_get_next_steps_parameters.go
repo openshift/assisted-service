@@ -75,7 +75,7 @@ type V2GetNextStepsParams struct {
 
 	/* InfraEnvID.
 
-	   The infra env of the host that is retrieving instructions.
+	   The infra-env of the host that is retrieving instructions.
 
 	   Format: uuid
 	*/

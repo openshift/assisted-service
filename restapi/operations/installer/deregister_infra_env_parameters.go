@@ -31,7 +31,7 @@ type DeregisterInfraEnvParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The InfraEnv to be deleted.
+	/*The infra-env to be deleted.
 	  Required: true
 	  In: path
 	*/

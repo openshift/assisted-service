@@ -83,7 +83,7 @@ type V2UpdateHostInstallProgressParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv of the host being updated.
+	   The infra-env of the host being updated.
 
 	   Format: uuid
 	*/

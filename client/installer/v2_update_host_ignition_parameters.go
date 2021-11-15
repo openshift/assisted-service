@@ -77,7 +77,7 @@ type V2UpdateHostIgnitionParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv of the host whose ignition file should be updated.
+	   The infra-env of the host whose ignition file should be updated.
 
 	   Format: uuid
 	*/

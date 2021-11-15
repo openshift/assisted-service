@@ -61,7 +61,7 @@ type V2ListHostsParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv that the hosts are asociated with.
+	   The infra-env that the hosts are asociated with.
 
 	   Format: uuid
 	*/

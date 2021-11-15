@@ -69,7 +69,7 @@ type V2DeregisterHostParams struct {
 
 	/* InfraEnvID.
 
-	   The infra env of the host that should be deregistered.
+	   The infra-env of the host that should be deregistered.
 
 	   Format: uuid
 	*/

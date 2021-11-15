@@ -31,7 +31,7 @@ func NewV2ListHosts(ctx *middleware.Context, handler V2ListHostsHandler) *V2List
 
 /* V2ListHosts swagger:route GET /v2/infra-envs/{infra_env_id}/hosts installer v2ListHosts
 
-Retrieves the list of OpenShift hosts that belong to infra-env.
+Retrieves the list of OpenShift hosts that belong the infra-env.
 
 */
 type V2ListHosts struct {

@@ -61,7 +61,7 @@ type DownloadInfraEnvDiscoveryImageParams struct {
 
 	/* InfraEnvID.
 
-	   The InfraEnv whose image should be downloaded.
+	   The infra-env whose image should be downloaded.
 
 	   Format: uuid
 	*/

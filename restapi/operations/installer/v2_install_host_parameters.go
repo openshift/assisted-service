@@ -36,7 +36,7 @@ type V2InstallHostParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The InfraEnv of the host that is being installed.
+	/*The infra-env of the host that is being installed.
 	  Required: true
 	  In: path
 	*/

@@ -36,7 +36,7 @@ type V2DeregisterHostParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The infra env of the host that should be deregistered.
+	/*The infra-env of the host that should be deregistered.
 	  Required: true
 	  In: path
 	*/

@@ -50,7 +50,7 @@ type V2UpdateHostInstallProgressParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*The InfraEnv of the host being updated.
+	/*The infra-env of the host being updated.
 	  Required: true
 	  In: path
 	*/

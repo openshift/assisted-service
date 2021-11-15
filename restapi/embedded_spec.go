@@ -5962,7 +5962,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra_env_id of the host.",
+            "description": "The infra-env ID of the host.",
             "name": "infra_env_id",
             "in": "query"
           },
@@ -6881,7 +6881,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env to return events for.",
+            "description": "The infra-env to return events for.",
             "name": "infra_env_id",
             "in": "query"
           },
@@ -7082,7 +7082,7 @@ func init() {
             ]
           }
         ],
-        "description": "Retrieves the list of InfraEnvs.",
+        "description": "Retrieves the list of infra-envs.",
         "tags": [
           "installer"
         ],
@@ -7221,7 +7221,7 @@ func init() {
             "agentAuth": []
           }
         ],
-        "description": "Retrieves the details of the InfraEnv.",
+        "description": "Retrieves the details of the infra-env.",
         "tags": [
           "installer"
         ],
@@ -7230,7 +7230,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv to be retrieved.",
+            "description": "The infra-env to be retrieved.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -7288,7 +7288,7 @@ func init() {
         }
       },
       "delete": {
-        "description": "Deletes an InfraEnv.",
+        "description": "Deletes an infra-env.",
         "tags": [
           "installer"
         ],
@@ -7297,7 +7297,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv to be deleted.",
+            "description": "The infra-env to be deleted.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -7352,7 +7352,7 @@ func init() {
         }
       },
       "patch": {
-        "description": "Updates an InfraEnv.",
+        "description": "Updates an infra-env.",
         "tags": [
           "installer"
         ],
@@ -7361,7 +7361,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv to be updated.",
+            "description": "The infra-env to be updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -7466,7 +7466,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv whose file should be downloaded.",
+            "description": "The infra-env whose file should be downloaded.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -7566,7 +7566,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv whose image should be downloaded.",
+            "description": "The infra-env whose image should be downloaded.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -7649,7 +7649,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv whose image headers should be retrieved.",
+            "description": "The infra-env whose image headers should be retrieved.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -7742,7 +7742,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that should be retrieved.",
+            "description": "The infra-env of the host that should be retrieved.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -7812,7 +7812,7 @@ func init() {
             "agentAuth": []
           }
         ],
-        "description": "Retrieves the list of OpenShift hosts that belong to infra-env.",
+        "description": "Retrieves the list of OpenShift hosts that belong the infra-env.",
         "tags": [
           "installer"
         ],
@@ -7821,7 +7821,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv that the hosts are asociated with.",
+            "description": "The infra-env that the hosts are asociated with.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -7887,7 +7887,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv that the agent is associated with.",
+            "description": "The infra-env that the agent is associated with.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -7992,7 +7992,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that should be retrieved.",
+            "description": "The infra-env of the host that should be retrieved.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8061,7 +8061,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that should be deregistered.",
+            "description": "The infra-env of the host that should be deregistered.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8127,7 +8127,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra_env_id of the host to be updated.",
+            "description": "The infra-env ID of the host to be updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8213,7 +8213,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that is being bound.",
+            "description": "The infra-env of the host that is being bound.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8305,7 +8305,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host that is being installed.",
+            "description": "The infra-env of the host that is being installed.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8370,7 +8370,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host that is being reset.",
+            "description": "The infra-env of the host that is being reset.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8436,7 +8436,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host that its validation is being reset.",
+            "description": "The infra-env of the host that its validation is being reset.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8514,7 +8514,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that is being bound.",
+            "description": "The infra-env of the host that is being bound.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8603,7 +8603,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host whose ignition file should be obtained.",
+            "description": "The infra-env of the host whose ignition file should be obtained.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8678,7 +8678,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host whose ignition file should be updated.",
+            "description": "The infra-env of the host whose ignition file should be updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8761,7 +8761,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host whose installer arguments should be updated.",
+            "description": "The infra-env of the host whose installer arguments should be updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8858,7 +8858,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that is retrieving instructions.",
+            "description": "The infra-env of the host that is retrieving instructions.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -8950,7 +8950,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that is posting results.",
+            "description": "The infra-env of the host that is posting results.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -9043,7 +9043,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv whose log progress is being updated.",
+            "description": "The infra-env whose log progress is being updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -9143,7 +9143,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host being updated.",
+            "description": "The infra-env of the host being updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -11060,7 +11060,7 @@ func init() {
           "x-nullable": true
         },
         "infra_env_id": {
-          "description": "Unique identifier of the infra env this event relates to.",
+          "description": "Unique identifier of the infra-env this event relates to.",
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"index\"",
@@ -11311,7 +11311,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "infra_env_id": {
-          "description": "The InfraEnv that this host is associated with.",
+          "description": "The infra-env that this host is associated with.",
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key;foreignkey:InfraEnvID\""
@@ -11914,7 +11914,7 @@ func init() {
           ]
         },
         "name": {
-          "description": "Name of the InfraEnv.",
+          "description": "Name of the infra-env.",
           "type": "string"
         },
         "openshift_version": {
@@ -11946,7 +11946,7 @@ func init() {
           "$ref": "#/definitions/image_type"
         },
         "updated_at": {
-          "description": "The last time that this infraenv was updated.",
+          "description": "The last time that this infra-env was updated.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
@@ -11998,7 +11998,7 @@ func init() {
           "$ref": "#/definitions/image_type"
         },
         "name": {
-          "description": "Name of the InfraEnv.",
+          "description": "Name of the infra-env.",
           "type": "string"
         },
         "openshift_version": {
@@ -19348,7 +19348,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra_env_id of the host.",
+            "description": "The infra-env ID of the host.",
             "name": "infra_env_id",
             "in": "query"
           },
@@ -20267,7 +20267,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env to return events for.",
+            "description": "The infra-env to return events for.",
             "name": "infra_env_id",
             "in": "query"
           },
@@ -20468,7 +20468,7 @@ func init() {
             ]
           }
         ],
-        "description": "Retrieves the list of InfraEnvs.",
+        "description": "Retrieves the list of infra-envs.",
         "tags": [
           "installer"
         ],
@@ -20607,7 +20607,7 @@ func init() {
             "agentAuth": []
           }
         ],
-        "description": "Retrieves the details of the InfraEnv.",
+        "description": "Retrieves the details of the infra-env.",
         "tags": [
           "installer"
         ],
@@ -20616,7 +20616,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv to be retrieved.",
+            "description": "The infra-env to be retrieved.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -20674,7 +20674,7 @@ func init() {
         }
       },
       "delete": {
-        "description": "Deletes an InfraEnv.",
+        "description": "Deletes an infra-env.",
         "tags": [
           "installer"
         ],
@@ -20683,7 +20683,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv to be deleted.",
+            "description": "The infra-env to be deleted.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -20738,7 +20738,7 @@ func init() {
         }
       },
       "patch": {
-        "description": "Updates an InfraEnv.",
+        "description": "Updates an infra-env.",
         "tags": [
           "installer"
         ],
@@ -20747,7 +20747,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv to be updated.",
+            "description": "The infra-env to be updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -20852,7 +20852,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv whose file should be downloaded.",
+            "description": "The infra-env whose file should be downloaded.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -20952,7 +20952,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv whose image should be downloaded.",
+            "description": "The infra-env whose image should be downloaded.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21035,7 +21035,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv whose image headers should be retrieved.",
+            "description": "The infra-env whose image headers should be retrieved.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21128,7 +21128,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that should be retrieved.",
+            "description": "The infra-env of the host that should be retrieved.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21198,7 +21198,7 @@ func init() {
             "agentAuth": []
           }
         ],
-        "description": "Retrieves the list of OpenShift hosts that belong to infra-env.",
+        "description": "Retrieves the list of OpenShift hosts that belong the infra-env.",
         "tags": [
           "installer"
         ],
@@ -21207,7 +21207,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv that the hosts are asociated with.",
+            "description": "The infra-env that the hosts are asociated with.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21273,7 +21273,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv that the agent is associated with.",
+            "description": "The infra-env that the agent is associated with.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21378,7 +21378,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that should be retrieved.",
+            "description": "The infra-env of the host that should be retrieved.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21447,7 +21447,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that should be deregistered.",
+            "description": "The infra-env of the host that should be deregistered.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21513,7 +21513,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra_env_id of the host to be updated.",
+            "description": "The infra-env ID of the host to be updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21599,7 +21599,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that is being bound.",
+            "description": "The infra-env of the host that is being bound.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21691,7 +21691,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host that is being installed.",
+            "description": "The infra-env of the host that is being installed.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21756,7 +21756,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host that is being reset.",
+            "description": "The infra-env of the host that is being reset.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21822,7 +21822,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host that its validation is being reset.",
+            "description": "The infra-env of the host that its validation is being reset.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21900,7 +21900,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that is being bound.",
+            "description": "The infra-env of the host that is being bound.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -21989,7 +21989,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host whose ignition file should be obtained.",
+            "description": "The infra-env of the host whose ignition file should be obtained.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -22064,7 +22064,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host whose ignition file should be updated.",
+            "description": "The infra-env of the host whose ignition file should be updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -22147,7 +22147,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host whose installer arguments should be updated.",
+            "description": "The infra-env of the host whose installer arguments should be updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -22244,7 +22244,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that is retrieving instructions.",
+            "description": "The infra-env of the host that is retrieving instructions.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -22336,7 +22336,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The infra env of the host that is posting results.",
+            "description": "The infra-env of the host that is posting results.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -22429,7 +22429,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv whose log progress is being updated.",
+            "description": "The infra-env whose log progress is being updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -22529,7 +22529,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The InfraEnv of the host being updated.",
+            "description": "The infra-env of the host being updated.",
             "name": "infra_env_id",
             "in": "path",
             "required": true
@@ -24550,7 +24550,7 @@ func init() {
           "x-nullable": true
         },
         "infra_env_id": {
-          "description": "Unique identifier of the infra env this event relates to.",
+          "description": "Unique identifier of the infra-env this event relates to.",
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"index\"",
@@ -24768,7 +24768,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "infra_env_id": {
-          "description": "The InfraEnv that this host is associated with.",
+          "description": "The infra-env that this host is associated with.",
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key;foreignkey:InfraEnvID\""
@@ -25372,7 +25372,7 @@ func init() {
           ]
         },
         "name": {
-          "description": "Name of the InfraEnv.",
+          "description": "Name of the infra-env.",
           "type": "string"
         },
         "openshift_version": {
@@ -25405,7 +25405,7 @@ func init() {
           "$ref": "#/definitions/image_type"
         },
         "updated_at": {
-          "description": "The last time that this infraenv was updated.",
+          "description": "The last time that this infra-env was updated.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
@@ -25457,7 +25457,7 @@ func init() {
           "$ref": "#/definitions/image_type"
         },
         "name": {
-          "description": "Name of the InfraEnv.",
+          "description": "Name of the infra-env.",
           "type": "string"
         },
         "openshift_version": {

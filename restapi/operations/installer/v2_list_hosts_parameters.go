@@ -31,7 +31,7 @@ type V2ListHostsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The InfraEnv that the hosts are asociated with.
+	/*The infra-env that the hosts are asociated with.
 	  Required: true
 	  In: path
 	*/
