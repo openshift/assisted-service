@@ -20,6 +20,7 @@ x-events:
   properties:
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
 
 - name: cluster_registration_failed
   message: "Failed to register cluster. Error: {error}"
@@ -692,6 +693,7 @@ x-events:
   properties:
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     message: string
 
 - name: inactive_clusters_deregistered

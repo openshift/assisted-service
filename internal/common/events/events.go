@@ -139,6 +139,7 @@ func (e *CancelInstallCommitFailedEvent) FormatMessage() string {
 type HostRegistrationSettingPropertiesFailedEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
 }
 
 var HostRegistrationSettingPropertiesFailedEventName string = "host_registration_setting_properties_failed"
@@ -146,10 +147,12 @@ var HostRegistrationSettingPropertiesFailedEventName string = "host_registration
 func NewHostRegistrationSettingPropertiesFailedEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
 ) *HostRegistrationSettingPropertiesFailedEvent {
     return &HostRegistrationSettingPropertiesFailedEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
     }
 }
 
@@ -157,10 +160,12 @@ func SendHostRegistrationSettingPropertiesFailedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
-    infraEnvId strfmt.UUID,) {
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,) {
     ev := NewHostRegistrationSettingPropertiesFailedEvent(
         hostId,
         infraEnvId,
+        clusterId,
     )
     eventsHandler.SendHostEvent(ctx, ev)
 }
@@ -170,10 +175,12 @@ func SendHostRegistrationSettingPropertiesFailedEventAtTime(
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     eventTime time.Time) {
     ev := NewHostRegistrationSettingPropertiesFailedEvent(
         hostId,
         infraEnvId,
+        clusterId,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
@@ -186,7 +193,7 @@ func (e *HostRegistrationSettingPropertiesFailedEvent) GetSeverity() string {
     return "error"
 }
 func (e *HostRegistrationSettingPropertiesFailedEvent) GetClusterId() *strfmt.UUID {
-    return nil
+    return e.ClusterId
 }
 func (e *HostRegistrationSettingPropertiesFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
@@ -199,6 +206,7 @@ func (e *HostRegistrationSettingPropertiesFailedEvent) format(message *string) s
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
     )
     return r.Replace(*message)
 }
@@ -6128,6 +6136,7 @@ func (e *RegisterHostToInfraEnvFailedEvent) FormatMessage() string {
 type HostRegistrationFailedEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     Message string
 }
 
@@ -6136,11 +6145,13 @@ var HostRegistrationFailedEventName string = "host_registration_failed"
 func NewHostRegistrationFailedEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     message string,
 ) *HostRegistrationFailedEvent {
     return &HostRegistrationFailedEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         Message: message,
     }
 }
@@ -6150,10 +6161,12 @@ func SendHostRegistrationFailedEvent(
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     message string,) {
     ev := NewHostRegistrationFailedEvent(
         hostId,
         infraEnvId,
+        clusterId,
         message,
     )
     eventsHandler.SendHostEvent(ctx, ev)
@@ -6164,11 +6177,13 @@ func SendHostRegistrationFailedEventAtTime(
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     message string,
     eventTime time.Time) {
     ev := NewHostRegistrationFailedEvent(
         hostId,
         infraEnvId,
+        clusterId,
         message,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
@@ -6182,7 +6197,7 @@ func (e *HostRegistrationFailedEvent) GetSeverity() string {
     return "error"
 }
 func (e *HostRegistrationFailedEvent) GetClusterId() *strfmt.UUID {
-    return nil
+    return e.ClusterId
 }
 func (e *HostRegistrationFailedEvent) GetHostId() strfmt.UUID {
     return e.HostId
@@ -6195,6 +6210,7 @@ func (e *HostRegistrationFailedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{message}", fmt.Sprint(e.Message),
     )
     return r.Replace(*message)

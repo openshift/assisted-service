@@ -6277,13 +6277,12 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			params.NewHostParams.HostID.String(), params.InfraEnvID.String())
 		uerr := errors.Wrap(err, fmt.Sprintf("Failed to register host %s", hostutil.GetHostnameForMsg(host)))
 
-		eventgen.SendHostRegistrationFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, uerr.Error())
+		eventgen.SendHostRegistrationFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, host.ClusterID, uerr.Error())
 		return returnRegisterHostTransitionError(http.StatusBadRequest, err)
 	}
 
 	if err = b.customizeHost(c, host); err != nil {
-		// TODO Need event for infra-env instead of cluster
-		eventgen.SendHostRegistrationSettingPropertiesFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID)
+		eventgen.SendHostRegistrationSettingPropertiesFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, host.ClusterID)
 		return common.GenerateErrorResponder(err)
 	}
 
