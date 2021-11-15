@@ -1165,7 +1165,8 @@ func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, 
 	}
 
 	if string(imageType) != prevType || version != prevVersion || arch != prevArch || !infraEnv.Generated {
-		infraEnv.DownloadURL, err = b.generateImageDownloadURL(infraEnv.ID.String(), string(imageType), version, arch, infraEnv.ImageTokenKey)
+		var expiresAt *strfmt.DateTime
+		infraEnv.DownloadURL, expiresAt, err = b.generateImageDownloadURL(infraEnv.ID.String(), string(imageType), version, arch, infraEnv.ImageTokenKey)
 		if err != nil {
 			return errors.Wrap(err, "failed to create download URL")
 		}
@@ -1173,6 +1174,8 @@ func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, 
 		updates["download_url"] = infraEnv.DownloadURL
 		updates["generated"] = true
 		infraEnv.Generated = true
+		updates["expires_at"] = *expiresAt
+		infraEnv.ExpiresAt = *expiresAt
 	}
 
 	err = b.db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates).Error

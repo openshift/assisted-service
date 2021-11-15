@@ -8215,6 +8215,48 @@ var _ = Describe("infraEnvs", func() {
 					Expect(gotQuery.Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 				})
 
+				Context("with rhsso auth", func() {
+					BeforeEach(func() {
+						_, cert := auth.GetTokenAndCert(false)
+						cfg := &auth.Config{JwkCert: string(cert)}
+						bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+						var err error
+						bm.ImageExpirationTime, err = time.ParseDuration("4h")
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("sets a valid image_token", func() {
+						mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
+
+						response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+							InfraEnvID:           infraEnvID,
+							InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
+						})
+						Expect(err).ToNot(HaveOccurred())
+
+						u, err := url.Parse(response.DownloadURL)
+						Expect(err).ToNot(HaveOccurred())
+						tok := u.Query().Get("image_token")
+						_, err = bm.authHandler.AuthImageAuth(tok)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("updates the infra-env expires_at time", func() {
+						mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
+
+						response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+							InfraEnvID:           infraEnvID,
+							InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
+						})
+						Expect(err).ToNot(HaveOccurred())
+
+						Expect(response.ExpiresAt.String()).ToNot(Equal("0001-01-01T00:00:00.000Z"))
+						var infraEnv common.InfraEnv
+						Expect(db.First(&infraEnv, "id = ?", infraEnvID.String()).Error).To(Succeed())
+						Expect(infraEnv.ExpiresAt.Equal(response.ExpiresAt)).To(BeTrue())
+					})
+				})
+
 				Context("with local auth", func() {
 					BeforeEach(func() {
 						// Use a local auth handler
@@ -13959,6 +14001,15 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			_, err = bm.authHandler.AuthImageAuth(tok)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(u.Query().Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+		})
+
+		It("updates the infra-env expires_at time", func() {
+			payload := getNewURL()
+
+			Expect(payload.ExpiresAt.String()).ToNot(Equal("0001-01-01T00:00:00.000Z"))
+			var infraEnv common.InfraEnv
+			Expect(db.First(&infraEnv, "id = ?", infraEnvID.String()).Error).To(Succeed())
+			Expect(infraEnv.ExpiresAt.Equal(payload.ExpiresAt)).To(BeTrue())
 		})
 	})
 

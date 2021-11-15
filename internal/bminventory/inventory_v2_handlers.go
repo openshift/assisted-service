@@ -473,49 +473,28 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 		return common.GenerateErrorResponder(errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage))
 	}
 
-	newURL, err := b.generateImageDownloadURL(infraEnv.ID.String(), string(*infraEnv.Type), *osImage.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
+	newURL, expiresAt, err := b.generateImageDownloadURL(infraEnv.ID.String(), string(*infraEnv.Type), *osImage.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
-	if err = b.db.Model(infraEnv).Update("download_url", newURL).Error; err != nil {
+	updates := map[string]interface{}{
+		"download_url": newURL,
+		"expires_at":   *expiresAt,
+	}
+
+	if err = b.db.Model(infraEnv).Updates(updates).Error; err != nil {
 		b.log.WithError(err).Errorf("Failed to update download_url for infraEnv %s", params.InfraEnvID)
 		return common.GenerateErrorResponder(err)
 	}
 
-	payload := models.InfraEnvImageURL{URL: newURL}
-
-	// parse the exp claim out of the url to return with the payload
-	parsedURL, err := url.Parse(newURL)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	if tokenString := parsedURL.Query().Get("image_token"); tokenString != "" {
-		// we just created these claims so they are safe to parse unverified
-		token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
-		if err != nil {
-			return common.GenerateErrorResponder(err)
-		}
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			return common.GenerateErrorResponder(errors.Errorf("malformed token claims in url"))
-		}
-		exp, ok := claims["exp"].(float64)
-		if !ok {
-			return common.GenerateErrorResponder(errors.Errorf("token missing 'exp' claim"))
-		}
-		expTime := time.Unix(int64(exp), 0)
-		payload.ExpiresAt = strfmt.DateTime(expTime)
-	}
-
-	return installer.NewGetInfraEnvDownloadURLOK().WithPayload(&payload)
+	return installer.NewGetInfraEnvDownloadURLOK().WithPayload(&models.InfraEnvImageURL{URL: newURL, ExpiresAt: *expiresAt})
 }
 
-func (b *bareMetalInventory) generateImageDownloadURL(infraEnvID, imageType, version, arch, imageTokenKey string) (string, error) {
+func (b *bareMetalInventory) generateImageDownloadURL(infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {
 	baseURL, err := url.Parse(b.ImageServiceBaseURL)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to parse image service base URL")
+		return "", nil, errors.Wrap(err, "failed to parse image service base URL")
 	}
 	downloadURL := url.URL{
 		Scheme: baseURL.Scheme,
@@ -532,18 +511,44 @@ func (b *bareMetalInventory) generateImageDownloadURL(infraEnvID, imageType, ver
 	if b.authHandler.AuthType() == auth.TypeLocal {
 		urlString, err = gencrypto.SignURL(urlString, infraEnvID, gencrypto.InfraEnvKey)
 		if err != nil {
-			return "", errors.Wrap(err, "failed to sign image URL")
+			return "", nil, errors.Wrap(err, "failed to sign image URL")
 		}
 	} else if b.authHandler.AuthType() == auth.TypeRHSSO {
 		var token string
 		token, err = gencrypto.JWTForSymmetricKey([]byte(imageTokenKey), b.ImageExpirationTime, infraEnvID)
 		if err != nil {
-			return "", errors.Wrapf(err, "failed to generate token for infraEnv %s", infraEnvID)
+			return "", nil, errors.Wrapf(err, "failed to generate token for infraEnv %s", infraEnvID)
 		}
 		urlString, err = gencrypto.SignURLWithToken(urlString, "image_token", token)
 		if err != nil {
-			return "", errors.Wrap(err, "failed to sign image URL with token")
+			return "", nil, errors.Wrap(err, "failed to sign image URL with token")
 		}
 	}
-	return urlString, nil
+
+	// parse the exp claim out of the url
+	var expiresAt strfmt.DateTime
+	parsedURL, err := url.Parse(urlString)
+	if err != nil {
+		return "", nil, err
+	}
+
+	if tokenString := parsedURL.Query().Get("image_token"); tokenString != "" {
+		// we just created these claims so they are safe to parse unverified
+		token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
+		if err != nil {
+			return "", nil, err
+		}
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return "", nil, errors.Errorf("malformed token claims in url")
+		}
+		exp, ok := claims["exp"].(float64)
+		if !ok {
+			return "", nil, errors.Errorf("token missing 'exp' claim")
+		}
+		expTime := time.Unix(int64(exp), 0)
+		expiresAt = strfmt.DateTime(expTime)
+	}
+
+	return urlString, &expiresAt, nil
 }
