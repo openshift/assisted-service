@@ -828,6 +828,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		HostNetworks:       []*models.HostNetwork{},
 		Hosts:              []*models.Host{},
 		CPUArchitecture:    common.DefaultCPUArchitecture,
+		Platform:           &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 	},
 		KubeKeyName:      kubeKey.Name,
 		KubeKeyNamespace: kubeKey.Namespace,

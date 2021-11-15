@@ -10208,6 +10208,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
 		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
 		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImageUrl))
+		Expect(actual.Payload.Platform).To(Equal(&models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}))
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
 	})
 
