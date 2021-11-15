@@ -3,7 +3,7 @@ title: image-service-cloud-authentication
 authors:
   - "@carbonin"
 creation-date: 2021-10-07
-last-updated: 2021-10-20
+last-updated: 2021-11-15
 ---
 
 # Image Service Cloud Authentication
@@ -98,7 +98,7 @@ New API endpoints:
 * `GET /v2/infra-envs/{infra_env_id}/downloads/image-url`
   - Get a new pre-signed download URL for an infraEnv's discovery image
   - Example response:
-    - `{"url": "https://image-service.example.com/images/{infra_env_id}?image_token=<some-jwt>&version=4.9&arch=x86_64&type=full-iso", "exp": "1634571105"}`
+    - `{"url": "https://image-service.example.com/images/{infra_env_id}?image_token=<some-jwt>&version=4.9&arch=x86_64&type=full-iso", "expires_at": "2021-11-15T21:36:46.000Z"}`
 * `POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key`
   - Create a new symmetric key for an infraEnv (invalidates all existing JWTs)
 
