@@ -1051,6 +1051,33 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.Spec.Image.URL).ToNot(Equal(infraEnv.Status.ISODownloadURL))
 			})
 		})
+
+		Context("when Agent is unbound-pending-on-user-action", func() {
+			It("should remove the detached annotation and clear the ISO", func() {
+				agent.Status.Conditions = []conditionsv1.Condition{
+					{
+						Type:   v1beta1.BoundCondition,
+						Status: corev1.ConditionTrue,
+						Reason: v1beta1.UnbindingPendingUserActionReason,
+					},
+				}
+				Expect(c.Update(ctx, agent)).To(BeNil())
+				hostBeforeReconcile := &bmh_v1alpha1.BareMetalHost{}
+				_ = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, hostBeforeReconcile)
+				Expect(hostBeforeReconcile.Spec.Image).NotTo(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
+				Expect(updatedHost.Spec.Image).To(BeNil())
+			})
+		})
 	})
 
 })

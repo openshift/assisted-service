@@ -256,6 +256,19 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		return result.Result()
 	}
 
+	result = r.reconcileUnboundAgent(log, bmh, agent)
+	if result.Dirty() {
+		err := r.Client.Update(ctx, bmh)
+		if err != nil {
+			log.WithError(err).Errorf("Error adding reset annotation on BMH for unbound agent")
+			return reconcileError{err}.Result()
+		}
+	}
+
+	if result.Stop(ctx) {
+		return result.Result()
+	}
+
 	result = r.ensureMCSCert(ctx, log, bmh, agent)
 	if result.Dirty() {
 		err := r.Client.Update(ctx, bmh)
@@ -502,6 +515,33 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 	log.Debugf("Agent Inventory reconciled to BMH \n %v \n %v", agent, bmh)
 	return reconcileComplete{dirty: true}
 
+}
+
+// Ask BMH to reboot the host if the agent is unbound after installation
+//
+// By re-attaching the BMH and clearing the Image field on it, BMAC will clear
+// the Image data to force the boot from ISO
+//
+func (r *BMACReconciler) reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	log.Debugf("Started Unbound Agent reconcile for agent %s/%s and bmh %s/%s", agent.Namespace, agent.Name, bmh.Namespace, bmh.Name)
+
+	// proceed with the reconcile only when the agent ask for user action following unbinding
+	boundCondition := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.BoundCondition)
+	if boundCondition == nil || boundCondition.Reason != aiv1beta1.UnbindingPendingUserActionReason {
+		log.Debugf("Skipping Unbound Agent reconcile \n %v", agent)
+		return reconcileComplete{}
+	}
+
+	// re-attach the bmh and clear the ISO url to force ironic image refresh
+	// and re-conciliation of BMH and agent. Also, clear the hw details just
+	// in case. They will be regenerated in the reconciles following the agent's
+	// reboot
+	delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
+	delete(bmh.ObjectMeta.Annotations, BMH_HARDWARE_DETAILS_ANNOTATION)
+	bmh.Spec.Image = nil
+
+	log.Infof("Unbound Agent reconciled to BMH \n %v \n %v", agent, bmh)
+	return reconcileComplete{dirty: true, stop: true}
 }
 
 // Utility to verify whether a BMH should be reconciled based on the InfraEnv
