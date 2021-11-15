@@ -42,13 +42,11 @@ type Handler interface {
 }
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
-	versions Versions, openshiftVersions models.OpenshiftVersions,
-	osImages models.OsImages, releaseImages models.ReleaseImages,
+	versions Versions, osImages models.OsImages, releaseImages models.ReleaseImages,
 	mustGatherVersions MustGatherVersions,
 	releaseImageMirror string) (*handler, error) {
 	h := &handler{
 		versions:           versions,
-		openshiftVersions:  openshiftVersions,
 		mustGatherVersions: mustGatherVersions,
 		osImages:           osImages,
 		releaseImages:      releaseImages,
@@ -68,7 +66,6 @@ var _ restapi.VersionsAPI = (*handler)(nil)
 
 type handler struct {
 	versions           Versions
-	openshiftVersions  models.OpenshiftVersions
 	mustGatherVersions MustGatherVersions
 	osImages           models.OsImages
 	releaseImages      models.ReleaseImages
@@ -189,33 +186,16 @@ func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.
 	}
 
 	for _, osImage := range h.osImages {
-		if osImage.OpenshiftVersion == nil {
-			return nil, errors.Errorf("Missing openshift_version in OsImage")
+		if cpuArchitecture == "" {
+			// Empty implies default CPU architecture
+			cpuArchitecture = common.DefaultCPUArchitecture
 		}
 		if *osImage.OpenshiftVersion == versionKey && *osImage.CPUArchitecture == cpuArchitecture {
 			return osImage, nil
 		}
 	}
 
-	if cpuArchitecture != "" && cpuArchitecture != common.DefaultCPUArchitecture {
-		// An empty cpuArchitecture implies the default CPU architecture.
-		// TODO: remove this check once release images list is exclusively used.
-		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in OS images list", cpuArchitecture)
-	}
-
-	// Try fetching from OpenshiftVersion struct for backwards compatibility
-	if !h.isOpenshiftVersionSupported(versionKey) {
-		return nil, errors.Errorf("The requested openshift version (%s) isn't specified in versions list", versionKey)
-	}
-	ocpVersion := h.openshiftVersions[versionKey]
-	osImage := models.OsImage{
-		OpenshiftVersion: &versionKey,
-		URL:              &ocpVersion.RhcosImage,
-		RootfsURL:        &ocpVersion.RhcosRootfs,
-		Version:          &ocpVersion.RhcosVersion,
-	}
-
-	return &osImage, nil
+	return nil, errors.Errorf("The requested OS image for version (%s) isn't specified in OS images list", versionKey)
 }
 
 // Returns the ReleaseImage entity
@@ -226,29 +206,17 @@ func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*mo
 	}
 
 	for _, releaseImage := range h.releaseImages {
+		if cpuArchitecture == "" {
+			// Empty implies default CPU architecture
+			cpuArchitecture = common.DefaultCPUArchitecture
+		}
 		if *releaseImage.OpenshiftVersion == versionKey && *releaseImage.CPUArchitecture == cpuArchitecture {
 			return releaseImage, nil
 		}
 	}
 
-	if cpuArchitecture != "" && cpuArchitecture != common.DefaultCPUArchitecture {
-		// An empty cpuArchitecture implies the default CPU architecture.
-		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in Release images list", cpuArchitecture)
-	}
+	return nil, errors.Errorf("The requested release image for version (%s) isn't specified in release images list", versionKey)
 
-	// Try fetching from OpenshiftVersion struct for backwards compatibility
-	if !h.isOpenshiftVersionSupported(versionKey) {
-		return nil, errors.Errorf("The requested openshift version (%s) isn't specified in versions list", versionKey)
-	}
-	ocpVersion := h.openshiftVersions[versionKey]
-	releaseImage := models.ReleaseImage{
-		CPUArchitecture:  &cpuArchitecture,
-		OpenshiftVersion: &versionKey,
-		URL:              &ocpVersion.ReleaseImage,
-		Version:          &ocpVersion.ReleaseVersion,
-	}
-
-	return &releaseImage, nil
 }
 
 func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error) {
@@ -308,45 +276,28 @@ func (h *handler) GetCPUArchitectures(openshiftVersion string) ([]string, error)
 		return nil, err
 	}
 	cpuArchitectures := []string{}
-	for _, release := range h.osImages {
-		if *release.OpenshiftVersion == versionKey {
-			if release.OpenshiftVersion == nil {
-				return nil, errors.Errorf("Missing openshift_version in OsImage")
-			}
-			if swag.StringValue(release.CPUArchitecture) == "" {
+	for _, osImage := range h.osImages {
+		if *osImage.OpenshiftVersion == versionKey {
+			if swag.StringValue(osImage.CPUArchitecture) == "" {
 				// Empty or missing property implies default CPU architecture
 				defaultArch := common.DefaultCPUArchitecture
-				release.CPUArchitecture = &defaultArch
+				osImage.CPUArchitecture = &defaultArch
 			}
-			if !funk.Contains(cpuArchitectures, *release.CPUArchitecture) {
-				cpuArchitectures = append(cpuArchitectures, *release.CPUArchitecture)
+			if !funk.Contains(cpuArchitectures, *osImage.CPUArchitecture) {
+				cpuArchitectures = append(cpuArchitectures, *osImage.CPUArchitecture)
 			}
 		}
-	}
-
-	// TODO: remove once osImages list is exclusively used
-	if len(cpuArchitectures) == 0 {
-		if !h.isOpenshiftVersionSupported(openshiftVersion) {
-			return nil, errors.Errorf("No OS images for openshift version %s", openshiftVersion)
-		}
-		cpuArchitectures = append(cpuArchitectures, common.DefaultCPUArchitecture)
 	}
 
 	return cpuArchitectures, nil
 }
 
 // Get available openshift versions according to OS images list.
-// Or, keys of openshiftVersions map as a fallback.
 func (h *handler) GetOpenshiftVersions() []string {
 	versions := []string{}
 	for _, image := range h.osImages {
 		if !funk.Contains(versions, *image.OpenshiftVersion) {
 			versions = append(versions, *image.OpenshiftVersion)
-		}
-	}
-	if len(versions) == 0 {
-		for k := range h.openshiftVersions {
-			versions = append(versions, k)
 		}
 	}
 	return versions
@@ -359,19 +310,6 @@ func (h *handler) getKey(openshiftVersion string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
-}
-
-// Checks whether a specified version is in the openshiftVersions map
-func (h *handler) isOpenshiftVersionSupported(openshiftVersion string) bool {
-	versionKey, err := h.getKey(openshiftVersion)
-	if err != nil {
-		return false
-	}
-	if _, ok := h.openshiftVersions[versionKey]; !ok {
-		return false
-	}
-
-	return true
 }
 
 func (h *handler) getSupportLevel(releaseImage models.ReleaseImage) string {
@@ -390,6 +328,12 @@ func (h *handler) getSupportLevel(releaseImage models.ReleaseImage) string {
 
 // Ensure no missing values in OS images and Release images.
 func (h *handler) validateVersions() error {
+	for _, osImage := range h.osImages {
+		if swag.StringValue(osImage.OpenshiftVersion) == "" {
+			return errors.Errorf("Missing openshift_version in OsImage: %v", osImage)
+		}
+	}
+
 	openshiftVersions := h.GetOpenshiftVersions()
 	if len(openshiftVersions) == 0 {
 		return errors.Errorf("No OS images are available")

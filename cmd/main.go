@@ -106,7 +106,6 @@ var Options struct {
 	S3Config                    s3wrapper.Config
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
-	OpenshiftVersions           string        `envconfig:"OPENSHIFT_VERSIONS"`
 	OsImages                    string        `envconfig:"OS_IMAGES" default:""`
 	ReleaseImages               string        `envconfig:"RELEASE_IMAGES" default:""`
 	MustGatherImages            string        `envconfig:"MUST_GATHER_IMAGES" default:""`
@@ -202,35 +201,26 @@ func main() {
 
 	log.Println("Starting bm service")
 
-	var openshiftVersionsMap models.OpenshiftVersions
-	if Options.OpenshiftVersions == "" {
-		log.Info("OpenShift versions is empty - using values from OS_IMAGES and RELEASE_IMAGES")
-	} else {
-		failOnError(json.Unmarshal([]byte(Options.OpenshiftVersions), &openshiftVersionsMap),
-			"Failed to parse supported openshift versions JSON %s", Options.OpenshiftVersions)
-	}
-
 	var osImagesArray models.OsImages
 	if Options.OsImages == "" {
-		// TODO remove the warning once OsImages is mandatory
-		log.Warn("OsImages list is empty - using only OpenshiftVersions")
+		log.Fatal("OS_IMAGES list is empty")
 		osImagesArray = models.OsImages{}
 	} else {
 		failOnError(json.Unmarshal([]byte(Options.OsImages), &osImagesArray),
-			"Failed to parse supported OS images JSON %s", Options.OsImages)
+			"Failed to parse OS_IMAGES json %s", Options.OsImages)
 	}
 
 	var releaseImagesArray models.ReleaseImages
 	if Options.ReleaseImages == "" {
-		// ReleaseImages is optional for now (to support additional CPU architectures)
+		// ReleaseImages is optional (not used by the operator)
 		releaseImagesArray = models.ReleaseImages{}
 	} else {
 		failOnError(json.Unmarshal([]byte(Options.ReleaseImages), &releaseImagesArray),
-			"Failed to parse supported Release images JSON %s", Options.ReleaseImages)
+			"Failed to parse RELEASE_IMAGES json %s", Options.ReleaseImages)
 	}
 
-	log.Println(fmt.Sprintf("Started service with OCP versions %v, OS images %v, Release images %v",
-		Options.OpenshiftVersions, Options.OsImages, Options.ReleaseImages))
+	log.Println(fmt.Sprintf("Started service with OS images %v, Release images %v",
+		Options.OsImages, Options.ReleaseImages))
 
 	var mustGatherVersionsMap = make(versions.MustGatherVersions)
 	if Options.MustGatherImages != "" {
@@ -277,7 +267,7 @@ func main() {
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 	versionHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
-		Options.Versions, openshiftVersionsMap, osImagesArray, releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror)
+		Options.Versions, osImagesArray, releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror)
 	failOnError(err, "failed to create Versions handler")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
@@ -306,12 +296,8 @@ func main() {
 		Options.InstructionConfig.AgentImage,
 	}
 
-	for _, ocpVersion := range openshiftVersionsMap {
-		// ReleaseImage is not necessarily specified when using the operator
-		// (fetched from ClusterImageSet instead)
-		if ocpVersion.ReleaseImage != "" {
-			images = append(images, ocpVersion.ReleaseImage)
-		}
+	for _, releaseImage := range releaseImagesArray {
+		images = append(images, *releaseImage.URL)
 	}
 
 	pullSecretValidator, err := validations.NewPullSecretValidator(Options.ValidationsConfig, images...)
@@ -488,10 +474,10 @@ func main() {
 					"assisted-service-baseiso-helper",
 					log.WithField("pkg", "baseISOUploadLeader"))
 
-				uploadFunc := func() error { return uploadISOs(objectHandler, openshiftVersionsMap, versionHandler, log) }
+				uploadFunc := func() error { return uploadISOs(objectHandler, versionHandler, log) }
 				failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), uploadFunc), "Failed to upload boot files")
 			} else {
-				failOnError(uploadISOs(objectHandler, openshiftVersionsMap, versionHandler, log), "Failed to upload boot files")
+				failOnError(uploadISOs(objectHandler, versionHandler, log), "Failed to upload boot files")
 			}
 		}
 
@@ -583,7 +569,7 @@ func generateAPMTransactionName(request *http.Request) string {
 	return route.Operation.ID
 }
 
-func uploadISOs(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, versionHandler versions.Handler, log logrus.FieldLogger) error {
+func uploadISOs(objectHandler s3wrapper.API, versionHandler versions.Handler, log logrus.FieldLogger) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	errs, _ := errgroup.WithContext(ctx)
 	//cancel the context in case this method ends
