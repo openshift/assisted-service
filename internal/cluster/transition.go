@@ -509,11 +509,12 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		//update cluster record if the state or the reason has changed
 		if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) || reason != swag.StringValue(sCluster.cluster.StatusInfo) {
 			var extra []interface{}
-			extra, err = addExtraParams(logutil.FromContext(params.ctx, th.log), sCluster.cluster, swag.StringValue(sCluster.cluster.Status))
+			var log = logutil.FromContext(params.ctx, th.log)
+			extra, err = addExtraParams(log, sCluster.cluster, sCluster.srcState)
 			if err != nil {
 				return err
 			}
-			updatedCluster, err = updateClusterStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
+			updatedCluster, err = updateClusterStatus(params.ctx, log, params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
 				reason, params.eventHandler, extra...)
 		}
 
@@ -652,16 +653,18 @@ func setPendingUserReset(ctx context.Context, c *common.Cluster, db *gorm.DB, ho
 	return nil
 }
 
-func addProgressParamsInstallingStage(extra []interface{}) []interface{} {
+// This function initialize the progress bar in the transition between prepare for installing to installing
+// all other progress settings should be initiated from the cluster status API
+func initProgressParamsInstallingStage() []interface{} {
 	preparingForInstallationStagePercentage := int64(100)
 	totalPercentage := int64(common.ProgressWeightPreparingForInstallationStage * float64(preparingForInstallationStagePercentage))
-	return append(extra, "progress_preparing_for_installation_stage_percentage", preparingForInstallationStagePercentage,
-		"progress_total_percentage", totalPercentage)
+	return []interface{}{"progress_preparing_for_installation_stage_percentage", preparingForInstallationStagePercentage,
+		"progress_total_percentage", totalPercentage}
 }
 
-func addExtraParams(log logrus.FieldLogger, cluster *common.Cluster, clusterStatus string) ([]interface{}, error) {
+func addExtraParams(log logrus.FieldLogger, cluster *common.Cluster, srcState string) ([]interface{}, error) {
 	extra := []interface{}{}
-	switch clusterStatus {
+	switch swag.StringValue(cluster.Status) {
 	case models.ClusterStatusInstalling:
 		// In case of SNO cluster, set api_vip and ingress_vip with host ip
 		if common.IsSingleNodeCluster(cluster) {
@@ -672,7 +675,9 @@ func addExtraParams(log logrus.FieldLogger, cluster *common.Cluster, clusterStat
 			}
 			extra = append(make([]interface{}, 0), "api_vip", hostIP, "ingress_vip", hostIP)
 		}
-		extra = addProgressParamsInstallingStage(extra)
+		if srcState == models.ClusterStatusPreparingForInstallation {
+			extra = append(extra, initProgressParamsInstallingStage()...)
+		}
 	}
 	return extra, nil
 }
