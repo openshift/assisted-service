@@ -300,10 +300,12 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		if h.Progress != nil && h.Progress.CurrentStage != "" {
 			agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
 			agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo
+			agent.Status.Progress.InstallationPercentage = h.Progress.InstallationPercentage
 			stageStartTime := metav1.NewTime(time.Time(h.Progress.StageStartedAt))
 			agent.Status.Progress.StageStartTime = &stageStartTime
 			stageUpdateTime := metav1.NewTime(time.Time(h.Progress.StageUpdatedAt))
 			agent.Status.Progress.StageUpdateTime = &stageUpdateTime
+			agent.Status.Progress.ProgressStages = h.ProgressStages
 		} else {
 			agent.Status.Progress = aiv1beta1.HostProgressInfo{}
 		}

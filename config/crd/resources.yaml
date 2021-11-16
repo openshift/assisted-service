@@ -375,6 +375,16 @@ spec:
                   - cidr
                   type: object
                 type: array
+              progress:
+                description: Progress shows the installation progress of the cluster
+                properties:
+                  totalPercentage:
+                    description: Estimated installation progress (in percentage)
+                    format: int64
+                    type: integer
+                required:
+                - totalPercentage
+                type: object
               validationsInfo:
                 additionalProperties:
                   items:
@@ -738,16 +748,29 @@ spec:
               progress:
                 properties:
                   currentStage:
-                    description: "HostStage host stage \n swagger:model host-stage"
+                    description: current installation stage
                     type: string
+                  installationPercentage:
+                    description: Estimate progress (percentage)
+                    format: int64
+                    type: integer
                   progressInfo:
+                    description: Additional information for the current installation
+                      stage
                     type: string
+                  progressStages:
+                    description: All stages (ordered by their appearance) for this
+                      agent
+                    items:
+                      description: "HostStage host stage \n swagger:model host-stage"
+                      type: string
+                    type: array
                   stageStartTime:
-                    description: 'Name in REST API: stage_started_at'
+                    description: 'host field: progress: stage_started_at'
                     format: date-time
                     type: string
                   stageUpdateTime:
-                    description: 'Name in REST API: stage_updated_at'
+                    description: 'host field: progress: stage_updated_at'
                     format: date-time
                     type: string
                 type: object

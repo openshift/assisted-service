@@ -2487,10 +2487,36 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return true
 		}, "1m", "2s").Should(BeTrue())
 
+		By("verify cluster progress on installation start")
+		Eventually(func() int64 {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.Progress.TotalPercentage
+		}, "30s", "10s").Should(Equal(int64(10)))
+
+		By("verify cluster and host progress after hosts are installed")
 		installProgress := models.HostStageDone
 		installInfo := "Great Success"
-		updateProgressWithInfo(*host.ID, *infraEnv.ID, installProgress, installInfo)
+		stages := []models.HostStage{
+			models.HostStageStartingInstallation, models.HostStageInstalling,
+			models.HostStageWaitingForBootkube, models.HostStageWritingImageToDisk,
+			models.HostStageRebooting, models.HostStageDone,
+		}
+		updateHostProgressWithInfo(*host.ID, *infraEnv.ID, installProgress, installInfo)
 
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Status.Progress.ProgressInfo == installInfo &&
+				agent.Status.Progress.CurrentStage == installProgress &&
+				agent.Status.Progress.InstallationPercentage == int64(100) &&
+				reflect.DeepEqual(agent.Status.Progress.ProgressStages, stages)
+		}, "30s", "10s").Should(BeTrue())
+
+		Eventually(func() int64 {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.Progress.TotalPercentage
+		}, "30s", "10s").Should(Equal(int64(80)))
+
+		By("Check ACI Logs URL exists")
 		kubeconfigFile, err := os.Open("test_kubeconfig")
 		Expect(err).NotTo(HaveOccurred())
 		_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
@@ -2498,14 +2524,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(err).NotTo(HaveOccurred())
 		kubeconfigFile.Close()
 
-		By("Verify Agent Progress Info")
-		Eventually(func() bool {
-			agent := getAgentCRD(ctx, kubeClient, key)
-			return agent.Status.Progress.ProgressInfo == installInfo &&
-				agent.Status.Progress.CurrentStage == installProgress
-		}, "30s", "10s").Should(BeTrue())
-
-		By("Check ACI Logs URL exists")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.LogsURL

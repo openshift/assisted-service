@@ -221,10 +221,10 @@ func updateClusterLogProgress(clusterID strfmt.UUID, progress models.LogsState) 
 }
 
 func updateProgress(hostID strfmt.UUID, infraEnvID strfmt.UUID, current_step models.HostStage) {
-	updateProgressWithInfo(hostID, infraEnvID, current_step, "")
+	updateHostProgressWithInfo(hostID, infraEnvID, current_step, "")
 }
 
-func updateProgressWithInfo(hostID strfmt.UUID, infraEnvID strfmt.UUID, current_step models.HostStage, info string) {
+func updateHostProgressWithInfo(hostID strfmt.UUID, infraEnvID strfmt.UUID, current_step models.HostStage, info string) {
 	ctx := context.Background()
 
 	installProgress := &models.HostProgress{
