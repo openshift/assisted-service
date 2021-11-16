@@ -3338,11 +3338,11 @@ func (b *bareMetalInventory) updateClusterNetworkVMUsage(cluster *common.Cluster
 	if updateParams != nil && updateParams.UserManagedNetworking != nil {
 		userManagedNetwork = *updateParams.UserManagedNetworking
 	}
-	if userManagedNetwork {
+	if !userManagedNetwork {
 		for _, host := range cluster.Hosts {
 			hostInventory, err := common.UnmarshalInventory(host.Inventory)
 			if err != nil {
-				err = errors.Wrap(err, "Failed to update usage flag for 'User managed network with VMs'.")
+				err = errors.Wrap(err, "Failed to update usage flag for 'Cluster managed network with VMs'.")
 				log.Error(err)
 				return
 			}
@@ -3352,7 +3352,7 @@ func (b *bareMetalInventory) updateClusterNetworkVMUsage(cluster *common.Cluster
 			}
 		}
 	}
-	b.setUsage(len(vmHosts) > 0, usage.UserManagedNetworkWithVMs, &map[string]interface{}{"VM Hosts": vmHosts}, usages)
+	b.setUsage(len(vmHosts) > 0, usage.ClusterManagedNetworkWithVMs, &map[string]interface{}{"VM Hosts": vmHosts}, usages)
 }
 
 func (b *bareMetalInventory) updateClusterCPUFeatureUsage(cluster *common.Cluster, usages map[string]models.Usage) {
