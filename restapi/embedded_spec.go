@@ -11102,6 +11102,10 @@ func init() {
       "properties": {
         "features": {
           "type": "array",
+          "required": [
+            "feature_id",
+            "support_level"
+          ],
           "items": {
             "type": "object",
             "properties": {
@@ -11123,7 +11127,7 @@ func init() {
                   "AUTO_ASSIGN_ROLE",
                   "CUSTOM_MANIFEST",
                   "DISK_ENCRYPTION",
-                  "USER_MANAGED_NETWORKING_WITH_VMS",
+                  "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
                   "ARM64_ARCHITECTURE"
                 ]
               },
@@ -22912,7 +22916,7 @@ func init() {
             "AUTO_ASSIGN_ROLE",
             "CUSTOM_MANIFEST",
             "DISK_ENCRYPTION",
-            "USER_MANAGED_NETWORKING_WITH_VMS",
+            "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
             "ARM64_ARCHITECTURE"
           ]
         },
@@ -24592,6 +24596,10 @@ func init() {
       "properties": {
         "features": {
           "type": "array",
+          "required": [
+            "feature_id",
+            "support_level"
+          ],
           "items": {
             "$ref": "#/definitions/FeatureSupportLevelFeaturesItems0"
           }
