@@ -6402,6 +6402,9 @@ definitions:
         description: Version of the OpenShift cluster.
       features:
         type: array
+        required:
+        - feature_id
+        - support_level
         items:
           type: object
           properties:
@@ -6423,7 +6426,7 @@ definitions:
               - 'AUTO_ASSIGN_ROLE'
               - 'CUSTOM_MANIFEST'
               - 'DISK_ENCRYPTION'
-              - 'USER_MANAGED_NETWORKING_WITH_VMS'
+              - 'CLUSTER_MANAGED_NETWORKING_WITH_VMS'
               - 'ARM64_ARCHITECTURE'
             support_level:
               type: string
