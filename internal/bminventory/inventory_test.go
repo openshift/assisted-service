@@ -8215,6 +8215,48 @@ var _ = Describe("infraEnvs", func() {
 					Expect(gotQuery.Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 				})
 
+				Context("with rhsso auth", func() {
+					BeforeEach(func() {
+						_, cert := auth.GetTokenAndCert(false)
+						cfg := &auth.Config{JwkCert: string(cert)}
+						bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+						var err error
+						bm.ImageExpirationTime, err = time.ParseDuration("4h")
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("sets a valid image_token", func() {
+						mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
+
+						response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+							InfraEnvID:           infraEnvID,
+							InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
+						})
+						Expect(err).ToNot(HaveOccurred())
+
+						u, err := url.Parse(response.DownloadURL)
+						Expect(err).ToNot(HaveOccurred())
+						tok := u.Query().Get("image_token")
+						_, err = bm.authHandler.AuthImageAuth(tok)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("updates the infra-env expires_at time", func() {
+						mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
+
+						response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+							InfraEnvID:           infraEnvID,
+							InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
+						})
+						Expect(err).ToNot(HaveOccurred())
+
+						Expect(response.ExpiresAt.String()).ToNot(Equal("0001-01-01T00:00:00.000Z"))
+						var infraEnv common.InfraEnv
+						Expect(db.First(&infraEnv, "id = ?", infraEnvID.String()).Error).To(Succeed())
+						Expect(infraEnv.ExpiresAt.Equal(response.ExpiresAt)).To(BeTrue())
+					})
+				})
+
 				Context("with local auth", func() {
 					BeforeEach(func() {
 						// Use a local auth handler
@@ -14134,5 +14176,138 @@ var _ = Describe("RegenerateInfraEnvSigningKey", func() {
 		var infraEnv common.InfraEnv
 		Expect(db.First(&infraEnv, "id = ?", infraEnvID.String()).Error).To(Succeed())
 		Expect(infraEnv.ImageTokenKey).NotTo(Equal("initialkeyhere"))
+	})
+})
+
+var _ = Describe("GetInfraEnvDownloadURL", func() {
+	var (
+		bm           *bareMetalInventory
+		cfg          Config
+		db           *gorm.DB
+		ctx          = context.Background()
+		dbName       string
+		infraEnvID   strfmt.UUID
+		testTokenKey = "6aa03bd3b328d44ddf9a9fefc1290a01a3d52294b51d2b54b61819010206c917" // #nosec
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+		bm.ImageServiceBaseURL = "https://image-service.example.com:8080"
+		var err error
+		bm.ImageExpirationTime, err = time.ParseDuration("4h")
+		Expect(err).NotTo(HaveOccurred())
+
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		ie := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:               &infraEnvID,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				Type:             common.ImageTypePtr(models.ImageTypeFullIso),
+			},
+			ImageTokenKey: testTokenKey,
+		}
+		Expect(db.Create(ie).Error).To(Succeed())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	getNewURL := func() *models.InfraEnvImageURL {
+		mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		params := installer.GetInfraEnvDownloadURLParams{InfraEnvID: infraEnvID}
+		resp := bm.GetInfraEnvDownloadURL(ctx, params)
+		Expect(resp).To(BeAssignableToTypeOf(&installer.GetInfraEnvDownloadURLOK{}))
+		payload := resp.(*installer.GetInfraEnvDownloadURLOK).Payload
+		Expect(payload).ToNot(BeNil())
+		return payload
+	}
+
+	Context("with no auth", func() {
+		It("generates a url with no token", func() {
+			payload := getNewURL()
+
+			Expect(payload.ExpiresAt.String()).To(Equal("0001-01-01T00:00:00.000Z"))
+			u, err := url.Parse(payload.URL)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(u.Host).To(Equal("image-service.example.com:8080"))
+			Expect(u.Query().Get("image_token")).To(Equal(""))
+			Expect(u.Query().Get("api_key")).To(Equal(""))
+			Expect(u.Query().Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+		})
+	})
+
+	Context("with local auth", func() {
+		BeforeEach(func() {
+			// Use a local auth handler
+			pub, priv, err := gencrypto.ECDSAKeyPairPEM()
+			Expect(err).NotTo(HaveOccurred())
+			os.Setenv("EC_PRIVATE_KEY_PEM", priv)
+			bm.authHandler, err = auth.NewLocalAuthenticator(
+				&auth.Config{AuthType: auth.TypeLocal, ECPublicKeyPEM: pub},
+				common.GetTestLog().WithField("pkg", "auth"),
+				db,
+			)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			os.Unsetenv("EC_PRIVATE_KEY_PEM")
+		})
+
+		It("sets a valid api_key token", func() {
+			payload := getNewURL()
+
+			Expect(payload.ExpiresAt.String()).To(Equal("0001-01-01T00:00:00.000Z"))
+			u, err := url.Parse(payload.URL)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(u.Host).To(Equal("image-service.example.com:8080"))
+			tok := u.Query().Get("api_key")
+			_, err = bm.authHandler.AuthURLAuth(tok)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(u.Query().Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+		})
+	})
+
+	Context("with rhsso auth", func() {
+		BeforeEach(func() {
+			_, cert := auth.GetTokenAndCert(false)
+			cfg := &auth.Config{JwkCert: string(cert)}
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+		})
+
+		It("sets a valid image_token", func() {
+			payload := getNewURL()
+
+			Expect(payload.ExpiresAt.String()).ToNot(Equal("0001-01-01T00:00:00.000Z"))
+			u, err := url.Parse(payload.URL)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(u.Host).To(Equal("image-service.example.com:8080"))
+			tok := u.Query().Get("image_token")
+			_, err = bm.authHandler.AuthImageAuth(tok)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(u.Query().Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+		})
+
+		It("updates the infra-env expires_at time", func() {
+			payload := getNewURL()
+
+			Expect(payload.ExpiresAt.String()).ToNot(Equal("0001-01-01T00:00:00.000Z"))
+			var infraEnv common.InfraEnv
+			Expect(db.First(&infraEnv, "id = ?", infraEnvID.String()).Error).To(Succeed())
+			Expect(infraEnv.ExpiresAt.Equal(payload.ExpiresAt)).To(BeTrue())
+		})
+	})
+
+	It("when not using the image service it returns 400", func() {
+		bm.ImageServiceBaseURL = ""
+
+		params := installer.GetInfraEnvDownloadURLParams{InfraEnvID: infraEnvID}
+		resp := bm.GetInfraEnvDownloadURL(ctx, params)
+		verifyApiError(resp, http.StatusBadRequest)
 	})
 })

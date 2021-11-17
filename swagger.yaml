@@ -3595,6 +3595,57 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/infra-envs/{infra_env_id}/downloads/image-url:
+    get:
+      tags:
+        - installer
+      description: Creates a new pre-signed image download URL for the infra-env.
+      operationId: GetInfraEnvDownloadURL
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The infra-env to be retrieved.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/infra-env-image-url'
+        "400":
+          description: Bad Request.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
 
   /v2/infra-envs/{infra_env_id}/hosts:
     post:
@@ -9213,3 +9264,14 @@ definitions:
       cluster_id:
         type: string
         format: uuid
+
+  infra-env-image-url:
+    type: object
+    properties:
+      url:
+        type: string
+        description: Pre-signed URL for downloading the infra-env discovery image.
+      expires_at:
+        type: string
+        format: date-time
+        description: Expiration time for the URL token.

@@ -157,6 +157,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetInfraEnvHandler: installer.GetInfraEnvHandlerFunc(func(params installer.GetInfraEnvParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetInfraEnv has not yet been implemented")
 		}),
+		InstallerGetInfraEnvDownloadURLHandler: installer.GetInfraEnvDownloadURLHandlerFunc(func(params installer.GetInfraEnvDownloadURLParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetInfraEnvDownloadURL has not yet been implemented")
+		}),
 		InstallerGetPreflightRequirementsHandler: installer.GetPreflightRequirementsHandlerFunc(func(params installer.GetPreflightRequirementsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetPreflightRequirements has not yet been implemented")
 		}),
@@ -580,6 +583,8 @@ type AssistedInstallAPI struct {
 	InstallerGetHostIgnitionHandler installer.GetHostIgnitionHandler
 	// InstallerGetInfraEnvHandler sets the operation handler for the get infra env operation
 	InstallerGetInfraEnvHandler installer.GetInfraEnvHandler
+	// InstallerGetInfraEnvDownloadURLHandler sets the operation handler for the get infra env download URL operation
+	InstallerGetInfraEnvDownloadURLHandler installer.GetInfraEnvDownloadURLHandler
 	// InstallerGetPreflightRequirementsHandler sets the operation handler for the get preflight requirements operation
 	InstallerGetPreflightRequirementsHandler installer.GetPreflightRequirementsHandler
 	// AssistedServiceIsoGetPresignedForAssistedServiceISOHandler sets the operation handler for the get presigned for assisted service i s o operation
@@ -962,6 +967,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetInfraEnvHandler == nil {
 		unregistered = append(unregistered, "installer.GetInfraEnvHandler")
+	}
+	if o.InstallerGetInfraEnvDownloadURLHandler == nil {
+		unregistered = append(unregistered, "installer.GetInfraEnvDownloadURLHandler")
 	}
 	if o.InstallerGetPreflightRequirementsHandler == nil {
 		unregistered = append(unregistered, "installer.GetPreflightRequirementsHandler")
@@ -1489,6 +1497,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}"] = installer.NewGetInfraEnv(o.context, o.InstallerGetInfraEnvHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/image-url"] = installer.NewGetInfraEnvDownloadURL(o.context, o.InstallerGetInfraEnvDownloadURLHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

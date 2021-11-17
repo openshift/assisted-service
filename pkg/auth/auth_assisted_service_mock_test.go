@@ -500,6 +500,10 @@ func (b fakeInventory) RegenerateInfraEnvSigningKey(ctx context.Context, params 
 	return installer.NewRegenerateInfraEnvSigningKeyNoContent()
 }
 
+func (f fakeInventory) GetInfraEnvDownloadURL(ctx context.Context, params installer.GetInfraEnvDownloadURLParams) middleware.Responder {
+	return installer.NewGetInfraEnvDownloadURLOK()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

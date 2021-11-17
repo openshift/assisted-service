@@ -1155,7 +1155,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, 
 	}
 
 	var version string
-	if osImage.Version != nil {
+	if osImage.OpenshiftVersion != nil {
 		version = *osImage.OpenshiftVersion
 	} else {
 		return errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage)
@@ -1167,41 +1167,17 @@ func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, 
 	}
 
 	if string(imageType) != prevType || version != prevVersion || arch != prevArch || !infraEnv.Generated {
-		baseURL, urlErr := url.Parse(b.ImageServiceBaseURL)
-		if urlErr != nil {
-			return errors.Wrap(err, "failed to parse image service base URL")
+		var expiresAt *strfmt.DateTime
+		infraEnv.DownloadURL, expiresAt, err = b.generateImageDownloadURL(infraEnv.ID.String(), string(imageType), version, arch, infraEnv.ImageTokenKey)
+		if err != nil {
+			return errors.Wrap(err, "failed to create download URL")
 		}
-		downloadURL := url.URL{
-			Scheme: baseURL.Scheme,
-			Host:   baseURL.Host,
-			Path:   fmt.Sprintf("/images/%s", infraEnv.ID),
-		}
-		queryValues := url.Values{}
-		queryValues.Set("type", string(imageType))
-		queryValues.Set("version", version)
-		queryValues.Set("arch", arch)
-		downloadURL.RawQuery = queryValues.Encode()
-		infraEnv.DownloadURL = downloadURL.String()
 
-		if b.authHandler.AuthType() == auth.TypeLocal {
-			infraEnv.DownloadURL, err = gencrypto.SignURL(downloadURL.String(), infraEnv.ID.String(), gencrypto.InfraEnvKey)
-			if err != nil {
-				return errors.Wrap(err, "failed to sign image URL")
-			}
-		} else if b.authHandler.AuthType() == auth.TypeRHSSO {
-			var token string
-			token, err = gencrypto.JWTForSymmetricKey([]byte(infraEnv.ImageTokenKey), b.ImageExpirationTime, infraEnv.ID.String())
-			if err != nil {
-				return errors.Wrapf(err, "failed to generate token for infraEnv %s", infraEnv.ID)
-			}
-			infraEnv.DownloadURL, err = gencrypto.SignURLWithToken(downloadURL.String(), "image_token", token)
-			if err != nil {
-				return errors.Wrap(err, "failed to sign image URL with token")
-			}
-		}
 		updates["download_url"] = infraEnv.DownloadURL
 		updates["generated"] = true
 		infraEnv.Generated = true
+		updates["expires_at"] = *expiresAt
+		infraEnv.ExpiresAt = *expiresAt
 	}
 
 	err = b.db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates).Error

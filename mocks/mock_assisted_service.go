@@ -456,6 +456,20 @@ func (mr *MockInstallerAPIMockRecorder) GetInfraEnv(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnv", reflect.TypeOf((*MockInstallerAPI)(nil).GetInfraEnv), arg0, arg1)
 }
 
+// GetInfraEnvDownloadURL mocks base method.
+func (m *MockInstallerAPI) GetInfraEnvDownloadURL(arg0 context.Context, arg1 installer.GetInfraEnvDownloadURLParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInfraEnvDownloadURL", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// GetInfraEnvDownloadURL indicates an expected call of GetInfraEnvDownloadURL.
+func (mr *MockInstallerAPIMockRecorder) GetInfraEnvDownloadURL(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvDownloadURL", reflect.TypeOf((*MockInstallerAPI)(nil).GetInfraEnvDownloadURL), arg0, arg1)
+}
+
 // GetPreflightRequirements mocks base method.
 func (m *MockInstallerAPI) GetPreflightRequirements(arg0 context.Context, arg1 installer.GetPreflightRequirementsParams) middleware.Responder {
 	m.ctrl.T.Helper()
