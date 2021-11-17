@@ -107,6 +107,7 @@ type Config struct {
 	DefaultServiceNetworkCidr       string            `envconfig:"SERVICE_NETWORK_CIDR" default:"172.30.0.0/16"`
 	ISOImageType                    string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
 	IPv6Support                     bool              `envconfig:"IPV6_SUPPORT" default:"true"`
+	DiskEncryptionSupport           bool              `envconfig:"DISK_ENCRYPTION_SUPPORT" default:"true"`
 }
 
 const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
@@ -414,7 +415,7 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if err = validations.ValidateDiskEncryptionParams(params.NewClusterParams.DiskEncryption); err != nil {
+	if err = validations.ValidateDiskEncryptionParams(params.NewClusterParams.DiskEncryption, b.DiskEncryptionSupport); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -2405,9 +2406,9 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, v1Params
 		return nil, err
 	}
 
-	if err = validations.ValidateDiskEncryptionParams(v2Params.ClusterUpdateParams.DiskEncryption); err != nil {
+	if err = validations.ValidateDiskEncryptionParams(v2Params.ClusterUpdateParams.DiskEncryption, b.DiskEncryptionSupport); err != nil {
 		log.WithError(err).Errorf("failed to validate disk-encryption params: %v", *v2Params.ClusterUpdateParams.DiskEncryption)
-		return nil, err
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)
@@ -2544,8 +2545,8 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, err
 	}
 
-	if err = validations.ValidateDiskEncryptionParams(params.ClusterUpdateParams.DiskEncryption); err != nil {
-		return nil, err
+	if err = validations.ValidateDiskEncryptionParams(params.ClusterUpdateParams.DiskEncryption, b.DiskEncryptionSupport); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)

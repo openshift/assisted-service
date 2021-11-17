@@ -79,6 +79,9 @@ parameters:
 - name: ENABLE_SINGLE_NODE_DNSMASQ
   value: "true"
   required: false
+- name: DISK_ENCRYPTION_SUPPORT
+  value: "true"
+  required: false
 - name: ENABLE_DEREGISTER_INACTIVE_GC
   value: "false"
 - name: ENABLE_DELETE_UNREGISTER_GC
@@ -296,6 +299,8 @@ objects:
                 value: ${DISABLED_STEPS}
               - name: ENABLE_AUTO_ASSIGN
                 value: ${ENABLE_AUTO_ASSIGN}
+              - name: DISK_ENCRYPTION_SUPPORT
+                value: ${DISK_ENCRYPTION_SUPPORT}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
