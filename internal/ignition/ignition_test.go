@@ -1260,7 +1260,8 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 			ca := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 				"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 				"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &ca, nil)
+			encodedCa := base64.StdEncoding.EncodeToString([]byte(ca))
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &encodedCa, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			ignConfig, _, err := config_31.Parse(ign)
@@ -1268,7 +1269,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].Source)).Should(Equal("https://url.com"))
 			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders).Should(HaveLen(0))
 			Expect(ignConfig.Ignition.Security.TLS.CertificateAuthorities).Should(HaveLen(1))
-			Expect(swag.StringValue(ignConfig.Ignition.Security.TLS.CertificateAuthorities[0].Source)).Should(Equal("data:text/plain;base64," + base64.StdEncoding.EncodeToString([]byte(ca))))
+			Expect(swag.StringValue(ignConfig.Ignition.Security.TLS.CertificateAuthorities[0].Source)).Should(Equal("data:text/plain;base64," + encodedCa))
 		})
 
 		It("are rendered properly with ca cert and token", func() {
@@ -1276,7 +1277,9 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 			ca := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 				"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 				"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &ca, &token)
+			encodedCa := base64.StdEncoding.EncodeToString([]byte(ca))
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &encodedCa, &token)
+
 			Expect(err).NotTo(HaveOccurred())
 
 			ignConfig, _, err := config_31.Parse(ign)
@@ -1286,7 +1289,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Name).Should(Equal("Authorization"))
 			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Value)).Should(Equal("Bearer: " + token))
 			Expect(ignConfig.Ignition.Security.TLS.CertificateAuthorities).Should(HaveLen(1))
-			Expect(swag.StringValue(ignConfig.Ignition.Security.TLS.CertificateAuthorities[0].Source)).Should(Equal("data:text/plain;base64," + base64.StdEncoding.EncodeToString([]byte(ca))))
+			Expect(swag.StringValue(ignConfig.Ignition.Security.TLS.CertificateAuthorities[0].Source)).Should(Equal("data:text/plain;base64," + encodedCa))
 		})
 	})
 })

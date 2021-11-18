@@ -1451,7 +1451,7 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert 
 	}
 
 	if caCert != nil {
-		ignitionParams["CACERT"] = fmt.Sprintf("data:text/plain;base64,%s", base64.StdEncoding.EncodeToString([]byte(*caCert)))
+		ignitionParams["CACERT"] = fmt.Sprintf("data:text/plain;base64,%s", *caCert)
 	}
 
 	tmpl, err := template.New("nodeIgnition").Parse(secondDayWorkerIgnitionFormat)
