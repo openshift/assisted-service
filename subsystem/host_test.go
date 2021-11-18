@@ -703,6 +703,7 @@ var _ = Describe("Host tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		h = getHost(*cluster2.GetPayload().ID, *hostID)
 		Expect(swag.StringValue(h.Status)).Should(Equal("discovering"))
+		Expect(false).Should(BeTrue()) // fail intentionally so it prints resources
 	})
 
 	It("register_wrong_pull_secret", func() {

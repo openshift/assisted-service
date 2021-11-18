@@ -188,6 +188,7 @@ var _ = Describe("Host tests v2", func() {
 		_ = registerHostByUUID(infraEnvID2, hostID)
 		h = getHostV2(infraEnvID2, hostID)
 		Expect(swag.StringValue(h.Status)).Should(Equal("discovering-unbound"))
+		Expect(false).Should(BeTrue()) // fail intentionally so it prints resources
 	})
 
 	It("bind host", func() {
