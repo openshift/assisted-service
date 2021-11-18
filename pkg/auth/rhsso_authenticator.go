@@ -173,7 +173,6 @@ func (a *RHSSOAuthenticator) AuthUserAuth(token string) (interface{}, error) {
 		// TODO: This validation is going to be removed in jwt-go v4, once jwt-go v4
 		// is released and we start using it, this validation-skip can be removed.
 		if !isValidationErrorIssuedAt(err) {
-			a.log.WithError(err).Errorf("Error parsing token or token is invalid")
 			return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("Error parsing token or token is invalid"))
 		}
 	}
