@@ -609,7 +609,7 @@ func requirementsMet(agent *aiv1beta1.Agent, status string) {
 		condStatus = corev1.ConditionTrue
 		reason = aiv1beta1.AgentAlreadyInstallingReason
 		msg = aiv1beta1.AgentAlreadyInstallingMsg
-	case models.HostStatusInstalled, models.HostStatusError:
+	case models.HostStatusInstalled, models.HostStatusError, models.HostStatusAddedToExistingCluster:
 		condStatus = corev1.ConditionTrue
 		reason = aiv1beta1.AgentInstallationStoppedReason
 		msg = aiv1beta1.AgentInstallationStoppedMsg

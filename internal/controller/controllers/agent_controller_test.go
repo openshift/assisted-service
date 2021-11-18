@@ -1386,6 +1386,44 @@ var _ = Describe("TestConditions", func() {
 			},
 		},
 		{
+			name:           "Installed day2",
+			hostStatus:     models.HostStatusAddedToExistingCluster,
+			statusInfo:     "Done",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.RequirementsMetCondition,
+					Message: v1beta1.AgentInstallationStoppedMsg,
+					Reason:  v1beta1.AgentInstallationStoppedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.InstalledMsg + " Done",
+					Reason:  v1beta1.InstalledReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsPassingMsg,
+					Reason:  v1beta1.ValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.BoundCondition,
+					Message: v1beta1.BoundMsg,
+					Reason:  v1beta1.BoundReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+		{
 			name:           "Installed",
 			hostStatus:     models.HostStatusInstalled,
 			statusInfo:     "Done",
