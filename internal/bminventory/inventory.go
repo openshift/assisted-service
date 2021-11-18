@@ -6845,11 +6845,6 @@ func (b *bareMetalInventory) updateHostRole(ctx context.Context, host *common.Ho
 		log.Infof("No request for role update for host %s", host.ID)
 		return nil
 	}
-	if host.ClusterID == nil {
-		msg := fmt.Sprintf("Update role of the host %s is not allowed, does not belongs to a cluster ", host.ID)
-		log.Errorf(msg)
-		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
-	}
 	err := b.hostApi.UpdateRole(ctx, &host.Host, models.HostRole(*hostRole), db)
 	if err != nil {
 		log.WithError(err).Errorf("failed to set role <%s> host <%s>, infra env <%s>",
@@ -6885,11 +6880,6 @@ func (b *bareMetalInventory) updateHostDisksSelectionConfig(ctx context.Context,
 		log.Infof("No request for disk selection config update for host %s", host.ID)
 		return nil
 	}
-	if host.ClusterID == nil {
-		msg := fmt.Sprintf("Update disks selection config of the host %s is not allowed, does not belongs to a cluster ", host.ID)
-		log.Errorf(msg)
-		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
-	}
 	disksToInstallOn := funk.Filter(disksSelectedConfig, func(diskConfigParams *models.DiskConfigParams) bool {
 		return models.DiskRoleInstall == diskConfigParams.Role
 	}).([]*models.DiskConfigParams)
@@ -6919,11 +6909,6 @@ func (b *bareMetalInventory) updateHostMachineConfigPoolName(ctx context.Context
 	if machineConfigPoolName == nil {
 		log.Infof("No request for machine config pool name update for host %s", host.ID)
 		return nil
-	}
-	if host.ClusterID == nil {
-		msg := fmt.Sprintf("Update machine config pool of the host %s is not allowed, does not belongs to a cluster ", host.ID)
-		log.Errorf(msg)
-		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
 	}
 	err := b.hostApi.UpdateMachineConfigPoolName(ctx, db, &host.Host, *machineConfigPoolName)
 	if err != nil {

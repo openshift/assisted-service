@@ -103,7 +103,7 @@ var _ = Describe("Host tests v2", func() {
 		Expect(updatedHost.RequestedHostname).To(Equal("new-host-name"))
 	})
 
-	It("update infra-env host installation disk id failure", func() {
+	It("update infra-env host installation disk id success", func() {
 		host := &registerHost(infraEnvID).Host
 		host = getHostV2(infraEnvID, *host.ID)
 		Expect(host).NotTo(BeNil())
@@ -147,7 +147,7 @@ var _ = Describe("Host tests v2", func() {
 		}
 
 		_, error = userBMClient.Installer.V2UpdateHost(ctx, diskSelectionRequest)
-		Expect(error).Should(HaveOccurred())
+		Expect(error).ToNot(HaveOccurred())
 	})
 
 	It("register_same_host_id", func() {
