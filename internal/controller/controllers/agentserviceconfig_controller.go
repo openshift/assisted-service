@@ -81,6 +81,8 @@ const (
 
 	servingCertAnnotation    = "service.beta.openshift.io/serving-cert-secret-name"
 	injectCABundleAnnotation = "service.beta.openshift.io/inject-cabundle"
+
+	defaultNamespace = "default"
 )
 
 var (
@@ -187,6 +189,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, r.newAssistedServiceDeployment},
 		{"AgentClusterInstallValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newACIWebHook},
 		{"InfraEnvValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newInfraEnvWebHook},
+		{"AgentValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newAgentWebHook},
 		{"WebHookService", aiv1beta1.ReasonWebHookServiceFailure, r.newWebHookService},
 		{"WebHookServiceDeployment", aiv1beta1.ReasonWebHookDeploymentFailure, r.newWebHookDeployment},
 		{"WebHookServiceAccount", aiv1beta1.ReasonWebHookServiceAccountFailure, r.newWebHookServiceAccount},
@@ -1302,7 +1305,7 @@ func (r *AgentServiceConfigReconciler) newInfraEnvWebHook(ctx context.Context, l
 			},
 			ClientConfig: admregv1.WebhookClientConfig{
 				Service: &admregv1.ServiceReference{
-					Namespace: "default",
+					Namespace: defaultNamespace,
 					Name:      "kubernetes",
 					Path:      &path,
 				},
@@ -1342,6 +1345,60 @@ func (r *AgentServiceConfigReconciler) newInfraEnvWebHook(ctx context.Context, l
 	return &aci, mutateFn, nil
 }
 
+func (r *AgentServiceConfigReconciler) newAgentWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	fp := admregv1.Fail
+	se := admregv1.SideEffectClassNone
+	path := "/apis/admission.agentinstall.openshift.io/v1/agentvalidators"
+	webhooks := []admregv1.ValidatingWebhook{
+		{
+			Name:          "agentvalidators.admission.agentinstall.openshift.io",
+			FailurePolicy: &fp,
+			SideEffects:   &se,
+			AdmissionReviewVersions: []string{
+				"v1",
+			},
+			ClientConfig: admregv1.WebhookClientConfig{
+				Service: &admregv1.ServiceReference{
+					Namespace: defaultNamespace,
+					Name:      "kubernetes",
+					Path:      &path,
+				},
+			},
+			Rules: []admregv1.RuleWithOperations{
+				{
+					Operations: []admregv1.OperationType{
+						admregv1.Update,
+					},
+					Rule: admregv1.Rule{
+						APIGroups: []string{
+							"agent-install.openshift.io",
+						},
+						APIVersions: []string{
+							"v1beta1",
+						},
+						Resources: []string{
+							"agents",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	agent := admregv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "agentvalidators.admission.agentinstall.openshift.io",
+		},
+		Webhooks: webhooks,
+	}
+
+	mutateFn := func() error {
+		agent.Webhooks = webhooks
+		return nil
+	}
+	return &agent, mutateFn, nil
+}
+
 func (r *AgentServiceConfigReconciler) newACIWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	fp := admregv1.Fail
 	se := admregv1.SideEffectClassNone
@@ -1356,7 +1413,7 @@ func (r *AgentServiceConfigReconciler) newACIWebHook(ctx context.Context, log lo
 			},
 			ClientConfig: admregv1.WebhookClientConfig{
 				Service: &admregv1.ServiceReference{
-					Namespace: "default",
+					Namespace: defaultNamespace,
 					Name:      "kubernetes",
 					Path:      &path,
 				},

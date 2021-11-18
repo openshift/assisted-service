@@ -20,6 +20,7 @@ func main() {
 	admissionCmd.RunAdmissionServer(
 		hiveextvalidatingwebhooks.NewAgentClusterInstallValidatingAdmissionHook(decoder),
 		agentinstallvalidatingwebhooks.NewInfraEnvValidatingAdmissionHook(decoder),
+		agentinstallvalidatingwebhooks.NewAgentValidatingAdmissionHook(decoder),
 	)
 }
 
