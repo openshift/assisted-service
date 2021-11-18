@@ -103,11 +103,11 @@ The Agent condition types supported are: `SpecSynced`, `Connected`, `Requirement
 |RequirementsMet|False|AgentNotReady|The agent is not ready to begin the installation|If the host is before installation ("discovering"/"insufficient"/"disconnected"/"pending-input")|
 |RequirementsMet|False|AgentIsNotApproved|The agent is not approved|If the host is not approved and in status "known"|
 |RequirementsMet|True|AgentAlreadyInstalling|Installation already started and is in progress|If the agent has begun installing ("preparing-successful","preparing-for-installation", "installing") |
-|RequirementsMet|True|AgentInstallationStopped|The agent installation stopped|If the agent has stopped installing ("installed", "error") |
+|RequirementsMet|True|AgentInstallationStopped|The agent installation stopped|If the agent has stopped installing ("installed", "error", "added-to-existing-cluster") |
 |RequirementsMet|False|Binding|The agent is currently binding to a cluster deployment|If the host status is "binding"|
 |RequirementsMet|False|Unbinding|The agent is currently unbinding from a cluster deployment|If the host status is "unbinding" or "unbinding-pending-user-action"|
 ||||||
-|Installed|True|InstallationCompleted|The installation has completed: "status_info"|If the host status is "installed"|
+|Installed|True|InstallationCompleted|The installation has completed: "status_info"|If the host status is "installed" or "added-to-existing-cluster"|
 |Installed|False|InstallationFailed|The installation has failed: "status_info"|If the host status is "error"|
 |Installed|False|InstallationNotStarted|The installation has not yet started|If the cluster is before installation ("discovering"/"insufficient"/"disconnected"/"pending-input/known")|
 |Installed|False|InstallationInProgress|The installation is in progress: "status_info"|If the host is installing ("preparing-for-installation", "preparing-successful", "installing")|
