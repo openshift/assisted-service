@@ -45,7 +45,7 @@ type InfraEnvCreateParams struct {
 	OpenshiftVersion *string `json:"openshift_version"`
 
 	// proxy
-	Proxy *Proxy `json:"proxy,omitempty" gorm:"embedded;embedded_prefix:proxy_"`
+	Proxy *Proxy `json:"proxy,omitempty" gorm:"embedded;embeddedPrefix:proxy_"`
 
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
 	// Required: true

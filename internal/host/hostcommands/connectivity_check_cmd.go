@@ -3,10 +3,10 @@ package hostcommands
 import (
 	"context"
 
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/connectivity"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type connectivityCheckCmd struct {

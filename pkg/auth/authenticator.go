@@ -5,9 +5,9 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type AuthType string

@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -18,6 +17,7 @@ import (
 	restoperators "github.com/openshift/assisted-service/restapi/operations/operators"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 // Handler implements REST API interface and deals with HTTP objects and transport data model.

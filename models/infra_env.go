@@ -56,7 +56,7 @@ type InfraEnv struct {
 	// Unique identifier of the object.
 	// Required: true
 	// Format: uuid
-	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
+	ID *strfmt.UUID `json:"id" gorm:"primaryKey"`
 
 	// Json formatted string containing the user overrides for the initial ignition config.
 	IgnitionConfigOverride string `json:"ignition_config_override,omitempty"`
@@ -77,7 +77,7 @@ type InfraEnv struct {
 	OrgID string `json:"org_id,omitempty"`
 
 	// proxy
-	Proxy *Proxy `json:"proxy,omitempty" gorm:"embedded;embedded_prefix:proxy_"`
+	Proxy *Proxy `json:"proxy,omitempty" gorm:"embedded;embeddedPrefix:proxy_"`
 
 	// True if the pull secret has been added to the cluster.
 	PullSecretSet bool `json:"pull_secret_set,omitempty"`

@@ -1,14 +1,16 @@
 package migrations
 
 import (
+	"strings"
+
+	gormigrate "github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	gormigrate "gopkg.in/gormigrate.v1"
+	"gorm.io/gorm"
 )
 
 var _ = Describe("changeOverridesToText", func() {
@@ -44,30 +46,33 @@ var _ = Describe("changeOverridesToText", func() {
 	It("Migrates down and up", func() {
 		t, err := getColumnType(db, &common.Cluster{}, "install_config_overrides")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(t).To(Equal("TEXT"))
-		expectOverride(db, clusterID.String(), overrides)
+		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
+		expectOverride(dbName, clusterID.String(), overrides)
 
 		err = gm.RollbackMigration(changeOverridesToText())
 		Expect(err).ToNot(HaveOccurred())
 
 		t, err = getColumnType(db, &common.Cluster{}, "install_config_overrides")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(t).To(Equal("VARCHAR"))
-		expectOverride(db, clusterID.String(), overrides)
+		Expect(strings.ToUpper(t)).To(Equal("VARCHAR"))
+		expectOverride(dbName, clusterID.String(), overrides)
 
 		err = gm.MigrateTo("20201019194303")
 		Expect(err).ToNot(HaveOccurred())
 
 		t, err = getColumnType(db, &common.Cluster{}, "install_config_overrides")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(t).To(Equal("TEXT"))
-		expectOverride(db, clusterID.String(), overrides)
+		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
+		expectOverride(dbName, clusterID.String(), overrides)
 	})
 })
 
-func expectOverride(db *gorm.DB, clusterID string, override string) {
+func expectOverride(dbName string, clusterID string, override string) {
 	var c common.Cluster
-	err := db.First(&c, "id = ?", clusterID).Error
+	db, err := common.OpenTestDBConn(dbName)
+	Expect(err).ShouldNot(HaveOccurred())
+	defer common.CloseDB(db)
+	err = db.First(&c, "id = ?", clusterID).Error
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(c.IgnitionConfigOverrides).To(Equal(override))
 }

@@ -3,8 +3,8 @@ package migrations
 import (
 	"sort"
 
-	"github.com/jinzhu/gorm"
-	gormigrate "gopkg.in/gormigrate.v1"
+	gormigrate "github.com/go-gormigrate/gormigrate/v2"
+	"gorm.io/gorm"
 )
 
 func MigratePre(db *gorm.DB) error {
@@ -14,6 +14,7 @@ func MigratePre(db *gorm.DB) error {
 func pre() []*gormigrate.Migration {
 	preMigrations := []*gormigrate.Migration{
 		populateInfraEnv(),
+		modifyEventsId(),
 	}
 
 	sort.SliceStable(preMigrations, func(i, j int) bool { return preMigrations[i].ID < preMigrations[j].ID })

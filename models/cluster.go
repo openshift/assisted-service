@@ -15,6 +15,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
+	"gorm.io/gorm"
 )
 
 // Cluster cluster
@@ -49,7 +50,7 @@ type Cluster struct {
 	ClusterNetworkHostPrefix int64 `json:"cluster_network_host_prefix,omitempty"`
 
 	// Cluster networks that are associated with this cluster.
-	ClusterNetworks []*ClusterNetwork `json:"cluster_networks" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
+	ClusterNetworks []*ClusterNetwork `json:"cluster_networks" gorm:"foreignkey:ClusterID;references:ID"`
 
 	// Json formatted string containing the majority groups for connectivity checks.
 	ConnectivityMajorityGroups string `json:"connectivity_majority_groups,omitempty" gorm:"type:text"`
@@ -69,12 +70,11 @@ type Cluster struct {
 	// Format: date-time
 	CreatedAt timeext.Time `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
 
-	// The time that the cluster was deleted.
-	// Format: date-time
-	DeletedAt *strfmt.DateTime `json:"deleted_at,omitempty" gorm:"type:timestamp with time zone"`
+	// swagger:ignore
+	DeletedAt gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"type:timestamp with time zone;index"`
 
 	// Information regarding hosts' installation disks encryption.
-	DiskEncryption *DiskEncryption `json:"disk_encryption,omitempty" gorm:"embedded;embedded_prefix:disk_encryption_"`
+	DiskEncryption *DiskEncryption `json:"disk_encryption,omitempty" gorm:"embedded;embeddedPrefix:disk_encryption_"`
 
 	// email domain
 	EmailDomain string `json:"email_domain,omitempty"`
@@ -95,7 +95,7 @@ type Cluster struct {
 	HostNetworks []*HostNetwork `json:"host_networks" gorm:"-"`
 
 	// Hosts that are associated with this cluster.
-	Hosts []*Host `json:"hosts" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
+	Hosts []*Host `json:"hosts" gorm:"foreignkey:ClusterID;references:ID"`
 
 	// Self link.
 	// Required: true
@@ -118,18 +118,18 @@ type Cluster struct {
 	// Unique identifier of the object.
 	// Required: true
 	// Format: uuid
-	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
+	ID *strfmt.UUID `json:"id" gorm:"primaryKey"`
 
 	// Json formatted string containing the user overrides for the initial ignition config
 	// Example: {\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}
 	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty" gorm:"type:text"`
 
 	// Explicit ignition endpoint overrides the default ignition endpoint.
-	IgnitionEndpoint *IgnitionEndpoint `json:"ignition_endpoint,omitempty" gorm:"embedded;embedded_prefix:ignition_endpoint_"`
+	IgnitionEndpoint *IgnitionEndpoint `json:"ignition_endpoint,omitempty" gorm:"embedded;embeddedPrefix:ignition_endpoint_"`
 
 	// image info
 	// Required: true
-	ImageInfo *ImageInfo `json:"image_info" gorm:"embedded;embedded_prefix:image_"`
+	ImageInfo *ImageInfo `json:"image_info" gorm:"embedded;embeddedPrefix:image_"`
 
 	// The virtual IP used for cluster ingress traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$
@@ -162,10 +162,10 @@ type Cluster struct {
 	MachineNetworkCidr string `json:"machine_network_cidr,omitempty"`
 
 	// Machine networks that are associated with this cluster.
-	MachineNetworks []*MachineNetwork `json:"machine_networks" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
+	MachineNetworks []*MachineNetwork `json:"machine_networks" gorm:"foreignkey:ClusterID;references:ID"`
 
 	// Operators that are associated with this cluster.
-	MonitoredOperators []*MonitoredOperator `json:"monitored_operators" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
+	MonitoredOperators []*MonitoredOperator `json:"monitored_operators" gorm:"foreignkey:ClusterID;references:ID"`
 
 	// Name of the OpenShift cluster.
 	Name string `json:"name,omitempty"`
@@ -191,10 +191,10 @@ type Cluster struct {
 	OrgID string `json:"org_id,omitempty"`
 
 	// platform
-	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embedded_prefix:platform_"`
+	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embeddedPrefix:platform_"`
 
 	// Installation progress percentages of the cluster.
-	Progress *ClusterProgressInfo `json:"progress,omitempty" gorm:"embedded;embedded_prefix:progress_"`
+	Progress *ClusterProgressInfo `json:"progress,omitempty" gorm:"embedded;embeddedPrefix:progress_"`
 
 	// True if the pull secret has been added to the cluster.
 	PullSecretSet bool `json:"pull_secret_set,omitempty"`
@@ -210,7 +210,7 @@ type Cluster struct {
 	ServiceNetworkCidr string `json:"service_network_cidr,omitempty"`
 
 	// Service networks that are associated with this cluster.
-	ServiceNetworks []*ServiceNetwork `json:"service_networks" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
+	ServiceNetworks []*ServiceNetwork `json:"service_networks" gorm:"foreignkey:ClusterID;references:ID"`
 
 	// SSH public key for debugging OpenShift nodes.
 	SSHPublicKey string `json:"ssh_public_key,omitempty"`
@@ -281,10 +281,6 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateCreatedAt(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateDeletedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -510,18 +506,6 @@ func (m *Cluster) validateCreatedAt(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("created_at", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Cluster) validateDeletedAt(formats strfmt.Registry) error {
-	if swag.IsZero(m.DeletedAt) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("deleted_at", "body", "date-time", m.DeletedAt.String(), formats); err != nil {
 		return err
 	}
 

@@ -65,8 +65,8 @@ func main() {
 var migrationTemplate = `package migrations
 
 import (
-	"github.com/jinzhu/gorm"
-	gormigrate "gopkg.in/gormigrate.v1"
+	"gorm.io/gorm"
+	gormigrate "github.com/go-gormigrate/gormigrate/v2"
 )
 
 func {{.FuncName}}() *gormigrate.Migration {
@@ -93,8 +93,8 @@ var migrationTestTemplate = `package migrations
 import (
 	"github.com/openshift/assisted-service/internal/common"
 
-	"github.com/jinzhu/gorm"
-	gormigrate "gopkg.in/gormigrate.v1"
+	"gorm.io/gorm"
+	gormigrate "github.com/go-gormigrate/gormigrate/v2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

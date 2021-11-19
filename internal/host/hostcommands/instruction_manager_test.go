@@ -10,7 +10,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -24,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 const UNBOUND_SOURCE = "my-unbound-source"
@@ -250,7 +250,7 @@ var _ = Describe("instruction_manager", func() {
 
 	Context("Unbound host steps", func() {
 		BeforeEach(func() {
-			Expect(db.Model(&common.Host{}).Select("cluster_id").Updates(map[string]interface{}{"cluster_id": nil}).Error).ShouldNot(HaveOccurred())
+			Expect(db.Session(&gorm.Session{AllowGlobalUpdate: true}).Model(&common.Host{}).Select("cluster_id").Updates(map[string]interface{}{"cluster_id": nil}).Error).ShouldNot(HaveOccurred())
 			Expect(db.Create(&common.InfraEnv{
 				InfraEnv: models.InfraEnv{
 					ID:                   &infraEnvId,

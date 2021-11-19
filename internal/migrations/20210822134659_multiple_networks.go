@@ -1,10 +1,10 @@
 package migrations
 
 import (
-	"github.com/jinzhu/gorm"
+	gormigrate "github.com/go-gormigrate/gormigrate/v2"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	gormigrate "gopkg.in/gormigrate.v1"
+	"gorm.io/gorm"
 )
 
 func multipleNetworks() *gormigrate.Migration {
@@ -42,7 +42,6 @@ func multipleNetworks() *gormigrate.Migration {
 				}
 			}
 		}
-
 		return nil
 	}
 
@@ -52,7 +51,7 @@ func multipleNetworks() *gormigrate.Migration {
 			&models.ServiceNetwork{},
 			&models.MachineNetwork{},
 		} {
-			if err := tx.Unscoped().Delete(model).Error; err != nil {
+			if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(model).Error; err != nil {
 				return err
 			}
 		}

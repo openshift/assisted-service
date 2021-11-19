@@ -3,7 +3,7 @@ package common
 import (
 	"time"
 
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 /*
@@ -16,15 +16,18 @@ const (
 	IdsQuerySize     = 10000
 )
 
+type MonitorInitialQueryBuilder func(db *gorm.DB) *gorm.DB
+
 type MonitorQuery interface {
 	Next() ([]*Cluster, error)
 }
 
 type fullQuery struct {
-	lastId          string
-	dbWithCondition *gorm.DB
-	eof             bool
-	batchSize       int
+	lastId            string
+	db                *gorm.DB
+	buildInitialQuery MonitorInitialQueryBuilder
+	eof               bool
+	batchSize         int
 }
 
 /*
@@ -35,7 +38,7 @@ func (f *fullQuery) Next() ([]*Cluster, error) {
 	if f.eof {
 		return clusters, nil
 	}
-	if err := f.dbWithCondition.Where("id > ?", f.lastId).Order("id").Limit(f.batchSize).Find(&clusters).Error; err != nil {
+	if err := f.buildInitialQuery(f.db).Where("id > ?", f.lastId).Order("id").Limit(f.batchSize).Find(&clusters).Error; err != nil {
 		return clusters, err
 	}
 	if len(clusters) < f.batchSize {
@@ -58,7 +61,7 @@ type timedQuery struct {
 	db *gorm.DB
 
 	// db connection to query the clusters
-	dbWithCondition *gorm.DB
+	buildInitialQuery MonitorInitialQueryBuilder
 
 	// The time to compare to the trigger_monitor_timestamp field
 	timeToCompare time.Time
@@ -112,7 +115,7 @@ func (t *timedQuery) Next() ([]*Cluster, error) {
 			nextOffset := min(t.offset+t.batchSize, len(t.ids))
 
 			// Query according to moving range on the id slice
-			err = t.dbWithCondition.Where("id in (?)", t.ids[t.offset:nextOffset]).Find(&clusters).Error
+			err = t.buildInitialQuery(t.db).Where("id in (?)", t.ids[t.offset:nextOffset]).Find(&clusters).Error
 			if err != nil {
 				return clusters, err
 			}
@@ -123,21 +126,21 @@ func (t *timedQuery) Next() ([]*Cluster, error) {
 }
 
 type MonitorClusterQueryGenerator struct {
-	lastInvokeTime  time.Time
-	calls           int64
-	db              *gorm.DB
-	dbWithCondition *gorm.DB
-	batchSize       int
+	lastInvokeTime    time.Time
+	calls             int64
+	db                *gorm.DB
+	buildInitialQuery MonitorInitialQueryBuilder
+	batchSize         int
 }
 
-func NewMonitorQueryGenerator(db, dbWithCondition *gorm.DB, batchSize int) *MonitorClusterQueryGenerator {
+func NewMonitorQueryGenerator(db *gorm.DB, buildInitialQuery MonitorInitialQueryBuilder, batchSize int) *MonitorClusterQueryGenerator {
 	if batchSize < 1 {
 		batchSize = DefaultBatchSize
 	}
 	return &MonitorClusterQueryGenerator{
-		db:              db,
-		dbWithCondition: dbWithCondition,
-		batchSize:       batchSize,
+		db:                db,
+		buildInitialQuery: buildInitialQuery,
+		batchSize:         batchSize,
 	}
 }
 
@@ -154,24 +157,25 @@ func (m *MonitorClusterQueryGenerator) NewClusterQuery() MonitorQuery {
 	if m.calls == 0 ||
 		m.lastInvokeTime.Minute()/5 != newInvokeTime.Minute()/5 {
 		return &fullQuery{
-			dbWithCondition: m.dbWithCondition,
-			batchSize:       m.batchSize,
+			db:                m.db,
+			buildInitialQuery: m.buildInitialQuery,
+			batchSize:         m.batchSize,
 		}
 	}
 
 	if m.lastInvokeTime.Minute() != newInvokeTime.Minute() {
 		return &timedQuery{
-			db:              m.db,
-			dbWithCondition: m.dbWithCondition,
-			timeToCompare:   timeForDuration(15 * time.Minute),
-			batchSize:       m.batchSize,
+			db:                m.db,
+			buildInitialQuery: m.buildInitialQuery,
+			timeToCompare:     timeForDuration(15 * time.Minute),
+			batchSize:         m.batchSize,
 		}
 	}
 	return &timedQuery{
-		db:              m.db,
-		dbWithCondition: m.dbWithCondition,
-		timeToCompare:   timeForDuration(5 * time.Minute),
-		batchSize:       m.batchSize,
+		db:                m.db,
+		buildInitialQuery: m.buildInitialQuery,
+		timeToCompare:     timeForDuration(5 * time.Minute),
+		batchSize:         m.batchSize,
 	}
 }
 

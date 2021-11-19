@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 type InfraEnvCreateFlag bool

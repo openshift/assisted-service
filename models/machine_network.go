@@ -20,11 +20,11 @@ import (
 type MachineNetwork struct {
 
 	// The IP block address pool for machines within the cluster.
-	Cidr Subnet `json:"cidr,omitempty" gorm:"primary_key"`
+	Cidr Subnet `json:"cidr,omitempty" gorm:"primaryKey"`
 
 	// The cluster that this network is associated with.
 	// Format: uuid
-	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primary_key;foreignkey:Cluster"`
+	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primaryKey"`
 }
 
 // Validate validates this machine network

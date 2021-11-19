@@ -6,11 +6,11 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 func NewRegistrar(log logrus.FieldLogger, db *gorm.DB) *registrar {
@@ -50,40 +50,37 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 		r.log.WithError(tx.Error).Error("failed to start transaction")
 	}
 
-	queryParams := []string{"id = ?", cluster.ID.String()}
-	if err := tx.First(&cluster, queryParams).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		r.log.WithError(err).Errorf("Error registering cluster %s", cluster.Name)
-		return err
-	} else if errors.Is(err, gorm.ErrRecordNotFound) {
-		// Delete any previews record of the cluster if it was soft deleted in the past,
-		// no error will be returned it wasn't existed.
-		if err = tx.Unscoped().Delete(&common.Cluster{}, queryParams).Error; err != nil {
+	var err error
+	if _, err = common.GetClusterFromDB(tx, *cluster.ID, common.SkipEagerLoading); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			r.log.WithError(err).Errorf("Error registering cluster %s", cluster.Name)
-			return errors.Wrapf(
-				err,
-				"error while trying to delete previews record from db (if exists) of cluster %s",
-				cluster.ID.String())
+			return err
+		} else {
+			// Delete any previews record of the cluster if it was soft deleted in the past,
+			// no error will be returned it wasn't existed.
+			if err = tx.Unscoped().Delete(&common.Cluster{}, "id = ?", cluster.ID.String()).Error; err != nil {
+				r.log.WithError(err).Errorf("Error registering cluster %s", cluster.Name)
+				return errors.Wrapf(
+					err,
+					"error while trying to delete previews record from db (if exists) of cluster %s",
+					cluster.ID.String())
+			}
 		}
 	}
-
-	for _, tableName := range common.ClusterSubTables {
-		tx = common.LoadTableFromDB(tx, tableName)
-	}
-
-	if err := tx.Create(cluster).Error; err != nil {
+	if err = tx.Create(cluster).Error; err != nil {
 		r.log.Errorf("Error registering cluster %s", cluster.Name)
 		return err
 	}
 
 	if v1Flag {
-		err := common.CreateInfraEnvForCluster(tx, cluster, v1ISOType)
+		err = common.CreateInfraEnvForCluster(tx, cluster, v1ISOType)
 		if err != nil {
 			r.log.WithError(err).Errorf("Failed to create Infra Env along the cluster %s", cluster.ID)
 			return err
 		}
 	}
 
-	if err := tx.Commit().Error; err != nil {
+	if err = tx.Commit().Error; err != nil {
 		return err
 	}
 

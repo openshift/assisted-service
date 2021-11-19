@@ -8,8 +8,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
+	"gorm.io/gorm"
 )
 
 var _ = Describe("monitor_disconnection", func() {
@@ -141,7 +140,7 @@ var _ = Describe("monitor_disconnection", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		db.Close()
+		common.CloseDB(db)
 	})
 })
 
@@ -219,10 +218,10 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 				db.Save(&host)
 			}
 			state.HostMonitoring()
-			var count int
+			var count int64
 			Expect(db.Model(&models.Host{}).Where("status = ?", models.HostStatusDisconnected).Count(&count).Error).
 				ShouldNot(HaveOccurred())
-			Expect(count).Should(Equal(nHosts))
+			Expect(count).Should(Equal(int64(nHosts)))
 		}
 
 		It("5 hosts all disconnected", func() {
@@ -312,10 +311,10 @@ var _ = Describe("TestHostMonitoring - with infra-env", func() {
 				db.Save(&host)
 			}
 			state.HostMonitoring()
-			var count int
+			var count int64
 			Expect(db.Model(&models.Host{}).Where("status = ?", models.HostStatusDisconnectedUnbound).Count(&count).Error).
 				ShouldNot(HaveOccurred())
-			Expect(count).Should(Equal(nHosts))
+			Expect(count).Should(Equal(int64(nHosts)))
 		}
 
 		registerAndValidateDisconnectedAndDisabled := func(nDisconnected, nDisabled int) {
@@ -344,10 +343,10 @@ var _ = Describe("TestHostMonitoring - with infra-env", func() {
 				db.Save(&host)
 			}
 			state.HostMonitoring()
-			var count int
+			var count int64
 			Expect(db.Model(&models.Host{}).Where("status = ?", models.HostStatusDisconnectedUnbound).Count(&count).Error).
 				ShouldNot(HaveOccurred())
-			Expect(count).Should(Equal(nDisconnected))
+			Expect(count).Should(Equal(int64(nDisconnected)))
 		}
 
 		It("5 hosts all disconnected", func() {

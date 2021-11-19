@@ -14,8 +14,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -784,7 +783,7 @@ var _ = Describe("reset host", func() {
 			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
 			eventMessage := fmt.Sprintf("Installation reset for host %s", hostutil.GetHostnameForMsg(&h))
 			Expect(*resetEvent.Message).Should(Equal(eventMessage))
-			Expect(h.LogsCollectedAt).Should(Equal(strfmt.DateTime(time.Time{})))
+			Expect(time.Time(h.LogsCollectedAt).Equal(time.Time{})).Should(BeTrue())
 		})
 
 		It("register resetting host", func() {
@@ -2198,11 +2197,11 @@ var _ = Describe("update logs_info", func() {
 	})
 
 	validateLogsStartedAt := func(h *models.Host) {
-		Expect(h.LogsStartedAt).NotTo(Equal(strfmt.DateTime(time.Time{})))
+		Expect(time.Time(h.LogsStartedAt).Equal(time.Time{})).To(BeFalse())
 	}
 
 	validateCollectedAtNotUpdated := func(h *models.Host) {
-		Expect(h.LogsCollectedAt).To(Equal(strfmt.DateTime(time.Time{})))
+		Expect(time.Time(h.LogsStartedAt).Equal(time.Time{})).To(BeTrue())
 	}
 
 	tests := []struct {
@@ -2531,7 +2530,7 @@ var _ = Describe("AutoAssignRole", func() {
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
-		db.Close()
+		common.CloseDB(db)
 		ctrl.Finish()
 	})
 
@@ -2682,7 +2681,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
-		db.Close()
+		common.CloseDB(db)
 		ctrl.Finish()
 	})
 

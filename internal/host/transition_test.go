@@ -14,7 +14,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -33,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 	"k8s.io/utils/pointer"
 )
 
@@ -1447,13 +1447,13 @@ var _ = Describe("Unbind", func() {
 			StageStartedAt:         strfmt.DateTime(time.Time{}),
 			StageUpdatedAt:         strfmt.DateTime(time.Time{}),
 		}
-		Expect(h.Progress).Should(Equal(resetPogress))
+		validateEqualProgress(h.Progress, resetPogress)
 		Expect(h.ProgressStages).Should(BeNil())
 		Expect(h.LogsInfo).Should(BeEmpty())
-		Expect(h.LogsStartedAt).Should(Equal(strfmt.DateTime(time.Time{})))
-		Expect(h.LogsCollectedAt).Should(Equal(strfmt.DateTime(time.Time{})))
-		Expect(h.StageStartedAt).Should(Equal(strfmt.DateTime(time.Time{})))
-		Expect(h.StageUpdatedAt).Should(Equal(strfmt.DateTime(time.Time{})))
+		Expect(time.Time(h.LogsStartedAt).Equal(time.Time{})).Should(BeTrue())
+		Expect(time.Time(h.LogsCollectedAt).Equal(time.Time{})).Should(BeTrue())
+		Expect(time.Time(h.StageStartedAt).Equal(time.Time{})).Should(BeTrue())
+		Expect(time.Time(h.StageUpdatedAt).Equal(time.Time{})).Should(BeTrue())
 	}
 
 	failure := func(reply error, srcState string) {
@@ -5568,4 +5568,16 @@ func generateMajorityGroup(machineNetworks []*models.MachineNetwork, hostId strf
 		return ""
 	}
 	return string(tmp)
+}
+
+func validateEqualProgress(p1, p2 *models.HostProgressInfo) {
+	if p1 == nil {
+		Expect(p2).To(BeNil())
+	} else {
+		Expect(p1.CurrentStage).To(Equal(p2.CurrentStage))
+		Expect(p1.InstallationPercentage).To(Equal(p2.InstallationPercentage))
+		Expect(p1.ProgressInfo).To(Equal(p2.ProgressInfo))
+		Expect(time.Time(p1.StageStartedAt).Equal(time.Time(p2.StageStartedAt))).To(BeTrue())
+		Expect(time.Time(p1.StageUpdatedAt).Equal(time.Time(p2.StageUpdatedAt))).To(BeTrue())
+	}
 }

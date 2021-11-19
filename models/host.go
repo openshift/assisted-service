@@ -15,6 +15,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
+	"gorm.io/gorm"
 )
 
 // Host host
@@ -43,9 +44,8 @@ type Host struct {
 	// Format: date-time
 	CreatedAt timeext.Time `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
 
-	// The time that the host was deleted.
-	// Format: date-time
-	DeletedAt *strfmt.DateTime `json:"deleted_at,omitempty" gorm:"type:timestamp with time zone"`
+	// swagger:ignore
+	DeletedAt gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"type:timestamp with time zone;index"`
 
 	// discovery agent version
 	DiscoveryAgentVersion string `json:"discovery_agent_version,omitempty"`
@@ -66,7 +66,7 @@ type Host struct {
 	// Unique identifier of the object.
 	// Required: true
 	// Format: uuid
-	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
+	ID *strfmt.UUID `json:"id" gorm:"primaryKey"`
 
 	// Json formatted string containing the user overrides for the host's pointer ignition
 	// Example: {\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}
@@ -80,7 +80,7 @@ type Host struct {
 
 	// The infra-env that this host is associated with.
 	// Format: uuid
-	InfraEnvID strfmt.UUID `json:"infra_env_id,omitempty" gorm:"primary_key;foreignkey:InfraEnvID"`
+	InfraEnvID strfmt.UUID `json:"infra_env_id,omitempty" gorm:"primaryKey;foreignkey:InfraEnvID"`
 
 	// Contains the inventory disk id to install on.
 	InstallationDiskID string `json:"installation_disk_id,omitempty"`
@@ -123,7 +123,7 @@ type Host struct {
 	NtpSources string `json:"ntp_sources,omitempty" gorm:"type:text"`
 
 	// progress
-	Progress *HostProgressInfo `json:"progress,omitempty" gorm:"embedded;embedded_prefix:progress_"`
+	Progress *HostProgressInfo `json:"progress,omitempty" gorm:"embedded;embeddedPrefix:progress_"`
 
 	// progress stages
 	ProgressStages []HostStage `json:"progress_stages" gorm:"-"`
@@ -182,10 +182,6 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateCreatedAt(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateDeletedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -293,18 +289,6 @@ func (m *Host) validateCreatedAt(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("created_at", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Host) validateDeletedAt(formats strfmt.Registry) error {
-	if swag.IsZero(m.DeletedAt) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("deleted_at", "body", "date-time", m.DeletedAt.String(), formats); err != nil {
 		return err
 	}
 

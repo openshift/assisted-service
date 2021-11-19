@@ -7,11 +7,12 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/transaction"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 const (
@@ -107,7 +108,7 @@ type InfraEnv struct {
 
 	// Hosts relationship
 	// TODO Add a helper function(s) to load InfraEnv(s) with eager-loading parameter
-	Hosts []*Host `json:"hosts" gorm:"foreignkey:InfraEnvID;association_foreignkey:ID"`
+	Hosts []*Host `json:"hosts" gorm:"foreignkey:InfraEnvID;references:ID"`
 
 	ImageTokenKey string `json:"image_token_key"`
 }
@@ -138,7 +139,7 @@ var ClusterSubTables = [...]string{HostsTable, MonitoredOperatorsTable, ClusterN
 
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(&models.MonitoredOperator{}, &Host{}, &Cluster{}, &Event{}, &InfraEnv{},
-		&models.ClusterNetwork{}, &models.ServiceNetwork{}, &models.MachineNetwork{}).Error
+		&models.ClusterNetwork{}, &models.ServiceNetwork{}, &models.MachineNetwork{})
 }
 
 func LoadTableFromDB(db *gorm.DB, tableName string, conditions ...interface{}) *gorm.DB {
@@ -157,6 +158,15 @@ func LoadClusterTablesFromDB(db *gorm.DB, excludeTables ...string) *gorm.DB {
 
 func GetClusterFromDB(db *gorm.DB, clusterId strfmt.UUID, eagerLoading EagerLoadingState) (*Cluster, error) {
 	c, err := GetClusterFromDBWhere(db, eagerLoading, SkipDeletedRecords, "id = ?", clusterId.String())
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to get cluster %s", clusterId.String())
+	}
+
+	return c, nil
+}
+
+func GetClusterFromDBForUpdate(db *gorm.DB, clusterId strfmt.UUID, eagerLoading EagerLoadingState) (*Cluster, error) {
+	c, err := GetClusterFromDBWhereForUpdate(db, eagerLoading, SkipDeletedRecords, "id = ?", clusterId.String())
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to get cluster %s", clusterId.String())
 	}
@@ -196,6 +206,21 @@ func GetClusterFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeD
 	var cluster Cluster
 
 	db = prepareClusterDB(db, eagerLoading, includeDeleted)
+	err := db.Take(&cluster, where...).Error
+	if err != nil {
+		return nil, err
+	}
+	return &cluster, nil
+}
+
+func GetClusterFromDBWhereForUpdate(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) (*Cluster, error) {
+	var cluster Cluster
+
+	forUpdateCondition := func(db *gorm.DB) *gorm.DB {
+		return transaction.AddForUpdateQueryOption(db)
+	}
+
+	db = prepareClusterDB(transaction.AddForUpdateQueryOption(db), eagerLoading, includeDeleted, forUpdateCondition)
 	err := db.Take(&cluster, where...).Error
 	if err != nil {
 		return nil, err
@@ -321,6 +346,9 @@ func ToModelsHosts(hosts []*Host) []*models.Host {
 
 func (c *Cluster) AfterFind(db *gorm.DB) error {
 	for _, h := range c.Hosts {
+		if h.Status == nil {
+			continue
+		}
 		if *h.Status == models.HostStatusKnown {
 			c.ReadyHostCount++
 			c.EnabledHostCount++
@@ -369,4 +397,12 @@ func CreateInfraEnvForCluster(db *gorm.DB, cluster *Cluster, imageType models.Im
 		ImageTokenKey: imageTokenKey,
 	}
 	return db.Create(infraEnv).Error
+}
+
+func CloseDB(db *gorm.DB) {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return
+	}
+	_ = sqlDB.Close()
 }

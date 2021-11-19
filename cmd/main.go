@@ -14,8 +14,6 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/bminventory"
@@ -70,6 +68,9 @@ import (
 	"go.elastic.co/apm/module/apmhttp"
 	"go.elastic.co/apm/module/apmlogrus"
 	"golang.org/x/sync/errgroup"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -232,7 +233,7 @@ func main() {
 
 	// Connect to db
 	db := setupDB(log)
-	defer db.Close()
+	defer common.CloseDB(db)
 
 	ctrlMgr, err := createControllerManager()
 	failOnError(err, "failed to create controller manager")
@@ -598,7 +599,7 @@ func uploadISOs(objectHandler s3wrapper.API, versionHandler versions.Handler, lo
 }
 
 func setupDB(log logrus.FieldLogger) *gorm.DB {
-	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s database=%s password=%s sslmode=disable",
 		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
 	var db *gorm.DB
 	var err error
@@ -609,14 +610,23 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 	defer cancel()
 	log.Info("Connecting to DB")
 	wait.UntilWithContext(ctx, func(ctx context.Context) {
-		db, err = gorm.Open("postgres", dbConnectionStr)
+		db, err = gorm.Open(postgres.Open(dbConnectionStr), &gorm.Config{
+			DisableForeignKeyConstraintWhenMigrating: true,
+			Logger:                                   logger.Default.LogMode(logger.Silent),
+		})
 		if err != nil {
 			log.WithError(err).Info("Failed to connect to DB, retrying")
 			return
 		}
-		db.DB().SetMaxIdleConns(Options.MaxIdleConns)
-		db.DB().SetMaxOpenConns(Options.MaxOpenConns)
-		db.DB().SetConnMaxLifetime(Options.ConnMaxLifetime)
+		sqlDB, err := db.DB()
+		if err != nil {
+			log.WithError(err).Info("Failed to get sqlDB, retrying")
+			common.CloseDB(db)
+			return
+		}
+		sqlDB.SetMaxIdleConns(Options.MaxIdleConns)
+		sqlDB.SetMaxOpenConns(Options.MaxOpenConns)
+		sqlDB.SetConnMaxLifetime(Options.ConnMaxLifetime)
 		cancel()
 	}, retryInterval)
 	if ctx.Err().Error() == context.DeadlineExceeded.Error() {

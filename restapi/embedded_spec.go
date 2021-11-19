@@ -9613,7 +9613,7 @@ func init() {
             "type": "object",
             "$ref": "#/definitions/cluster_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "connectivity_majority_groups": {
           "description": "Json formatted string containing the majority groups for connectivity checks.",
@@ -9652,11 +9652,18 @@ func init() {
           }
         },
         "deleted_at": {
-          "description": "The time that the cluster was deleted.",
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
-          "x-nullable": true
+          "description": "swagger:ignore",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone;index\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "gorm.io/gorm"
+            },
+            "type": "DeletedAt"
+          },
+          "x-nullable": false
         },
         "disk_encryption": {
           "description": "Information regarding hosts' installation disks encryption.",
@@ -9701,7 +9708,7 @@ func init() {
             "type": "object",
             "$ref": "#/definitions/host"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "href": {
           "description": "Self link.",
@@ -9730,7 +9737,7 @@ func init() {
           "description": "Unique identifier of the object.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "ignition_config_overrides": {
           "description": "Json formatted string containing the user overrides for the initial ignition config",
@@ -9793,7 +9800,7 @@ func init() {
             "type": "object",
             "$ref": "#/definitions/machine_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "monitored_operators": {
           "description": "Operators that are associated with this cluster.",
@@ -9802,7 +9809,7 @@ func init() {
             "type": "object",
             "$ref": "#/definitions/monitored-operator"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "name": {
           "description": "Name of the OpenShift cluster.",
@@ -9871,7 +9878,7 @@ func init() {
             "type": "object",
             "$ref": "#/definitions/service_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
@@ -10217,7 +10224,7 @@ func init() {
           "type": "integer"
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:progress_\""
     },
     "cluster-update-params": {
       "type": "object",
@@ -10523,7 +10530,7 @@ func init() {
           "description": "The cluster that this network is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "host_prefix": {
           "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
@@ -10934,7 +10941,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:disk_encryption_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:disk_encryption_\""
     },
     "disk-role": {
       "type": "string",
@@ -11340,11 +11347,18 @@ func init() {
           }
         },
         "deleted_at": {
-          "description": "The time that the host was deleted.",
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
-          "x-nullable": true
+          "description": "swagger:ignore",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone;index\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "gorm.io/gorm"
+            },
+            "type": "DeletedAt"
+          },
+          "x-nullable": false
         },
         "discovery_agent_version": {
           "type": "string"
@@ -11371,7 +11385,7 @@ func init() {
           "description": "Unique identifier of the object.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "ignition_config_overrides": {
           "description": "Json formatted string containing the user overrides for the host's pointer ignition",
@@ -11393,7 +11407,7 @@ func init() {
           "description": "The infra-env that this host is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:InfraEnvID\""
+          "x-go-custom-tag": "gorm:\"primaryKey;foreignkey:InfraEnvID\""
         },
         "installation_disk_id": {
           "description": "Contains the inventory disk id to install on.",
@@ -11607,7 +11621,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:progress_\""
     },
     "host-role": {
       "type": "string",
@@ -11813,7 +11827,7 @@ func init() {
           "x-nullable": true
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:ignition_endpoint_\""
     },
     "image-create-params": {
       "type": "object",
@@ -11878,7 +11892,7 @@ func init() {
           "$ref": "#/definitions/image_type"
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:image_\""
     },
     "image_type": {
       "type": "string",
@@ -11979,7 +11993,7 @@ func init() {
           "description": "Unique identifier of the object.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "ignition_config_override": {
           "description": "Json formatted string containing the user overrides for the initial ignition config.",
@@ -12450,7 +12464,7 @@ func init() {
           "description": "The cluster that this network is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         }
       }
     },
@@ -12515,12 +12529,12 @@ func init() {
           "description": "The cluster that this operator is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "name": {
           "description": "Unique name of the operator.",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"primary_key\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "namespace": {
           "description": "Namespace where to deploy an operator. Only some operators require a namespace.",
@@ -12871,7 +12885,7 @@ func init() {
           "x-nullable": true
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ovirt_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:ovirt_\""
     },
     "platform": {
       "description": "The configuration for the specific platform upon which to perform the installation.",
@@ -12894,7 +12908,7 @@ func init() {
           "$ref": "#/definitions/vsphere_platform"
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:platform_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_\""
     },
     "platform_type": {
       "type": "string",
@@ -12952,7 +12966,7 @@ func init() {
           "x-nullable": true
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:proxy_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:proxy_\""
     },
     "release-image": {
       "type": "object",
@@ -13036,7 +13050,7 @@ func init() {
           "description": "The cluster that this network is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         }
       }
     },
@@ -13140,7 +13154,7 @@ func init() {
     "subnet": {
       "type": "string",
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
-      "x-go-custom-tag": "gorm:\"primary_key\""
+      "x-go-custom-tag": "gorm:\"primaryKey\""
     },
     "system_vendor": {
       "type": "object",
@@ -13428,7 +13442,7 @@ func init() {
           "x-nullable": true
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:vsphere_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:vsphere_\""
     }
   },
   "securityDefinitions": {
@@ -23272,7 +23286,7 @@ func init() {
             "type": "object",
             "$ref": "#/definitions/cluster_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "connectivity_majority_groups": {
           "description": "Json formatted string containing the majority groups for connectivity checks.",
@@ -23311,11 +23325,18 @@ func init() {
           }
         },
         "deleted_at": {
-          "description": "The time that the cluster was deleted.",
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
-          "x-nullable": true
+          "description": "swagger:ignore",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone;index\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "gorm.io/gorm"
+            },
+            "type": "DeletedAt"
+          },
+          "x-nullable": false
         },
         "disk_encryption": {
           "description": "Information regarding hosts' installation disks encryption.",
@@ -23360,7 +23381,7 @@ func init() {
             "type": "object",
             "$ref": "#/definitions/host"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "href": {
           "description": "Self link.",
@@ -23389,7 +23410,7 @@ func init() {
           "description": "Unique identifier of the object.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "ignition_config_overrides": {
           "description": "Json formatted string containing the user overrides for the initial ignition config",
@@ -23452,7 +23473,7 @@ func init() {
             "type": "object",
             "$ref": "#/definitions/machine_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "monitored_operators": {
           "description": "Operators that are associated with this cluster.",
@@ -23461,7 +23482,7 @@ func init() {
             "type": "object",
             "$ref": "#/definitions/monitored-operator"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "name": {
           "description": "Name of the OpenShift cluster.",
@@ -23530,7 +23551,7 @@ func init() {
             "type": "object",
             "$ref": "#/definitions/service_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
@@ -23876,7 +23897,7 @@ func init() {
           "type": "integer"
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:progress_\""
     },
     "cluster-update-params": {
       "type": "object",
@@ -24142,7 +24163,7 @@ func init() {
           "description": "The cluster that this network is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "host_prefix": {
           "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
@@ -24553,7 +24574,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:disk_encryption_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:disk_encryption_\""
     },
     "disk-role": {
       "type": "string",
@@ -24890,11 +24911,18 @@ func init() {
           }
         },
         "deleted_at": {
-          "description": "The time that the host was deleted.",
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
-          "x-nullable": true
+          "description": "swagger:ignore",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone;index\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "gorm.io/gorm"
+            },
+            "type": "DeletedAt"
+          },
+          "x-nullable": false
         },
         "discovery_agent_version": {
           "type": "string"
@@ -24921,7 +24949,7 @@ func init() {
           "description": "Unique identifier of the object.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "ignition_config_overrides": {
           "description": "Json formatted string containing the user overrides for the host's pointer ignition",
@@ -24943,7 +24971,7 @@ func init() {
           "description": "The infra-env that this host is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:InfraEnvID\""
+          "x-go-custom-tag": "gorm:\"primaryKey;foreignkey:InfraEnvID\""
         },
         "installation_disk_id": {
           "description": "Contains the inventory disk id to install on.",
@@ -25157,7 +25185,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:progress_\""
     },
     "host-role": {
       "type": "string",
@@ -25363,7 +25391,7 @@ func init() {
           "x-nullable": true
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ignition_endpoint_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:ignition_endpoint_\""
     },
     "image-create-params": {
       "type": "object",
@@ -25429,7 +25457,7 @@ func init() {
           "$ref": "#/definitions/image_type"
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:image_\""
     },
     "image_type": {
       "type": "string",
@@ -25530,7 +25558,7 @@ func init() {
           "description": "Unique identifier of the object.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "ignition_config_override": {
           "description": "Json formatted string containing the user overrides for the initial ignition config.",
@@ -25991,7 +26019,7 @@ func init() {
           "description": "The cluster that this network is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         }
       }
     },
@@ -26056,12 +26084,12 @@ func init() {
           "description": "The cluster that this operator is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "name": {
           "description": "Unique name of the operator.",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"primary_key\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "namespace": {
           "description": "Namespace where to deploy an operator. Only some operators require a namespace.",
@@ -26412,7 +26440,7 @@ func init() {
           "x-nullable": true
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ovirt_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:ovirt_\""
     },
     "platform": {
       "description": "The configuration for the specific platform upon which to perform the installation.",
@@ -26435,7 +26463,7 @@ func init() {
           "$ref": "#/definitions/vsphere_platform"
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:platform_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_\""
     },
     "platform_type": {
       "type": "string",
@@ -26493,7 +26521,7 @@ func init() {
           "x-nullable": true
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:proxy_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:proxy_\""
     },
     "release-image": {
       "type": "object",
@@ -26577,7 +26605,7 @@ func init() {
           "description": "The cluster that this network is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"primaryKey\""
         }
       }
     },
@@ -26681,7 +26709,7 @@ func init() {
     "subnet": {
       "type": "string",
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
-      "x-go-custom-tag": "gorm:\"primary_key\""
+      "x-go-custom-tag": "gorm:\"primaryKey\""
     },
     "system_vendor": {
       "type": "object",
@@ -26969,7 +26997,7 @@ func init() {
           "x-nullable": true
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:vsphere_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:vsphere_\""
     }
   },
   "securityDefinitions": {

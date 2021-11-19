@@ -10,13 +10,12 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type logsCmd struct {
@@ -35,7 +34,7 @@ func NewLogsCmd(log logrus.FieldLogger, db *gorm.DB, instructionConfig Instructi
 
 func (i *logsCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	// added to run upload logs if install command fails
-	if host.LogsCollectedAt != strfmt.DateTime(time.Time{}) {
+	if !time.Time(host.LogsCollectedAt).Equal(time.Time{}) {
 		return nil, nil
 	}
 

@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"strings"
 
+	gormigrate "github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
-	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
-	gormigrate "gopkg.in/gormigrate.v1"
+	"gorm.io/gorm"
 )
 
 func copyClusterUserInfoToInfraEnv() *gormigrate.Migration {

@@ -43,7 +43,7 @@ type ClusterCreateParams struct {
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
 	// Installation disks encryption mode and host roles to be applied.
-	DiskEncryption *DiskEncryption `json:"disk_encryption,omitempty" gorm:"embedded;embedded_prefix:disk_encryption_"`
+	DiskEncryption *DiskEncryption `json:"disk_encryption,omitempty" gorm:"embedded;embeddedPrefix:disk_encryption_"`
 
 	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
 	// over multiple master nodes whereas 'None' installs a full cluster over one node.
@@ -66,7 +66,7 @@ type ClusterCreateParams struct {
 	Hyperthreading *string `json:"hyperthreading,omitempty"`
 
 	// Explicit ignition endpoint overrides the default ignition endpoint.
-	IgnitionEndpoint *IgnitionEndpoint `json:"ignition_endpoint,omitempty" gorm:"embedded;embedded_prefix:ignition_endpoint_"`
+	IgnitionEndpoint *IgnitionEndpoint `json:"ignition_endpoint,omitempty" gorm:"embedded;embeddedPrefix:ignition_endpoint_"`
 
 	// The virtual IP used for cluster ingress traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$
@@ -99,7 +99,7 @@ type ClusterCreateParams struct {
 	OpenshiftVersion *string `json:"openshift_version"`
 
 	// platform
-	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embedded_prefix:platform_"`
+	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embeddedPrefix:platform_"`
 
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
 	// Required: true
