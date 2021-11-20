@@ -168,11 +168,20 @@ type IgnitionEndpoint struct {
 	CaCertificate string `json:"caCertificate,omitempty"`
 }
 
+type ClusterProgressInfo struct {
+	// Estimated installation progress (in percentage)
+	TotalPercentage int64 `json:"totalPercentage"`
+}
+
 // AgentClusterInstallStatus defines the observed state of the AgentClusterInstall.
 type AgentClusterInstallStatus struct {
 	// Conditions includes more detailed status for the cluster install.
 	// +optional
 	Conditions []hivev1.ClusterInstallCondition `json:"conditions,omitempty"`
+
+	// Progress shows the installation progress of the cluster
+	// +optional
+	Progress ClusterProgressInfo `json:"progress,omitempty"`
 
 	// ControlPlaneAgentsDiscovered is the number of Agents currently linked to this ClusterDeployment.
 	// +optional

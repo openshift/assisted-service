@@ -5524,7 +5524,24 @@ func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*com
 }
 
 func (b *bareMetalInventory) GetHostByKubeKey(key types.NamespacedName) (*common.Host, error) {
-	return b.hostApi.GetHostByKubeKey(key)
+	h, err := b.hostApi.GetHostByKubeKey(key)
+	if err != nil {
+		return nil, err
+	}
+
+	//customize the host as done in the REST API
+	var cluster *common.Cluster
+	var c *models.Cluster
+	if h.ClusterID != nil {
+		cluster, err = common.GetClusterFromDB(b.db, *h.ClusterID, common.SkipEagerLoading)
+		if err != nil {
+			return h, fmt.Errorf("can not find a cluster for host %s", h.ID.String())
+		}
+		c = &cluster.Cluster
+	}
+
+	err = b.customizeHost(c, &h.Host)
+	return h, err
 }
 
 func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {

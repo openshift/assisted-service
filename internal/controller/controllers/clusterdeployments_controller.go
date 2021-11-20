@@ -1259,6 +1259,11 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 		if c.Status != nil {
 			clusterInstall.Status.DebugInfo.State = swag.StringValue(c.Status)
 			clusterInstall.Status.DebugInfo.StateInfo = swag.StringValue(c.StatusInfo)
+			if c.Progress == nil {
+				clusterInstall.Status.Progress = hiveext.ClusterProgressInfo{}
+			} else {
+				clusterInstall.Status.Progress.TotalPercentage = c.Progress.TotalPercentage
+			}
 			status := *c.Status
 			var err error
 			err = r.populateEventsURL(log, clusterInstall, c)

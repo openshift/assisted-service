@@ -1898,7 +1898,7 @@ var _ = Describe("cluster install", func() {
 			By("progress_to_other_host", func() {
 				installProgress := models.HostStageWritingImageToDisk
 				installInfo := "68%"
-				updateProgressWithInfo(*hosts[0].ID, clusterID, installProgress, installInfo)
+				updateHostProgressWithInfo(*hosts[0].ID, clusterID, installProgress, installInfo)
 				hostFromDB := getHost(clusterID, *hosts[0].ID)
 
 				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
@@ -1962,7 +1962,7 @@ var _ = Describe("cluster install", func() {
 			By("report_failed_on_same_host", func() {
 				installProgress := models.HostStageFailed
 				installInfo := "because some error"
-				updateProgressWithInfo(*hosts[1].ID, clusterID, installProgress, installInfo)
+				updateHostProgressWithInfo(*hosts[1].ID, clusterID, installProgress, installInfo)
 				hostFromDB := getHost(clusterID, *hosts[1].ID)
 
 				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusError))
@@ -3408,7 +3408,7 @@ func FailCluster(ctx context.Context, clusterID strfmt.UUID, reason int) strfmt.
 	installStep := models.HostStageFailed
 	installInfo := "because some error"
 
-	updateProgressWithInfo(hostID, clusterID, installStep, installInfo)
+	updateHostProgressWithInfo(hostID, clusterID, installStep, installInfo)
 	host := getHost(clusterID, hostID)
 	Expect(*host.Status).Should(Equal("error"))
 	Expect(*host.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", installStep, installInfo)))

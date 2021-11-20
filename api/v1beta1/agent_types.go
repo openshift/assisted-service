@@ -194,11 +194,17 @@ type AgentSpec struct {
 }
 
 type HostProgressInfo struct {
+	// current installation stage
 	CurrentStage models.HostStage `json:"currentStage,omitempty"`
-	ProgressInfo string           `json:"progressInfo,omitempty"`
-	// Name in REST API: stage_started_at
+	// All stages (ordered by their appearance) for this agent
+	ProgressStages []models.HostStage `json:"progressStages,omitempty"`
+	// Additional information for the current installation stage
+	ProgressInfo string `json:"progressInfo,omitempty"`
+	// Estimate progress (percentage)
+	InstallationPercentage int64 `json:"installationPercentage,omitempty"`
+	// host field: progress: stage_started_at
 	StageStartTime *metav1.Time `json:"stageStartTime,omitempty"`
-	// Name in REST API: stage_updated_at
+	// host field: progress: stage_updated_at
 	StageUpdateTime *metav1.Time `json:"stageUpdateTime,omitempty"`
 }
 
