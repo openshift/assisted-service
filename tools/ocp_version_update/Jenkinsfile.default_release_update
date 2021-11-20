@@ -2,7 +2,6 @@ pipeline {
     agent { label 'centos_worker' }
     environment {
         SLACK_TOKEN = credentials('slack-token')
-        JIRA_CREDS = credentials('Ronnie-jira')
         GITHUB_CREDS = credentials('github-openshift-edge-bot-personal-access-token')
     }
 
@@ -16,9 +15,7 @@ pipeline {
         stage('Update master and snapshot branch') {
             steps {
                 sh '''git clean -fdx'''
-                sh '''skipper run python3 tools/ocp_version_update/update_default_release_versions_to_latest.py\
-                 --jira-user-password "${JIRA_CREDS}"\
-                 --github-user-password "${GITHUB_CREDS}"'''
+                sh '''skipper run python3 tools/ocp_version_update/update_default_release_versions_to_latest.py'''
             }
         }
     }
