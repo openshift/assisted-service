@@ -33,6 +33,7 @@ type baremetal struct {
 	APIVIP              string `yaml:"apiVIP"`
 	IngressVIP          string `yaml:"ingressVIP"`
 	Hosts               []host `yaml:"hosts"`
+	ClusterOSImage      string `json:"clusterOSImage,omitempty"`
 }
 
 type platform struct {
