@@ -400,6 +400,7 @@ func (th *transitionHandler) PostPreparingForInstallationHost(sw stateswitch.Sta
 	if validationFailed(params, string(models.HostValidationIDContainerImagesAvailable)) {
 		extra = append(extra, "images_status", "")
 	}
+	extra = append(extra, resetLogsField...)
 
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoHostPreparationSuccessful,
 		extra...)

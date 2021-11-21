@@ -1843,6 +1843,25 @@ var _ = Describe("cluster install", func() {
 					Expect(host.LogsInfo).To(Equal(host_progress))
 				}
 			}
+			It("reset log fields before installation", func() {
+				reply, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := reply.GetPayload()
+				Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
+
+				generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
+				waitForHostState(ctx, clusterID, models.HostStatusPreparingSuccessful, defaultWaitForHostStateTimeout,
+					funk.Filter(c.Hosts, func(host *models.Host) bool { return swag.StringValue(host.Status) != models.HostStatusDisabled }).([]*models.Host)...)
+
+				cluster = getCluster(clusterID)
+				Expect(string(cluster.LogsInfo)).To(BeEmpty())
+				Expect(cluster.ControllerLogsStartedAt).To(Equal(strfmt.DateTime(time.Time{})))
+				for _, host := range cluster.Hosts {
+					Expect(host.LogsStartedAt).To(Equal(strfmt.DateTime(time.Time{})))
+					Expect(string(host.LogsInfo)).To(BeEmpty())
+				}
+			})
+
 			It("log progress installation succeed", func() {
 				By("report log progress by host and cluster during installation")
 				c := installCluster(clusterID)
