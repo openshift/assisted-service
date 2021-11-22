@@ -6799,6 +6799,10 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 	if err != nil {
 		return nil, err
 	}
+	err = b.updateHostIgnitionEndpointToken(ctx, host, params.HostUpdateParams.IgnitionEndpointToken, tx)
+	if err != nil {
+		return nil, err
+	}
 
 	err = b.refreshAfterUpdate(ctx, host, tx)
 	if err != nil {
@@ -6914,6 +6918,22 @@ func (b *bareMetalInventory) updateHostMachineConfigPoolName(ctx context.Context
 	if err != nil {
 		log.WithError(err).Errorf("Failed to set machine config pool name <%s> host <%s> infra env <%s>",
 			*machineConfigPoolName, host.ID,
+			host.InfraEnvID)
+		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostIgnitionEndpointToken(ctx context.Context, host *common.Host, token *string, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if token == nil {
+		log.Infof("No request for ignition endpoint token update for host %s", host.ID)
+		return nil
+	}
+	err := b.hostApi.UpdateIgnitionEndpointToken(ctx, db, &host.Host, *token)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to set ignition endpoint token host <%s> infra env <%s>",
+			host.ID,
 			host.InfraEnvID)
 		return common.NewApiError(http.StatusConflict, err)
 	}

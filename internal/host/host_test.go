@@ -2169,6 +2169,98 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 	})
 })
 
+var _ = Describe("UpdateIgnitionEndpointToken", func() {
+	var (
+		ctx                           = context.Background()
+		hapi                          API
+		db                            *gorm.DB
+		ctrl                          *gomock.Controller
+		mockEvents                    *eventsapi.MockHandler
+		hostId, clusterId, infraEnvId strfmt.UUID
+		host                          models.Host
+		dbName                        string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		dummy := &leader.DummyElector{}
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+		infraEnvId = strfmt.UUID(uuid.New().String())
+	})
+
+	tests := []struct {
+		name    string
+		day2    bool
+		status  string
+		isValid bool
+	}{
+		{
+			name:    "day1_before_installation",
+			status:  models.HostStatusDiscovering,
+			day2:    false,
+			isValid: true,
+		},
+		{
+			name:    "day1_after_installation",
+			status:  models.HostStatusInstalling,
+			day2:    false,
+			isValid: false,
+		},
+		{
+			name:    "day2_before_installation",
+			status:  models.HostStatusDiscovering,
+			day2:    true,
+			isValid: true,
+		},
+		{
+			name:    "day2_after_installation",
+			status:  models.HostStatusInstalled,
+			day2:    true,
+			isValid: false,
+		},
+	}
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			// Setup
+			if t.day2 {
+				host = hostutil.GenerateTestHostAddedToCluster(hostId, infraEnvId, clusterId, t.status)
+			} else {
+				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, t.status)
+			}
+
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
+			Expect(h.IgnitionEndpointToken).Should(BeNil())
+
+			// Test
+			err := hapi.UpdateIgnitionEndpointToken(ctx, db, &host, t.name)
+			h = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
+
+			if t.isValid {
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(h.IgnitionEndpointToken).ShouldNot(BeNil())
+				Expect(*h.IgnitionEndpointToken).Should(Equal(t.name))
+			} else {
+				Expect(err).Should(HaveOccurred())
+				Expect(h.IgnitionEndpointToken).Should(BeNil())
+			}
+
+		})
+	}
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+})
+
 var _ = Describe("update logs_info", func() {
 	var (
 		ctx                           = context.Background()

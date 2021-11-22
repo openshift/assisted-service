@@ -162,6 +162,7 @@ type API interface {
 	RefreshInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, db *gorm.DB) error
 	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
+	UpdateIgnitionEndpointToken(ctx context.Context, db *gorm.DB, h *models.Host, token string) error
 	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
 	UpdateKubeKeyNS(ctx context.Context, hostID, namespace string) error
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
@@ -683,7 +684,7 @@ func (m *Manager) UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, 
 	hostStatus := swag.StringValue(h.Status)
 	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
-			errors.Errorf("Host is in %s state, host machine config poll can be set only in one of %s states",
+			errors.Errorf("Host is in %s state, host machine config pool can be set only in one of %s states",
 				hostStatus, hostStatusesBeforeInstallation[:]))
 	}
 
@@ -693,6 +694,22 @@ func (m *Manager) UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, 
 	}
 
 	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"machine_config_pool_name": machineConfigPoolName, "trigger_monitor_timestamp": time.Now()}).Error
+}
+
+func (m *Manager) UpdateIgnitionEndpointToken(ctx context.Context, db *gorm.DB, h *models.Host, token string) error {
+	hostStatus := swag.StringValue(h.Status)
+	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, host ignition endpoint token can be set only in one of %s states",
+				hostStatus, hostStatusesBeforeInstallation[:]))
+	}
+
+	cdb := m.db
+	if db != nil {
+		cdb = db
+	}
+
+	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"ignition_endpoint_token": token, "trigger_monitor_timestamp": time.Now()}).Error
 }
 
 func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {

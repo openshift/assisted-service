@@ -533,6 +533,20 @@ func (mr *MockAPIMockRecorder) UpdateHostname(arg0, arg1, arg2, arg3 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostname", reflect.TypeOf((*MockAPI)(nil).UpdateHostname), arg0, arg1, arg2, arg3)
 }
 
+// UpdateIgnitionEndpointToken mocks base method.
+func (m *MockAPI) UpdateIgnitionEndpointToken(arg0 context.Context, arg1 *gorm.DB, arg2 *models.Host, arg3 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateIgnitionEndpointToken", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateIgnitionEndpointToken indicates an expected call of UpdateIgnitionEndpointToken.
+func (mr *MockAPIMockRecorder) UpdateIgnitionEndpointToken(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateIgnitionEndpointToken", reflect.TypeOf((*MockAPI)(nil).UpdateIgnitionEndpointToken), arg0, arg1, arg2, arg3)
+}
+
 // UpdateImageStatus mocks base method.
 func (m *MockAPI) UpdateImageStatus(arg0 context.Context, arg1 *models.Host, arg2 *models.ContainerImageAvailability, arg3 *gorm.DB) error {
 	m.ctrl.T.Helper()
