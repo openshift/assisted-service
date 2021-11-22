@@ -160,7 +160,7 @@ func getReleaseImage(ctx context.Context, c client.Client, imageSetName string) 
 		Name:      imageSetName,
 	}
 	if err := c.Get(ctx, key, clusterImageSet); err != nil {
-		return "", errors.Wrapf(err, "failed to get cluster image set %s", key)
+		return "", errors.Wrapf(err, "failed to get cluster image set %s", key.Name)
 	}
 
 	return clusterImageSet.Spec.ReleaseImage, nil
