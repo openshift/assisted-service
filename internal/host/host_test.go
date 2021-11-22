@@ -2117,7 +2117,7 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 			name:    "day1",
 			status:  models.HostStatusDiscovering,
 			day2:    false,
-			isValid: false,
+			isValid: true,
 		},
 		{
 			name:    "day2_before_installation",
