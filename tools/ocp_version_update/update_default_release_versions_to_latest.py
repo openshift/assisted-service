@@ -3,29 +3,24 @@ import os
 import re
 import json
 import copy
+import netrc
 import logging
 import argparse
 import tempfile
 import textwrap
 import subprocess
+import uuid
 
-from bs4 import BeautifulSoup
-from distutils.version import LooseVersion
-
-import jira
+import bs4
+from distutils import version
 import github
 import requests
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)-10s %(filename)s:%(lineno)d %(message)s')
 logger = logging.getLogger(__name__)
-logging.getLogger("__main__").setLevel(logging.INFO)
+logging.getLogger(__file__).setLevel(logging.INFO)
 
-# Users / branch names / messages
-BRANCH_NAME = "{prefix}_update_assisted_service_versions"
-DEFAULT_ASSIGN = "odepaz"
-DEFAULT_WATCHERS = ["odepaz", "romfreiman", "asegurap", "lgamliel"]
 PR_MENTION = ["romfreiman", "celebdor", "gamli75"]
-PR_MESSAGE = "{task}: Bump OCP versions {versions_string}"
 
 OCP_INFO_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=fast-{version}\&arch\={architecture} | jq '[.nodes[]] | sort_by(.version | split(".") | map(tonumber))[-1]'"""
 OCP_INFO_FC_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\?channel\=candidate-{version}\&arch\={architecture} | jq '[.nodes[]] | max_by(.version)'"""
@@ -33,10 +28,10 @@ OCP_INFO_FC_CALL = """curl https://api.openshift.com/api/upgrades_info/v1/graph\
 RHCOS_RELEASES = "https://mirror.openshift.com/pub/openshift-v4/{architecture}/dependencies/rhcos/{minor}"
 RHCOS_PRE_RELEASE = "pre-release"
 
-# RCHOS version
-RCHOS_LIVE_ISO_URL = "https://mirror.openshift.com/pub/openshift-v4/{architecture}/dependencies/rhcos/{minor}/{version}/rhcos-{version}-{architecture}-live.{architecture}.iso"
+# RHCOS version
+RHCOS_LIVE_ISO_URL = "https://mirror.openshift.com/pub/openshift-v4/{architecture}/dependencies/rhcos/{minor}/{version}/rhcos-{version}-{architecture}-live.{architecture}.iso"
 
-RCHOS_VERSION_FROM_ISO_REGEX = re.compile("coreos.liveiso=rhcos-(.*) ")
+RHCOS_VERSION_FROM_ISO_REGEX = re.compile("coreos.liveiso=rhcos-(.*) ")
 DOWNLOAD_LIVE_ISO_CMD = "curl {live_iso_url} -o {out_file}"
 
 DEFAULT_OS_IMAGES_FILE = os.path.join("data", "default_os_images.json")
@@ -47,8 +42,6 @@ ASSISTED_SERVICE_CLONE_DIR = "assisted-service"
 ASSISTED_SERVICE_GITHUB_REPO_ORGANIZATION = "openshift"
 ASSISTED_SERVICE_GITHUB_REPO = f"{ASSISTED_SERVICE_GITHUB_REPO_ORGANIZATION}/assisted-service"
 ASSISTED_SERVICE_GITHUB_REPO_URL_MASTER = f"https://raw.githubusercontent.com/{ASSISTED_SERVICE_GITHUB_REPO}/master"
-ASSISTED_SERVICE_GITHUB_FORK_REPO = "{github_user}/assisted-service"
-ASSISTED_SERVICE_CLONE_URL = "https://{github_user}:{github_password}@github.com/{ASSISTED_SERVICE_GITHUB_FORK_REPO}.git"
 ASSISTED_SERVICE_UPSTREAM_URL = f"https://github.com/{ASSISTED_SERVICE_GITHUB_REPO}.git"
 
 ASSISTED_SERVICE_MASTER_DEFAULT_OS_IMAGES_JSON_URL = \
@@ -59,29 +52,12 @@ ASSISTED_SERVICE_OPENSHIFT_TEMPLATE_YAML = f"{ASSISTED_SERVICE_CLONE_DIR}/opensh
 
 OCP_REPLACE_CONTEXT = ['"{version}"', "ocp-release:{version}"]
 
-# Jira
-JIRA_SERVER = "https://issues.redhat.com"
-JIRA_BROWSE_TICKET = f"{JIRA_SERVER}/browse/{{ticket_id}}"
-
-script_dir = os.path.dirname(os.path.realpath(__file__))
-CUSTOM_OPENSHIFT_IMAGES = os.path.join(script_dir, "custom_openshift_images.json")
-
-TICKET_DESCRIPTION = "Default versions need to be updated"
-
 SKIPPED_MAJOR_RELEASE = ["4.6"]
 
 CPU_ARCHITECTURE_AMD64 = "amd64"
 CPU_ARCHITECTURE_X86_64 = "x86_64"
 CPU_ARCHITECTURE_ARM64 = "arm64"
 CPU_ARCHITECTURE_AARCH64 = "aarch64"
-
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-jup",  "--jira-user-password",    help="JIRA Username and password in the format of user:pass", required=True)
-    parser.add_argument("-gup",  "--github-user-password",  help="GITHUB Username and password in the format of user:pass", required=True)
-    parser.add_argument("--dry-run", action='store_true',   help="test run")
-    return parser.parse_args()
 
 
 def cmd(command, env=None, **kwargs):
@@ -101,11 +77,11 @@ def cmd(command, env=None, **kwargs):
     return stdout, stderr
 
 
-def get_rchos_version_from_iso(minor_version, rhcos_latest_release, cpu_architecture):
+def get_rhcos_version_from_iso(minor_version, rhcos_latest_release, cpu_architecture):
     # RHCOS filename uses 'aarch64' naming
     if cpu_architecture == CPU_ARCHITECTURE_ARM64:
         cpu_architecture = CPU_ARCHITECTURE_AARCH64
-    live_iso_url = RCHOS_LIVE_ISO_URL.format(minor=minor_version, version=rhcos_latest_release, architecture=cpu_architecture)
+    live_iso_url = RHCOS_LIVE_ISO_URL.format(minor=minor_version, version=rhcos_latest_release, architecture=cpu_architecture)
     with tempfile.NamedTemporaryFile() as tmp_live_iso_file:
         subprocess.check_output(
             DOWNLOAD_LIVE_ISO_CMD.format(live_iso_url=live_iso_url, out_file=tmp_live_iso_file.name), shell=True)
@@ -117,16 +93,10 @@ def get_rchos_version_from_iso(minor_version, rhcos_latest_release, cpu_architec
         subprocess.check_output(f"isoinfo -i {tmp_live_iso_file.name} -x /ZIPL.PRM\;1 > zipl.prm", shell=True, cwd="/tmp")
         with open("/tmp/zipl.prm", 'r') as f:
             zipl_info = f.read()
-        result = RCHOS_VERSION_FROM_ISO_REGEX.search(zipl_info)
-        rchos_version_from_iso = result.group(1)
-        logger.info(f"Found rchos_version_from_iso: {rchos_version_from_iso}")
-    return rchos_version_from_iso.split()[0]
-
-
-def create_task(args, description: str):
-    jira_client = get_jira_client(*get_login(args.jira_user_password))
-    task = create_jira_ticket(jira_client, description)
-    return jira_client, task
+        result = RHCOS_VERSION_FROM_ISO_REGEX.search(zipl_info)
+        rhcos_version_from_iso = result.group(1)
+        logger.info(f"Found rhcos_version_from_iso: {rhcos_version_from_iso}")
+    return rhcos_version_from_iso.split()[0]
 
 
 def request_json_file(json_url):
@@ -137,56 +107,28 @@ def request_json_file(json_url):
     return json.loads(res.text)
 
 
-def get_login(user_password):
-    try:
-        username, password = user_password.split(":", 1)
-    except ValueError:
-        logger.error("Failed to parse user:password")
-        raise
-
-    return username, password
-
-
-def create_jira_ticket(jira_client, description):
-    ticket_text = description
-    new_task = jira_client.create_issue(project="MGMT",
-                                        summary=ticket_text,
-                                        priority={'name': 'Blocker'},
-                                        components=[{'name': "Assisted-Installer CI"}],
-                                        issuetype={'name': 'Task'},
-                                        description=ticket_text)
-    jira_client.assign_issue(new_task, DEFAULT_ASSIGN)
-    logger.info(f"Task created: {new_task} - {JIRA_BROWSE_TICKET.format(ticket_id=new_task)}")
-    return new_task
-
-
-def add_watchers(jira_client, issue):
-    for w in DEFAULT_WATCHERS:
-        jira_client.add_watcher(issue.key, w)
-
-
-def get_jira_client(username, password):
-    logger.info("log-in with username: %s", username)
-    return jira.JIRA(JIRA_SERVER, basic_auth=(username, password))
+def git_cmd(*args: str):
+    return subprocess.check_output(("git",) + args, cwd=ASSISTED_SERVICE_CLONE_DIR)
 
 
 def clone_assisted_service(github_user, github_password):
     cmd(["rm", "-rf", ASSISTED_SERVICE_CLONE_DIR])
-    assisted_service_github_fork_repo = ASSISTED_SERVICE_GITHUB_FORK_REPO.format(github_user=github_user)
-    cmd(["git", "clone", ASSISTED_SERVICE_CLONE_URL.format(github_user=github_user, github_password=github_password, ASSISTED_SERVICE_GITHUB_FORK_REPO=assisted_service_github_fork_repo), ASSISTED_SERVICE_CLONE_DIR])
 
-    def git_cmd(*args: str):
-        return subprocess.check_output("git " +  " ".join(args), cwd=ASSISTED_SERVICE_CLONE_DIR, shell=True)
+    cmd([
+        "git",
+        "clone",
+        f"https://{github_user}:{github_password}@github.com/{github_user}/assisted-service.git",
+        ASSISTED_SERVICE_CLONE_DIR,
+    ])
 
     git_cmd("remote", "add", "upstream", ASSISTED_SERVICE_UPSTREAM_URL)
     git_cmd("fetch", "upstream")
     git_cmd("reset", "upstream/master", "--hard")
 
-def commit_and_push_version_update_changes(message_prefix, title):
-    def git_cmd(*args: str, stdout=None):
-        return subprocess.check_output("git " +  " ".join(args), cwd=ASSISTED_SERVICE_CLONE_DIR, shell=True)
-    git_cmd("commit", "-a", "-m", f"\"{title}\"")
-    branch = BRANCH_NAME.format(prefix=message_prefix)
+
+def commit_and_push_version_update_changes(title):
+    git_cmd("commit", "-a", "-m", title)
+    branch = f"bump/{uuid.uuid4()}"
     git_cmd("push", "origin", f"HEAD:{branch}")
     return branch
 
@@ -199,12 +141,11 @@ def verify_latest_config():
         if e.returncode == 2:
             # We run the command just for its side-effects, we don't care if it fails
             return
+
         raise
 
-def open_pr(args, task, title, body):
-    branch = BRANCH_NAME.format(prefix=task)
 
-    github_client = github.Github(*get_login(args.github_user_password))
+def open_pr(github_client, title, body, branch):
     repo = github_client.get_repo(ASSISTED_SERVICE_GITHUB_REPO)
     pr = repo.create_pull(
         title=title,
@@ -212,7 +153,7 @@ def open_pr(args, task, title, body):
         head=f"{github_client.get_user().login}:{branch}",
         base="master"
     )
-    logging.info(f"new PR opened {pr.url}")
+    logging.info(f"new PR opened {pr.html_url}")
     return pr
 
 
@@ -220,14 +161,9 @@ def get_latest_release_from_minor(minor_release, cpu_architecture: str):
     release_data = get_release_data(minor_release, cpu_architecture)
     return release_data['version']
 
+
 def get_release_note_url(minor_release):
-    release_data = get_release_data(minor_release, CPU_ARCHITECTURE_AMD64)
-    try:
-        release_url = release_data['metadata']["url"]
-    except KeyError:
-        logger.info("release has no release notes url")
-        return None
-    return release_url
+    return get_release_data(minor_release, CPU_ARCHITECTURE_AMD64)["metadata"].get("url")
 
 
 def get_release_data(minor_release, cpu_architecture):
@@ -242,8 +178,10 @@ def get_release_data(minor_release, cpu_architecture):
         release_data = json.loads(release_data)
     return release_data
 
+
 def is_pre_release(release):
-        return ("-fc" in release or "-rc" in release) and not "nightly" in release
+    return ("-fc" in release or "-rc" in release) and not "nightly" in release
+
 
 def get_latest_rhcos_release_from_minor(minor_release: str, all_releases: list, pre_release: bool = False):
     if pre_release:
@@ -254,7 +192,8 @@ def get_latest_rhcos_release_from_minor(minor_release: str, all_releases: list, 
     if not all_relevant_releases:
         return None
 
-    return sorted(all_relevant_releases, key=LooseVersion)[-1]
+    return sorted(all_relevant_releases, key=version.LooseVersion)[-1]
+
 
 def get_all_releases(openshift_version, cpu_architecture):
     path = RHCOS_RELEASES.format(minor=openshift_version, architecture=cpu_architecture)
@@ -263,38 +202,19 @@ def get_all_releases(openshift_version, cpu_architecture):
         return None
 
     page = res.text
-    soup = BeautifulSoup(page, 'html.parser')
+    soup = bs4.BeautifulSoup(page, 'html.parser')
     return [node.get('href').replace("/", "") for node in soup.find_all('a')]
 
-def get_rchos_release_from_default_version_json(rhcos_image_url):
+def get_rhcos_release_from_default_version_json(rhcos_image_url):
     # Fetch version from RHCOS image URL
     return rhcos_image_url.split('/')[-2]
 
 
-def is_open_update_version_ticket(args):
-    jira_client = get_jira_client(*get_login(args.jira_user_password))
-    open_tickets = jira_client.search_issues(f'component = "Assisted-Installer CI" AND status="TO DO" AND Summary~"{TICKET_DESCRIPTION}"', maxResults=False, fields=['summary', 'key'])
-    if open_tickets:
-        open_ticket_id = open_tickets[0].key
-        logger.info(f"ticket {open_ticket_id} with updates waiting to get resolved, not checking for new updates until it is closed")
-        return True
-    return False
-
-
-class NoChangesNeeded(Exception):
-    pass
-
-
-def main(args):
-    dry_run = args.dry_run
+def main(username, password, dry_run):
     if dry_run:
-        logger.info("Running dry-run")
-    else:
-        if is_open_update_version_ticket(args):
-            logger.info("No updates today since there is a update waiting to be merged")
-            return
-        user, password = get_login(args.github_user_password)
-        clone_assisted_service(user, password)
+        logger.info("On dry-run mode")
+
+    clone_assisted_service(username, password)
 
     default_release_images_json = request_json_file(ASSISTED_SERVICE_MASTER_DEFAULT_RELEASE_IMAGES_JSON_URL)
     default_os_images_json = request_json_file(ASSISTED_SERVICE_MASTER_DEFAULT_OS_IMAGES_JSON_URL)
@@ -305,16 +225,27 @@ def main(args):
     update_release_images_json(default_release_images_json, updates_made, updates_made_str, dry_run)
     update_os_images_json(default_os_images_json, updates_made, updates_made_str, dry_run)
 
-    if updates_made:
-        verify_latest_config()
+    if not updates_made:
+        return
 
-        if dry_run:
-            logger.info(f"Bump OCP versions: {updates_made_str}")
-            logger.info(f"GitHub PR description:\n{get_pr_body(updates_made)}")
+    verify_latest_config()
+
+    if dry_run:
+        logger.info(f"Bump OCP versions: {updates_made_str}")
+        logger.info(f"GitHub PR description:\n{get_pr_body(updates_made)}")
+        return
+
+    github_client = github.Github(username, password)
+
+    title = f'Bump OCP versions {", ".join(sorted(updates_made_str))}'
+
+    repo = github_client.get_repo(ASSISTED_SERVICE_GITHUB_REPO)
+    for pull_request in repo.get_pulls(state="open", base="master"):
+        if pull_request.title == title:
+            logger.info("Already created PR %s for changes: %s", pull_request.html_url, updates_made_str)
             return
 
-        title, task = create_jira_task(updates_made_str, dry_run, args)
-        create_github_pr(updates_made, title, task, args)
+    create_github_pr(github_client, updates_made, title)
 
 
 def update_release_images_json(default_release_images_json, updates_made, updates_made_str, dry_run):
@@ -360,7 +291,7 @@ def update_os_images_json(default_os_images_json, updates_made, updates_made_str
             continue
 
         rhcos_image_url = os_image['url']
-        rhcos_default_release = get_rchos_release_from_default_version_json(rhcos_image_url)
+        rhcos_default_release = get_rhcos_release_from_default_version_json(rhcos_image_url)
 
         # Get all releases for minor versions. If not available, fallback to pre-releases.
         cpu_architecture = os_image["cpu_architecture"]
@@ -391,7 +322,7 @@ def update_os_images_json(default_os_images_json, updates_made, updates_made_str
                 rhcos_version_from_iso = "8888888"
             else:
                 minor_version = RHCOS_PRE_RELEASE if pre_release else openshift_version
-                rhcos_version_from_iso = get_rchos_version_from_iso(minor_version, rhcos_latest_release, cpu_architecture)
+                rhcos_version_from_iso = get_rhcos_version_from_iso(minor_version, rhcos_latest_release, cpu_architecture)
             updated_version_json[index]["version"] = rhcos_version_from_iso
 
     if updates_made:
@@ -401,30 +332,12 @@ def update_os_images_json(default_os_images_json, updates_made, updates_made_str
     return updates_made, updates_made_str
 
 
-def create_jira_task(updates_made_str, dry_run, args):
-    logger.info(f"changes were made on the following versions: {updates_made_str}")
+def create_github_pr(github_client, updates_made, title):
+    commit_message = f"NO-ISSUE: {title}\n\n{get_release_notes(updates_made)}"
+    branch = commit_and_push_version_update_changes(commit_message)
 
-    versions_str = ", ".join(sorted(updates_made_str))
-
-    if dry_run:
-        _, task = None, "TEST-8888"
-    else:
-        _, task = create_task(args, TICKET_DESCRIPTION + " " + versions_str)
-
-    title = PR_MESSAGE.format(task=task, versions_string=versions_str)
-    logger.info(f"PR title will be {title}")
-
-    return title, task
-
-
-def create_github_pr(updates_made, title, task, args):
     body = get_pr_body(updates_made)
-
-    commit_message = title + '\n\n' + get_release_notes(updates_made)
-
-    commit_and_push_version_update_changes(task, commit_message)
-
-    open_pr(args, task, title, body)
+    open_pr(github_client, title, body, branch)
 
 
 def get_pr_body(updates_made):
@@ -445,8 +358,44 @@ def get_release_notes(updates_made):
             release_notes += f"{updated_version} release notes: {release_note}\n"
         else:
             release_notes += f"{updated_version} has no available release notes\n"
+
     return release_notes
 
 
+def get_github_credentials_from_netrc():
+    credentials = netrc.netrc().authenticators("github.com")
+    if credentials is None:
+        return None
+
+    return credentials[0], credentials[2]
+
+
 if __name__ == "__main__":
-    main(parse_args())
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-gup",
+        "--github-user-password",
+        help="Github's Username and password in the format of username:password",
+        default=os.environ.get("GITHUB_CREDS"),
+    )
+    parser.add_argument(
+        "--dry-run",
+        action='store_true',
+        help="Do not apply any changes, but rather print what would have been applied",
+    )
+    args = parser.parse_args()
+
+    if args.github_user_password is None:
+        credentials = get_github_credentials_from_netrc()
+        if credentials is None:
+            raise ValueError("No github credentials were supplied via --github-user-password CLI option, "
+                             "GITHUB_CREDS env-var, or an entry in ~/.netrc")
+
+        username, password = credentials
+    else:
+        try:
+            username, password = args.github_user_password.split(":", 1)
+        except ValueError as e:
+            raise ValueError("Failed to parse user:password") from e
+
+    main(username, password, args.dry_run)
