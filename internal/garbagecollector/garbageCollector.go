@@ -7,6 +7,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/infraenv"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -15,9 +16,11 @@ import (
 )
 
 type Config struct {
-	DeletedUnregisteredAfter time.Duration `envconfig:"DELETED_UNREGISTERED_AFTER" default:"72h"` // 3d
-	DeregisterInactiveAfter  time.Duration `envconfig:"DELETED_INACTIVE_AFTER" default:"480h"`    // 20d
-	MaxGCClustersPerInterval int           `envconfig:"MAX_GC_CLUSTERS_PER_INTERVAL" default:"100"`
+	DeletedUnregisteredAfter    time.Duration `envconfig:"DELETED_UNREGISTERED_AFTER" default:"72h"`       // 3d
+	DeregisterInactiveAfter     time.Duration `envconfig:"DELETED_INACTIVE_AFTER" default:"480h"`          // 20d
+	InfraenvDeleteInactiveAfter time.Duration `envconfig:"INFRAENV_DELETED_INACTIVE_AFTER" default:"480h"` // 20d
+	MaxGCClustersPerInterval    int           `envconfig:"MAX_GC_CLUSTERS_PER_INTERVAL" default:"100"`
+	MaxGCInfraEnvsPerInterval   int           `envconfig:"MAX_GC_INFRAENVS_PER_INTERVAL" default:"100"`
 }
 
 type GarbageCollectors interface {
@@ -31,6 +34,7 @@ func NewGarbageCollectors(
 	log logrus.FieldLogger,
 	hostApi host.API,
 	clusterApi clusterPkg.API,
+	infraEnvApi infraenv.API,
 	objectHandler s3wrapper.API,
 	leaderElector leader.Leader,
 
@@ -41,6 +45,7 @@ func NewGarbageCollectors(
 		log:           log,
 		hostApi:       hostApi,
 		clusterApi:    clusterApi,
+		infraEnvApi:   infraEnvApi,
 		objectHandler: objectHandler,
 		leaderElector: leaderElector,
 	}
@@ -52,6 +57,7 @@ type garbageCollector struct {
 	log           logrus.FieldLogger
 	hostApi       host.API
 	clusterApi    clusterPkg.API
+	infraEnvApi   infraenv.API
 	objectHandler s3wrapper.API
 	leaderElector leader.Leader
 }
@@ -84,6 +90,20 @@ func (g garbageCollector) PermanentlyDeleteUnregisteredClustersAndHosts() {
 		olderThan)
 	if err := g.hostApi.PermanentHostsDeletion(olderThan); err != nil {
 		g.log.WithError(err).Errorf("Failed deleting soft-deleted hosts")
+		return
+	}
+}
+
+func (g garbageCollector) DeleteOrphanInfraEnvs() {
+	if !g.leaderElector.IsLeader() {
+		return
+	}
+	olderThan := strfmt.DateTime(time.Now().Add(-g.Config.InfraenvDeleteInactiveAfter))
+	g.log.Debugf(
+		"Permanently deleting all infraenv that were not updated before %s",
+		olderThan)
+	if err := g.infraEnvApi.DeleteOrphanInfraEnvs(context.Background(), g.MaxGCInfraEnvsPerInterval, olderThan); err != nil {
+		g.log.WithError(err).Errorf("Failed deleting infraenvs")
 		return
 	}
 }
