@@ -20,6 +20,7 @@ TEST_HOST_MONITOR_INTERVAL = "1s"
 # Garbage collector configuration
 TEST_DEREGISTER_WORKER_INTERVAL = "5s"
 TEST_DELETION_WORKER_INTERVAL = "5s"
+TEST_INFRAENV_DELETION_WORKER_INTERVAL = "5s"
 
 WIREMOCK_SERVICE = "http://wiremock:8080"
 
@@ -51,6 +52,7 @@ def main():
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'HOST_MONITOR_INTERVAL', 'value': TEST_HOST_MONITOR_INTERVAL})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'DEREGISTER_WORKER_INTERVAL', 'value': TEST_DEREGISTER_WORKER_INTERVAL})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'DELETION_WORKER_INTERVAL', 'value': TEST_DELETION_WORKER_INTERVAL})
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'INFRAENV_DELETION_WORKER_INTERVAL', 'value': TEST_INFRAENV_DELETION_WORKER_INTERVAL})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name': 'JWKS_CERT', 'value': load_key()})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'SUBSYSTEM_RUN', 'value': 'True'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'DUMMY_IGNITION', 'value': 'True'})
