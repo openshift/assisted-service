@@ -1844,20 +1844,35 @@ var _ = Describe("cluster install", func() {
 				}
 			}
 			It("reset log fields before installation", func() {
-				reply, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
-				Expect(err).NotTo(HaveOccurred())
-				c := reply.GetPayload()
-				Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
-
-				generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-				waitForHostState(ctx, clusterID, models.HostStatusPreparingSuccessful, defaultWaitForHostStateTimeout,
-					funk.Filter(c.Hosts, func(host *models.Host) bool { return swag.StringValue(host.Status) != models.HostStatusDisabled }).([]*models.Host)...)
-
+				By("set log fields to a non-zero value")
 				cluster = getCluster(clusterID)
-				Expect(string(cluster.LogsInfo)).To(BeEmpty())
-				Expect(cluster.ControllerLogsStartedAt).To(Equal(strfmt.DateTime(time.Time{})))
+				db.Model(cluster).Updates(map[string]interface{}{
+					"logs_info":                    "requested",
+					"controller_logs_started_at":   strfmt.DateTime(time.Now()),
+					"controller_logs_collected_at": strfmt.DateTime(time.Now()),
+				})
+				for _, host := range cluster.Hosts {
+					db.Model(&common.Host{}).Where("id = ?", host.ID.String()).Updates(map[string]interface{}{
+						"logs_info":         "requested",
+						"logs_started_at":   strfmt.DateTime(time.Now()),
+						"logs_collected_at": strfmt.DateTime(time.Now()),
+					})
+				}
+
+				By("start installation")
+				c := installCluster(clusterID)
+
+				By("verify timestamps")
+				//This can work only because in subsystem there is no actual log upload
+				//from the hosts. What we are verifying is that the db fields were cleared
+				//during the installation initiation. We can not stop the test reliably at
+				//the preperation successful stage because it is very brief
+				Expect(string(c.LogsInfo)).To(BeEmpty())
+				Expect(c.ControllerLogsStartedAt).To(Equal(strfmt.DateTime(time.Time{})))
+				Expect(c.ControllerLogsCollectedAt).To(Equal(strfmt.DateTime(time.Time{})))
 				for _, host := range cluster.Hosts {
 					Expect(host.LogsStartedAt).To(Equal(strfmt.DateTime(time.Time{})))
+					Expect(host.LogsCollectedAt).To(Equal(strfmt.DateTime(time.Time{})))
 					Expect(string(host.LogsInfo)).To(BeEmpty())
 				}
 			})
