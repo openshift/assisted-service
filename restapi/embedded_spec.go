@@ -9329,6 +9329,9 @@ func init() {
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
+        },
+        "platform": {
+          "$ref": "#/definitions/platform"
         }
       }
     },
@@ -11770,6 +11773,9 @@ func init() {
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
+        },
+        "platform": {
+          "$ref": "#/definitions/platform"
         }
       }
     },
@@ -22846,6 +22852,9 @@ func init() {
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
+        },
+        "platform": {
+          "$ref": "#/definitions/platform"
         }
       }
     },
@@ -25179,6 +25188,9 @@ func init() {
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
+        },
+        "platform": {
+          "$ref": "#/definitions/platform"
         }
       }
     },

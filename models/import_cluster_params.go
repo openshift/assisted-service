@@ -35,6 +35,9 @@ type ImportClusterParams struct {
 	// Version of the OpenShift cluster.
 	// Required: true
 	OpenshiftVersion *string `json:"openshift_version"`
+
+	// platform
+	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embeddedPrefix:platform_"`
 }
 
 // Validate validates this import cluster params
@@ -54,6 +57,10 @@ func (m *ImportClusterParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePlatform(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -103,8 +110,52 @@ func (m *ImportClusterParams) validateOpenshiftVersion(formats strfmt.Registry) 
 	return nil
 }
 
-// ContextValidate validates this import cluster params based on context it is used
+func (m *ImportClusterParams) validatePlatform(formats strfmt.Registry) error {
+	if swag.IsZero(m.Platform) { // not required
+		return nil
+	}
+
+	if m.Platform != nil {
+		if err := m.Platform.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("platform")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("platform")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this import cluster params based on the context it is used
 func (m *ImportClusterParams) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidatePlatform(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ImportClusterParams) contextValidatePlatform(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Platform != nil {
+		if err := m.Platform.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("platform")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("platform")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 

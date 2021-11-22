@@ -786,6 +786,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 			Name:               params.NewAddHostsClusterParams.Name,
 			OpenshiftVersion:   params.NewAddHostsClusterParams.OpenshiftVersion,
 			OpenshiftClusterID: params.NewAddHostsClusterParams.ID,
+			Platform:           params.NewAddHostsClusterParams.Platform,
 		},
 	}
 	c, err := b.V2ImportClusterInternal(ctx, nil, params.NewAddHostsClusterParams.ID, v2Params, true)
@@ -803,6 +804,11 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 	apivipDnsname := swag.StringValue(params.NewImportClusterParams.APIVipDnsname)
 	clusterName := swag.StringValue(params.NewImportClusterParams.Name)
 	inputOpenshiftVersion := swag.StringValue(params.NewImportClusterParams.OpenshiftVersion)
+
+	platform := &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
+	if params.NewImportClusterParams.Platform != nil {
+		platform = params.NewImportClusterParams.Platform
+	}
 
 	log.Infof("Import add-hosts-cluster: %s, id %s, version %s, openshift cluster id %s", clusterName, id.String(), inputOpenshiftVersion, params.NewImportClusterParams.OpenshiftClusterID)
 
@@ -842,7 +848,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		HostNetworks:       []*models.HostNetwork{},
 		Hosts:              []*models.Host{},
 		CPUArchitecture:    common.DefaultCPUArchitecture,
-		Platform:           &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+		Platform:           platform,
 	},
 		KubeKeyName:      kubeKey.Name,
 		KubeKeyNamespace: kubeKey.Namespace,

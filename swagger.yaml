@@ -7441,6 +7441,8 @@ definitions:
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
+      platform:
+        $ref: '#/definitions/platform'
 
   import-cluster-params:
     type: object
@@ -7463,6 +7465,8 @@ definitions:
         type: string
         format: uuid
         description: The id of the OCP cluster, that hosts will be added to
+      platform:
+        $ref: '#/definitions/platform'
 
   cluster:
     type: object
