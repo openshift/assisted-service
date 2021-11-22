@@ -363,6 +363,9 @@ def get_release_notes(updates_made):
 
 
 def get_github_credentials_from_netrc():
+    if not os.path.isfile(os.path.join(os.path.expanduser("~"), ".netrc")):
+        return None
+
     credentials = netrc.netrc().authenticators("github.com")
     if credentials is None:
         return None
