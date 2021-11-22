@@ -434,7 +434,7 @@ func checkInfraEnvCondition(ctx context.Context, key types.NamespacedName, condi
 			return condition.Message
 		}
 		return ""
-	}, "2m", "1s").Should(Equal(message))
+	}, "2m", "1s").Should(ContainSubstring(message))
 }
 
 func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hivev1.ClusterDeploymentSpec {
@@ -1958,13 +1958,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      infraNsName.Name,
 		}
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
-		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, fmt.Sprintf("%s due to an internal error: nmstate generated an empty NetworkManager config file content", v1beta1.ImageStateFailedToCreate))
-		infraEnvKey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      infraNsName.Name,
-		}
-		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
-		Expect(infraEnv.Generated).Should(Equal(false))
+		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, "nmstate generated an empty NetworkManager config file content")
 	})
 
 	It("Unbind", func() {
