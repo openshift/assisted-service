@@ -1252,7 +1252,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].Source)).Should(Equal("http://url.com"))
 			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders).Should(HaveLen(1))
 			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Name).Should(Equal("Authorization"))
-			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Value)).Should(Equal("Bearer: " + token))
+			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Value)).Should(Equal("Bearer " + token))
 			Expect(ignConfig.Ignition.Security.TLS.CertificateAuthorities).Should(HaveLen(0))
 		})
 
@@ -1287,7 +1287,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].Source)).Should(Equal("https://url.com"))
 			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders).Should(HaveLen(1))
 			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Name).Should(Equal("Authorization"))
-			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Value)).Should(Equal("Bearer: " + token))
+			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Value)).Should(Equal("Bearer " + token))
 			Expect(ignConfig.Ignition.Security.TLS.CertificateAuthorities).Should(HaveLen(1))
 			Expect(swag.StringValue(ignConfig.Ignition.Security.TLS.CertificateAuthorities[0].Source)).Should(Equal("data:text/plain;base64," + encodedCa))
 		})

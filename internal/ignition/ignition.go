@@ -1447,7 +1447,7 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert 
 		"CACERT":  "",
 	}
 	if bearerToken != nil {
-		ignitionParams["HEADERS"].(map[string]string)["Authorization"] = fmt.Sprintf("Bearer: %s", *bearerToken)
+		ignitionParams["HEADERS"].(map[string]string)["Authorization"] = fmt.Sprintf("Bearer %s", *bearerToken)
 	}
 
 	if caCert != nil {
