@@ -680,12 +680,6 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.Ho
 }
 
 func (m *Manager) UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error {
-	if !hostutil.IsDay2Host(h) {
-		return common.NewApiError(http.StatusBadRequest,
-			errors.Errorf("Host %s must be in day2 to update its machine config pool name to %s",
-				h.ID.String(), machineConfigPoolName))
-	}
-
 	hostStatus := swag.StringValue(h.Status)
 	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
