@@ -688,12 +688,7 @@ var _ = Describe("Host tests", func() {
 			HostID:    *hostID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		h := getHost(*cluster2.GetPayload().ID, *hostID)
 
-		// register again to cluster 2 and expect it to be in discovery status
-		Expect(db.Model(h).Update("status", "known").Error).NotTo(HaveOccurred())
-		h = getHost(*cluster2.GetPayload().ID, *hostID)
-		Expect(swag.StringValue(h.Status)).Should(Equal("known"))
 		_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
 			InfraEnvID: *cluster2.GetPayload().ID,
 			NewHostParams: &models.HostCreateParams{
@@ -701,8 +696,11 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		h = getHost(*cluster2.GetPayload().ID, *hostID)
-		Expect(swag.StringValue(h.Status)).Should(Equal("discovering"))
+
+		Eventually(func() string {
+			h := getHost(*cluster2.GetPayload().ID, *hostID)
+			return swag.StringValue(h.Status)
+		}, "30s", "1s").Should(Equal(models.HostStatusDiscovering))
 	})
 
 	It("register_wrong_pull_secret", func() {
