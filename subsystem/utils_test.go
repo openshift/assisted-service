@@ -3,12 +3,15 @@ package subsystem
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
@@ -32,11 +35,16 @@ const (
 )
 
 func clearDB() {
+	var multiErr *multierror.Error
+
 	if !Options.EnableKubeAPI {
 		// Delete cluster should use the REST API in order to delete any
 		// clusters' resources managed by the service
 		reply, err := userBMClient.Installer.ListClusters(context.Background(), &installer.ListClustersParams{})
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).To(BeNil())
+		if GinkgoT().Failed() {
+			multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.ClusterKindCluster, reply.Payload))
+		}
 		for _, c := range reply.GetPayload() {
 			// DeregisterCluster API isn't necessarily available (e.g. cluster is being installed)
 			if _, err = userBMClient.Installer.DeregisterCluster(context.Background(), &installer.DeregisterClusterParams{ClusterID: *c.ID}); err != nil {
@@ -45,12 +53,21 @@ func clearDB() {
 		}
 		// Delete infra env
 		infraEnvReply, err := userBMClient.Installer.ListInfraEnvs(context.Background(), &installer.ListInfraEnvsParams{})
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).To(BeNil())
+		if GinkgoT().Failed() {
+			multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.InfraEnvKindInfraEnv, infraEnvReply.Payload))
+		}
 		for _, i := range infraEnvReply.GetPayload() {
+			if GinkgoT().Failed() {
+				hostReply, err1 := userBMClient.Installer.V2ListHosts(context.Background(), &installer.V2ListHostsParams{InfraEnvID: *i.ID})
+				Expect(err1).To(BeNil())
+				multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.HostKindHost, hostReply.Payload))
+			}
 			if _, err = userBMClient.Installer.DeregisterInfraEnv(context.Background(), &installer.DeregisterInfraEnvParams{InfraEnvID: *i.ID}); err != nil {
 				log.WithError(err).Debugf("InfraEnv %s couldn't be deleted via REST API", i.ID)
 			}
 		}
+		Expect(multiErr.ErrorOrNil()).To(BeNil())
 	}
 
 	// Clean the DB to make sure we start tests from scratch
@@ -66,6 +83,20 @@ func clearDB() {
 	} {
 		db.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(model)
 	}
+}
+
+func GinkgoResourceLogger(kind string, resources interface{}) error {
+	resList, err := json.MarshalIndent(resources, "", "  ")
+	if err != nil {
+		return err
+	}
+	GinkgoLogger(fmt.Sprintf("The failed test '%s' created the following %s resources:", GinkgoT().Name(), kind))
+	GinkgoLogger(string(resList))
+	return nil
+}
+
+func GinkgoLogger(s string) {
+	_, _ = GinkgoWriter.Write([]byte(fmt.Sprintln(s)))
 }
 
 func strToUUID(s string) *strfmt.UUID {

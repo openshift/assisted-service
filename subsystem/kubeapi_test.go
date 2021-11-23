@@ -13,6 +13,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 	bmhv1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -142,7 +143,7 @@ func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 }
 
 func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, spec *hivev1.ClusterDeploymentSpec) {
-	By(fmt.Sprintf("test '%s' creating cluster deployment '%s'", GinkgoT().Name(), spec.ClusterName))
+	GinkgoLogger(fmt.Sprintf("test '%s' creating cluster deployment '%s'", GinkgoT().Name(), spec.ClusterName))
 	err := client.Create(ctx, &hivev1.ClusterDeployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterDeployment",
@@ -564,6 +565,44 @@ func randomNameSuffix() string {
 	return fmt.Sprintf("-%s", strings.Split(uuid.New().String(), "-")[0])
 }
 
+func printCRs(ctx context.Context, client k8sclient.Client) {
+	if GinkgoT().Failed() {
+		var (
+			multiErr              *multierror.Error
+			aciList               hiveext.AgentClusterInstallList
+			agentList             v1beta1.AgentList
+			infraEnvList          v1beta1.InfraEnvList
+			bareMetalHostList     bmhv1alpha1.BareMetalHostList
+			nmStateConfigList     v1beta1.NMStateConfigList
+			clusterImageSetList   hivev1.ClusterImageSetList
+			clusterDeploymentList hivev1.ClusterDeploymentList
+		)
+
+		multiErr = multierror.Append(multiErr, client.List(ctx, &agentList, k8sclient.InNamespace(Options.Namespace)))
+		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("Agent", agentList))
+
+		multiErr = multierror.Append(multiErr, client.List(ctx, &aciList, k8sclient.InNamespace(Options.Namespace)))
+		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("AgentClusterInstall", aciList))
+
+		multiErr = multierror.Append(multiErr, client.List(ctx, &clusterDeploymentList, k8sclient.InNamespace(Options.Namespace)))
+		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("ClusterDeployment", clusterDeploymentList))
+
+		multiErr = multierror.Append(multiErr, client.List(ctx, &clusterImageSetList, k8sclient.InNamespace(Options.Namespace)))
+		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("ClusterImageSet", clusterImageSetList))
+
+		multiErr = multierror.Append(multiErr, client.List(ctx, &infraEnvList, k8sclient.InNamespace(Options.Namespace)))
+		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("InfraEnv", infraEnvList))
+
+		multiErr = multierror.Append(multiErr, client.List(ctx, &nmStateConfigList, k8sclient.InNamespace(Options.Namespace)))
+		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("NMStateConfig", nmStateConfigList))
+
+		multiErr = multierror.Append(multiErr, client.List(ctx, &bareMetalHostList, k8sclient.InNamespace(Options.Namespace)))
+		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("BareMetalHost", bareMetalHostList))
+
+		Expect(multiErr.ErrorOrNil()).To(BeNil())
+	}
+}
+
 func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 	Eventually(func() error {
 		return client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace)) // Should also delete all agents
@@ -690,6 +729,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	AfterEach(func() {
+		printCRs(ctx, kubeClient)
 		cleanUpCRs(ctx, kubeClient)
 		verifyCleanUP(ctx, kubeClient)
 		clearDB()
@@ -3364,6 +3404,7 @@ var _ = Describe("bmac reconcile flow", func() {
 	})
 
 	AfterEach(func() {
+		printCRs(ctx, kubeClient)
 		cleanUpCRs(ctx, kubeClient)
 		clearDB()
 	})
