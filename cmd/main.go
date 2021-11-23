@@ -482,6 +482,8 @@ func main() {
 			} else {
 				failOnError(uploadISOs(objectHandler, versionHandler, log), "Failed to upload boot files")
 			}
+		} else {
+			log.Infof("Skipping ISO upload, image service running at %s", bm.ImageServiceBaseURL)
 		}
 
 		apiEnabler.Enable()
