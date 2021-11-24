@@ -8,6 +8,8 @@ parameters:
 - name: SERVICE_BASE_URL
   value: ''
   required: true
+- name: IMAGE_SERVICE_BASE_URL
+  value: ""
 - name: BASE_DNS_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
   value: ''
   required: false
@@ -237,6 +239,8 @@ objects:
                     fieldPath: metadata.namespace
               - name: SERVICE_BASE_URL
                 value: ${SERVICE_BASE_URL}
+              - name: IMAGE_SERVICE_BASE_URL
+                value: ${IMAGE_SERVICE_BASE_URL}
               - name: BASE_DNS_DOMAINS
                 value: ${BASE_DNS_DOMAINS}
               - name: OS_IMAGES
