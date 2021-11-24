@@ -422,7 +422,7 @@ func (b *bareMetalInventory) RegenerateInfraEnvSigningKey(ctx context.Context, p
 		return common.GenerateErrorResponder(err)
 	}
 
-	if err = b.db.Model(infraEnv).Update("image_token_key", imageTokenKey).Error; err != nil {
+	if err = b.db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Update("image_token_key", imageTokenKey).Error; err != nil {
 		log.WithError(err).Errorf("Failed to update image token key for infraEnv %s", params.InfraEnvID)
 		return common.GenerateErrorResponder(err)
 	}
@@ -481,7 +481,7 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 		"expires_at":   *expiresAt,
 	}
 
-	if err = b.db.Model(infraEnv).Updates(updates).Error; err != nil {
+	if err = b.db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates).Error; err != nil {
 		b.log.WithError(err).Errorf("Failed to update download_url for infraEnv %s", params.InfraEnvID)
 		return common.GenerateErrorResponder(err)
 	}

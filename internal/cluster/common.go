@@ -93,10 +93,19 @@ func updateLogsProgress(log logrus.FieldLogger, db *gorm.DB, c *common.Cluster, 
 		}
 	}
 
-	err := db.Model(c).Updates(updates).Error
-	if err != nil {
+	result := db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Updates(updates)
+
+	if err := result.Error; err != nil {
 		log.WithError(err).Errorf("could not update log progress %v on cluster %s", updates, *c.ID)
 		return err
+	}
+	if result.RowsAffected == 1 {
+		updatedCluster, err := common.GetClusterFromDB(db, *c.ID, common.UseEagerLoading)
+		if err != nil {
+			log.WithError(err).Errorf("could not update log progress %v on cluster %s", updates, *c.ID)
+			return err
+		}
+		*c = *updatedCluster
 	}
 
 	log.Infof("cluster %s has been updated with the following log progress %+v", *c.ID, updates)

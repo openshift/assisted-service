@@ -395,7 +395,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 }
 
 func (m *Manager) SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
-	err := db.Model(c).Update("controller_logs_collected_at", strfmt.DateTime(time.Now())).Error
+	err := db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Update("controller_logs_collected_at", strfmt.DateTime(time.Now())).Error
 	if err != nil {
 		return errors.Wrapf(err, "failed to set controller_logs_collected_at to cluster %s", c.ID.String())
 	}
@@ -715,7 +715,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UU
 		"progress_total_percentage":            totalPercentage,
 	}
 
-	return m.db.Model(&cluster).UpdateColumns(updates).Error
+	return m.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).UpdateColumns(updates).Error
 }
 
 func (m *Manager) UpdateFinalizingProgress(ctx context.Context, db *gorm.DB, clusterID strfmt.UUID) error {
@@ -751,7 +751,7 @@ func (m *Manager) UpdateFinalizingProgress(ctx context.Context, db *gorm.DB, clu
 		"progress_total_percentage":            totalPercentage,
 	}
 
-	return db.Model(&cluster).UpdateColumns(updates).Error
+	return db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).UpdateColumns(updates).Error
 }
 
 func (m *Manager) UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse {
