@@ -5222,6 +5222,16 @@ var _ = Describe("Refresh Host", func() {
 					"Host couldn't synchronize with any NTP server")),
 			},
 			{
+				name:             "discovering-unbound to insufficient-unbound (invalid hostname)",
+				srcState:         models.HostStatusDiscoveringUnbound,
+				dstState:         models.HostStatusInsufficientUnbound,
+				validCheckInTime: true,
+				inventory:        hostutil.GenerateMasterInventoryWithHostname("localhost"),
+				eventRaised:      true,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
+					"Hostname localhost is forbidden")),
+			},
+			{
 				name:             "discovering-unbound to insufficient-unbound",
 				srcState:         models.HostStatusDiscoveringUnbound,
 				dstState:         models.HostStatusInsufficientUnbound,

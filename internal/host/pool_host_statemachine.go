@@ -100,7 +100,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 	})
 
 	var hasMinRequiredHardware = stateswitch.And(If(HasMinValidDisks), If(HasMinCPUCores), If(HasMinMemory))
-	sufficientToBeBound := stateswitch.And(hasMinRequiredHardware, If(IsNTPSynced))
+	sufficientToBeBound := stateswitch.And(hasMinRequiredHardware, If(IsHostnameValid), If(IsNTPSynced))
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles
