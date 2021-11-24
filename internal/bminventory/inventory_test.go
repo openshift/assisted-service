@@ -13493,61 +13493,67 @@ var _ = Describe("Update cluster - feature usage flags", func() {
 	})
 
 	Context("Cluster managed network with VMs", func() {
-		It("Should Not add usage when network is not user managed", func() {
-			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(0)
-			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(1)
-			bm.updateClusterNetworkVMUsage(cluster, nil, usages, common.GetTestLog())
-		})
-		It("Should not add usage when network is user managed but no VM hosts", func() {
+		It("Should Not add usage when network is not cluster managed", func() {
 			userManagedNetwork := true
-			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(0)
-			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(1)
+			mockUsage.EXPECT().Add(usages, usage.ClusterManagedNetworkWithVMs, gomock.Any()).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.ClusterManagedNetworkWithVMs).Times(1)
 			bm.updateClusterNetworkVMUsage(cluster, &models.V2ClusterUpdateParams{
 				UserManagedNetworking: &userManagedNetwork,
 			}, usages, common.GetTestLog())
 		})
-		It("Should not add usage when network is not user managed and contains VMs", func() {
-			addVMToCluster(cluster, db)
-			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(0)
-			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(1)
-			bm.updateClusterNetworkVMUsage(cluster, nil, usages, common.GetTestLog())
-		})
-		It("Should add usage when updating cluster userManagedNetworking nil->true", func() {
-			addVMToCluster(cluster, db)
-			userManagedNetwork := true
-			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(1)
-			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(0)
+		It("Should not add usage when network is cluster managed but no VM hosts", func() {
+			userManagedNetwork := false
+			mockUsage.EXPECT().Add(usages, usage.ClusterManagedNetworkWithVMs, gomock.Any()).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.ClusterManagedNetworkWithVMs).Times(1)
 			bm.updateClusterNetworkVMUsage(cluster, &models.V2ClusterUpdateParams{
 				UserManagedNetworking: &userManagedNetwork,
 			}, usages, common.GetTestLog())
 		})
-		It("Should add usage when updating cluster userManagedNetworking true->(no update value)", func() {
+		It("Should not add usage when network is user managed and contains VMs", func() {
+			userManagedNetwork := true
+			addVMToCluster(cluster, db)
+			mockUsage.EXPECT().Add(usages, usage.ClusterManagedNetworkWithVMs, gomock.Any()).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.ClusterManagedNetworkWithVMs).Times(1)
+			bm.updateClusterNetworkVMUsage(cluster, &models.V2ClusterUpdateParams{
+				UserManagedNetworking: &userManagedNetwork,
+			}, usages, common.GetTestLog())
+		})
+		It("Should not add usage when updating cluster userManagedNetworking nil->true", func() {
 			addVMToCluster(cluster, db)
 			userManagedNetwork := true
+			mockUsage.EXPECT().Add(usages, usage.ClusterManagedNetworkWithVMs, gomock.Any()).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.ClusterManagedNetworkWithVMs).Times(1)
+			bm.updateClusterNetworkVMUsage(cluster, &models.V2ClusterUpdateParams{
+				UserManagedNetworking: &userManagedNetwork,
+			}, usages, common.GetTestLog())
+		})
+		It("Should add usage when updating cluster userManagedNetworking false->(no update value)", func() {
+			addVMToCluster(cluster, db)
+			userManagedNetwork := false
 			cluster.UserManagedNetworking = &userManagedNetwork
-			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(1)
-			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(0)
+			mockUsage.EXPECT().Add(usages, usage.ClusterManagedNetworkWithVMs, gomock.Any()).Times(1)
+			mockUsage.EXPECT().Remove(usages, usage.ClusterManagedNetworkWithVMs).Times(0)
 			bm.updateClusterNetworkVMUsage(cluster, nil, usages, common.GetTestLog())
 		})
-		It("Should add usage when updating userManagedNetworking false -> true", func() {
+		It("Should remove usage when updating userManagedNetworking false -> true", func() {
 			addVMToCluster(cluster, db)
 			userManagedNetwork := false
 			updateTo := true
 			cluster.UserManagedNetworking = &userManagedNetwork
-			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(1)
-			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(0)
+			mockUsage.EXPECT().Add(usages, usage.ClusterManagedNetworkWithVMs, gomock.Any()).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.ClusterManagedNetworkWithVMs).Times(1)
 			bm.updateClusterNetworkVMUsage(cluster, &models.V2ClusterUpdateParams{
 				UserManagedNetworking: &updateTo,
 			}, usages, common.GetTestLog())
 		})
 
-		It("Should remove usage when updating userManagedNetworking true -> false", func() {
+		It("Should add usage when updating userManagedNetworking true -> false", func() {
 			addVMToCluster(cluster, db)
-			userManagedNetwork := false
-			updateTo := true
+			userManagedNetwork := true
+			updateTo := false
 			cluster.UserManagedNetworking = &userManagedNetwork
-			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkWithVMs, gomock.Any()).Times(1)
-			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkWithVMs).Times(1)
+			mockUsage.EXPECT().Add(usages, usage.ClusterManagedNetworkWithVMs, gomock.Any()).Times(1)
+			mockUsage.EXPECT().Remove(usages, usage.ClusterManagedNetworkWithVMs).Times(0)
 			bm.updateClusterNetworkVMUsage(cluster, &models.V2ClusterUpdateParams{
 				UserManagedNetworking: &updateTo,
 			}, usages, common.GetTestLog())

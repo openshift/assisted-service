@@ -28,7 +28,7 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 			{
-				FeatureID:    usageNameToID(usage.UserManagedNetworkWithVMs),
+				FeatureID:    usageNameToID(usage.ClusterManagedNetworkWithVMs),
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 		},
@@ -53,7 +53,7 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 			{
-				FeatureID:    usageNameToID(usage.UserManagedNetworkWithVMs),
+				FeatureID:    usageNameToID(usage.ClusterManagedNetworkWithVMs),
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 		},
@@ -77,7 +77,7 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 			{
-				FeatureID:    usageNameToID(usage.UserManagedNetworkWithVMs),
+				FeatureID:    usageNameToID(usage.ClusterManagedNetworkWithVMs),
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 		},

@@ -90,6 +90,7 @@ func (m *FeatureSupportLevel) UnmarshalBinary(b []byte) error {
 type FeatureSupportLevelFeaturesItems0 struct {
 
 	// The ID of the feature
+	// Enum: [ADDITIONAL_NTP_SOURCE REQUESTED_HOSTNAME PROXY SNO DAY2_HOSTS VIP_AUTO_ALLOC DISK_SELECTION OVN_NETWORK_TYPE SDN_NETWORK_TYPE PLATFORM_SELECTION SCHEDULABLE_MASTERS AUTO_ASSIGN_ROLE CUSTOM_MANIFEST DISK_ENCRYPTION CLUSTER_MANAGED_NETWORKING_WITH_VMS ARM64_ARCHITECTURE]
 	FeatureID string `json:"feature_id,omitempty"`
 
 	// support level
@@ -101,6 +102,10 @@ type FeatureSupportLevelFeaturesItems0 struct {
 func (m *FeatureSupportLevelFeaturesItems0) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateFeatureID(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateSupportLevel(formats); err != nil {
 		res = append(res, err)
 	}
@@ -108,6 +113,91 @@ func (m *FeatureSupportLevelFeaturesItems0) Validate(formats strfmt.Registry) er
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+var featureSupportLevelFeaturesItems0TypeFeatureIDPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["ADDITIONAL_NTP_SOURCE","REQUESTED_HOSTNAME","PROXY","SNO","DAY2_HOSTS","VIP_AUTO_ALLOC","DISK_SELECTION","OVN_NETWORK_TYPE","SDN_NETWORK_TYPE","PLATFORM_SELECTION","SCHEDULABLE_MASTERS","AUTO_ASSIGN_ROLE","CUSTOM_MANIFEST","DISK_ENCRYPTION","CLUSTER_MANAGED_NETWORKING_WITH_VMS","ARM64_ARCHITECTURE"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		featureSupportLevelFeaturesItems0TypeFeatureIDPropEnum = append(featureSupportLevelFeaturesItems0TypeFeatureIDPropEnum, v)
+	}
+}
+
+const (
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDADDITIONALNTPSOURCE captures enum value "ADDITIONAL_NTP_SOURCE"
+	FeatureSupportLevelFeaturesItems0FeatureIDADDITIONALNTPSOURCE string = "ADDITIONAL_NTP_SOURCE"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDREQUESTEDHOSTNAME captures enum value "REQUESTED_HOSTNAME"
+	FeatureSupportLevelFeaturesItems0FeatureIDREQUESTEDHOSTNAME string = "REQUESTED_HOSTNAME"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDPROXY captures enum value "PROXY"
+	FeatureSupportLevelFeaturesItems0FeatureIDPROXY string = "PROXY"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDSNO captures enum value "SNO"
+	FeatureSupportLevelFeaturesItems0FeatureIDSNO string = "SNO"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDDAY2HOSTS captures enum value "DAY2_HOSTS"
+	FeatureSupportLevelFeaturesItems0FeatureIDDAY2HOSTS string = "DAY2_HOSTS"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC captures enum value "VIP_AUTO_ALLOC"
+	FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC string = "VIP_AUTO_ALLOC"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDDISKSELECTION captures enum value "DISK_SELECTION"
+	FeatureSupportLevelFeaturesItems0FeatureIDDISKSELECTION string = "DISK_SELECTION"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDOVNNETWORKTYPE captures enum value "OVN_NETWORK_TYPE"
+	FeatureSupportLevelFeaturesItems0FeatureIDOVNNETWORKTYPE string = "OVN_NETWORK_TYPE"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDSDNNETWORKTYPE captures enum value "SDN_NETWORK_TYPE"
+	FeatureSupportLevelFeaturesItems0FeatureIDSDNNETWORKTYPE string = "SDN_NETWORK_TYPE"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDPLATFORMSELECTION captures enum value "PLATFORM_SELECTION"
+	FeatureSupportLevelFeaturesItems0FeatureIDPLATFORMSELECTION string = "PLATFORM_SELECTION"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDSCHEDULABLEMASTERS captures enum value "SCHEDULABLE_MASTERS"
+	FeatureSupportLevelFeaturesItems0FeatureIDSCHEDULABLEMASTERS string = "SCHEDULABLE_MASTERS"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDAUTOASSIGNROLE captures enum value "AUTO_ASSIGN_ROLE"
+	FeatureSupportLevelFeaturesItems0FeatureIDAUTOASSIGNROLE string = "AUTO_ASSIGN_ROLE"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDCUSTOMMANIFEST captures enum value "CUSTOM_MANIFEST"
+	FeatureSupportLevelFeaturesItems0FeatureIDCUSTOMMANIFEST string = "CUSTOM_MANIFEST"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDDISKENCRYPTION captures enum value "DISK_ENCRYPTION"
+	FeatureSupportLevelFeaturesItems0FeatureIDDISKENCRYPTION string = "DISK_ENCRYPTION"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDCLUSTERMANAGEDNETWORKINGWITHVMS captures enum value "CLUSTER_MANAGED_NETWORKING_WITH_VMS"
+	FeatureSupportLevelFeaturesItems0FeatureIDCLUSTERMANAGEDNETWORKINGWITHVMS string = "CLUSTER_MANAGED_NETWORKING_WITH_VMS"
+
+	// FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE captures enum value "ARM64_ARCHITECTURE"
+	FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE string = "ARM64_ARCHITECTURE"
+)
+
+// prop value enum
+func (m *FeatureSupportLevelFeaturesItems0) validateFeatureIDEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, featureSupportLevelFeaturesItems0TypeFeatureIDPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *FeatureSupportLevelFeaturesItems0) validateFeatureID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.FeatureID) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateFeatureIDEnum("feature_id", "body", m.FeatureID); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -1401,7 +1401,7 @@ var _ = Describe("cluster install", func() {
 					HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
 						{ID: *h.ID, Hostname: "h1"},
 					},
-					UserManagedNetworking: swag.Bool(true),
+					UserManagedNetworking: swag.Bool(false),
 				},
 				ClusterID: clusterID,
 			})
@@ -1412,7 +1412,7 @@ var _ = Describe("cluster install", func() {
 			verifyUsageSet(getReply.Payload.FeatureUsage,
 				models.Usage{Name: usage.OVNNetworkTypeUsage},
 				models.Usage{
-					Name: usage.UserManagedNetworkWithVMs,
+					Name: usage.ClusterManagedNetworkWithVMs,
 					Data: map[string]interface{}{
 						"VM Hosts": []interface{}{
 							h.ID.String(),
