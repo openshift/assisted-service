@@ -1,9 +1,11 @@
 import logging
 import os
+import socket
 import subprocess
 import time
 import re
 import yaml
+import waiting
 from distutils.spawn import find_executable
 from functools import reduce
 from typing import Optional
@@ -104,19 +106,19 @@ def get_service_port(service, target=None, namespace='assisted-installer'):
     port = ports[0] if target != OCP_TARGET else ports[1].split("/")[0]
     return port.strip()
 
-
-def get_service_url(
+def get_service_address(
         service: str,
         target: Optional[str] = None,
         domain: str = '',
         namespace: str = 'assisted-installer',
         disable_tls: bool = False
-        ) -> str:
+        ) -> (str, str):
+
     # TODO: delete once rename everything to assisted-installer
     if target == INGRESS_REMOTE_TARGET:
         domain = get_domain(domain, target, namespace)
         service_host = f"assisted-installer.{domain}"
-        return to_url(host=service_host, disable_tls=disable_tls)
+        service_port = 80 if disable_tls else 443
     else:
         service_host = get_service_host(
             service,
@@ -128,6 +130,38 @@ def get_service_url(
             target,
             namespace=namespace
         )
+
+    return service_host, service_port
+
+
+def get_service_url(
+        service: str,
+        target: Optional[str] = None,
+        domain: str = '',
+        namespace: str = 'assisted-installer',
+        disable_tls: bool = False,
+        check_connection: bool = False
+        ) -> str:
+
+    if check_connection:
+        print(f"Checking connection to service {service}")
+        waiting.wait(
+            lambda: socket.getaddrinfo(*get_service_address(
+                service=service,
+                target=target,
+                domain=domain,
+                namespace=namespace,
+                disable_tls=disable_tls)),
+            timeout_seconds=1800,
+            expected_exceptions=(socket.error),
+            sleep_seconds=5)
+
+    service_host, service_port = get_service_address(
+            service=service,
+            target=target,
+            domain=domain,
+            namespace=namespace,
+            disable_tls=disable_tls)
 
     return to_url(host=service_host, port=service_port, disable_tls=disable_tls)
 
