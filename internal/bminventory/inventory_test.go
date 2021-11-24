@@ -44,6 +44,7 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/ignition"
+	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -74,6 +75,7 @@ var (
 	ctrl                     *gomock.Controller
 	mockClusterApi           *cluster.MockAPI
 	mockHostApi              *host.MockAPI
+	mockInfraEnvApi          *infraenv.MockAPI
 	mockEvents               *eventsapi.MockHandler
 	mockS3Client             *s3wrapper.MockAPI
 	mockSecretValidator      *validations.MockPullSecretValidator
@@ -164,7 +166,7 @@ func mockInfraEnvUpdateSuccessNoImageGeneration() {
 }
 
 func mockInfraEnvDeRegisterSuccess() {
-	mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+	mockInfraEnvApi.EXPECT().DeregisterInfraEnv(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 }
 
 func mockAMSSubscription(ctx context.Context) {
@@ -7483,10 +7485,6 @@ var _ = Describe("infraEnvs", func() {
 				Expect(ok).To(BeTrue())
 				reply = bm.DeregisterInfraEnv(ctx, installer.DeregisterInfraEnvParams{InfraEnvID: infraEnvID})
 				Expect(reply).Should(BeAssignableToTypeOf(&installer.DeregisterInfraEnvNoContent{}))
-				reply = bm.GetInfraEnv(ctx, installer.GetInfraEnvParams{
-					InfraEnvID: infraEnvID,
-				})
-				Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
 			})
 
 			It("failure - hosts exists", func() {
@@ -13256,6 +13254,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 
 	mockClusterApi = cluster.NewMockAPI(ctrl)
 	mockHostApi = host.NewMockAPI(ctrl)
+	mockInfraEnvApi = infraenv.NewMockAPI(ctrl)
 	mockGenerator = generator.NewMockISOInstallConfigGenerator(ctrl)
 	mockEvents = eventsapi.NewMockHandler(ctrl)
 	mockS3Client = s3wrapper.NewMockAPI(ctrl)
@@ -13276,7 +13275,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 	dnsApi := dns.NewDNSHandler(cfg.BaseDNSDomains, common.GetTestLog())
 	gcConfig := garbagecollector.Config{DeregisterInactiveAfter: 20 * 24 * time.Hour}
-	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg,
+	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, mockInfraEnvApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder, mockStaticNetworkConfig,

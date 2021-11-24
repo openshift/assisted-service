@@ -42,6 +42,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/internal/ignition"
+	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
@@ -173,6 +174,7 @@ type bareMetalInventory struct {
 	log                  logrus.FieldLogger
 	hostApi              host.API
 	clusterApi           clusterPkg.API
+	infraEnvApi          infraenv.API
 	dnsApi               dns.DNSApi
 	eventsHandler        eventsapi.Handler
 	objectHandler        s3wrapper.API
@@ -201,6 +203,7 @@ func NewBareMetalInventory(
 	log logrus.FieldLogger,
 	hostApi host.API,
 	clusterApi clusterPkg.API,
+	infraEnvApi infraenv.API,
 	cfg Config,
 	generator generator.ISOInstallConfigGenerator,
 	eventsHandler eventsapi.Handler,
@@ -230,6 +233,7 @@ func NewBareMetalInventory(
 		Config:               cfg,
 		hostApi:              hostApi,
 		clusterApi:           clusterApi,
+		infraEnvApi:          infraEnvApi,
 		dnsApi:               dnsApi,
 		generator:            generator,
 		eventsHandler:        eventsHandler,
@@ -5608,7 +5612,6 @@ func (b *bareMetalInventory) DeregisterInfraEnv(ctx context.Context, params inst
 
 func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, params installer.DeregisterInfraEnvParams) error {
 	log := logutil.FromContext(ctx, b.log)
-	var infraEnv *common.InfraEnv
 	var err error
 	success := false
 	log.Infof("Deregister infraEnv id %s", params.InfraEnvID)
@@ -5630,7 +5633,7 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 		}
 	}()
 
-	if infraEnv, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
+	if _, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 
@@ -5644,22 +5647,7 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
 	}
 
-	// Delete discovery image for deregistered infraEnv
-	discoveryImage := fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, params.InfraEnvID.String()))
-	exists, err := b.objectHandler.DoesObjectExist(ctx, discoveryImage)
-	if err != nil {
-		log.WithError(err).Errorf("failed to deregister infraEnv %s", params.InfraEnvID)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	if exists {
-		_, err = b.objectHandler.DeleteObject(ctx, discoveryImage)
-		if err != nil {
-			log.WithError(err).Errorf("failed to deregister infraEnv %s", params.InfraEnvID)
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
-	}
-
-	if err = b.db.Delete(infraEnv).Error; err != nil {
+	if err = b.infraEnvApi.DeregisterInfraEnv(ctx, params.InfraEnvID); err != nil {
 		log.WithError(err).Errorf("failed to deregister infraEnv %s", params.InfraEnvID)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
