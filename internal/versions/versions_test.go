@@ -56,6 +56,7 @@ var defaultReleaseImages = models.ReleaseImages{
 		OpenshiftVersion: swag.String("4.9"),
 		URL:              swag.String("release_4.9"),
 		Version:          swag.String("4.9-candidate"),
+		Default:          true,
 	},
 	&models.ReleaseImage{
 		CPUArchitecture:  swag.String("arm64"),
@@ -295,6 +296,30 @@ var _ = Describe("list versions", func() {
 					}
 				}
 			}
+		})
+	})
+
+	Context("GetDefaultReleaseImage", func() {
+		var (
+			releaseImage *models.ReleaseImage
+		)
+
+		It("Default release image exists", func() {
+			h, err = NewHandler(logger, mockRelease, versions, defaultOsImages, defaultReleaseImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			releaseImage, err = h.GetDefaultReleaseImage(common.TestDefaultConfig.CPUArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(releaseImage.Default).Should(Equal(true))
+			Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.9"))
+			Expect(*releaseImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
+		})
+
+		It("Missing default release image", func() {
+			h, err = NewHandler(logger, mockRelease, versions, defaultOsImages, models.ReleaseImages{}, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			releaseImage, err = h.GetDefaultReleaseImage(common.TestDefaultConfig.CPUArchitecture)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).Should(Equal("Default release image is not available"))
 		})
 	})
 

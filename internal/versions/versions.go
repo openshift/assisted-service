@@ -34,6 +34,7 @@ type Handler interface {
 	restapi.VersionsAPI
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
 	GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error)
+	GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error)
 	GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error)
 	GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error)
 	GetCPUArchitectures(openshiftVersion string) ([]string, error)
@@ -159,23 +160,17 @@ func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSec
 	return versions, nil
 }
 
-// Returns the latest OSImage entity for a specified CPU architecture
-func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error) {
-	var latest *models.OsImage
-	openshiftVersions := h.GetOpenshiftVersions()
-	for _, k := range openshiftVersions {
-		osImage, err := h.GetOsImage(k, cpuArchitecture)
-		if err != nil {
-			continue
-		}
-		if latest == nil || *osImage.OpenshiftVersion > *latest.OpenshiftVersion {
-			latest = osImage
-		}
+// Returns the default ReleaseImage entity for a specified CPU architecture
+func (h *handler) GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error) {
+	defaultReleaseImage := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
+		return releaseImage.Default && *releaseImage.CPUArchitecture == cpuArchitecture
+	})
+
+	if defaultReleaseImage == nil {
+		return nil, errors.Errorf("Default release image is not available")
 	}
-	if latest == nil {
-		return nil, errors.Errorf("No OS images are available")
-	}
-	return latest, nil
+
+	return defaultReleaseImage.(*models.ReleaseImage), nil
 }
 
 // Returns the OsImage entity
@@ -216,7 +211,25 @@ func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*mo
 	}
 
 	return nil, errors.Errorf("The requested release image for version (%s) isn't specified in release images list", versionKey)
+}
 
+// Returns the latest OSImage entity for a specified CPU architecture
+func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error) {
+	var latest *models.OsImage
+	openshiftVersions := h.GetOpenshiftVersions()
+	for _, k := range openshiftVersions {
+		osImage, err := h.GetOsImage(k, cpuArchitecture)
+		if err != nil {
+			continue
+		}
+		if latest == nil || *osImage.OpenshiftVersion > *latest.OpenshiftVersion {
+			latest = osImage
+		}
+	}
+	if latest == nil {
+		return nil, errors.Errorf("No OS images are available")
+	}
+	return latest, nil
 }
 
 func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error) {
