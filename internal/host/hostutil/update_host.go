@@ -72,8 +72,7 @@ func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 		if statusInfo != "" {
 			statusInfo += fmt.Sprintf("(%s)", statusInfo)
 		}
-		// TODO Need event for infra-env instead of cluster
-		eventgen.SendHostStatusUpdatedEvent(ctx, eventsHandler, hostId, infraEnvId, GetEventSeverityFromHostStatus(newStatus),
+		eventgen.SendHostStatusUpdatedEvent(ctx, eventsHandler, hostId, infraEnvId, host.ClusterID, GetEventSeverityFromHostStatus(newStatus),
 			GetHostnameForMsg(&host.Host), srcStatus, newStatus, statusInfo)
 		log.Infof("host %s from infra env %s has been updated with the following updates %+v", hostId, infraEnvId, extra)
 	}

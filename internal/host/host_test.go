@@ -323,6 +323,7 @@ var _ = Describe("update_progress", func() {
 					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 					eventstest.WithHostIdMatcher(host.ID.String()),
 					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -335,6 +336,7 @@ var _ = Describe("update_progress", func() {
 					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 					eventstest.WithHostIdMatcher(host.ID.String()),
 					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -354,6 +356,7 @@ var _ = Describe("update_progress", func() {
 					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 					eventstest.WithHostIdMatcher(host.ID.String()),
 					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -367,6 +370,7 @@ var _ = Describe("update_progress", func() {
 					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 					eventstest.WithHostIdMatcher(host.ID.String()),
 					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -389,6 +393,7 @@ var _ = Describe("update_progress", func() {
 					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 					eventstest.WithHostIdMatcher(host.ID.String()),
 					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityError)))
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -404,6 +409,7 @@ var _ = Describe("update_progress", func() {
 					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 					eventstest.WithHostIdMatcher(host.ID.String()),
 					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityError)))
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -419,6 +425,7 @@ var _ = Describe("update_progress", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(host.ID.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 					Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 					hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -438,6 +445,7 @@ var _ = Describe("update_progress", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(host.ID.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(models.EventSeverityError)))
 					Expect(state.UpdateInstallProgress(ctx, &hostFromDB.Host, &newProgress)).ShouldNot(HaveOccurred())
 					hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -469,6 +477,7 @@ var _ = Describe("update_progress", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(host.ID.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 					Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 					verifyDb()
@@ -482,6 +491,7 @@ var _ = Describe("update_progress", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(host.ID.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 					Expect(state.UpdateInstallProgress(ctx, &hostFromDB.Host, &newProgress)).Should(HaveOccurred())
 					verifyDb()
@@ -574,6 +584,7 @@ var _ = Describe("update progress special cases", func() {
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 			Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 			hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -596,6 +607,7 @@ var _ = Describe("update progress special cases", func() {
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 			Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 			hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -615,6 +627,7 @@ var _ = Describe("update progress special cases", func() {
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 			Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 			hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -1641,6 +1654,7 @@ var _ = Describe("Bind host", func() {
 					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 					eventstest.WithHostIdMatcher(hostId.String()),
 					eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+					eventstest.WithClusterIdMatcher(clusterId.String()),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, "", t.srcState)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -1792,6 +1806,7 @@ var _ = Describe("Unbind host", func() {
 					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 					eventstest.WithHostIdMatcher(hostId.String()),
 					eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+					eventstest.WithClusterIdMatcher(swag.StringValue(nil)),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, t.srcState)
 				if t.kind != nil {

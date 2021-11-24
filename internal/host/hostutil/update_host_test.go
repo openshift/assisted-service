@@ -51,7 +51,8 @@ var _ = Describe("update_host_state", func() {
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
-				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String())))
 			returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, common.TestDefaultConfig.Status,
 				newStatus, newStatusInfo)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -132,7 +133,8 @@ var _ = Describe("update_host_state", func() {
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
-				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String())))
 			returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status, newStatus, newStatusInfo,
 				host.Progress.CurrentStage, common.TestDefaultConfig.HostProgressStage, "")
 			Expect(err).ShouldNot(HaveOccurred())

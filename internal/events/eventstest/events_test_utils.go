@@ -42,7 +42,8 @@ func WithClusterIdMatcher(expected string) eventPartMatcher {
 			return e.GetClusterId().String() == expected
 		case eventsapi.HostEvent:
 			if e.GetClusterId() == nil {
-				return false
+				// cluster_id is an optional parameter for host events
+				return expected == ""
 			}
 			return e.GetClusterId().String() == expected
 		default:

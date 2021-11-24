@@ -2130,6 +2130,7 @@ func (e *HostBootstrapSetEvent) FormatMessage() string {
 type HostStatusUpdatedEvent struct {
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
     Severity string
     HostName string
     SrcStatus string
@@ -2142,6 +2143,7 @@ var HostStatusUpdatedEventName string = "host_status_updated"
 func NewHostStatusUpdatedEvent(
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     severity string,
     hostName string,
     srcStatus string,
@@ -2151,6 +2153,7 @@ func NewHostStatusUpdatedEvent(
     return &HostStatusUpdatedEvent{
         HostId: hostId,
         InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
         Severity: severity,
         HostName: hostName,
         SrcStatus: srcStatus,
@@ -2164,6 +2167,7 @@ func SendHostStatusUpdatedEvent(
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     severity string,
     hostName string,
     srcStatus string,
@@ -2172,6 +2176,7 @@ func SendHostStatusUpdatedEvent(
     ev := NewHostStatusUpdatedEvent(
         hostId,
         infraEnvId,
+        clusterId,
         severity,
         hostName,
         srcStatus,
@@ -2186,6 +2191,7 @@ func SendHostStatusUpdatedEventAtTime(
     eventsHandler eventsapi.Sender,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
     severity string,
     hostName string,
     srcStatus string,
@@ -2195,6 +2201,7 @@ func SendHostStatusUpdatedEventAtTime(
     ev := NewHostStatusUpdatedEvent(
         hostId,
         infraEnvId,
+        clusterId,
         severity,
         hostName,
         srcStatus,
@@ -2212,7 +2219,7 @@ func (e *HostStatusUpdatedEvent) GetSeverity() string {
     return e.Severity
 }
 func (e *HostStatusUpdatedEvent) GetClusterId() *strfmt.UUID {
-    return nil
+    return e.ClusterId
 }
 func (e *HostStatusUpdatedEvent) GetHostId() strfmt.UUID {
     return e.HostId
@@ -2225,6 +2232,7 @@ func (e *HostStatusUpdatedEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{severity}", fmt.Sprint(e.Severity),
         "{host_name}", fmt.Sprint(e.HostName),
         "{src_status}", fmt.Sprint(e.SrcStatus),
