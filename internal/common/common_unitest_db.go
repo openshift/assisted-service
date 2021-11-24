@@ -47,7 +47,7 @@ func InitializeDBTest() {
 		oldResource.Close()
 	}
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
-		Repository: "postgresql-12-centos7",
+		Repository: "quay.io/edge-infrastructure/postgresql-12-centos7",
 		Tag:        "latest",
 		Env:        []string{"POSTGRESQL_ADMIN_PASSWORD=admin"},
 		Name:       dbDockerName,
