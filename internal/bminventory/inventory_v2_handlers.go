@@ -497,7 +497,7 @@ func (b *bareMetalInventory) generateImageDownloadURL(infraEnvID, imageType, ver
 	downloadURL := url.URL{
 		Scheme: baseURL.Scheme,
 		Host:   baseURL.Host,
-		Path:   fmt.Sprintf("/images/%s", infraEnvID),
+		Path:   fmt.Sprintf("%s/images/%s", baseURL.Path, infraEnvID),
 	}
 	queryValues := url.Values{}
 	queryValues.Set("type", imageType)

@@ -14223,19 +14223,22 @@ var _ = Describe("RegenerateInfraEnvSigningKey", func() {
 
 var _ = Describe("GetInfraEnvDownloadURL", func() {
 	var (
-		bm           *bareMetalInventory
-		cfg          Config
-		db           *gorm.DB
-		ctx          = context.Background()
-		dbName       string
-		infraEnvID   strfmt.UUID
-		testTokenKey = "6aa03bd3b328d44ddf9a9fefc1290a01a3d52294b51d2b54b61819010206c917" // #nosec
+		bm                  *bareMetalInventory
+		cfg                 Config
+		db                  *gorm.DB
+		ctx                 = context.Background()
+		dbName              string
+		infraEnvID          strfmt.UUID
+		testTokenKey        = "6aa03bd3b328d44ddf9a9fefc1290a01a3d52294b51d2b54b61819010206c917" // #nosec
+		imageServicePath    = "/api/image-services"
+		imageServiceHost    = "image-service.example.com:8080"
+		imageServiceBaseURL = fmt.Sprintf("https://%s%s", imageServiceHost, imageServicePath)
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-		bm.ImageServiceBaseURL = "https://image-service.example.com:8080"
+		bm.ImageServiceBaseURL = imageServiceBaseURL
 		var err error
 		bm.ImageExpirationTime, err = time.ParseDuration("4h")
 		Expect(err).NotTo(HaveOccurred())
@@ -14274,10 +14277,11 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			Expect(payload.ExpiresAt.String()).To(Equal("0001-01-01T00:00:00.000Z"))
 			u, err := url.Parse(payload.URL)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(u.Host).To(Equal("image-service.example.com:8080"))
+			Expect(u.Host).To(Equal(imageServiceHost))
 			Expect(u.Query().Get("image_token")).To(Equal(""))
 			Expect(u.Query().Get("api_key")).To(Equal(""))
 			Expect(u.Query().Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+			Expect(u.Path).To(Equal(fmt.Sprintf("%s/images/%s", imageServicePath, infraEnvID.String())))
 		})
 	})
 
@@ -14306,7 +14310,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			u, err := url.Parse(payload.URL)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(u.Host).To(Equal("image-service.example.com:8080"))
+			Expect(u.Host).To(Equal(imageServiceHost))
 			tok := u.Query().Get("api_key")
 			_, err = bm.authHandler.AuthURLAuth(tok)
 			Expect(err).NotTo(HaveOccurred())
@@ -14328,7 +14332,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			u, err := url.Parse(payload.URL)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(u.Host).To(Equal("image-service.example.com:8080"))
+			Expect(u.Host).To(Equal(imageServiceHost))
 			tok := u.Query().Get("image_token")
 			_, err = bm.authHandler.AuthImageAuth(tok)
 			Expect(err).NotTo(HaveOccurred())
