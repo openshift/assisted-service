@@ -248,6 +248,7 @@ x-events:
   properties:
     host_id: UUID
     infra_env_id: UUID
+    cluster_id: UUID_PTR
     severity: string
     host_name: string
     src_status: string

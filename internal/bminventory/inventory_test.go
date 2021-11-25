@@ -1866,8 +1866,8 @@ var _ = Describe("PostStepReply", func() {
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
-
 			params := installer.V2PostStepReplyParams{
 				InfraEnvID: *clusterId,
 				HostID:     *hostId,
@@ -2385,7 +2385,8 @@ var _ = Describe("v2PostStepReply", func() {
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
-				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String())))
 
 			params := installer.V2PostStepReplyParams{
 				InfraEnvID: *clusterId,

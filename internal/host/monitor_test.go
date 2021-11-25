@@ -112,7 +112,8 @@ var _ = Describe("monitor_disconnection", func() {
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
-				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String())))
 			state.HostMonitoring()
 			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
 			Expect(*host.Status).Should(Equal(models.HostStatusDisconnected))
@@ -131,7 +132,8 @@ var _ = Describe("monitor_disconnection", func() {
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
-				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String())))
 			state.HostMonitoring()
 			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
 			Expect(*host.Status).Should(Equal(models.HostStatusDiscovering))

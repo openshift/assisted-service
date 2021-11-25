@@ -81,6 +81,7 @@ var _ = Describe("Validations test", func() {
 			eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 			eventstest.WithHostIdMatcher(h.ID.String()),
 			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
+			eventstest.WithClusterIdMatcher(h.ClusterID.String()),
 		))
 		mockAndRefreshStatusWithoutEvents(h)
 	}

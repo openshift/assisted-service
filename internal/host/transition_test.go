@@ -163,6 +163,7 @@ var _ = Describe("RegisterHost", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
 						eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+						eventstest.WithClusterIdMatcher(clusterId.String()),
 						eventstest.WithSeverityMatcher(t.expectedEventStatus)))
 				}
 
@@ -311,6 +312,7 @@ var _ = Describe("RegisterHost", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
 						eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+						eventstest.WithClusterIdMatcher(clusterId.String()),
 						eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 				}
 
@@ -465,6 +467,7 @@ var _ = Describe("RegisterHost", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
 						eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+						eventstest.WithClusterIdMatcher(clusterId.String()),
 						eventstest.WithSeverityMatcher(t.eventSeverity)))
 				}
 
@@ -575,6 +578,7 @@ var _ = Describe("RegisterHost", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
 						eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+						eventstest.WithClusterIdMatcher(swag.StringValue(nil)),
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(t.dstState))))
 				}
 
@@ -631,6 +635,7 @@ var _ = Describe("HostInstallationFailed", func() {
 			eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 			eventstest.WithHostIdMatcher(hostId.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+			eventstest.WithClusterIdMatcher(clusterId.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 		Expect(hapi.HandleInstallationFailure(ctx, &host)).ShouldNot(HaveOccurred())
@@ -987,6 +992,7 @@ var _ = Describe("Install", func() {
 					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 					eventstest.WithHostIdMatcher(hostId.String()),
 					eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+					eventstest.WithClusterIdMatcher(clusterId.String()),
 					eventstest.WithMessageMatcher(fmt.Sprintf("Host %s: updated status from \"%s\" to \"installing\" (Installation is in progress)",
 						host.ID.String(), t.srcState)),
 					eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -1023,7 +1029,9 @@ var _ = Describe("Install", func() {
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
-				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+			))
 			Expect(hapi.RefreshStatus(ctx, &host, tx)).ShouldNot(HaveOccurred())
 			Expect(tx.Commit().Error).ShouldNot(HaveOccurred())
 			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
@@ -1038,6 +1046,7 @@ var _ = Describe("Install", func() {
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 			Expect(hapi.RefreshStatus(ctx, &host, tx)).ShouldNot(HaveOccurred())
 			Expect(tx.Rollback().Error).ShouldNot(HaveOccurred())
@@ -1092,10 +1101,15 @@ var _ = Describe("Disable", func() {
 		}
 
 		mockEventsUpdateStatus := func(srcState, dstState string) {
+			cId := ""
+			if host.ClusterID != nil {
+				cId = host.ClusterID.String()
+			}
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(cId),
 				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
 		}
 
@@ -1377,10 +1391,15 @@ var _ = Describe("Enable", func() {
 
 				// Test definition
 				if t.sendEvent {
+					cId := ""
+					if host.ClusterID != nil {
+						cId = host.ClusterID.String()
+					}
 					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(cId),
 						eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 				}
 				t.validation(hapi.EnableHost(ctx, &host, db), dstState)
@@ -1782,6 +1801,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(host.ID.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusError))))
 				}
 				err := hapi.RefreshStatus(ctx, &host, db)
@@ -1844,6 +1864,7 @@ var _ = Describe("Refresh Host", func() {
 					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 					eventstest.WithHostIdMatcher(hostId.String()),
 					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 					eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusError))))
 				err := hapi.RefreshStatus(ctx, &host, db)
 
@@ -1935,6 +1956,7 @@ var _ = Describe("Refresh Host", func() {
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(hostId.String()),
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 				eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusDisconnected))))
 			err := hapi.RefreshStatus(ctx, &host, db)
 
@@ -1981,6 +2003,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusError))))
 				}
 				err := hapi.RefreshStatus(ctx, &host, db)
@@ -2055,12 +2078,14 @@ var _ = Describe("Refresh Host", func() {
 									eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 									eventstest.WithHostIdMatcher(hostId.String()),
 									eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+									eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 									eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusInstallingPendingUserAction))))
 							} else {
 								mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 									eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 									eventstest.WithHostIdMatcher(hostId.String()),
 									eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+									eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 									eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusError))))
 							}
 						}
@@ -2586,6 +2611,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(host.ID.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(t.dstState))))
 				}
 				Expect(getHost(infraEnvId, hostId).ValidationsInfo).To(BeEmpty())
@@ -2668,6 +2694,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(t.dstState))))
 				}
 				Expect(getHost(infraEnvId, hostId).ValidationsInfo).To(BeEmpty())
@@ -4005,6 +4032,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(t.dstState))))
 				}
 				Expect(getHost(infraEnvId, hostId).ValidationsInfo).To(BeEmpty())
@@ -4064,6 +4092,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(t.dstState))))
 				}
 				err := hapi.RefreshStatus(ctx, &host, db)
@@ -4514,6 +4543,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(host.ID.String()),
 						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(expectedSeverity)))
 				}
 
@@ -4590,6 +4620,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
 						eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+						eventstest.WithClusterIdMatcher(clusterId.String()),
 						eventstest.WithSeverityMatcher(models.EventSeverityError)))
 
 					err := hapi.RefreshStatus(ctx, &h, db)
@@ -4626,7 +4657,8 @@ var _ = Describe("Refresh Host", func() {
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(hostId.String()),
-				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()))).AnyTimes()
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()))).AnyTimes()
 		})
 
 		tests := []struct {
@@ -4679,7 +4711,8 @@ var _ = Describe("Refresh Host", func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
-				eventstest.WithHostIdMatcher(hostId.String()))).AnyTimes()
+				eventstest.WithHostIdMatcher(hostId.String()),
+				eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 		})
 
 		tests := []struct {
@@ -5115,7 +5148,8 @@ var _ = Describe("Refresh Host", func() {
 					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
-						eventstest.WithInfraEnvIdMatcher(infraEnvId.String())))
+						eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+						eventstest.WithClusterIdMatcher(host.ClusterID.String())))
 				}
 				Expect(hapi.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())
 				var resultHost models.Host
@@ -5459,7 +5493,8 @@ var _ = Describe("Refresh Host", func() {
 					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),
-						eventstest.WithInfraEnvIdMatcher(infraEnvId.String())))
+						eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+						eventstest.WithClusterIdMatcher(swag.StringValue(nil))))
 				}
 
 				Expect(hapi.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())
