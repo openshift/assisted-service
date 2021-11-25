@@ -1053,7 +1053,7 @@ var _ = Describe("bmac reconcile", func() {
 		})
 
 		Context("when Agent is unbound-pending-on-user-action", func() {
-			It("should remove the detached annotation and clear the ISO", func() {
+			BeforeEach(func() {
 				agent.Status.Conditions = []conditionsv1.Condition{
 					{
 						Type:   v1beta1.BoundCondition,
@@ -1062,10 +1062,16 @@ var _ = Describe("bmac reconcile", func() {
 					},
 				}
 				Expect(c.Update(ctx, agent)).To(BeNil())
-				hostBeforeReconcile := &bmh_v1alpha1.BareMetalHost{}
-				_ = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, hostBeforeReconcile)
-				Expect(hostBeforeReconcile.Spec.Image).NotTo(BeNil())
 
+				bmh := &bmh_v1alpha1.BareMetalHost{}
+				_ = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, bmh)
+				Expect(bmh.Spec.Image).NotTo(BeNil())
+				bmh.ObjectMeta.Annotations = make(map[string]string)
+				bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "assisted-service-controller"
+				Expect(c.Update(ctx, bmh)).To(BeNil())
+			})
+
+			It("should remove the detached annotation and clear the ISO", func() {
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
