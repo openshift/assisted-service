@@ -604,6 +604,21 @@ func isDiskEncryptionEnabled(clusterInstall *hiveext.AgentClusterInstall) bool {
 	}
 }
 
+func enableOlmOperators(clusterInstall *hiveext.AgentClusterInstall) []*models.OperatorCreateParams {
+	operators := make([]*models.OperatorCreateParams, len(clusterInstall.Spec.OlmOperators))
+
+	if len(clusterInstall.Spec.OlmOperators) > 0 {
+		for i := range clusterInstall.Spec.OlmOperators {
+			operators[i] = &models.OperatorCreateParams{
+				Name:       clusterInstall.Spec.OlmOperators[i].Name,
+				Properties: clusterInstall.Spec.OlmOperators[i].Properties,
+			}
+		}
+	}
+
+	return operators
+}
+
 //see https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html#installation-bare-metal-config-yaml_installing-platform-agnostic
 func hyperthreadingInSpec(clusterInstall *hiveext.AgentClusterInstall) bool {
 	//check if either master or worker pool hyperthreading settings are explicitly specified
@@ -785,6 +800,33 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		if clusterInstall.Spec.DiskEncryption.TangServers != cluster.DiskEncryption.TangServers {
 			params.DiskEncryption.TangServers = clusterInstall.Spec.DiskEncryption.TangServers
 			update = true
+		}
+	}
+
+	currentOps := cluster.MonitoredOperators
+	params.OlmOperators = enableOlmOperators(clusterInstall)
+	if !update {
+		if len(currentOps) != len(params.OlmOperators) {
+			update = true
+		} else {
+			for _, op := range params.OlmOperators {
+				present := false
+				for _, cOp := range cluster.MonitoredOperators {
+					if cOp.Name == op.Name {
+						present = true
+						if cOp.Properties != op.Properties {
+							update = true
+						}
+					}
+				}
+
+				// len is the same but the items
+				// are different. Let's update
+				if !present {
+					update = true
+					break
+				}
+			}
 		}
 	}
 
@@ -978,7 +1020,6 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
 		OpenshiftVersion:      swag.String(*releaseImage.Version),
-		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(false),
 		IngressVip:            clusterInstall.Spec.IngressVIP,
@@ -1025,6 +1066,9 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 			TangServers: clusterInstall.Spec.DiskEncryption.TangServers,
 		}
 	}
+
+	clusterParams.OlmOperators = enableOlmOperators(clusterInstall)
+	fmt.Println(clusterParams.OlmOperators)
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,

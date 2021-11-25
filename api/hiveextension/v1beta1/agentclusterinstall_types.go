@@ -155,6 +155,10 @@ type AgentClusterInstallSpec struct {
 	// DiskEncryption is the configuration to enable/disable disk encryption for cluster nodes.
 	// +optional
 	DiskEncryption *DiskEncryption `json:"diskEncryption,omitempty"`
+
+	// OlmOperators enables one or more of the assisted-installer supported operators
+	// +optional
+	OlmOperators []OlmOperator `json:"olmOperators,omitempty"`
 }
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.
@@ -329,6 +333,16 @@ type DiskEncryption struct {
 
 	// JSON-formatted string containing additional information regarding tang's configuration
 	TangServers string `json:"tangServers,omitempty" gorm:"type:text"`
+}
+
+type OlmOperator struct {
+	// Enable/disable one or more of the assisted-installer supported operators.
+
+	// The name of the operator
+	Name string `json:"name,omitempty"`
+
+	// Blob of operator-dependent parameters that are required for installation.
+	Properties string `json:"properties,omitempty" gorm:"type:text"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

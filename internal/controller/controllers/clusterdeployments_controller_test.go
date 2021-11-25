@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -317,6 +318,48 @@ var _ = Describe("cluster reconcile", func() {
 					Mode:        swag.String(models.DiskEncryptionModeTang),
 					TangServers: tangServersConfig,
 				}
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+				validateCreation(cluster)
+			})
+
+			It("flaper87 create new cluster with olm operators", func() {
+				id := strfmt.UUID(uuid.New().String())
+				oper := make([]*models.MonitoredOperator, 1)
+				oper[0] = &models.MonitoredOperator{
+					OperatorType:     models.OperatorTypeOlm,
+					Name:             ocs.Operator.Name,
+					Namespace:        ocs.Operator.Namespace,
+					Status:           models.OperatorStatusProgressing,
+					SubscriptionName: ocs.Operator.SubscriptionName,
+				}
+
+				clusterReply = &common.Cluster{
+					Cluster: models.Cluster{
+						Status:             swag.String(models.ClusterStatusPendingForInput),
+						StatusInfo:         swag.String("User input required"),
+						ID:                 &id,
+						MonitoredOperators: oper,
+					},
+				}
+
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+						Expect(params.NewClusterParams.OlmOperators).NotTo(BeNil())
+						Expect(params.NewClusterParams.OlmOperators[0].Name).To(Equal("ocs"))
+						Expect(params.NewClusterParams.OlmOperators[0].Properties).To(Equal(`{"test": 1}`))
+					}).Return(clusterReply, nil)
+				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+
+				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+				aciOper := make([]hiveext.OlmOperator, 1)
+				aciOper[0] = hiveext.OlmOperator{
+					Name:       "ocs",
+					Properties: `{"test": 1}`,
+				}
+
+				aci.Spec.OlmOperators = aciOper
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 				validateCreation(cluster)
 			})
