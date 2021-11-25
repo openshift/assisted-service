@@ -155,7 +155,27 @@ type AgentClusterInstallSpec struct {
 	// DiskEncryption is the configuration to enable/disable disk encryption for cluster nodes.
 	// +optional
 	DiskEncryption *DiskEncryption `json:"diskEncryption,omitempty"`
+
+	// Platform is the type of the platform
+	// +optional
+	Platform *Platform `json:"platform,omitempty"`
 }
+
+// Platfor define the platform
+type Platform struct {
+	// PlatformType define the type of the platform
+	PlatformType PlatformType `json:"platformType,omitempty"`
+}
+
+// PlatformType define the type of the platform
+type PlatformType string
+
+const (
+	// PlatformTypeBaremetal is used for baremetal platform type.
+	PlatformTypeBaremetal PlatformType = "baremetal"
+	// PlatformTypeNone is used for none platform type.
+	PlatformTypeNone PlatformType = "none"
+)
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.
 type IgnitionEndpoint struct {

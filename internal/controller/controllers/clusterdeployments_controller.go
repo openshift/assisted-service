@@ -30,6 +30,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/openshift/assisted-service/api/common"
+	"github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	restclient "github.com/openshift/assisted-service/client"
@@ -974,6 +975,14 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
 	}
 
+	platformType := v1beta1.PlatformTypeBaremetal
+	if clusterInstall.Spec.Platform != nil {
+		platformType = clusterInstall.Spec.Platform.PlatformType
+	}
+	if isUserManagedNetwork(clusterInstall) {
+		platformType = v1beta1.PlatformTypeNone
+	}
+
 	clusterParams := &models.ClusterCreateParams{
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
@@ -984,6 +993,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		IngressVip:            clusterInstall.Spec.IngressVIP,
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
+		Platform:              &models.Platform{Type: (*models.PlatformType)(&platformType)},
 	}
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
@@ -1072,10 +1082,19 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
 	}
 
+	platformType := v1beta1.PlatformTypeBaremetal
+	if clusterInstall.Spec.Platform != nil {
+		platformType = clusterInstall.Spec.Platform.PlatformType
+	}
+	if isUserManagedNetwork(clusterInstall) {
+		platformType = v1beta1.PlatformTypeNone
+	}
+
 	clusterParams := &models.ImportClusterParams{
 		APIVipDnsname:    swag.String(apiVipDnsname),
 		Name:             swag.String(spec.ClusterName),
 		OpenshiftVersion: swag.String(*releaseImage.Version),
+		Platform:         &models.Platform{Type: (*models.PlatformType)(&platformType)},
 	}
 
 	// add optional parameter
