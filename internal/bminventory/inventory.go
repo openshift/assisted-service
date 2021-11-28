@@ -6450,7 +6450,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 	}
 
 	if host.ClusterID == nil {
-		err = fmt.Errorf("host %s is not bound to any custer, cannot update progress", params.HostID)
+		err = fmt.Errorf("host %s is not bound to any cluster, cannot update progress", params.HostID)
 		log.WithError(err).Error()
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
