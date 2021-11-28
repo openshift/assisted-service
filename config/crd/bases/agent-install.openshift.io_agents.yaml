@@ -152,8 +152,6 @@ spec:
                       the Agent
                     type: string
                 type: object
-              hostname:
-                type: string
               inventory:
                 properties:
                   bmcAddress:
