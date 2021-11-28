@@ -61,8 +61,7 @@ CHECK_CLUSTER_VERSION := $(or ${CHECK_CLUSTER_VERSION},False)
 ENABLE_SINGLE_NODE_DNSMASQ := $(or ${ENABLE_SINGLE_NODE_DNSMASQ},True)
 DISK_ENCRYPTION_SUPPORT := $(or ${DISK_ENCRYPTION_SUPPORT},True)
 DELETE_PVC := $(or ${DELETE_PVC},False)
-TESTING_PUBLIC_CONTAINER_REGISTRIES := quay.io
-PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},$(TESTING_PUBLIC_CONTAINER_REGISTRIES))
+PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},"quay.io")
 PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 ENABLE_KUBE_API := $(or ${ENABLE_KUBE_API},false)
 STORAGE := $(or ${STORAGE},s3)
@@ -288,12 +287,10 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" $(TEST_FLAGS) \
-		--os-images '$(subst ",\",$(OS_IMAGES))' --release-images '$(subst ",\",$(RELEASE_IMAGES))' \
-		--must-gather-images '$(subst ",\",$(MUST_GATHER_IMAGES))' \
 		--public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
-		--disk-encryption-support $(DISK_ENCRYPTION_SUPPORT) --hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' \
+		--disk-encryption-support $(DISK_ENCRYPTION_SUPPORT) \
 		--disabled-host-validations "$(DISABLED_HOST_VALIDATIONS)" --disabled-steps "$(DISABLED_STEPS)"
 ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
 	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
@@ -328,15 +325,6 @@ deploy-service-on-ocp-cluster:
 
 deploy-ui-on-ocp-cluster:
 	export TARGET=ocp && $(MAKE) deploy-ui
-
-create-ocp-manifests:
-	export APPLY_MANIFEST=False && export APPLY_NAMESPACE=False && \
-	export ENABLE_KUBE_API=true && export TARGET=ocp && \
-	export OS_IMAGES="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_os_images.json | tr -d "\n\t "))" && \
-	export RELEASE_IMAGES="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_release_images.json | tr -d "\n\t "))" && \
-	export MUST_GATHER_IMAGES="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_must_gather_versions.json | tr -d "\n\t "))" && \
-	export HW_REQUIREMENTS="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_hw_requirements.json | tr -d "\n\t "))" && \
-	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
 
 ci-deploy-for-subsystem: _verify_cluster generate-keys
 	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \

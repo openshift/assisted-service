@@ -17,9 +17,9 @@ def handle_arguments():
     parser.add_argument("--jwks-url", default="https://api.openshift.com/.well-known/jwks.json")
     parser.add_argument("--ocm-url", default="https://api-integration.6943.hive-integration.openshiftapps.com")
     parser.add_argument("--ocp-versions")
-    parser.add_argument("--os-images")
-    parser.add_argument("--release-images")
-    parser.add_argument("--must-gather-images")
+    parser.add_argument("--os-images", default=os.environ.get("OS_IMAGES"))
+    parser.add_argument("--release-images", default=os.environ.get("RELEASE_IMAGES"))
+    parser.add_argument("--must-gather-images", default=os.environ.get("MUST_GATHER_IMAGES"))
     parser.add_argument("--installation-timeout", type=int)
     parser.add_argument("--public-registries", default="")
     parser.add_argument("--img-expr-time", default="")
@@ -27,7 +27,7 @@ def handle_arguments():
     parser.add_argument("--check-cvo", default="False")
     parser.add_argument("--ipv6-support", default="True")
     parser.add_argument("--enable-sno-dnsmasq", default="True")
-    parser.add_argument("--hw-requirements")
+    parser.add_argument("--hw-requirements", default=os.environ.get("HW_REQUIREMENTS"))
     parser.add_argument("--disabled-host-validations", default="")
     parser.add_argument("--disabled-steps", default="")
     parser.add_argument("--disk-encryption-support", default="True")
@@ -52,7 +52,7 @@ def get_deployment_tag(args):
 
 def main():
     utils.verify_build_directory(deploy_options.namespace)
-    verify_images(release_images=json.loads(json.loads('"{}"'.format(deploy_options.release_images))))
+    verify_images(release_images=json.loads(deploy_options.release_images))
     with open(SRC_FILE, "r") as src:
         with open(DST_FILE, "w+") as dst:
             data = src.read()
