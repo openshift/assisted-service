@@ -446,13 +446,23 @@ ifeq ($(CI), true)
 	gocov convert $(REPORTS)/$(TEST_SCENARIO)_coverage.out | gocov-xml > $(REPORTS)/$(TEST_SCENARIO)_coverage.xml
 endif
 
-unit-test:
+run-db-container:
 	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
 	docker run -d  --rm --tmpfs /var/lib/pgsql/data --name postgres -e POSTGRESQL_ADMIN_PASSWORD=admin -e POSTGRESQL_MAX_CONNECTIONS=10000 -p 127.0.0.1:5432:5432 \
 	quay.io/edge-infrastructure/postgresql-12-centos7:latest
 	timeout 5m ./hack/wait_for_postgres.sh
-	SKIP_UT_DB=1 $(MAKE) _test TEST_SCENARIO=unit TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem))" || (docker kill postgres && /bin/false)
+
+run-unit-test:
+	SKIP_UT_DB=1 $(MAKE) _test TEST_SCENARIO=unit TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem))"
+
+ci-unit-test:
+	./hack/start_db.sh
+	$(MAKE) run-unit-test
+
+kill-db-container:
 	docker kill postgres
+ 
+unit-test: run-db-container run-unit-test kill-db-container
 
 $(REPORTS):
 	-mkdir -p $(REPORTS)

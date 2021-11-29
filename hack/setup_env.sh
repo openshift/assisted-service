@@ -44,7 +44,7 @@ function assisted_service() {
   curl --retry 5 -L "https://dl.k8s.io/release/${latest_kubectl_version}/bin/linux/amd64/kubectl" -o /tmp/kubectl && \
     install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
     rm -f /tmp/kubectl
-  yum install -y docker podman libvirt-clients awscli python3-pip postgresql genisoimage skopeo p7zip && \
+  yum install -y docker podman libvirt-clients awscli python3-pip genisoimage skopeo p7zip && \
     yum clean all
 
   kustomize

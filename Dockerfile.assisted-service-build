@@ -1,10 +1,21 @@
-FROM registry.ci.openshift.org/openshift/release:golang-1.16
+FROM quay.io/edge-infrastructure/postgresql-12-centos7:latest
 
-ENV GO111MODULE=on
-ENV GOFLAGS=""
+ENV GOPATH=/go
+ENV GOROOT=/usr/local/go
+ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+
+USER 0
+
+RUN yum install -y epel-release && yum install -y gcc genisoimage jq
+
+COPY --from=registry.ci.openshift.org/openshift/release:golang-1.16 /usr/bin/git /usr/bin/gotestsum /usr/bin/make /usr/bin/
+COPY --from=registry.ci.openshift.org/openshift/release:golang-1.16 /usr/local/go /usr/local/go
+
 
 COPY ./hack/setup_env.sh ./dev-requirements.txt ./
 RUN ./setup_env.sh assisted_service
+
+RUN chmod g+xw -R $GOPATH && chmod g+xw -R $(go env GOROOT)
 
 COPY --from=quay.io/openshift/origin-cli:latest /usr/bin/oc /usr/bin
 COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.16.1 /bin/opm /bin
