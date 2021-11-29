@@ -239,19 +239,10 @@ func (m *Manifests) setUsage(active bool, manifest *models.Manifest, clusterID s
 			return err
 		}
 		if usages, uerr := usage.Unmarshal(cluster.Cluster.FeatureUsage); uerr == nil {
-			// Since the usage API upserts prev usage keys - we need to concat data if exists.
-			data := make(map[string]interface{})
-			if feature, ok := usages[usage.CustomManifest]; ok {
-				data = feature.Data
-			}
 			if active {
-				data[manifest.FileName] = fmt.Sprintf("%s/%s", manifest.Folder, manifest.FileName)
-				m.usageAPI.Add(usages, usage.CustomManifest, &data)
+				m.usageAPI.Add(usages, usage.CustomManifest, nil)
 			} else {
-				delete(data, manifest.FileName)
-				if len(data) == 0 {
-					m.usageAPI.Remove(usages, usage.CustomManifest)
-				}
+				m.usageAPI.Remove(usages, usage.CustomManifest)
 			}
 			m.usageAPI.Save(tx, *cluster.ID, usages)
 		}
