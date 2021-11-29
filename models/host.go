@@ -72,8 +72,8 @@ type Host struct {
 	// Example: {\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}
 	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty" gorm:"type:text"`
 
-	// A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
-	IgnitionEndpointToken *string `json:"ignition_endpoint_token,omitempty"`
+	// True if the token to fetch the ignition from ignition_endpoint_url is set.
+	IgnitionEndpointTokenSet bool `json:"ignition_endpoint_token_set,omitempty"`
 
 	// Array of image statuses.
 	ImagesStatus string `json:"images_status,omitempty" gorm:"type:text"`

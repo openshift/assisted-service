@@ -698,7 +698,7 @@ func (m *Manager) UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, 
 
 func (m *Manager) UpdateIgnitionEndpointToken(ctx context.Context, db *gorm.DB, h *models.Host, token string) error {
 	hostStatus := swag.StringValue(h.Status)
-	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
+	if token != "" && !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Host is in %s state, host ignition endpoint token can be set only in one of %s states",
 				hostStatus, hostStatusesBeforeInstallation[:]))
@@ -709,7 +709,15 @@ func (m *Manager) UpdateIgnitionEndpointToken(ctx context.Context, db *gorm.DB, 
 		cdb = db
 	}
 
-	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"ignition_endpoint_token": token, "trigger_monitor_timestamp": time.Now()}).Error
+	tokenSet := true
+	if token == "" {
+		tokenSet = false
+	}
+
+	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{
+		"ignition_endpoint_token":     token,
+		"ignition_endpoint_token_set": tokenSet,
+		"trigger_monitor_timestamp":   time.Now()}).Error
 }
 
 func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {

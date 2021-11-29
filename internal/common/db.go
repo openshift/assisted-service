@@ -81,6 +81,9 @@ type Host struct {
 
 	// Timestamp to trigger monitor. Monitor will be triggered if timestamp is recent
 	TriggerMonitorTimestamp time.Time
+
+	// A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
+	IgnitionEndpointToken string `json:"ignition_endpoint_token" gorm:"type:TEXT"`
 }
 
 type InfraEnv struct {

@@ -855,7 +855,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 	return &newCluster, nil
 }
 
-func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cluster *common.Cluster, host *models.Host) error {
+func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cluster *common.Cluster, host *models.Host, ignitionEndpointToken string) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Starting createAndUploadNodeIgnition for cluster %s, host %s", cluster.ID, host.ID)
 
@@ -880,7 +880,7 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 		caCert = cluster.IgnitionEndpoint.CaCertificate
 	}
 
-	ignitionBytes, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, caCert, host.IgnitionEndpointToken)
+	ignitionBytes, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, caCert, ignitionEndpointToken)
 	if err != nil {
 		return errors.Errorf("Failed to create ignition string for cluster %s", cluster.ID)
 	}
@@ -1797,7 +1797,7 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 	}
 
 	// move host to installing
-	err = b.createAndUploadNodeIgnition(ctx, cluster, &h.Host)
+	err = b.createAndUploadNodeIgnition(ctx, cluster, &h.Host, h.IgnitionEndpointToken)
 	if err != nil {
 		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
 		return err
@@ -1869,7 +1869,7 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 	if cluster, err = common.GetClusterFromDB(b.db, *h.ClusterID, common.SkipEagerLoading); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	err = b.createAndUploadNodeIgnition(ctx, cluster, h)
+	err = b.createAndUploadNodeIgnition(ctx, cluster, h, host.IgnitionEndpointToken)
 	if err != nil {
 		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
 		return common.GenerateErrorResponder(err)
@@ -1937,7 +1937,7 @@ func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.
 		if swag.StringValue(cluster.Hosts[i].Status) != models.HostStatusKnown {
 			continue
 		}
-		err = b.createAndUploadNodeIgnition(ctx, cluster, cluster.Hosts[i])
+		err = b.createAndUploadNodeIgnition(ctx, cluster, cluster.Hosts[i], "")
 		if err != nil {
 			log.Errorf("Failed to upload ignition for host %s", cluster.Hosts[i].RequestedHostname)
 			continue
@@ -5040,7 +5040,7 @@ func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.I
 	if swag.StringValue(h.Status) != models.HostStatusKnown {
 		return common.NewApiError(http.StatusConflict, fmt.Errorf("cannot install host in state %s after refresh", swag.StringValue(h.Status)))
 	}
-	err = b.createAndUploadNodeIgnition(ctx, cluster, h)
+	err = b.createAndUploadNodeIgnition(ctx, cluster, h, "")
 	if err != nil {
 		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
 		return common.GenerateErrorResponder(err)
@@ -6202,14 +6202,15 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	defaultRole := models.HostRoleAutoAssign
 
 	host := &models.Host{
-		ID:                    params.NewHostParams.HostID,
-		Href:                  swag.String(url.String()),
-		Kind:                  kind,
-		CheckedInAt:           strfmt.DateTime(time.Now()),
-		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
-		UserName:              ocm.UserNameFromContext(ctx),
-		Role:                  defaultRole,
-		InfraEnvID:            *infraEnv.ID,
+		ID:                       params.NewHostParams.HostID,
+		Href:                     swag.String(url.String()),
+		Kind:                     kind,
+		CheckedInAt:              strfmt.DateTime(time.Now()),
+		DiscoveryAgentVersion:    params.NewHostParams.DiscoveryAgentVersion,
+		UserName:                 ocm.UserNameFromContext(ctx),
+		Role:                     defaultRole,
+		InfraEnvID:               *infraEnv.ID,
+		IgnitionEndpointTokenSet: false,
 	}
 
 	var cluster *common.Cluster
