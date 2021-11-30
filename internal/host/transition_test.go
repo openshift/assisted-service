@@ -3098,7 +3098,8 @@ var _ = Describe("Refresh Host", func() {
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks",
 					"Host couldn't synchronize with any NTP server",
-					"Failed to fetch container images needed for installation from image")),
+					"Failed to fetch container images needed for installation from image. This may be due to a network hiccup. Retry to install again. If this problem persists, "+
+						"check your network settings to make sure you’re not blocked.")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:                    {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:                   {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -3113,7 +3114,7 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformNetworkSettingsValid: {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					CompatibleWithClusterPlatform:  {status: ValidationSuccess, messagePattern: "Host is compatible with cluster platform baremetal"},
 					IsNTPSynced:                    {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
-					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image."},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:     workerInventory(),
@@ -3133,7 +3134,8 @@ var _ = Describe("Refresh Host", func() {
 					"Require at least 4 CPU cores for master role, found only 2",
 					"Require at least 16.00 GiB RAM for role master, found only 8.00 GiB",
 					"Host couldn't synchronize with any NTP server",
-					"Failed to fetch container images needed for installation from image")),
+					"Failed to fetch container images needed for installation from image. This may be due to a network hiccup. Retry to install again. If this problem persists, "+
+						"check your network settings to make sure you’re not blocked.")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:                    {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:                   {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -3148,7 +3150,7 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformNetworkSettingsValid: {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					CompatibleWithClusterPlatform:  {status: ValidationSuccess, messagePattern: "Host is compatible with cluster platform baremetal"},
 					IsNTPSynced:                    {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
-					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image."},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:     workerInventory(),
@@ -3256,7 +3258,8 @@ var _ = Describe("Refresh Host", func() {
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks",
 					"Host couldn't synchronize with any NTP server",
-					"Failed to fetch container images needed for installation from image")),
+					"Failed to fetch container images needed for installation from image. This may be due to a network hiccup. Retry to install again. If this problem persists, "+
+						"check your network settings to make sure you’re not blocked.")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -3269,7 +3272,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs"},
 					IsNTPSynced:          {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
-					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image."},
 				}),
 				inventory:     hostutil.GenerateMasterInventory(),
 				errorExpected: false,
@@ -3286,7 +3289,8 @@ var _ = Describe("Refresh Host", func() {
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks",
 					"Host couldn't synchronize with any NTP server",
-					"Failed to fetch container images needed for installation from image")),
+					"Failed to fetch container images needed for installation from image. This may be due to a network hiccup. Retry to install again. If this problem persists, "+
+						"check your network settings to make sure you’re not blocked.")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -3299,7 +3303,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs"},
 					IsNTPSynced:          {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
-					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image."},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:     hostutil.GenerateMasterInventory(),

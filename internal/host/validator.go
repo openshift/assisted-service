@@ -838,7 +838,9 @@ func (v *validator) printSucessfullOrUnknownContainerImagesAvailability(c *valid
 	case ValidationFailure:
 		images, err := v.getFailedImagesNames(c.host)
 		if err == nil {
-			return fmt.Sprintf("Failed to fetch container images needed for installation from %s", strings.Join(images, ","))
+			return fmt.Sprintf("Failed to fetch container images needed for installation from %s. "+
+				"This may be due to a network hiccup. Retry to install again. If this problem persists, "+
+				"check your network settings to make sure you’re not blocked.", strings.Join(images, ","))
 		}
 		fallthrough
 	case ValidationError:
