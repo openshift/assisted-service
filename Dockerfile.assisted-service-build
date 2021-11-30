@@ -6,9 +6,9 @@ ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 USER 0
 
-RUN yum install -y epel-release && yum install -y gcc genisoimage jq
+RUN yum install -y epel-release && yum install -y gcc genisoimage jq git
 
-COPY --from=registry.ci.openshift.org/openshift/release:golang-1.16 /usr/bin/git /usr/bin/gotestsum /usr/bin/make /usr/bin/
+COPY --from=registry.ci.openshift.org/openshift/release:golang-1.16 /usr/bin/gotestsum /usr/bin/make /usr/bin/
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.16 /usr/local/go /usr/local/go
 
 
