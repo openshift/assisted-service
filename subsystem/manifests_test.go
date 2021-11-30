@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"fmt"
 	"html/template"
 
 	"github.com/go-openapi/strfmt"
@@ -80,9 +79,7 @@ spec:
 			})
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(*response.Payload).Should(Equal(manifestFile))
-			verifyUsage(true, *cluster.ID, map[string]interface{}{
-				manifestFile.FileName: fmt.Sprintf("%s/%s", manifestFile.Folder, manifestFile.FileName),
-			})
+			verifyUsage(true, *cluster.ID)
 		})
 
 		By("List files after upload", func() {
@@ -177,9 +174,7 @@ spec:
 				}
 			}
 			Expect(found).To(BeTrue())
-			verifyUsage(true, clusterID, map[string]interface{}{
-				manifestFile.FileName: fmt.Sprintf("%s/%s", manifestFile.Folder, manifestFile.FileName),
-			})
+			verifyUsage(true, clusterID)
 		})
 	})
 })
@@ -489,12 +484,12 @@ spec:
 	})
 })
 
-func verifyUsage(set bool, clusterID strfmt.UUID, data map[string]interface{}) {
+func verifyUsage(set bool, clusterID strfmt.UUID) {
 	getReply, err := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(clusterID))
 	Expect(err).ToNot(HaveOccurred())
 	c := &common.Cluster{Cluster: *getReply.Payload}
 	if set {
-		verifyUsageSet(c.FeatureUsage, models.Usage{Name: usage.CustomManifest, Data: data})
+		verifyUsageSet(c.FeatureUsage, models.Usage{Name: usage.CustomManifest})
 	} else {
 		verifyUsageNotSet(c.FeatureUsage, usage.CustomManifest)
 	}
