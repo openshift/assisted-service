@@ -194,6 +194,28 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		return reconcileComplete{}.Result()
 	}
 
+	// Should we check the status of the BMH resource?
+	// Provisioning / Deprovisioning ?
+	// What happens if we do the reconcile on a BMH that
+	// is in a Deprovisioning state?
+
+	agent := r.findAgent(ctx, bmh)
+
+	if agent != nil {
+		result := r.reconcileUnboundAgent(log, bmh, agent)
+		if result.Dirty() {
+			err := r.Client.Update(ctx, bmh)
+			if err != nil {
+				log.WithError(err).Errorf("Error adding reset annotation on BMH for unbound agent")
+				return reconcileError{err}.Result()
+			}
+		}
+
+		if result.Stop(ctx) {
+			return result.Result()
+		}
+	}
+
 	// Let's reconcile the BMH
 	result := r.reconcileBMH(ctx, log, bmh)
 	if result.Dirty() {
@@ -209,13 +231,6 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		log.Debugf("Stopping BMAC reconcile after reconcileBMH")
 		return result.Result()
 	}
-
-	// Should we check the status of the BMH resource?
-	// Provisioning / Deprovisioning ?
-	// What happens if we do the reconcile on a BMH that
-	// is in a Deprovisioning state?
-
-	agent := r.findAgent(ctx, bmh)
 
 	// handle multiple agents matching the
 	// same BMH's Mac Address
@@ -256,19 +271,6 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		return result.Result()
 	}
 
-	result = r.reconcileUnboundAgent(log, bmh, agent)
-	if result.Dirty() {
-		err := r.Client.Update(ctx, bmh)
-		if err != nil {
-			log.WithError(err).Errorf("Error adding reset annotation on BMH for unbound agent")
-			return reconcileError{err}.Result()
-		}
-	}
-
-	if result.Stop(ctx) {
-		return result.Result()
-	}
-
 	result = r.ensureMCSCert(ctx, log, bmh, agent)
 	if result.Dirty() {
 		err := r.Client.Update(ctx, bmh)
@@ -285,7 +287,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 
 	// After the agent has started installation, Ironic should not manage the host.
 	// Adding the detached annotation to the BMH stops Ironic from managing it.
-	result = r.addBMHDetachedAnnotationIfAgentHasStartedInstallation(ctx, bmh, agent)
+	result = r.addBMHDetachedAnnotationIfAgentHasStartedInstallation(ctx, log, bmh, agent)
 	if result.Dirty() {
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
@@ -373,16 +375,26 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 
 // The detached annotation is added if the installation of the agent associated with
 // the host has started.
-func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 
 	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
 	// Annotation already exists
 	if _, ok := bmhAnnotations[BMH_DETACHED_ANNOTATION]; ok {
+		log.Debugf("Skipping adding detached annotation. annotation already exists \n %v", agent)
+		return reconcileComplete{}
+	}
+
+	//check if we are in unbinding-pending-user-action status. If yes, we should not
+	//re-apply the detached label because ironic need to restart the host
+	boundCondition := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.BoundCondition)
+	if boundCondition != nil && boundCondition.Reason == aiv1beta1.UnbindingPendingUserActionReason {
+		log.Debugf("Skipping adding detached annotation. pending unbound condition \n %v", agent)
 		return reconcileComplete{}
 	}
 
 	c := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.InstalledCondition)
 	if c == nil {
+		log.Debugf("Skipping adding detached annotation. missing install condition \n %v", agent)
 		return reconcileComplete{}
 	}
 	installConditionReason := c.Reason
@@ -391,6 +403,7 @@ func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(c
 	if installConditionReason != aiv1beta1.InstallationInProgressReason &&
 		installConditionReason != aiv1beta1.InstalledReason &&
 		installConditionReason != aiv1beta1.InstallationFailedReason {
+		log.Debugf("Skipping adding detached annotation. host not in proper installation condition \n %v", agent)
 		return reconcileComplete{}
 	}
 
@@ -399,6 +412,7 @@ func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(c
 	}
 
 	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "assisted-service-controller"
+	log.Infof("Added detached annotation to agent \n %v", agent)
 
 	return reconcileComplete{dirty: true}
 }
@@ -526,8 +540,10 @@ func (r *BMACReconciler) reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_
 	log.Debugf("Started Unbound Agent reconcile for agent %s/%s and bmh %s/%s", agent.Namespace, agent.Name, bmh.Namespace, bmh.Name)
 
 	// proceed with the reconcile only when the agent ask for user action following unbinding
+	// and the detached annotation is in place (which means that we have not dealt with this case before)
 	boundCondition := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.BoundCondition)
-	if boundCondition == nil || boundCondition.Reason != aiv1beta1.UnbindingPendingUserActionReason {
+	_, isDetached := bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]
+	if boundCondition == nil || boundCondition.Reason != aiv1beta1.UnbindingPendingUserActionReason || !isDetached {
 		log.Debugf("Skipping Unbound Agent reconcile \n %v", agent)
 		return reconcileComplete{}
 	}
