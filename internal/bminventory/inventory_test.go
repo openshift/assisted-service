@@ -5003,6 +5003,12 @@ var _ = Describe("cluster", func() {
 					mockSuccess(3)
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(2)
 
+					verifyMachineCIDRTimestampUpdated := func(beforeTimestamp time.Time) {
+						cluster, err := common.GetClusterFromDB(db, clusterID, common.SkipEagerLoading)
+						Expect(err).ToNot(HaveOccurred())
+						ExpectWithOffset(1, beforeTimestamp.After(cluster.MachineNetworkCidrUpdatedAt)).To(BeFalse())
+					}
+
 					By("Original machine cidr", func() {
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
@@ -5020,6 +5026,7 @@ var _ = Describe("cluster", func() {
 
 					By("Override machine cidr", func() {
 						machineNetworks := common.TestIPv4Networking.MachineNetworks
+						beforeTimestamp := time.Now()
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -5028,6 +5035,7 @@ var _ = Describe("cluster", func() {
 							},
 						})
 						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+						verifyMachineCIDRTimestampUpdated(beforeTimestamp)
 						actual := reply.(*installer.UpdateClusterCreated)
 						Expect(actual.Payload.APIVip).To(BeEmpty())
 						Expect(actual.Payload.IngressVip).To(BeEmpty())
@@ -5065,6 +5073,7 @@ var _ = Describe("cluster", func() {
 					})
 
 					By("Turn off DHCP allocation", func() {
+						beforeTimestamp := time.Now()
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -5074,6 +5083,7 @@ var _ = Describe("cluster", func() {
 							},
 						})
 						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+						verifyMachineCIDRTimestampUpdated(beforeTimestamp)
 						actual := reply.(*installer.UpdateClusterCreated)
 						Expect(actual.Payload.APIVip).To(Equal(apiVip))
 						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
