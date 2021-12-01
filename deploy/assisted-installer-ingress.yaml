@@ -10,6 +10,19 @@ spec:
     - host: REPLACE_HOSTNAME
       http:
         paths:
-          - backend:
+          - path: "/api"
+            backend:
               serviceName: assisted-service
               servicePort: 8090
+          - path: "/ready"
+            backend:
+              serviceName: assisted-service
+              servicePort: 8090
+          - path: "/images"
+            backend:
+              serviceName: assisted-image-service
+              servicePort: 8080
+          - path: "/health"
+            backend:
+              serviceName: assisted-image-service
+              servicePort: 8080
