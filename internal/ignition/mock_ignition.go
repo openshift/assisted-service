@@ -118,7 +118,7 @@ func (mr *MockIgnitionBuilderMockRecorder) FormatDiscoveryIgnitionFile(ctx, infr
 }
 
 // FormatSecondDayWorkerIgnitionFile mocks base method.
-func (m *MockIgnitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert, bearerToken *string) ([]byte, error) {
+func (m *MockIgnitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken string) ([]byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FormatSecondDayWorkerIgnitionFile", url, caCert, bearerToken)
 	ret0, _ := ret[0].([]byte)

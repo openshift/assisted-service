@@ -2252,7 +2252,8 @@ var _ = Describe("UpdateIgnitionEndpointToken", func() {
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 			h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
-			Expect(h.IgnitionEndpointToken).Should(BeNil())
+			Expect(h.IgnitionEndpointToken).Should(BeEquivalentTo(""))
+			Expect(h.IgnitionEndpointTokenSet).Should(BeEquivalentTo(false))
 
 			// Test
 			err := hapi.UpdateIgnitionEndpointToken(ctx, db, &host, t.name)
@@ -2260,11 +2261,12 @@ var _ = Describe("UpdateIgnitionEndpointToken", func() {
 
 			if t.isValid {
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(h.IgnitionEndpointToken).ShouldNot(BeNil())
-				Expect(*h.IgnitionEndpointToken).Should(Equal(t.name))
+				Expect(h.IgnitionEndpointToken).Should(Equal(t.name))
+				Expect(h.IgnitionEndpointTokenSet).Should(BeEquivalentTo(true))
 			} else {
 				Expect(err).Should(HaveOccurred())
-				Expect(h.IgnitionEndpointToken).Should(BeNil())
+				Expect(h.IgnitionEndpointToken).Should(BeEquivalentTo(""))
+				Expect(h.IgnitionEndpointTokenSet).Should(BeEquivalentTo(false))
 			}
 
 		})

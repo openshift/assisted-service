@@ -6921,10 +6921,9 @@ definitions:
         x-go-custom-tag: gorm:"type:text"
         type: string
         description: The domain name resolution result.
-      ignition_endpoint_token:
-        x-nullable: true
-        type: string
-        description: A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
+      ignition_endpoint_token_set:
+        type: boolean
+        description: True if the token to fetch the ignition from ignition_endpoint_url is set.
 
 
   installer-args-params:

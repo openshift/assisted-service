@@ -11393,10 +11393,9 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
-        "ignition_endpoint_token": {
-          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
-          "type": "string",
-          "x-nullable": true
+        "ignition_endpoint_token_set": {
+          "description": "True if the token to fetch the ignition from ignition_endpoint_url is set.",
+          "type": "boolean"
         },
         "images_status": {
           "description": "Array of image statuses.",
@@ -24957,10 +24956,9 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
-        "ignition_endpoint_token": {
-          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
-          "type": "string",
-          "x-nullable": true
+        "ignition_endpoint_token_set": {
+          "description": "True if the token to fetch the ignition from ignition_endpoint_url is set.",
+          "type": "boolean"
         },
         "images_status": {
           "description": "Array of image statuses.",
