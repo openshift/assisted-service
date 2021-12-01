@@ -80,7 +80,7 @@ func WithInfraEnvIdMatcher(expected string) eventPartMatcher {
 
 func WithSeverityMatcher(expected string) eventPartMatcher {
 	return func(event interface{}) bool {
-		e, ok := event.(eventsapi.HostEvent)
+		e, ok := event.(eventsapi.BaseEvent)
 		if !ok {
 			return false
 		}

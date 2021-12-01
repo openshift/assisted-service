@@ -481,14 +481,17 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			msg := fmt.Sprintf("Successfully registered cluster %s with id %s",
 				swag.StringValue(params.NewClusterParams.Name), id)
 			log.Info(msg)
-			eventgen.SendClusterRegistrationSucceededEvent(ctx, b.eventsHandler, id)
+			eventgen.SendClusterRegistrationSucceededEvent(ctx, b.eventsHandler, id, models.ClusterKindCluster)
 		} else {
 			errWrapperLog := log
+			errStr := fmt.Sprintf("Failed to registered cluster %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
 			if err != nil {
 				errWrapperLog = log.WithError(err)
+				eventgen.SendClusterRegistrationFailedEvent(ctx, b.eventsHandler, id, err.Error(), models.ClusterKindCluster)
+			} else {
+				eventgen.SendClusterRegistrationFailedEvent(ctx, b.eventsHandler, id, errStr, models.ClusterKindCluster)
 			}
-			errWrapperLog.Errorf("Failed to registered cluster %s with id %s",
-				swag.StringValue(params.NewClusterParams.Name), id)
+			errWrapperLog.Errorf(errStr)
 		}
 	}()
 

@@ -109,7 +109,7 @@ var _ = Describe("system-test image tests", func() {
 				downloadClusterIsoHeaders(ctx, clusterID)
 
 				By("Verify events")
-				verifyEventExistence(clusterID, "Registered cluster")
+				verifyEventExistence(clusterID, "Successfully registered cluster")
 				verifyEventExistence(clusterID, fmt.Sprintf("Image type is \"%s\"", imageType))
 			}
 		})
