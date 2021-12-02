@@ -67,6 +67,21 @@ func (mr *MockHandlerMockRecorder) GetCPUArchitectures(arg0 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCPUArchitectures", reflect.TypeOf((*MockHandler)(nil).GetCPUArchitectures), arg0)
 }
 
+// GetDefaultReleaseImage mocks base method.
+func (m *MockHandler) GetDefaultReleaseImage(arg0 string) (*models.ReleaseImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDefaultReleaseImage", arg0)
+	ret0, _ := ret[0].(*models.ReleaseImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDefaultReleaseImage indicates an expected call of GetDefaultReleaseImage.
+func (mr *MockHandlerMockRecorder) GetDefaultReleaseImage(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultReleaseImage", reflect.TypeOf((*MockHandler)(nil).GetDefaultReleaseImage), arg0)
+}
+
 // GetLatestOsImage mocks base method.
 func (m *MockHandler) GetLatestOsImage(arg0 string) (*models.OsImage, error) {
 	m.ctrl.T.Helper()

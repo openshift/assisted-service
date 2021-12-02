@@ -810,8 +810,14 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 	// Day2 supports only x86_64 for now
 	releaseImage, err := b.versionsHandler.GetReleaseImage(inputOpenshiftVersion, common.DefaultCPUArchitecture)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion)
-		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
+		log.WithError(err).Warnf("Failed to get release image for version %s - fallback to default version", inputOpenshiftVersion)
+
+		// Try to get default release image as a fallback
+		releaseImage, err = b.versionsHandler.GetDefaultReleaseImage(common.DefaultCPUArchitecture)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get default release image")
+			return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get default release image"))
+		}
 	}
 
 	if kubeKey == nil {

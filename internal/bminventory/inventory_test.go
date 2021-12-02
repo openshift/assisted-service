@@ -10353,6 +10353,35 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		Expect(actual.Payload.OpenshiftClusterID).To(Equal(openshiftClusterID))
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ImportClusterCreated()))
 	})
+
+	It("Create AddHosts cluster - missing release image", func() {
+		defaultHostNetworks := make([]*models.HostNetwork, 0)
+		defaultHosts := make([]*models.Host, 0)
+		openshiftClusterID := strfmt.UUID(uuid.New().String())
+
+		params := installer.V2ImportClusterParams{
+			HTTPRequest: request,
+			NewImportClusterParams: &models.ImportClusterParams{
+				APIVipDnsname:      &apiVIPDnsname,
+				Name:               &clusterName,
+				OpenshiftVersion:   swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				OpenshiftClusterID: &openshiftClusterID,
+			},
+		}
+		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(nil).Times(1)
+		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, gomock.Any(), "Unknown").Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(nil, errors.New("missing")).Times(1)
+		mockVersions.EXPECT().GetDefaultReleaseImage(gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		res := bm.V2ImportCluster(ctx, params)
+		actual := res.(*installer.V2ImportClusterCreated)
+
+		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
+		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
+		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
+		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImageUrl))
+		Expect(actual.Payload.OpenshiftClusterID).To(Equal(openshiftClusterID))
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ImportClusterCreated()))
+	})
 })
 
 var _ = Describe("Reset Host test", func() {
