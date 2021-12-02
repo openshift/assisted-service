@@ -4044,3 +4044,343 @@ var _ = Describe("disk encryption", func() {
 		Expect(*h.StatusInfo).Should(ContainSubstring("The host's TPM version is not supported"))
 	})
 })
+
+var _ = Describe("Ovirt provider tests", func() {
+	var (
+		ctx         = context.Background()
+		clusterID   strfmt.UUID
+		cluster     *models.Cluster
+		clusterCIDR = "10.128.0.0/14"
+		serviceCIDR = "172.30.0.0/16"
+	)
+
+	BeforeEach(func() {
+		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("test-cluster"),
+				BaseDNSDomain:    "example.com",
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+				ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+				SSHPublicKey:     sshPublicKey,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		cluster = registerClusterReply.GetPayload()
+		clusterID = *cluster.ID
+		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
+	})
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	It("install cluster with oVirt hosts - only masters", func() {
+		By("set hosts with hw info and setup essential host steps")
+		inventoryOvirtInfo := getoVirtInventory()
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		h1 := registerNodeWithInventory(ctx, clusterID, "h1", ips[0], inventoryOvirtInfo)
+		h2 := registerNodeWithInventory(ctx, clusterID, "h2", ips[1], inventoryOvirtInfo)
+		h3 := registerNodeWithInventory(ctx, clusterID, "h3", ips[2], inventoryOvirtInfo)
+		apiVip := "1.2.3.8"
+		ingressVip := "1.2.3.9"
+		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).To(Not(HaveOccurred()))
+
+		By("Set hosts conectivity")
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h1)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h2)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h3)
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h2.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h3.ID, Role: models.HostRoleUpdateParamsMaster},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("start installation")
+		c := installCluster(clusterID)
+		Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+		Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+
+		for _, host := range c.Hosts {
+			Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
+		}
+
+		for _, host := range c.Hosts {
+			updateProgress(*host.ID, clusterID, models.HostStageDone)
+		}
+		waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
+	})
+
+	It("install cluster with oVirt hosts - masters and workers", func() {
+		By("set hosts with hw info and setup essential host steps")
+		inventoryOvirtInfo := getoVirtInventory()
+		ips := hostutil.GenerateIPv4Addresses(5, defaultCIDRv4)
+		h1 := registerNodeWithInventory(ctx, clusterID, "h1", ips[0], inventoryOvirtInfo)
+		h2 := registerNodeWithInventory(ctx, clusterID, "h2", ips[1], inventoryOvirtInfo)
+		h3 := registerNodeWithInventory(ctx, clusterID, "h3", ips[2], inventoryOvirtInfo)
+		h4 := registerNodeWithInventory(ctx, clusterID, "h4", ips[3], inventoryOvirtInfo)
+		h5 := registerNodeWithInventory(ctx, clusterID, "h5", ips[4], inventoryOvirtInfo)
+		apiVip := "1.2.3.8"
+		ingressVip := "1.2.3.9"
+		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).To(Not(HaveOccurred()))
+
+		By("Set hosts conectivity")
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h1)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h2)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h3)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h4)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h5)
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h2.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h3.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
+				{ID: *h5.ID, Role: models.HostRoleUpdateParamsWorker},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("start installation")
+		c := installCluster(clusterID)
+		Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+		Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+
+		for _, host := range c.Hosts {
+			Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
+		}
+
+		for _, host := range c.Hosts {
+			updateProgress(*host.ID, clusterID, models.HostStageDone)
+		}
+		waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
+	})
+
+	It("host installation progress with ovirt inventory", func() {
+		host := &registerHost(clusterID).Host
+		Expect(db.Model(host).Update("status", "installing").Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).Update("role", "master").Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).Update("bootstrap", "true").Error).NotTo(HaveOccurred())
+
+		inventory := getoVirtInventory()
+		b, err := json.Marshal(inventory)
+		Expect(err).To(Not(HaveOccurred()))
+		Expect(db.Model(host).UpdateColumn("inventory", string(b)).Error).NotTo(HaveOccurred())
+
+		updateProgress(*host.ID, clusterID, models.HostStageStartingInstallation)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageStartingInstallation))
+		time.Sleep(time.Second * 3)
+		updateProgress(*host.ID, clusterID, models.HostStageInstalling)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageInstalling))
+		time.Sleep(time.Second * 3)
+		updateProgress(*host.ID, clusterID, models.HostStageWritingImageToDisk)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageWritingImageToDisk))
+		time.Sleep(time.Second * 3)
+		updateProgress(*host.ID, clusterID, models.HostStageRebooting)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageRebooting))
+		time.Sleep(time.Second * 3)
+		updateProgress(*host.ID, clusterID, models.HostStageConfiguring)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageConfiguring))
+		time.Sleep(time.Second * 3)
+		updateProgress(*host.ID, clusterID, models.HostStageDone)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageDone))
+		time.Sleep(time.Second * 3)
+	})
+
+	It("install cluster with 2 ovirt hosts and one generic", func() {
+		By("set hosts with hw info and setup essential host steps")
+		inventoryOvirtInfo := getoVirtInventory()
+		inventoryBMInfo := &models.Inventory{
+			CPU:    &models.CPU{Count: 16},
+			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
+			Disks:  []*models.Disk{&loop0, &sdb},
+			Interfaces: []*models.Interface{
+				{
+					IPV4Addresses: []string{
+						defaultCIDRv4,
+					},
+					MacAddress: "e6:53:3d:a7:77:b4",
+				},
+			},
+			SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "RHEL", SerialNumber: "3534"},
+			Timestamp:    1601853088,
+			Routes:       common.TestDefaultRouteConfiguration,
+			TpmVersion:   models.InventoryTpmVersionNr20,
+		}
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		h1 := registerNodeWithInventory(ctx, clusterID, "h1", ips[0], inventoryOvirtInfo)
+		h2 := registerNodeWithInventory(ctx, clusterID, "h2", ips[1], inventoryOvirtInfo)
+		h3 := registerNodeWithInventory(ctx, clusterID, "h3", ips[2], inventoryBMInfo)
+		apiVip := "1.2.3.8"
+		ingressVip := "1.2.3.9"
+		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).To(Not(HaveOccurred()))
+
+		By("Set hosts conectivity")
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h1)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h2)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h3)
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h2.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h3.ID, Role: models.HostRoleUpdateParamsMaster},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("start installation")
+		c := installCluster(clusterID)
+		Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+		Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+
+		for _, host := range c.Hosts {
+			Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
+		}
+
+		for _, host := range c.Hosts {
+			updateProgress(*host.ID, clusterID, models.HostStageDone)
+		}
+		waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
+	})
+
+	It("install cluster with oVirt hosts, 3 masters and 2 workers ", func() {
+		By("set hosts with hw info and setup essential host steps")
+		inventoryInfo := getoVirtInventory()
+		ips := hostutil.GenerateIPv4Addresses(5, defaultCIDRv4)
+		h1 := registerNodeWithInventory(ctx, clusterID, "h1", ips[0], inventoryInfo)
+		h2 := registerNodeWithInventory(ctx, clusterID, "h2", ips[1], inventoryInfo)
+		h3 := registerNodeWithInventory(ctx, clusterID, "h3", ips[2], inventoryInfo)
+		h4 := registerNodeWithInventory(ctx, clusterID, "h4", ips[3], inventoryInfo)
+		h5 := registerNodeWithInventory(ctx, clusterID, "h5", ips[4], inventoryInfo)
+		apiVip := "1.2.3.8"
+		ingressVip := "1.2.3.9"
+		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).To(Not(HaveOccurred()))
+
+		By("Set hosts conectivity")
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h1)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h2)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h3)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h4)
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h5)
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h2.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h3.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
+				{ID: *h5.ID, Role: models.HostRoleUpdateParamsWorker},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("start installation")
+		c := installCluster(clusterID)
+		Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+		Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+
+		for _, host := range c.Hosts {
+			Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
+		}
+
+		for _, host := range c.Hosts {
+			updateProgress(*host.ID, clusterID, models.HostStageDone)
+		}
+		waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
+	})
+})
+
+func getoVirtInventory() *models.Inventory {
+	inv := models.Inventory{
+		CPU: &models.CPU{
+			Count: 16,
+		},
+		Memory: &models.Memory{
+			PhysicalBytes: int64(32 * units.GiB),
+			UsableBytes:   int64(32 * units.GiB),
+		},
+		Disks: []*models.Disk{
+			&loop0, &sdb,
+		},
+		Interfaces: []*models.Interface{
+			{
+				IPV4Addresses: []string{
+					defaultCIDRv4,
+				},
+				MacAddress: "e6:53:3d:a7:77:b4",
+			},
+		},
+		SystemVendor: &models.SystemVendor{
+			Manufacturer: "oVirt",
+			ProductName:  "oVirt",
+			SerialNumber: "3534",
+			Virtual:      true,
+		},
+		Timestamp:  1601853088,
+		Routes:     common.TestDefaultRouteConfiguration,
+		TpmVersion: models.InventoryTpmVersionNr20,
+	}
+	return &inv
+}
+
+func registerNodeWithInventory(ctx context.Context, clusterID strfmt.UUID, name, ip string, inventory *models.Inventory) *models.Host {
+	h := &registerHost(clusterID).Host
+	hwInfo := inventory
+	hwInfo.Interfaces[0].IPV4Addresses = []string{ip}
+	generateEssentialHostStepsWithInventory(ctx, h, name, hwInfo)
+	generateEssentialPrepareForInstallationSteps(ctx, h)
+	return h
+}
