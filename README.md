@@ -115,6 +115,7 @@ This deployment option have multiple optional parameters that should be used in 
 
 1. `APPLY_NAMESPACE` - True by default. Will try to deploy "assisted-installer" namespace, if you are not the Admin of the cluster or maybe you don't have permissions for this operation you may skip namespace deployment.
 1. `INGRESS_DOMAIN` - By default deployment script will try to get the domain prefix from OpenShift ingress controller. If you don't have access to it then you may specify the domain yourself. For example: `apps.ocp.prod.psi.redhat.com`
+1. `DISABLE_TLS` - Based on the target environment, routes that are being used are HTTPS. Setting it to true will make HTTP routes instead.
 
 To set the parameters simply add them in the end of the command, for example:
 
