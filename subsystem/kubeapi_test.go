@@ -620,6 +620,8 @@ func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 	Eventually(func() error {
 		return client.DeleteAllOf(ctx, &bmhv1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))
 	}, "1m", "2s").Should(BeNil())
+
+	// Check if tests pull secret exists and needs to be deleted
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -631,9 +633,18 @@ func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 		},
 		Type: corev1.SecretTypeDockerConfigJson,
 	}
-	Eventually(func() error {
-		return client.Delete(ctx, secret)
-	}, "1m", "2s").Should(BeNil())
+
+	psKey := types.NamespacedName{
+		Namespace: Options.Namespace,
+		Name:      pullSecretName,
+	}
+
+	err := kubeClient.Get(ctx, psKey, &corev1.Secret{})
+	if !apierrors.IsNotFound(err) {
+		Eventually(func() error {
+			return client.Delete(ctx, secret)
+		}, "1m", "2s").Should(BeNil())
+	}
 }
 
 func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
@@ -726,13 +737,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 		}
 		infraEnvSpec = getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
-	})
-
-	AfterEach(func() {
-		printCRs(ctx, kubeClient)
-		cleanUpCRs(ctx, kubeClient)
-		verifyCleanUP(ctx, kubeClient)
-		clearDB()
 	})
 
 	It("Verify NetworkType configuration with IPv6", func() {
@@ -3401,12 +3405,6 @@ var _ = Describe("bmac reconcile flow", func() {
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
-	})
-
-	AfterEach(func() {
-		printCRs(ctx, kubeClient)
-		cleanUpCRs(ctx, kubeClient)
-		clearDB()
 	})
 
 	Context("sno reconcile flow", func() {

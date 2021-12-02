@@ -153,9 +153,6 @@ var _ = Describe("Cluster", func() {
 	var cluster *installer.RegisterClusterCreated
 	var clusterID strfmt.UUID
 	var err error
-	AfterEach(func() {
-		clearDB()
-	})
 
 	BeforeEach(func() {
 		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
@@ -644,10 +641,6 @@ var _ = Describe("ListClusters", func() {
 		log.Infof("Register cluster %s", cluster.ID.String())
 	})
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	Context("Filter by opensfhift cluster ID", func() {
 
 		BeforeEach(func() {
@@ -760,10 +753,6 @@ var _ = Describe("cluster install - DHCP", func() {
 			ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
 		}
 	}
-
-	AfterEach(func() {
-		clearDB()
-	})
 
 	BeforeEach(func() {
 
@@ -945,9 +934,6 @@ var _ = Describe("Validate BaseDNSDomain when creating a cluster", func() {
 		clusterCIDR = "10.128.0.0/14"
 		serviceCIDR = "172.30.0.0/16"
 	)
-	AfterEach(func() {
-		clearDB()
-	})
 	type DNSTest struct {
 		It            string
 		BaseDNSDomain string
@@ -1021,10 +1007,6 @@ var _ = Describe("cluster update - BaseDNS", func() {
 		err         error
 	)
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	BeforeEach(func() {
 		var registerClusterReply *installer.RegisterClusterCreated
 		registerClusterReply, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
@@ -1093,10 +1075,6 @@ var _ = Describe("[V2UpdateCluster] cluster update - BaseDNS", func() {
 		err         error
 	)
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	BeforeEach(func() {
 		var registerClusterReply *installer.RegisterClusterCreated
 		registerClusterReply, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
@@ -1162,10 +1140,6 @@ var _ = Describe("cluster install", func() {
 		clusterCIDR = "10.128.0.0/14"
 		serviceCIDR = "172.30.0.0/16"
 	)
-
-	AfterEach(func() {
-		clearDB()
-	})
 
 	BeforeEach(func() {
 		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
@@ -3367,10 +3341,6 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 		clusterID = cID
 	})
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	It("should be reported for cluster", func() {
 		params := installer.GetPreflightRequirementsParams{ClusterID: clusterID}
 
@@ -3454,10 +3424,6 @@ var _ = Describe("cluster install, with default network params", func() {
 		ctx     = context.Background()
 		cluster *models.Cluster
 	)
-
-	AfterEach(func() {
-		clearDB()
-	})
 
 	BeforeEach(func() {
 		By("Register cluster")
@@ -3557,10 +3523,6 @@ var _ = Describe("Verify ISO is deleted on cluster de-registration", func() {
 		var err error
 		clusterID, err = registerCluster(ctx, userBMClient, "test-deregister-cluster", pullSecret)
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		clearDB()
 	})
 
 	Context("Deregister cluster deletes cluster resources test", func() {
@@ -3829,10 +3791,6 @@ var _ = Describe("Installation progress", func() {
 		serviceCIDR = "172.30.0.0/16"
 	)
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	It("Test installation progress", func() {
 
 		By("register cluster", func() {
@@ -4000,10 +3958,6 @@ var _ = Describe("disk encryption", func() {
 		Expect(featureUsage["Disk encryption"].Data["tang_server"]).To(BeNil())
 	})
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	It("happy flow", func() {
 
 		registerHostsAndSetRolesDHCP(*c.ID, 3, "test-cluster", "example.com")
@@ -4070,10 +4024,6 @@ var _ = Describe("Ovirt provider tests", func() {
 		cluster = registerClusterReply.GetPayload()
 		clusterID = *cluster.ID
 		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-	})
-
-	AfterEach(func() {
-		clearDB()
 	})
 
 	It("install cluster with oVirt hosts - only masters", func() {

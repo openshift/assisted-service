@@ -44,9 +44,6 @@ var _ = Describe("IPv6 installation", func() {
 		clusterID   strfmt.UUID
 	)
 
-	AfterEach(func() {
-		clearDB()
-	})
 	BeforeEach(func() {
 		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{

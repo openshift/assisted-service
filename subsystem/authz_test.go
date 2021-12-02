@@ -78,10 +78,6 @@ var _ = Describe("test authorization", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	Context("unallowed user", func() {
 		It("can't list clusters", func() {
 			_, err := unallowedUserBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
@@ -165,9 +161,6 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		clusterID strfmt.UUID
 		file      *os.File
 	)
-	AfterEach(func() {
-		clearDB()
-	})
 
 	BeforeEach(func() {
 		ctx = context.Background()
@@ -235,9 +228,6 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 var _ = Describe("Cluster credentials should be accessed only by cluster owner", func() {
 	var ctx context.Context
 	var clusterID strfmt.UUID
-	AfterEach(func() {
-		clearDB()
-	})
 
 	BeforeEach(func() {
 		ctx = context.Background()

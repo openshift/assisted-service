@@ -25,10 +25,6 @@ var _ = Describe("Host tests", func() {
 	var cluster *installer.RegisterClusterCreated
 	var clusterID strfmt.UUID
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	BeforeEach(func() {
 		var err error
 		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{

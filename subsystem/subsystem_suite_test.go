@@ -151,7 +151,12 @@ func init() {
 }
 
 func TestSubsystem(t *testing.T) {
+
+	AfterEach(func() {
+		subsystemAfterEach()
+	})
+
 	RegisterFailHandler(Fail)
-	clearDB()
+	subsystemAfterEach() // make sure we start tests from scratch
 	RunSpecs(t, "Subsystem Suite")
 }

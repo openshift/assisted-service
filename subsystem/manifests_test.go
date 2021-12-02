@@ -34,10 +34,6 @@ spec:
 		manifestFile  models.Manifest
 	)
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	BeforeEach(func() {
 		manifestFile = models.Manifest{
 			FileName: "99-openshift-machineconfig-master-kargs.yaml",
@@ -186,10 +182,6 @@ var _ = Describe("disk encryption", func() {
 		defaultTangServers = `[{"url":"http://tang.example.com:7500","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"},` +
 			`{"URL":"http://tang.example.com:7501","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu8"}]`
 	)
-
-	AfterEach(func() {
-		clearDB()
-	})
 
 	It("test API", func() {
 

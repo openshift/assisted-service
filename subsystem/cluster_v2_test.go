@@ -22,10 +22,6 @@ var _ = Describe("[V2ClusterTests]", func() {
 	var ips []string
 	var h1, h2, h3 *models.Host
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	BeforeEach(func() {
 		clusterReq, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
