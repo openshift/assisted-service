@@ -99,12 +99,6 @@ type InstallerAPI interface {
 	/* DownloadHostLogs Download host logs. */
 	DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder
 
-	/* DownloadInfraEnvDiscoveryImage Downloads the discovery image. */
-	DownloadInfraEnvDiscoveryImage(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageParams) middleware.Responder
-
-	/* DownloadInfraEnvDiscoveryImageHeaders Downloads the discovery image Headers only. */
-	DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageHeadersParams) middleware.Responder
-
 	/* DownloadMinimalInitrd Get the initial ramdisk for minimal ISO based installations.
 	 */
 	DownloadMinimalInitrd(ctx context.Context, params installer.DownloadMinimalInitrdParams) middleware.Responder
@@ -642,16 +636,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.AssistedServiceIsoAPI.DownloadISO(ctx, params)
-	})
-	api.InstallerDownloadInfraEnvDiscoveryImageHandler = installer.DownloadInfraEnvDiscoveryImageHandlerFunc(func(params installer.DownloadInfraEnvDiscoveryImageParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.DownloadInfraEnvDiscoveryImage(ctx, params)
-	})
-	api.InstallerDownloadInfraEnvDiscoveryImageHeadersHandler = installer.DownloadInfraEnvDiscoveryImageHeadersHandlerFunc(func(params installer.DownloadInfraEnvDiscoveryImageHeadersParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.DownloadInfraEnvDiscoveryImageHeaders(ctx, params)
 	})
 	api.InstallerDownloadMinimalInitrdHandler = installer.DownloadMinimalInitrdHandlerFunc(func(params installer.DownloadMinimalInitrdParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -61,12 +61,6 @@ type API interface {
 	   DownloadHostLogs Download host logs.*/
 	DownloadHostLogs(ctx context.Context, params *DownloadHostLogsParams, writer io.Writer) (*DownloadHostLogsOK, error)
 	/*
-	   DownloadInfraEnvDiscoveryImage Downloads the discovery image.*/
-	DownloadInfraEnvDiscoveryImage(ctx context.Context, params *DownloadInfraEnvDiscoveryImageParams, writer io.Writer) (*DownloadInfraEnvDiscoveryImageOK, error)
-	/*
-	   DownloadInfraEnvDiscoveryImageHeaders Downloads the discovery image Headers only.*/
-	DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, params *DownloadInfraEnvDiscoveryImageHeadersParams) (*DownloadInfraEnvDiscoveryImageHeadersOK, error)
-	/*
 	   DownloadMinimalInitrd Get the initial ramdisk for minimal ISO based installations.
 	*/
 	DownloadMinimalInitrd(ctx context.Context, params *DownloadMinimalInitrdParams, writer io.Writer) (*DownloadMinimalInitrdOK, *DownloadMinimalInitrdNoContent, error)
@@ -693,56 +687,6 @@ func (a *Client) DownloadHostLogs(ctx context.Context, params *DownloadHostLogsP
 		return nil, err
 	}
 	return result.(*DownloadHostLogsOK), nil
-
-}
-
-/*
-DownloadInfraEnvDiscoveryImage Downloads the discovery image.
-*/
-func (a *Client) DownloadInfraEnvDiscoveryImage(ctx context.Context, params *DownloadInfraEnvDiscoveryImageParams, writer io.Writer) (*DownloadInfraEnvDiscoveryImageOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DownloadInfraEnvDiscoveryImage",
-		Method:             "GET",
-		PathPattern:        "/v2/infra-envs/{infra_env_id}/downloads/image",
-		ProducesMediaTypes: []string{"application/octet-stream"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &DownloadInfraEnvDiscoveryImageReader{formats: a.formats, writer: writer},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DownloadInfraEnvDiscoveryImageOK), nil
-
-}
-
-/*
-DownloadInfraEnvDiscoveryImageHeaders Downloads the discovery image Headers only.
-*/
-func (a *Client) DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, params *DownloadInfraEnvDiscoveryImageHeadersParams) (*DownloadInfraEnvDiscoveryImageHeadersOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DownloadInfraEnvDiscoveryImageHeaders",
-		Method:             "HEAD",
-		PathPattern:        "/v2/infra-envs/{infra_env_id}/downloads/image",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &DownloadInfraEnvDiscoveryImageHeadersReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DownloadInfraEnvDiscoveryImageHeadersOK), nil
 
 }
 

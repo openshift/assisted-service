@@ -1071,10 +1071,6 @@ func (b *bareMetalInventory) DownloadISOHeadersInternal(ctx context.Context, inf
 	return installer.NewDownloadClusterISOHeadersOK().WithContentLength(imgSize)
 }
 
-type uriBuilder interface {
-	Build() (*url.URL, error)
-}
-
 func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType, generated bool, v2 bool) error {
 	updates := map[string]interface{}{}
 	imgName := getImageName(infraEnv.ID)
@@ -1094,12 +1090,7 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infr
 				return errors.New("Failed to generate image: error generating URL")
 			}
 		} else {
-			var builder uriBuilder
-			if v2 {
-				builder = &installer.DownloadInfraEnvDiscoveryImageURL{InfraEnvID: *infraEnv.ID}
-			} else {
-				builder = &installer.DownloadClusterISOURL{ClusterID: *infraEnv.ID}
-			}
+			builder := &installer.DownloadClusterISOURL{ClusterID: *infraEnv.ID}
 			clusterISOURL, err := builder.Build()
 			if err != nil {
 				return errors.New("Failed to generate image: error generating cluster ISO URL")
@@ -5672,14 +5663,6 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 
 func (b *bareMetalInventory) GetInfraEnvHostsInternal(ctx context.Context, infraEnvId strfmt.UUID) ([]*common.Host, error) {
 	return common.GetInfraEnvHostsFromDB(b.db, infraEnvId)
-}
-
-func (b *bareMetalInventory) DownloadInfraEnvDiscoveryImage(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageParams) middleware.Responder {
-	return b.DownloadISOInternal(ctx, params.InfraEnvID)
-}
-
-func (b *bareMetalInventory) DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageHeadersParams) middleware.Responder {
-	return b.DownloadISOHeadersInternal(ctx, params.InfraEnvID)
 }
 
 func (b *bareMetalInventory) GetInfraEnv(ctx context.Context, params installer.GetInfraEnvParams) middleware.Responder {

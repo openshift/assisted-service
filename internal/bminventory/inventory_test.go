@@ -384,7 +384,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		Expect(err).ToNot(HaveOccurred())
 		getReply := bm.GetInfraEnv(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID}).(*installer.GetInfraEnvOK)
 		Expect(*getReply.Payload.ID).To(Equal(infraEnvID))
-		Expect(getReply.Payload.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v2/infra-envs/" + infraEnvID.String() + "/downloads/image"))
+		Expect(getReply.Payload.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + infraEnvID.String() + "/downloads/image"))
 	})
 
 	It("success with proxy", func() {

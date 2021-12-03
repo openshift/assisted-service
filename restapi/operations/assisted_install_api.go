@@ -109,12 +109,6 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		AssistedServiceIsoDownloadISOHandler: assisted_service_iso.DownloadISOHandlerFunc(func(params assisted_service_iso.DownloadISOParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation assisted_service_iso.DownloadISO has not yet been implemented")
 		}),
-		InstallerDownloadInfraEnvDiscoveryImageHandler: installer.DownloadInfraEnvDiscoveryImageHandlerFunc(func(params installer.DownloadInfraEnvDiscoveryImageParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DownloadInfraEnvDiscoveryImage has not yet been implemented")
-		}),
-		InstallerDownloadInfraEnvDiscoveryImageHeadersHandler: installer.DownloadInfraEnvDiscoveryImageHeadersHandlerFunc(func(params installer.DownloadInfraEnvDiscoveryImageHeadersParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DownloadInfraEnvDiscoveryImageHeaders has not yet been implemented")
-		}),
 		InstallerDownloadMinimalInitrdHandler: installer.DownloadMinimalInitrdHandlerFunc(func(params installer.DownloadMinimalInitrdParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadMinimalInitrd has not yet been implemented")
 		}),
@@ -551,10 +545,6 @@ type AssistedInstallAPI struct {
 	InstallerDownloadHostLogsHandler installer.DownloadHostLogsHandler
 	// AssistedServiceIsoDownloadISOHandler sets the operation handler for the download i s o operation
 	AssistedServiceIsoDownloadISOHandler assisted_service_iso.DownloadISOHandler
-	// InstallerDownloadInfraEnvDiscoveryImageHandler sets the operation handler for the download infra env discovery image operation
-	InstallerDownloadInfraEnvDiscoveryImageHandler installer.DownloadInfraEnvDiscoveryImageHandler
-	// InstallerDownloadInfraEnvDiscoveryImageHeadersHandler sets the operation handler for the download infra env discovery image headers operation
-	InstallerDownloadInfraEnvDiscoveryImageHeadersHandler installer.DownloadInfraEnvDiscoveryImageHeadersHandler
 	// InstallerDownloadMinimalInitrdHandler sets the operation handler for the download minimal initrd operation
 	InstallerDownloadMinimalInitrdHandler installer.DownloadMinimalInitrdHandler
 	// InstallerEnableHostHandler sets the operation handler for the enable host operation
@@ -919,12 +909,6 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.AssistedServiceIsoDownloadISOHandler == nil {
 		unregistered = append(unregistered, "assisted_service_iso.DownloadISOHandler")
-	}
-	if o.InstallerDownloadInfraEnvDiscoveryImageHandler == nil {
-		unregistered = append(unregistered, "installer.DownloadInfraEnvDiscoveryImageHandler")
-	}
-	if o.InstallerDownloadInfraEnvDiscoveryImageHeadersHandler == nil {
-		unregistered = append(unregistered, "installer.DownloadInfraEnvDiscoveryImageHeadersHandler")
 	}
 	if o.InstallerDownloadMinimalInitrdHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadMinimalInitrdHandler")
@@ -1433,14 +1417,6 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v1/assisted-service-iso/data"] = assisted_service_iso.NewDownloadISO(o.context, o.AssistedServiceIsoDownloadISOHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/image"] = installer.NewDownloadInfraEnvDiscoveryImage(o.context, o.InstallerDownloadInfraEnvDiscoveryImageHandler)
-	if o.handlers["HEAD"] == nil {
-		o.handlers["HEAD"] = make(map[string]http.Handler)
-	}
-	o.handlers["HEAD"]["/v2/infra-envs/{infra_env_id}/downloads/image"] = installer.NewDownloadInfraEnvDiscoveryImageHeaders(o.context, o.InstallerDownloadInfraEnvDiscoveryImageHeadersHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

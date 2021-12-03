@@ -232,34 +232,6 @@ func (mr *MockInstallerAPIMockRecorder) DownloadHostLogs(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadHostLogs", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadHostLogs), arg0, arg1)
 }
 
-// DownloadInfraEnvDiscoveryImage mocks base method.
-func (m *MockInstallerAPI) DownloadInfraEnvDiscoveryImage(arg0 context.Context, arg1 installer.DownloadInfraEnvDiscoveryImageParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DownloadInfraEnvDiscoveryImage", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// DownloadInfraEnvDiscoveryImage indicates an expected call of DownloadInfraEnvDiscoveryImage.
-func (mr *MockInstallerAPIMockRecorder) DownloadInfraEnvDiscoveryImage(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadInfraEnvDiscoveryImage", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadInfraEnvDiscoveryImage), arg0, arg1)
-}
-
-// DownloadInfraEnvDiscoveryImageHeaders mocks base method.
-func (m *MockInstallerAPI) DownloadInfraEnvDiscoveryImageHeaders(arg0 context.Context, arg1 installer.DownloadInfraEnvDiscoveryImageHeadersParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DownloadInfraEnvDiscoveryImageHeaders", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// DownloadInfraEnvDiscoveryImageHeaders indicates an expected call of DownloadInfraEnvDiscoveryImageHeaders.
-func (mr *MockInstallerAPIMockRecorder) DownloadInfraEnvDiscoveryImageHeaders(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadInfraEnvDiscoveryImageHeaders", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadInfraEnvDiscoveryImageHeaders), arg0, arg1)
-}
-
 // DownloadMinimalInitrd mocks base method.
 func (m *MockInstallerAPI) DownloadMinimalInitrd(arg0 context.Context, arg1 installer.DownloadMinimalInitrdParams) middleware.Responder {
 	m.ctrl.T.Helper()
