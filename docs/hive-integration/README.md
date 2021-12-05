@@ -141,11 +141,13 @@ Once the cluster is installed, the ClusterDeployment is set to Installed and sec
 
 ## Day 2 worker
 
-In case of none SNO deployment, after that the cluster is installed, the original cluster is deleted and a Day 2 cluster is created instead in the Assisted Service database.
+In case of none SNO deployment, after that the cluster is installed, the original cluster is transformed into a Day 2 cluster in the Assisted Service database.
 
-Additional nodes can be added by booting from the new generated ISO. Each additional host will start installation once the Agent is Approved and the Host is in known state.
+Additional nodes can be added by booting from the same generated ISO. Each additional host will start installation once the Agent is Approved and the Host is in known state.
 
 Note that the user needs to approved the additional nodes in the installed cluster.
+
+It is possible to import an existing installed OpenShift in order to be able to add more workers to it. See instructions [here](./import-installed-cluster.md).
 
 ## Bare Metal Operator Integration
 
@@ -179,7 +181,7 @@ You will likely need to adapt those for your own needs.
 * [Hive ClusterDeployment](crds/clusterDeployment.yaml)
 * [AgentClusterInstall](crds/agentClusterInstall.yaml)
 * [AgentClusterInstall SNO](crds/agentClusterInstall-SNO.yaml)
-
+* [ClusterImageSet](crds/clusterImageSet.yaml)
 
 
 ### Creating InstallConfig overrides
