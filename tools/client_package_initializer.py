@@ -123,24 +123,40 @@ class SetupInitializer:
         return d
 
     def dump(self) -> "SetupInitializer":
-        """
-        Dump setup.py into file
-        :return:
-        """
+        """ Dump setup.py into file and build the python artifacts - wheel and tar.gz """
         if Setup.VERSION_KEY in self._setup_data:
             self._setup_data.pop(Setup.VERSION_KEY)
 
         with open(self._setup_path, "w") as f:
             f.write(Setup.FORMAT.format(**self._setup_data))
+
+        self.build("bdist_wheel")
+
+        with open(self._setup_path, "w") as f:
+            f.write(Setup.FORMAT.format(**self._setup_data))
+
+        subprocess.check_output(["python3", self._setup_path, "check"])
+
+        self._setup_data[Setup.SETUP_REQUIRES_KEY] = []
+        self._setup_data.pop(Setup.VCVERSIONER_KEY)
+        Setup.FORMAT = Setup.FORMAT.replace("vcversioner={vcversioner},", 'version="{version}",')
+
+        with open(os.path.join(self._project_path, self.DEFAULT_VERSION_PATH)) as f:
+            self._setup_data[Setup.VERSION_KEY] = f.read()
+
+        with open(self._setup_path, "w") as f:
+            f.write(Setup.FORMAT.format(**self._setup_data))
+
+        self.build("sdist")
         return self
 
-    def build(self) -> None:
+    def build(self, distribution: str) -> None:
         """ Build python library """
         try:
-            cmd = f"python3 {self._setup_path} bdist_wheel sdist --dist-dir {os.path.join(self._project_path, 'dist/')}"
+            cmd = f"python3 {self._setup_path} {distribution} --dist-dir {os.path.join(self._project_path, 'dist/')}"
             out = subprocess.check_output(cmd.split())
             print(out.decode())
-            with open(os.path.join(self._project_path, pkg.DEFAULT_VERSION_PATH)) as f:
+            with open(os.path.join(self._project_path, self.DEFAULT_VERSION_PATH)) as f:
                 print(f"version: {f.read()}")
         except subprocess.CalledProcessError as e:
             print(e.output)
@@ -150,9 +166,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Swagger package builder")
     parser.add_argument("base_path", help="Generated Python project directory path", type=str)
     parser.add_argument("url", help="Project url", type=str)
-    parser.add_argument("--build", help="If exists, generate wheel artifact", action="store_true")
     args = parser.parse_args()
 
-    pkg = SetupInitializer(args.base_path, args.url).load().dump()
-    if args.build:
-        pkg.build()
+    SetupInitializer(args.base_path, args.url).load().dump()
