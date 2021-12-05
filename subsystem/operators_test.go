@@ -27,10 +27,6 @@ var _ = Describe("Operators endpoint tests", func() {
 		clusterID strfmt.UUID
 	)
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	Context("supported-operators", func() {
 		It("should return all supported operators", func() {
 			reply, err := userBMClient.Operators.ListSupportedOperators(context.TODO(), opclient.NewListSupportedOperatorsParams())

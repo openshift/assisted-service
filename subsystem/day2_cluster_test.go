@@ -59,10 +59,6 @@ var _ = Describe("Day2 v1 cluster tests", func() {
 		clusterID = *cluster.GetPayload().ID
 	})
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	It("cluster CRUD", func() {
 		_ = &registerHost(clusterID).Host
 		Expect(err).NotTo(HaveOccurred())
@@ -141,10 +137,6 @@ var _ = Describe("Day2 cluster tests", func() {
 
 	JustBeforeEach(func() {
 		clusterID = *cluster.GetPayload().ID
-	})
-
-	AfterEach(func() {
-		clearDB()
 	})
 
 	It("cluster CRUD", func() {
@@ -612,10 +604,6 @@ var _ = Describe("[V2UpdateCluster] Day2 cluster tests", func() {
 		clusterID = *cluster.GetPayload().ID
 	})
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	It("cluster CRUD", func() {
 		_ = &registerHost(infraEnvID).Host
 		Expect(err).NotTo(HaveOccurred())
@@ -1012,10 +1000,6 @@ var _ = Describe("Day2 cluster with bind/unbind hosts", func() {
 		infraEnvID = *infraEnv.GetPayload().ID
 	})
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	It("check host states with binding - two nodes", func() {
 		host := &registerHost(infraEnvID).Host
 		h1 := getHostV2(infraEnvID, *host.ID)
@@ -1052,10 +1036,6 @@ var _ = Describe("Installation progress", func() {
 		c          *models.Cluster
 		infraEnvID strfmt.UUID
 	)
-
-	AfterEach(func() {
-		clearDB()
-	})
 
 	It("Test installation progress - day2", func() {
 

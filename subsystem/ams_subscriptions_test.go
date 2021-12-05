@@ -38,8 +38,6 @@ var _ = Describe("test AMS subscriptions", func() {
 
 		err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateOpenshiftClusterID)
 		Expect(err).ToNot(HaveOccurred())
-
-		clearDB()
 	})
 
 	Context("AMS subscription on cluster creation", func() {

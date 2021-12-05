@@ -353,10 +353,6 @@ var _ = Describe("Metrics tests", func() {
 		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 	})
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	Context("host metrics events", func() {
 		var c *models.Cluster
 		var bootstrap models.Host

@@ -20,10 +20,6 @@ import (
 
 var _ = Describe("Events tests", func() {
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	Context("query with no filters - expect StatusInternalServerError", func() {
 		tests := []struct {
 			name    string

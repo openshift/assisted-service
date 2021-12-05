@@ -22,10 +22,6 @@ var _ = Describe("Host tests v2", func() {
 	var cluster *installer.RegisterClusterCreated
 	var clusterID strfmt.UUID
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	BeforeEach(func() {
 		var err error
 		infraEnv, err = userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
@@ -230,10 +226,6 @@ var _ = Describe("Day2 Host tests v2", func() {
 	var infraEnvID strfmt.UUID
 	var cluster *installer.RegisterClusterCreated
 	var clusterID strfmt.UUID
-
-	AfterEach(func() {
-		clearDB()
-	})
 
 	BeforeEach(func() {
 		var err error

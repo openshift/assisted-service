@@ -34,42 +34,52 @@ const (
 	defaultWaitForMachineNetworkCIDRTimeout = 40 * time.Second
 )
 
-func clearDB() {
+func subsystemAfterEach() {
+	if Options.EnableKubeAPI {
+		printCRs(context.Background(), kubeClient)
+		cleanUpCRs(context.Background(), kubeClient)
+		verifyCleanUP(context.Background(), kubeClient)
+	} else {
+		deregisterResources()
+	}
+	clearDB()
+}
+
+func deregisterResources() {
 	var multiErr *multierror.Error
 
-	if !Options.EnableKubeAPI {
-		// Delete cluster should use the REST API in order to delete any
-		// clusters' resources managed by the service
-		reply, err := userBMClient.Installer.ListClusters(context.Background(), &installer.ListClustersParams{})
-		Expect(err).To(BeNil())
-		if GinkgoT().Failed() {
-			multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.ClusterKindCluster, reply.Payload))
-		}
-		for _, c := range reply.GetPayload() {
-			// DeregisterCluster API isn't necessarily available (e.g. cluster is being installed)
-			if _, err = userBMClient.Installer.DeregisterCluster(context.Background(), &installer.DeregisterClusterParams{ClusterID: *c.ID}); err != nil {
-				log.WithError(err).Debugf("Cluster %s couldn't be deleted via REST API", *c.ID)
-			}
-		}
-		// Delete infra env
-		infraEnvReply, err := userBMClient.Installer.ListInfraEnvs(context.Background(), &installer.ListInfraEnvsParams{})
-		Expect(err).To(BeNil())
-		if GinkgoT().Failed() {
-			multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.InfraEnvKindInfraEnv, infraEnvReply.Payload))
-		}
-		for _, i := range infraEnvReply.GetPayload() {
-			if GinkgoT().Failed() {
-				hostReply, err1 := userBMClient.Installer.V2ListHosts(context.Background(), &installer.V2ListHostsParams{InfraEnvID: *i.ID})
-				Expect(err1).To(BeNil())
-				multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.HostKindHost, hostReply.Payload))
-			}
-			if _, err = userBMClient.Installer.DeregisterInfraEnv(context.Background(), &installer.DeregisterInfraEnvParams{InfraEnvID: *i.ID}); err != nil {
-				log.WithError(err).Debugf("InfraEnv %s couldn't be deleted via REST API", i.ID)
-			}
-		}
-		Expect(multiErr.ErrorOrNil()).To(BeNil())
+	// Delete cluster should use the REST API in order to delete any
+	// clusters' resources managed by the service
+	reply, err := userBMClient.Installer.ListClusters(context.Background(), &installer.ListClustersParams{})
+	Expect(err).To(BeNil())
+	if GinkgoT().Failed() {
+		multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.ClusterKindCluster, reply.Payload))
 	}
-
+	for _, c := range reply.GetPayload() {
+		// DeregisterCluster API isn't necessarily available (e.g. cluster is being installed)
+		if _, err = userBMClient.Installer.DeregisterCluster(context.Background(), &installer.DeregisterClusterParams{ClusterID: *c.ID}); err != nil {
+			log.WithError(err).Debugf("Cluster %s couldn't be deleted via REST API", *c.ID)
+		}
+	}
+	// Delete infra env
+	infraEnvReply, err := userBMClient.Installer.ListInfraEnvs(context.Background(), &installer.ListInfraEnvsParams{})
+	Expect(err).To(BeNil())
+	if GinkgoT().Failed() {
+		multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.InfraEnvKindInfraEnv, infraEnvReply.Payload))
+	}
+	for _, i := range infraEnvReply.GetPayload() {
+		if GinkgoT().Failed() {
+			hostReply, err1 := userBMClient.Installer.V2ListHosts(context.Background(), &installer.V2ListHostsParams{InfraEnvID: *i.ID})
+			Expect(err1).To(BeNil())
+			multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.HostKindHost, hostReply.Payload))
+		}
+		if _, err = userBMClient.Installer.DeregisterInfraEnv(context.Background(), &installer.DeregisterInfraEnvParams{InfraEnvID: *i.ID}); err != nil {
+			log.WithError(err).Debugf("InfraEnv %s couldn't be deleted via REST API", i.ID)
+		}
+	}
+	Expect(multiErr.ErrorOrNil()).To(BeNil())
+}
+func clearDB() {
 	// Clean the DB to make sure we start tests from scratch
 	for _, model := range []interface{}{
 		&models.Host{},

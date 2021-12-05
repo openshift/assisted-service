@@ -35,10 +35,6 @@ var _ = Describe("system-test image tests", func() {
 		ocpVersions = resp.Payload
 	})
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	It("create_and_download_live_iso", func() {
 		for ocpVersion := range ocpVersions {
 			By(fmt.Sprintf("For version %s", ocpVersion))
@@ -133,7 +129,6 @@ var _ = Describe("image tests", func() {
 	)
 
 	AfterEach(func() {
-		clearDB()
 		os.Remove(file.Name())
 	})
 
@@ -224,10 +219,6 @@ var _ = Describe("system-test proxy update tests", func() {
 		cluster   *installer.RegisterClusterCreated
 		clusterID strfmt.UUID
 	)
-
-	AfterEach(func() {
-		clearDB()
-	})
 
 	BeforeEach(func() {
 		var err error

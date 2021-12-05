@@ -38,10 +38,6 @@ var _ = Describe("Infra_Env", func() {
 	var infraEnv *models.InfraEnv
 	var infraEnvID strfmt.UUID
 
-	AfterEach(func() {
-		clearDB()
-	})
-
 	BeforeEach(func() {
 		res, err := userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
 			InfraenvCreateParams: &models.InfraEnvCreateParams{
