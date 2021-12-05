@@ -350,7 +350,7 @@ func main() {
 	dnsApi := dns.NewDNSHandler(Options.BMConfig.BaseDNSDomains, log)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi)
+		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi, authHandler)
 	infraEnvApi := infraenv.NewManager(log.WithField("pkg", "host-state"), db, objectHandler)
 
 	clusterStateMonitor := thread.New(
