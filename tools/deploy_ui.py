@@ -3,7 +3,7 @@ import os
 import utils
 import deployment_options
 
-UI_REPOSITORY = "https://github.com/openshift-metal3/facet"
+UI_REPOSITORY = "https://github.com/openshift-assisted/assisted-ui"
 
 log = utils.get_logger('deploy_ui')
 
