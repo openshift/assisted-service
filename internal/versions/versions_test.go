@@ -392,7 +392,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
-			releaseImage, err = h.AddReleaseImage(releaseImageUrl, pullSecret)
+			releaseImage, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(*releaseImage.CPUArchitecture).Should(Equal(cpuArchitecture))
@@ -407,7 +407,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
-			releaseImage, err = h.AddReleaseImage(releaseImageUrl, pullSecret)
+			releaseImage, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(*releaseImage.CPUArchitecture).Should(Equal(cpuArchitecture))
@@ -422,7 +422,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
-			_, err = h.AddReleaseImage(releaseImageUrl, pullSecret)
+			_, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 			releaseImageFromCache, err = h.GetReleaseImage(customOcpVersion, cpuArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -430,7 +430,7 @@ var _ = Describe("list versions", func() {
 
 			// Override version with a new release image
 			releaseImageUrl = "newReleaseImage"
-			_, err = h.AddReleaseImage(releaseImageUrl, pullSecret)
+			_, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 			releaseImageFromCache, err = h.GetReleaseImage(customOcpVersion, cpuArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -443,7 +443,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
-			releaseImage, err = h.AddReleaseImage(releaseImageUrl, pullSecret)
+			releaseImage, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 			releaseImage, err = h.GetReleaseImage(customKeyVersion, cpuArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -455,7 +455,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
-			_, err = h.AddReleaseImage(releaseImageUrl, pullSecret)
+			_, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", "")
 			Expect(err).Should(HaveOccurred())
 		})
 
@@ -466,7 +466,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
-			_, err = h.AddReleaseImage("invalidRelease", pullSecret)
+			_, err = h.AddReleaseImage("invalidRelease", pullSecret, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err.Error()).Should(Equal(fmt.Sprintf("No OS images are available for version: %s", ocpVersion)))
 		})
@@ -477,16 +477,26 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
-			var releaseImageFromCache *models.ReleaseImage
 			releaseImageFromCache, err = h.GetReleaseImage(customKeyVersion, cpuArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			_, err = h.AddReleaseImage(releaseImageUrl, pullSecret)
+			_, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 
 			releaseImage, err = h.GetReleaseImage(customKeyVersion, cpuArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.Version))
+		})
+
+		It("use specified ocpReleaseVersion and cpuArchitecture", func() {
+			_, err = h.AddReleaseImage(releaseImageUrl, pullSecret, customOcpVersion, cpuArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+			releaseImageFromCache, err = h.GetReleaseImage(customOcpVersion, cpuArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(*releaseImageFromCache.URL).Should(Equal(releaseImageUrl))
+			Expect(*releaseImageFromCache.Version).Should(Equal(customOcpVersion))
+			Expect(*releaseImageFromCache.CPUArchitecture).Should(Equal(cpuArchitecture))
 		})
 	})
 

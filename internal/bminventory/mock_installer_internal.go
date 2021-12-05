@@ -41,18 +41,18 @@ func (m *MockInstallerInternals) EXPECT() *MockInstallerInternalsMockRecorder {
 }
 
 // AddReleaseImage mocks base method.
-func (m *MockInstallerInternals) AddReleaseImage(arg0 context.Context, arg1, arg2 string) (*models.ReleaseImage, error) {
+func (m *MockInstallerInternals) AddReleaseImage(arg0 context.Context, arg1, arg2, arg3, arg4 string) (*models.ReleaseImage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddReleaseImage", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "AddReleaseImage", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(*models.ReleaseImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AddReleaseImage indicates an expected call of AddReleaseImage.
-func (mr *MockInstallerInternalsMockRecorder) AddReleaseImage(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockInstallerInternalsMockRecorder) AddReleaseImage(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddReleaseImage", reflect.TypeOf((*MockInstallerInternals)(nil).AddReleaseImage), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddReleaseImage", reflect.TypeOf((*MockInstallerInternals)(nil).AddReleaseImage), arg0, arg1, arg2, arg3, arg4)
 }
 
 // BindHostInternal mocks base method.
