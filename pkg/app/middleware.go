@@ -38,6 +38,9 @@ func WithHealthMiddleware(next http.Handler, threads []*thread.Thread, logger lo
 			}
 			w.WriteHeader(status)
 			return
+		} else if r.Method == http.MethodGet && r.URL.Path == "/ready" {
+			w.WriteHeader(http.StatusOK)
+			return
 		}
 		next.ServeHTTP(w, r)
 	})

@@ -20,37 +20,58 @@ func TestMiddleWare(t *testing.T) {
 }
 
 var _ = Describe("WithHealthMiddleware", func() {
-	l := logrus.New()
-	l.SetOutput(ioutil.Discard)
+	var (
+		logger *logrus.Logger
+	)
 
-	timeout := 20 * time.Millisecond
-	mHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-	failure := thread.New(l, "failed test", 10*time.Millisecond, func() {
+	BeforeEach(func() {
+		logger = logrus.New()
+		logger.SetOutput(ioutil.Discard)
 	})
-	failure.Start()
-	req := httptest.NewRequest("GET", "/health", nil)
-	h1 := WithHealthMiddleware(mHandler, []*thread.Thread{failure}, l, timeout)
 
-	By("Testing healthycheck success when thread is running")
-	successCounter := 0
-	Eventually(func() bool {
-		rr := httptest.NewRecorder()
-		h1.ServeHTTP(rr, req)
-		if rr.Code == http.StatusOK {
-			successCounter += 1
-		}
-		return successCounter == 3
-	}, 1*time.Second, 10*time.Millisecond).Should(BeTrue())
+	It("monitors threads at /health", func() {
+		timeout := 20 * time.Millisecond
+		mHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+		failure := thread.New(logger, "failed test", 10*time.Millisecond, func() {
+		})
+		failure.Start()
+		req := httptest.NewRequest("GET", "/health", nil)
+		h1 := WithHealthMiddleware(mHandler, []*thread.Thread{failure}, logger, timeout)
 
-	By("Verifying healthcheck failed when thread stopped")
+		By("Testing healthycheck success when thread is running")
+		successCounter := 0
+		Eventually(func() bool {
+			rr := httptest.NewRecorder()
+			h1.ServeHTTP(rr, req)
+			if rr.Code == http.StatusOK {
+				successCounter += 1
+			}
+			return successCounter == 3
+		}, 1*time.Second, 10*time.Millisecond).Should(BeTrue())
 
-	failure.Stop()
-	// wait more than monitored threshold
-	Eventually(func() bool {
-		rr := httptest.NewRecorder()
-		h1.ServeHTTP(rr, req)
-		return rr.Code == http.StatusInternalServerError
-	}, 1*time.Second, 10*time.Millisecond).Should(BeTrue())
+		By("Verifying healthcheck failed when thread stopped")
+
+		failure.Stop()
+		// wait more than monitored threshold
+		Eventually(func() bool {
+			rr := httptest.NewRecorder()
+			h1.ServeHTTP(rr, req)
+			return rr.Code == http.StatusInternalServerError
+		}, 1*time.Second, 10*time.Millisecond).Should(BeTrue())
+	})
+
+	It("returns OK at /ready", func() {
+		baseHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "Hello!")
+		})
+		server := httptest.NewServer(WithHealthMiddleware(baseHandler, nil, logger, time.Minute))
+		client := server.Client()
+		defer server.Close()
+
+		resp, err := client.Get(server.URL + "/ready")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+	})
 })
 
 var _ = Describe("DisableV1Middleware", func() {
