@@ -10,7 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -292,7 +292,7 @@ func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string, d
 	thresholdGB := conversions.BytesToGb(thresholdBytes)
 
 	for _, disk := range disks {
-		if (disk.DriveType == ocs.SsdDrive || disk.DriveType == ocs.HddDrive) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
+		if (disk.DriveType == odf.SsdDrive || disk.DriveType == odf.HddDrive) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
 			if disk.SizeBytes > thresholdBytes {
 				return nil
 			}

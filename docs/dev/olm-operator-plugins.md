@@ -2,7 +2,6 @@
 
 ## Existing plugins
   - [Local Storage Operator (LSO)](../../internal/operators/lso)
-  - [OpenShift Container Storage (OCS)](../../internal/operators/ocs)
   - [OpenShift Virtualization (CNV)](../../internal/operators/cnv)
   - [OpenShift Data Foundation (ODF)](../../internal/operators/odf)
 
@@ -19,7 +18,6 @@ To implement support for a new OLM operator plugin you need to make following ch
           - 'connected'
           ...
           - 'lso-requirements-satisfied'
-          - 'ocs-requirements-satisfied' 
           - 'cnv-requirements-satisfied'
           - 'odf-requirements-satisfied'
       ```                   
@@ -31,7 +29,6 @@ To implement support for a new OLM operator plugin you need to make following ch
           - 'machine-cidr-defined'
           ...
           - 'lso-requirements-satisfied'
-          - 'ocs-requirements-satisfied'
           - 'cnv-requirements-satisfied'
           - 'odf-requirements-satisfied'
       ```
@@ -44,33 +41,33 @@ To implement support for a new OLM operator plugin you need to make following ch
       ```go
       func (v validationID) category() (string, error) {
       ...
-        case IsCnvRequirementsSatisfied, IsOcsRequirementsSatisfied, IsLsoRequirementsSatisfied, IsOdfRequirementsSatisfied:
+        case IsCnvRequirementsSatisfied, IsLsoRequirementsSatisfied, IsOdfRequirementsSatisfied:
      	   return "operators", nil
       ``` 
     - for [host validaton](../../internal/host/validation_id.go):
       ```go
       func (v validationID) category() (string, error) {
       ...
-        case AreLsoRequirementsSatisfied, AreOcsRequirementsSatisfied, AreCnvRequirementsSatisfied, AreOdfRequirementsSatisfied:
+        case AreLsoRequirementsSatisfied, AreCnvRequirementsSatisfied, AreOdfRequirementsSatisfied:
       		return "operators", nil
       ```
  1. Modify the installation state machine by adding the new validationIDs to the list of required checks:
     - for [cluster](../../internal/cluster/statemachine.go):
       ```go 
       var requiredForInstall = stateswitch.And(...,
-         ..., If(IsOcsRequirementsSatisfied), If(IsLsoRequirementsSatisfied), If(IsCnvRequirementsSatisfied), If(IsOdfRequirementsSatisfied))
+         ..., If(IsLsoRequirementsSatisfied), If(IsCnvRequirementsSatisfied), If(IsOdfRequirementsSatisfied))
       ```     
     - for [host](../../internal/host/statemachine.go):
       ```go
       	var isSufficientForInstall = stateswitch.And(...,
       		...,
-      		If(AreOcsRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(AreOdfRequirementsSatisfied))
+      		If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(AreOdfRequirementsSatisfied))
       ```
  1. Implement the [`Operator` interface](../../internal/operators/api/api.go)
  1. Plug the new `Operator` implementation in the [OperatorManager constructor](../../internal/operators/builder.go):
     ```go
     func NewManager(log logrus.FieldLogger) Manager {
-    	return NewManagerWithOperators(log, lso.NewLSOperator(), ocs.NewOcsOperator(log), cnv.NewCnvOperator(log), odf.NewOdfOperator(log))
+    	return NewManagerWithOperators(log, lso.NewLSOperator(), cnv.NewCnvOperator(log), odf.NewOdfOperator(log))
     }
     ```
  1. Implement tests verifying new OLM operator installation and validation, i.e. in [internal/bminventory/inventory_test.go](../../internal/bminventory/inventory_test.go)

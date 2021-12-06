@@ -302,7 +302,7 @@ var _ = Describe("Progress bar test", func() {
 							Status:       models.OperatorStatusAvailable,
 						},
 						{
-							Name:         "ocs",
+							Name:         "odf",
 							OperatorType: models.OperatorTypeOlm,
 							Status:       models.OperatorStatusFailed,
 						},

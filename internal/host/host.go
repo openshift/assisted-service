@@ -1154,7 +1154,7 @@ func (m *Manager) canBeMaster(conditions map[string]bool) bool {
 	return conditions[HasCPUCoresForRole.String()] &&
 		conditions[HasMemoryForRole.String()] &&
 		conditions[AreLsoRequirementsSatisfied.String()] &&
-		conditions[AreOcsRequirementsSatisfied.String()] &&
+		conditions[AreOdfRequirementsSatisfied.String()] &&
 		conditions[AreCnvRequirementsSatisfied.String()]
 }
 

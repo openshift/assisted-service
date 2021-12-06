@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -33,11 +33,11 @@ var _ = Describe("Operators endpoint tests", func() {
 			reply, err := userBMClient.Operators.V2ListSupportedOperators(context.TODO(), opclient.NewV2ListSupportedOperatorsParams())
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(reply.GetPayload()).To(ConsistOf(ocs.Operator.Name, lso.Operator.Name, cnv.Operator.Name))
+			Expect(reply.GetPayload()).To(ConsistOf(odf.Operator.Name, lso.Operator.Name, cnv.Operator.Name))
 		})
 
 		It("should provide operator properties", func() {
-			params := opclient.NewV2ListOperatorPropertiesParams().WithOperatorName(ocs.Operator.Name)
+			params := opclient.NewV2ListOperatorPropertiesParams().WithOperatorName(odf.Operator.Name)
 			reply, err := userBMClient.Operators.V2ListOperatorProperties(context.TODO(), params)
 
 			Expect(err).ToNot(HaveOccurred())
@@ -65,7 +65,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		})
 
 		It("New OLM", func() {
-			newOperator := ocs.Operator.Name
+			newOperator := odf.Operator.Name
 
 			reply, err := userBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -118,7 +118,7 @@ var _ = Describe("Operators endpoint tests", func() {
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: lso.Operator.Name},
-							{Name: ocs.Operator.Name},
+							{Name: odf.Operator.Name},
 						},
 					},
 					ClusterID: clusterID,
@@ -129,8 +129,8 @@ var _ = Describe("Operators endpoint tests", func() {
 				c := &common.Cluster{Cluster: *getReply.Payload}
 
 				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
-				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeTrue())
-				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)}, models.Usage{Name: strings.ToUpper(ocs.Operator.Name)})
+				Expect(operators.IsEnabled(c.MonitoredOperators, odf.Operator.Name)).Should(BeTrue())
+				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)}, models.Usage{Name: strings.ToUpper(odf.Operator.Name)})
 			})
 
 			By("Second time - operators is not empty", func() {
@@ -148,7 +148,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				c := &common.Cluster{Cluster: *getReply.Payload}
 
 				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
-				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeFalse())
+				Expect(operators.IsEnabled(c.MonitoredOperators, odf.Operator.Name)).Should(BeFalse())
 				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)})
 			})
 		})
@@ -159,7 +159,7 @@ var _ = Describe("Operators endpoint tests", func() {
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: lso.Operator.Name},
-							{Name: ocs.Operator.Name},
+							{Name: odf.Operator.Name},
 						},
 					},
 					ClusterID: clusterID,
@@ -170,8 +170,8 @@ var _ = Describe("Operators endpoint tests", func() {
 				c := &common.Cluster{Cluster: *getReply.Payload}
 
 				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
-				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeTrue())
-				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)}, models.Usage{Name: strings.ToUpper(ocs.Operator.Name)})
+				Expect(operators.IsEnabled(c.MonitoredOperators, odf.Operator.Name)).Should(BeTrue())
+				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)}, models.Usage{Name: strings.ToUpper(odf.Operator.Name)})
 			})
 
 			By("Second time - operators is not empty", func() {
@@ -189,7 +189,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				c := &common.Cluster{Cluster: *getReply.Payload}
 
 				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
-				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeFalse())
+				Expect(operators.IsEnabled(c.MonitoredOperators, odf.Operator.Name)).Should(BeFalse())
 				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)})
 			})
 		})
@@ -243,7 +243,7 @@ var _ = Describe("Operators endpoint tests", func() {
 					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					OlmOperators: []*models.OperatorCreateParams{
-						{Name: ocs.Operator.Name},
+						{Name: odf.Operator.Name},
 						{Name: lso.Operator.Name},
 					},
 				},
@@ -273,7 +273,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 			// OLM
 			Expect(operatorNames).To(ContainElements(
-				ocs.Operator.Name,
+				odf.Operator.Name,
 				lso.Operator.Name,
 			))
 		})
@@ -281,19 +281,19 @@ var _ = Describe("Operators endpoint tests", func() {
 		It("should selected be returned", func() {
 			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().
 				WithClusterID(*cluster.Payload.ID).
-				WithOperatorName(&ocs.Operator.Name))
+				WithOperatorName(&odf.Operator.Name))
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ops.GetPayload()).To(HaveLen(1))
-			Expect(ops.GetPayload()[0].Name).To(BeEquivalentTo(ocs.Operator.Name))
+			Expect(ops.GetPayload()[0].Name).To(BeEquivalentTo(odf.Operator.Name))
 		})
 
 		It("should be updated", func() {
-			v2ReportMonitoredOperatorStatus(ctx, agentBMClient, *cluster.Payload.ID, ocs.Operator.Name, models.OperatorStatusFailed)
+			v2ReportMonitoredOperatorStatus(ctx, agentBMClient, *cluster.Payload.ID, odf.Operator.Name, models.OperatorStatusFailed)
 
 			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().
 				WithClusterID(*cluster.Payload.ID).
-				WithOperatorName(&ocs.Operator.Name))
+				WithOperatorName(&odf.Operator.Name))
 
 			Expect(err).ToNot(HaveOccurred())
 			operators := ops.GetPayload()

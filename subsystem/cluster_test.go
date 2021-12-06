@@ -32,7 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -3421,7 +3421,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			case lso.Operator.Name:
 				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
 				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
-			case ocs.Operator.Name:
+			case odf.Operator.Name:
 				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterOCSRequirements))
 				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerOCSRequirements))
 			case cnv.Operator.Name:
@@ -3836,7 +3836,7 @@ var _ = Describe("Installation progress", func() {
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					OlmOperators: []*models.OperatorCreateParams{
 						{Name: lso.Operator.Name},
-						{Name: ocs.Operator.Name},
+						{Name: odf.Operator.Name},
 					},
 				},
 			})
@@ -3878,7 +3878,7 @@ var _ = Describe("Installation progress", func() {
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					OlmOperators: []*models.OperatorCreateParams{
 						{Name: lso.Operator.Name},
-						{Name: ocs.Operator.Name},
+						{Name: odf.Operator.Name},
 					},
 				},
 			})
@@ -3929,7 +3929,7 @@ var _ = Describe("Installation progress", func() {
 			c = getCluster(*c.ID)
 			expectProgressToBe(c, 100, 100, 66)
 
-			v2ReportMonitoredOperatorStatus(ctx, agentBMClient, *c.ID, ocs.Operator.Name, models.OperatorStatusFailed)
+			v2ReportMonitoredOperatorStatus(ctx, agentBMClient, *c.ID, odf.Operator.Name, models.OperatorStatusFailed)
 			c = getCluster(*c.ID)
 			expectProgressToBe(c, 100, 100, 100)
 		})

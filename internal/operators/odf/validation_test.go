@@ -1,4 +1,4 @@
-package ocs_test
+package odf_test
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"gorm.io/gorm"
@@ -136,23 +136,23 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		OpenShiftVersion        string
 	}{
 		{
-			name:          "ocs enabled, 3 sufficient nodes",
+			name:          "odf enabled, 3 sufficient nodes",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusReady,
 			pullSecretSet: true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
@@ -169,43 +169,43 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "OCS Requirements for Compact Mode are satisfied"},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "ODF Requirements for Compact Mode are satisfied"},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 sufficient nodes",
+			name:          "odf enabled, 6 sufficient nodes",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusReady,
 			pullSecretSet: true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 15 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 10, Ram: 15 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 32 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 10, Ram: 32 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 9, Ram: 60 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 9, Ram: 60 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
@@ -222,23 +222,23 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "OCS Requirements for Standard Deployment are satisfied"},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "ODF Requirements for Standard Deployment are satisfied"},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 nodes, one with empty inventory",
+			name:          "odf enabled, 3 nodes, one with empty inventory",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusInsufficient,
 			pullSecretSet: true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
@@ -256,30 +256,30 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationPending, messagePattern: "Missing Inventory in some of the hosts"},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationPending, messagePattern: "Missing Inventory in some of the hosts"},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 nodes, total disks not a multiple of 3",
+			name:          "odf enabled, 3 nodes, total disks not a multiple of 3",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusReady,
 			pullSecretSet: true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID3}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID3}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
@@ -296,23 +296,23 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "OCS Requirements for Compact Mode are satisfied"},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "ODF Requirements for Compact Mode are satisfied"},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 insufficient nodes with less than 3 nodes",
+			name:          "odf enabled, 3 insufficient nodes with less than 3 nodes",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusInsufficient,
 			pullSecretSet: true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 10, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 7, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 7, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
@@ -329,19 +329,19 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationFailure, messagePattern: "Clusters must have exactly 3 dedicated masters"},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "A minimum of 3 hosts is required to deploy OCS."},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "A minimum of 3 hosts is required to deploy ODF."},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 nodes with less than 3 disks",
+			name:          "odf enabled, 3 nodes with less than 3 disks",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusInsufficient,
 			pullSecretSet: true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -355,28 +355,28 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact Mode. OCS requires a minimum of 3 hosts with one non-bootable disk on each host of size at least 25 GB."},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy ODF in Compact Mode. ODF requires a minimum of 3 hosts with one non-bootable disk on each host of size at least 25 GB."},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 nodes with 3 ocs disk, 1 with size less than 25GB",
+			name:          "odf enabled, 3 nodes with 3 odf disk, 1 with size less than 25GB",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusInsufficient,
 			pullSecretSet: true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 1 * conversions.GB, DriveType: "SSD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
@@ -393,30 +393,30 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "OCS requires all the non-bootable disks to be more than 25 GB"},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "ODF requires all the non-bootable disks to be more than 25 GB"},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 5 unsupported nodes ( 3 masters + 2 workers )",
+			name:          "odf enabled, 5 unsupported nodes ( 3 masters + 2 workers )",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusInsufficient,
 			pullSecretSet: true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
@@ -433,30 +433,30 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "A cluster with only 3 masters or with a minimum of 3 workers is required."},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "A cluster with only 3 masters or with a minimum of 3 workers is required."},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes with 3 worker nodes, one with empty inventory",
+			name:          "odf enabled, 6 nodes with 3 worker nodes, one with empty inventory",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusInsufficient,
 			pullSecretSet: true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
@@ -474,37 +474,37 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationPending, messagePattern: "Missing Inventory in some of the hosts"},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationPending, messagePattern: "Missing Inventory in some of the hosts"},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes with 3 worker nodes, one with disk less than 25GB",
+			name:          "odf enabled, 6 nodes with 3 worker nodes, one with disk less than 25GB",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusInsufficient,
 			pullSecretSet: true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID3}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID3}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 64, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 1 * conversions.GB, DriveType: "SSD", ID: diskID3}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
@@ -521,32 +521,32 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "OCS requires all the non-bootable disks to be more than 25 GB"},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "ODF requires all the non-bootable disks to be more than 25 GB"},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes with 3 worker nodes, total disks on workers not a multiple of 3",
+			name:          "odf enabled, 6 nodes with 3 worker nodes, total disks on workers not a multiple of 3",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusReady,
 			pullSecretSet: true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 8, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 8, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID3}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 8, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 8, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 8, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 8, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
@@ -563,26 +563,26 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "OCS Requirements for Standard Deployment are satisfied"},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "ODF Requirements for Standard Deployment are satisfied"},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes with 3 insufficient worker nodes due to insufficient disks",
+			name:          "odf enabled, 6 nodes with 3 insufficient worker nodes due to insufficient disks",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusInsufficient,
 			pullSecretSet: true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 64 * conversions.GiB}), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 64 * conversions.GiB}), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB}), Role: models.HostRoleWorker},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 10, Ram: 64 * conversions.GiB}), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 10, Ram: 64 * conversions.GiB}), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB}), Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -596,43 +596,43 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Standard Mode. OCS requires a minimum of 3 hosts with one non-bootable disk on each host of size at least 25 GB."},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy ODF in Standard Mode. ODF requires a minimum of 3 hosts with one non-bootable disk on each host of size at least 25 GB."},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes, with role of one as auto-assign (ocs validation failure)",
+			name:          "odf enabled, 6 nodes, with role of one as auto-assign (odf validation failure)",
 			srcState:      models.ClusterStatusPendingForInput,
 			dstState:      models.ClusterStatusInsufficient,
 			pullSecretSet: true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleAutoAssign, InstallationDiskID: diskID1},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
@@ -649,28 +649,28 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "For OCS Standard Mode, all host roles must be assigned to master or worker."},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "For ODF Standard Mode, all host roles must be assigned to master or worker."},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 nodes, with role of one as auto-assign (ocs validation success)",
+			name:          "odf enabled, 3 nodes, with role of one as auto-assign (odf validation success)",
 			srcState:      models.ClusterStatusPendingForInput,
 			dstState:      models.ClusterStatusReady,
 			pullSecretSet: true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleAutoAssign, InstallationDiskID: diskID1},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
@@ -687,43 +687,43 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "OCS Requirements for Compact Mode are satisfied"},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "ODF Requirements for Compact Mode are satisfied"},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 6 nodes with 3 worker nodes for standard deployment",
+			name:          "odf enabled, 6 nodes with 3 worker nodes for standard deployment",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusReady,
 			pullSecretSet: true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB},
 						{SizeBytes: 40 * conversions.GB}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
 				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
@@ -740,29 +740,29 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "OCS Requirements for Standard Deployment are satisfied"},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "ODF Requirements for Standard Deployment are satisfied"},
 			}),
 			errorExpected: false,
 		},
 		{
-			name:          "ocs enabled, 3 sufficient nodes, Disk with empty disk size",
+			name:          "odf enabled, 3 sufficient nodes, Disk with empty disk size",
 			srcState:      models.ClusterStatusReady,
 			dstState:      models.ClusterStatusReady,
 			pullSecretSet: true,
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2},
 						{SizeBytes: 0 * conversions.GB, DriveType: "HDD", ID: diskID3}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
-					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
 						{SizeBytes: 25 * conversions.GB, DriveType: "HDD", ID: diskID1},
 						{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID2}}}),
 					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
@@ -779,7 +779,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "OCS Requirements for Compact Mode are satisfied"},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "ODF Requirements for Compact Mode are satisfied"},
 			}),
 			errorExpected: false,
 		},
@@ -789,7 +789,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		t := tests[i]
 		It(t.name, func() {
 			operators := []*models.MonitoredOperator{
-				&ocs.Operator,
+				&odf.Operator,
 			}
 
 			cluster = common.Cluster{

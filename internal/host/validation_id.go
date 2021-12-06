@@ -28,7 +28,7 @@ const (
 	IsNTPSynced                                    = validationID(models.HostValidationIDNtpSynced)
 	SucessfullOrUnknownContainerImagesAvailability = validationID(models.HostValidationIDContainerImagesAvailable)
 	AreLsoRequirementsSatisfied                    = validationID(models.HostValidationIDLsoRequirementsSatisfied)
-	AreOcsRequirementsSatisfied                    = validationID(models.HostValidationIDOcsRequirementsSatisfied)
+	AreOdfRequirementsSatisfied                    = validationID(models.HostValidationIDOdfRequirementsSatisfied)
 	AreCnvRequirementsSatisfied                    = validationID(models.HostValidationIDCnvRequirementsSatisfied)
 	SufficientOrUnknownInstallationDiskSpeed       = validationID(models.HostValidationIDSufficientInstallationDiskSpeed)
 	HasSufficientNetworkLatencyRequirementForRole  = validationID(models.HostValidationIDSufficientNetworkLatencyRequirementForRole)
@@ -73,7 +73,7 @@ func (v validationID) category() (string, error) {
 		DiskEncryptionRequirementsSatisfied:
 		return "hardware", nil
 	case AreLsoRequirementsSatisfied,
-		AreOcsRequirementsSatisfied,
+		AreOdfRequirementsSatisfied,
 		AreCnvRequirementsSatisfied:
 		return "operators", nil
 	}

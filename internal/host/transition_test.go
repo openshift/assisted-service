@@ -27,7 +27,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -1808,7 +1808,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:                    {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					AreLsoRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: ""},
-					AreOcsRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreOdfRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "odf is disabled"},
 					AreCnvRequirementsSatisfied:                    {status: ValidationFailure, messagePattern: "Insufficient memory to deploy OpenShift Virtualization. Required memory is 360 MiB but found 150 MiB"},
 					CompatibleWithClusterPlatform:                  {status: ValidationSuccess, messagePattern: "Host is compatible with cluster platform baremetal"},
 				}),
@@ -1839,7 +1839,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:                    {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					AreLsoRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: ""},
-					AreOcsRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreOdfRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "odf is disabled"},
 					AreCnvRequirementsSatisfied:                    {status: ValidationFailure, messagePattern: "Insufficient memory to deploy OpenShift Virtualization. Required memory is 150 MiB but found 100 MiB"},
 					CompatibleWithClusterPlatform:                  {status: ValidationSuccess, messagePattern: "Host is compatible with cluster platform baremetal"},
 				}),
@@ -1870,7 +1870,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:                    {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					AreLsoRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: ""},
-					AreOcsRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreOdfRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "odf is disabled"},
 					AreCnvRequirementsSatisfied:                    {status: ValidationFailure, messagePattern: "Insufficient CPU to deploy OpenShift Virtualization. Required CPU count is 2 but found 1"},
 					CompatibleWithClusterPlatform:                  {status: ValidationSuccess, messagePattern: "Host is compatible with cluster platform baremetal"},
 				}),
@@ -1901,7 +1901,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:                    {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					AreLsoRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: ""},
-					AreOcsRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreOdfRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "odf is disabled"},
 					AreCnvRequirementsSatisfied:                    {status: ValidationFailure, messagePattern: "Insufficient CPU to deploy OpenShift Virtualization. Required CPU count is 4 but found 1"},
 					CompatibleWithClusterPlatform:                  {status: ValidationSuccess, messagePattern: "Host is compatible with cluster platform baremetal"},
 				}),
@@ -1931,7 +1931,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:                    {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					AreLsoRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: ""},
-					AreOcsRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreOdfRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "odf is disabled"},
 					AreCnvRequirementsSatisfied:                    {status: ValidationFailure, messagePattern: "CPU does not have virtualization support"},
 					CompatibleWithClusterPlatform:                  {status: ValidationSuccess, messagePattern: "Host is compatible with cluster platform baremetal"},
 				}),
@@ -1961,7 +1961,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:                    {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					AreLsoRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: ""},
-					AreOcsRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreOdfRequirementsSatisfied:                    {status: ValidationSuccess, messagePattern: "odf is disabled"},
 					AreCnvRequirementsSatisfied:                    {status: ValidationFailure, messagePattern: "Insufficient memory to deploy OpenShift Virtualization. Required memory is 1384 MiB but found 1024 MiB"},
 					CompatibleWithClusterPlatform:                  {status: ValidationSuccess, messagePattern: "Host is compatible with cluster platform baremetal"},
 				}),
@@ -3534,7 +3534,7 @@ var _ = Describe("Refresh Host", func() {
 				role:             models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Require at least 8.35 GiB RAM for role worker, found only 8.00 GiB",
-					"OCS unsupported Host Role for Compact Mode.")),
+					"ODF unsupported Host Role for Compact Mode.")),
 				inventory: hostutil.GenerateInventoryWithResourcesAndMultipleDisk(11, 8, "worker-1"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -3548,11 +3548,11 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname worker-1 is unique in cluster"},
 					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
 					IsNTPSynced:                 {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
-					AreOcsRequirementsSatisfied: {status: ValidationFailure, messagePattern: "OCS unsupported Host Role for Compact Mode."},
+					AreOdfRequirementsSatisfied: {status: ValidationFailure, messagePattern: "ODF unsupported Host Role for Compact Mode."},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				errorExpected:      false,
-				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator, &ocs.Operator},
+				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator, &odf.Operator},
 				numAdditionalHosts: 2,
 				hostRequirements:   &models.ClusterHostRequirementsDetails{CPUCores: 4, RAMMib: 8550},
 			},

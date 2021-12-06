@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const hostValidationsInfo = `{"operators":[{"id":"ocs-requirements-satisfied","status":"success","message":"ocs is disabled"}]}`
+const hostValidationsInfo = `{"operators":[{"id":"odf-requirements-satisfied","status":"success","message":"odf is disabled"}]}`
 
 var _ = Describe("ChangeHostValidationsInfoToText", func() {
 	var (

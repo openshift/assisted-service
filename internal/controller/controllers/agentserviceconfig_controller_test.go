@@ -1168,7 +1168,7 @@ var _ = Describe("getMustGatherImages", func() {
 	var defaultEnvMustGatherImages = versions.MustGatherVersions{
 		"4.8": versions.MustGatherVersion{
 			"cnv": "registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5",
-			"ocs": "registry.redhat.io/ocs4/ocs-must-gather-rhel8",
+			"odf": "registry.redhat.io/ocs4/ocs-must-gather-rhel8",
 			"lso": "registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8",
 		},
 	}
