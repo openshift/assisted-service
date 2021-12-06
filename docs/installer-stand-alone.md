@@ -76,6 +76,23 @@ podman run -dt --pod assisted-installer \
 **NOTE**
 * `onprem-environment` is the file downloaded and modified previously
 
+## Start the Image Service
+
+Use podman to run the image service.
+
+```
+podman run -dt --pod assisted-installer \
+  --name image-service \
+  --env-file onprem-environment \
+  --pull always \
+  --restart always \
+  quay.io/edge-infrastructure/assisted-image-service:latest
+```
+
+**NOTE**
+* `onprem-environment` is the file downloaded and modified previously
+* Images will always be downloaded from `IMAGE_SERVICE_BASE_URL` as specified in `onprem-environment`
+
 ## Start Assisted Service
 
 Use podman to start the Assisted Service.
