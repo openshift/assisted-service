@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 )
@@ -236,5 +237,55 @@ var _ = Describe("[V2ClusterTests]", func() {
 		h1 = &registerHostByUUID(h1.InfraEnvID, *h1.ID).Host
 		generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
 		waitForHostStateV2(ctx, models.HostStatusKnownUnbound, defaultWaitForHostStateTimeout, h1)
+	})
+
+	It("Verify garbage collector inactive cluster and infraenv deregistration", func() {
+		By("Update cluster's updated_at attribute to become eligible for deregistration due to inactivity")
+		cluster := getCluster(clusterID)
+		db.Model(&cluster).UpdateColumn("updated_at", time.Now().AddDate(-1, 0, 0))
+
+		By("Fetch cluster to make sure it was permanently removed by the garbage collector")
+		Eventually(func() error {
+			_, err := common.GetClusterFromDBWhere(db, common.SkipEagerLoading, common.SkipDeletedRecords, "id = ?", clusterID)
+			return err
+		}, "1m", "10s").Should(HaveOccurred())
+
+		By("Update infraEnv's updated_at attribute to become eligible for deregistration due to inactivity")
+		infraEnv, err := common.GetInfraEnvFromDBWhere(db, "id = ?", boundInfraEnv)
+		Expect(err).NotTo(HaveOccurred())
+		db.Model(&infraEnv).UpdateColumn("updated_at", time.Now().AddDate(-1, 0, 0))
+
+		By("Fetch bounded InfraEnv to make sure it was permanently removed by the garbage collector")
+		Eventually(func() error {
+			_, err = common.GetInfraEnvFromDBWhere(db, "id = ?", boundInfraEnv)
+			return err
+		}, "1m", "10s").Should(HaveOccurred())
+
+		By("Verify that hosts are deleted")
+		_, err = userBMClient.Installer.V2GetHost(context.Background(), &installer.V2GetHostParams{
+			InfraEnvID: boundInfraEnv,
+			HostID:     *h2.ID,
+		})
+		Expect(err).To(HaveOccurred())
+		_, err = userBMClient.Installer.V2GetHost(context.Background(), &installer.V2GetHostParams{
+			InfraEnvID: boundInfraEnv,
+			HostID:     *h3.ID,
+		})
+		Expect(err).To(HaveOccurred())
+
+		By("Verify that late-binding infraenv is not deleted")
+		_, err = common.GetInfraEnvFromDBWhere(db, "id = ?", infraEnvID)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Update late-binding infraEnv's updated_at attribute to become eligible for deregistration due to inactivity")
+		infraEnv, err = common.GetInfraEnvFromDBWhere(db, "id = ?", infraEnvID)
+		Expect(err).NotTo(HaveOccurred())
+		db.Model(&infraEnv).UpdateColumn("updated_at", time.Now().AddDate(-1, 0, 0))
+
+		By("Fetch late-binding InfraEnv to make sure it was permanently removed by the garbage collector")
+		Eventually(func() error {
+			_, err := common.GetInfraEnvFromDBWhere(db, "id = ?", infraEnvID)
+			return err
+		}, "1m", "10s").Should(HaveOccurred())
 	})
 })
