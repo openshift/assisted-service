@@ -1,5 +1,5 @@
 ARG SERVICE=quay.io/ocpmetal/assisted-service:latest
-FROM registry.ci.openshift.org/openshift/release:golang-1.16 AS download_dlv
+FROM registry.ci.openshift.org/openshift/release:golang-1.17 AS download_dlv
 RUN go get github.com/go-delve/delve/cmd/dlv
 
 FROM $SERVICE
