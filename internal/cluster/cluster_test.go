@@ -2158,7 +2158,7 @@ var _ = Describe("insufficient_state", func() {
 			PullSecretSet:   true,
 		}}
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.ClusterRegisteredEventName),
+			eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName),
 			eventstest.WithClusterIdMatcher(id.String()))).AnyTimes()
 	})
 
@@ -2916,9 +2916,6 @@ var _ = Describe("Validation metrics and events", func() {
 	registerTestClusterWithValidationsAndHost := func() *common.Cluster {
 
 		clusterID := strfmt.UUID(uuid.New().String())
-		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.ClusterRegisteredEventName),
-			eventstest.WithClusterIdMatcher(clusterID.String())))
 		c := common.Cluster{
 			Cluster: models.Cluster{
 				ID:               &clusterID,

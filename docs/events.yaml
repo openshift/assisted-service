@@ -37,13 +37,6 @@ x-events:
   severity: "info"
   properties:
     cluster_id: UUID
-
-- name: cluster_registered
-  message: "Registered cluster"
-  event_type: cluster
-  severity: "info"
-  properties:
-    cluster_id: UUID
     cluster_kind: string
 
 - name: cluster_deregister_failed

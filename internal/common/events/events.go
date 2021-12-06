@@ -298,24 +298,29 @@ func (e *ClusterRegistrationFailedEvent) FormatMessage() string {
 //
 type ClusterRegistrationSucceededEvent struct {
     ClusterId strfmt.UUID
+    ClusterKind string
 }
 
 var ClusterRegistrationSucceededEventName string = "cluster_registration_succeeded"
 
 func NewClusterRegistrationSucceededEvent(
     clusterId strfmt.UUID,
+    clusterKind string,
 ) *ClusterRegistrationSucceededEvent {
     return &ClusterRegistrationSucceededEvent{
         ClusterId: clusterId,
+        ClusterKind: clusterKind,
     }
 }
 
 func SendClusterRegistrationSucceededEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId strfmt.UUID,) {
+    clusterId strfmt.UUID,
+    clusterKind string,) {
     ev := NewClusterRegistrationSucceededEvent(
         clusterId,
+        clusterKind,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
@@ -324,9 +329,11 @@ func SendClusterRegistrationSucceededEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
+    clusterKind string,
     eventTime time.Time) {
     ev := NewClusterRegistrationSucceededEvent(
         clusterId,
+        clusterKind,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
@@ -345,81 +352,13 @@ func (e *ClusterRegistrationSucceededEvent) GetClusterId() strfmt.UUID {
 func (e *ClusterRegistrationSucceededEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{cluster_kind}", fmt.Sprint(e.ClusterKind),
     )
     return r.Replace(*message)
 }
 
 func (e *ClusterRegistrationSucceededEvent) FormatMessage() string {
     s := "Successfully registered cluster"
-    return e.format(&s)
-}
-
-//
-// Event cluster_registered
-//
-type ClusterRegisteredEvent struct {
-    ClusterId strfmt.UUID
-    ClusterKind string
-}
-
-var ClusterRegisteredEventName string = "cluster_registered"
-
-func NewClusterRegisteredEvent(
-    clusterId strfmt.UUID,
-    clusterKind string,
-) *ClusterRegisteredEvent {
-    return &ClusterRegisteredEvent{
-        ClusterId: clusterId,
-        ClusterKind: clusterKind,
-    }
-}
-
-func SendClusterRegisteredEvent(
-    ctx context.Context,
-    eventsHandler eventsapi.Sender,
-    clusterId strfmt.UUID,
-    clusterKind string,) {
-    ev := NewClusterRegisteredEvent(
-        clusterId,
-        clusterKind,
-    )
-    eventsHandler.SendClusterEvent(ctx, ev)
-}
-
-func SendClusterRegisteredEventAtTime(
-    ctx context.Context,
-    eventsHandler eventsapi.Sender,
-    clusterId strfmt.UUID,
-    clusterKind string,
-    eventTime time.Time) {
-    ev := NewClusterRegisteredEvent(
-        clusterId,
-        clusterKind,
-    )
-    eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
-}
-
-func (e *ClusterRegisteredEvent) GetName() string {
-    return "cluster_registered"
-}
-
-func (e *ClusterRegisteredEvent) GetSeverity() string {
-    return "info"
-}
-func (e *ClusterRegisteredEvent) GetClusterId() strfmt.UUID {
-    return e.ClusterId
-}
-
-func (e *ClusterRegisteredEvent) format(message *string) string {
-    r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
-        "{cluster_kind}", fmt.Sprint(e.ClusterKind),
-    )
-    return r.Replace(*message)
-}
-
-func (e *ClusterRegisteredEvent) FormatMessage() string {
-    s := "Registered cluster"
     return e.format(&s)
 }
 

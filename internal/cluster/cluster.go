@@ -188,14 +188,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 }
 
 func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error {
-	err := m.registrationAPI.RegisterCluster(ctx, c, v1Flag, v1ISOType)
-	if err != nil {
-		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error(), models.ClusterKindCluster)
-
-	} else {
-		eventgen.SendClusterRegisteredEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindCluster)
-	}
-	return err
+	return m.registrationAPI.RegisterCluster(ctx, c, v1Flag, v1ISOType)
 }
 
 func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error {
@@ -203,7 +196,7 @@ func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster
 	if err != nil {
 		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error(), models.ClusterKindAddHostsCluster)
 	} else {
-		eventgen.SendClusterRegisteredEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
+		eventgen.SendClusterRegistrationSucceededEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
 	}
 	return err
 }
