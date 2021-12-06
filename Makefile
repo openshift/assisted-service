@@ -237,7 +237,7 @@ build-publish-index:
 	$(call publish_image,docker,${INDEX_IMAGE},quay.io/ocpmetal/assisted-service-index:${PUBLISH_TAG})
 
 publish-client: generate-python-client
-	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*"
+	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*.whl"
 
 build-openshift-ci-test-bin: init
 
