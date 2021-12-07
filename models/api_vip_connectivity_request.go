@@ -19,6 +19,12 @@ import (
 // swagger:model api_vip_connectivity_request
 type APIVipConnectivityRequest struct {
 
+	// A CA certficate to be used when contacting the URL via https.
+	CaCertificate *string `json:"ca_certificate,omitempty"`
+
+	// A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
+	IgnitionEndpointToken *string `json:"ignition_endpoint_token,omitempty"`
+
 	// URL address of the API.
 	// Required: true
 	URL *string `json:"url"`
