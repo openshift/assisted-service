@@ -39,6 +39,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -186,25 +187,36 @@ func (r *InfraEnvReconciler) buildMacInterfaceMap(log logrus.FieldLogger, nmStat
 }
 
 func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) ([]*models.HostStaticNetworkConfig, error) {
-	var staticNetworkConfig []*models.HostStaticNetworkConfig
-
+	var (
+		err                 error
+		selector            labels.Selector
+		staticNetworkConfig []*models.HostStaticNetworkConfig
+	)
 	if infraEnv.Spec.NMStateConfigLabelSelector.MatchLabels == nil {
 		return staticNetworkConfig, nil
 	}
-	for labelName, labelValue := range infraEnv.Spec.NMStateConfigLabelSelector.MatchLabels {
-		nmStateConfigs := &aiv1beta1.NMStateConfigList{}
-		if err := r.List(ctx, nmStateConfigs, client.InNamespace(infraEnv.Namespace),
-			client.MatchingLabels(map[string]string{labelName: labelValue})); err != nil {
-			return staticNetworkConfig, err
-		}
-		for _, nmStateConfig := range nmStateConfigs.Items {
-			log.Debugf("found nmStateConfig: %s for infraEnv: %s", nmStateConfig.Name, infraEnv.Name)
-			staticNetworkConfig = append(staticNetworkConfig, &models.HostStaticNetworkConfig{
-				MacInterfaceMap: r.buildMacInterfaceMap(log, nmStateConfig),
-				NetworkYaml:     string(nmStateConfig.Spec.NetConfig.Raw),
-			})
-		}
+
+	selector, err = metav1.LabelSelectorAsSelector(&infraEnv.Spec.NMStateConfigLabelSelector)
+	if err != nil {
+		log.WithError(err).Error("failed to convert label selector to selector")
+		return nil, err
 	}
+
+	nmStateConfigs := &aiv1beta1.NMStateConfigList{}
+
+	if err = r.List(ctx, nmStateConfigs, &client.ListOptions{LabelSelector: selector}); err != nil {
+		log.WithError(err).Error("failed to list nmStateConfigs")
+		return nil, err
+	}
+
+	for _, nmStateConfig := range nmStateConfigs.Items {
+		log.Debugf("found nmStateConfig: %s for infraEnv: %s", nmStateConfig.Name, infraEnv.Name)
+		staticNetworkConfig = append(staticNetworkConfig, &models.HostStaticNetworkConfig{
+			MacInterfaceMap: r.buildMacInterfaceMap(log, nmStateConfig),
+			NetworkYaml:     string(nmStateConfig.Spec.NetConfig.Raw),
+		})
+	}
+
 	return staticNetworkConfig, nil
 }
 
