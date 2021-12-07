@@ -10,6 +10,7 @@ volumes:
   - /usr/local/bin/k3d:/usr/local/bin/k3d
 
   # config
+  - $MINIKUBE_HOME:$MINIKUBE_HOME
   - $HOME/.minikube:$HOME/.minikube
   - $HOME/.kube/:$HOME/.kube
   - $HOME/.docker/:$HOME/.docker
