@@ -2806,8 +2806,8 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 
 	if len(updates) > 0 {
 		updates["trigger_monitor_timestamp"] = time.Now()
-		dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
-		if dbReply.Error != nil {
+		err = db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates).Error
+		if err != nil {
 			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update cluster: %s", params.ClusterID))
 		}
 	}
