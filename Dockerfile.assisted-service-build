@@ -19,3 +19,4 @@ RUN chmod g+xw -R $GOPATH && chmod g+xw -R $(go env GOROOT)
 
 COPY --from=quay.io/openshift/origin-cli:latest /usr/bin/oc /usr/bin
 COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.16.1 /bin/opm /bin
+COPY . .
