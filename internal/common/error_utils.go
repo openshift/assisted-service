@@ -21,23 +21,23 @@ func (f NotFound) Error() string {
 }
 
 func GenerateError(id int32, err error) *models.Error {
+	var reason string
+	if err != nil {
+		reason = err.Error()
+	} else {
+		reason = "error is nil"
+	}
 	return &models.Error{
 		Code:   swag.String(strconv.Itoa(int(id))),
 		Href:   swag.String(""),
 		ID:     swag.Int32(id),
 		Kind:   swag.String("Error"),
-		Reason: swag.String(err.Error()),
+		Reason: swag.String(reason),
 	}
 }
 
 func GenerateInternalFromError(err error) *models.Error {
-	return &models.Error{
-		Code:   swag.String(strconv.Itoa(http.StatusInternalServerError)),
-		Href:   swag.String(""),
-		ID:     swag.Int32(http.StatusInternalServerError),
-		Kind:   swag.String("Error"),
-		Reason: swag.String(err.Error()),
-	}
+	return GenerateError(http.StatusInternalServerError, err)
 }
 
 func GenerateInfraError(id int32, err error) *models.InfraError {
