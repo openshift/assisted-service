@@ -178,6 +178,37 @@ var _ = Describe("AssistedServiceISO", func() {
 
 	})
 
+	Context("when using the image service", func() {
+		BeforeEach(func() {
+			api.config.ImageServiceBaseURL = "https://example.com/images"
+		})
+
+		It("CreateISOAndUploadToS3 returns BadRequest", func() {
+			ignitionParams := models.AssistedServiceIsoCreateParams{
+				SSHPublicKey:     sshPublicKey,
+				PullSecret:       pullSecret,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+			}
+			generateReply := api.CreateISOAndUploadToS3(ctx, assisted_service_iso.CreateISOAndUploadToS3Params{
+				AssistedServiceIsoCreateParams: &ignitionParams,
+			})
+			Expect(generateReply).Should(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+		})
+
+		It("DownloadISO returns BadRequest", func() {
+			generateReply := api.DownloadISO(ctx, assisted_service_iso.DownloadISOParams{})
+			Expect(generateReply).Should(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+		})
+
+		It("GetPresignedForAssistedServiceISO returns BadRequest", func() {
+			generateReply := api.GetPresignedForAssistedServiceISO(ctx, assisted_service_iso.GetPresignedForAssistedServiceISOParams{})
+			Expect(generateReply).Should(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+		})
+	})
+
 })
 
 func TestAssistedServiceISO(t *testing.T) {

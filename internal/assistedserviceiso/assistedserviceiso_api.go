@@ -29,6 +29,7 @@ import (
 type Config struct {
 	ImageExpirationTime        time.Duration `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
 	IgnitionConfigBaseFilename string        `envconfig:"IGNITION_CONFIG_BASE_FILENAME" default:"/data/onprem-iso-config.ign"`
+	ImageServiceBaseURL        string        `envconfig:"IMAGE_SERVICE_BASE_URL"`
 }
 
 var _ restapi.AssistedServiceIsoAPI = &assistedServiceISOApi{}
@@ -53,6 +54,10 @@ func NewAssistedServiceISOApi(objectHandler s3wrapper.API, authHandler auth.Auth
 
 /* CreateISOAndUploadToS3 Creates the ISO for the user and uploads it to S3. */
 func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, params assisted_service_iso.CreateISOAndUploadToS3Params) middleware.Responder {
+	if a.config.ImageServiceBaseURL != "" {
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("assisted-service-iso not available"))
+	}
+
 	log := logutil.FromContext(ctx, a.log)
 
 	sshPublicKeys := params.AssistedServiceIsoCreateParams.SSHPublicKey
@@ -109,6 +114,9 @@ func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, para
 
 /* DownloadISO Downloads the ISO for the user from S3. */
 func (a *assistedServiceISOApi) DownloadISO(ctx context.Context, params assisted_service_iso.DownloadISOParams) middleware.Responder {
+	if a.config.ImageServiceBaseURL != "" {
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("assisted-service-iso not available"))
+	}
 	log := logutil.FromContext(ctx, a.log)
 
 	username := ocm.UserNameFromContext(ctx)
@@ -130,6 +138,9 @@ func (a *assistedServiceISOApi) DownloadISO(ctx context.Context, params assisted
 }
 
 func (a *assistedServiceISOApi) GetPresignedForAssistedServiceISO(ctx context.Context, params assisted_service_iso.GetPresignedForAssistedServiceISOParams) middleware.Responder {
+	if a.config.ImageServiceBaseURL != "" {
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("assisted-service-iso not available"))
+	}
 	log := logutil.FromContext(ctx, a.log)
 	// Presigned URL only works with AWS S3 because Scality is not exposed
 	if !a.objectHandler.IsAwsS3() {

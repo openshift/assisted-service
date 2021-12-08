@@ -260,7 +260,7 @@ endef
 _verify_cluster:
 	$(KUBECTL) cluster-info
 
-deploy-all: $(BUILD_FOLDER) _verify_cluster deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-service
+deploy-all: $(BUILD_FOLDER) _verify_cluster deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-image-service deploy-service
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
@@ -284,6 +284,9 @@ deploy-route53: deploy-namespace
 deploy-ocm-secret: deploy-namespace
 	python3 ./tools/deploy_sso_secret.py --secret "$(OCM_CLIENT_SECRET)" --id "$(OCM_CLIENT_ID)" --namespace "$(NAMESPACE)" \
 		--target "$(TARGET)" --apply-manifest $(APPLY_MANIFEST)
+
+deploy-image-service: deploy-namespace
+	python3 ./tools/deploy_image_service.py --namespace "$(NAMESPACE)" --apply-manifest $(APPLY_MANIFEST)
 
 deploy-inventory-service-file: deploy-namespace
 	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" \

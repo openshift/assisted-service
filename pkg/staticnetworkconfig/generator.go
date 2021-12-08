@@ -124,6 +124,8 @@ func (s *StaticNetworkConfigGenerator) executeNMStatectl(ctx context.Context, ho
 	return stdout, nil
 }
 
+// create NMConnectionFiles formats the nmstate output into a list of file data
+// Nothing is written to the local filesystem
 func (s *StaticNetworkConfigGenerator) createNMConnectionFiles(nmstateOutput, hostDir string) ([]StaticNetworkConfigData, error) {
 	var hostNMConnections map[string]interface{}
 	err := yaml.Unmarshal([]byte(nmstateOutput), &hostNMConnections)
@@ -204,7 +206,14 @@ func (s *StaticNetworkConfigGenerator) validateMacInterfaceName(hostIdx int, mac
 }
 
 func (s *StaticNetworkConfigGenerator) validateNMStateYaml(ctx context.Context, networkYaml string) error {
-	_, err := s.executeNMStatectl(ctx, networkYaml)
+	result, err := s.executeNMStatectl(ctx, networkYaml)
+	if err != nil {
+		return err
+	}
+
+	// Check that the file content can be created
+	// This doesn't write anything to the local filesystem
+	_, err = s.createNMConnectionFiles(result, "temphostdir")
 	return err
 }
 

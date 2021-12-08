@@ -3537,26 +3537,19 @@ var _ = Describe("Verify ISO is deleted on cluster de-registration", func() {
 			})
 
 			Expect(err).NotTo(HaveOccurred())
-			verifyEventExistence(clusterID, fmt.Sprintf("Image type is \"%s\"", imageType))
 
 			By("verify discovery-image existence")
-			file, err := ioutil.TempFile("", "tmp")
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer os.Remove(file.Name())
-			_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{ClusterID: clusterID}, file)
+			getResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
+			Expect(getResp.Payload.ImageInfo).NotTo(BeNil())
+			url := getResp.Payload.ImageInfo.DownloadURL
+			downloadIso(ctx, url)
 
 			By("deregister cluster")
 			_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
 				ClusterID: clusterID,
 			})
 			Expect(err).NotTo(HaveOccurred())
-
-			By("verify discovery-image cannot be downloaded")
-			_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{ClusterID: clusterID}, file)
-			Expect(err).To(HaveOccurred())
 		})
 	})
 })
