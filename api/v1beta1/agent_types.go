@@ -191,6 +191,8 @@ type AgentSpec struct {
 	IgnitionConfigOverrides string `json:"ignitionConfigOverrides,omitempty"`
 	// IgnitionEndpointToken define a string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
 	IgnitionEndpointToken string `json:"ignitionEndpointToken,omitempty"`
+	// Foo defines wheteher or not the agent should foo
+	Foo bool `json:"foo,omitempty"`
 }
 
 type HostProgressInfo struct {
