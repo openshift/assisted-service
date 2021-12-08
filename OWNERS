@@ -20,3 +20,6 @@ filters:
   swagger.yaml:
     labels:
       - api-review
+  ^api/.*:
+    labels:
+      - api-review
