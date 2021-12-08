@@ -1008,6 +1008,11 @@ func (b *bareMetalInventory) DownloadISOInternal(ctx context.Context, infraEnvID
 		return common.GenerateErrorResponder(err)
 	}
 
+	if b.ImageServiceBaseURL != "" && infraEnv.DownloadURL != "" {
+		log.Warnf("Redirecting image download to %s: download is not supported at this endpoint", infraEnv.DownloadURL)
+		return installer.NewDownloadClusterISOMovedPermanently().WithLocation(infraEnv.DownloadURL)
+	}
+
 	imgName := getImageName(infraEnv.ID)
 	exists, err := b.objectHandler.DoesObjectExist(ctx, imgName)
 	if err != nil {

@@ -1486,6 +1486,14 @@ func init() {
               "format": "binary"
             }
           },
+          "301": {
+            "description": "Redirect.",
+            "headers": {
+              "Location": {
+                "type": "string"
+              }
+            }
+          },
           "400": {
             "description": "Error.",
             "schema": {
@@ -14976,6 +14984,14 @@ func init() {
             "schema": {
               "type": "string",
               "format": "binary"
+            }
+          },
+          "301": {
+            "description": "Redirect.",
+            "headers": {
+              "Location": {
+                "type": "string"
+              }
             }
           },
           "400": {
