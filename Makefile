@@ -365,12 +365,13 @@ podman-pull-service-from-docker-daemon:
 
 deploy-onprem:
 	# Format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
-	podman pod create --name assisted-installer -p 5432:5432,8000:8000,8090:8090,8080:8080
+	podman pod create --name assisted-installer -p 5432:5432,8000:8000,8090:8090,8080:8080,8888:8888
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always --name db quay.io/ocpmetal/postgresql-12-centos7
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/edge-infrastructure/assisted-installer-ui:latest
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always --restart always --name image-service quay.io/edge-infrastructure/assisted-image-service:latest
 	podman run -dt --pod assisted-installer --env-file onprem-environment ${PODMAN_PULL_FLAG} --env DUMMY_IGNITION=$(DUMMY_IGNITION) --restart always --name installer $(SERVICE)
 	./hack/retry.sh 90 2 "curl -f http://127.0.0.1:8090/ready"
+	./hack/retry.sh 60 10 "curl -f http://127.0.0.1:8888/health"
 
 deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
@@ -461,7 +462,7 @@ ci-unit-test:
 
 kill-db-container:
 	docker kill postgres
- 
+
 unit-test: run-db-container run-unit-test kill-db-container
 
 $(REPORTS):
