@@ -396,14 +396,6 @@ func (f fakeInventory) DeregisterInfraEnv(ctx context.Context, params installer.
 	return installer.NewDeregisterInfraEnvNoContent()
 }
 
-func (f fakeInventory) DownloadInfraEnvDiscoveryImage(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageParams) middleware.Responder {
-	return installer.NewDownloadInfraEnvDiscoveryImageOK()
-}
-
-func (f fakeInventory) DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, params installer.DownloadInfraEnvDiscoveryImageHeadersParams) middleware.Responder {
-	return installer.NewDownloadInfraEnvDiscoveryImageHeadersOK()
-}
-
 func (f fakeInventory) GetInfraEnv(ctx context.Context, params installer.GetInfraEnvParams) middleware.Responder {
 	return installer.NewGetInfraEnvOK()
 }
