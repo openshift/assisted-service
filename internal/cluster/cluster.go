@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -154,11 +155,13 @@ type Manager struct {
 	objectHandler         s3wrapper.API
 	dnsApi                dns.DNSApi
 	monitorQueryGenerator *common.MonitorClusterQueryGenerator
+	authHandler           auth.Authenticator
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler,
 	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
-	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API, dnsApi dns.DNSApi) *Manager {
+	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API,
+	dnsApi dns.DNSApi, authHandler auth.Authenticator) *Manager {
 	th := &transitionHandler{
 		log:                 log,
 		db:                  db,
@@ -184,6 +187,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		ocmClient:             ocmClient,
 		objectHandler:         objectHandler,
 		dnsApi:                dnsApi,
+		authHandler:           authHandler,
 	}
 }
 
@@ -624,7 +628,12 @@ func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput, models.ClusterStatusAddingHosts}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		if clusterStatus == models.ClusterStatusInstalled {
-			err = errors.Errorf("Cannot add host to a cluster that is already installed, please use the day2 cluster option")
+			msg := "Cannot add hosts to an existing cluster using the original Discovery ISO."
+			isSaaS := m.authHandler.AuthType() == auth.TypeRHSSO
+			if isSaaS {
+				msg = msg + " Try to add new hosts by using the Discovery ISO that can be found in console.redhat.com under your cluster “Add hosts“ tab."
+			}
+			err = errors.Errorf(msg)
 		} else {
 			err = errors.Errorf("Host can register only in one of the following states: %s", allowedStatuses)
 		}
