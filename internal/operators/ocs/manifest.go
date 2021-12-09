@@ -72,6 +72,7 @@ metadata:
   name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
+  channel: stable-4.8
   installPlanApproval: Automatic
   name: ocs-operator
   source: redhat-operators
