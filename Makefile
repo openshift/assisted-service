@@ -1,7 +1,7 @@
 NAMESPACE := $(or ${NAMESPACE},assisted-installer)
 PWD = $(shell pwd)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
-ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+ROOT_DIR := $(or ${ROOT_DIR},$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 CONTAINER_COMMAND := $(or ${CONTAINER_COMMAND},docker)
 TARGET := $(or ${TARGET},local)
 KUBECTL=kubectl -n $(NAMESPACE)
@@ -132,8 +132,10 @@ ifeq ($(VERBOSE), true)
 	GO_TEST_FORMAT=standard-verbose
 endif
 
-GOTEST_FLAGS = --format=$(GO_TEST_FORMAT) $(GOTEST_PUBLISH_FLAGS) -- -count=1 -cover -coverprofile=$(REPORTS)/$(TEST_SCENARIO)_coverage.out
-GINKGO_FLAGS = -ginkgo.focus="$(FOCUS)" -ginkgo.v -ginkgo.skip="$(SKIP)" -ginkgo.v -ginkgo.reportFile=./junit_$(TEST_SCENARIO)_test.xml
+COVER_PROFILE := $(or ${COVER_PROFILE}, $(REPORTS)/$(TEST_SCENARIO)_coverage.out)
+GINKGO_REPORTFILE := $(or $(GINKGO_REPORTFILE), ./junit_$(TEST_SCENARIO)_test.xml)
+GOTEST_FLAGS = --format=$(GO_TEST_FORMAT) $(GOTEST_PUBLISH_FLAGS) -- -count=1 -cover -coverprofile=$(COVER_PROFILE)
+GINKGO_FLAGS = -ginkgo.focus="$(FOCUS)" -ginkgo.v -ginkgo.skip="$(SKIP)" -ginkgo.v -ginkgo.reportFile=$(GINKGO_REPORTFILE)
 
 .EXPORT_ALL_VARIABLES:
 
