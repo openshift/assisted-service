@@ -8359,6 +8359,14 @@ definitions:
       verify_cidr:
         type: boolean
         description: Whether to verify if the API VIP belongs to one of the interfaces (DEPRECATED).
+      ca_certificate:
+        type: string
+        x-nullable: true
+        description: A CA certficate to be used when contacting the URL via https.
+      ignition_endpoint_token:
+        x-nullable: true
+        type: string
+        description: A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
 
   api_vip_connectivity_response:
     type: object

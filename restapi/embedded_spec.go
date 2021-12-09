@@ -9338,6 +9338,16 @@ func init() {
         "url"
       ],
       "properties": {
+        "ca_certificate": {
+          "description": "A CA certficate to be used when contacting the URL via https.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "ignition_endpoint_token": {
+          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
+          "type": "string",
+          "x-nullable": true
+        },
         "url": {
           "description": "URL address of the API.",
           "type": "string"
@@ -22845,6 +22855,16 @@ func init() {
         "url"
       ],
       "properties": {
+        "ca_certificate": {
+          "description": "A CA certficate to be used when contacting the URL via https.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "ignition_endpoint_token": {
+          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
+          "type": "string",
+          "x-nullable": true
+        },
         "url": {
           "description": "URL address of the API.",
           "type": "string"
