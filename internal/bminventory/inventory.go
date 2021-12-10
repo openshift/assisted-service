@@ -2596,16 +2596,26 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
 
-	// We are checking if the cluster is requested to be a dual-stack cluster based on the Cluster
-	// Networks provided.
-	//
-	// TODO(mko) As updateNonDhcpNetworkParams is called before updateNetworks, this check looks
-	//           at the already configured networks and not the ones inside V2UpdateClusterParams.
-	//           An extension would be to check if V2UpdateClusterParams configures any of those
-	//           and if that's the case, instead of GetConfiguredAddressFamilies(cluster) we
-	//           should call something like GetRequestedAddressFamilies(cluster).
-	reqV4, reqV6, _ := network.GetConfiguredAddressFamilies(cluster)
-	reqDualStack := reqV4 && reqV6
+	// In order to check if the cluster is dual-stack or single-stack we are building a structure
+	// that is a merge of the current cluster configuration and new configuration coming from
+	// V2UpdateClusterParams. This ensures that the reqDualStack flag reflects a desired state and
+	// not the stale one.
+	// We need to do it because updateNonDhcpNetworkParams is called before updateNetworks, so
+	// inside this function here cluster object has still values before applying requested changes.
+	targetConfiguration := common.Cluster{}
+	targetConfiguration.ClusterNetworks = cluster.ClusterNetworks
+	targetConfiguration.ServiceNetworks = cluster.ServiceNetworks
+	targetConfiguration.MachineNetworks = cluster.MachineNetworks
+	if params.ClusterUpdateParams.ClusterNetworks != nil {
+		targetConfiguration.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
+	}
+	if params.ClusterUpdateParams.ServiceNetworks != nil {
+		targetConfiguration.ServiceNetworks = params.ClusterUpdateParams.ServiceNetworks
+	}
+	if params.ClusterUpdateParams.MachineNetworks != nil {
+		targetConfiguration.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
+	}
+	reqDualStack := network.CheckIfClusterIsDualStack(&targetConfiguration)
 
 	if params.ClusterUpdateParams.APIVip != nil {
 		updates["api_vip"] = *params.ClusterUpdateParams.APIVip
