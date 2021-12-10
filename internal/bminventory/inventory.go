@@ -2596,15 +2596,26 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
 
-	// We are checking if the cluster is requested to be a dual-stack cluster based on the Cluster
-	// Networks provided.
-	//
-	// TODO(mko) As updateNonDhcpNetworkParams is called before updateNetworks, this check looks
-	//           at the already configured networks and not the ones inside V2UpdateClusterParams.
-	//           An extension would be to check if V2UpdateClusterParams configures any of those
-	//           and if that's the case, instead of GetConfiguredAddressFamilies(cluster) we
-	//           should call something like GetRequestedAddressFamilies(cluster).
-	reqV4, reqV6, _ := network.GetConfiguredAddressFamilies(cluster)
+	// In order to check if the cluster is dual-stack or single-stack we are building a structure
+	// that is a merge of the current cluster configuration and new configuration coming from
+	// V2UpdateClusterParams. This ensures that the reqDualStack flag reflects a desired state and
+	// not the stale one.
+	// We need to do it because updateNonDhcpNetworkParams is called before updateNetworks, so
+	// inside this function here cluster object has still values before applying requested changes.
+	tmp := common.Cluster{}
+	tmp.ClusterNetworks = cluster.ClusterNetworks
+	tmp.ServiceNetworks = cluster.ServiceNetworks
+	tmp.MachineNetworks = cluster.MachineNetworks
+	if params.ClusterUpdateParams.ClusterNetworks != nil {
+		tmp.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
+	}
+	if params.ClusterUpdateParams.ServiceNetworks != nil {
+		tmp.ServiceNetworks = params.ClusterUpdateParams.ServiceNetworks
+	}
+	if params.ClusterUpdateParams.MachineNetworks != nil {
+		tmp.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
+	}
+	reqV4, reqV6, _ := network.GetConfiguredAddressFamilies(&tmp)
 	reqDualStack := reqV4 && reqV6
 
 	if params.ClusterUpdateParams.APIVip != nil {
