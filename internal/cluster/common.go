@@ -219,7 +219,13 @@ func GetCluster(ctx context.Context, logger logrus.FieldLogger, db *gorm.DB, clu
 }
 
 func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr string) error {
-	// TODO MGMT-7678: Support dual-stack. It requires to indicate primary by a new flag field / ordinal numbering
+	// In case of dual-stack clusters the autocalculation feature is not supported. That means
+	// as soon as we detect that current Machine Network configuration indicates we have such
+	// a cluster, the function stops its execution.
+	reqDualStack := network.CheckIfClusterIsDualStack(cluster)
+	if reqDualStack {
+		return nil
+	}
 
 	previousPrimaryMachineCidr := ""
 	if network.IsMachineCidrAvailable(cluster) {
