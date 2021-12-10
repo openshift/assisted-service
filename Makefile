@@ -452,8 +452,8 @@ _test: $(REPORTS)
 	$(MAKE) _post_test
 
 _unit_test: $(REPORTS)
-	gotestsum $(GO_UNITTEST_FLAGS) $(TEST) $(GINKGO_UNITTEST_FLAGS) -timeout $(TIMEOUT) || ($(MAKE) _post_test && /bin/false)
-	$(MAKE) _post_test
+	gotestsum $(GO_UNITTEST_FLAGS) $(TEST) $(GINKGO_UNITTEST_FLAGS) -timeout $(TIMEOUT) || ($(MAKE) _post_unit_test && /bin/false)
+	$(MAKE) _post_unit_test
 
 _post_test: $(REPORTS)
 	@for name in `find '$(ROOT_DIR)' -name 'junit*.xml' -type f -not -path '$(REPORTS)/*'`; do \
@@ -461,9 +461,20 @@ _post_test: $(REPORTS)
 	done
 	$(MAKE) _coverage
 
+_post_unit_test: $(REPORTS)
+	@for name in `find '$(ROOT_DIR)' -name 'junit*.xml' -type f -not -path '$(REPORTS)/*'`; do \
+		mv -f $$name $(REPORTS)/junit_unit_$$(basename $$(dirname $$name)).xml; \
+	done
+	$(MAKE) _unit_test_coverage
+
 _coverage: $(REPORTS)
 ifeq ($(CI), true)
 	gocov convert $(REPORTS)/$(TEST_SCENARIO)_coverage.out | gocov-xml > $(REPORTS)/$(TEST_SCENARIO)_coverage.xml
+endif
+
+_unit_test_coverage: $(REPORTS)
+ifeq ($(CI), true)
+	gocov convert $(REPORTS)/unit_coverage.out | gocov-xml > $(REPORTS)/unit_coverage.xml
 endif
 
 run-db-container:
