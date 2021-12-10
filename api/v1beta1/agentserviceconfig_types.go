@@ -89,6 +89,8 @@ type AgentServiceConfigSpec struct {
 const (
 	// ConditionReconcileCompleted reports whether reconcile completed without error.
 	ConditionReconcileCompleted conditionsv1.ConditionType = "ReconcileCompleted"
+	// ConditionDeploymentsHealthy reports whether deployments are healthy.
+	ConditionDeploymentsHealthy conditionsv1.ConditionType = "DeploymentsHealthy"
 
 	// ReasonReconcileSucceeded when the reconcile completes all operations without error.
 	ReasonReconcileSucceeded string = "ReconcileSucceeded"

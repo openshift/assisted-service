@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -73,8 +74,10 @@ func AssertReconcileFailure(ctx context.Context, log logrus.FieldLogger, client 
 
 var _ = Describe("agentserviceconfig_controller reconcile", func() {
 	var (
-		asc       *aiv1beta1.AgentServiceConfig
-		ascr      *AgentServiceConfigReconciler
+		asc                                                                                *aiv1beta1.AgentServiceConfig
+		ascr                                                                               *AgentServiceConfigReconciler
+		agentinstalladmissionDeployment, imageServiceDeployment, assistedServiceDeployment *appsv1.Deployment
+
 		ctx       = context.Background()
 		ingressCM = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
@@ -104,13 +107,145 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 
 	BeforeEach(func() {
 		asc = newASCDefault()
-		ascr = newTestReconciler(asc, ingressCM, route, imageRoute)
 	})
 
 	It("reconcile should succeed", func() {
+		agentinstalladmissionDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "agentinstalladmission",
+				Namespace: "assisted-installer",
+			},
+		}
+		imageServiceDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "assisted-image-service",
+				Namespace: "assisted-installer",
+			},
+		}
+		assistedServiceDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "assisted-service",
+				Namespace: "assisted-installer",
+			},
+		}
+		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceDeployment, assistedServiceDeployment)
 		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(Succeed())
 		Expect(result).To(Equal(ctrl.Result{}))
+	})
+
+	It("should set `DeploymentsHealthy` condition to `False` on AgentServiceConfig when a deployment is not Available", func() {
+		agentinstalladmissionDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "agentinstalladmission",
+				Namespace: "assisted-installer",
+			},
+			Status: appsv1.DeploymentStatus{
+				Conditions: []appsv1.DeploymentCondition{
+					{
+						Type:   appsv1.DeploymentAvailable,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
+		}
+		imageServiceDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "assisted-image-service",
+				Namespace: "assisted-installer",
+			},
+			Status: appsv1.DeploymentStatus{
+				Conditions: []appsv1.DeploymentCondition{
+					{
+						Type:   appsv1.DeploymentAvailable,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
+		}
+		assistedServiceDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "assisted-service",
+				Namespace: "assisted-installer",
+			},
+			Status: appsv1.DeploymentStatus{
+				Conditions: []appsv1.DeploymentCondition{
+					{
+						Type:   appsv1.DeploymentAvailable,
+						Status: corev1.ConditionFalse,
+					},
+				},
+			},
+		}
+		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceDeployment, assistedServiceDeployment)
+		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+
+		Expect(err).NotTo(Succeed())
+		Expect(result).NotTo(Equal(ctrl.Result{}))
+
+		instance := &aiv1beta1.AgentServiceConfig{}
+		err = ascr.Get(ctx, types.NamespacedName{Name: "agent"}, instance)
+
+		Expect(err).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Status).To(Equal(corev1.ConditionFalse))
+		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Reason).To(Equal(aiv1beta1.ReasonDeploymentFailure))
+	})
+
+	It("should set `DeploymentsHealthy` condition to `True` on AgentServiceConfig when all the deployments are Available", func() {
+		agentinstalladmissionDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "agentinstalladmission",
+				Namespace: "assisted-installer",
+			},
+			Status: appsv1.DeploymentStatus{
+				Conditions: []appsv1.DeploymentCondition{
+					{
+						Type:   appsv1.DeploymentAvailable,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
+		}
+		imageServiceDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "assisted-image-service",
+				Namespace: "assisted-installer",
+			},
+			Status: appsv1.DeploymentStatus{
+				Conditions: []appsv1.DeploymentCondition{
+					{
+						Type:   appsv1.DeploymentAvailable,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
+		}
+		assistedServiceDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "assisted-service",
+				Namespace: "assisted-installer",
+			},
+			Status: appsv1.DeploymentStatus{
+				Conditions: []appsv1.DeploymentCondition{
+					{
+						Type:   appsv1.DeploymentAvailable,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
+		}
+		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceDeployment, assistedServiceDeployment)
+		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+
+		Expect(err).To(Succeed())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		instance := &aiv1beta1.AgentServiceConfig{}
+		err = ascr.Get(ctx, types.NamespacedName{Name: "agent"}, instance)
+
+		Expect(err).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Reason).To(Equal(aiv1beta1.ReasonDeploymentFailure))
 	})
 })
 

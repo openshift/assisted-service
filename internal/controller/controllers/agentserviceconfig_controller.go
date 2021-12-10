@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	pkgerror "github.com/pkg/errors"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	admregv1 "k8s.io/api/admissionregistration/v1"
@@ -107,6 +108,7 @@ type AgentServiceConfigReconciler struct {
 }
 
 type NewComponentFn func(context.Context, logrus.FieldLogger, *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error)
+type ComponentStatusFn func(context.Context, logrus.FieldLogger, string, appsv1.DeploymentConditionType) error
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs/status,verbs=get;update;patch
@@ -239,6 +241,44 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		Reason:  aiv1beta1.ReasonReconcileSucceeded,
 		Message: msg,
 	})
+
+	for _, component := range []struct {
+		name          string
+		conditionType appsv1.DeploymentConditionType
+		fn            ComponentStatusFn
+	}{
+		{"agentinstalladmission", appsv1.DeploymentAvailable, r.deploymentStatus},
+		{"agentinstalladmission", appsv1.DeploymentProgressing, r.deploymentStatus},
+		{"assisted-image-service", appsv1.DeploymentAvailable, r.deploymentStatus},
+		{"assisted-image-service", appsv1.DeploymentProgressing, r.deploymentStatus},
+		{"assisted-service", appsv1.DeploymentAvailable, r.deploymentStatus},
+		{"assisted-service", appsv1.DeploymentProgressing, r.deploymentStatus},
+	} {
+		err := component.fn(ctx, log, component.name, component.conditionType)
+		if err != nil {
+			msg := "Deployment " + component.name + " is unhealthy."
+			log.WithError(err).Error(msg)
+			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+				Type:    aiv1beta1.ConditionDeploymentsHealthy,
+				Status:  corev1.ConditionFalse,
+				Reason:  aiv1beta1.ReasonDeploymentFailure,
+				Message: msg,
+			})
+			if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
+				log.WithError(err).Error("Failed to update status")
+				return ctrl.Result{Requeue: true}, statusErr
+			}
+			return ctrl.Result{Requeue: true}, err
+		}
+	}
+
+	conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.ConditionDeploymentsHealthy,
+		Status:  corev1.ConditionTrue,
+		Reason:  aiv1beta1.ReasonDeploymentFailure,
+		Message: "All the deployments managed by Infrastructure-operator are healthy.",
+	})
+
 	return ctrl.Result{}, r.Status().Update(ctx, instance)
 }
 
@@ -271,6 +311,21 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Owns(&apiregv1.APIService{}).
 		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, ingressCMHandler, ingressCMPredicates).
 		Complete(r)
+}
+
+func (r *AgentServiceConfigReconciler) deploymentStatus(ctx context.Context, log logrus.FieldLogger, deploymentName string, conditionType appsv1.DeploymentConditionType) error {
+	deployment := &appsv1.Deployment{}
+	if err := r.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: "assisted-installer"}, deployment); err != nil {
+		return err
+	}
+	for _, condition := range deployment.Status.Conditions {
+		if condition.Type == conditionType && condition.Status == corev1.ConditionFalse {
+			errMsg := fmt.Sprintf("Deployment: %s ConditionType: %s ConditionStatus: %s", deploymentName, conditionType, condition.Status)
+			log.Error(errMsg)
+			return pkgerror.New(errMsg)
+		}
+	}
+	return nil
 }
 
 func (r *AgentServiceConfigReconciler) newFilesystemPVC(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
