@@ -152,7 +152,7 @@ type InstallerInternals interface {
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error)
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
-	AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret string) (*models.ReleaseImage, error)
+	AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error)
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
 	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams) (*common.Host, error)
 	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
@@ -5601,11 +5601,11 @@ func (b *bareMetalInventory) ResetHostValidation(ctx context.Context, params ins
 	return installer.NewResetHostValidationOK()
 }
 
-func (b *bareMetalInventory) AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret string) (*models.ReleaseImage, error) {
+func (b *bareMetalInventory) AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
 	log := logutil.FromContext(ctx, b.log)
 
 	// Create a new OpenshiftVersion and add it to versions cache
-	releaseImage, err := b.versionsHandler.AddReleaseImage(releaseImageUrl, pullSecret)
+	releaseImage, err := b.versionsHandler.AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to add OCP version for release image: %s", releaseImageUrl)
 		return nil, err

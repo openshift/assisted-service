@@ -371,7 +371,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 		}
 
 		// Ensure release image exists in versions cache
-		_, err = r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret)
+		_, err = r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret, cluster)
 		if err != nil {
 			log.WithError(err)
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
@@ -400,7 +400,7 @@ func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log
 		}
 		if r.HostApi.IsInstallable(h) && commonh.Approved {
 			// Ensure release image exists in versions cache
-			_, err = r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret)
+			_, err = r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret, cluster)
 			if err != nil {
 				log.WithError(err)
 				return r.updateStatus(ctx, log, clusterInstall, cluster, err)
@@ -966,7 +966,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
-	releaseImage, err := r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret)
+	releaseImage, err := r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret, nil)
 	if err != nil {
 		log.WithError(err)
 		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
@@ -1064,7 +1064,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
-	releaseImage, err := r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret)
+	releaseImage, err := r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret, nil)
 	if err != nil {
 		log.WithError(err)
 		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
@@ -1104,14 +1104,23 @@ func (r *ClusterDeploymentsReconciler) getReleaseImage(ctx context.Context, spec
 func (r *ClusterDeploymentsReconciler) addReleaseImage(
 	ctx context.Context,
 	spec hiveext.AgentClusterInstallSpec,
-	pullSecret string) (*models.ReleaseImage, error) {
+	pullSecret string,
+	cluster *common.Cluster) (*models.ReleaseImage, error) {
+
+	var ocpReleaseVersion string
+	var cpuArchitecture string
+	if cluster != nil {
+		// Fetch release version and cpu architecture from the existing cluster
+		ocpReleaseVersion = cluster.OpenshiftVersion
+		cpuArchitecture = cluster.CPUArchitecture
+	}
 
 	releaseImageUrl, err := r.getReleaseImage(ctx, spec)
 	if err != nil {
 		return nil, err
 	}
 
-	releaseImage, err := r.Installer.AddReleaseImage(ctx, releaseImageUrl, pullSecret)
+	releaseImage, err := r.Installer.AddReleaseImage(ctx, releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to add release image: %s", releaseImageUrl)
 		return nil, err

@@ -13870,17 +13870,17 @@ var _ = Describe("AddReleaseImage", func() {
 	})
 
 	It("successfully added version", func() {
-		mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 
-		image, err := bm.AddReleaseImage(ctx, releaseImage, pullSecret)
+		image, err := bm.AddReleaseImage(ctx, releaseImage, pullSecret, "", "")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(image).Should(Equal(common.TestDefaultConfig.ReleaseImage))
 	})
 
 	It("failed to added version", func() {
-		mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed")).Times(1)
+		mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("failed")).Times(1)
 
-		_, err := bm.AddReleaseImage(ctx, releaseImage, pullSecret)
+		_, err := bm.AddReleaseImage(ctx, releaseImage, pullSecret, "", "")
 		Expect(err).Should(HaveOccurred())
 	})
 })

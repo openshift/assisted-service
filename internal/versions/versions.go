@@ -39,7 +39,7 @@ type Handler interface {
 	GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error)
 	GetCPUArchitectures(openshiftVersion string) ([]string, error)
 	GetOpenshiftVersions() []string
-	AddReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error)
+	AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error)
 }
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
@@ -232,17 +232,21 @@ func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, err
 	return latest, nil
 }
 
-func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error) {
-	// Get openshift version from release image metadata (oc adm release info)
-	ocpReleaseVersion, err := h.releaseHandler.GetOpenshiftVersion(h.log, releaseImageUrl, "", pullSecret)
-	if err != nil {
-		return nil, err
-	}
+func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
+	var err error
+	// If release version or cpu architecture are not specified, use oc to fetch values
+	if ocpReleaseVersion == "" || cpuArchitecture == "" {
+		// Get openshift version from release image metadata (oc adm release info)
+		ocpReleaseVersion, err = h.releaseHandler.GetOpenshiftVersion(h.log, releaseImageUrl, "", pullSecret)
+		if err != nil {
+			return nil, err
+		}
 
-	// Get CPU architecture from release image
-	cpuArchitecture, err := h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, pullSecret)
-	if err != nil {
-		return nil, err
+		// Get CPU architecture from release image
+		cpuArchitecture, err = h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, pullSecret)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Get minor version
