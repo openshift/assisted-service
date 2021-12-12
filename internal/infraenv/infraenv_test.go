@@ -155,6 +155,8 @@ var _ = Describe("Delete inactive infraenvs", func() {
 	It("Deregister inactive infraEnv with non existing cluster", func() {
 		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(2)
 		infraEnv2 := registerInfraEnv(strfmt.UUID(uuid.New().String()))
+		// To verify that lastActive is greater than the updatedAt field of infraEnv2
+		time.Sleep(time.Millisecond)
 		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
 		Expect(wasDeleted(db, *infraEnv2.ID)).To(BeTrue())
 		Expect(wasDeleted(db, *infraEnv.ID)).To(BeTrue())
