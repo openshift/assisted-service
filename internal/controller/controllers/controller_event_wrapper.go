@@ -121,6 +121,6 @@ func (c *controllerEventsWrapper) NotifyKubeApiInfraEnvEvent(infraEnvId strfmt.U
 		return
 	}
 
-	c.log.Debugf("Pushing InfraEnv event %s %s", ie.Name, ie.KubeKeyNamespace)
+	c.log.Debugf("Pushing InfraEnv event %s %s", swag.StringValue(ie.Name), ie.KubeKeyNamespace)
 	c.crdEventsHandler.NotifyInfraEnvUpdates(swag.StringValue(ie.Name), ie.KubeKeyNamespace)
 }
