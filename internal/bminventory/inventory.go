@@ -1450,8 +1450,8 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 			return err
 		}
 
-		details := b.getIgnitionConfigForLogging(ctx, infraEnv, log, imageType)
-		eventgen.SendImageInfoUpdatedEvent(ctx, b.eventsHandler, *infraEnv.ID, details)
+		// details := b.getIgnitionConfigForLogging(ctx, infraEnv, log, imageType) #TODO: uncomment before merge.
+		// eventgen.SendImageInfoUpdatedEvent(ctx, b.eventsHandler, *infraEnv.ID, details)
 
 		return nil
 	} else if imageExists {
@@ -6138,6 +6138,7 @@ func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context,
 func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInfraEnvParams, infraEnv *common.InfraEnv, updates map[string]interface{}, log logrus.FieldLogger) error {
 	if params.InfraEnvUpdateParams.AdditionalNtpSources != nil {
 		ntpSource := swag.StringValue(params.InfraEnvUpdateParams.AdditionalNtpSources)
+		log.Infof("inspect AdditionalNtpSources: %s", ntpSource)
 		additionalNtpSourcesDefined := ntpSource != ""
 
 		if additionalNtpSourcesDefined && !validations.ValidateAdditionalNTPSource(ntpSource) {

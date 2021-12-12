@@ -1421,7 +1421,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			HTTPProxy:  "http://192.168.1.2",
 			HTTPSProxy: "http://192.168.1.3",
 		}
-		infraEnvSpec.AdditionalNTPSources = []string{"192.168.1.4"}
+		infraEnvSpec.AdditionalNTPSources = []string{"192.168.1.4", "www.example.com"}
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1442,6 +1442,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		})
 		By("Validate additional NTP settings.")
 		Expect(infraEnv.AdditionalNtpSources).Should(ContainSubstring("192.168.1.4"))
+		Expect(infraEnv.AdditionalNtpSources).Should(ContainSubstring("www.example.com"))
+
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.AdditionalNtpSource).Should(ContainSubstring("192.168.1.4"))
+		Expect(cluster.AdditionalNtpSource).Should(ContainSubstring("www.example.com"))
+
 		By("InfraEnv image type defaults to minimal-iso.")
 		Expect(common.ImageTypeValue(infraEnv.Type)).Should(Equal(models.ImageTypeMinimalIso))
 	})
