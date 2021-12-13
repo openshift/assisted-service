@@ -2596,16 +2596,26 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
 
-	// We are checking if the cluster is requested to be a dual-stack cluster based on the Cluster
-	// Networks provided.
-	//
-	// TODO(mko) As updateNonDhcpNetworkParams is called before updateNetworks, this check looks
-	//           at the already configured networks and not the ones inside V2UpdateClusterParams.
-	//           An extension would be to check if V2UpdateClusterParams configures any of those
-	//           and if that's the case, instead of GetConfiguredAddressFamilies(cluster) we
-	//           should call something like GetRequestedAddressFamilies(cluster).
-	reqV4, reqV6, _ := network.GetConfiguredAddressFamilies(cluster)
-	reqDualStack := reqV4 && reqV6
+	// In order to check if the cluster is dual-stack or single-stack we are building a structure
+	// that is a merge of the current cluster configuration and new configuration coming from
+	// V2UpdateClusterParams. This ensures that the reqDualStack flag reflects a desired state and
+	// not the stale one.
+	// We need to do it because updateNonDhcpNetworkParams is called before updateNetworks, so
+	// inside this function here cluster object has still values before applying requested changes.
+	targetConfiguration := common.Cluster{}
+	targetConfiguration.ClusterNetworks = cluster.ClusterNetworks
+	targetConfiguration.ServiceNetworks = cluster.ServiceNetworks
+	targetConfiguration.MachineNetworks = cluster.MachineNetworks
+	if params.ClusterUpdateParams.ClusterNetworks != nil {
+		targetConfiguration.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
+	}
+	if params.ClusterUpdateParams.ServiceNetworks != nil {
+		targetConfiguration.ServiceNetworks = params.ClusterUpdateParams.ServiceNetworks
+	}
+	if params.ClusterUpdateParams.MachineNetworks != nil {
+		targetConfiguration.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
+	}
+	reqDualStack := network.CheckIfClusterIsDualStack(&targetConfiguration)
 
 	if params.ClusterUpdateParams.APIVip != nil {
 		updates["api_vip"] = *params.ClusterUpdateParams.APIVip
@@ -2637,36 +2647,47 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	if interactivity == Interactive && (params.ClusterUpdateParams.APIVip != nil || params.ClusterUpdateParams.IngressVip != nil) {
 		var primaryMachineNetworkCidr string
 		matchRequired := apiVip != "" || ingressVip != ""
-		primaryMachineNetworkCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts, matchRequired)
-		if err != nil {
-			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Calculate machine network CIDR"))
-		}
-		if primaryMachineNetworkCidr != "" {
-			if network.IsMachineCidrAvailable(cluster) {
-				cluster.MachineNetworks[0].Cidr = models.Subnet(primaryMachineNetworkCidr)
-			} else {
-				cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
-			}
-			updates["machine_network_cidr"] = primaryMachineNetworkCidr
-		}
-		err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, apiVip, ingressVip, false, log)
-		if err != nil {
-			log.WithError(err).Warnf("Verify VIPs")
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
 
-		if params.ClusterUpdateParams.MachineNetworks != nil {
-			err = network.VerifyMachineNetworksDualStack(params.ClusterUpdateParams.MachineNetworks, reqDualStack)
+		// We want to calculate Machine Network based on the API/Ingress VIPs only in case of the
+		// single-stack cluster. Autocalculation is not supported for dual-stack in which we
+		// require that user explictly provides all the Machine Networks.
+		if reqDualStack {
+			if params.ClusterUpdateParams.MachineNetworks != nil {
+				cluster.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
+				primaryMachineNetworkCidr = string(params.ClusterUpdateParams.MachineNetworks[0].Cidr)
+			} else {
+				primaryMachineNetworkCidr = network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
+			}
+
+			err = network.VerifyMachineNetworksDualStack(targetConfiguration.MachineNetworks, reqDualStack)
 			if err != nil {
 				log.WithError(err).Warnf("Verify dual-stack machine networks")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 		} else {
-			err = network.VerifyMachineNetworksDualStack(cluster.MachineNetworks, reqDualStack)
+			primaryMachineNetworkCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts, matchRequired)
 			if err != nil {
-				log.WithError(err).Warnf("Verify dual-stack machine networks")
-				return common.NewApiError(http.StatusBadRequest, err)
+				return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Calculate machine network CIDR"))
 			}
+			if primaryMachineNetworkCidr != "" {
+				if network.IsMachineCidrAvailable(cluster) {
+					cluster.MachineNetworks[0].Cidr = models.Subnet(primaryMachineNetworkCidr)
+				} else {
+					cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
+				}
+				// In case we calculated Machine Network automatically (because conditions for
+				// doing so were met), we update the `params` payload so that from the
+				// perspective of the DB write/delete actions it looks like a valid update
+				// operation. Without that we don't have other way to mark this field of the
+				// cluster as dirty.
+				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
+			}
+		}
+
+		err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, apiVip, ingressVip, false, log)
+		if err != nil {
+			log.WithError(err).Warnf("Verify VIPs")
+			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
 
@@ -2940,17 +2961,26 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 		}
 	}
 
-	// TODO: Update machine CIDR only if necessary
-	// The machine cidr can be resetted, calculated and provided by the user
-	if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.MachineNetwork{}).Error; err != nil {
-		err = errors.Wrapf(err, "failed to delete machine networks of cluster %s", *cluster.ID)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	for _, machineNetwork := range cluster.MachineNetworks {
-		machineNetwork.ClusterID = *cluster.ID
-		if err = db.Save(machineNetwork).Error; err != nil {
-			err = errors.Wrapf(err, "failed to update machine network %v of cluster %s", *machineNetwork, params.ClusterID)
+	// Updating Machine CIDR can happen only in the following scenarios
+	// * explicitly provided as a payload
+	// * autocalculation based on the API/Ingress VIP and Host subnet
+	// * reset because change of the state of UserManagedNetworking or VipDhcpAllocation
+	//
+	// In case of autocalculation, the new value is injected into ClusterUpdateParams therefore
+	// no additional detection of this scenario is required.
+	if params.ClusterUpdateParams.MachineNetworks != nil ||
+		params.ClusterUpdateParams.UserManagedNetworking != cluster.UserManagedNetworking ||
+		params.ClusterUpdateParams.VipDhcpAllocation != cluster.VipDhcpAllocation {
+		if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.MachineNetwork{}).Error; err != nil {
+			err = errors.Wrapf(err, "failed to delete machine networks of cluster %s", *cluster.ID)
 			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		for _, machineNetwork := range cluster.MachineNetworks {
+			machineNetwork.ClusterID = *cluster.ID
+			if err = db.Save(machineNetwork).Error; err != nil {
+				err = errors.Wrapf(err, "failed to update machine network %v of cluster %s", *machineNetwork, params.ClusterID)
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
 		}
 	}
 

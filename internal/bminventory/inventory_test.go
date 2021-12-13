@@ -6768,8 +6768,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						"Setting Machine network CIDR is forbidden when cluster is not in vip-dhcp-allocation mode")
 				})
 				It("Machine network CIDR in non dhcp for dual-stack", func() {
-					mockSuccess(2)
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockSuccess(1)
 
 					apiVip := "10.11.12.15"
 					ingressVip := "10.11.12.16"
@@ -6779,16 +6778,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							APIVip:          &apiVip,
 							IngressVip:      &ingressVip,
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
-						},
-					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-
-					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          &apiVip,
-							IngressVip:      &ingressVip,
-							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.12.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
+							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -6806,6 +6796,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							APIVip:          &apiVip,
 							IngressVip:      &ingressVip,
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
+							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -6819,6 +6810,20 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
+				})
+				It("API VIP in wrong subnet for dual-stack", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:          &apiVip,
+							IngressVip:      &ingressVip,
+							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
+							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.12.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <10.11.12.15> does not belong to machine-network-cidr <10.12.0.0/16>")
 				})
 			})
 			Context("Advanced networking validations", func() {
