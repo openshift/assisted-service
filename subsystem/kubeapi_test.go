@@ -477,6 +477,28 @@ func getDefaultAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.Ag
 	}
 }
 
+func getDefaultNonePlatformAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.AgentClusterInstallSpec {
+	return &hiveext.AgentClusterInstallSpec{
+		Networking: hiveext.Networking{
+			MachineNetwork: []hiveext.MachineNetworkEntry{},
+			ClusterNetwork: []hiveext.ClusterNetworkEntry{{
+				CIDR:       "10.128.0.0/14",
+				HostPrefix: 23,
+			}},
+			ServiceNetwork:        []string{"172.30.0.0/16"},
+			NetworkType:           models.ClusterNetworkTypeOpenShiftSDN,
+			UserManagedNetworking: true,
+		},
+		SSHPublicKey: sshPublicKey,
+		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
+		ProvisionRequirements: hiveext.ProvisionRequirements{
+			ControlPlaneAgents: 3,
+			WorkerAgents:       0,
+		},
+		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterDeploymentName},
+	}
+}
+
 func getDefaultSNOAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.AgentClusterInstallSpec {
 	return &hiveext.AgentClusterInstallSpec{
 		Networking: hiveext.Networking{
@@ -719,6 +741,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnvSpec          *v1beta1.InfraEnvSpec
 		infraNsName           types.NamespacedName
 		aciSpec               *hiveext.AgentClusterInstallSpec
+		aciSpecNonePlatform   *hiveext.AgentClusterInstallSpec
 		aciSNOSpec            *hiveext.AgentClusterInstallSpec
 		aciV6Spec             *hiveext.AgentClusterInstallSpec
 		secretRef             *corev1.LocalObjectReference
@@ -728,6 +751,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef = deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec = getDefaultClusterDeploymentSpec(secretRef)
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpecNonePlatform = getDefaultNonePlatformAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSNOSpec = getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciV6Spec = getDefaultAgentClusterIPv6InstallSpec(clusterDeploymentSpec.ClusterName)
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
@@ -820,6 +844,75 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, h := range hosts {
 			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		}
+
+		By("Approve Agents")
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		By("Verify ClusterDeployment ReadyForInstallation")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
+		By("Delete ClusterDeployment")
+		err := kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))
+		Expect(err).To(BeNil())
+		By("Verify AgentClusterInstall was deleted")
+		Eventually(func() bool {
+			aci := &hiveext.AgentClusterInstall{}
+			err := kubeClient.Get(ctx, installkey, aci)
+			return apierrors.IsNotFound(err)
+		}, "30s", "10s").Should(Equal(true))
+		By("Verify ClusterDeployment Agents were deleted")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
+	})
+
+	It("deploy None platform CD with ACI and agents - wait for ready, delete CD and verify ACI and agents deletion", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpecNonePlatform, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
+			hosts = append(hosts, host)
+		}
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
+		}
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			generateCommonDomainReply(ctx, h, clusterDeploymentSpec.ClusterName, clusterDeploymentSpec.BaseDomain)
 		}
 
 		By("Approve Agents")

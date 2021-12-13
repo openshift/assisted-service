@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	operatorsClient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	usageMgr "github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
@@ -400,6 +401,38 @@ func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host
 
 func generateDomainResolution(ctx context.Context, h *models.Host, name string, baseDomain string) {
 	generateDomainNameResolutionReply(ctx, h, *common.CreateWildcardDomainNameResolutionReply(name, baseDomain))
+}
+
+func generateCommonDomainReply(ctx context.Context, h *models.Host, clusterName, baseDomain string) {
+	fqdn := func(domainPrefix, clusterName, baseDomain string) *string {
+		return swag.String(fmt.Sprintf("%s.%s.%s", domainPrefix, clusterName, baseDomain))
+	}
+	var domainResolutions = []*models.DomainResolutionResponseDomain{
+		{
+			DomainName:    fqdn(constants.APIName, clusterName, baseDomain),
+			IPV4Addresses: []strfmt.IPv4{"1.2.3.4/24"},
+			IPV6Addresses: []strfmt.IPv6{"1001:db8::10/120"},
+		},
+		{
+			DomainName:    fqdn(constants.APIInternalName, clusterName, baseDomain),
+			IPV4Addresses: []strfmt.IPv4{"4.5.6.7/24"},
+			IPV6Addresses: []strfmt.IPv6{"1002:db8::10/120"},
+		},
+		{
+			DomainName:    fqdn(constants.AppsSubDomainNameHostDNSValidation+".apps", clusterName, baseDomain),
+			IPV4Addresses: []strfmt.IPv4{"7.8.9.10/24"},
+			IPV6Addresses: []strfmt.IPv6{"1003:db8::10/120"},
+		},
+		{
+			DomainName:    fqdn(constants.DNSWildcardFalseDomainName, clusterName, baseDomain),
+			IPV4Addresses: []strfmt.IPv4{},
+			IPV6Addresses: []strfmt.IPv6{},
+		},
+	}
+	var domainResolutionResponse = models.DomainResolutionResponse{
+		Resolutions: domainResolutions,
+	}
+	generateDomainNameResolutionReply(ctx, h, domainResolutionResponse)
 }
 
 func generateEssentialPrepareForInstallationSteps(ctx context.Context, hosts ...*models.Host) {

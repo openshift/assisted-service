@@ -249,6 +249,10 @@ type Networking struct {
 	// +kubebuilder:validation:Enum=OpenShiftSDN;OVNKubernetes
 	// +optional
 	NetworkType string `json:"networkType,omitempty"`
+
+	// UserManagedNetworking indicates if the networking is managed by the user.
+	// +optional
+	UserManagedNetworking bool `json:"userManagedNetworking,omitempty"`
 }
 
 // MachineNetworkEntry is a single IP address block for node IP blocks.
