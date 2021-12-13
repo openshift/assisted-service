@@ -1130,7 +1130,7 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infr
 	return nil
 }
 
-func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType) error {
+func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType) error {
 	updates := map[string]interface{}{}
 
 	// this is updated before now for the v2 (infraEnv) case, but not in the cluster ISO case so we need to check if we should save it here
@@ -1182,6 +1182,8 @@ func (b *bareMetalInventory) updateExternalImageInfo(infraEnv *common.InfraEnv, 
 			return errors.Wrap(err, "failed to create download URL")
 		}
 
+		details := b.getIgnitionConfigForLogging(ctx, infraEnv, b.log, imageType)
+		eventgen.SendImageInfoUpdatedEvent(ctx, b.eventsHandler, *infraEnv.ID, details)
 		updates["download_url"] = infraEnv.DownloadURL
 		updates["generated"] = true
 		infraEnv.Generated = true
@@ -1446,12 +1448,9 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 
 	// return without generating the image if we're using the image service or if the image has already been generated
 	if b.ImageServiceBaseURL != "" {
-		if err = b.updateExternalImageInfo(infraEnv, infraEnvProxyHash, imageType); err != nil {
+		if err = b.updateExternalImageInfo(ctx, infraEnv, infraEnvProxyHash, imageType); err != nil {
 			return err
 		}
-
-		details := b.getIgnitionConfigForLogging(ctx, infraEnv, log, imageType)
-		eventgen.SendImageInfoUpdatedEvent(ctx, b.eventsHandler, *infraEnv.ID, details)
 
 		return nil
 	} else if imageExists {
