@@ -2,8 +2,10 @@ package infraenv
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
@@ -75,6 +77,170 @@ var _ = Describe("DeregisterInfraEnv", func() {
 		Expect(state.DeregisterInfraEnv(ctx, *infraEnv.ID)).To(Equal(expectedError))
 		_, err := common.GetInfraEnvFromDB(db, *infraEnv.ID)
 		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("Delete inactive infraenvs", func() {
+	var (
+		ctrl         *gomock.Controller
+		ctx          = context.Background()
+		db           *gorm.DB
+		state        API
+		infraEnv     common.InfraEnv
+		dbName       string
+		mockS3Client *s3wrapper.MockAPI
+	)
+
+	registerInfraEnv := func(clusterId strfmt.UUID) common.InfraEnv {
+		id := strfmt.UUID(uuid.New().String())
+		ie := common.InfraEnv{InfraEnv: models.InfraEnv{
+			ID:        &id,
+			ClusterID: clusterId,
+		}}
+		Expect(db.Create(&ie).Error).ShouldNot(HaveOccurred())
+		return ie
+	}
+
+	addHosts := func(clusterId, infraEnvId strfmt.UUID) {
+		var hostId strfmt.UUID
+		var host models.Host
+		for i := 0; i < 3; i++ {
+			hostId = strfmt.UUID(uuid.New().String())
+			host = models.Host{
+				ID:         &hostId,
+				InfraEnvID: infraEnvId,
+				ClusterID:  &clusterId,
+				Role:       models.HostRoleMaster,
+				Status:     swag.String("known"),
+				Inventory:  common.GenerateTestDefaultInventory(),
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		}
+	}
+
+	wasDeleted := func(db *gorm.DB, infraEnv strfmt.UUID) bool {
+		_, err := common.GetInfraEnvFromDBWhere(db, "id = ?", infraEnv.String())
+		return errors.Is(err, gorm.ErrRecordNotFound)
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db, dbName = common.PrepareTestDB()
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		state = NewManager(common.GetTestLog(), db, mockS3Client)
+		infraEnv = registerInfraEnv("")
+	})
+
+	It("Deregister inactive infraEnv", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(wasDeleted(db, *infraEnv.ID)).To(BeTrue())
+	})
+
+	It("Deregister inactive infraEnv with hosts", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+		addHosts("", *infraEnv.ID)
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(wasDeleted(db, *infraEnv.ID)).To(BeTrue())
+		hosts, err := common.GetInfraEnvHostsFromDB(db, *infraEnv.ID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(hosts)).Should(Equal(0))
+	})
+
+	It("Deregister inactive infraEnv with non existing cluster", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(2)
+		infraEnv2 := registerInfraEnv(strfmt.UUID(uuid.New().String()))
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(wasDeleted(db, *infraEnv2.ID)).To(BeTrue())
+		Expect(wasDeleted(db, *infraEnv.ID)).To(BeTrue())
+	})
+
+	It("Deregister inactive infraEnv with non existing cluster with hosts", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(2)
+		clusterId := strfmt.UUID(uuid.New().String())
+		infraEnv2 := registerInfraEnv(clusterId)
+		addHosts(clusterId, *infraEnv2.ID)
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(wasDeleted(db, *infraEnv2.ID)).To(BeTrue())
+		Expect(wasDeleted(db, *infraEnv.ID)).To(BeTrue())
+		hosts, err := common.GetInfraEnvHostsFromDB(db, *infraEnv2.ID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(hosts)).Should(Equal(0))
+	})
+
+	It("Do nothing, inactive infraEnv with existing cluster", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+		clusterId := strfmt.UUID(uuid.New().String())
+		infraEnv2 := registerInfraEnv(clusterId)
+		cluster := common.Cluster{Cluster: models.Cluster{
+			ID: &clusterId,
+		}}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(wasDeleted(db, *infraEnv2.ID)).To(BeFalse())
+		Expect(wasDeleted(db, *infraEnv.ID)).To(BeTrue())
+	})
+
+	It("Do nothing, active infraEnv", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Times(0)
+		lastActive := strfmt.DateTime(time.Now().Add(-time.Hour))
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, lastActive)).ShouldNot(HaveOccurred())
+		Expect(wasDeleted(db, *infraEnv.ID)).To(BeFalse())
+	})
+
+	It("Delete inactive infraEnvs with new infraEnvs", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(4)
+		inactiveInfraEnv1 := registerInfraEnv("")
+		inactiveInfraEnv2 := registerInfraEnv("")
+		inactiveInfraEnv3 := registerInfraEnv("")
+
+		// To verify that lastActive is greater than the updatedAt field of inactiveCluster3
+		time.Sleep(time.Millisecond)
+		lastActive := strfmt.DateTime(time.Now())
+
+		activeInfraEnv1 := registerInfraEnv("")
+		activeInfraEnv2 := registerInfraEnv("")
+		activeInfraEnv3 := registerInfraEnv("")
+
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, lastActive)).ShouldNot(HaveOccurred())
+
+		Expect(wasDeleted(db, *inactiveInfraEnv1.ID)).To(BeTrue())
+		Expect(wasDeleted(db, *inactiveInfraEnv2.ID)).To(BeTrue())
+		Expect(wasDeleted(db, *inactiveInfraEnv3.ID)).To(BeTrue())
+
+		Expect(wasDeleted(db, *activeInfraEnv1.ID)).To(BeFalse())
+		Expect(wasDeleted(db, *activeInfraEnv2.ID)).To(BeFalse())
+		Expect(wasDeleted(db, *activeInfraEnv3.ID)).To(BeFalse())
+	})
+
+	It("Delete inactive infraEnvs with new infraEnvs - limited", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(3)
+		inactiveInfraEnv1 := registerInfraEnv("")
+		inactiveInfraEnv2 := registerInfraEnv("")
+		inactiveInfraEnv3 := registerInfraEnv("")
+		inactiveInfraEnv4 := registerInfraEnv("")
+		inactiveInfraEnv5 := registerInfraEnv("")
+		inactiveInfraEnv6 := registerInfraEnv("")
+
+		// To verify that lastActive is greater than the updatedAt field of inactiveInfraEnv3
+		time.Sleep(time.Millisecond)
+		lastActive := strfmt.DateTime(time.Now())
+
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 3, lastActive)).ShouldNot(HaveOccurred())
+
+		Expect(wasDeleted(db, *inactiveInfraEnv1.ID)).To(BeTrue())
+		Expect(wasDeleted(db, *inactiveInfraEnv2.ID)).To(BeTrue())
+
+		Expect(wasDeleted(db, *inactiveInfraEnv3.ID)).To(BeFalse())
+		Expect(wasDeleted(db, *inactiveInfraEnv4.ID)).To(BeFalse())
+		Expect(wasDeleted(db, *inactiveInfraEnv5.ID)).To(BeFalse())
+		Expect(wasDeleted(db, *inactiveInfraEnv6.ID)).To(BeFalse())
+
 	})
 
 	AfterEach(func() {
