@@ -90,8 +90,9 @@ def get_manifest_from_url(tag):
 
 def get_image_revision_from_manifest(short_image_name, manifest):
     for repo, repo_info in manifest.items():
-        if short_image_name in repo_info["images"]:
-            return repo_info["revision"]
+        for image in repo_info["images"]:
+            if short_image_name == image.split('/')[-1]:
+                return repo_info["revision"]
     raise Exception("Failed to find revision for image: %s" % short_image_name)
 
 
