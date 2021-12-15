@@ -97,3 +97,15 @@ func CheckIfClusterIsDualStack(c *common.Cluster) bool {
 
 	return dualStack
 }
+
+// Wrapper around CheckIfClusterIsDualStack function allowing to pass models.Cluster instead of
+// common.Cluster object.
+func CheckIfClusterModelIsDualStack(c *models.Cluster) bool {
+	cluster := common.Cluster{}
+	if c != nil {
+		cluster.MachineNetworks = c.MachineNetworks
+		cluster.ServiceNetworks = c.ServiceNetworks
+		cluster.ClusterNetworks = c.ClusterNetworks
+	}
+	return CheckIfClusterIsDualStack(&cluster)
+}

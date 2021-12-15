@@ -19,6 +19,8 @@ const (
 	OVNNetworkTypeUsage string = "OVN network type"
 	//cluster is using SDN network type
 	SDNNetworkTypeUsage string = "SDN network type"
+	//cluster is dual-stack
+	DualStackUsage string = "Dual-stack"
 	//usage of platform provider other than baremetal
 	PlatformSelectionUsage string = "Platform selection"
 	//usage of schedulable masters
