@@ -102,6 +102,15 @@ parameters:
 - name: DISABLED_STEPS
   value: ""
   required: false
+- name: MAX_GC_INFRAENVS_PER_INTERVAL
+  value: "100"
+  required: false
+- name: INFRAENV_DELETED_INACTIVE_AFTER
+  value: "480h"
+  required: false
+- name: INFRAENV_DELETION_WORKER_INTERVAL
+  value: "1h"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
@@ -305,6 +314,12 @@ objects:
                 value: ${ENABLE_AUTO_ASSIGN}
               - name: DISK_ENCRYPTION_SUPPORT
                 value: ${DISK_ENCRYPTION_SUPPORT}
+              - name: MAX_GC_INFRAENVS_PER_INTERVAL
+                value: ${MAX_GC_INFRAENVS_PER_INTERVAL}
+              - name: INFRAENV_DELETION_WORKER_INTERVAL
+                value: ${INFRAENV_DELETION_WORKER_INTERVAL}
+              - name: INFRAENV_DELETED_INACTIVE_AFTER
+                value: ${INFRAENV_DELETED_INACTIVE_AFTER}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
