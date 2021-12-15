@@ -7,7 +7,7 @@ import yaml
 
 LOCAL_TARGET = 'local'
 INGRESS_REMOTE_TARGET = 'oc-ingress'
-IMAGE_FQDN_TEMPLATE = "quay.io/ocpmetal/{}:{}"
+IMAGE_FQDN_TEMPLATE = "quay.io/{}/{}:{}"
 OCP_TARGET = 'ocp'
 OPENSHIFT_TARGET = 'oc'
 
@@ -100,7 +100,7 @@ def get_tag(image_fqdn):
     return image_fqdn.split(":")[-1]
 
 
-def get_image_override(deployment_options, short_image_name, env_var_name):
+def get_image_override(deployment_options, short_image_name, env_var_name, org="ocpmetal"):
     # default tag is latest
     tag = "latest"
     image_from_env = os.environ.get(env_var_name)
@@ -122,6 +122,6 @@ def get_image_override(deployment_options, short_image_name, env_var_name):
         print("{} image for deployment: {}".format(short_image_name, image_from_env))
         return image_from_env
 
-    image_fqdn = IMAGE_FQDN_TEMPLATE.format(short_image_name, tag)
+    image_fqdn = IMAGE_FQDN_TEMPLATE.format(org, short_image_name, tag)
     print("{} image for deployment: {}".format(short_image_name, image_fqdn))
     return image_fqdn

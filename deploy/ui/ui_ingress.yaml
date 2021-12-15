@@ -11,5 +11,5 @@ spec:
       http:
         paths:
           - backend:
-              serviceName: ocp-metal-ui
+              serviceName: assisted-installer-ui
               servicePort: 80
