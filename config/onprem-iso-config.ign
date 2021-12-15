@@ -91,7 +91,7 @@
         "name": "assisted-service-installer.service"
       },
       {
-        "contents": "[Unit]\nAfter=assisted-service-installer.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx-certs:/certs:z -v /etc/assisted-service/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "contents": "[Unit]\nAfter=assisted-service-installer.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx-certs:/certs:z -v /etc/assisted-service/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/edge-infrastructure/assisted-installer-ui:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
         "enabled": true,
         "name": "assisted-service-ui.service"
       }

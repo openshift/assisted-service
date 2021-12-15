@@ -16,7 +16,10 @@ def main():
     utils.verify_build_directory(deploy_options.namespace)
 
     dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'deploy_ui.yaml')
-    image_fqdn = deployment_options.get_image_override(deploy_options, "ocp-metal-ui", "UI_IMAGE")
+    image_fqdn = deployment_options.get_image_override(deploy_options,
+                                                       "assisted-installer-ui",
+                                                       "UI_IMAGE",
+                                                       org="edge-infrastructure")
 
     tag = deployment_options.get_tag(image_fqdn)
     clone_directory = os.path.join(os.getcwd(), "build/assisted-installer-ui")
@@ -31,9 +34,10 @@ def main():
     else:
         cmd += f" && git reset --hard {tag}"
 
-    cmd += f" && deploy/deploy_config.sh -t {clone_directory}/deploy/ocp-metal-ui-template.yaml " \
+    cmd += f" && deploy/deploy_config.sh -t {clone_directory}/deploy/ui-deployment-template.yaml " \
            f"-i {image_fqdn} -n {deploy_options.namespace} > {dst_file}"
 
+    log.debug(f"Executing: {cmd}")
     utils.check_output(cmd)
 
     if deploy_options.apply_manifest:
