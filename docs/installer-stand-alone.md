@@ -118,7 +118,7 @@ podman run -dt --pod assisted-installer \
   --env-file onprem-environment \
   --pull always \
   -v ${PWD}/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z \
-  quay.io/ocpmetal/ocp-metal-ui:latest
+  quay.io/edge-infrastructure/assisted-installer-ui:latest
 ```
 
 **NOTE**
