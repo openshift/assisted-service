@@ -1135,10 +1135,14 @@ var _ = Describe("[V2UpdateCluster] cluster update - BaseDNS", func() {
 
 var _ = Describe("cluster install", func() {
 	var (
-		ctx         = context.Background()
-		cluster     *models.Cluster
-		clusterCIDR = "10.128.0.0/14"
-		serviceCIDR = "172.30.0.0/16"
+		ctx           = context.Background()
+		cluster       *models.Cluster
+		clusterCIDR   = "10.128.0.0/14"
+		serviceCIDR   = "172.30.0.0/16"
+		machineCIDR   = "1.2.3.0/24"
+		clusterCIDRv6 = "1003:db8::/53"
+		serviceCIDRv6 = "1002:db8::/119"
+		machineCIDRv6 = "1001:db8::/120"
 	)
 
 	BeforeEach(func() {
@@ -1348,7 +1352,12 @@ var _ = Describe("cluster install", func() {
 			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
 			verifyUsageSet(getReply.Payload.FeatureUsage,
 				models.Usage{Name: usage.HighAvailabilityModeUsage})
-			verifyUsageNotSet(getReply.Payload.FeatureUsage, strings.ToUpper("console"), usage.VipDhcpAllocationUsage, usage.CPUArchitectureARM64, usage.SDNNetworkTypeUsage)
+			verifyUsageNotSet(getReply.Payload.FeatureUsage,
+				strings.ToUpper("console"),
+				usage.VipDhcpAllocationUsage,
+				usage.CPUArchitectureARM64,
+				usage.SDNNetworkTypeUsage,
+				usage.DualStackUsage)
 		})
 
 		It("report usage on update cluster", func() {
@@ -1382,7 +1391,9 @@ var _ = Describe("cluster install", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			getReply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
-			verifyUsageNotSet(getReply.Payload.FeatureUsage, usage.SDNNetworkTypeUsage)
+			verifyUsageNotSet(getReply.Payload.FeatureUsage,
+				usage.SDNNetworkTypeUsage,
+				usage.DualStackUsage)
 			verifyUsageSet(getReply.Payload.FeatureUsage,
 				models.Usage{Name: usage.OVNNetworkTypeUsage},
 				models.Usage{
@@ -1414,6 +1425,67 @@ var _ = Describe("cluster install", func() {
 					},
 				},
 			)
+		})
+	})
+
+	Context("dual-stack usage", func() {
+		It("report usage new dual-stack cluster", func() {
+			registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain: "example.com",
+					ClusterNetworks: []*models.ClusterNetwork{
+						{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23},
+						{Cidr: models.Subnet(clusterCIDRv6), HostPrefix: 64}},
+					ServiceNetworks: []*models.ServiceNetwork{
+						{Cidr: models.Subnet(serviceCIDR)},
+						{Cidr: models.Subnet(serviceCIDRv6)}},
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: models.Subnet(machineCIDR)},
+						{Cidr: models.Subnet(machineCIDRv6)}},
+					Name:                 swag.String("sno-cluster"),
+					OpenshiftVersion:     swag.String(snoVersion),
+					PullSecret:           swag.String(pullSecret),
+					SSHPublicKey:         sshPublicKey,
+					VipDhcpAllocation:    swag.Bool(false),
+					NetworkType:          swag.String("OVNKubernetes"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			cluster = registerClusterReply.GetPayload()
+			getReply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: *cluster.ID})
+			Expect(err).NotTo(HaveOccurred())
+			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
+			verifyUsageSet(getReply.Payload.FeatureUsage,
+				models.Usage{Name: usage.HighAvailabilityModeUsage},
+				models.Usage{Name: usage.DualStackUsage})
+			verifyUsageNotSet(getReply.Payload.FeatureUsage,
+				strings.ToUpper("console"),
+				usage.VipDhcpAllocationUsage,
+				usage.CPUArchitectureARM64,
+				usage.SDNNetworkTypeUsage)
+		})
+
+		It("unset dual-stack usage on update cluster", func() {
+			clusterID := *cluster.ID
+			_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					VipDhcpAllocation:     swag.Bool(false),
+					NetworkType:           swag.String("OVNKubernetes"),
+					UserManagedNetworking: swag.Bool(false),
+					ClusterNetworks:       []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:       []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					MachineNetworks:       []*models.MachineNetwork{},
+				},
+				ClusterID: clusterID,
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			getReply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			verifyUsageNotSet(getReply.Payload.FeatureUsage,
+				usage.VipDhcpAllocationUsage,
+				usage.SDNNetworkTypeUsage,
+				usage.DualStackUsage)
 		})
 	})
 
