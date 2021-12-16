@@ -41,6 +41,7 @@ var podmanBaseCmd = [...]string{
 	"--volume", "/opt:/opt:rw",
 	"--volume", "/var/log:/var/log:rw",
 	"--volume", "/run/systemd/journal/socket:/run/systemd/journal/socket",
+	"--volume", "/etc/pki:/etc/pki",
 	"--env=PULL_SECRET_TOKEN",
 }
 

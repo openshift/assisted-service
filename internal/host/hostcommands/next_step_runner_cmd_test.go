@@ -37,6 +37,7 @@ var _ = Describe("Format command for starting next step agent", func() {
 		assertValue("--agent-version", image, *args)
 		Expect(*args).ShouldNot(ContainElement("--cacert"))
 		Expect(*args).ShouldNot(ContainElement(certVolume))
+		Expect(*args).Should(ContainElement("/etc/pki:/etc/pki"))
 		Expect(*args).Should(ContainElement("--insecure=false"))
 		Expect(*args).ShouldNot(ContainElement("--insecure=true"))
 	})
