@@ -17,6 +17,9 @@ import (
 // swagger:model api_vip_connectivity_response
 type APIVipConnectivityResponse struct {
 
+	// Ignition fetched from the specified API VIP
+	Ignition string `json:"ignition,omitempty"`
+
 	// API VIP connectivity check result.
 	IsSuccess bool `json:"is_success,omitempty"`
 }
