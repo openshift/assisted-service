@@ -82,7 +82,7 @@ func GenerateTestHostByKind(hostID, infraEnvID strfmt.UUID, clusterID *strfmt.UU
 			StageStartedAt: now,
 			StageUpdatedAt: now,
 		},
-		APIVipConnectivity: generateTestAPIVIpConnectivity(),
+		APIVipConnectivity: GenerateTestAPIVIpConnectivity(""),
 		Connectivity:       GenerateTestConnectivityReport(),
 	}
 }
@@ -98,7 +98,7 @@ func GenerateTestHostWithInfraEnv(hostID, infraEnvID strfmt.UUID, state string, 
 		Kind:               swag.String(models.HostKindHost),
 		CheckedInAt:        now,
 		StatusUpdatedAt:    now,
-		APIVipConnectivity: generateTestAPIVIpConnectivity(),
+		APIVipConnectivity: GenerateTestAPIVIpConnectivity(""),
 		Connectivity:       GenerateTestConnectivityReport(),
 	}
 }
@@ -120,7 +120,7 @@ func GenerateTestHostWithNetworkAddress(hostID, infraEnvID, clusterID strfmt.UUI
 			StageStartedAt: now,
 			StageUpdatedAt: now,
 		},
-		APIVipConnectivity: generateTestAPIVIpConnectivity(),
+		APIVipConnectivity: GenerateTestAPIVIpConnectivity(""),
 	}
 	return &h
 }
@@ -154,9 +154,10 @@ func GenerateL3ConnectivityReport(hosts []*models.Host, latency float64, packetL
 	return &con
 }
 
-func generateTestAPIVIpConnectivity() string {
+func GenerateTestAPIVIpConnectivity(ignition string) string {
 	checkAPIResponse := models.APIVipConnectivityResponse{
 		IsSuccess: true,
+		Ignition:  ignition,
 	}
 	bytes, err := json.Marshal(checkAPIResponse)
 	Expect(err).To(Not(HaveOccurred()))

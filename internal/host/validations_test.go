@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -87,7 +88,6 @@ var _ = Describe("Validations test", func() {
 	}
 
 	Context("Disk encryption validation", func() {
-
 		getDiskEncryptionValidationResult := func(validationsInfo string) (ValidationStatus, string, bool) {
 
 			var validationsRes ValidationsStatus
@@ -102,6 +102,32 @@ var _ = Describe("Validations test", func() {
 				}
 			}
 			return ValidationStatus(""), "", false
+		}
+
+		getIgnitionConfig := func(tpm2Enabled bool) types.Config {
+			return types.Config{
+				Ignition: types.Ignition{Version: "3.2.0"},
+				Storage: types.Storage{
+					Luks: []types.Luks{
+						{
+							Clevis: &types.Clevis{Tpm2: &tpm2Enabled},
+							Device: swag.String("/dev/disk"),
+						},
+					},
+				},
+			}
+		}
+
+		getDay2Host := func() models.Host {
+			h := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleWorker)
+			*h.Kind = models.HostKindAddToExistingClusterHost
+			return h
+		}
+
+		createDay2Cluster := func() {
+			c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
+			c.DiskEncryption = &models.DiskEncryption{}
+			Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 		}
 
 		It("disk-encryption not set", func() {
@@ -242,7 +268,7 @@ var _ = Describe("Validations test", func() {
 			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationFailure))
-			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enalbed in host's BIOS"))
+			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enabled in host's BIOS"))
 		})
 
 		It("host's TPM version is unsupported", func() {
@@ -288,6 +314,153 @@ var _ = Describe("Validations test", func() {
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationSuccess))
 			Expect(validationMessage).To(Equal(fmt.Sprintf("Installation disk can be encrypted using %s", models.DiskEncryptionModeTpmv2)))
+		})
+
+		It("day2 host - TPM2 for worker enabled on cluster, TPM2 available on host", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNr20)
+			configBytes, err := json.Marshal(getIgnitionConfig(true))
+			Expect(err).To(Not(HaveOccurred()))
+			h.APIVipConnectivity = hostutil.GenerateTestAPIVIpConnectivity(string(configBytes))
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationSuccess))
+			Expect(validationMessage).To(Equal(fmt.Sprintf("Installation disk can be encrypted using %s", models.DiskEncryptionModeTpmv2)))
+		})
+
+		It("day2 host - only Tang is enabled for worker", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNr20)
+			config := getIgnitionConfig(false)
+			config.Storage.Luks[0].Clevis = &types.Clevis{
+				Tang: []types.Tang{{URL: "http://test", Thumbprint: swag.String("test")}}}
+			configBytes, err := json.Marshal(config)
+			Expect(err).To(Not(HaveOccurred()))
+			h.APIVipConnectivity = hostutil.GenerateTestAPIVIpConnectivity(string(configBytes))
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			_, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			Expect(found).To(BeFalse())
+		})
+
+		It("day2 host - TPM2 and Tang are not available in ignition LUKS", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNr20)
+			configBytes, err := json.Marshal(getIgnitionConfig(false))
+			Expect(err).To(Not(HaveOccurred()))
+			h.APIVipConnectivity = hostutil.GenerateTestAPIVIpConnectivity(string(configBytes))
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationMessage).To(Equal("Invalid LUKS object in ignition - both TPM2 and Tang are not available"))
+		})
+
+		It("day2 host - TPM2 for worker enabled on cluster, TPM2 not available on host", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNone)
+			configBytes, err := json.Marshal(getIgnitionConfig(true))
+			Expect(err).To(Not(HaveOccurred()))
+			h.APIVipConnectivity = hostutil.GenerateTestAPIVIpConnectivity(string(configBytes))
+
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enabled in host's BIOS"))
+		})
+
+		It("day2 host - disk encryption disabled on cluster", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNone)
+			configBytes, err := json.Marshal(getIgnitionConfig(true))
+			Expect(err).To(Not(HaveOccurred()))
+			h.APIVipConnectivity = hostutil.GenerateTestAPIVIpConnectivity(string(configBytes))
+
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enabled in host's BIOS"))
+		})
+
+		It("day2 host - pending on APIVipConnectivity response", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNone)
+			h.APIVipConnectivity = ""
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationPending))
+		})
+
+		It("day2 host - empty ignition in APIVipConnectivity response", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNone)
+			h.APIVipConnectivity = hostutil.GenerateTestAPIVIpConnectivity("")
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			_, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			Expect(found).To(BeFalse())
+		})
+
+		It("day2 host - no LUKS in cluster ignition", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNone)
+			ignitionConfig := types.Config{Ignition: types.Ignition{Version: "3.2.0"}}
+			configBytes, err := json.Marshal(ignitionConfig)
+			Expect(err).To(Not(HaveOccurred()))
+			h.APIVipConnectivity = hostutil.GenerateTestAPIVIpConnectivity(string(configBytes))
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			_, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			Expect(found).To(BeFalse())
 		})
 	})
 })
