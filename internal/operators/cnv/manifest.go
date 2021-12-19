@@ -63,6 +63,18 @@ func Manifests(config Config) (map[string][]byte, []byte, error) {
 	return openshiftManifests, cnvHco, nil
 }
 
+// SingleNodeManifests returns manifests that are needed by single-node deployments
+func SingleNodeManifests(config Config) (map[string][]byte, []byte, error) {
+	openshiftManifests, cnvHco, err := Manifests(config)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	openshiftManifests["99_openshift-cnv_hpp.yaml"] = hpp
+	openshiftManifests["99_openshift-cnv_hpp_sc.yaml"] = hppStorageClass
+	return openshiftManifests, cnvHco, nil
+}
+
 func subscription(config manifestConfig) ([]byte, error) {
 	data := map[string]string{
 		"OPERATOR_NAMESPACE":         config.Namespace,
@@ -140,3 +152,34 @@ metadata:
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
   BareMetalPlatform: true`
+
+const hpp = `apiVersion: hostpathprovisioner.kubevirt.io/v1beta1
+kind: HostPathProvisioner
+metadata:
+  name: hostpath-provisioner
+    spec:
+      imagePullPolicy: IfNotPresent
+      storagePools:
+        - name: "sno"
+    pvcTemplate:
+      storageClassName: local-block
+      volumeMode: Block
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 50Gi
+    path: "/var/hpvolumes"
+  workload:
+    nodeSelector:
+      kubernetes.io/os: linux`
+
+const hppStorageClass = `apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: sno-storage
+provisioner: kubevirt.io.hostpath-provisioner
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+parameters:
+  storagePool: sno`
