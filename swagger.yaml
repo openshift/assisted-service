@@ -7782,7 +7782,7 @@ definitions:
       ca_certificate:
         type: string
         x-nullable: true
-        description: A CA certficate to be used when contacting the URL via https.
+        description: base64 encoded CA certficate to be used when contacting the URL via https.
 
   platform:
     type: object

@@ -11661,7 +11661,7 @@ func init() {
       "type": "object",
       "properties": {
         "ca_certificate": {
-          "description": "A CA certficate to be used when contacting the URL via https.",
+          "description": "base64 encoded CA certficate to be used when contacting the URL via https.",
           "type": "string",
           "x-nullable": true
         },
@@ -25069,7 +25069,7 @@ func init() {
       "type": "object",
       "properties": {
         "ca_certificate": {
-          "description": "A CA certficate to be used when contacting the URL via https.",
+          "description": "base64 encoded CA certficate to be used when contacting the URL via https.",
           "type": "string",
           "x-nullable": true
         },
