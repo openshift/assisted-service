@@ -6367,3 +6367,75 @@ func (e *ClustersPermanentlyDeletedEvent) FormatMessage() string {
     return e.format(&s)
 }
 
+//
+// Event image_info_updated
+//
+type ImageInfoUpdatedEvent struct {
+    InfraEnvId strfmt.UUID
+    Details string
+}
+
+var ImageInfoUpdatedEventName string = "image_info_updated"
+
+func NewImageInfoUpdatedEvent(
+    infraEnvId strfmt.UUID,
+    details string,
+) *ImageInfoUpdatedEvent {
+    return &ImageInfoUpdatedEvent{
+        InfraEnvId: infraEnvId,
+        Details: details,
+    }
+}
+
+func SendImageInfoUpdatedEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    infraEnvId strfmt.UUID,
+    details string,) {
+    ev := NewImageInfoUpdatedEvent(
+        infraEnvId,
+        details,
+    )
+    eventsHandler.SendInfraEnvEvent(ctx, ev)
+}
+
+func SendImageInfoUpdatedEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    infraEnvId strfmt.UUID,
+    details string,
+    eventTime time.Time) {
+    ev := NewImageInfoUpdatedEvent(
+        infraEnvId,
+        details,
+    )
+    eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *ImageInfoUpdatedEvent) GetName() string {
+    return "image_info_updated"
+}
+
+func (e *ImageInfoUpdatedEvent) GetSeverity() string {
+    return "info"
+}
+func (e *ImageInfoUpdatedEvent) GetClusterId() *strfmt.UUID {
+    return nil
+}
+func (e *ImageInfoUpdatedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+func (e *ImageInfoUpdatedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{details}", fmt.Sprint(e.Details),
+    )
+    return r.Replace(*message)
+}
+
+func (e *ImageInfoUpdatedEvent) FormatMessage() string {
+    s := "Updated image information ({details})"
+    return e.format(&s)
+}
+
