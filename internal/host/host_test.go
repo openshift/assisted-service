@@ -3191,7 +3191,7 @@ var _ = Describe("ResetHostValidation", func() {
 		Expect(exists).To(BeFalse())
 	})
 	It("Unsupported validation", func() {
-		Expect(m.ResetHostValidation(ctx, *h.ID, h.InfraEnvID, string(models.HostValidationIDAPIVipConnected), nil)).To(HaveOccurred())
+		Expect(m.ResetHostValidation(ctx, *h.ID, h.InfraEnvID, string(models.HostValidationIDIgnitionDownloadable), nil)).To(HaveOccurred())
 	})
 	It("Nonexistant validation", func() {
 		Expect(m.ResetHostValidation(ctx, *h.ID, h.InfraEnvID, "abcd", nil)).To(HaveOccurred())

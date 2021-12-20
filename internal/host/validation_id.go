@@ -22,7 +22,7 @@ const (
 	HasMemoryForRole                               = validationID(models.HostValidationIDHasMemoryForRole)
 	IsHostnameUnique                               = validationID(models.HostValidationIDHostnameUnique)
 	IsHostnameValid                                = validationID(models.HostValidationIDHostnameValid)
-	IsAPIVipConnected                              = validationID(models.HostValidationIDAPIVipConnected)
+	IsIgnitionDownloadable                         = validationID(models.HostValidationIDIgnitionDownloadable)
 	BelongsToMajorityGroup                         = validationID(models.HostValidationIDBelongsToMajorityGroup)
 	IsPlatformNetworkSettingsValid                 = validationID(models.HostValidationIDValidPlatformNetworkSettings)
 	IsNTPSynced                                    = validationID(models.HostValidationIDNtpSynced)
@@ -47,7 +47,7 @@ func (v validationID) category() (string, error) {
 	case IsConnected,
 		IsMachineCidrDefined,
 		BelongsToMachineCidr,
-		IsAPIVipConnected,
+		IsIgnitionDownloadable,
 		BelongsToMajorityGroup,
 		IsNTPSynced,
 		SucessfullOrUnknownContainerImagesAvailability,
