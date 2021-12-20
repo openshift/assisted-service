@@ -643,10 +643,10 @@ x-events:
 
 - name: ignition_config_image_generated
   message: "Generated image ({details})"
-  event_type: cluster
+  event_type: infra_env
   severity: "info"
   properties:
-    cluster_id: UUID
+    infra_env_id: UUID
     details: string
 
 - name: refresh_host_or_cluster_statuses_failed

@@ -5731,18 +5731,18 @@ func (e *UploadImageFailedEvent) FormatMessage() string {
 // Event ignition_config_image_generated
 //
 type IgnitionConfigImageGeneratedEvent struct {
-    ClusterId strfmt.UUID
+    InfraEnvId strfmt.UUID
     Details string
 }
 
 var IgnitionConfigImageGeneratedEventName string = "ignition_config_image_generated"
 
 func NewIgnitionConfigImageGeneratedEvent(
-    clusterId strfmt.UUID,
+    infraEnvId strfmt.UUID,
     details string,
 ) *IgnitionConfigImageGeneratedEvent {
     return &IgnitionConfigImageGeneratedEvent{
-        ClusterId: clusterId,
+        InfraEnvId: infraEnvId,
         Details: details,
     }
 }
@@ -5750,26 +5750,26 @@ func NewIgnitionConfigImageGeneratedEvent(
 func SendIgnitionConfigImageGeneratedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId strfmt.UUID,
+    infraEnvId strfmt.UUID,
     details string,) {
     ev := NewIgnitionConfigImageGeneratedEvent(
-        clusterId,
+        infraEnvId,
         details,
     )
-    eventsHandler.SendClusterEvent(ctx, ev)
+    eventsHandler.SendInfraEnvEvent(ctx, ev)
 }
 
 func SendIgnitionConfigImageGeneratedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId strfmt.UUID,
+    infraEnvId strfmt.UUID,
     details string,
     eventTime time.Time) {
     ev := NewIgnitionConfigImageGeneratedEvent(
-        clusterId,
+        infraEnvId,
         details,
     )
-    eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
+    eventsHandler.SendInfraEnvEventAtTime(ctx, ev, eventTime)
 }
 
 func (e *IgnitionConfigImageGeneratedEvent) GetName() string {
@@ -5779,13 +5779,16 @@ func (e *IgnitionConfigImageGeneratedEvent) GetName() string {
 func (e *IgnitionConfigImageGeneratedEvent) GetSeverity() string {
     return "info"
 }
-func (e *IgnitionConfigImageGeneratedEvent) GetClusterId() strfmt.UUID {
-    return e.ClusterId
+func (e *IgnitionConfigImageGeneratedEvent) GetClusterId() *strfmt.UUID {
+    return nil
+}
+func (e *IgnitionConfigImageGeneratedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
 }
 
 func (e *IgnitionConfigImageGeneratedEvent) format(message *string) string {
     r := strings.NewReplacer(
-        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
         "{details}", fmt.Sprint(e.Details),
     )
     return r.Replace(*message)
