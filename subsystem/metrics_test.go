@@ -789,7 +789,7 @@ var _ = Describe("Metrics tests", func() {
 			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDBelongsToMachineCidr, false)
 		})
 
-		It("'api-vip-connected' failed", func() {
+		It("'ignition-downloadable' failed", func() {
 
 			day2ClusterID := registerDay2Cluster(ctx)
 			// in order to simulate infra env generation
@@ -798,25 +798,25 @@ var _ = Describe("Metrics tests", func() {
 			// create a validation success
 			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
 			generateApiVipPostStepReply(ctx, h, true)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDAPIVipConnected)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
 
-			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationChangedMetric)
-			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationFailedMetric)
+			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationChangedMetric)
+			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationFailedMetric)
 
 			// create a validation failure
 			generateApiVipPostStepReply(ctx, h, false)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDAPIVipConnected)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
 
 			// check generated events
-			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDAPIVipConnected, true)
+			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDIgnitionDownloadable, true)
 
 			// check generated metrics
-			Expect(getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
+			Expect(getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
 			metricsDeregisterCluster(ctx, day2ClusterID)
-			Expect(getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
+			Expect(getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
 		})
 
-		It("[V2UpdateCluster] 'api-vip-connected' failed", func() {
+		It("[V2UpdateCluster] 'ignition-downloadable' failed", func() {
 
 			day2ClusterID := v2RegisterDay2Cluster(ctx)
 			// in order to simulate infra env generation
@@ -825,25 +825,25 @@ var _ = Describe("Metrics tests", func() {
 			// create a validation success
 			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
 			generateApiVipPostStepReply(ctx, h, true)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDAPIVipConnected)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
 
-			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationChangedMetric)
-			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationFailedMetric)
+			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationChangedMetric)
+			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationFailedMetric)
 
 			// create a validation failure
 			generateApiVipPostStepReply(ctx, h, false)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDAPIVipConnected)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
 
 			// check generated events
-			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDAPIVipConnected, true)
+			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDIgnitionDownloadable, true)
 
 			// check generated metrics
-			Expect(getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
+			Expect(getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
 			metricsDeregisterCluster(ctx, day2ClusterID)
-			Expect(getValidationMetricCounter(string(models.HostValidationIDAPIVipConnected), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
+			Expect(getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
 		})
 
-		It("'api-vip-connected' got fixed", func() {
+		It("'ignition-downloadable' got fixed", func() {
 
 			day2ClusterID := registerDay2Cluster(ctx)
 			// in order to simulate infra env generation
@@ -852,17 +852,17 @@ var _ = Describe("Metrics tests", func() {
 			// create a validation failure
 			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
 			generateApiVipPostStepReply(ctx, h, false)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDAPIVipConnected)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
 
 			// create a validation success
 			generateApiVipPostStepReply(ctx, h, true)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDAPIVipConnected)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
 
 			// check generated events
-			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDAPIVipConnected, false)
+			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDIgnitionDownloadable, false)
 		})
 
-		It("[V2UpdateCluster] 'api-vip-connected' got fixed", func() {
+		It("[V2UpdateCluster] 'ignition-downloadable' got fixed", func() {
 
 			day2ClusterID := v2RegisterDay2Cluster(ctx)
 			// in order to simulate infra env generation
@@ -871,14 +871,14 @@ var _ = Describe("Metrics tests", func() {
 			// create a validation failure
 			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
 			generateApiVipPostStepReply(ctx, h, false)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDAPIVipConnected)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
 
 			// create a validation success
 			generateApiVipPostStepReply(ctx, h, true)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDAPIVipConnected)
+			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
 
 			// check generated events
-			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDAPIVipConnected, false)
+			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDIgnitionDownloadable, false)
 		})
 
 		It("'belongs-to-majority-group' failed", func() {

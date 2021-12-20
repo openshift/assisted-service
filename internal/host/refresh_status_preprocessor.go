@@ -194,7 +194,7 @@ func newValidations(v *validator) []validation {
 			formatter: v.printHostnameValid,
 		},
 		{
-			id:        IsAPIVipConnected,
+			id:        IsIgnitionDownloadable,
 			condition: v.isAPIVipConnected,
 			formatter: v.printAPIVipConnected,
 		},

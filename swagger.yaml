@@ -8530,7 +8530,7 @@ definitions:
       - 'hostname-unique'
       - 'hostname-valid'
       - 'belongs-to-machine-cidr'
-      - 'api-vip-connected'
+      - 'ignition-downloadable'
       - 'belongs-to-majority-group'
       - 'valid-platform-network-settings'
       - 'ntp-synced'
