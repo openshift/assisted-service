@@ -703,7 +703,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UU
 	isSno := swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 	var totalHostsDoneStages, totalHostsStages float64
 	for _, h := range cluster.Hosts {
-		stages := m.hostAPI.GetStagesByRole(h.Role, h.Bootstrap, isSno)
+		stages := m.hostAPI.GetStagesByRole(h, isSno)
 		currentIndex := m.hostAPI.IndexOfStage(h.Progress.CurrentStage, stages)
 		totalHostsDoneStages += float64(currentIndex + 1)
 		totalHostsStages += float64(len(stages))

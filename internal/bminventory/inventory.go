@@ -5502,7 +5502,7 @@ func (b *bareMetalInventory) customizeHost(cluster *models.Cluster, host *models
 	if cluster != nil {
 		isSno = swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 	}
-	host.ProgressStages = b.hostApi.GetStagesByRole(host.Role, host.Bootstrap, isSno)
+	host.ProgressStages = b.hostApi.GetStagesByRole(host, isSno)
 	host.RequestedHostname = hostutil.GetHostnameForMsg(host)
 	return nil
 }
