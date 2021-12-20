@@ -9361,6 +9361,10 @@ func init() {
     "api_vip_connectivity_response": {
       "type": "object",
       "properties": {
+        "ignition": {
+          "description": "Ignition fetched from the specified API VIP",
+          "type": "string"
+        },
         "is_success": {
           "description": "API VIP connectivity check result.",
           "type": "boolean"
@@ -22878,6 +22882,10 @@ func init() {
     "api_vip_connectivity_response": {
       "type": "object",
       "properties": {
+        "ignition": {
+          "description": "Ignition fetched from the specified API VIP",
+          "type": "string"
+        },
         "is_success": {
           "description": "API VIP connectivity check result.",
           "type": "boolean"

@@ -8374,6 +8374,9 @@ definitions:
       is_success:
         type: boolean
         description: API VIP connectivity check result.
+      ignition:
+        type: string
+        description: Ignition fetched from the specified API VIP
 
   disk_speed_check_request:
     type: object
