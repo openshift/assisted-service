@@ -865,11 +865,21 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		return nil
 	}
 
-	_, err = r.Installer.V2UpdateHostInternal(ctx, *params)
+	var hostStatusesBeforeInstallationOrUnbound = []string{
+		models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
+		models.HostStatusInsufficient, models.HostStatusPendingForInput,
+		models.HostStatusDisconnectedUnbound, models.HostStatusInsufficientUnbound, models.HostStatusDiscoveringUnbound,
+		models.HostStatusKnownUnbound,
+		models.HostStatusBinding,
+	}
+	if funk.ContainsString(hostStatusesBeforeInstallationOrUnbound, swag.StringValue(internalHost.Status)) {
+		_, err = r.Installer.V2UpdateHostInternal(ctx, *params)
 
-	if err != nil {
-		log.WithError(err).Errorf("Failed to update host params  %s %s", agent.Name, agent.Namespace)
-		return err
+		if err != nil {
+			log.WithError(err).Errorf("Failed to update host params %s %s", agent.Name, agent.Namespace)
+			return err
+		}
+		log.Infof("Updated host parameters for agent %s %s", agent.Name, agent.Namespace)
 	}
 
 	log.Infof("Updated Agent spec %s %s", agent.Name, agent.Namespace)
