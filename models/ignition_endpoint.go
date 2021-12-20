@@ -17,7 +17,7 @@ import (
 // swagger:model ignition-endpoint
 type IgnitionEndpoint struct {
 
-	// A CA certficate to be used when contacting the URL via https.
+	// base64 encoded CA certficate to be used when contacting the URL via https.
 	CaCertificate *string `json:"ca_certificate,omitempty"`
 
 	// The URL for the ignition endpoint.
