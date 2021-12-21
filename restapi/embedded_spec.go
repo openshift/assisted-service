@@ -10787,7 +10787,8 @@ func init() {
         "tang_servers": {
           "description": "JSON-formatted string containing additional information regarding tang's configuration",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text\""
+          "x-go-custom-tag": "gorm:\"type:text\"",
+          "example": "[{\"url\":\"http://tang.example.com:7500\",\"thumbprint\":\"PLjNyRdGw03zlRoGjQYMahSZGu9\"}, {\"url\":\"http://tang.example.com:7501\",\"thumbprint\":\"PLjNyRdGw03zlRoGjQYMahSZGu8\"}]"
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:disk_encryption_\""
@@ -24268,7 +24269,8 @@ func init() {
         "tang_servers": {
           "description": "JSON-formatted string containing additional information regarding tang's configuration",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text\""
+          "x-go-custom-tag": "gorm:\"type:text\"",
+          "example": "[{\"url\":\"http://tang.example.com:7500\",\"thumbprint\":\"PLjNyRdGw03zlRoGjQYMahSZGu9\"}, {\"url\":\"http://tang.example.com:7501\",\"thumbprint\":\"PLjNyRdGw03zlRoGjQYMahSZGu8\"}]"
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:disk_encryption_\""

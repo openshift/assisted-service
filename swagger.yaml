@@ -8024,6 +8024,7 @@ definitions:
       tang_servers:
         type: string
         description: JSON-formatted string containing additional information regarding tang's configuration
+        example: '[{"url":"http://tang.example.com:7500","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}, {"url":"http://tang.example.com:7501","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu8"}]'
         x-go-custom-tag: gorm:"type:text"
 
   host-stage:

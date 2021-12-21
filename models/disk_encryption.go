@@ -29,6 +29,7 @@ type DiskEncryption struct {
 	Mode *string `json:"mode,omitempty"`
 
 	// JSON-formatted string containing additional information regarding tang's configuration
+	// Example: [{\"url\":\"http://tang.example.com:7500\",\"thumbprint\":\"PLjNyRdGw03zlRoGjQYMahSZGu9\"}, {\"url\":\"http://tang.example.com:7501\",\"thumbprint\":\"PLjNyRdGw03zlRoGjQYMahSZGu8\"}]
 	TangServers string `json:"tang_servers,omitempty" gorm:"type:text"`
 }
 
