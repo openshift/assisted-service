@@ -37,7 +37,7 @@ const (
 	statusInfoInstallationInProgressWritingImageToDiskTimedOut = "Host failed to install because its installation stage $STAGE did not sufficiently progress in the last $MAX_TIME."
 	statusInfoHostReadyToBeBound                               = "Host is ready to be bound to a cluster"
 	statusInfoBinding                                          = "Host is waiting to be bound to the cluster"
-	statusRebootTimeout                                        = "Host failed to reboot within timeout, please boot the host from the the OpenShift installation disk $INSTALLATION_DISK. The installation will resume once the host reboot"
+	statusRebootTimeout                                        = "Host failed to reboot within timeout, please boot the host from the the OpenShift installation disk $INSTALLATION_DISK. The installation will resume once the host has rebooted"
 	statusInfoUnbinding                                        = "Host is waiting to be unbound from the cluster"
 	statusInfoRebootingDay2                                    = "Host has rebooted and no further updates will be posted. Please check console for progress and to possibly approve pending CSRs"
 )
