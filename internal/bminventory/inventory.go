@@ -2048,8 +2048,8 @@ func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(
 		return nil, fmt.Errorf("error getting cluster, error: %w", err)
 	}
 	// no hosts or SNO
-	if len(cluster.Hosts) == 0 || swag.StringValue(cluster.HighAvailabilityMode) != models.ClusterHighAvailabilityModeFull {
-		return &[]models.PlatformType{models.PlatformTypeBaremetal}, nil
+	if len(cluster.Hosts) == 0 || common.IsSingleNodeCluster(cluster) {
+		return &[]models.PlatformType{models.PlatformTypeNone}, nil
 	}
 	hostSupportedPlatforms, err := b.providerRegistry.GetSupportedProvidersByHosts(cluster.Hosts)
 	if err != nil {

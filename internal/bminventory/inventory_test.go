@@ -10185,7 +10185,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
 		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
 		Expect(len(platforms)).Should(Equal(1))
-		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+		Expect(platforms[0]).Should(Equal(models.PlatformTypeNone))
 	})
 
 	It("single SNO vsphere host", func() {
@@ -10198,7 +10198,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
 		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
 		Expect(len(platforms)).Should(Equal(1))
-		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+		Expect(platforms[0]).Should(Equal(models.PlatformTypeNone))
 	})
 
 	It("HighAvailabilityMode is nil with single host", func() {
@@ -10207,11 +10207,9 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 
 		addVsphereHost(clusterID, models.HostRoleMaster)
 		validateHostsInventory(1, 0)
+		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any())
 		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
 		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
-		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
-		Expect(len(platforms)).Should(Equal(1))
-		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
 	})
 })
 
