@@ -219,7 +219,7 @@ _update-local-k8s-image:
 
 update-local-image: $(UPDATE_LOCAL_SERVICE)
 
-build-image: validate update-minimal
+build-image: update-minimal
 
 update-service: build-in-docker
 	docker push $(SERVICE)

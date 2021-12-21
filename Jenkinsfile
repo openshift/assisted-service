@@ -86,8 +86,6 @@ pipeline {
                 }
 
                 archiveArtifacts artifacts: '*.log', fingerprint: true, allowEmptyArchive: true
-                junit '**/reports/junit*.xml'
-                cobertura coberturaReportFile: '**/reports/*coverage.xml', onlyStable: false, enableNewApi: true
 
                 sh "make clear-all"
             }
