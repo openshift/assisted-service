@@ -2862,7 +2862,7 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 
 	if params.ClusterUpdateParams.MachineNetworks != nil {
 		for _, machineNetwork := range params.ClusterUpdateParams.MachineNetworks {
-			if err = network.VerifyMachineCIDR(string(machineNetwork.Cidr)); err != nil {
+			if err = network.VerifyMachineCIDR(string(machineNetwork.Cidr), common.IsSingleNodeCluster(cluster)); err != nil {
 				return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Machine network CIDR %s", string(machineNetwork.Cidr)))
 			}
 		}
