@@ -55,7 +55,8 @@ import (
 )
 
 const (
-	AgentFinalizerName = "agent." + aiv1beta1.Group + "/ai-deprovision"
+	AgentFinalizerName       = "agent." + aiv1beta1.Group + "/ai-deprovision"
+	IgnitionTokenKeyInSecret = "ignition-token"
 )
 
 // AgentReconciler reconciles a Agent object
@@ -884,9 +885,23 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		}
 	}
 
-	if spec.IgnitionEndpointToken != "" && spec.IgnitionEndpointToken != internalHost.IgnitionEndpointToken {
-		hostUpdate = true
-		params.HostUpdateParams.IgnitionEndpointToken = &spec.IgnitionEndpointToken
+	if spec.IgnitionEndpointTokenReference != nil {
+		var token string
+		token, err = r.getIgnitionToken(ctx, log, agent.Spec.IgnitionEndpointTokenReference)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get ignition token")
+			return err
+		}
+
+		if token != internalHost.IgnitionEndpointToken {
+			hostUpdate = true
+			params.HostUpdateParams.IgnitionEndpointToken = &token
+		}
+	} else {
+		if internalHost.IgnitionEndpointToken != "" {
+			hostUpdate = true
+			params.HostUpdateParams.IgnitionEndpointToken = swag.String("")
+		}
 	}
 
 	if !hostUpdate {
@@ -903,6 +918,20 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 	log.Infof("Updated Agent spec %s %s", agent.Name, agent.Namespace)
 
 	return nil
+}
+
+func (r *AgentReconciler) getIgnitionToken(ctx context.Context, log logrus.FieldLogger, ignitionEndpointTokenReference *aiv1beta1.IgnitionEndpointTokenReference) (string, error) {
+	secret := &corev1.Secret{}
+	secretRef := types.NamespacedName{Namespace: ignitionEndpointTokenReference.Namespace, Name: ignitionEndpointTokenReference.Name}
+	if err := r.Get(ctx, secretRef, secret); err != nil {
+		return "", errors.Wrap(err, fmt.Sprintf("Failed to get user-data secret %s/%s", ignitionEndpointTokenReference.Namespace, ignitionEndpointTokenReference.Name))
+	}
+
+	token, ok := secret.Data[IgnitionTokenKeyInSecret]
+	if !ok {
+		return "", errors.Errorf("secret %s did not contain key value", secretRef.Name)
+	}
+	return string(token), nil
 }
 
 func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {

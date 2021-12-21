@@ -189,8 +189,15 @@ type AgentSpec struct {
 	InstallerArgs string `json:"installerArgs,omitempty"`
 	// Json formatted string containing the user overrides for the host's ignition config
 	IgnitionConfigOverrides string `json:"ignitionConfigOverrides,omitempty"`
-	// IgnitionEndpointToken define a string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
-	IgnitionEndpointToken string `json:"ignitionEndpointToken,omitempty"`
+	// IgnitionEndpointTokenReference references a secret containing an Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
+	IgnitionEndpointTokenReference *IgnitionEndpointTokenReference `json:"ignitionEndpointTokenReference,omitempty"`
+}
+
+type IgnitionEndpointTokenReference struct {
+	// Namespace is the namespace of the secret containing the ignition endpoint token.
+	Namespace string `json:"namespace"`
+	// Name is the name of the secret containing the ignition endpoint token.
+	Name string `json:"name"`
 }
 
 type HostProgressInfo struct {

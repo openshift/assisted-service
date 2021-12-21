@@ -655,6 +655,73 @@ func getHyperthreading(clusterInstall *hiveext.AgentClusterInstall) *string {
 	}
 }
 
+func (r *ClusterDeploymentsReconciler) getEncodedCACert(ctx context.Context,
+	log logrus.FieldLogger,
+	caCertificateRef *hiveext.CaCertificateReference) (*string, error) {
+	caSecret, err := getSecret(ctx, r.Client, r.APIReader, types.NamespacedName{Namespace: caCertificateRef.Namespace, Name: caCertificateRef.Name})
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting ca certificate secret")
+	}
+	caCertBytes, hasCACert := caSecret.Data[corev1.TLSCertKey]
+	if !hasCACert {
+		return nil, fmt.Errorf("CA Secret is missing tls.crt key")
+	}
+	encodedCACert := base64.StdEncoding.EncodeToString(caCertBytes)
+	caCertificate := swag.String(encodedCACert)
+	return caCertificate, nil
+}
+
+func (r *ClusterDeploymentsReconciler) parseIgnitionEndpoint(ctx context.Context,
+	log logrus.FieldLogger,
+	kubeapiIgnitionEndpoint *hiveext.IgnitionEndpoint) (*models.IgnitionEndpoint, error) {
+
+	ignitionEndpoint := &models.IgnitionEndpoint{}
+	ignitionEndpoint.URL = swag.String(kubeapiIgnitionEndpoint.Url)
+
+	caCertificateReference := kubeapiIgnitionEndpoint.CaCertificateReference
+	if caCertificateReference != nil {
+		caCertificate, err := r.getEncodedCACert(ctx, log, caCertificateReference)
+		if err == nil {
+			ignitionEndpoint.CaCertificate = caCertificate
+		} else {
+			return nil, err
+		}
+	} else {
+		ignitionEndpoint.CaCertificate = swag.String("")
+	}
+	return ignitionEndpoint, nil
+}
+
+func (r *ClusterDeploymentsReconciler) updateIgnitionInUpdateParams(ctx context.Context,
+	log logrus.FieldLogger,
+	clusterInstall *hiveext.AgentClusterInstall,
+	cluster *common.Cluster,
+	params *models.V2ClusterUpdateParams) (bool, error) {
+	update := false
+	if clusterInstall.Spec.IgnitionEndpoint != nil {
+		ignitionEndpoint, err := r.parseIgnitionEndpoint(ctx, log, clusterInstall.Spec.IgnitionEndpoint)
+		if err == nil {
+			params.IgnitionEndpoint = ignitionEndpoint
+			update = true
+		} else {
+			log.WithError(err).Errorf("Failed to get and parse ignition ca certificate %s/%s", clusterInstall.Namespace, clusterInstall.Name)
+			return false, errors.Wrap(err, fmt.Sprintf("Failed to get and parse ignition ca certificate %s/%s", clusterInstall.Namespace, clusterInstall.Name))
+		}
+	} else {
+		if cluster.IgnitionEndpoint != nil {
+			if cluster.IgnitionEndpoint.URL != nil {
+				update = true
+				params.IgnitionEndpoint.URL = swag.String("")
+			}
+			if cluster.IgnitionEndpoint.CaCertificate != nil {
+				update = true
+				params.IgnitionEndpoint.CaCertificate = swag.String("")
+			}
+		}
+	}
+	return update, nil
+}
+
 func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	log logrus.FieldLogger,
 	clusterDeployment *hivev1.ClusterDeployment,
@@ -743,15 +810,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 
 	// Update ignition endpoint if needed
-	if clusterInstall.Spec.IgnitionEndpoint != nil {
-		ignitionEndpoint := &models.IgnitionEndpoint{}
-		if clusterInstall.Spec.IgnitionEndpoint.Url != "" {
-			ignitionEndpoint.URL = swag.String(clusterInstall.Spec.IgnitionEndpoint.Url)
-		}
-		if clusterInstall.Spec.IgnitionEndpoint.CaCertificate != "" {
-			ignitionEndpoint.CaCertificate = swag.String(clusterInstall.Spec.IgnitionEndpoint.CaCertificate)
-		}
-		params.IgnitionEndpoint = ignitionEndpoint
+	shouldUpdate, err := r.updateIgnitionInUpdateParams(ctx, log, clusterInstall, cluster, params)
+	if err != nil {
+		return cluster, errors.Wrap(err, "Couldn't resolve clusterdeployment ignition fields")
+	}
+	if shouldUpdate {
 		update = true
 	}
 
@@ -1012,9 +1075,13 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	}
 
 	if clusterInstall.Spec.IgnitionEndpoint != nil {
-		clusterParams.IgnitionEndpoint = &models.IgnitionEndpoint{
-			URL:           swag.String(clusterInstall.Spec.IgnitionEndpoint.Url),
-			CaCertificate: swag.String(clusterInstall.Spec.IgnitionEndpoint.CaCertificate),
+		var ignitionEndpoint *models.IgnitionEndpoint
+		ignitionEndpoint, err = r.parseIgnitionEndpoint(ctx, log, clusterInstall.Spec.IgnitionEndpoint)
+		if err == nil {
+			clusterParams.IgnitionEndpoint = ignitionEndpoint
+		} else {
+			log.WithError(err).Errorf("Failed to get and parse ignition ca certificate %s/%s", clusterInstall.Namespace, clusterInstall.Name)
+			return r.updateStatus(ctx, log, clusterInstall, nil, err)
 		}
 	}
 
