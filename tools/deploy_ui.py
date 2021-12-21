@@ -18,8 +18,7 @@ def main():
     dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'deploy_ui.yaml')
     image_fqdn = deployment_options.get_image_override(deploy_options,
                                                        "assisted-installer-ui",
-                                                       "UI_IMAGE",
-                                                       org="edge-infrastructure")
+                                                       "UI_IMAGE")
 
     tag = deployment_options.get_tag(image_fqdn)
     clone_directory = os.path.join(os.getcwd(), "build/assisted-installer-ui")
