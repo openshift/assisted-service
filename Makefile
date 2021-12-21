@@ -266,6 +266,7 @@ _verify_cluster:
 	$(KUBECTL) cluster-info
 
 deploy-all: $(BUILD_FOLDER) _verify_cluster deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-image-service deploy-service
+	echo "test"
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
