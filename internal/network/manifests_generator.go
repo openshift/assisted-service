@@ -112,7 +112,7 @@ kind: MachineConfig
 metadata:
   labels:
     machineconfiguration.openshift.io/role: master
-  name: 99-master-dnsmasq-configuration
+  name: 50-master-dnsmasq-configuration
 spec:
   config:
     ignition:
