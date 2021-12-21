@@ -12,6 +12,9 @@ const MinMaskDelta = 7
 // Minimum mask size for Machine CIDR to allow at least 16 addresses
 const MinMachineMaskDelta = 4
 
+// Minimum mask size for Machine CIDR to allow at least 4 addresses
+const MinSNOMachineMaskDelta = 2
+
 // VerifyCIDRsNotOverlap returns true if one of the CIDRs is a subset of the other.
 func verifyCIDRsNotOverlap(acidr, bcidr *net.IPNet) error {
 	if acidr.Contains(bcidr.IP) || bcidr.Contains(acidr.IP) {
@@ -58,8 +61,12 @@ func VerifyClusterOrServiceCIDR(cidrStr string) error {
 	return verifySubnetCIDR(cidrStr, MinMaskDelta)
 }
 
-func VerifyMachineCIDR(cidrStr string) error {
-	return verifySubnetCIDR(cidrStr, MinMachineMaskDelta)
+func VerifyMachineCIDR(cidrStr string, isSNO bool) error {
+	maskDelta := MinMachineMaskDelta
+	if isSNO {
+		maskDelta = MinSNOMachineMaskDelta
+	}
+	return verifySubnetCIDR(cidrStr, maskDelta)
 }
 
 func max(x, y int) int {
