@@ -58,6 +58,15 @@ func NewListInfraEnvsParamsWithHTTPClient(client *http.Client) *ListInfraEnvsPar
    Typically these are written to a http.Request.
 */
 type ListInfraEnvsParams struct {
+
+	/* ClusterID.
+
+	   If provided, returns only infra-envs which directly reference this cluster.
+
+	   Format: uuid
+	*/
+	ClusterID *strfmt.UUID
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -111,6 +120,17 @@ func (o *ListInfraEnvsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithClusterID adds the clusterID to the list infra envs params
+func (o *ListInfraEnvsParams) WithClusterID(clusterID *strfmt.UUID) *ListInfraEnvsParams {
+	o.SetClusterID(clusterID)
+	return o
+}
+
+// SetClusterID adds the clusterId to the list infra envs params
+func (o *ListInfraEnvsParams) SetClusterID(clusterID *strfmt.UUID) {
+	o.ClusterID = clusterID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *ListInfraEnvsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -118,6 +138,23 @@ func (o *ListInfraEnvsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 		return err
 	}
 	var res []error
+
+	if o.ClusterID != nil {
+
+		// query param cluster_id
+		var qrClusterID strfmt.UUID
+
+		if o.ClusterID != nil {
+			qrClusterID = *o.ClusterID
+		}
+		qClusterID := qrClusterID.String()
+		if qClusterID != "" {
+
+			if err := r.SetQueryParam("cluster_id", qClusterID); err != nil {
+				return err
+			}
+		}
+	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
