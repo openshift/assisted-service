@@ -126,6 +126,21 @@ func updateAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 	}, "30s", "10s").Should(BeNil())
 }
 
+func deploySecret(ctx context.Context, client k8sclient.Client, secretName string, secretData map[string]string) {
+	err := client.Create(ctx, &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      secretName,
+		},
+		StringData: secretData,
+	})
+	Expect(err).To(BeNil())
+}
+
 func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, spec *hiveext.AgentClusterInstallSpec,
 	clusterAgentClusterInstallName string) {
 	err := client.Create(ctx, &hiveext.AgentClusterInstall{
@@ -791,6 +806,84 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
+			hosts = append(hosts, host)
+		}
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
+		}
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		}
+
+		By("Approve Agents")
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		By("Verify ClusterDeployment ReadyForInstallation")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
+		By("Delete ClusterDeployment")
+		err := kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))
+		Expect(err).To(BeNil())
+		By("Verify AgentClusterInstall was deleted")
+		Eventually(func() bool {
+			aci := &hiveext.AgentClusterInstall{}
+			err := kubeClient.Get(ctx, installkey, aci)
+			return apierrors.IsNotFound(err)
+		}, "30s", "10s").Should(Equal(true))
+		By("Verify ClusterDeployment Agents were deleted")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
+	})
+
+	FIt("deploy CD with ACI and agents with ignitionEndpoint - wait for ready, delete CD and verify ACI and agents deletion", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		caCertificateSecretName := "ca-certificate"
+		deploySecret(ctx, kubeClient, caCertificateSecretName, map[string]string{corev1.TLSCertKey: "abc"})
+		modifiedAciSpec := aciSpec.DeepCopy()
+		modifiedAciSpec.IgnitionEndpoint = &hiveext.IgnitionEndpoint{
+			Url: "example.com",
+			CaCertificateReference: &hiveext.CaCertificateReference{
+				Namespace: Options.Namespace,
+				Name:      caCertificateSecretName,
+			},
+		}
+		deployAgentClusterInstallCRD(ctx, kubeClient, modifiedAciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
