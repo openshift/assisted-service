@@ -144,7 +144,7 @@ type API interface {
 	EnableHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	// Install host - db is optional, for transactions
 	Install(ctx context.Context, h *models.Host, db *gorm.DB) error
-	GetStagesByRole(role models.HostRole, isbootstrap bool, isSNO bool) []models.HostStage
+	GetStagesByRole(h *models.Host, isSNO bool) []models.HostStage
 	IndexOfStage(element models.HostStage, data []models.HostStage) int
 	IsInstallable(h *models.Host) bool
 	// auto assign host role
@@ -557,7 +557,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	if progress.CurrentStage != models.HostStageFailed {
 		isSno := hostutil.IsSingleNode(m.log, m.db, h)
 
-		stages := m.GetStagesByRole(h.Role, h.Bootstrap, isSno)
+		stages := m.GetStagesByRole(h, isSno)
 		if previousProgress != nil && previousProgress.CurrentStage != "" {
 			// Verify the new stage is higher or equal to the current host stage according to its role stages array
 			currentIndex := m.IndexOfStage(progress.CurrentStage, stages)
@@ -572,11 +572,6 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			}
 		}
 
-		// for day2 hosts, rebooting stage is considered as the last state as we don't have any way to follow up on it further.
-		if *h.Kind == models.HostKindAddToExistingClusterHost {
-			rebootingIndex := m.IndexOfStage(models.HostStageRebooting, stages)
-			stages = stages[:rebootingIndex+1]
-		}
 		currentIndex := m.IndexOfStage(progress.CurrentStage, stages)
 		installationPercentage := (float64(currentIndex+1) / float64(len(stages))) * 100
 		extra = append(extra, "progress_installation_percentage", installationPercentage)
@@ -954,23 +949,29 @@ func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db
 	return nil
 }
 
-func (m *Manager) GetStagesByRole(role models.HostRole, isbootstrap bool, isSNO bool) []models.HostStage {
-	if isbootstrap || role == models.HostRoleBootstrap {
+func (m *Manager) GetStagesByRole(h *models.Host, isSNO bool) []models.HostStage {
+	var stages []models.HostStage
+	switch {
+	case h.Bootstrap || h.Role == models.HostRoleBootstrap:
 		if isSNO {
-			return SnoStages[:]
+			stages = SnoStages[:]
 		} else {
-			return BootstrapStages[:]
+			stages = BootstrapStages[:]
 		}
-	}
-
-	switch role {
-	case models.HostRoleMaster:
-		return MasterStages[:]
-	case models.HostRoleWorker:
-		return WorkerStages[:]
+	case h.Role == models.HostRoleMaster:
+		stages = MasterStages[:]
+	case h.Role == models.HostRoleWorker:
+		stages = WorkerStages[:]
 	default:
 		return []models.HostStage{}
 	}
+
+	// for day2 hosts, rebooting stage is considered as the last state as we don't have any way to follow up on it further.
+	if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+		rebootingIndex := m.IndexOfStage(models.HostStageRebooting, stages)
+		stages = stages[:rebootingIndex+1]
+	}
+	return stages
 }
 
 func (m *Manager) IsInstallable(h *models.Host) bool {

@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/bminventory"
+	hostpkg "github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 )
@@ -1077,11 +1078,11 @@ var _ = Describe("Installation progress", func() {
 			Expect(err1).NotTo(HaveOccurred())
 			infraEnvID = *res.GetPayload().ID
 
-			// add day2 host
-
+			// register host to be used by the test as day2 host
 			registerHost(infraEnvID)
 			c = getCluster(*c.ID)
 
+			Expect(c.Hosts[0].ProgressStages).To(BeEmpty())
 			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(0)))
 			expectProgressToBe(c, 0, 0, 0)
 		})
@@ -1100,6 +1101,7 @@ var _ = Describe("Installation progress", func() {
 			Expect(*c.Hosts[0].Status).Should(Equal("installing"))
 			Expect(c.Hosts[0].Role).Should(Equal(models.HostRoleWorker))
 
+			Expect(c.Hosts[0].ProgressStages).To(Equal(hostpkg.WorkerStages[:5]))
 			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(0)))
 			expectProgressToBe(c, 0, 0, 0)
 		})
@@ -1109,6 +1111,8 @@ var _ = Describe("Installation progress", func() {
 			updateProgress(*c.Hosts[0].ID, infraEnvID, models.HostStageStartingInstallation)
 			c = getCluster(*c.ID)
 			Expect(*c.Hosts[0].Status).Should(Equal("installing-in-progress"))
+
+			Expect(c.Hosts[0].ProgressStages).To(Equal(hostpkg.WorkerStages[:5]))
 			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(20)))
 			expectProgressToBe(c, 0, 0, 0)
 		})
@@ -1117,6 +1121,7 @@ var _ = Describe("Installation progress", func() {
 
 			updateProgress(*c.Hosts[0].ID, infraEnvID, models.HostStageInstalling)
 			c = getCluster(*c.ID)
+			Expect(c.Hosts[0].ProgressStages).To(Equal(hostpkg.WorkerStages[:5]))
 			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(40)))
 			expectProgressToBe(c, 0, 0, 0)
 		})
@@ -1125,6 +1130,7 @@ var _ = Describe("Installation progress", func() {
 
 			updateProgress(*c.Hosts[0].ID, infraEnvID, models.HostStageWritingImageToDisk)
 			c = getCluster(*c.ID)
+			Expect(c.Hosts[0].ProgressStages).To(Equal(hostpkg.WorkerStages[:5]))
 			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(60)))
 			expectProgressToBe(c, 0, 0, 0)
 		})
@@ -1134,6 +1140,7 @@ var _ = Describe("Installation progress", func() {
 			updateProgress(*c.Hosts[0].ID, infraEnvID, models.HostStageRebooting)
 			c = getCluster(*c.ID)
 			Expect(*c.Hosts[0].Status).Should(Equal(models.HostStatusAddedToExistingCluster))
+			Expect(c.Hosts[0].ProgressStages).To(Equal(hostpkg.WorkerStages[:5]))
 			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(100)))
 			expectProgressToBe(c, 0, 0, 0)
 		})
@@ -1179,11 +1186,11 @@ var _ = Describe("Installation progress", func() {
 			Expect(err1).NotTo(HaveOccurred())
 			infraEnvID = *res.GetPayload().ID
 
-			// add day2 host
-
+			// register host to be used by the test as day2 host
 			registerHost(infraEnvID)
 			c = getCluster(*c.ID)
 
+			Expect(c.Hosts[0].ProgressStages).To(BeEmpty())
 			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(0)))
 		})
 
@@ -1201,6 +1208,7 @@ var _ = Describe("Installation progress", func() {
 			Expect(*c.Hosts[0].Status).Should(Equal("installing"))
 			Expect(c.Hosts[0].Role).Should(Equal(models.HostRoleWorker))
 
+			Expect(c.Hosts[0].ProgressStages).To(Equal(hostpkg.WorkerStages[:5]))
 			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(0)))
 		})
 
@@ -1216,6 +1224,7 @@ var _ = Describe("Installation progress", func() {
 
 			updateProgress(*c.Hosts[0].ID, infraEnvID, models.HostStageInstalling)
 			c = getCluster(*c.ID)
+			Expect(c.Hosts[0].ProgressStages).To(Equal(hostpkg.WorkerStages[:5]))
 			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(40)))
 		})
 
@@ -1223,6 +1232,7 @@ var _ = Describe("Installation progress", func() {
 
 			updateProgress(*c.Hosts[0].ID, infraEnvID, models.HostStageWritingImageToDisk)
 			c = getCluster(*c.ID)
+			Expect(c.Hosts[0].ProgressStages).To(Equal(hostpkg.WorkerStages[:5]))
 			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(60)))
 		})
 
@@ -1231,6 +1241,7 @@ var _ = Describe("Installation progress", func() {
 			updateProgress(*c.Hosts[0].ID, infraEnvID, models.HostStageRebooting)
 			c = getCluster(*c.ID)
 			Expect(*c.Hosts[0].Status).Should(Equal(models.HostStatusAddedToExistingCluster))
+			Expect(c.Hosts[0].ProgressStages).To(Equal(hostpkg.WorkerStages[:5]))
 			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(100)))
 		})
 	})
