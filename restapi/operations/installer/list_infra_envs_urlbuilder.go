@@ -9,11 +9,17 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
+
+	"github.com/go-openapi/strfmt"
 )
 
 // ListInfraEnvsURL generates an URL for the list infra envs operation
 type ListInfraEnvsURL struct {
+	ClusterID *strfmt.UUID
+
 	_basePath string
+	// avoid unkeyed usage
+	_ struct{}
 }
 
 // WithBasePath sets the base path for this url builder, only required when it's different from the
@@ -42,6 +48,18 @@ func (o *ListInfraEnvsURL) Build() (*url.URL, error) {
 		_basePath = "/api/assisted-install"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
+
+	qs := make(url.Values)
+
+	var clusterIDQ string
+	if o.ClusterID != nil {
+		clusterIDQ = o.ClusterID.String()
+	}
+	if clusterIDQ != "" {
+		qs.Set("cluster_id", clusterIDQ)
+	}
+
+	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }

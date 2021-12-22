@@ -26,7 +26,7 @@ type InfraEnv struct {
 
 	// If set, all hosts that register will be associated with the specified cluster.
 	// Format: uuid
-	ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
+	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"index"`
 
 	// The CPU architecture of the image (x86_64/arm64/etc).
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
