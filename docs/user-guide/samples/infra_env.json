@@ -1,0 +1,23 @@
+{
+  "cluster_id": "948b8ba9-798f-4310-bb08-67a6b56ebdcc",
+  "cpu_architecture": "x86_64",
+  "created_at": "2021-12-16T14:56:30.805445Z",
+  "download_url": "http://<HOST>:<PORT>/images/4f630ba3-0297-4d99-a7c7-f62e7bca1332?arch=x86_64&type=full-iso&version=4.8",
+  "email_domain": "Unknown",
+  "expires_at": "0001-01-01T00:00:00.000Z",
+  "href": "/api/assisted-install/v2/infra-envs/4f630ba3-0297-4d99-a7c7-f62e7bca1332",
+  "id": "4f630ba3-0297-4d99-a7c7-f62e7bca1332",
+  "kind": "InfraEnv",
+  "name": "testcluster_infra-env",
+  "openshift_version": "4.8",
+  "proxy": {
+    "http_proxy": "",
+    "https_proxy": "",
+    "no_proxy": ""
+  },
+  "pull_secret_set": true,
+  "ssh_authorized_key": "<public ssh key here>",
+  "type": "full-iso",
+  "updated_at": "2021-12-16T17:51:40.180877Z",
+  "user_name": "admin"
+}
