@@ -163,9 +163,9 @@ type IgnitionEndpoint struct {
 	// +optional
 	Url string `json:"url,omitempty"`
 
-	// CaCertificate is a CA certificate to be used when contacting the URL via HTTPS.
+	// CaCertificateReference is a reference to the secret containing CA certificate to be used when contacting the URL via HTTPS.
 	// +optional
-	CaCertificate string `json:"caCertificate,omitempty"`
+	CaCertificateReference *CaCertificateReference `json:"caCertificateReference,omitempty"`
 }
 
 type ClusterProgressInfo struct {
@@ -338,6 +338,13 @@ type AgentClusterInstallList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []AgentClusterInstall `json:"items"`
+}
+
+type CaCertificateReference struct {
+	// Namespace is the namespace of the secret containing the CA certificate base64 encoded.
+	Namespace string `json:"namespace"`
+	// Name is the name of the secret containing the CA certificate.
+	Name string `json:"name"`
 }
 
 func init() {

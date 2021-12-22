@@ -164,6 +164,7 @@ var _ = Describe("cluster reconcile", func() {
 		agentClusterInstallName        = "test-cluster-aci"
 		defaultAgentClusterInstallSpec hiveext.AgentClusterInstallSpec
 		pullSecretName                 = "pull-secret"
+		caCertificateSecretName        = "ca-certificate"
 		imageSetName                   = "openshift-v4.8.0"
 		releaseImageUrl                = "quay.io/openshift-release-dev/ocp-release:4.8.0-x86_64"
 		ocpReleaseVersion              = "4.8.0"
@@ -280,6 +281,33 @@ var _ = Describe("cluster reconcile", func() {
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+				validateCreation(cluster)
+			})
+
+			It("create new cluster with IgnitionEndpoint CaCertificate", func() {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*releaseImage.Version))
+					}).Return(clusterReply, nil)
+				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+
+				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+				// caCertificateReference := aci.Spec.IgnitionEndpoint.CaCertificateReference
+				caCertificateData := map[string][]byte{
+					corev1.TLSCertKey: []byte("val"),
+				}
+				caCertificateSecret := newSecret(aci.Namespace, caCertificateSecretName, caCertificateData)
+				Expect(c.Create(ctx, caCertificateSecret)).ShouldNot(HaveOccurred())
+				ignitionEndpoint := &hiveext.IgnitionEndpoint{
+					CaCertificateReference: &hiveext.CaCertificateReference{
+						Namespace: caCertificateSecret.Namespace,
+						Name:      caCertificateSecret.Name,
+					},
+				}
+				aci.Spec.IgnitionEndpoint = ignitionEndpoint
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 				validateCreation(cluster)
 			})

@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/dockerconfigjson
+metadata:
+  name: ignition-ca-certificate
+  namespace: spoke-cluster
+stringData:
+  tls.crt: |
+    LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCiAgICBNSUlDTkRDQ0FhRUNFQUt0Wm41T1JmNWVWMjg4bUJsZTNjQXdEUVlKS29aSWh2Y05BUUVDQlFBd1h6RUxNQWtHCiAgICBBMVVFQmhNQ1ZWTXhJREFlQmdOVkJBb1RGMUpUUVNCRVlYUmhJRk5sWTNWeWFYUjVMQ0JKYm1NdU1TNHdMQVlECiAgICBWUVFMRXlWVFpXTjFjbVVnVTJWeWRtVnlJRU5sY25ScFptbGpZWFJwYjI0Z1FYVjBhRzl5YVhSNU1CNFhEVGswCiAgICBNVEV3T1RBd01EQXdNRm9YRFRFd01ERXdOekl6TlRrMU9Wb3dYekVMTUFrR0ExVUVCaE1DVlZNeElEQWVCZ05WCiAgICBCQW9URjFKVFFTQkVZWFJoSUZObFkzVnlhWFI1TENCSmJtTXVNUzR3TEFZRFZRUUxFeVZUWldOMWNtVWdVMlZ5CiAgICBkbVZ5SUVObGNuUnBabWxqWVhScGIyNGdRWFYwYUc5eWFYUjVNSUdiTUEwR0NTcUdTSWIzRFFFQkFRVUFBNEdKCiAgICBBRENCaFFKK0FKTE9lc0d1Z3o1YXFvbURWNndsQVhZTXJhNk9MRGZPNnpWNFpGUUQ1WVJBVWNtL2p3amlpb0lJCiAgICAwaGFHTjFYcHNTRUNyWFpvZ1pvRm9rdkpTeVZtSWxac2lBZVA5NEZaYllRSFpYQVRjWFkrbTNkTTQxQ0pWcGhJCiAgICB1UjJuS1JvVExrb1JXWndlRmRWSlZDeHpPbW1Dc1pjNW5HMXdaMGpsM1MzV3lCNTdBZ01CQUFFd0RRWUpLb1pJCiAgICBodmNOQVFFQ0JRQURmZ0JsM1g3aHN1eXc0anJnN0hGR21oa1J1TlBIb0xRRFFDWUNQZ21jNFJLejBWcjJONlczCiAgICBZUU8yV3hacE84WkVDQXlJVXd4cmwwbkhQalhjYkxtN3F0OWN1em92azJDMnFVdE44aUQzelY5L1pIdU8zQUJjCiAgICAxL3AzeWprV1dXOE82dE8xZzM5TlRVSldkclRKWHdUNE9QanIwbDkxWDgxNy9PV09nSHo4VUE9PQogICAgLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ==
+
+---
+
+apiVersion: extensions.hive.openshift.io/v1beta1
+kind: AgentClusterInstall
+metadata:
+  name: test-agent-cluster-install
+  namespace: spoke-cluster
+spec:
+  apiVIP: 1.2.3.8
+  clusterDeploymentRef:
+    name: test-cluster
+  imageSetRef:
+    name: openshift-v4.8.0
+  ignitionEndpoint:
+    url: "example.com"
+    caCertificateReference:
+      namespace: "spoke-cluster"
+      name: "ignition-ca-certificate"
+  ingressVIP: 1.2.3.9
+  networking:
+    clusterNetwork:
+    - cidr: 10.128.0.0/14
+      hostPrefix: 23
+    serviceNetwork:
+    - 172.30.0.0/16
+  provisionRequirements:
+    controlPlaneAgents: 3
+ #sshPublicKey: ssh-rsa your-public-key-here (optional)
+  # By default, SMT (or hyperthreading) is enabled to increase the performance of your machines' cores. 
+  # Therefore, you can omit this section unless you wish to disable hyperthreading. 
+  # You can disable SMT by setting the parameter value to 'Disabled'. Then, you must disable it in all cluster machines; 
+  # this includes both control plane and compute machines.
+  compute:
+  - hyperthreading: Enabled
+    name: worker
+  controlPlane:
+    hyperthreading: Enabled
+    name: master
+
