@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coreos/ignition/v2/config/v3_2"
+	"github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -357,9 +359,33 @@ func isDiskEncryptionEnabledForRole(encryption models.DiskEncryption, role model
 	}
 }
 
+func (v *validator) getDiskEncryptionForDay2(host *models.Host) (*types.Luks, error) {
+	var response models.APIVipConnectivityResponse
+	if err := json.Unmarshal([]byte(host.APIVipConnectivity), &response); err != nil {
+		// APIVipConnectivityResponse is not available yet - retrying.
+		return nil, err
+	}
+
+	// Parse ignition from APIVipConnectivity (LUKS is supported in version >= 3.2)
+	config, _, err := v3_2.Parse([]byte(response.Ignition))
+	if err != nil {
+		v.log.WithError(err).Warn("Ignition is empty or invalid - can't get disk encryption")
+		return nil, nil
+	}
+
+	// Checks if LUKS (disk encryption) exists
+	if config.Storage.Luks == nil || len(config.Storage.Luks) == 0 {
+		// Disk encryption is disabled
+		return nil, nil
+	}
+
+	// Return LUKS object
+	return &config.Storage.Luks[0], nil
+}
+
 func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) ValidationStatus {
 
-	if c.infraEnv != nil || swag.StringValue(c.cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone || hostutil.IsDay2Host(c.host) {
+	if c.infraEnv != nil || swag.StringValue(c.cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
 		return ValidationSuccessSuppressOutput
 	}
 
@@ -370,6 +396,31 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) Va
 	role := common.GetEffectiveRole(c.host)
 	if role == models.HostRoleAutoAssign {
 		return ValidationPending
+	}
+
+	if hostutil.IsDay2Host(c.host) {
+		luks, err := v.getDiskEncryptionForDay2(c.host)
+		if err != nil {
+			return ValidationPending
+		}
+		if luks == nil {
+			// Disk encryption is disabled for workers on day1 cluster
+			return ValidationSuccessSuppressOutput
+		}
+
+		c.cluster.DiskEncryption = &models.DiskEncryption{}
+		if swag.BoolValue(luks.Clevis.Tpm2) {
+			c.cluster.DiskEncryption.Mode = swag.String(models.DiskEncryptionModeTpmv2)
+			// If Tpm2 is enabled for workers, check whether supported by the host.
+			return boolValue(c.inventory.TpmVersion == models.InventoryTpmVersionNr20)
+		} else if len(luks.Clevis.Tang) != 0 {
+			c.cluster.DiskEncryption.Mode = swag.String(models.DiskEncryptionModeTang)
+			// No nee to validate Tang
+			return ValidationSuccessSuppressOutput
+		} else {
+			// Only Tpm2 and Tang are available for disk encryption
+			return ValidationFailure
+		}
 	}
 
 	if !isDiskEncryptionEnabledForRole(*c.cluster.DiskEncryption, role) {
@@ -389,7 +440,9 @@ func (v *validator) printDiskEncryptionRequirementsSatisfied(c *validationContex
 		return fmt.Sprintf("Installation disk can be encrypted using %s", *c.cluster.DiskEncryption.Mode)
 	case ValidationFailure:
 		if c.inventory.TpmVersion == models.InventoryTpmVersionNone {
-			return "TPM version could not be found, make sure TPM is enalbed in host's BIOS"
+			return "TPM version could not be found, make sure TPM is enabled in host's BIOS"
+		} else if c.cluster.DiskEncryption.Mode == nil {
+			return "Invalid LUKS object in ignition - both TPM2 and Tang are not available"
 		} else {
 			return fmt.Sprintf("The host's TPM version is not supported, expected-version: %s, actual-version: %s",
 				models.InventoryTpmVersionNr20, c.inventory.TpmVersion)
