@@ -7541,6 +7541,11 @@ var _ = Describe("infraEnvs", func() {
 	})
 
 	Context("List", func() {
+		var (
+			clusterID   strfmt.UUID
+			infraEnvID2 strfmt.UUID
+		)
+
 		BeforeEach(func() {
 			infraEnvID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
@@ -7552,28 +7557,35 @@ var _ = Describe("infraEnvs", func() {
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
-			infraEnvID = strfmt.UUID(uuid.New().String())
+			infraEnvID2 = strfmt.UUID(uuid.New().String())
+			clusterID = strfmt.UUID(uuid.New().String())
 			err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
-				ID:                   &infraEnvID,
+				ID:                   &infraEnvID2,
 				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 				AdditionalNtpSources: AdditionalNtpSources,
 				Href:                 swag.String(HREF),
 				DownloadURL:          DownloadUrl,
+				ClusterID:            clusterID,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		Context("List InfraEnvs", func() {
-			It("success", func() {
-				resp := bm.ListInfraEnvs(ctx, installer.ListInfraEnvsParams{})
-				Expect(resp).Should(BeAssignableToTypeOf(installer.NewListInfraEnvsOK()))
-				payload := resp.(*installer.ListInfraEnvsOK).Payload
-				Expect(len(payload)).Should(Equal(2))
-				Expect(payload[1].ID.String()).Should(Equal(infraEnvID.String()))
-				Expect(payload[1].OpenshiftVersion).Should(Equal(common.TestDefaultConfig.OpenShiftVersion))
-				Expect(payload[1].AdditionalNtpSources).Should(Equal(AdditionalNtpSources))
-				Expect(*payload[1].Href).Should(Equal(HREF))
-			})
+		It("returns all infraenvs", func() {
+			resp := bm.ListInfraEnvs(ctx, installer.ListInfraEnvsParams{})
+			Expect(resp).Should(BeAssignableToTypeOf(installer.NewListInfraEnvsOK()))
+			payload := resp.(*installer.ListInfraEnvsOK).Payload
+			Expect(len(payload)).Should(Equal(2))
+			ids := []strfmt.UUID{*payload[0].ID, *payload[1].ID}
+			Expect(ids).To(ContainElement(infraEnvID))
+			Expect(ids).To(ContainElement(infraEnvID2))
+		})
+
+		It("filters by cluster id", func() {
+			resp := bm.ListInfraEnvs(ctx, installer.ListInfraEnvsParams{ClusterID: &clusterID})
+			Expect(resp).Should(BeAssignableToTypeOf(installer.NewListInfraEnvsOK()))
+			payload := resp.(*installer.ListInfraEnvsOK).Payload
+			Expect(len(payload)).Should(Equal(1))
+			Expect(*payload[0].ID).To(Equal(infraEnvID2))
 		})
 	})
 

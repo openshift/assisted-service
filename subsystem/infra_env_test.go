@@ -34,23 +34,29 @@ var registerInfraEnv = func(clusterID *strfmt.UUID) *models.InfraEnv {
 
 var _ = Describe("Infra_Env", func() {
 	ctx := context.Background()
-	// var infraEnv *installer.RegisterInfraEnvCreated
-	var infraEnv *models.InfraEnv
-	var infraEnvID strfmt.UUID
+	var (
+		infraEnv   *models.InfraEnv
+		infraEnvID strfmt.UUID
+
+		infraEnv2 *models.InfraEnv
+		clusterID strfmt.UUID
+	)
 
 	BeforeEach(func() {
-		res, err := userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
-			InfraenvCreateParams: &models.InfraEnvCreateParams{
-				Name:             swag.String("test-infra-env"),
-				OpenshiftVersion: swag.String(openshiftVersion),
-				PullSecret:       swag.String(pullSecret),
-				SSHAuthorizedKey: swag.String(sshPublicKey),
-				ImageType:        models.ImageTypeFullIso,
+		infraEnv = registerInfraEnv(nil)
+		clusterResp, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:                     swag.String("test-cluster"),
+				OpenshiftVersion:         swag.String(openshiftVersion),
+				PullSecret:               swag.String(pullSecret),
+				BaseDNSDomain:            "example.com",
+				ClusterNetworkHostPrefix: 23,
 			},
 		})
 
 		Expect(err).NotTo(HaveOccurred())
-		infraEnv = res.GetPayload()
+		clusterID = *clusterResp.GetPayload().ID
+		infraEnv2 = registerInfraEnv(&clusterID)
 	})
 
 	JustBeforeEach(func() {
@@ -143,8 +149,16 @@ var _ = Describe("Infra_Env", func() {
 	It("can list infra-envs", func() {
 		resp, err := userBMClient.Installer.ListInfraEnvs(ctx, installer.NewListInfraEnvsParams())
 		Expect(err).NotTo(HaveOccurred())
+		Expect(len(resp.Payload)).To(Equal(2))
+		Expect(resp.Payload).To(ContainElement(infraEnv))
+		Expect(resp.Payload).To(ContainElement(infraEnv2))
+	})
+
+	It("can list infra-envs by cluster id", func() {
+		resp, err := userBMClient.Installer.ListInfraEnvs(ctx, &installer.ListInfraEnvsParams{ClusterID: &clusterID})
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(resp.Payload)).To(Equal(1))
-		Expect(resp.Payload[0]).To(Equal(infraEnv))
+		Expect(resp.Payload[0]).To(Equal(infraEnv2))
 	})
 
 	It("deregister empty infra-env", func() {
