@@ -19,11 +19,14 @@ ifeq ($(CONTAINER_COMMAND), podman)
 	PUSH_FLAGS = --tls-verify=false
 endif
 
-ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
+ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/edge-infrastructure)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
 DEBUG_SERVICE_PORT := $(or ${DEBUG_SERVICE_PORT},40000)
 SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
+IMAGE_SERVICE := $(or ${IMAGE_SERVICE},${ASSISTED_ORG}/assisted-image-service:${ASSISTED_TAG})
+UI_IMAGE := $(or ${UI_IMAGE},${ASSISTED_ORG}/assisted-installer-ui:latest)
+PSQL_IMAGE := $(or ${PSQL_IMAGE}, ${ASSISTED_ORG}/postgresql-12-centos7:latest)
 BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 INDEX_IMAGE := $(or ${INDEX_IMAGE},${ASSISTED_ORG}/assisted-service-index:${ASSISTED_TAG})
 
@@ -381,10 +384,17 @@ podman-pull-service-from-docker-daemon:
 deploy-onprem:
 	# Format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
 	podman pod create --name assisted-installer -p 5432:5432,8000:8000,8090:8090,8080:8080,8888:8888
-	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always --name db quay.io/ocpmetal/postgresql-12-centos7
-	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/edge-infrastructure/assisted-installer-ui:latest
-	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always --restart always --name image-service quay.io/edge-infrastructure/assisted-image-service:latest
-	podman run -dt --pod assisted-installer --env-file onprem-environment ${PODMAN_PULL_FLAG} --env DUMMY_IGNITION=$(DUMMY_IGNITION) --restart always --name installer $(SERVICE)
+	podman run -dt --pod assisted-installer --env-file onprem-environment ${PODMAN_PULL_FLAG} \
+		--name db ${PSQL_IMAGE}
+	podman run -dt --pod assisted-installer --env-file onprem-environment ${PODMAN_PULL_FLAG} \
+		-v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z \
+		--name ui $(UI_IMAGE)
+	podman run -dt --pod assisted-installer --env-file onprem-environment ${PODMAN_PULL_FLAG} \
+		--restart always \
+		--name image-service $(IMAGE_SERVICE)
+	podman run -dt --pod assisted-installer --env-file onprem-environment ${PODMAN_PULL_FLAG} \
+		--env DUMMY_IGNITION=$(DUMMY_IGNITION) --restart always \
+		--name assisted-service $(SERVICE)
 	./hack/retry.sh 90 2 "curl -f http://127.0.0.1:8090/ready"
 	./hack/retry.sh 60 10 "curl -f http://127.0.0.1:8888/health"
 
@@ -479,8 +489,9 @@ endif
 
 run-db-container:
 	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
-	docker run -d  --rm --tmpfs /var/lib/pgsql/data --name postgres -e POSTGRESQL_ADMIN_PASSWORD=admin -e POSTGRESQL_MAX_CONNECTIONS=10000 -p 127.0.0.1:5432:5432 \
-	quay.io/edge-infrastructure/postgresql-12-centos7:latest
+	docker run -d  --rm --tmpfs /var/lib/pgsql/data --name postgres \
+		-e POSTGRESQL_ADMIN_PASSWORD=admin -e POSTGRESQL_MAX_CONNECTIONS=10000 -p 127.0.0.1:5432:5432 \
+		${PSQL_IMAGE}
 	timeout 5m ./hack/wait_for_postgres.sh
 
 run-unit-test:
@@ -531,7 +542,7 @@ clear-images:
 	-docker rmi -f $(ISO_CREATION)
 
 clean-onprem:
-	podman pod rm -f assisted-installer || true
+	podman pod rm --force --ignore assisted-installer
 
 ############
 # Operator #
