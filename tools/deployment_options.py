@@ -89,7 +89,7 @@ def get_manifest_from_url(tag):
 
 
 def get_image_revision_from_manifest(short_image_name, manifest):
-    for repo, repo_info in manifest.items():
+    for repo_info in manifest.values():
         for image in repo_info["images"]:
             if short_image_name == image.split('/')[-1]:
                 return repo_info["revision"]
@@ -97,10 +97,10 @@ def get_image_revision_from_manifest(short_image_name, manifest):
 
 
 def get_tag(image_fqdn):
-    return image_fqdn.split(":")[-1]
+    return image_fqdn.split(":")[-1].replace("latest-", "")
 
 
-def get_image_override(deployment_options, short_image_name, env_var_name, org="ocpmetal"):
+def get_image_override(deployment_options, short_image_name, env_var_name, org="edge-infrastructure"):
     # default tag is latest
     tag = "latest"
     image_from_env = os.environ.get(env_var_name)
@@ -108,11 +108,11 @@ def get_image_override(deployment_options, short_image_name, env_var_name, org="
         print("Deploying {} according to manifest: {}".format(short_image_name, deployment_options.deploy_manifest_path))
         with open(deployment_options.deploy_manifest_path, "r") as manifest_contnet:
             manifest = yaml.safe_load(manifest_contnet)
-        tag = get_image_revision_from_manifest(short_image_name, manifest)
+        tag = f"latest-{get_image_revision_from_manifest(short_image_name, manifest)}"
     elif deployment_options.deploy_manifest_tag:
         print("Deploying {} according to assisted-installer-deployment tag: {}".format(short_image_name, deployment_options.deploy_manifest_tag))
         manifest = get_manifest_from_url(deployment_options.deploy_manifest_tag)
-        tag = get_image_revision_from_manifest(short_image_name, manifest)
+        tag = f"latest-{get_image_revision_from_manifest(short_image_name, manifest)}"
     elif deployment_options.deploy_tag:
         print("Deploying {} with deploy tag {}".format(short_image_name, deployment_options.deploy_tag))
         tag = deployment_options.deploy_tag
