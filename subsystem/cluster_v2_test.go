@@ -243,6 +243,27 @@ var _ = Describe("[V2ClusterTests]", func() {
 		waitForHostStateV2(ctx, models.HostStatusKnownUnbound, defaultWaitForHostStateTimeout, h1)
 	})
 
+	It("Cluster validations are run after host update", func() {
+		By("register 3 nodes and check that the cluster is ready")
+		h1 = registerNode(ctx, boundInfraEnv, "h1", ips[0])
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
+		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
+
+		By("update the host's role to worker and check validation")
+		hostReq := &installer.V2UpdateHostParams{
+			InfraEnvID: boundInfraEnv,
+			HostID:     *h1.ID,
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+		}
+		h1 = updateHostV2(ctx, hostReq)
+		c := getCluster(clusterID)
+		log.Info(c.ValidationsInfo)
+		Expect(*c.Status).To(Equal(models.ClusterStatusInsufficient))
+	})
+
 	It("Verify garbage collector inactive cluster and infraenv deregistration", func() {
 		By("Update cluster's updated_at attribute to become eligible for deregistration due to inactivity")
 		cluster := getCluster(clusterID)
