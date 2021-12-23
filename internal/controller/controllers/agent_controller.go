@@ -62,6 +62,7 @@ const (
 // AgentReconciler reconciles a Agent object
 type AgentReconciler struct {
 	client.Client
+	APIReader        client.Reader
 	Log              logrus.FieldLogger
 	Scheme           *runtime.Scheme
 	Installer        bminventory.InstallerInternals
@@ -73,7 +74,7 @@ type AgentReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/ai-deprovision,verbs=update
-//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := addRequestIdIfNeeded(origCtx)
@@ -888,7 +889,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 
 	if spec.IgnitionEndpointTokenReference != nil {
 		var token string
-		token, err = r.getIgnitionToken(ctx, log, agent.Spec.IgnitionEndpointTokenReference)
+		token, err = r.getIgnitionToken(ctx, agent.Spec.IgnitionEndpointTokenReference)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get ignition token")
 			return err
@@ -921,11 +922,11 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 	return nil
 }
 
-func (r *AgentReconciler) getIgnitionToken(ctx context.Context, log logrus.FieldLogger, ignitionEndpointTokenReference *aiv1beta1.IgnitionEndpointTokenReference) (string, error) {
-	secret := &corev1.Secret{}
+func (r *AgentReconciler) getIgnitionToken(ctx context.Context, ignitionEndpointTokenReference *aiv1beta1.IgnitionEndpointTokenReference) (string, error) {
 	secretRef := types.NamespacedName{Namespace: ignitionEndpointTokenReference.Namespace, Name: ignitionEndpointTokenReference.Name}
-	if err := r.Get(ctx, secretRef, secret); err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("Failed to get user-data secret %s/%s", ignitionEndpointTokenReference.Namespace, ignitionEndpointTokenReference.Name))
+	secret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to get user-data secret")
 	}
 
 	token, ok := secret.Data[IgnitionTokenKeyInSecret]

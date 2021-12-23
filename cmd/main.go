@@ -536,6 +536,7 @@ func main() {
 
 			failOnError((&controllers.AgentReconciler{
 				Client:           ctrlMgr.GetClient(),
+				APIReader:        ctrlMgr.GetAPIReader(),
 				Log:              log,
 				Scheme:           ctrlMgr.GetScheme(),
 				Installer:        bm,
