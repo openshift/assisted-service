@@ -70,6 +70,7 @@ var _ = Describe("agent reconcile", func() {
 
 		hr = &AgentReconciler{
 			Client:    c,
+			APIReader: c,
 			Scheme:    scheme.Scheme,
 			Log:       common.GetTestLog(),
 			Installer: mockInstallerInternal,
