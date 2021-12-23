@@ -3311,6 +3311,13 @@ paths:
         - userAuth: [admin, read-only-admin, user]
       description: Retrieves the list of infra-envs.
       operationId: ListInfraEnvs
+      parameters:
+        - in: query
+          name: cluster_id
+          description: If provided, returns only infra-envs which directly reference this cluster.
+          type: string
+          format: uuid
+          required: false
       responses:
         "200":
           description: Success.
@@ -8985,6 +8992,7 @@ definitions:
         type: string
         format: uuid
         description: If set, all hosts that register will be associated with the specified cluster.
+        x-go-custom-tag: gorm:"index"
       size_bytes:
         type: integer
         minimum: 0
