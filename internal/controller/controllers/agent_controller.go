@@ -73,6 +73,7 @@ type AgentReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/ai-deprovision,verbs=update
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := addRequestIdIfNeeded(origCtx)
