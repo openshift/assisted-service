@@ -6606,6 +6606,11 @@ func (b *bareMetalInventory) UnbindHost(ctx context.Context, params installer.Un
 
 func (b *bareMetalInventory) V2ListHosts(ctx context.Context, params installer.V2ListHostsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+	// Check that the InfraEnv exists in DB before searching for hosts bound to it.
+	_, err := b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: params.InfraEnvID})
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
 	hosts, err := common.GetInfraEnvHostsFromDB(b.db, params.InfraEnvID)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get list of hosts for infra-env %s", params.InfraEnvID)

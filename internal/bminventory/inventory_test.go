@@ -7649,6 +7649,13 @@ var _ = Describe("infraEnvs", func() {
 				payload = resp.(*installer.V2ListHostsOK).Payload
 				Expect(len(payload)).Should(Equal(3))
 			})
+
+			It("InfraEnv does not exist", func() {
+				resp := bm.V2ListHosts(ctx, installer.V2ListHostsParams{
+					InfraEnvID: strfmt.UUID(uuid.New().String()),
+				})
+				verifyApiError(resp, http.StatusNotFound)
+			})
 		})
 	})
 
