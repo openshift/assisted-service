@@ -338,8 +338,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 }
 
 func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, clusterId, infraEnvId string) error {
-	if agent.Status.DebugInfo.EventsURL == "" || !strings.Contains(agent.Status.DebugInfo.EventsURL, clusterId) {
-		eventUrl, err := r.eventsURL(log, clusterId, infraEnvId, agent.Name)
+	if agent.Status.DebugInfo.EventsURL == "" {
+		eventUrl, err := r.eventsURL(log, infraEnvId, agent.Name)
 		if err != nil {
 			log.WithError(err).Error("failed to generate Events URL")
 			return err
@@ -349,8 +349,8 @@ func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1b
 	return nil
 }
 
-func (r *AgentReconciler) eventsURL(log logrus.FieldLogger, clusterId, infraEnvId, agentId string) (string, error) {
-	eventsURL := fmt.Sprintf("%s%s/v1/clusters/%s/events?host_id=%s", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId, agentId)
+func (r *AgentReconciler) eventsURL(log logrus.FieldLogger, infraEnvId, agentId string) (string, error) {
+	eventsURL := fmt.Sprintf("%s%s/v2/events?host_id=%s", r.ServiceBaseURL, restclient.DefaultBasePath, agentId)
 	if r.AuthType != auth.TypeLocal {
 		return eventsURL, nil
 	}

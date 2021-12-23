@@ -26,18 +26,14 @@ func NewControllerEventsWrapper(crdEventsHandler CRDEventsHandler, events events
 		events: events, db: db, log: log}
 }
 
-func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
-	c.events.AddEvent(ctx, clusterID, hostID, severity, msg, eventTime, props)
+func (c *controllerEventsWrapper) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	c.events.V2AddEvent(ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime, props)
 
 	if hostID != nil {
-		c.NotifyKubeApiHostEvent(clusterID, *hostID)
+		c.NotifyKubeApiHostEvent(*clusterID, *hostID)
 	} else {
-		c.NotifyKubeApiClusterEvent(clusterID)
+		c.NotifyKubeApiClusterEvent(*clusterID)
 	}
-}
-
-func (c *controllerEventsWrapper) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
-	//TODO: Implement this instead of v1 AddEvent() when it get removed.
 }
 
 func (c *controllerEventsWrapper) AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
@@ -46,9 +42,6 @@ func (c *controllerEventsWrapper) AddMetricsEvent(ctx context.Context, clusterID
 
 func (c *controllerEventsWrapper) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	// Disable metrics event for the controller since the current operator installations do not work with ELK
-}
-func (c *controllerEventsWrapper) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
-	return c.events.GetEvents(clusterID, hostID, categories...)
 }
 
 func (c *controllerEventsWrapper) V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {

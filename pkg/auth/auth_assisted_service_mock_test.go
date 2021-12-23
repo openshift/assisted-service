@@ -500,14 +500,8 @@ var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}
 
-func (f fakeEventsAPI) ListEvents(
-	_ context.Context,
-	_ eventsapi.ListEventsParams) middleware.Responder {
-	return eventsapi.NewListEventsOK()
-}
-
 func (f fakeEventsAPI) V2ListEvents(ctx context.Context, params eventsapi.V2ListEventsParams) middleware.Responder {
-	return eventsapi.NewListEventsOK()
+	return eventsapi.NewV2ListEventsOK()
 }
 
 type fakeVersionsAPI struct{}

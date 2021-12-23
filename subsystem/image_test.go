@@ -214,8 +214,8 @@ var _ = Describe("system-test proxy update tests", func() {
 })
 
 func verifyEventExistence(ClusterID strfmt.UUID, message string) {
-	eventsReply, err := userBMClient.Events.ListEvents(context.TODO(), &events.ListEventsParams{
-		ClusterID: ClusterID,
+	eventsReply, err := userBMClient.Events.V2ListEvents(context.TODO(), &events.V2ListEventsParams{
+		ClusterID: &ClusterID,
 	})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(eventsReply.Payload).ShouldNot(HaveLen(0))

@@ -46,9 +46,6 @@ type AssistedServiceIsoAPI interface {
 
 /* EventsAPI  */
 type EventsAPI interface {
-	/* ListEvents Lists events for a cluster. */
-	ListEvents(ctx context.Context, params events.ListEventsParams) middleware.Responder
-
 	/* V2ListEvents Lists events for a cluster. */
 	V2ListEvents(ctx context.Context, params events.V2ListEventsParams) middleware.Responder
 }
@@ -756,11 +753,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.VersionsAPI.ListComponentVersions(ctx, params)
-	})
-	api.EventsListEventsHandler = events.ListEventsHandlerFunc(func(params events.ListEventsParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.EventsAPI.ListEvents(ctx, params)
 	})
 	api.InstallerListHostsHandler = installer.ListHostsHandlerFunc(func(params installer.ListHostsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

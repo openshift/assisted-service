@@ -930,10 +930,11 @@ func getFreeAddresses(ctx context.Context, cli *client.AssistedInstall) error {
 
 func listEvents(ctx context.Context, cli *client.AssistedInstall) error {
 	hostId := strfmt.UUID(uuid.New().String())
-	_, err := cli.Events.ListEvents(
+	clusterId := strfmt.UUID(uuid.New().String())
+	_, err := cli.Events.V2ListEvents(
 		ctx,
-		&events.ListEventsParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
+		&events.V2ListEventsParams{
+			ClusterID: &clusterId,
 			HostID:    &hostId,
 		})
 	return err

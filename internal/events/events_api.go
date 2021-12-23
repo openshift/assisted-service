@@ -30,28 +30,6 @@ func NewApi(handler eventsapi.Handler, log logrus.FieldLogger) *Api {
 	}
 }
 
-func (a *Api) ListEvents(ctx context.Context, params events.ListEventsParams) middleware.Responder {
-	log := logutil.FromContext(ctx, a.log)
-
-	evs, err := a.handler.GetEvents(params.ClusterID, params.HostID, params.Categories...)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get events")
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	ret := make(models.EventList, len(evs))
-	for i, ev := range evs {
-		ret[i] = &models.Event{
-			ClusterID: ev.ClusterID,
-			HostID:    ev.HostID,
-			Severity:  ev.Severity,
-			EventTime: ev.EventTime,
-			Message:   ev.Message,
-			Props:     ev.Props,
-		}
-	}
-	return events.NewListEventsOK().WithPayload(ret)
-}
-
 func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, a.log)
 
@@ -77,5 +55,5 @@ func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams
 			Props:      ev.Props,
 		}
 	}
-	return events.NewListEventsOK().WithPayload(ret)
+	return events.NewV2ListEventsOK().WithPayload(ret)
 }

@@ -1433,7 +1433,7 @@ func (r *ClusterDeploymentsReconciler) populateLogsURL(ctx context.Context, log 
 }
 
 func (r *ClusterDeploymentsReconciler) eventsURL(log logrus.FieldLogger, clusterId string) (string, error) {
-	eventsURL := fmt.Sprintf("%s%s/v1/clusters/%s/events", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId)
+	eventsURL := fmt.Sprintf("%s%s/v2/events?cluster_id=%s", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId)
 	if r.AuthType != auth.TypeLocal {
 		return eventsURL, nil
 	}
