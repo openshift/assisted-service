@@ -56,6 +56,52 @@ func (o *DownloadClusterISOOK) WriteResponse(rw http.ResponseWriter, producer ru
 	}
 }
 
+// DownloadClusterISOMovedPermanentlyCode is the HTTP code returned for type DownloadClusterISOMovedPermanently
+const DownloadClusterISOMovedPermanentlyCode int = 301
+
+/*DownloadClusterISOMovedPermanently Redirect.
+
+swagger:response downloadClusterISOMovedPermanently
+*/
+type DownloadClusterISOMovedPermanently struct {
+	/*
+
+	 */
+	Location string `json:"Location"`
+}
+
+// NewDownloadClusterISOMovedPermanently creates DownloadClusterISOMovedPermanently with default headers values
+func NewDownloadClusterISOMovedPermanently() *DownloadClusterISOMovedPermanently {
+
+	return &DownloadClusterISOMovedPermanently{}
+}
+
+// WithLocation adds the location to the download cluster i s o moved permanently response
+func (o *DownloadClusterISOMovedPermanently) WithLocation(location string) *DownloadClusterISOMovedPermanently {
+	o.Location = location
+	return o
+}
+
+// SetLocation sets the location to the download cluster i s o moved permanently response
+func (o *DownloadClusterISOMovedPermanently) SetLocation(location string) {
+	o.Location = location
+}
+
+// WriteResponse to the client
+func (o *DownloadClusterISOMovedPermanently) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	// response header Location
+
+	location := o.Location
+	if location != "" {
+		rw.Header().Set("Location", location)
+	}
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(301)
+}
+
 // DownloadClusterISOBadRequestCode is the HTTP code returned for type DownloadClusterISOBadRequest
 const DownloadClusterISOBadRequestCode int = 400
 

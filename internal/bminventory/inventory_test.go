@@ -14380,3 +14380,51 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 		verifyApiError(resp, http.StatusBadRequest)
 	})
 })
+
+var _ = Describe("DownloadClusterISO", func() {
+	var (
+		bm                  *bareMetalInventory
+		cfg                 Config
+		db                  *gorm.DB
+		dbName              string
+		infraEnvID          strfmt.UUID
+		imageServiceBaseURL = "https://image-service.example.com:8080/api/image-services"
+		downloadURL         = fmt.Sprintf("%s/images/%s", imageServiceBaseURL, infraEnvID)
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+		bm.ImageServiceBaseURL = imageServiceBaseURL
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:               &infraEnvID,
+			PullSecretSet:    true,
+			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		Expect(db.Create(cluster).Error).To(Succeed())
+
+		ie := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:               &infraEnvID,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				Type:             common.ImageTypePtr(models.ImageTypeFullIso),
+				DownloadURL:      downloadURL,
+			},
+		}
+		Expect(db.Create(ie).Error).To(Succeed())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("redirects to the downloadURL when using the image serivce", func() {
+		params := installer.DownloadClusterISOParams{ClusterID: infraEnvID}
+		resp := bm.DownloadClusterISO(context.Background(), params)
+		Expect(resp).To(BeAssignableToTypeOf(installer.NewDownloadClusterISOMovedPermanently()))
+		typedResponse := resp.(*installer.DownloadClusterISOMovedPermanently)
+		Expect(typedResponse.Location).To(Equal(downloadURL))
+	})
+})
