@@ -52,6 +52,14 @@ var hostStatusesInInfraEnv = [...]string{
 	models.HostStatusKnownUnbound,
 }
 
+var hostStatusesBeforeInstallationOrUnbound = [...]string{
+	models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
+	models.HostStatusInsufficient, models.HostStatusPendingForInput,
+	models.HostStatusDisconnectedUnbound, models.HostStatusInsufficientUnbound, models.HostStatusDiscoveringUnbound,
+	models.HostStatusKnownUnbound,
+	models.HostStatusBinding,
+}
+
 type UpdateReply struct {
 	State     string
 	IsChanged bool
@@ -80,8 +88,7 @@ func refreshHostStageUpdateTime(
 // update host role with an option to update only if the current role is srcRole to prevent races
 func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, suggestedRole models.HostRole, db *gorm.DB, srcRole string) error {
 	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := append(hostStatusesBeforeInstallation[:], hostStatusesInInfraEnv[:]...)
-	if !funk.ContainsString(allowedStatuses, hostStatus) {
+	if !funk.ContainsString(hostStatusesBeforeInstallationOrUnbound[:], hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Host is in %s state, host role can be set only in one of %s states",
 				hostStatus, hostStatusesBeforeInstallation[:]))
