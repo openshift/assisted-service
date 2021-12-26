@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v4"
 	keygen_tools "github.com/openshift/assisted-service/pkg/auth"
 )
 

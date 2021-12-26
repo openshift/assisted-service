@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
 	params "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/ocm"
