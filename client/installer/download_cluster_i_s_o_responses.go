@@ -30,6 +30,12 @@ func (o *DownloadClusterISOReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return result, nil
+	case 301:
+		result := NewDownloadClusterISOMovedPermanently()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 400:
 		result := NewDownloadClusterISOBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -105,6 +111,35 @@ func (o *DownloadClusterISOOK) readResponse(response runtime.ClientResponse, con
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
+	}
+
+	return nil
+}
+
+// NewDownloadClusterISOMovedPermanently creates a DownloadClusterISOMovedPermanently with default headers values
+func NewDownloadClusterISOMovedPermanently() *DownloadClusterISOMovedPermanently {
+	return &DownloadClusterISOMovedPermanently{}
+}
+
+/* DownloadClusterISOMovedPermanently describes a response with status code 301, with default header values.
+
+Redirect.
+*/
+type DownloadClusterISOMovedPermanently struct {
+	Location string
+}
+
+func (o *DownloadClusterISOMovedPermanently) Error() string {
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOMovedPermanently ", 301)
+}
+
+func (o *DownloadClusterISOMovedPermanently) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	// hydrates response header Location
+	hdrLocation := response.GetHeader("Location")
+
+	if hdrLocation != "" {
+		o.Location = hdrLocation
 	}
 
 	return nil
