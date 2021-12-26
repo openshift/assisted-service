@@ -414,6 +414,15 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(stepReply).NotTo(BeNil())
 			verifyArgInCommand(stepReply[0].Args[1], "--mco-image", fmt.Sprintf("'%s'", value), 1)
 		})
+
+		It("validate that pki was mounted", func() {
+			config := &InstructionConfig{}
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			Expect(strings.Contains(stepReply[0].Args[1], "/etc/pki:/etc/pki")).Should(BeTrue())
+		})
 	})
 
 	Context("installer args", func() {
