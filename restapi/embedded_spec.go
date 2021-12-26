@@ -7087,6 +7087,15 @@ func init() {
           "installer"
         ],
         "operationId": "ListInfraEnvs",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "If provided, returns only infra-envs which directly reference this cluster.",
+            "name": "cluster_id",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",
@@ -11947,7 +11956,8 @@ func init() {
         "cluster_id": {
           "description": "If set, all hosts that register will be associated with the specified cluster.",
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"index\""
         },
         "cpu_architecture": {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
@@ -20579,6 +20589,15 @@ func init() {
           "installer"
         ],
         "operationId": "ListInfraEnvs",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "If provided, returns only infra-envs which directly reference this cluster.",
+            "name": "cluster_id",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",
@@ -25511,7 +25530,8 @@ func init() {
         "cluster_id": {
           "description": "If set, all hosts that register will be associated with the specified cluster.",
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"index\""
         },
         "cpu_architecture": {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",

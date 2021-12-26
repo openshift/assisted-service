@@ -9,7 +9,10 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/validate"
 )
 
 // NewListInfraEnvsParams creates a new ListInfraEnvsParams object
@@ -28,6 +31,11 @@ type ListInfraEnvsParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
+
+	/*If provided, returns only infra-envs which directly reference this cluster.
+	  In: query
+	*/
+	ClusterID *strfmt.UUID
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -39,8 +47,51 @@ func (o *ListInfraEnvsParams) BindRequest(r *http.Request, route *middleware.Mat
 
 	o.HTTPRequest = r
 
+	qs := runtime.Values(r.URL.Query())
+
+	qClusterID, qhkClusterID, _ := qs.GetOK("cluster_id")
+	if err := o.bindClusterID(qClusterID, qhkClusterID, route.Formats); err != nil {
+		res = append(res, err)
+	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+// bindClusterID binds and validates parameter ClusterID from query.
+func (o *ListInfraEnvsParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("cluster_id", "query", "strfmt.UUID", raw)
+	}
+	o.ClusterID = (value.(*strfmt.UUID))
+
+	if err := o.validateClusterID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateClusterID carries on validations for parameter ClusterID
+func (o *ListInfraEnvsParams) validateClusterID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("cluster_id", "query", "uuid", o.ClusterID.String(), formats); err != nil {
+		return err
 	}
 	return nil
 }
