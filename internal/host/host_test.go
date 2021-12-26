@@ -139,6 +139,31 @@ var _ = Describe("update_role", func() {
 				srcState: models.HostStatusInstallingInProgress,
 				testFunc: failure,
 			},
+			{
+				name:     models.HostStatusBinding,
+				srcState: models.HostStatusBinding,
+				testFunc: success,
+			},
+			{
+				name:     models.HostStatusDiscoveringUnbound,
+				srcState: models.HostStatusDiscoveringUnbound,
+				testFunc: success,
+			},
+			{
+				name:     models.HostStatusInsufficientUnbound,
+				srcState: models.HostStatusInsufficientUnbound,
+				testFunc: success,
+			},
+			{
+				name:     models.HostStatusDisconnectedUnbound,
+				srcState: models.HostStatusDisconnectedUnbound,
+				testFunc: success,
+			},
+			{
+				name:     models.HostStatusKnownUnbound,
+				srcState: models.HostStatusKnownUnbound,
+				testFunc: success,
+			},
 		}
 
 		for i := range tests {
@@ -1497,6 +1522,31 @@ var _ = Describe("Update hostname", func() {
 				srcState:   models.HostStatusPendingForInput,
 				validation: success,
 			},
+			{
+				name:       models.HostStatusBinding,
+				srcState:   models.HostStatusBinding,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusDiscoveringUnbound,
+				srcState:   models.HostStatusDiscoveringUnbound,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusInsufficientUnbound,
+				srcState:   models.HostStatusInsufficientUnbound,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusDisconnectedUnbound,
+				srcState:   models.HostStatusDisconnectedUnbound,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusKnownUnbound,
+				srcState:   models.HostStatusKnownUnbound,
+				validation: success,
+			},
 		}
 
 		for i := range tests {
@@ -2146,6 +2196,36 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 			day2:    true,
 			isValid: false,
 		},
+		{
+			name:    "day2_binding",
+			status:  models.HostStatusBinding,
+			day2:    true,
+			isValid: true,
+		},
+		{
+			name:    "day2_unbound_discoverying",
+			status:  models.HostStatusDiscoveringUnbound,
+			day2:    true,
+			isValid: true,
+		},
+		{
+			name:    "day2_unbound_insufficient",
+			status:  models.HostStatusInsufficientUnbound,
+			day2:    true,
+			isValid: true,
+		},
+		{
+			name:    "day2_unbound_disconnected",
+			status:  models.HostStatusDisconnectedUnbound,
+			day2:    true,
+			isValid: true,
+		},
+		{
+			name:    "day2_unbound_known",
+			status:  models.HostStatusKnownUnbound,
+			day2:    true,
+			isValid: true,
+		},
 	}
 
 	for i := range tests {
@@ -2236,6 +2316,36 @@ var _ = Describe("UpdateIgnitionEndpointToken", func() {
 			status:  models.HostStatusInstalled,
 			day2:    true,
 			isValid: false,
+		},
+		{
+			name:    "day2_binding",
+			status:  models.HostStatusBinding,
+			day2:    true,
+			isValid: true,
+		},
+		{
+			name:    "day2_unbound_discoverying",
+			status:  models.HostStatusDiscoveringUnbound,
+			day2:    true,
+			isValid: true,
+		},
+		{
+			name:    "day2_unbound_insufficient",
+			status:  models.HostStatusInsufficientUnbound,
+			day2:    true,
+			isValid: true,
+		},
+		{
+			name:    "day2_unbound_disconnected",
+			status:  models.HostStatusDisconnectedUnbound,
+			day2:    true,
+			isValid: true,
+		},
+		{
+			name:    "day2_unbound_known",
+			status:  models.HostStatusKnownUnbound,
+			day2:    true,
+			isValid: true,
 		},
 	}
 
