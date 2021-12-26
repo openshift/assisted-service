@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
 	"github.com/go-openapi/strfmt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/patrickmn/go-cache"

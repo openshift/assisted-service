@@ -15,7 +15,6 @@ require (
 	github.com/coreos/ignition/v2 v2.9.0
 	github.com/coreos/vcontext v0.0.0-20201120045928-b0e13dab675c
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/diskfs/go-diskfs v1.1.2-0.20210216073915-ba492710e2d8
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
@@ -29,6 +28,7 @@ require (
 	github.com/go-openapi/swag v0.19.15
 	github.com/go-openapi/validate v0.20.3
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
+	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.5
 	github.com/google/renameio v0.1.0
