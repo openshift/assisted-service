@@ -3789,7 +3789,7 @@ func generateFullMeshConnectivity(ctx context.Context, startCIDR string, hosts .
 
 	for _, h := range hosts {
 		hostToAddr[*h.ID] = ip.String()
-		ip[len(ip)-1]++
+		common.IncrementIP(ip)
 	}
 
 	var connectivityReport models.ConnectivityReport
@@ -3799,7 +3799,7 @@ func generateFullMeshConnectivity(ctx context.Context, startCIDR string, hosts .
 		l3Connectivity := make([]*models.L3Connectivity, 0)
 		for id, addr := range hostToAddr {
 
-			if id == *h.ID {
+			if id != *h.ID {
 				continue
 			}
 

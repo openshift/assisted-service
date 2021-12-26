@@ -583,11 +583,8 @@ func isSupportedPlatform(cluster *hivev1.ClusterDeployment) bool {
 }
 
 func isUserManagedNetwork(clusterInstall *hiveext.AgentClusterInstall) bool {
-	if clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
-		clusterInstall.Spec.ProvisionRequirements.WorkerAgents == 0 {
-		return true
-	}
-	return false
+	return clusterInstall.Spec.Networking.UserManagedNetworking ||
+		clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents == 1 && clusterInstall.Spec.ProvisionRequirements.WorkerAgents == 0
 }
 
 func isDiskEncryptionEnabled(clusterInstall *hiveext.AgentClusterInstall) bool {

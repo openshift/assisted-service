@@ -386,6 +386,27 @@ var _ = Describe("cluster reconcile", func() {
 				validateCreation(cluster)
 			})
 
+			It("create none platform cluster", func() {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
+					Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+						Expect(swag.BoolValue(params.NewClusterParams.UserManagedNetworking)).
+							To(BeTrue())
+					}).Return(clusterReply, nil)
+				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+
+				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+				aci.Spec.ProvisionRequirements.WorkerAgents = 2
+				aci.Spec.ProvisionRequirements.ControlPlaneAgents = 3
+				aci.Spec.Networking.UserManagedNetworking = true
+				aci.Spec.APIVIP = ""
+				aci.Spec.IngressVIP = ""
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+				validateCreation(cluster)
+			})
+
 			It("no pull secret name when trying to create a cluster", func() {
 				cluster := newClusterDeployment(clusterName, testNamespace,
 					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, ""))

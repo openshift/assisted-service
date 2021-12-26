@@ -278,6 +278,10 @@ spec:
                     items:
                       type: string
                     type: array
+                  userManagedNetworking:
+                    description: UserManagedNetworking indicates if the networking
+                      is managed by the user.
+                    type: boolean
                 type: object
               provisionRequirements:
                 description: ProvisionRequirements defines configuration for when
