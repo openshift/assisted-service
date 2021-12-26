@@ -77,5 +77,5 @@ func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams
 			Props:      ev.Props,
 		}
 	}
-	return events.NewListEventsOK().WithPayload(ret)
+	return events.NewV2ListEventsOK().WithPayload(ret)
 }

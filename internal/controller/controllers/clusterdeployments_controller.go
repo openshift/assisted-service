@@ -1411,7 +1411,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 func (r *ClusterDeploymentsReconciler) populateEventsURL(log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) error {
 	if *c.Status != models.ClusterStatusInstalled {
 		if clusterInstall.Status.DebugInfo.EventsURL == "" {
-			eventUrl, err := r.eventsURL(log, string(*c.ID))
+			eventUrl, err := r.generateEventsURL(log, string(*c.ID))
 			if err != nil {
 				log.WithError(err).Error("failed to generate Events URL")
 				return err
@@ -1432,8 +1432,8 @@ func (r *ClusterDeploymentsReconciler) populateLogsURL(ctx context.Context, log 
 	return nil
 }
 
-func (r *ClusterDeploymentsReconciler) eventsURL(log logrus.FieldLogger, clusterId string) (string, error) {
-	eventsURL := fmt.Sprintf("%s%s/v1/clusters/%s/events", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId)
+func (r *ClusterDeploymentsReconciler) generateEventsURL(log logrus.FieldLogger, clusterId string) (string, error) {
+	eventsURL := fmt.Sprintf("%s%s/v2/events?cluster_id=%s", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId)
 	if r.AuthType != auth.TypeLocal {
 		return eventsURL, nil
 	}

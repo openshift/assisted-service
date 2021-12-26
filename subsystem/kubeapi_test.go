@@ -1544,11 +1544,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return kubeClient.Update(ctx, agent)
 		}, "30s", "10s").Should(BeNil())
 
-		By("Check Agent Event URL exists")
+		By("Check that Agent Event URL is valid")
 		Eventually(func() string {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Status.DebugInfo.EventsURL
-		}, "30s", "10s").ShouldNot(Equal(""))
+		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*host_id=%s", host.ID.String())))
 
 		By("Wait for installing")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstallationInProgressReason)
@@ -2479,11 +2479,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
-		By("Check ACI Event URL exists")
+		By("Check that ACI Event URL is valid")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.EventsURL
-		}, "30s", "10s").ShouldNot(Equal(""))
+		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*cluster_id=%s", cluster.ID.String())))
 
 		By("Check ACI Logs URL is empty")
 		// Should not show the URL since no logs were collected
@@ -2506,11 +2506,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return kubeClient.Update(ctx, agent)
 		}, "30s", "10s").Should(BeNil())
 
-		By("Check Agent Event URL exists")
+		By("Check that Agent Event URL is valid")
 		Eventually(func() string {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Status.DebugInfo.EventsURL
-		}, "30s", "10s").ShouldNot(Equal(""))
+		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*host_id=%s", host.ID.String())))
 
 		By("Wait for installing")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstallationInProgressReason)
@@ -2620,11 +2620,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configSecret = getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
 
-		By("Check Event URL still exist")
+		By("Check that Event URL is still valid")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.EventsURL
-		}, "1m", "10s").ShouldNot(Equal(""))
+		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*cluster_id=%s", cluster.ID.String())))
 
 		By("Check ACI Logs URL still exists")
 		Eventually(func() string {
@@ -2670,11 +2670,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      host.ID.String(),
 		}
 
-		By("Check Agent Event URL exists")
+		By("Check that Agent Event URL is valid")
 		Eventually(func() string {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Status.DebugInfo.EventsURL
-		}, "30s", "10s").ShouldNot(Equal(""))
+		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*host_id=%s", host.ID.String())))
 		firstAgentEventsURL := getAgentCRD(ctx, kubeClient, key).Status.DebugInfo.EventsURL
 
 		By("Create New Infraenv")
@@ -2703,11 +2703,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return agent.Spec.ClusterDeploymentName.Name
 		}, "30s", "10s").Should(Equal(clusterDeploymentSpec2.ClusterName))
 
-		By("Check Agent event URL changed")
+		By("Check Agent event URL has not changed")
 		Eventually(func() string {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Status.DebugInfo.EventsURL
-		}, "30s", "10s").Should(Not(Equal(firstAgentEventsURL)))
+		}, "30s", "10s").Should(Equal(firstAgentEventsURL))
 
 		By("Check host is removed from first backend cluster")
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
@@ -3004,11 +3004,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 		Expect(*cluster.Status).Should(Equal(models.ClusterStatusAddingHosts))
 
-		By("Check ACI Event URL exists")
+		By("Check that ACI Event URL is valid")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.EventsURL
-		}, "30s", "10s").ShouldNot(Equal(""))
+		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*cluster_id=%s", cluster.ID.String())))
 
 		By("Verify ClusterDeployment Agents were not deleted")
 

@@ -94,7 +94,7 @@ var _ = Describe("Controller events wrapper", func() {
 	Context("With events", func() {
 		It("Adding a cluster event", func() {
 			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
-			cEventsWrapper.AddEvent(context.TODO(), *cluster1.ID, nil, models.EventSeverityInfo, "the event1", time.Now())
+			cEventsWrapper.V2AddEvent(context.TODO(), cluster1.ID, nil, nil, models.EventSeverityInfo, "the event1", time.Now())
 			Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(1))
 			Expect(numOfEvents(cluster2.ID, nil, nil)).Should(Equal(0))
 
@@ -104,7 +104,7 @@ var _ = Describe("Controller events wrapper", func() {
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
 
 			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster2.KubeKeyName, cluster2.KubeKeyNamespace).Times(1)
-			cEventsWrapper.AddEvent(context.TODO(), *cluster2.ID, nil, models.EventSeverityInfo, "event2", time.Now())
+			cEventsWrapper.V2AddEvent(context.TODO(), cluster2.ID, nil, nil, models.EventSeverityInfo, "event2", time.Now())
 			Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(1))
 			Expect(numOfEvents(cluster2.ID, nil, nil)).Should(Equal(1))
 		})
@@ -114,7 +114,7 @@ var _ = Describe("Controller events wrapper", func() {
 			host1 := common.Host{
 				Host: models.Host{
 					ID:         &hostID1,
-					InfraEnvID: *cluster1.ID,
+					InfraEnvID: *infraEnv1.ID,
 					ClusterID:  cluster1.ID,
 					Status:     swag.String(models.HostStatusKnown),
 					Kind:       swag.String(models.HostKindHost),
@@ -126,9 +126,9 @@ var _ = Describe("Controller events wrapper", func() {
 
 			mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host1.ID.String(), host1.KubeKeyNamespace).Times(1)
 			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
-			cEventsWrapper.AddEvent(context.TODO(), *cluster1.ID, host1.ID, models.EventSeverityInfo, "event2", time.Now())
-			Expect(numOfEvents(cluster1.ID, nil, nil)).Should(Equal(1))
-			Expect(numOfEvents(cluster1.ID, host1.ID, nil)).Should(Equal(1))
+			cEventsWrapper.V2AddEvent(context.TODO(), nil, host1.ID, infraEnv1.ID, models.EventSeverityInfo, "event2", time.Now())
+			Expect(numOfEvents(nil, host1.ID, nil)).Should(Equal(1))
+			Expect(numOfEvents(nil, host1.ID, infraEnv1.ID)).Should(Equal(1))
 		})
 
 		It("Sending a cluster event", func() {

@@ -26,18 +26,18 @@ func NewControllerEventsWrapper(crdEventsHandler CRDEventsHandler, events events
 		events: events, db: db, log: log}
 }
 
-func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
-	c.events.AddEvent(ctx, clusterID, hostID, severity, msg, eventTime, props)
+func (c *controllerEventsWrapper) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	c.events.V2AddEvent(ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime, props)
 
 	if hostID != nil {
-		c.NotifyKubeApiHostEvent(clusterID, *hostID)
+		c.NotifyKubeApiHostEvent(common.StrFmtUUIDVal(infraEnvID), common.StrFmtUUIDVal(hostID))
 	} else {
-		c.NotifyKubeApiClusterEvent(clusterID)
+		c.NotifyKubeApiClusterEvent(common.StrFmtUUIDVal(clusterID))
 	}
 }
 
-func (c *controllerEventsWrapper) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
-	//TODO: Implement this instead of v1 AddEvent() when it get removed.
+func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	//TODO: Remove this when V1 Events endpoint gets removed.
 }
 
 func (c *controllerEventsWrapper) AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
@@ -92,6 +92,9 @@ func (c *controllerEventsWrapper) SendInfraEnvEventAtTime(ctx context.Context, e
 }
 
 func (c *controllerEventsWrapper) NotifyKubeApiClusterEvent(clusterID strfmt.UUID) {
+	if clusterID == "" {
+		return
+	}
 	cluster, err := common.GetClusterFromDB(c.db, clusterID, common.SkipEagerLoading)
 	if err != nil {
 		return
@@ -101,8 +104,11 @@ func (c *controllerEventsWrapper) NotifyKubeApiClusterEvent(clusterID strfmt.UUI
 	c.crdEventsHandler.NotifyClusterDeploymentUpdates(cluster.KubeKeyName, cluster.KubeKeyNamespace)
 }
 
-func (c *controllerEventsWrapper) NotifyKubeApiHostEvent(clusterID strfmt.UUID, hostID strfmt.UUID) {
-	host, err := common.GetHostFromDB(c.db.Unscoped(), clusterID.String(), hostID.String())
+func (c *controllerEventsWrapper) NotifyKubeApiHostEvent(infraEnvID strfmt.UUID, hostID strfmt.UUID) {
+	if infraEnvID == "" || hostID == "" {
+		return
+	}
+	host, err := common.GetHostFromDB(c.db.Unscoped(), infraEnvID.String(), hostID.String())
 	if err != nil {
 		return
 	}
@@ -116,6 +122,9 @@ func (c *controllerEventsWrapper) NotifyKubeApiHostEvent(clusterID strfmt.UUID, 
 }
 
 func (c *controllerEventsWrapper) NotifyKubeApiInfraEnvEvent(infraEnvId strfmt.UUID) {
+	if infraEnvId == "" {
+		return
+	}
 	ie, err := common.GetInfraEnvFromDB(c.db, infraEnvId)
 	if err != nil {
 		return
