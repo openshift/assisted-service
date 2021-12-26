@@ -26,7 +26,7 @@ DEBUG_SERVICE_PORT := $(or ${DEBUG_SERVICE_PORT},40000)
 SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
 IMAGE_SERVICE := $(or ${IMAGE_SERVICE},${ASSISTED_ORG}/assisted-image-service:${ASSISTED_TAG})
 ASSISTED_UI := $(or ${ASSISTED_UI},${ASSISTED_ORG}/assisted-installer-ui:${ASSISTED_TAG})
-PSQL_IMAGE := $(or ${PSQL_IMAGE}, ${ASSISTED_ORG}/postgresql-12-centos7:latest)
+PSQL_IMAGE := $(or ${PSQL_IMAGE},quay.io/centos7/postgresql-12-centos7:latest)
 BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 INDEX_IMAGE := $(or ${INDEX_IMAGE},${ASSISTED_ORG}/assisted-service-index:${ASSISTED_TAG})
 
