@@ -23,3 +23,7 @@ Please refer to the [Hive Integration readme](../hive-integration/README.md) to 
 ### Network Configuration
 
 Please refer to the [Network Configuration introduction](network-configuration.md) for more information about advanced network configuration with the Assisted Service.
+
+### Infrastructure Operator
+
+Please refer to [Infrastructure Operator installation](infrastructure-operator-olm.md) for more information on installing the Hive integration flavour of Assisted Installer via OLM.
