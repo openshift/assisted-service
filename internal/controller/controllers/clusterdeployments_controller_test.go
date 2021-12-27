@@ -682,7 +682,7 @@ var _ = Describe("cluster reconcile", func() {
 				Status: swag.String(models.ClusterStatusInsufficient),
 			},
 		}
-		expectedEventUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v1/clusters/%s/events", serviceBaseURL, sId)
+		expectedEventUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v2/events?cluster_id=%s", serviceBaseURL, sId)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 
 		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)

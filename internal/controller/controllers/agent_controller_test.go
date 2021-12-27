@@ -713,7 +713,7 @@ var _ = Describe("agent reconcile", func() {
 		serviceBaseURL := "http://acme.com"
 		hr.ServiceBaseURL = serviceBaseURL
 		hostId := strfmt.UUID(uuid.New().String())
-		expectedEventUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v1/clusters/%s/events?host_id=%s", serviceBaseURL, sId, hostId.String())
+		expectedEventUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v2/events?host_id=%s", serviceBaseURL, hostId.String())
 		commonHost := &common.Host{
 			Host: models.Host{
 				ID:         &hostId,
