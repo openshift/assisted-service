@@ -125,7 +125,7 @@ func mockClusterRegisterSteps() {
 	mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 }
 
-func mockClusterRegisterSuccess(bm *bareMetalInventory, withEvents bool) {
+func mockClusterRegisterSuccess(withEvents bool) {
 	mockClusterRegisterSteps()
 	mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, gomock.Any(), gomock.Any()).Times(1)
 
@@ -3502,7 +3502,7 @@ var _ = Describe("cluster", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 			clusterParams := getDefaultClusterCreateParams()
@@ -3555,7 +3555,7 @@ var _ = Describe("cluster", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0"
 			clusterParams := getDefaultClusterCreateParams()
@@ -3574,7 +3574,7 @@ var _ = Describe("cluster", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
 			clusterParams := getDefaultClusterCreateParams()
@@ -3632,7 +3632,7 @@ var _ = Describe("cluster", func() {
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		noneHaMode := models.ClusterHighAvailabilityModeNone
 		openShiftVersionForNoneHA := "4.8.0-0.ci.test-2021-05-20-000749-ci-op-7xrzwgwy-latest"
 		clusterParams := getDefaultClusterCreateParams()
@@ -3734,7 +3734,7 @@ var _ = Describe("cluster", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: getDefaultClusterCreateParams(),
@@ -3760,7 +3760,7 @@ var _ = Describe("cluster", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: getDefaultClusterCreateParams(),
@@ -3822,7 +3822,7 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("OLM register default value - only builtins", func() {
-					mockClusterRegisterSuccess(bm, true)
+					mockClusterRegisterSuccess(true)
 
 					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 						NewClusterParams: getDefaultClusterCreateParams(),
@@ -3836,7 +3836,7 @@ var _ = Describe("cluster", func() {
 					newOperatorName := testOLMOperators[0].Name
 					newProperties := "blob-info"
 
-					mockClusterRegisterSuccess(bm, true)
+					mockClusterRegisterSuccess(true)
 					mockGetOperatorByName(newOperatorName)
 					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
 						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
@@ -3868,7 +3868,7 @@ var _ = Describe("cluster", func() {
 				It("Resolve OLM dependencies", func() {
 					newOperatorName := testOLMOperators[1].Name
 
-					mockClusterRegisterSuccess(bm, true)
+					mockClusterRegisterSuccess(true)
 					mockGetOperatorByName(newOperatorName)
 					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
 						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
@@ -6038,7 +6038,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -10146,7 +10146,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		mockUsageReports()
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -10994,7 +10994,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("success", func() {
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11004,7 +11004,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("SchedulableMasters default value", func() {
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11016,7 +11016,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("SchedulableMasters non default value", func() {
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.SchedulableMasters = swag.Bool(true)
@@ -11029,7 +11029,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("UserManagedNetworking default value", func() {
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11041,7 +11041,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("UserManagedNetworking non default value", func() {
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.UserManagedNetworking = swag.Bool(true)
@@ -11172,7 +11172,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("Disabling with specifying mode", func() {
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11187,7 +11187,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("Specifying mode without state", func() {
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11203,7 +11203,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("Enabling with explicit TPMv2 mode", func() {
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11221,7 +11221,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("Enabling with default TPMv2 mode", func() {
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11238,7 +11238,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("Disabling", func() {
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11262,7 +11262,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 			By("Register cluster", func() {
 
-				mockClusterRegisterSuccess(diskEncryptionBm, true)
+				mockClusterRegisterSuccess(true)
 				mockUsageReports()
 				mockAMSSubscription(ctx)
 
@@ -11353,7 +11353,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		Context("V1 Register cluster", func() {
 
 			It("Disk Encryption configuration enable on none", func() {
-				mockClusterRegisterSuccess(bm, true)
+				mockClusterRegisterSuccess(true)
 				mockAMSSubscription(ctx)
 
 				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11418,7 +11418,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		Context("V2 Register cluster", func() {
 
 			It("Disk Encryption configuration enable on none", func() {
-				mockClusterRegisterSuccess(bm, true)
+				mockClusterRegisterSuccess(true)
 				mockAMSSubscription(ctx)
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -11642,7 +11642,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			defaultNtpSource := "clock.redhat.com"
 			bm.Config.DefaultNTPSource = defaultNtpSource
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11656,7 +11656,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		It("NTPSource non default value", func() {
 			newNtpSource := "new.ntp.source"
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.AdditionalNtpSource = &newNtpSource
@@ -11687,7 +11687,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("Host Networks default value", func() {
 		defaultHostNetworks := make([]*models.HostNetwork, 0)
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11733,7 +11733,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("openshift release image and version successfully defined", func() {
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: getDefaultClusterCreateParams(),
@@ -11745,7 +11745,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("Register cluster with default CPU architecture", func() {
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11762,7 +11762,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("Register cluster with arm64 CPU architecture", func() {
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 		mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
 			[]string{common.TestDefaultConfig.OpenShiftVersion, "arm64"}, nil).Times(1)
@@ -11800,7 +11800,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("Register cluster without specified CPU architecture", func() {
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -11823,7 +11823,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		)
 
 		registerCluster := func() *models.Cluster {
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -11845,7 +11845,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			defultServiceNetwork := "1.2.3.5/14"
 			bm.Config.DefaultServiceNetworkCidr = defultServiceNetwork
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -11913,7 +11913,7 @@ var _ = Describe("AMS subscriptions", func() {
 	Context("With AMS subscriptions", func() {
 
 		It("register cluster happy flow", func() {
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String(clusterName)
@@ -11972,7 +11972,7 @@ var _ = Describe("AMS subscriptions", func() {
 			mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, mockEvents, nil, nil, nil, nil, nil, nil, mockS3Client, nil, nil)
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			clusterParams := getDefaultClusterCreateParams()
@@ -11995,7 +11995,7 @@ var _ = Describe("AMS subscriptions", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			clusterParams := getDefaultClusterCreateParams()
@@ -12028,7 +12028,7 @@ var _ = Describe("AMS subscriptions", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			clusterParams := getDefaultClusterCreateParams()
@@ -12058,7 +12058,7 @@ var _ = Describe("AMS subscriptions", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			clusterParams := getDefaultClusterCreateParams()
@@ -12169,7 +12169,7 @@ var _ = Describe("AMS subscriptions", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, mockEvents, nil, nil, nil, nil, nil, nil, mockS3Client, nil, nil)
 			bm.ocmClient = nil
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String("ams-cluster")
@@ -12219,7 +12219,7 @@ var _ = Describe("[V2UpdateCluster] AMS subscriptions", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -12254,7 +12254,7 @@ var _ = Describe("[V2UpdateCluster] AMS subscriptions", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -12286,7 +12286,7 @@ var _ = Describe("[V2UpdateCluster] AMS subscriptions", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(bm, true)
+			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -13924,21 +13924,8 @@ var _ = Describe("Platform tests", func() {
 		dbName             string
 		registerParams     *installer.RegisterClusterParams
 		getVSpherePlatform = func() *models.Platform {
-			dummy := "dummy"
-			dummyPassword := strfmt.Password(dummy)
-
 			return &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeVsphere),
-				Vsphere: &models.VspherePlatform{
-					Cluster:          &dummy,
-					Datacenter:       &dummy,
-					DefaultDatastore: &dummy,
-					Folder:           &dummy,
-					Network:          &dummy,
-					Password:         &dummyPassword,
-					Username:         &dummy,
-					VCenter:          &dummy,
-				},
 			}
 		}
 
@@ -13997,7 +13984,7 @@ var _ = Describe("Platform tests", func() {
 			NewClusterParams: clusterParams,
 		}
 
-		mockClusterRegisterSuccess(bm, true)
+		mockClusterRegisterSuccess(true)
 		mockUsageReports()
 		mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any()).AnyTimes()
 	})
@@ -14015,13 +14002,11 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
-			Expect(cluster.Platform.Vsphere.VCenter).Should(BeNil())
 		})
 
 		It("vsphere platform", func() {
 			registerParams.NewClusterParams.Platform = &models.Platform{
-				Type:    common.PlatformTypePtr(models.PlatformTypeVsphere),
-				Vsphere: &models.VspherePlatform{},
+				Type: common.PlatformTypePtr(models.PlatformTypeVsphere),
 			}
 
 			reply := bm.RegisterCluster(ctx, *registerParams)
@@ -14029,7 +14014,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeVsphere))
-			Expect(cluster.Platform.Vsphere).ShouldNot(BeNil())
 		})
 
 		It("vsphere platform with credentials", func() {
@@ -14039,7 +14023,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeVsphere))
-			Expect(cluster.Platform.Vsphere).ShouldNot(BeNil())
 		})
 
 		It("ovirt platform", func() {

@@ -25,9 +25,6 @@ type Platform struct {
 	// type
 	// Required: true
 	Type *PlatformType `json:"type"`
-
-	// vsphere
-	Vsphere *VspherePlatform `json:"vsphere,omitempty" gorm:"embedded;embeddedPrefix:vsphere_"`
 }
 
 // Validate validates this platform
@@ -39,10 +36,6 @@ func (m *Platform) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateType(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateVsphere(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -95,25 +88,6 @@ func (m *Platform) validateType(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Platform) validateVsphere(formats strfmt.Registry) error {
-	if swag.IsZero(m.Vsphere) { // not required
-		return nil
-	}
-
-	if m.Vsphere != nil {
-		if err := m.Vsphere.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("vsphere")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("vsphere")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
 // ContextValidate validate this platform based on the context it is used
 func (m *Platform) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
@@ -123,10 +97,6 @@ func (m *Platform) ContextValidate(ctx context.Context, formats strfmt.Registry)
 	}
 
 	if err := m.contextValidateType(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.contextValidateVsphere(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -160,22 +130,6 @@ func (m *Platform) contextValidateType(ctx context.Context, formats strfmt.Regis
 				return ve.ValidateName("type")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("type")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (m *Platform) contextValidateVsphere(ctx context.Context, formats strfmt.Registry) error {
-
-	if m.Vsphere != nil {
-		if err := m.Vsphere.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("vsphere")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("vsphere")
 			}
 			return err
 		}

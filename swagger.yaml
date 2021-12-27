@@ -6197,45 +6197,6 @@ definitions:
         format: uuid
         x-nullable: true
 
-  vsphere_platform:
-    type: object
-    x-go-custom-tag: gorm:"embedded;embeddedPrefix:vsphere_"
-    description: Vsphere platform specific configuration upon which to perform the installation
-    properties:
-      username:
-        type: string
-        description: The user name to use to connect to the vCenter instance with. This user must have at least the roles and privileges that are required for static or dynamic persistent volume provisioning in vSphere.
-        x-nullable: true
-      password:
-        type: string
-        description: The password for the vCenter user name.
-        format: password
-        x-nullable: true
-      datacenter:
-        type: string
-        description: The name of the datacenter to use in the vCenter instance.
-        x-nullable: true
-      vCenter:
-        type: string
-        description: The fully-qualified hostname or IP address of the vCenter server.
-        x-nullable: true
-      cluster:
-        type: string
-        description: The vCenter cluster to install the OpenShift Container Platform cluster in.
-        x-nullable: true
-      defaultDatastore:
-        type: string
-        description: The name of the default datastore to use for provisioning volumes.
-        x-nullable: true
-      network:
-        type: string
-        description: The network in the vCenter instance that contains the virtual IP addresses and DNS records that you configured.
-        x-nullable: true
-      folder:
-        type: string
-        description: Optional. The absolute path of an existing folder where the installation program creates the virtual machines. If you do not provide this value, the installation program creates a folder that is named with the infrastructure ID in the datacenter virtual machine folder.
-        x-nullable: true
-
   monitored-operator:
     type: object
     properties:
@@ -7800,10 +7761,6 @@ definitions:
     properties:
       type:
         $ref: '#/definitions/platform_type'
-      vsphere:
-        type: object
-        $ref: '#/definitions/vsphere_platform'
-        x-nullable: true
       ovirt:
         type: object
         $ref: '#/definitions/ovirt-platform'
