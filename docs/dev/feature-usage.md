@@ -19,6 +19,16 @@ the customer added.
 
 ***SetUsage*** is a helper function. When calling it you should specify the following parameters: 
 
+> Important note:
+>
+> Since we also maintain a feature support list (ref: featuresupport/support_levels_list.go),
+> If you do add a new constant to usage/consts.go, Please add the ID into swagger: `#/definitions/feature-support-level`.
+> 
+> The feature ID is CAPITAL_SNAKE_CASE_OF_CONST. You can refer to `usage/manager.go:UsageNameToID` to see
+> how the ID is generated.
+>
+> Update the feature support level if needed.
+
 __enabled__: Whether or not to mark the feature as activated. This usually involves invoking some  
 elaborate logic or calling setUsage itself from the logic that defines the activation of the feature. 
 
