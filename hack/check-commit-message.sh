@@ -4,7 +4,7 @@ set -o nounset
 
 commit_file=${1}
 commit_message="$(cat ${commit_file})"
-valid_commit_regex='^(NO-ISSUE|Merge|Revert|((Bug |[A-Z]+-|#)[0-9]+:))'
+valid_commit_regex='(NO-ISSUE|Merge|Revert|((Bug |[A-Z]+-|#)[0-9]+:))'
 
 error_msg="""Aborting commit: ${commit_message}
 ---
