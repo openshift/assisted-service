@@ -518,6 +518,8 @@ func main() {
 				Log:              log,
 				Installer:        bm,
 				CRDEventsHandler: crdEventsHandler,
+				ServiceBaseURL:   Options.BMConfig.ServiceBaseURL,
+				AuthType:         Options.Auth.AuthType,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InfraEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{

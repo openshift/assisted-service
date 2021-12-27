@@ -78,20 +78,24 @@ var _ = Describe("infraEnv reconcile", func() {
 		backEndCluster        = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
 		backendInfraEnv       = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId}}
 		downloadURL           = "downloadurl"
+		eventURL              string
 	)
 
 	BeforeEach(func() {
 		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+		sId = strfmt.UUID(uuid.New().String())
 		ir = &InfraEnvReconciler{
-			Client:    c,
-			Config:    InfraEnvConfig{ImageType: models.ImageTypeMinimalIso},
-			Log:       common.GetTestLog(),
-			Installer: mockInstallerInternal,
-			APIReader: c,
+			Client:         c,
+			Config:         InfraEnvConfig{ImageType: models.ImageTypeMinimalIso},
+			Log:            common.GetTestLog(),
+			Installer:      mockInstallerInternal,
+			APIReader:      c,
+			ServiceBaseURL: "http://www.acme.com",
 		}
 		pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+		eventURL = fmt.Sprintf("%s/api/assisted-install/v2/events?infra_env_id=%s", ir.ServiceBaseURL, sId)
 		Expect(c.Create(ctx, pullSecret)).To(BeNil())
 	})
 
@@ -148,6 +152,10 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
 		Expect(infraEnvImage.Status.AgentLabelSelector).To(Equal(metav1.LabelSelector{MatchLabels: map[string]string{aiv1beta1.InfraEnvNameLabel: "infraEnvImage"}}))
+
+		By("validate events URL")
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).NotTo(BeEmpty())
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).To(HavePrefix(eventURL))
 	})
 
 	It("create new infraEnv full-iso image - success", func() {
@@ -182,6 +190,10 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
+
+		By("validate events URL")
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).NotTo(BeEmpty())
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).To(HavePrefix(eventURL))
 	})
 
 	It("create new infraEnv image - backend failure", func() {
@@ -215,6 +227,10 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
+
+		By("validate events URL")
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).NotTo(BeEmpty())
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).To(HavePrefix(eventURL))
 	})
 
 	It("create new infraEnv image - cluster not retrieved from database", func() {
@@ -241,6 +257,9 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionUnknown))
+
+		By("validate events URL")
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).To(BeEmpty())
 	})
 
 	It("create new infraEnv image - cluster not found in database", func() {
@@ -266,6 +285,9 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionUnknown))
+
+		By("validate events URL")
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).To(BeEmpty())
 	})
 
 	It("create new infraEnv image - while image is being created", func() {
@@ -298,6 +320,10 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
+
+		By("validate events URL")
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).NotTo(BeEmpty())
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).To(HavePrefix(eventURL))
 	})
 
 	It("create new image - client failure and retry immediately that results HTTP 409 StatusConflict", func() {
@@ -373,6 +399,10 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
+
+		By("validate events URL")
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).NotTo(BeEmpty())
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).To(HavePrefix(eventURL))
 	})
 
 	It("create new image - clusterDeployment not exists", func() {
@@ -399,6 +429,9 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionUnknown))
+
+		By("validate events URL")
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).To(BeEmpty())
 	})
 
 	It("create image with proxy configuration and ntp sources", func() {
@@ -639,8 +672,8 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		hostUnboundId := strfmt.UUID(uuid.New().String())
 		hostBoundId := strfmt.UUID(uuid.New().String())
-		hostUnbound := &common.Host{Host: models.Host{ID: &hostUnboundId, Status: swag.String(models.HostStatusKnownUnbound)}}
-		hostBound := &common.Host{Host: models.Host{ID: &hostBoundId, Status: swag.String(models.HostStatusKnown)}}
+		hostUnbound := &common.Host{Host: models.Host{ID: &hostUnboundId, InfraEnvID: *backendInfraEnv.ID, Status: swag.String(models.HostStatusKnownUnbound)}}
+		hostBound := &common.Host{Host: models.Host{ID: &hostBoundId, InfraEnvID: *backendInfraEnv.ID, Status: swag.String(models.HostStatusKnown)}}
 		mockInstallerInternal.EXPECT().GetInfraEnvHostsInternal(gomock.Any(), gomock.Any()).Return([]*common.Host{hostUnbound, hostBound}, nil)
 		mockInstallerInternal.EXPECT().V2DeregisterHostInternal(gomock.Any(), installer.V2DeregisterHostParams{
 			InfraEnvID: *backendInfraEnv.ID,

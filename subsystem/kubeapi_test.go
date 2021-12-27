@@ -1591,6 +1591,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(kubeClient.Create(ctx, s)).To(BeNil())
 
 		// Deploy InfraEnv in default namespace
+		infraEnvKey := types.NamespacedName{
+			Namespace: "default",
+			Name:      infraNsName.Name,
+		}
 		err := kubeClient.Create(ctx, &v1beta1.InfraEnv{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "InfraEnv",
@@ -1608,16 +1612,19 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Expect(kubeClient.Delete(ctx, s)).To(BeNil())
 		}()
 
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+
+		By("Check InfraEnv Event URL exists")
+		Eventually(func() string {
+			infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+			return infraEnv.Status.InfraEnvDebugInfo.EventsURL
+		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*infra_env_id=%s", infraEnv.ID.String())))
+
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		infraEnvKey := types.NamespacedName{
-			Namespace: "default",
-			Name:      infraNsName.Name,
-		}
-		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
