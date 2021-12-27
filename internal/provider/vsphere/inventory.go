@@ -5,31 +5,11 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-func (p *vsphereProvider) CleanPlatformValuesFromDBUpdates(updates map[string]interface{}) error {
-	updates[DbFieldVsphere] = nil
-	updates[DbFieldUsername] = nil
-	updates[DbFieldPassword] = nil
-	updates[DbFieldDatacenter] = nil
-	updates[DbFieldDefaultDatastore] = nil
-	updates[DbFieldCluster] = nil
-	updates[DbFieldNetwork] = nil
-	updates[DbFieldVCenter] = nil
-	updates[DbFieldFolder] = nil
+func (p *vsphereProvider) CleanPlatformValuesFromDBUpdates(_ map[string]interface{}) error {
 	return nil
 }
 
-func (p *vsphereProvider) SetPlatformValuesInDBUpdates(
-	platformParams *models.Platform, updates map[string]interface{}) error {
-	if platformParams.Vsphere != nil {
-		updates[DbFieldUsername] = platformParams.Vsphere.Username
-		updates[DbFieldPassword] = platformParams.Vsphere.Password
-		updates[DbFieldDatacenter] = platformParams.Vsphere.Datacenter
-		updates[DbFieldDefaultDatastore] = platformParams.Vsphere.DefaultDatastore
-		updates[DbFieldCluster] = platformParams.Vsphere.Cluster
-		updates[DbFieldNetwork] = platformParams.Vsphere.Network
-		updates[DbFieldVCenter] = platformParams.Vsphere.VCenter
-		updates[DbFieldFolder] = platformParams.Vsphere.Folder
-	}
+func (p *vsphereProvider) SetPlatformValuesInDBUpdates(_ *models.Platform, _ map[string]interface{}) error {
 	return nil
 }
 
@@ -37,13 +17,8 @@ func (p *vsphereProvider) SetPlatformUsages(
 	platformParams *models.Platform,
 	usages map[string]models.Usage,
 	usageApi usage.API) error {
-	withCredentials := platformParams.Vsphere != nil &&
-		platformParams.Vsphere.VCenter != nil &&
-		platformParams.Vsphere.Password != nil &&
-		platformParams.Vsphere.Username != nil
 	props := &map[string]interface{}{
-		"platform_type":    p.Name(),
-		"with_credentials": withCredentials}
+		"platform_type": p.Name()}
 	usageApi.Add(usages, usage.PlatformSelectionUsage, props)
 	return nil
 }

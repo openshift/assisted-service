@@ -23,7 +23,6 @@ var (
 	ctrl             *gomock.Controller
 )
 
-const dummy = "dummy"
 const invalidInventory = "{\"system_vendor\": \"invalid\"}"
 
 const ovirtFqdn = "ovirt.example.com"
@@ -262,7 +261,7 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 				Expect(cfg.Platform.Vsphere).ToNot(BeNil())
 				Expect(cfg.Platform.Vsphere.APIVIP).To(Equal(cluster.Cluster.APIVip))
 				Expect(cfg.Platform.Vsphere.IngressVIP).To(Equal(cluster.Cluster.IngressVip))
-				Expect(cfg.Platform.Vsphere.VCenter).To(Equal(dummy))
+				Expect(cfg.Platform.Vsphere.VCenter).To(Equal(vsphere.PhVcenter))
 			})
 			It("without cluster params", func() {
 				cfg := getInstallerConfigBaremetal()
@@ -275,7 +274,6 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 				hosts = append(hosts, createHost(false, models.HostStatusKnown, getVsphereInventoryStr("hostname4", "bootMode", true, false)))
 				cluster := createClusterFromHosts(hosts)
 				cluster.Platform = createVspherePlatformParams()
-				cluster.Platform.Vsphere = nil
 				err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeVsphere, &cfg, &cluster)
 				Expect(err).To(BeNil())
 				Expect(cfg.Platform.Vsphere).ToNot(BeNil())
@@ -335,28 +333,6 @@ var _ = Describe("Test SetPlatformValuesInDBUpdates", func() {
 			dummyProvider := models.PlatformType("dummy")
 			err := providerRegistry.SetPlatformValuesInDBUpdates(dummyProvider, nil, nil)
 			Expect(err).ToNot(BeNil())
-		})
-	})
-	Context("vsphere", func() {
-		It("set from empty updates", func() {
-			platformParams := createVspherePlatformParams()
-			updates := make(map[string]interface{})
-			err := providerRegistry.SetPlatformValuesInDBUpdates(models.PlatformTypeVsphere, platformParams, updates)
-			Expect(err).To(BeNil())
-			Expect(updates).ShouldNot(BeNil())
-			Expect(updates[vsphere.DbFieldUsername]).To(Equal(platformParams.Vsphere.Username))
-		})
-		It("switch from vsphere to bare metal", func() {
-			platformParams := createVspherePlatformParams()
-			updates := make(map[string]interface{})
-			err := providerRegistry.SetPlatformValuesInDBUpdates(models.PlatformTypeVsphere, platformParams, updates)
-			Expect(err).To(BeNil())
-			Expect(updates).ShouldNot(BeNil())
-			Expect(updates[vsphere.DbFieldUsername]).To(Equal(platformParams.Vsphere.Username))
-			err = providerRegistry.SetPlatformValuesInDBUpdates(models.PlatformTypeBaremetal, platformParams, updates)
-			Expect(err).To(BeNil())
-			Expect(updates).ShouldNot(BeNil())
-			Expect(updates[vsphere.DbFieldUsername]).To(BeNil())
 		})
 	})
 	Context("ovirt", func() {
@@ -502,21 +478,8 @@ func getBaremetalInventoryStr(hostname, bootMode string, ipv4, ipv6 bool) string
 }
 
 func createVspherePlatformParams() *models.Platform {
-	dummyPassword := strfmt.Password(dummy)
-	dummyField := dummy
-	vspherePlatform := models.VspherePlatform{
-		Cluster:          &dummyField,
-		Datacenter:       &dummyField,
-		DefaultDatastore: &dummyField,
-		Folder:           &dummyField,
-		Network:          &dummyField,
-		Password:         &dummyPassword,
-		Username:         &dummyField,
-		VCenter:          &dummyField,
-	}
 	return &models.Platform{
-		Type:    common.PlatformTypePtr(models.PlatformTypeVsphere),
-		Vsphere: &vspherePlatform,
+		Type: common.PlatformTypePtr(models.PlatformTypeVsphere),
 	}
 }
 
