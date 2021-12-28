@@ -149,19 +149,19 @@ const cnvHPPManifest = `apiVersion: hostpathprovisioner.kubevirt.io/v1beta1
 kind: HostPathProvisioner
 metadata:
   name: hostpath-provisioner
-    spec:
-      imagePullPolicy: IfNotPresent
-      storagePools:
-        - name: sno
-    pvcTemplate:
-      storageClassName: localblock-sc
-      volumeMode: Block
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 50Gi
-    path: "/var/hpvolumes"
+spec:
+  imagePullPolicy: IfNotPresent
+  storagePools:
+    - name: sno
+      pvcTemplate:
+        storageClassName: localblock-sc
+        volumeMode: Block
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+      path: "/var/hpvolumes"
   workload:
     nodeSelector:
       kubernetes.io/os: linux`
