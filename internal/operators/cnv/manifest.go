@@ -35,7 +35,7 @@ func configSource(config Config) manifestConfig {
 }
 
 // Manifests returns manifests needed to deploy CNV
-func Manifests(config Config) (map[string][]byte, []byte, error) {
+func Manifests(config Config, isSingleNodeCluster bool) (map[string][]byte, []byte, error) {
 	configSource := configSource(config)
 	cnvSubsManifest, err := subscription(configSource)
 
@@ -57,6 +57,10 @@ func Manifests(config Config) (map[string][]byte, []byte, error) {
 
 	openshiftManifests := make(map[string][]byte)
 
+	if isSingleNodeCluster {
+		openshiftManifests["99_openshift-cnv_hpp.yaml"] = []byte(cnvHPPManifest)
+		openshiftManifests["99_openshift-cnv_hpp_sc.yaml"] = []byte(cnvHPPStorageClass)
+	}
 	openshiftManifests["99_openshift-cnv_subscription.yaml"] = cnvSubsManifest
 	openshiftManifests["99_openshift-cnv_ns.yaml"] = cnvNs
 	openshiftManifests["99_openshift-cnv_operator_group.yaml"] = cnvGrp
@@ -140,3 +144,34 @@ metadata:
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
   BareMetalPlatform: true`
+
+const cnvHPPManifest = `apiVersion: hostpathprovisioner.kubevirt.io/v1beta1
+kind: HostPathProvisioner
+metadata:
+  name: hostpath-provisioner
+    spec:
+      imagePullPolicy: IfNotPresent
+      storagePools:
+        - name: sno
+    pvcTemplate:
+      storageClassName: localblock-sc
+      volumeMode: Block
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 50Gi
+    path: "/var/hpvolumes"
+  workload:
+    nodeSelector:
+      kubernetes.io/os: linux`
+
+const cnvHPPStorageClass = `apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: sno-storage
+provisioner: kubevirt.io.hostpath-provisioner
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+parameters:
+  storagePool: sno`
