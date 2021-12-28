@@ -144,9 +144,9 @@ func (mr *MockSenderMockRecorder) SendInfraEnvEventAtTime(ctx, event, eventTime 
 }
 
 // V2AddEvent mocks base method.
-func (m *MockSender) V2AddEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, severity, msg string, eventTime time.Time, props ...interface{}) {
+func (m *MockSender) V2AddEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, name, severity, msg string, eventTime time.Time, props ...interface{}) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime}
+	varargs := []interface{}{ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime}
 	for _, a := range props {
 		varargs = append(varargs, a)
 	}
@@ -154,16 +154,16 @@ func (m *MockSender) V2AddEvent(ctx context.Context, clusterID, hostID, infraEnv
 }
 
 // V2AddEvent indicates an expected call of V2AddEvent.
-func (mr *MockSenderMockRecorder) V2AddEvent(ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
+func (mr *MockSenderMockRecorder) V2AddEvent(ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime}, props...)
+	varargs := append([]interface{}{ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime}, props...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2AddEvent", reflect.TypeOf((*MockSender)(nil).V2AddEvent), varargs...)
 }
 
 // V2AddMetricsEvent mocks base method.
-func (m *MockSender) V2AddMetricsEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, severity, msg string, eventTime time.Time, props ...interface{}) {
+func (m *MockSender) V2AddMetricsEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, name, severity, msg string, eventTime time.Time, props ...interface{}) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime}
+	varargs := []interface{}{ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime}
 	for _, a := range props {
 		varargs = append(varargs, a)
 	}
@@ -171,9 +171,9 @@ func (m *MockSender) V2AddMetricsEvent(ctx context.Context, clusterID, hostID, i
 }
 
 // V2AddMetricsEvent indicates an expected call of V2AddMetricsEvent.
-func (mr *MockSenderMockRecorder) V2AddMetricsEvent(ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
+func (mr *MockSenderMockRecorder) V2AddMetricsEvent(ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime}, props...)
+	varargs := append([]interface{}{ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime}, props...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2AddMetricsEvent", reflect.TypeOf((*MockSender)(nil).V2AddMetricsEvent), varargs...)
 }
 
@@ -327,9 +327,9 @@ func (mr *MockHandlerMockRecorder) SendInfraEnvEventAtTime(ctx, event, eventTime
 }
 
 // V2AddEvent mocks base method.
-func (m *MockHandler) V2AddEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, severity, msg string, eventTime time.Time, props ...interface{}) {
+func (m *MockHandler) V2AddEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, name, severity, msg string, eventTime time.Time, props ...interface{}) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime}
+	varargs := []interface{}{ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime}
 	for _, a := range props {
 		varargs = append(varargs, a)
 	}
@@ -337,16 +337,16 @@ func (m *MockHandler) V2AddEvent(ctx context.Context, clusterID, hostID, infraEn
 }
 
 // V2AddEvent indicates an expected call of V2AddEvent.
-func (mr *MockHandlerMockRecorder) V2AddEvent(ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
+func (mr *MockHandlerMockRecorder) V2AddEvent(ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime}, props...)
+	varargs := append([]interface{}{ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime}, props...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2AddEvent", reflect.TypeOf((*MockHandler)(nil).V2AddEvent), varargs...)
 }
 
 // V2AddMetricsEvent mocks base method.
-func (m *MockHandler) V2AddMetricsEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, severity, msg string, eventTime time.Time, props ...interface{}) {
+func (m *MockHandler) V2AddMetricsEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, name, severity, msg string, eventTime time.Time, props ...interface{}) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime}
+	varargs := []interface{}{ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime}
 	for _, a := range props {
 		varargs = append(varargs, a)
 	}
@@ -354,9 +354,9 @@ func (m *MockHandler) V2AddMetricsEvent(ctx context.Context, clusterID, hostID, 
 }
 
 // V2AddMetricsEvent indicates an expected call of V2AddMetricsEvent.
-func (mr *MockHandlerMockRecorder) V2AddMetricsEvent(ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
+func (mr *MockHandlerMockRecorder) V2AddMetricsEvent(ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime}, props...)
+	varargs := append([]interface{}{ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime}, props...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2AddMetricsEvent", reflect.TypeOf((*MockHandler)(nil).V2AddMetricsEvent), varargs...)
 }
 

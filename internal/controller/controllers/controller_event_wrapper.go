@@ -26,8 +26,8 @@ func NewControllerEventsWrapper(crdEventsHandler CRDEventsHandler, events events
 		events: events, db: db, log: log}
 }
 
-func (c *controllerEventsWrapper) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
-	c.events.V2AddEvent(ctx, clusterID, hostID, infraEnvID, severity, msg, eventTime, props)
+func (c *controllerEventsWrapper) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	c.events.V2AddEvent(ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime, props)
 
 	if hostID != nil {
 		c.NotifyKubeApiHostEvent(common.StrFmtUUIDVal(infraEnvID), common.StrFmtUUIDVal(hostID))
@@ -44,7 +44,7 @@ func (c *controllerEventsWrapper) AddMetricsEvent(ctx context.Context, clusterID
 	// Disable metrics event for the controller since the current operator installations do not work with ELK
 }
 
-func (c *controllerEventsWrapper) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+func (c *controllerEventsWrapper) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	// Disable metrics event for the controller since the current operator installations do not work with ELK
 }
 func (c *controllerEventsWrapper) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {

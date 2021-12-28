@@ -78,7 +78,7 @@ func (e *Events) saveEvent(ctx context.Context, clusterID strfmt.UUID, hostID *s
 	return dberr
 }
 
-func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, category string, severity string, message string, t time.Time, requestID string, props ...interface{}) {
+func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, category string, severity string, message string, t time.Time, requestID string, props ...interface{}) {
 	log := logutil.FromContext(ctx, e.log)
 	tt := strfmt.DateTime(t)
 	rid := strfmt.UUID(requestID)
@@ -90,6 +90,7 @@ func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID
 	event := common.Event{
 		Event: models.Event{
 			EventTime: &tt,
+			Name:      name,
 			Severity:  &severity,
 			Category:  category,
 			Message:   &message,
@@ -133,7 +134,7 @@ func (e *Events) SendClusterEvent(ctx context.Context, event eventsapi.ClusterEv
 
 func (e *Events) SendClusterEventAtTime(ctx context.Context, event eventsapi.ClusterEvent, eventTime time.Time) {
 	cID := event.GetClusterId()
-	e.V2AddEvent(ctx, &cID, nil, nil, event.GetSeverity(), event.FormatMessage(), eventTime)
+	e.V2AddEvent(ctx, &cID, nil, nil, event.GetName(), event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
 func (e *Events) SendHostEvent(ctx context.Context, event eventsapi.HostEvent) {
@@ -143,7 +144,7 @@ func (e *Events) SendHostEvent(ctx context.Context, event eventsapi.HostEvent) {
 func (e *Events) SendHostEventAtTime(ctx context.Context, event eventsapi.HostEvent, eventTime time.Time) {
 	hostID := event.GetHostId()
 	infraEnvID := event.GetInfraEnvId()
-	e.V2AddEvent(ctx, event.GetClusterId(), &hostID, &infraEnvID, event.GetSeverity(), event.FormatMessage(), eventTime)
+	e.V2AddEvent(ctx, event.GetClusterId(), &hostID, &infraEnvID, event.GetName(), event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
 func (e *Events) SendInfraEnvEvent(ctx context.Context, event eventsapi.InfraEnvEvent) {
@@ -152,7 +153,7 @@ func (e *Events) SendInfraEnvEvent(ctx context.Context, event eventsapi.InfraEnv
 
 func (e *Events) SendInfraEnvEventAtTime(ctx context.Context, event eventsapi.InfraEnvEvent, eventTime time.Time) {
 	infraEnvID := event.GetInfraEnvId()
-	e.V2AddEvent(ctx, event.GetClusterId(), nil, &infraEnvID, event.GetSeverity(), event.FormatMessage(), eventTime)
+	e.V2AddEvent(ctx, event.GetClusterId(), nil, &infraEnvID, event.GetName(), event.GetSeverity(), event.FormatMessage(), eventTime)
 }
 
 func (e *Events) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
@@ -165,14 +166,14 @@ func (e *Events) AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hos
 	_ = e.saveEvent(ctx, clusterID, hostID, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
 }
 
-func (e *Events) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+func (e *Events) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	requestID := requestid.FromContext(ctx)
-	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, models.EventCategoryUser, severity, msg, eventTime, requestID, props...)
+	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, name, models.EventCategoryUser, severity, msg, eventTime, requestID, props...)
 }
 
-func (e *Events) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+func (e *Events) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	requestID := requestid.FromContext(ctx)
-	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
+	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, name, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
 }
 
 func (e Events) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {

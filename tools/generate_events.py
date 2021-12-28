@@ -32,6 +32,7 @@ import (
 {% set eventBaseName = event.package_private(eventName) + "Base" -%}
 {% set baseEvent = event.base_event(event) -%}
 type {{eventName}} struct {
+    eventName string
 {%- for p, t in event.properties.items() %}
     {{event.pascal_case(p)}} {{event.go_type(t)}}
 {%- endfor %}
@@ -45,6 +46,7 @@ func New{{eventName}}(
 {%- endfor %}
 ) *{{eventName}} {
     return &{{eventName}}{
+        eventName: {{eventName}}Name,
 {%- for p, t in event.properties.items() %}
         {{event.pascal_case(p)}}: {{event.camel_case(p)}},
 {%- endfor %}
@@ -81,7 +83,7 @@ func Send{{eventName}}AtTime(
 }
 
 func (e *{{eventName}}) GetName() string {
-    return "{{event['name']}}"
+    return e.eventName
 }
 
 func (e *{{eventName}}) GetSeverity() string {

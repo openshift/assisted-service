@@ -68,6 +68,7 @@ func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams
 	ret := make(models.EventList, len(evs))
 	for i, ev := range evs {
 		ret[i] = &models.Event{
+			Name:       ev.Name,
 			ClusterID:  ev.ClusterID,
 			HostID:     ev.HostID,
 			InfraEnvID: ev.InfraEnvID,

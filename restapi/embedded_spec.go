@@ -11069,6 +11069,10 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(4096)\""
         },
+        "name": {
+          "description": "Event Name.",
+          "type": "string"
+        },
         "props": {
           "description": "Additional properties for the event in JSON format.",
           "type": "string",
@@ -24529,6 +24533,10 @@ func init() {
         "message": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(4096)\""
+        },
+        "name": {
+          "description": "Event Name.",
+          "type": "string"
         },
         "props": {
           "description": "Additional properties for the event in JSON format.",
