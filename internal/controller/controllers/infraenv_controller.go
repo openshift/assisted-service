@@ -27,7 +27,9 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -64,6 +66,8 @@ type InfraEnvReconciler struct {
 	Log              logrus.FieldLogger
 	Installer        bminventory.InstallerInternals
 	CRDEventsHandler CRDEventsHandler
+	ServiceBaseURL   string
+	AuthType         auth.AuthType
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=nmstateconfigs,verbs=get;list;watch
@@ -299,12 +303,12 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 			infraEnvInternal, err = r.createInfraEnv(ctx, log, &key, infraEnv, cluster)
 			if err != nil {
 				log.Errorf("fail to create InfraEnv: %s, ", infraEnv.Name)
-				return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
+				return r.handleEnsureISOErrors(ctx, log, infraEnv, err, nil)
 			} else {
 				return r.updateEnsureISOSuccess(ctx, log, infraEnv, infraEnvInternal)
 			}
 		} else {
-			return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
+			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, infraEnvInternal)
 		}
 	}
 
@@ -312,7 +316,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 	updatedInfraEnv, err := r.updateInfraEnv(ctx, log, infraEnv, infraEnvInternal)
 	if err != nil {
 		log.WithError(err).Error("failed to update InfraEnv")
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, infraEnvInternal)
 	}
 	// Image successfully generated. Reflect that in infraEnv obj and conditions
 	return r.updateEnsureISOSuccess(ctx, log, infraEnv, updatedInfraEnv)
@@ -459,6 +463,18 @@ func (r *InfraEnvReconciler) deregisterInfraEnvWithHosts(ctx context.Context, lo
 	return nil
 }
 
+func (r *InfraEnvReconciler) populateEventsURL(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) error {
+	id := internalInfraEnv.ID.String()
+	tokenGen := gencrypto.CryptoPair{JWTKeyType: gencrypto.InfraEnvKey, JWTKeyValue: id}
+	eventUrl, err := generateEventsURL(r.ServiceBaseURL, r.AuthType, tokenGen, "infra_env_id", id)
+	if err != nil {
+		log.WithError(err).Error("failed to generate Events URL")
+		return err
+	}
+	infraEnv.Status.InfraEnvDebugInfo.EventsURL = eventUrl
+	return nil
+}
+
 func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
 	conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
@@ -475,6 +491,12 @@ func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 		infraEnv.Status.CreatedTime = &imageCreatedAt
 	}
 
+	if infraEnv.Status.InfraEnvDebugInfo.EventsURL == "" {
+		if r.populateEventsURL(log, infraEnv, internalInfraEnv) != nil {
+			return ctrl.Result{Requeue: true}, nil
+		}
+	}
+
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
 		log.WithError(updateErr).Error("failed to update infraEnv status")
 		return ctrl.Result{Requeue: true}, nil
@@ -483,13 +505,21 @@ func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 }
 
 func (r *InfraEnvReconciler) handleEnsureISOErrors(
-	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, err error) (ctrl.Result, error) {
+	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, err error, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
 	var (
 		currentReason               = ""
 		RequeueAfter  time.Duration = 0
 		errMsg        string
 		Requeue       bool
 	)
+
+	if internalInfraEnv != nil {
+		if infraEnv.Status.InfraEnvDebugInfo.EventsURL == "" {
+			if r.populateEventsURL(log, infraEnv, internalInfraEnv) != nil {
+				return ctrl.Result{Requeue: true}, nil
+			}
+		}
+	}
 
 	// TODO: Checking currentCondition as a workaround until MGMT-4695 get resolved.
 	// If the current condition is in an error state, avoid clearing it up.
@@ -531,6 +561,7 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 		infraEnv.Status.ISODownloadURL = ""
 		infraEnv.Status.CreatedTime = nil
 	}
+
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
 		log.WithError(updateErr).Error("failed to update infraEnv status")
 	}

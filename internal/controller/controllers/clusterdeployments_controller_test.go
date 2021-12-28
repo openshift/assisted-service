@@ -698,7 +698,7 @@ var _ = Describe("cluster reconcile", func() {
 			Name:      agentClusterInstallName,
 		}
 		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).To(BeNil())
-		Expect(clusterInstall.Status.DebugInfo.EventsURL).NotTo(BeNil())
+		Expect(clusterInstall.Status.DebugInfo.EventsURL).NotTo(BeEmpty())
 		Expect(clusterInstall.Status.DebugInfo.EventsURL).To(HavePrefix(expectedEventUrlPrefix))
 	})
 

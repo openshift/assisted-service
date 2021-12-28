@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/big"
+	"net/url"
 	"sort"
 	"strings"
 
@@ -14,7 +15,10 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
+	restclient "github.com/openshift/assisted-service/client"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
@@ -257,4 +261,26 @@ func machineNetworksEntriesToArray(entries []hiveext.MachineNetworkEntry) []*mod
 	return funk.Map(entries, func(entry hiveext.MachineNetworkEntry) *models.MachineNetwork {
 		return &models.MachineNetwork{Cidr: models.Subnet(entry.CIDR)}
 	}).([]*models.MachineNetwork)
+}
+
+func generateEventsURL(baseURL string, authType auth.AuthType, signParams gencrypto.CryptoPair, filterBy ...string) (string, error) {
+	path := fmt.Sprintf("%s%s/v2/events", baseURL, restclient.DefaultBasePath)
+	u, err := url.Parse(path)
+	if err != nil {
+		return "", err
+	}
+	queryParams := u.Query()
+	for i := 0; i < len(filterBy)-1; i += 2 {
+		queryParams.Set(filterBy[i], filterBy[i+1])
+	}
+	u.RawQuery = queryParams.Encode()
+	eventsURL := u.String()
+	if authType != auth.TypeLocal {
+		return eventsURL, nil
+	}
+	eventsURL, err = gencrypto.SignURL(eventsURL, signParams.JWTKeyValue, signParams.JWTKeyType)
+	if err != nil {
+		return "", err
+	}
+	return eventsURL, nil
 }

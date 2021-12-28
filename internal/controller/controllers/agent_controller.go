@@ -28,7 +28,6 @@ import (
 	"github.com/go-openapi/swag"
 	. "github.com/openshift/assisted-service/api/common"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
-	restclient "github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
@@ -339,7 +338,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 
 func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, infraEnvId string) error {
 	if agent.Status.DebugInfo.EventsURL == "" {
-		eventUrl, err := r.generateEventsURL(log, infraEnvId, agent.Name)
+		tokenGen := gencrypto.CryptoPair{JWTKeyType: gencrypto.InfraEnvKey, JWTKeyValue: infraEnvId}
+		eventUrl, err := generateEventsURL(r.ServiceBaseURL, r.AuthType, tokenGen, "host_id", agent.Name)
 		if err != nil {
 			log.WithError(err).Error("failed to generate Events URL")
 			return err
@@ -347,19 +347,6 @@ func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1b
 		agent.Status.DebugInfo.EventsURL = eventUrl
 	}
 	return nil
-}
-
-func (r *AgentReconciler) generateEventsURL(log logrus.FieldLogger, infraEnvId, agentId string) (string, error) {
-	eventsURL := fmt.Sprintf("%s%s/v2/events?host_id=%s", r.ServiceBaseURL, restclient.DefaultBasePath, agentId)
-	if r.AuthType != auth.TypeLocal {
-		return eventsURL, nil
-	}
-	eventsURL, err := gencrypto.SignURL(eventsURL, infraEnvId, gencrypto.InfraEnvKey)
-	if err != nil {
-		log.WithError(err).Error("failed to get Events URL")
-		return "", err
-	}
-	return eventsURL, nil
 }
 
 func setConditionsUnknown(agent *aiv1beta1.Agent) {

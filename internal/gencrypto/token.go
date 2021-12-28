@@ -16,6 +16,11 @@ const (
 	ClusterKey  LocalJWTKeyType = "cluster_id"
 )
 
+type CryptoPair struct {
+	JWTKeyType  LocalJWTKeyType
+	JWTKeyValue string
+}
+
 func LocalJWT(id string, keyType LocalJWTKeyType) (string, error) {
 	key, ok := os.LookupEnv("EC_PRIVATE_KEY_PEM")
 	if !ok || key == "" {

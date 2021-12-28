@@ -744,7 +744,7 @@ var _ = Describe("agent reconcile", func() {
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 
-		Expect(agent.Status.DebugInfo.EventsURL).NotTo(BeNil())
+		Expect(agent.Status.DebugInfo.EventsURL).NotTo(BeEmpty())
 		Expect(agent.Status.DebugInfo.EventsURL).To(HavePrefix(expectedEventUrlPrefix))
 	})
 
