@@ -139,7 +139,6 @@ class EventGenerator(object):
         self.event = event
 
     def __getattr__(self, attr):
-        #import ipdb; ipdb.set_trace()
         if attr in self.__dict__:
             return getattr(self, attr)
         else:
