@@ -27,6 +27,10 @@ func (p *ovirtProvider) Name() models.PlatformType {
 }
 
 func (p *ovirtProvider) IsHostSupported(host *models.Host) (bool, error) {
+	// during the discovery there is a short time that host didn't return its inventory to the service
+	if host.Inventory == "" {
+		return false, nil
+	}
 	hostInventory, err := common.UnmarshalInventory(host.Inventory)
 	if err != nil {
 		return false, fmt.Errorf("error marshaling host to inventory, error %w", err)
