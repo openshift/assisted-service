@@ -149,3 +149,51 @@ curl \
     --data '{"args": ["--append-karg", "nameserver=8.8.8.8", "-n"]}' \
 "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v1/clusters/$CLUSTER_ID/hosts/$HOST_ID/installer-args"
 ```
+
+## Adding aditional trust bundle
+Any additional trust bundles need to be added to both the discovery ISO and to the install-config. The trust bundle can contain one or more additional CA certificates in the format:
+```
+-----BEGIN CERTIFICATE-----
+...base-64-encoded, DER Certificate Authority cert...
+-----END CERTIFICATE-----
+
+-----BEGIN CERTIFICATE-----
+...base-64-encoded, DER Certificate Authority cert...
+-----END CERTIFICATE-----
+```
+### Add additional trust bundle in discovery ISO
+The additional trust bundle must be embeded into discovery ignition override
+```
+request_body=$(mktemp)
+jq -n --arg OVERRIDE "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/pki/ca-trust/source/anchors/extra_ca.pem\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"},\"contents\": {\"source\": \"data:text/plain;base64,$(cat ca.pem | base64 -w 0)\"}}]}}" \
+'{
+   "ignition_config_override": $OVERRIDE
+}' > $request_body
+```
+Patch the discovery ignition override with the resulting file:
+```
+curl \
+    --header "Content-Type: application/json" \
+    --header "Authorization: Bearer $TOKEN" \
+    --request PATCH \
+    --data  @$request_body \
+"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID"
+```
+### Add additionalTrustbundle in install-config
+Create file to patch install config
+```
+install_config_patch=$(mktemp)
+jq -n --arg BUNDLE "$(cat ca.pem)" \
+'{
+    "additionalTrustBundle": $BUNDLE
+}| tojson' > $install_config_body
+```
+Patch the install-config with the resulting file
+```
+curl \
+    --header "Content-Type: application/json" \
+    --header "Authorization: Bearer $TOKEN" \
+    --request PATCH \
+    --data  @$install_config_patch \
+"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/install-config"
+```
