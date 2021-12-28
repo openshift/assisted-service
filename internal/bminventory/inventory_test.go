@@ -1854,6 +1854,10 @@ var _ = Describe("PostStepReply", func() {
 			host      *models.Host
 		)
 
+		const (
+			errorMessage string = "Failed - " + mediaDisconnectionMessage
+		)
+
 		BeforeEach(func() {
 			clusterId = strToUUID(uuid.New().String())
 			hostId = strToUUID(uuid.New().String())
@@ -1885,7 +1889,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
-			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected"))
+			Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage))
 		})
 
 		It("Media disconnection - wrapping an existing error", func() {
@@ -1907,7 +1911,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
-			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected. error"))
+			Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage + ". error"))
 		})
 
 		It("Media disconnection - appending stderr", func() {
@@ -1929,7 +1933,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
-			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected. error"))
+			Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage + ". error"))
 		})
 	})
 
@@ -2373,6 +2377,8 @@ var _ = Describe("v2PostStepReply", func() {
 			host      *models.Host
 		)
 
+		const errorMessage string = "Failed - " + mediaDisconnectionMessage
+
 		BeforeEach(func() {
 			clusterId = strToUUID(uuid.New().String())
 			hostId = strToUUID(uuid.New().String())
@@ -2405,7 +2411,7 @@ var _ = Describe("v2PostStepReply", func() {
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
-			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected"))
+			Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage))
 		})
 
 		It("Media disconnection - wrapping an existing error", func() {
@@ -2427,7 +2433,7 @@ var _ = Describe("v2PostStepReply", func() {
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
-			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected. error"))
+			Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage + ". error"))
 		})
 
 		It("Media disconnection - appending stderr", func() {
@@ -2449,7 +2455,7 @@ var _ = Describe("v2PostStepReply", func() {
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
-			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected. error"))
+			Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage + ". error"))
 		})
 	})
 
