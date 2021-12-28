@@ -89,7 +89,7 @@ func (i *logsCmd) createUploadLogsCmd(host *models.Host, baseURL, agentImage, ma
 	}
 
 	cmdArgsTmpl += "timeout 1h podman run --rm --privileged --net=host " +
-		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
+		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log -v /etc/pki:/etc/pki " +
 		"{{if .CACERTPATH}} -v {{.CACERTPATH}}:{{.CACERTPATH}} {{end}}" +
 		"{{if eq .BOOTSTRAP `true`}} -v /root/.ssh:/root/.ssh -v /tmp:/tmp {{end}}" +
 		"--env PULL_SECRET_TOKEN --name logs-sender --pid=host {{.AGENT_IMAGE}} logs_sender " +
