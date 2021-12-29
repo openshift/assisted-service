@@ -55,7 +55,7 @@ import (
 )
 
 const (
-	AgentFinalizerName       = "agent." + aiv1beta1.Group + "/ai-deprovision"
+	AgentFinalizerName = "agent." + aiv1beta1.Group + "/ai-deprovision"
 )
 
 // AgentReconciler reconciles a Agent object

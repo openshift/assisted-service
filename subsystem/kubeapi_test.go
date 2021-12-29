@@ -910,7 +910,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      ignitionTokenSecretName,
 		}
-		kubeClient.Update(ctx, agent)
+		err := kubeClient.Update(ctx, agent)
+		Expect(err).To(Equal(nil))
 
 		Eventually(func() bool {
 			dbCluster := getClusterFromDB(ctx, kubeClient, db, clusterkey, 3)
