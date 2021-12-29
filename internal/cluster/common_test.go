@@ -94,19 +94,6 @@ var _ = Describe("host count with 1 cluster", func() {
 		dbName  string
 	)
 
-	createHost := func(clusterId strfmt.UUID, state string, db *gorm.DB) {
-		hostId := strfmt.UUID(uuid.New().String())
-		host := models.Host{
-			ID:         &hostId,
-			InfraEnvID: clusterId,
-			ClusterID:  &clusterId,
-			Role:       models.HostRoleMaster,
-			Status:     swag.String(state),
-			Inventory:  common.GenerateTestDefaultInventory(),
-		}
-		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-	}
-
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		id := strfmt.UUID(uuid.New().String())
@@ -195,19 +182,6 @@ var _ = Describe("host count with 2 cluster", func() {
 		id2    = strfmt.UUID(uuid.New().String())
 		dbName string
 	)
-
-	createHost := func(clusterId strfmt.UUID, state string, db *gorm.DB) {
-		hostId := strfmt.UUID(uuid.New().String())
-		host := models.Host{
-			ID:         &hostId,
-			ClusterID:  &clusterId,
-			InfraEnvID: clusterId,
-			Role:       models.HostRoleMaster,
-			Status:     swag.String(state),
-			Inventory:  common.GenerateTestDefaultInventory(),
-		}
-		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-	}
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()

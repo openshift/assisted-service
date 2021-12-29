@@ -708,10 +708,17 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UU
 		totalHostsDoneStages += float64(currentIndex + 1)
 		totalHostsStages += float64(len(stages))
 	}
-
 	installingStagePercentage := int64((totalHostsDoneStages / totalHostsStages) * 100)
-	totalPercentage := int64(common.ProgressWeightPreparingForInstallationStage*float64(cluster.Progress.PreparingForInstallationStagePercentage) +
-		common.ProgressWeightInstallingStage*float64(installingStagePercentage))
+
+	var totalPercentage int64
+	if swag.StringValue(cluster.Status) == models.ClusterStatusInstalled {
+		//if the cluster is in INSTALLED stage, force the progress bar to reach 100%
+		//even if there are hosts that are not ready yet
+		totalPercentage = int64(100)
+	} else {
+		totalPercentage = int64(common.ProgressWeightPreparingForInstallationStage*float64(cluster.Progress.PreparingForInstallationStagePercentage) +
+			common.ProgressWeightInstallingStage*float64(installingStagePercentage))
+	}
 	updates := map[string]interface{}{
 		"progress_installing_stage_percentage": installingStagePercentage,
 		"progress_total_percentage":            totalPercentage,
