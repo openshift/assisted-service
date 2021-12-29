@@ -48,6 +48,7 @@ func init() {
           "installer"
         ],
         "operationId": "RegisterAddHostsCluster",
+        "deprecated": true,
         "parameters": [
           {
             "description": "Parameters for creating a new cluster for adding nodes.",
@@ -100,6 +101,7 @@ func init() {
           "assisted-service-iso"
         ],
         "operationId": "CreateISOAndUploadToS3",
+        "deprecated": true,
         "parameters": [
           {
             "description": "Parameters for creating an Assisted Service ISO.",
@@ -161,6 +163,7 @@ func init() {
           "assisted-service-iso"
         ],
         "operationId": "DownloadISO",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -212,6 +215,7 @@ func init() {
           "assisted-service-iso"
         ],
         "operationId": "GetPresignedForAssistedServiceISO",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -262,6 +266,7 @@ func init() {
           "installer"
         ],
         "operationId": "ListClusters",
+        "deprecated": true,
         "parameters": [
           {
             "type": "boolean",
@@ -340,6 +345,7 @@ func init() {
           "installer"
         ],
         "operationId": "RegisterCluster",
+        "deprecated": true,
         "parameters": [
           {
             "description": "The properties describing the new cluster.",
@@ -407,6 +413,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetClusterDefaultConfig",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -454,6 +461,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetCluster",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -528,6 +536,7 @@ func init() {
           "installer"
         ],
         "operationId": "DeregisterCluster",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -586,6 +595,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateCluster",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -664,6 +674,7 @@ func init() {
           "installer"
         ],
         "operationId": "CancelInstallation",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -732,6 +743,7 @@ func init() {
           "installer"
         ],
         "operationId": "CompleteInstallation",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -816,6 +828,7 @@ func init() {
           "installer"
         ],
         "operationId": "InstallCluster",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -885,6 +898,7 @@ func init() {
           "installer"
         ],
         "operationId": "InstallHosts",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -954,6 +968,7 @@ func init() {
           "installer"
         ],
         "operationId": "ResetCluster",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1024,6 +1039,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetCredentials",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1096,6 +1112,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetDiscoveryIgnition",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1151,6 +1168,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateDiscoveryIgnition",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1238,6 +1256,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadClusterFiles",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1341,6 +1360,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetPresignedForClusterFiles",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1468,6 +1488,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadClusterISO",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1541,6 +1562,7 @@ func init() {
           "installer"
         ],
         "operationId": "GenerateClusterISO",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1629,6 +1651,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadClusterISOHeaders",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1711,6 +1734,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadClusterKubeconfig",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1787,6 +1811,7 @@ func init() {
           "events"
         ],
         "operationId": "ListEvents",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1869,6 +1894,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetFreeAddresses",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2028,6 +2054,7 @@ func init() {
           "installer"
         ],
         "operationId": "ListHosts",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2100,6 +2127,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2163,6 +2191,7 @@ func init() {
           "installer"
         ],
         "operationId": "DeregisterHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2231,6 +2260,7 @@ func init() {
           "installer"
         ],
         "operationId": "EnableHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2300,6 +2330,7 @@ func init() {
           "installer"
         ],
         "operationId": "DisableHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2371,6 +2402,7 @@ func init() {
           "installer"
         ],
         "operationId": "InstallHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2436,6 +2468,7 @@ func init() {
           "installer"
         ],
         "operationId": "ResetHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2502,6 +2535,7 @@ func init() {
         ],
         "summary": "Reset failed host validation.",
         "operationId": "ResetHostValidation",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2595,6 +2629,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadHostIgnition",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2672,6 +2707,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetHostIgnition",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2741,6 +2777,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateHostIgnition",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -2818,6 +2855,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateHostInstallerArgs",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3090,6 +3128,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateHostLogsProgress",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3178,6 +3217,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateHostInstallProgress",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3270,6 +3310,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetClusterInstallConfig",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3325,6 +3366,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateClusterInstallConfig",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3409,6 +3451,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadClusterLogs",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3496,6 +3539,7 @@ func init() {
           "installer"
         ],
         "operationId": "UploadLogs",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3587,6 +3631,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateClusterLogsProgress",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3667,6 +3712,7 @@ func init() {
           "manifests"
         ],
         "operationId": "ListClusterManifests",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3733,6 +3779,7 @@ func init() {
           "manifests"
         ],
         "operationId": "CreateClusterManifest",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3809,6 +3856,7 @@ func init() {
           "manifests"
         ],
         "operationId": "DeleteClusterManifest",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3895,6 +3943,7 @@ func init() {
           "manifests"
         ],
         "operationId": "DownloadClusterManifest",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3982,6 +4031,7 @@ func init() {
           "installer"
         ],
         "operationId": "ListOfClusterOperators",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -4049,6 +4099,7 @@ func init() {
           "installer"
         ],
         "operationId": "ReportMonitoredOperatorStatus",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -4139,6 +4190,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetPreflightRequirements",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -4201,6 +4253,7 @@ func init() {
           "installer"
         ],
         "operationId": "UploadClusterIngressCert",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -4291,6 +4344,7 @@ func init() {
           "versions"
         ],
         "operationId": "ListComponentVersions",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -4317,6 +4371,7 @@ func init() {
           "managed_domains"
         ],
         "operationId": "ListManagedDomains",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -4349,6 +4404,7 @@ func init() {
           "versions"
         ],
         "operationId": "ListSupportedOpenshiftVersions",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -4378,6 +4434,7 @@ func init() {
           "operators"
         ],
         "operationId": "ListSupportedOperators",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -4425,6 +4482,7 @@ func init() {
           "operators"
         ],
         "operationId": "ListOperatorProperties",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -13558,6 +13616,7 @@ func init() {
           "installer"
         ],
         "operationId": "RegisterAddHostsCluster",
+        "deprecated": true,
         "parameters": [
           {
             "description": "Parameters for creating a new cluster for adding nodes.",
@@ -13610,6 +13669,7 @@ func init() {
           "assisted-service-iso"
         ],
         "operationId": "CreateISOAndUploadToS3",
+        "deprecated": true,
         "parameters": [
           {
             "description": "Parameters for creating an Assisted Service ISO.",
@@ -13671,6 +13731,7 @@ func init() {
           "assisted-service-iso"
         ],
         "operationId": "DownloadISO",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -13722,6 +13783,7 @@ func init() {
           "assisted-service-iso"
         ],
         "operationId": "GetPresignedForAssistedServiceISO",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -13772,6 +13834,7 @@ func init() {
           "installer"
         ],
         "operationId": "ListClusters",
+        "deprecated": true,
         "parameters": [
           {
             "type": "boolean",
@@ -13850,6 +13913,7 @@ func init() {
           "installer"
         ],
         "operationId": "RegisterCluster",
+        "deprecated": true,
         "parameters": [
           {
             "description": "The properties describing the new cluster.",
@@ -13917,6 +13981,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetClusterDefaultConfig",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -13964,6 +14029,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetCluster",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14038,6 +14104,7 @@ func init() {
           "installer"
         ],
         "operationId": "DeregisterCluster",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14096,6 +14163,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateCluster",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14174,6 +14242,7 @@ func init() {
           "installer"
         ],
         "operationId": "CancelInstallation",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14242,6 +14311,7 @@ func init() {
           "installer"
         ],
         "operationId": "CompleteInstallation",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14326,6 +14396,7 @@ func init() {
           "installer"
         ],
         "operationId": "InstallCluster",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14395,6 +14466,7 @@ func init() {
           "installer"
         ],
         "operationId": "InstallHosts",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14464,6 +14536,7 @@ func init() {
           "installer"
         ],
         "operationId": "ResetCluster",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14534,6 +14607,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetCredentials",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14606,6 +14680,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetDiscoveryIgnition",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14661,6 +14736,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateDiscoveryIgnition",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14748,6 +14824,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadClusterFiles",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14851,6 +14928,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetPresignedForClusterFiles",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14978,6 +15056,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadClusterISO",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15051,6 +15130,7 @@ func init() {
           "installer"
         ],
         "operationId": "GenerateClusterISO",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15139,6 +15219,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadClusterISOHeaders",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15221,6 +15302,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadClusterKubeconfig",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15297,6 +15379,7 @@ func init() {
           "events"
         ],
         "operationId": "ListEvents",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15379,6 +15462,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetFreeAddresses",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15538,6 +15622,7 @@ func init() {
           "installer"
         ],
         "operationId": "ListHosts",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15610,6 +15695,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15673,6 +15759,7 @@ func init() {
           "installer"
         ],
         "operationId": "DeregisterHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15741,6 +15828,7 @@ func init() {
           "installer"
         ],
         "operationId": "EnableHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15810,6 +15898,7 @@ func init() {
           "installer"
         ],
         "operationId": "DisableHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15881,6 +15970,7 @@ func init() {
           "installer"
         ],
         "operationId": "InstallHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15946,6 +16036,7 @@ func init() {
           "installer"
         ],
         "operationId": "ResetHost",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -16012,6 +16103,7 @@ func init() {
         ],
         "summary": "Reset failed host validation.",
         "operationId": "ResetHostValidation",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -16105,6 +16197,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadHostIgnition",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -16182,6 +16275,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetHostIgnition",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -16251,6 +16345,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateHostIgnition",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -16328,6 +16423,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateHostInstallerArgs",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -16600,6 +16696,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateHostLogsProgress",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -16688,6 +16785,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateHostInstallProgress",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -16780,6 +16878,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetClusterInstallConfig",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -16835,6 +16934,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateClusterInstallConfig",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -16919,6 +17019,7 @@ func init() {
           "installer"
         ],
         "operationId": "DownloadClusterLogs",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -17006,6 +17107,7 @@ func init() {
           "installer"
         ],
         "operationId": "UploadLogs",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -17097,6 +17199,7 @@ func init() {
           "installer"
         ],
         "operationId": "UpdateClusterLogsProgress",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -17177,6 +17280,7 @@ func init() {
           "manifests"
         ],
         "operationId": "ListClusterManifests",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -17243,6 +17347,7 @@ func init() {
           "manifests"
         ],
         "operationId": "CreateClusterManifest",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -17319,6 +17424,7 @@ func init() {
           "manifests"
         ],
         "operationId": "DeleteClusterManifest",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -17405,6 +17511,7 @@ func init() {
           "manifests"
         ],
         "operationId": "DownloadClusterManifest",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -17492,6 +17599,7 @@ func init() {
           "installer"
         ],
         "operationId": "ListOfClusterOperators",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -17559,6 +17667,7 @@ func init() {
           "installer"
         ],
         "operationId": "ReportMonitoredOperatorStatus",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -17649,6 +17758,7 @@ func init() {
           "installer"
         ],
         "operationId": "GetPreflightRequirements",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -17711,6 +17821,7 @@ func init() {
           "installer"
         ],
         "operationId": "UploadClusterIngressCert",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -17801,6 +17912,7 @@ func init() {
           "versions"
         ],
         "operationId": "ListComponentVersions",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -17827,6 +17939,7 @@ func init() {
           "managed_domains"
         ],
         "operationId": "ListManagedDomains",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -17859,6 +17972,7 @@ func init() {
           "versions"
         ],
         "operationId": "ListSupportedOpenshiftVersions",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -17888,6 +18002,7 @@ func init() {
           "operators"
         ],
         "operationId": "ListSupportedOperators",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -17935,6 +18050,7 @@ func init() {
           "operators"
         ],
         "operationId": "ListOperatorProperties",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
