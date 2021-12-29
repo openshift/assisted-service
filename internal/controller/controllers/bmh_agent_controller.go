@@ -28,7 +28,6 @@ import (
 	"time"
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/models"
@@ -730,24 +729,6 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	return reconcileComplete{dirty: true, stop: true}
 }
 
-//
-//  In assisted installer, UserManagedNetworking implicates none platform.  This flag is part of AgentClusterInstall spec.
-//
-func (r *BMACReconciler) isNonePlatform(ctx context.Context, cd *hivev1.ClusterDeployment) (isNone, propagateError bool, err error) {
-	if cd.Spec.ClusterInstallRef == nil {
-		return false, false, errors.Errorf("Cluster Install Reference is null for cluster deployment ns=%s name=%s", cd.Namespace, cd.Name)
-	}
-	clusterInstall := hiveext.AgentClusterInstall{}
-	namespacedName := types.NamespacedName{
-		Namespace: cd.Namespace,
-		Name:      cd.Spec.ClusterInstallRef.Name,
-	}
-	if err = r.Get(ctx, namespacedName, &clusterInstall); err != nil {
-		return false, !k8serrors.IsNotFound(err), errors.Wrapf(err, "Could not get AgentClusterInstall %s for ClusterDeployment %s", cd.Spec.ClusterInstallRef.Name, cd.Name)
-	}
-	return clusterInstall.Spec.Networking.UserManagedNetworking, false, nil
-}
-
 // Reconcile the `BareMetalHost` resource on the spoke cluster
 //
 // Baremetal-operator in the hub cluster creates a host using the live-iso feature. To add this host as a worker node
@@ -774,7 +755,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
 		Name:      fmt.Sprintf(adminKubeConfigStringTemplate, cd.Name),
 	}
-	isNonePlatform, propagateError, err := r.isNonePlatform(ctx, cd)
+	isNonePlatform, propagateError, err := isNonePlatformCluster(ctx, r.Client, cd)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to determine if platform is none for cluster deployment %s/%s", cd.Namespace, cd.Name)
 		// In case ACI reference doesn't exist or ACI not found do not reconcile again since such a change in these will trigger BMH reconciliation
