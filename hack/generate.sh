@@ -105,7 +105,7 @@ import sys
 import yaml
 
 with open("'${__root}/config/samples/agent-install.openshift.io_v1beta1_agentserviceconfig.yaml'", "r+") as f:
-    doc = yaml.load(f, Loader=yaml.FullLoader)
+    doc = yaml.safe_load(f)
     doc["spec"]["osImages"] = [
         {
             "cpuArchitecture": v["cpu_architecture"],
