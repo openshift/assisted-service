@@ -443,13 +443,29 @@ func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Con
 		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
 	}
 
-	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID.String(), params.FileName)
+	fileName := params.FileName
+	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID.String(), fileName)
 	duration, _ := time.ParseDuration("10m")
-	url, err := b.objectHandler.GeneratePresignedDownloadURL(ctx, fullFileName, params.FileName, duration)
+
+	// Kubeconfig-noingress has been created during the installation, but it does not have the ingress CA.
+	// At the finalizing phase, we create the kubeconfig file and add the ingress CA.
+	// An ingress CA isn't required for normal login but for oauth login which isn't a common use case.
+	// Here we fallback to the kubeconfig-noingress for the kubeconfig filename.
+	if fileName == constants.Kubeconfig {
+		exists, _ := b.objectHandler.DoesObjectExist(ctx, fullFileName)
+
+		if !exists {
+			fileName = constants.KubeconfigNoIngress
+			fullFileName = fmt.Sprintf("%s/%s", params.ClusterID.String(), constants.KubeconfigNoIngress)
+		}
+	}
+
+	url, err := b.objectHandler.GeneratePresignedDownloadURL(ctx, fullFileName, fileName, duration)
 	if err != nil {
 		log.WithError(err).Errorf("failed to generate presigned URL: %s from cluster: %s", params.FileName, params.ClusterID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
+
 	return installer.NewV2GetPresignedForClusterCredentialsOK().WithPayload(&models.Presigned{URL: &url})
 }
 

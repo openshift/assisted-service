@@ -588,6 +588,10 @@ func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 	allowedStatuses := []string{
 		models.ClusterStatusFinalizing,
 		models.ClusterStatusInstalled,
+		models.ClusterStatusError,
+		models.ClusterStatusAddingHosts,
+		models.ClusterStatusCancelled,
+		models.ClusterStatusInstallingPendingUserAction,
 	}
 	if !funk.Contains(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only when status is one of: %s",
