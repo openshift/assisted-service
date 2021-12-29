@@ -58,6 +58,7 @@ security:
 paths:
   /v1/clusters:
     post:
+      deprecated: true
       tags:
         - installer
       description: Creates a new OpenShift cluster definition.
@@ -96,6 +97,7 @@ paths:
             $ref: '#/definitions/error'
 
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -254,6 +256,7 @@ paths:
 
   /v1/clusters/{cluster_id}:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -310,6 +313,7 @@ paths:
             $ref: '#/definitions/error'
 
     patch:
+      deprecated: true
       tags:
         - installer
       description: Updates an OpenShift cluster definition.
@@ -362,6 +366,7 @@ paths:
             $ref: '#/definitions/error'
 
     delete:
+      deprecated: true
       tags:
         - installer
       description: Deletes an OpenShift cluster definition.
@@ -591,6 +596,7 @@ paths:
 
   /v1/clusters/{cluster_id}/downloads/image:
     post:
+      deprecated: true
       tags:
         - installer
       description: Creates a new OpenShift per-cluster Discovery ISO.
@@ -643,6 +649,7 @@ paths:
             $ref: '#/definitions/error'
 
     get:
+      deprecated: true
       tags:
         - installer
       description: Downloads the OpenShift per-cluster Discovery ISO.
@@ -699,6 +706,7 @@ paths:
             $ref: '#/definitions/error'
 
     head:
+      deprecated: true
       tags:
         - installer
       description: Downloads the OpenShift per-cluster Discovery ISO Headers only.
@@ -749,6 +757,7 @@ paths:
 
   /v1/clusters/{cluster_id}/downloads/files:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -813,6 +822,7 @@ paths:
 
   /v1/clusters/{cluster_id}/downloads/files-presigned:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -885,6 +895,7 @@ paths:
 
   /v1/clusters/{cluster_id}/credentials:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -930,6 +941,7 @@ paths:
 
   /v1/clusters/{cluster_id}/downloads/kubeconfig:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -978,6 +990,7 @@ paths:
             $ref: '#/definitions/error'
   /v1/clusters/default-config:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -1004,6 +1017,7 @@ paths:
 
   /v1/clusters/{cluster_id}/install-config:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -1043,6 +1057,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
     patch:
+      deprecated: true
       tags:
         - installer
       description: Override values in the install config.
@@ -1090,6 +1105,7 @@ paths:
 
   /v1/clusters/{cluster_id}/discovery-ignition:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -1132,6 +1148,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
     patch:
+      deprecated: true
       tags:
         - installer
       description: Override values in the discovery ignition config.
@@ -1179,6 +1196,7 @@ paths:
 
   /v1/clusters/{cluster_id}/manifests:
     get:
+      deprecated: true
       tags:
         - manifests
       security:
@@ -1223,6 +1241,7 @@ paths:
             $ref: '#/definitions/error'
 
     post:
+      deprecated: true
       tags:
         - manifests
       security:
@@ -1277,6 +1296,7 @@ paths:
             $ref: '#/definitions/error'
 
     delete:
+      deprecated: true
       tags:
         - manifests
       description: Deletes a manifest from the cluster.
@@ -1330,6 +1350,7 @@ paths:
 
   /v1/clusters/{cluster_id}/manifests/files:
     get:
+      deprecated: true
       tags:
         - manifests
       security:
@@ -1389,6 +1410,7 @@ paths:
 
   /v1/clusters/{cluster_id}/uploads/ingress-cert:
     post:
+      deprecated: true
       tags:
         - installer
       security:
@@ -1447,6 +1469,7 @@ paths:
 
   /v1/clusters/{cluster_id}/actions/install:
     post:
+      deprecated: true
       tags:
         - installer
       description: Installs the OpenShift cluster.
@@ -1494,6 +1517,7 @@ paths:
 
   /v1/clusters/{cluster_id}/actions/cancel:
     post:
+      deprecated: true
       tags:
         - installer
       description: Cancels an ongoing installation.
@@ -1537,6 +1561,7 @@ paths:
 
   /v1/clusters/{cluster_id}/actions/install_hosts:
     post:
+      deprecated: true
       tags:
         - installer
       description: Installs the OpenShift cluster.
@@ -1584,6 +1609,7 @@ paths:
 
   /v1/clusters/{cluster_id}/actions/reset:
     post:
+      deprecated: true
       tags:
         - installer
       description: Resets a failed installation.
@@ -1627,6 +1653,7 @@ paths:
 
   /v1/clusters/{cluster_id}/actions/complete_installation:
     post:
+      deprecated: true
       tags:
         - installer
       security:
@@ -1687,6 +1714,7 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -1734,6 +1762,7 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts/{host_id}:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -1780,6 +1809,7 @@ paths:
             $ref: '#/definitions/error'
 
     delete:
+      deprecated: true
       tags:
         - installer
       description: Deregisters an OpenShift host.
@@ -1827,6 +1857,7 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args:
     patch:
+      deprecated: true
       tags:
         - installer
       description: Updates a host's installer arguments.
@@ -1886,6 +1917,7 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/progress:
     put:
+      deprecated: true
       tags:
         - installer
       security:
@@ -1946,6 +1978,7 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable:
     post:
+      deprecated: true
       tags:
         - installer
       description: Enables a host for inclusion in the cluster.
@@ -1994,6 +2027,7 @@ paths:
             $ref: '#/definitions/error'
 
     delete:
+      deprecated: true
       tags:
         - installer
       description: Disables a host for inclusion in the cluster.
@@ -2043,6 +2077,7 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/actions/install:
     post:
+      deprecated: true
       tags:
         - installer
       description: install specific host for day2 cluster.
@@ -2088,6 +2123,7 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset:
     post:
+      deprecated: true
       tags:
         - installer
       description: reset a failed host for day2 cluster.
@@ -2133,6 +2169,7 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}:
     patch:
+      deprecated: true
       tags:
         - installer
       summary: Reset failed host validation.
@@ -2188,6 +2225,7 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress:
     put:
+      deprecated: true
       tags:
         - installer
       security:
@@ -2247,12 +2285,12 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/logs:
     post:
+      deprecated: true
       tags:
         - installer
       security:
         - agentAuth: []
       description: Agent API to upload logs.
-      deprecated: true
       operationId: UploadHostLogs
       consumes:
         - multipart/form-data
@@ -2312,10 +2350,10 @@ paths:
             $ref: '#/definitions/error'
 
     get:
+      deprecated: true
       tags:
         - installer
       description: Download host logs.
-      deprecated: true
       security:
         - userAuth: [admin, read-only-admin, user]
         - urlAuth: []
@@ -2371,6 +2409,7 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/ignition:
     get:
+      deprecated: true
       tags:
         - installer
       description: Get the customized ignition file for this host as a string
@@ -2418,6 +2457,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
     patch:
+      deprecated: true
       tags:
         - installer
       description: Patch the ignition file for this host
@@ -2471,6 +2511,7 @@ paths:
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -2529,6 +2570,7 @@ paths:
 
   /v1/clusters/{cluster_id}/logs_progress:
     put:
+      deprecated: true
       tags:
         - installer
       security:
@@ -2582,6 +2624,7 @@ paths:
 
   /v1/clusters/{cluster_id}/logs:
     post:
+      deprecated: true
       tags:
         - installer
       security:
@@ -2645,6 +2688,7 @@ paths:
             $ref: '#/definitions/error'
 
     get:
+      deprecated: true
       tags:
         - installer
       description: Download cluster logs.
@@ -2706,6 +2750,7 @@ paths:
   # The following API call should be admin only
   /v1/clusters/{cluster_id}/free_addresses:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -2766,6 +2811,7 @@ paths:
 
   /v1/clusters/{cluster_id}/events:
     get:
+      deprecated: true
       tags:
         - events
       security:
@@ -2821,6 +2867,7 @@ paths:
 
   /v1/clusters/{cluster_id}/monitored_operators:
     get:
+      deprecated: true
       tags:
         - operators
         - installer
@@ -2866,6 +2913,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
     put:
+      deprecated: true
       tags:
         - operators
         - installer
@@ -2924,12 +2972,12 @@ paths:
 
   /v1/clusters/{cluster_id}/host-requirements:
     get:
+      deprecated: true
       tags:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
       description: Get host requirements of a cluster.
-      deprecated: true
       operationId: GetClusterHostRequirements
       parameters:
         - in: path
@@ -2966,6 +3014,7 @@ paths:
 
   /v1/clusters/{cluster_id}/preflight-requirements:
     get:
+      deprecated: true
       tags:
         - installer
       security:
@@ -3007,6 +3056,7 @@ paths:
 
   /v1/domains:
     get:
+      deprecated: true
       tags:
         - managed_domains
       security:
@@ -3025,6 +3075,7 @@ paths:
 
   /v1/component_versions:
     get:
+      deprecated: true
       tags:
         - versions
       security:
@@ -3039,6 +3090,7 @@ paths:
 
   /v1/openshift_versions:
     get:
+      deprecated: true
       tags:
         - versions
       security:
@@ -3061,6 +3113,7 @@ paths:
 
   /v1/supported-operators:
     get:
+      deprecated: true
       tags:
         - operators
       operationId: ListSupportedOperators
@@ -3087,6 +3140,7 @@ paths:
 
   /v1/supported-operators/{operator_name}:
     get:
+      deprecated: true
       tags:
         - operators
       security:
@@ -3123,6 +3177,7 @@ paths:
 
   /v1/add_hosts_clusters:
     post:
+      deprecated: true
       tags:
         - installer
       description: Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.
@@ -3158,6 +3213,7 @@ paths:
 
   /v1/assisted-service-iso:
     post:
+      deprecated: true
       tags:
         - assisted-service-iso
       description: Creates ISO for the user and uploads to S3.
@@ -3191,6 +3247,7 @@ paths:
 
   /v1/assisted-service-iso/data:
     get:
+      deprecated: true
       tags:
         - assisted-service-iso
       description: Downloads the Assisted Service ISO.
@@ -3225,6 +3282,7 @@ paths:
 
   /v1/assisted-service-iso/presigned:
     get:
+      deprecated: true
       tags:
         - assisted-service-iso
       security:
