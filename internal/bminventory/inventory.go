@@ -470,7 +470,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error) {
 
 	id := strfmt.UUID(uuid.New().String())
-	url := installer.GetClusterURL{ClusterID: id}
+	url := installer.V2GetClusterURL{ClusterID: id}
 
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
@@ -797,7 +797,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 }
 func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID,
 	params installer.V2ImportClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error) {
-	url := installer.GetClusterURL{ClusterID: *id}
+	url := installer.V2GetClusterURL{ClusterID: *id}
 
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
 	apivipDnsname := swag.StringValue(params.NewImportClusterParams.APIVipDnsname)
