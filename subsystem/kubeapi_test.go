@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"reflect"
 	"strings"
@@ -1620,6 +1622,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return infraEnv.Status.InfraEnvDebugInfo.EventsURL
 		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*infra_env_id=%s", infraEnv.ID.String())))
 
+		infraEnvCr := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+		_, err = testEventUrl(infraEnvCr.Status.InfraEnvDebugInfo.EventsURL)
+		Expect(err).To(BeNil())
+
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
@@ -1649,6 +1655,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Status.DebugInfo.EventsURL
 		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*host_id=%s", host.ID.String())))
+
+		agent := getAgentCRD(ctx, kubeClient, key)
+		_, err = testEventUrl(agent.Status.DebugInfo.EventsURL)
+		Expect(err).To(BeNil())
 
 		By("Wait for installing")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstallationInProgressReason)
@@ -2585,6 +2595,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.EventsURL
 		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*cluster_id=%s", cluster.ID.String())))
 
+		acicr := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+		_, err := testEventUrl(acicr.Status.DebugInfo.EventsURL)
+		Expect(err).To(BeNil())
+
 		By("Check ACI Logs URL is empty")
 		// Should not show the URL since no logs were collected
 		Eventually(func() string {
@@ -2611,6 +2625,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Status.DebugInfo.EventsURL
 		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*host_id=%s", host.ID.String())))
+
+		agent := getAgentCRD(ctx, kubeClient, key)
+		_, err = testEventUrl(agent.Status.DebugInfo.EventsURL)
+		Expect(err).To(BeNil())
 
 		By("Wait for installing")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstallationInProgressReason)
@@ -2726,6 +2744,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.EventsURL
 		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*cluster_id=%s", cluster.ID.String())))
 
+		acicr = getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+		_, err = testEventUrl(acicr.Status.DebugInfo.EventsURL)
+		Expect(err).To(BeNil())
+
 		By("Check ACI Logs URL still exists")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
@@ -2776,6 +2798,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return agent.Status.DebugInfo.EventsURL
 		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*host_id=%s", host.ID.String())))
 		firstAgentEventsURL := getAgentCRD(ctx, kubeClient, key).Status.DebugInfo.EventsURL
+
+		agent := getAgentCRD(ctx, kubeClient, key)
+		_, err := testEventUrl(agent.Status.DebugInfo.EventsURL)
+		Expect(err).To(BeNil())
 
 		By("Create New Infraenv")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
@@ -3109,6 +3135,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.EventsURL
 		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*cluster_id=%s", cluster.ID.String())))
+
+		aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+		_, err = testEventUrl(aci.Status.DebugInfo.EventsURL)
+		Expect(err).To(BeNil())
 
 		By("Verify ClusterDeployment Agents were not deleted")
 
@@ -3556,4 +3586,22 @@ func (e eventMatcher) FailureMessage(actual interface{}) string {
 
 func (e eventMatcher) NegatedFailureMessage(actual interface{}) string {
 	return "event matches"
+}
+
+func testEventUrl(url string) (models.EventList, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	list := models.EventList{}
+	err = json.Unmarshal(body, &list)
+	if err != nil {
+		return nil, err
+	}
+	Expect(list).NotTo(BeEmpty())
+	return list, nil
 }
