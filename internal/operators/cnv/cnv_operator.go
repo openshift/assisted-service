@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -97,7 +98,13 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 	}
 
 	if !virt.IsVirtSupported(inventory) {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"CPU does not have virtualization support "}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"CPU does not have virtualization support"}}, nil
+	}
+
+	if common.IsSingleNodeCluster(cluster) {
+		if err = validDiscoverableSNODisk(inventory.Disks, host.InstallationDiskID); err != nil {
+			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+		}
 	}
 
 	role := common.GetEffectiveRole(host)
@@ -273,4 +280,17 @@ func sanitizeID(id string) string {
 
 func getDeviceKey(vendorID string, deviceID string) string {
 	return vendorID + ":" + deviceID
+}
+
+// If CNV is deployed on SNO, we want at least one non bootable disk (i.e discoverable by LSO)
+// with certain size threshold for the hpp storage pool
+func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string) error {
+	for _, disk := range disks {
+		if (disk.DriveType == ocs.SsdDrive || disk.DriveType == ocs.HddDrive) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
+			if disk.SizeBytes > conversions.GibToBytes(discoverableDiskSizeThresholdGi) {
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("CNV with SNO requires a discoverable disk with %d Gi", discoverableDiskSizeThresholdGi)
 }

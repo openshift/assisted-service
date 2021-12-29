@@ -2,6 +2,7 @@ package cnv
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
 )
 
@@ -14,6 +15,8 @@ const (
 
 	upstreamSourceName   string = "community-kubevirt-hyperconverged"
 	downstreamSourceName string = "kubevirt-hyperconverged"
+
+	discoverableDiskSizeThresholdGi int64 = 50
 )
 
 type manifestConfig struct {
@@ -58,7 +61,11 @@ func Manifests(config Config, isSingleNodeCluster bool) (map[string][]byte, []by
 	openshiftManifests := make(map[string][]byte)
 
 	if isSingleNodeCluster {
-		openshiftManifests["99_openshift-cnv_hpp.yaml"] = []byte(cnvHPPManifest)
+		cnvHpp, err := hpp()
+		if err != nil {
+			return nil, nil, err
+		}
+		openshiftManifests["99_openshift-cnv_hpp.yaml"] = cnvHpp
 		openshiftManifests["99_openshift-cnv_hpp_sc.yaml"] = []byte(cnvHPPStorageClass)
 	}
 	openshiftManifests["99_openshift-cnv_subscription.yaml"] = cnvSubsManifest
@@ -96,6 +103,13 @@ func hco(config manifestConfig) ([]byte, error) {
 		"OPERATOR_NAMESPACE": config.Namespace,
 	}
 	return executeTemplate(data, "cnvHCO", cnvHCOManifestTemplate)
+}
+
+func hpp() ([]byte, error) {
+	data := map[string]string{
+		"STORAGE_SIZE": fmt.Sprintf("%dGi", discoverableDiskSizeThresholdGi),
+	}
+	return executeTemplate(data, "cnvHPP", cnvHPPManifestTemplate)
 }
 
 func executeTemplate(data map[string]string, contentName, content string) ([]byte, error) {
@@ -145,7 +159,7 @@ metadata:
 spec:
   BareMetalPlatform: true`
 
-const cnvHPPManifest = `apiVersion: hostpathprovisioner.kubevirt.io/v1beta1
+const cnvHPPManifestTemplate = `apiVersion: hostpathprovisioner.kubevirt.io/v1beta1
 kind: HostPathProvisioner
 metadata:
   name: hostpath-provisioner
@@ -160,7 +174,7 @@ spec:
         - ReadWriteOnce
         resources:
           requests:
-            storage: 50Gi
+            storage: "{{.STORAGE_SIZE}}"
       path: "/var/hpvolumes"
   workload:
     nodeSelector:

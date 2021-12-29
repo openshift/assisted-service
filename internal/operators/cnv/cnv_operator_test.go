@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 )
 
@@ -217,6 +218,64 @@ var _ = Describe("CNV operator", func() {
 		})
 	})
 
+	Context("ValidateHost", func() {
+		cfg := cnv.Config{
+			SupportedGPUs: map[string]bool{
+				"10de:1db6": true,
+				"10de:1eb8": true,
+			},
+			SupportedSRIOVNetworkIC: map[string]bool{
+				"8086:158b": true,
+				"15b3:1015": true,
+			}}
+		cnvOperator := cnv.NewCNVOperator(log, cfg, nil)
+		fullHaMode := models.ClusterHighAvailabilityModeFull
+		noneHaMode := models.ClusterHighAvailabilityModeNone
+		masterWithLessDiskSizeAndVirt := &models.Host{Role: models.HostRoleMaster, InstallationDiskID: "disk1",
+			Inventory: getInventoryWithCpuFlagsAndDisks([]string{"vmx"}, []*models.Disk{
+				{SizeBytes: 20 * conversions.GiB, DriveType: "HDD", ID: "disk1"},
+				{SizeBytes: 40 * conversions.GiB, DriveType: "SSD", ID: "disk2"},
+				{SizeBytes: 20 * conversions.GiB, DriveType: "SSD", ID: "disk3"},
+			})}
+		masterWithOneSatisfyingDiskAndVirt := &models.Host{Role: models.HostRoleMaster, InstallationDiskID: "disk1",
+			Inventory: getInventoryWithCpuFlagsAndDisks([]string{"vmx"}, []*models.Disk{
+				{SizeBytes: 20 * conversions.GiB, DriveType: "HDD", ID: "disk1"},
+				{SizeBytes: 60 * conversions.GiB, DriveType: "SSD", ID: "disk2"},
+				{SizeBytes: 20 * conversions.GiB, DriveType: "SSD", ID: "disk3"},
+			})}
+		masterWithoutVirt := &models.Host{Role: models.HostRoleMaster, InstallationDiskID: "disk1",
+			Inventory: getInventoryWithCpuFlagsAndDisks([]string{}, []*models.Disk{
+				{SizeBytes: 20 * conversions.GiB, DriveType: "HDD", ID: "disk1"},
+				{SizeBytes: 40 * conversions.GiB, DriveType: "SSD", ID: "disk2"},
+				{SizeBytes: 20 * conversions.GiB, DriveType: "SSD", ID: "disk3"},
+			})}
+		table.DescribeTable("validateHost when ", func(cluster *common.Cluster, host *models.Host, expectedResult api.ValidationResult) {
+			res, _ := cnvOperator.ValidateHost(context.TODO(), cluster, host)
+			Expect(res).Should(Equal(expectedResult))
+		},
+			table.Entry("No virt capabilities",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{masterWithoutVirt}}},
+				masterWithoutVirt,
+				api.ValidationResult{Status: api.Failure, ValidationId: cnvOperator.GetHostValidationID(), Reasons: []string{"CPU does not have virtualization support"}},
+			),
+			table.Entry("SNO and there is no disk with bigger size than threshold for HPP",
+				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &noneHaMode, Hosts: []*models.Host{masterWithLessDiskSizeAndVirt}}},
+				masterWithLessDiskSizeAndVirt,
+				api.ValidationResult{Status: api.Failure, ValidationId: cnvOperator.GetHostValidationID(), Reasons: []string{"CNV with SNO requires a discoverable disk with 50 Gi"}},
+			),
+			table.Entry("SNO and there is a disk with bigger size than threshold for HPP",
+				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &noneHaMode, Hosts: []*models.Host{masterWithOneSatisfyingDiskAndVirt}}},
+				masterWithOneSatisfyingDiskAndVirt,
+				api.ValidationResult{Status: api.Success, ValidationId: cnvOperator.GetHostValidationID(), Reasons: nil},
+			),
+			table.Entry("Non SNO and there is no disk with bigger size than threshold for HPP shouldn't bother us",
+				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &fullHaMode, Hosts: []*models.Host{masterWithLessDiskSizeAndVirt}}},
+				masterWithLessDiskSizeAndVirt,
+				api.ValidationResult{Status: api.Success, ValidationId: cnvOperator.GetHostValidationID(), Reasons: nil},
+			),
+		)
+	})
+
 	Context("preflight hardware requirements", func() {
 		It("should be returned", func() {
 			requirements, err := operator.GetPreflightRequirements(context.TODO(), nil)
@@ -253,6 +312,31 @@ var _ = Describe("CNV operator", func() {
 		})
 	})
 })
+
+func getInventoryWithCpuFlagsAndDisks(flags []string, disks []*models.Disk) string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
+				},
+			},
+		},
+		CPU: &models.CPU{
+			Count: 12,
+			Flags: flags,
+		},
+		Memory: &models.Memory{
+			UsableBytes: 32 * conversions.GiB,
+		},
+		Disks: disks,
+	}
+	return marshal(inventory)
+}
 
 func getInventoryWithGPUs(gpus []*models.Gpu) string {
 	inventory := models.Inventory{Gpus: gpus}

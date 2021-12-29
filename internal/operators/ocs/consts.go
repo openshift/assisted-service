@@ -3,8 +3,8 @@ package ocs
 type ocsDeploymentMode string
 
 const (
-	ssdDrive     string            = "SSD"
-	hddDrive     string            = "HDD"
+	SsdDrive     string            = "SSD"
+	HddDrive     string            = "HDD"
 	compactMode  ocsDeploymentMode = "Compact"
 	standardMode ocsDeploymentMode = "Standard"
 )
