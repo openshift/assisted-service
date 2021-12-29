@@ -3,6 +3,7 @@ module github.com/openshift/assisted-service
 go 1.16
 
 require (
+	github.com/ReneKroon/ttlcache v1.7.0 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
 	github.com/alessio/shellescape v1.4.1
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef

@@ -37,6 +37,21 @@ func GenerateTestCluster(clusterID strfmt.UUID, machineNetworks []*models.Machin
 	}
 }
 
+func GenerateDay2TestCluster(clusterID strfmt.UUID, machineNetworks []*models.MachineNetwork) common.Cluster {
+	return common.Cluster{
+		Cluster: models.Cluster{
+			ID:              &clusterID,
+			MachineNetworks: machineNetworks,
+			Platform:        &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			Kind:            swag.String(models.ClusterKindAddHostsCluster),
+			DiskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+		},
+	}
+}
+
 func GenerateTestClusterWithPlatform(clusterID strfmt.UUID, machineNetworks []*models.MachineNetwork, platform *models.Platform) common.Cluster {
 	cluster := GenerateTestCluster(clusterID, machineNetworks)
 	cluster.Platform = platform

@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/kubeclients"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
@@ -30,6 +31,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -188,10 +190,12 @@ type Manager struct {
 	leaderElector                 leader.Leader
 	monitorClusterQueryGenerator  *common.MonitorClusterQueryGenerator
 	monitorInfraEnvQueryGenerator *common.MonitorInfraEnvQueryGenerator
+	kubeclients                   kubeclients.Kubeclients
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
-	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry) *Manager {
+	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API,
+	providerRegistry registry.ProviderRegistry, kubeclients kubeclients.Kubeclients) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -211,6 +215,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Han
 		metricApi:      metricApi,
 		Config:         *config,
 		leaderElector:  leaderElector,
+		kubeclients:    kubeclients,
 	}
 }
 
@@ -582,9 +587,15 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	var err error
 	switch progress.CurrentStage {
 	case models.HostStageDone:
-		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
-			swag.StringValue(h.Status), models.HostStatusInstalled, statusInfo,
-			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
+		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
+				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfoRebootingDay2,
+				h.Progress.CurrentStage, models.HostStageDone, progress.ProgressInfo, extra...)
+		} else {
+			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
+				swag.StringValue(h.Status), models.HostStatusInstalled, statusInfo,
+				previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
+		}
 	case models.HostStageFailed:
 		// Keeps the last progress
 
@@ -594,14 +605,6 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 		_, err = hostutil.UpdateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
-	case models.HostStageRebooting:
-		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
-			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
-				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfoRebootingDay2,
-				h.Progress.CurrentStage, models.HostStageDone, progress.ProgressInfo, extra...)
-			break
-		}
-		fallthrough
 	default:
 		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstallingInProgress, statusInfo,
@@ -967,7 +970,7 @@ func (m *Manager) GetStagesByRole(h *models.Host, isSNO bool) []models.HostStage
 	// for day2 hosts, rebooting stage is considered as the last state as we don't have any way to follow up on it further.
 	if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
 		rebootingIndex := m.IndexOfStage(models.HostStageRebooting, stages)
-		stages = stages[:rebootingIndex+1]
+		stages = append(stages[:rebootingIndex+1], models.HostStageDone)
 	}
 	return stages
 }
@@ -1338,4 +1341,90 @@ func (m *Manager) captureConnectivityReportMetrics(ctx context.Context, openshif
 			m.metricApi.PacketLossBetweenHosts(openshiftVersion, effectiveRole, targetRole, l3.PacketLossPercentage)
 		}
 	}
+}
+
+func (m *Manager) findMatchingNode(nodeList *corev1.NodeList, h *models.Host) (*corev1.Node, error) {
+	if len(nodeList.Items) == 0 {
+		return nil, nil
+	}
+	for _, n := range nodeList.Items {
+		if strings.EqualFold(n.Name, h.RequestedHostname) {
+			return &n, nil
+		}
+	}
+	if h.Inventory == "" {
+		return nil, nil
+	}
+	inventory, err := common.UnmarshalInventory(h.Inventory)
+	if err != nil {
+		return nil, err
+	}
+	ips := make([]string, 0)
+	for _, intf := range inventory.Interfaces {
+		for _, cidr := range append(intf.IPV4Addresses, intf.IPV6Addresses...) {
+			parts := strings.Split(cidr, "/")
+			if len(parts) == 2 {
+				ips = append(ips, parts[0])
+			}
+		}
+	}
+	for _, n := range nodeList.Items {
+		for _, addr := range n.Status.Addresses {
+			if addr.Type == corev1.NodeInternalIP &&
+				funk.ContainsString(ips, addr.Address) {
+				return &n, nil
+			}
+		}
+	}
+	return nil, nil
+}
+
+func isRebooting(h *models.Host) bool {
+	return swag.StringValue(h.Status) == models.HostStatusInstallingInProgress &&
+		h.Progress != nil && h.Progress.CurrentStage == models.HostStageRebooting
+}
+
+func (m *Manager) canMoveToDone(ctx context.Context, h *models.Host) (bool, error) {
+	if h.ClusterID == nil {
+		return false, nil
+	}
+	client := m.kubeclients.GetClusterKubeClient(ctx, h.ClusterID.String())
+	if client == nil {
+		return isRebooting(h), nil
+	}
+	nodeList, err := client.ListNodes()
+	if err != nil {
+		return isRebooting(h), err
+	}
+	node, err := m.findMatchingNode(nodeList, h)
+	if err != nil || node == nil {
+		return false, err
+	}
+	for _, cond := range node.Status.Conditions {
+		if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (m *Manager) tryMoveDay2NodeToDone(ctx context.Context, h *models.Host) error {
+	if swag.StringValue(h.Kind) != models.HostKindAddToExistingClusterHost ||
+		h.Progress != nil && h.Progress.CurrentStage == models.HostStageDone {
+		return nil
+	}
+	canMove, err := m.canMoveToDone(ctx, h)
+	if err != nil {
+		m.log.WithError(err).Warnf("While checking if day2 host %s infra-env %s can move to done", h.ID.String(), h.InfraEnvID.String())
+	}
+	if canMove {
+		if err := m.UpdateInstallProgress(ctx, h, &models.HostProgress{
+			CurrentStage: models.HostStageDone,
+			ProgressInfo: h.Progress.ProgressInfo,
+		}); err != nil {
+			m.log.WithError(err).Warnf("While moving day2 host %s infra-env %s can move to done", h.ID.String(), h.InfraEnvID.String())
+			return err
+		}
+	}
+	return nil
 }

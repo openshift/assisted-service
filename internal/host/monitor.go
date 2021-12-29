@@ -146,6 +146,10 @@ func (m *Manager) clusterHostMonitoring() int64 {
 					if err != nil {
 						log.WithError(err).Errorf("failed to refresh host %s role", *host.ID)
 					}
+					err = m.tryMoveDay2NodeToDone(ctx, host)
+					if err != nil {
+						log.WithError(err).Errorf("failed trying moving day2 host %s to done", *host.ID)
+					}
 				}
 			}
 		}

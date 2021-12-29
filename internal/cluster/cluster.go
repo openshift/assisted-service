@@ -25,6 +25,7 @@ import (
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/kubeclients"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -43,7 +44,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const DhcpLeaseTimeoutMinutes = 2
+const (
+	DhcpLeaseTimeoutMinutes = 2
+	CsrTimeoutMinutes       = 60
+)
 
 var S3FileNames = []string{
 	constants.Kubeconfig,
@@ -156,12 +160,13 @@ type Manager struct {
 	dnsApi                dns.DNSApi
 	monitorQueryGenerator *common.MonitorClusterQueryGenerator
 	authHandler           auth.Authenticator
+	kubeclients           kubeclients.Kubeclients
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler,
 	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
 	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API,
-	dnsApi dns.DNSApi, authHandler auth.Authenticator) *Manager {
+	dnsApi dns.DNSApi, authHandler auth.Authenticator, kubeclients kubeclients.Kubeclients) *Manager {
 	th := &transitionHandler{
 		log:                 log,
 		db:                  db,
@@ -188,6 +193,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		objectHandler:         objectHandler,
 		dnsApi:                dnsApi,
 		authHandler:           authHandler,
+		kubeclients:           kubeclients,
 	}
 }
 
@@ -466,6 +472,26 @@ func (m *Manager) triggerLeaseTimeoutEvent(ctx context.Context, c *common.Cluste
 	eventgen.SendApiIngressVipTimedOutEvent(ctx, m.eventsHandler, *c.ID, DhcpLeaseTimeoutMinutes)
 }
 
+func hasReadyToApproveHosts(cluster *common.Cluster) bool {
+	for _, h := range cluster.Hosts {
+		if time.Since(h.UpdatedAt) < CsrTimeoutMinutes*time.Minute && h.Progress.CurrentStage != models.HostStageDone {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Manager) approveDay2CSRs(ctx context.Context, cluster *common.Cluster) error {
+	if swag.StringValue(cluster.Status) != models.ClusterStatusAddingHosts || !hasReadyToApproveHosts(cluster) {
+		return nil
+	}
+	kubeclient := m.kubeclients.GetClusterKubeClient(ctx, cluster.ID.String())
+	if kubeclient == nil {
+		return nil
+	}
+	return kubeclient.ApproveAllCsrs()
+}
+
 func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
 	// logs required monitoring on error state until IsLogCollectionTimedOut move the logs state to timeout,
 	// or remote controllers reports that their log colection has been completed. Then, monitoring should be
@@ -540,6 +566,9 @@ func (m *Manager) ClusterMonitoring() {
 			if !m.SkipMonitoring(cluster) {
 				monitored += 1
 				_ = m.autoAssignMachineNetworkCidr(cluster)
+				if err = m.approveDay2CSRs(ctx, cluster); err != nil {
+					log.WithError(err).Error("failed approve day2 CSRs")
+				}
 				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
 					log.WithError(err).Error("failed to set majority group for clusters")
 				}
