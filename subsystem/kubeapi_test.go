@@ -870,7 +870,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "2s").Should(Equal(0))
 	})
 
-	FIt("deploy CD with ACI and agents with ignitionEndpoint", func() {
+	It("deploy CD with ACI and agents with ignitionEndpoint", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		caCertificateSecretName := "ca-certificate"
