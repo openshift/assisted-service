@@ -56,7 +56,6 @@ import (
 
 const (
 	AgentFinalizerName       = "agent." + aiv1beta1.Group + "/ai-deprovision"
-	IgnitionTokenKeyInSecret = "ignition-token"
 )
 
 // AgentReconciler reconciles a Agent object
@@ -927,7 +926,7 @@ func (r *AgentReconciler) getIgnitionToken(ctx context.Context, log logrus.Field
 		return "", errors.Wrap(err, fmt.Sprintf("Failed to get user-data secret %s/%s", ignitionEndpointTokenReference.Namespace, ignitionEndpointTokenReference.Name))
 	}
 
-	token, ok := secret.Data[IgnitionTokenKeyInSecret]
+	token, ok := secret.Data[common.IgnitionTokenKeyInSecret]
 	if !ok {
 		return "", errors.Errorf("secret %s did not contain key value", secretRef.Name)
 	}

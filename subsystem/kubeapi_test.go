@@ -870,82 +870,57 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "2s").Should(Equal(0))
 	})
 
-	FIt("deploy CD with ACI and agents with ignitionEndpoint - wait for ready, delete CD and verify ACI and agents deletion", func() {
+	FIt("deploy CD with ACI and agents with ignitionEndpoint", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		caCertificateSecretName := "ca-certificate"
-		deploySecret(ctx, kubeClient, caCertificateSecretName, map[string]string{corev1.TLSCertKey: "abc"})
+		caCertificate := "abc"
+		deploySecret(ctx, kubeClient, caCertificateSecretName, map[string]string{corev1.TLSCertKey: caCertificate})
 		modifiedAciSpec := aciSpec.DeepCopy()
 		modifiedAciSpec.IgnitionEndpoint = &hiveext.IgnitionEndpoint{
-			Url: "example.com",
+			Url: "https://example.com",
 			CaCertificateReference: &hiveext.CaCertificateReference{
 				Namespace: Options.Namespace,
 				Name:      caCertificateSecretName,
 			},
 		}
 		deployAgentClusterInstallCRD(ctx, kubeClient, modifiedAciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
-		clusterKey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterName,
-		}
 		infraEnvKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      infraNsName.Name,
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
-		for i := 0; i < 3; i++ {
-			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
-			hosts = append(hosts, host)
-		}
-		for _, host := range hosts {
-			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
-			hostkey := types.NamespacedName{
-				Namespace: Options.Namespace,
-				Name:      host.ID.String(),
-			}
-			agent := getAgentCRD(ctx, kubeClient, hostkey)
-			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
-		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
-		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
-		}
+		ignitionTokenSecretName := "ignition-token"
+		ignitionEndpointToken := "abc"
+		deploySecret(ctx, kubeClient, ignitionTokenSecretName, map[string]string{common.IgnitionTokenKeyInSecret: ignitionEndpointToken})
 
-		By("Approve Agents")
-		for _, host := range hosts {
-			hostkey := types.NamespacedName{
-				Namespace: Options.Namespace,
-				Name:      host.ID.String(),
-			}
-			Eventually(func() error {
-				agent := getAgentCRD(ctx, kubeClient, hostkey)
-				agent.Spec.Approved = true
-				return kubeClient.Update(ctx, agent)
-			}, "30s", "10s").Should(BeNil())
+		ip := hostutil.GenerateIPv4Addresses(1, defaultCIDRv4)[0]
+		host := registerNode(ctx, *infraEnv.ID, "host1", ip)
+		hostkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
 		}
-		installkey := types.NamespacedName{
+		clusterkey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
-		By("Verify ClusterDeployment ReadyForInstallation")
-		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
-		By("Delete ClusterDeployment")
-		err := kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))
-		Expect(err).To(BeNil())
-		By("Verify AgentClusterInstall was deleted")
+		agent := getAgentCRD(ctx, kubeClient, hostkey)
+		agent.Spec.IgnitionEndpointTokenReference = &v1beta1.IgnitionEndpointTokenReference{
+			Namespace: Options.Namespace,
+			Name:      ignitionTokenSecretName,
+		}
+		kubeClient.Update(ctx, agent)
+
 		Eventually(func() bool {
-			aci := &hiveext.AgentClusterInstall{}
-			err := kubeClient.Get(ctx, installkey, aci)
-			return apierrors.IsNotFound(err)
+			dbCluster := getClusterFromDB(ctx, kubeClient, db, clusterkey, 3)
+			return *dbCluster.IgnitionEndpoint.CaCertificate == caCertificate
 		}, "30s", "10s").Should(Equal(true))
-		By("Verify ClusterDeployment Agents were deleted")
-		Eventually(func() int {
-			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
-		}, "2m", "2s").Should(Equal(0))
+
+		Eventually(func() bool {
+			dbHost := GetHostByKubeKey(ctx, db, hostkey, 3)
+			return dbHost.IgnitionEndpointToken == ignitionEndpointToken
+		}, "30s", "10s").Should(Equal(true))
 	})
 
 	It("verify InfraEnv ISODownloadURL and image CreatedTime are not changing - update Annotations", func() {
