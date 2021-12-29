@@ -156,21 +156,27 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 }
 
 func createClusterCompletionStatusInfo(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster, eventHandler eventsapi.Handler) string {
+	statusInfo := statusInfoInstalled
+
 	_, statuses := getClusterMonitoringOperatorsStatus(cluster)
 	log.Infof("Cluster %s Monitoring status: %s", *cluster.ID, statuses)
 
-	// Cluster status info is installed if no failed OLM operators
-	if countOperatorsInAllStatuses(statuses[models.OperatorTypeOlm]) == 0 ||
-		len(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed]) == 0 {
-		return statusInfoInstalled
+	// Check if the cluster is degraded. A cluster is degraded if not all requested OLM operators
+	// are installed successfully. Then, check if all workers are successfully installed.
+	if !(countOperatorsInAllStatuses(statuses[models.OperatorTypeOlm]) == 0 ||
+		len(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed]) == 0) {
+
+		failedOperators := ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
+		eventgen.SendClusterDegradedOLMOperatorsFailedEvent(ctx, eventHandler, *cluster.ID, failedOperators)
+
+		statusInfo = StatusInfoDegraded
+		statusInfo += ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
+	} else {
+		_, installedWorkers := HostsInStatus(cluster, []string{models.HostStatusInstalled})
+		if installedWorkers < NumberOfWorkers(cluster) {
+			statusInfo = StatusInfoNotAllWorkersInstalled
+		}
 	}
-
-	failedOperators := ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
-	eventgen.SendClusterDegradedOLMOperatorsFailedEvent(ctx, eventHandler, *cluster.ID, failedOperators)
-
-	statusInfo := StatusInfoDegraded
-	statusInfo += ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
-
 	return statusInfo
 }
 
@@ -390,15 +396,7 @@ func (th *transitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.St
 }
 
 func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, statuses []string) bool {
-	mappedMastersByRole := MapMasterHostsByStatus(sCluster.cluster)
-	mappedWorkersByRole := MapWorkersHostsByStatus(sCluster.cluster)
-	mastersInSomeInstallingStatus := 0
-	workersInSomeInstallingStatus := 0
-
-	for _, status := range statuses {
-		mastersInSomeInstallingStatus += len(mappedMastersByRole[status])
-		workersInSomeInstallingStatus += len(mappedWorkersByRole[status])
-	}
+	mastersInSomeInstallingStatus, workersInSomeInstallingStatus := HostsInStatus(sCluster.cluster, statuses)
 
 	numberOfExpectedWorkers := NumberOfWorkers(sCluster.cluster)
 	minRequiredMasterNodes := MinMastersNeededForInstallation

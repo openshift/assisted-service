@@ -113,6 +113,8 @@ var _ = Describe("Transition tests", func() {
 			updateAMSSubscriptionSuccess bool
 			errorExpected                bool
 			updateSuccessfullyFinished   bool
+			withWorkers                  bool
+			withWorkersInstalled         bool
 			destState                    string
 			destStatusInfo               string
 		}{
@@ -211,7 +213,17 @@ var _ = Describe("Transition tests", func() {
 				destStatusInfo: StatusInfoDegraded + ". Failed OLM operators: dummy2, dummy4",
 			},
 			{
-				name:                       "available builtin operators, available OLM -> installed",
+				name:                       "no operators, extra worker in error -> installed (with warning)",
+				uploadKubeConfig:           true,
+				updateSuccessfullyFinished: true,
+				operators:                  []*models.MonitoredOperator{},
+				withWorkers:                true,
+				withWorkersInstalled:       false,
+				destState:                  models.ClusterStatusInstalled,
+				destStatusInfo:             StatusInfoNotAllWorkersInstalled,
+			},
+			{
+				name:                       "available builtin operators, available OLM, extra worker in error -> installed (with warning)",
 				uploadKubeConfig:           true,
 				updateSuccessfullyFinished: true,
 				operators: []*models.MonitoredOperator{
@@ -224,8 +236,29 @@ var _ = Describe("Transition tests", func() {
 						Status: models.OperatorStatusAvailable,
 					},
 				},
-				destState:      models.ClusterStatusInstalled,
-				destStatusInfo: statusInfoInstalled,
+				withWorkers:          true,
+				withWorkersInstalled: false,
+				destState:            models.ClusterStatusInstalled,
+				destStatusInfo:       StatusInfoNotAllWorkersInstalled,
+			},
+			{
+				name:                       "available builtin operators, available OLM, all workers installed -> installed",
+				uploadKubeConfig:           true,
+				updateSuccessfullyFinished: true,
+				operators: []*models.MonitoredOperator{
+					{
+						Name: common.TestDefaultConfig.MonitoredOperator.Name, OperatorType: models.OperatorTypeBuiltin,
+						Status: models.OperatorStatusAvailable,
+					},
+					{
+						Name: common.TestDefaultConfig.MonitoredOperator.Name + "2", OperatorType: models.OperatorTypeOlm,
+						Status: models.OperatorStatusAvailable,
+					},
+				},
+				withWorkers:          true,
+				withWorkersInstalled: true,
+				destState:            models.ClusterStatusInstalled,
+				destStatusInfo:       statusInfoInstalled,
 			},
 			{
 				name:                         "success - with AMS -> installed",
@@ -278,6 +311,19 @@ var _ = Describe("Transition tests", func() {
 					IsAmsSubscriptionConsoleUrlSet: true,
 				}
 				Expect(common.LoadTableFromDB(db, common.MonitoredOperatorsTable).Create(&c).Error).ShouldNot(HaveOccurred())
+				if t.withWorkers {
+					for i := 0; i < MinMastersNeededForInstallation; i++ {
+						createHost(clusterId, models.HostStatusInstalled, db)
+					}
+					for i := 0; i < MinWorkersNeededForInstallation; i++ {
+						createWorkerHost(clusterId, models.HostStatusInstalled, db)
+					}
+					if t.withWorkersInstalled {
+						createWorkerHost(clusterId, models.HostStatusInstalled, db)
+					} else {
+						createWorkerHost(clusterId, models.HostStatusError, db)
+					}
+				}
 
 				var ocmClient *ocm.Client = nil
 

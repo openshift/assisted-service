@@ -149,6 +149,91 @@ var _ = Describe("Progress bar test", func() {
 		})
 	})
 
+	It("UpdateInstallProgress in Installed state", func() {
+
+		var clusterId strfmt.UUID
+
+		By("Create cluster", func() {
+
+			clusterId = strfmt.UUID(uuid.New().String())
+			hid1 := strfmt.UUID(uuid.New().String())
+			hid2 := strfmt.UUID(uuid.New().String())
+			hid3 := strfmt.UUID(uuid.New().String())
+			hid4 := strfmt.UUID(uuid.New().String())
+			hid5 := strfmt.UUID(uuid.New().String())
+			hid6 := strfmt.UUID(uuid.New().String())
+			c := common.Cluster{
+				Cluster: models.Cluster{
+					ID:     &clusterId,
+					Kind:   swag.String(models.ClusterKindCluster),
+					Status: swag.String(models.ClusterStatusInstalled),
+					Hosts: []*models.Host{
+						{
+							ID:         &hid1,
+							ClusterID:  &clusterId,
+							InfraEnvID: clusterId,
+							Role:       models.HostRoleMaster,
+							Status:     swag.String(models.HostStatusInstalled),
+						},
+						{
+							ID:         &hid2,
+							ClusterID:  &clusterId,
+							InfraEnvID: clusterId,
+							Role:       models.HostRoleMaster,
+							Status:     swag.String(models.HostStatusInstalled),
+						},
+						{
+							ID:         &hid3,
+							ClusterID:  &clusterId,
+							InfraEnvID: clusterId,
+							Role:       models.HostRoleMaster,
+							Status:     swag.String(models.HostStatusInstalled),
+						},
+						{
+							ID:         &hid4,
+							ClusterID:  &clusterId,
+							InfraEnvID: clusterId,
+							Role:       models.HostRoleWorker,
+							Status:     swag.String(models.HostStatusInstalled),
+						},
+						{
+							ID:         &hid5,
+							ClusterID:  &clusterId,
+							InfraEnvID: clusterId,
+							Role:       models.HostRoleWorker,
+							Status:     swag.String(models.HostStatusInstalled),
+						},
+						{
+							ID:         &hid6,
+							ClusterID:  &clusterId,
+							InfraEnvID: clusterId,
+							Role:       models.HostRoleWorker,
+							Status:     swag.String(models.HostStatusError),
+						},
+					},
+				},
+			}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+		})
+
+		By("test progress in installed state", func() {
+			masterInstalledIndex := len(host.MasterStages) - 1
+			workersInstalledIndex := len(host.WorkerStages) - 1
+			mockHostAPI.EXPECT().GetStagesByRole(gomock.All(host.MatchRole(models.HostRoleMaster), gomock.Not(host.MatchBootstrap())), false).Return(host.MasterStages[:]).Times(3)
+			mockHostAPI.EXPECT().GetStagesByRole(gomock.All(host.MatchRole(models.HostRoleWorker), gomock.Not(host.MatchBootstrap())), false).Return(host.WorkerStages[:]).Times(3)
+			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.MasterStages[:]).Return(masterInstalledIndex).Times(3)
+			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.WorkerStages[:]).Return(workersInstalledIndex).Times(2)
+			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.WorkerStages[:]).Return(-1).Times(1)
+
+			err := clusterApi.UpdateInstallProgress(ctx, clusterId)
+			Expect(err).NotTo(HaveOccurred())
+
+			c := getClusterFromDB(clusterId, db)
+			var expected int64 = 100
+			Expect(c.Progress.TotalPercentage).To(Equal(expected))
+		})
+	})
+
 	It("UpdateInstallProgress with SNO", func() {
 		var clusterId strfmt.UUID
 

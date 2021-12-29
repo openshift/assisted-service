@@ -32,6 +32,7 @@ const (
 	statusInfoFinalizing                      = "Finalizing cluster installation"
 	statusInfoInstalled                       = "Cluster is installed"
 	StatusInfoDegraded                        = "Cluster is installed but degraded"
+	StatusInfoNotAllWorkersInstalled          = "Cluster is installed but some workers did not join"
 	statusInfoPreparingForInstallation        = "Preparing cluster for installation"
 	statusInfoPreparingForInstallationTimeout = "Preparing cluster for installation timeout"
 	statusInfoFinalizingTimeout               = "Cluster installation timeout while finalizing"
@@ -174,6 +175,19 @@ func NumberOfWorkers(c *common.Cluster) int {
 		num += 1
 	}
 	return num
+}
+
+func HostsInStatus(c *common.Cluster, statuses []string) (int, int) {
+	mappedMastersByRole := MapMasterHostsByStatus(c)
+	mappedWorkersByRole := MapWorkersHostsByStatus(c)
+	mastersInSomeInstallingStatus := 0
+	workersInSomeInstallingStatus := 0
+
+	for _, status := range statuses {
+		mastersInSomeInstallingStatus += len(mappedMastersByRole[status])
+		workersInSomeInstallingStatus += len(mappedWorkersByRole[status])
+	}
+	return mastersInSomeInstallingStatus, workersInSomeInstallingStatus
 }
 
 func MapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
