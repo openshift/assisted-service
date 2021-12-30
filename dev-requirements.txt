@@ -5,7 +5,7 @@ setuptools==59.2.0
 twine==3.7.1
 vcversioner==2.16.0.0
 waiting==1.4.1
-wheel==0.37.0
+wheel==0.37.1
 beautifulsoup4==4.10.0
 PyGithub>=1.54
 python-gitlab>=2.6.0
