@@ -485,7 +485,7 @@ func (v *validator) printHasMinValidDisks(c *validationContext, status Validatio
 	case ValidationSuccess:
 		return "Sufficient disk capacity"
 	case ValidationFailure:
-		return fmt.Sprintf("Require a disk of at least %d GB", c.clusterHostRequirements.Total.DiskSizeGb)
+		return "No eligible disks were found, please check specific disks to see why they are not eligible"
 	case ValidationPending:
 		return "Missing inventory"
 	default:

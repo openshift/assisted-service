@@ -2917,7 +2917,7 @@ var _ = Describe("Refresh Host", func() {
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
 					"Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs",
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
-					"Require a disk of at least 120 GB",
+					"No eligible disks were found, please check specific disks to see why they are not eligible",
 					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
 					"Host couldn't synchronize with any NTP server")),
 				inventory: insufficientHWInventory(),
@@ -2926,7 +2926,7 @@ var _ = Describe("Refresh Host", func() {
 					HasInventory:                   {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
 					HasMinCPUCores:                 {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
 					HasMinMemory:                   {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes"},
-					HasMinValidDisks:               {status: ValidationFailure, messagePattern: "Require a disk of at least 120 GB"},
+					HasMinValidDisks:               {status: ValidationFailure, messagePattern: "No eligible disks were found, please check specific disks to see why they are not eligible"},
 					IsMachineCidrDefined:           {status: ValidationFailure, messagePattern: "Machine Network CIDR is undefined"},
 					HasCPUCoresForRole:             {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:               {status: ValidationFailure, messagePattern: "Require at least 8.00 GiB RAM for role worker, found only 130 bytes"},
@@ -2949,7 +2949,7 @@ var _ = Describe("Refresh Host", func() {
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
 					"Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs",
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
-					"Require a disk of at least 120 GB",
+					"No eligible disks were found, please check specific disks to see why they are not eligible",
 					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
 					"Host couldn't synchronize with any NTP server")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -2957,7 +2957,7 @@ var _ = Describe("Refresh Host", func() {
 					HasInventory:                   {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
 					HasMinCPUCores:                 {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
 					HasMinMemory:                   {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes"},
-					HasMinValidDisks:               {status: ValidationFailure, messagePattern: "Require a disk of at least 120 GB"},
+					HasMinValidDisks:               {status: ValidationFailure, messagePattern: "No eligible disks were found, please check specific disks to see why they are not eligible"},
 					IsMachineCidrDefined:           {status: ValidationFailure, messagePattern: "Machine Network CIDR is undefined"},
 					HasCPUCoresForRole:             {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:               {status: ValidationFailure, messagePattern: "Require at least 8.00 GiB RAM for role worker, found only 130 bytes"},
@@ -2981,7 +2981,7 @@ var _ = Describe("Refresh Host", func() {
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
 					"Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs",
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
-					"Require a disk of at least 120 GB",
+					"No eligible disks were found, please check specific disks to see why they are not eligible",
 					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
 					"Host couldn't synchronize with any NTP server")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -2989,7 +2989,7 @@ var _ = Describe("Refresh Host", func() {
 					HasInventory:                   {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
 					HasMinCPUCores:                 {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
 					HasMinMemory:                   {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes"},
-					HasMinValidDisks:               {status: ValidationFailure, messagePattern: "Require a disk of at least 120 GB"},
+					HasMinValidDisks:               {status: ValidationFailure, messagePattern: "No eligible disks were found, please check specific disks to see why they are not eligible"},
 					IsMachineCidrDefined:           {status: ValidationFailure, messagePattern: "Machine Network CIDR is undefined"},
 					HasCPUCoresForRole:             {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role"},
 					HasMemoryForRole:               {status: ValidationFailure, messagePattern: "Require at least 8.00 GiB RAM for role worker, found only 130 bytes"},
@@ -3022,8 +3022,9 @@ var _ = Describe("Refresh Host", func() {
 				dstState:         models.HostStatusInsufficient,
 				statusInfoChecker: makeValueChecker("Host does not meet the minimum hardware requirements: " +
 					"Host couldn't synchronize with any NTP server ; Machine Network CIDR is undefined; the Machine " +
-					"Network CIDR can be defined by setting either the API or Ingress virtual IPs ; Require a disk of at " +
-					"least 120 GB ; Require at least 8.00 GiB RAM for role worker, found only 130 bytes ; " +
+					"Network CIDR can be defined by setting either the API or Ingress virtual IPs ; " +
+					"No eligible disks were found, please check specific disks to see why they are not eligible ; " +
+					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes ; " +
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for " +
 					"any role is 8.00 GiB, found only 130 bytes"),
 				inventory:     insufficientHWInventory(),
@@ -5255,7 +5256,7 @@ var _ = Describe("Refresh Host", func() {
 				eventRaised:      true,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
-					"Require a disk of at least 120 GB",
+					"No eligible disks were found, please check specific disks to see why they are not eligible",
 					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
 					"Host couldn't synchronize with any NTP server")),
 			},
@@ -5278,7 +5279,7 @@ var _ = Describe("Refresh Host", func() {
 				eventRaised:      true,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
-					"Require a disk of at least 120 GB",
+					"No eligible disks were found, please check specific disks to see why they are not eligible",
 					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
 					"Host couldn't synchronize with any NTP server")),
 			},
@@ -5291,7 +5292,7 @@ var _ = Describe("Refresh Host", func() {
 				eventRaised:      false,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
-					"Require a disk of at least 120 GB",
+					"No eligible disks were found, please check specific disks to see why they are not eligible",
 					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
 					"Host couldn't synchronize with any NTP server")),
 			},
@@ -5304,7 +5305,7 @@ var _ = Describe("Refresh Host", func() {
 				eventRaised:      true,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8.00 GiB, found only 130 bytes",
-					"Require a disk of at least 120 GB",
+					"No eligible disks were found, please check specific disks to see why they are not eligible",
 					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes",
 					"Host couldn't synchronize with any NTP server")),
 			},
