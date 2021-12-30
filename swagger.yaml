@@ -6549,6 +6549,9 @@ definitions:
       - message
       - event_time
     properties:
+      name:
+        type: string
+        description: Event Name.
       cluster_id:
         type: string
         format: uuid

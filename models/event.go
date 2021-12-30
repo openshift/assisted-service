@@ -45,6 +45,9 @@ type Event struct {
 	// Required: true
 	Message *string `json:"message" gorm:"type:varchar(4096)"`
 
+	// Event Name.
+	Name string `json:"name,omitempty"`
+
 	// Additional properties for the event in JSON format.
 	Props string `json:"props,omitempty" gorm:"type:text"`
 

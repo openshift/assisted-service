@@ -15,6 +15,7 @@ import (
 // Event cancel_install_start_failed
 //
 type CancelInstallStartFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -24,6 +25,7 @@ func NewCancelInstallStartFailedEvent(
     clusterId strfmt.UUID,
 ) *CancelInstallStartFailedEvent {
     return &CancelInstallStartFailedEvent{
+        eventName: CancelInstallStartFailedEventName,
         ClusterId: clusterId,
     }
 }
@@ -50,7 +52,7 @@ func SendCancelInstallStartFailedEventAtTime(
 }
 
 func (e *CancelInstallStartFailedEvent) GetName() string {
-    return "cancel_install_start_failed"
+    return e.eventName
 }
 
 func (e *CancelInstallStartFailedEvent) GetSeverity() string {
@@ -76,6 +78,7 @@ func (e *CancelInstallStartFailedEvent) FormatMessage() string {
 // Event cancel_install_commit_failed
 //
 type CancelInstallCommitFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -85,6 +88,7 @@ func NewCancelInstallCommitFailedEvent(
     clusterId strfmt.UUID,
 ) *CancelInstallCommitFailedEvent {
     return &CancelInstallCommitFailedEvent{
+        eventName: CancelInstallCommitFailedEventName,
         ClusterId: clusterId,
     }
 }
@@ -111,7 +115,7 @@ func SendCancelInstallCommitFailedEventAtTime(
 }
 
 func (e *CancelInstallCommitFailedEvent) GetName() string {
-    return "cancel_install_commit_failed"
+    return e.eventName
 }
 
 func (e *CancelInstallCommitFailedEvent) GetSeverity() string {
@@ -137,6 +141,7 @@ func (e *CancelInstallCommitFailedEvent) FormatMessage() string {
 // Event host_registration_setting_properties_failed
 //
 type HostRegistrationSettingPropertiesFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -150,6 +155,7 @@ func NewHostRegistrationSettingPropertiesFailedEvent(
     clusterId *strfmt.UUID,
 ) *HostRegistrationSettingPropertiesFailedEvent {
     return &HostRegistrationSettingPropertiesFailedEvent{
+        eventName: HostRegistrationSettingPropertiesFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -186,7 +192,7 @@ func SendHostRegistrationSettingPropertiesFailedEventAtTime(
 }
 
 func (e *HostRegistrationSettingPropertiesFailedEvent) GetName() string {
-    return "host_registration_setting_properties_failed"
+    return e.eventName
 }
 
 func (e *HostRegistrationSettingPropertiesFailedEvent) GetSeverity() string {
@@ -220,6 +226,7 @@ func (e *HostRegistrationSettingPropertiesFailedEvent) FormatMessage() string {
 // Event cluster_registration_failed
 //
 type ClusterRegistrationFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     Error string
     ClusterKind string
@@ -233,6 +240,7 @@ func NewClusterRegistrationFailedEvent(
     clusterKind string,
 ) *ClusterRegistrationFailedEvent {
     return &ClusterRegistrationFailedEvent{
+        eventName: ClusterRegistrationFailedEventName,
         ClusterId: clusterId,
         Error: error,
         ClusterKind: clusterKind,
@@ -269,7 +277,7 @@ func SendClusterRegistrationFailedEventAtTime(
 }
 
 func (e *ClusterRegistrationFailedEvent) GetName() string {
-    return "cluster_registration_failed"
+    return e.eventName
 }
 
 func (e *ClusterRegistrationFailedEvent) GetSeverity() string {
@@ -297,6 +305,7 @@ func (e *ClusterRegistrationFailedEvent) FormatMessage() string {
 // Event cluster_registration_succeeded
 //
 type ClusterRegistrationSucceededEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     ClusterKind string
 }
@@ -308,6 +317,7 @@ func NewClusterRegistrationSucceededEvent(
     clusterKind string,
 ) *ClusterRegistrationSucceededEvent {
     return &ClusterRegistrationSucceededEvent{
+        eventName: ClusterRegistrationSucceededEventName,
         ClusterId: clusterId,
         ClusterKind: clusterKind,
     }
@@ -339,7 +349,7 @@ func SendClusterRegistrationSucceededEventAtTime(
 }
 
 func (e *ClusterRegistrationSucceededEvent) GetName() string {
-    return "cluster_registration_succeeded"
+    return e.eventName
 }
 
 func (e *ClusterRegistrationSucceededEvent) GetSeverity() string {
@@ -366,6 +376,7 @@ func (e *ClusterRegistrationSucceededEvent) FormatMessage() string {
 // Event cluster_deregister_failed
 //
 type ClusterDeregisterFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     Error string
 }
@@ -377,6 +388,7 @@ func NewClusterDeregisterFailedEvent(
     error string,
 ) *ClusterDeregisterFailedEvent {
     return &ClusterDeregisterFailedEvent{
+        eventName: ClusterDeregisterFailedEventName,
         ClusterId: clusterId,
         Error: error,
     }
@@ -408,7 +420,7 @@ func SendClusterDeregisterFailedEventAtTime(
 }
 
 func (e *ClusterDeregisterFailedEvent) GetName() string {
-    return "cluster_deregister_failed"
+    return e.eventName
 }
 
 func (e *ClusterDeregisterFailedEvent) GetSeverity() string {
@@ -435,6 +447,7 @@ func (e *ClusterDeregisterFailedEvent) FormatMessage() string {
 // Event cluster_deregistered
 //
 type ClusterDeregisteredEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -444,6 +457,7 @@ func NewClusterDeregisteredEvent(
     clusterId strfmt.UUID,
 ) *ClusterDeregisteredEvent {
     return &ClusterDeregisteredEvent{
+        eventName: ClusterDeregisteredEventName,
         ClusterId: clusterId,
     }
 }
@@ -470,7 +484,7 @@ func SendClusterDeregisteredEventAtTime(
 }
 
 func (e *ClusterDeregisteredEvent) GetName() string {
-    return "cluster_deregistered"
+    return e.eventName
 }
 
 func (e *ClusterDeregisteredEvent) GetSeverity() string {
@@ -496,6 +510,7 @@ func (e *ClusterDeregisteredEvent) FormatMessage() string {
 // Event cluster_validation_failed
 //
 type ClusterValidationFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     ValidationId string
     ValidationMsg string
@@ -509,6 +524,7 @@ func NewClusterValidationFailedEvent(
     validationMsg string,
 ) *ClusterValidationFailedEvent {
     return &ClusterValidationFailedEvent{
+        eventName: ClusterValidationFailedEventName,
         ClusterId: clusterId,
         ValidationId: validationId,
         ValidationMsg: validationMsg,
@@ -545,7 +561,7 @@ func SendClusterValidationFailedEventAtTime(
 }
 
 func (e *ClusterValidationFailedEvent) GetName() string {
-    return "cluster_validation_failed"
+    return e.eventName
 }
 
 func (e *ClusterValidationFailedEvent) GetSeverity() string {
@@ -573,6 +589,7 @@ func (e *ClusterValidationFailedEvent) FormatMessage() string {
 // Event cluster_validation_fixed
 //
 type ClusterValidationFixedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     ValidationId string
     ValidationMsg string
@@ -586,6 +603,7 @@ func NewClusterValidationFixedEvent(
     validationMsg string,
 ) *ClusterValidationFixedEvent {
     return &ClusterValidationFixedEvent{
+        eventName: ClusterValidationFixedEventName,
         ClusterId: clusterId,
         ValidationId: validationId,
         ValidationMsg: validationMsg,
@@ -622,7 +640,7 @@ func SendClusterValidationFixedEventAtTime(
 }
 
 func (e *ClusterValidationFixedEvent) GetName() string {
-    return "cluster_validation_fixed"
+    return e.eventName
 }
 
 func (e *ClusterValidationFixedEvent) GetSeverity() string {
@@ -650,6 +668,7 @@ func (e *ClusterValidationFixedEvent) FormatMessage() string {
 // Event after_inactivity_cluster_deregistered
 //
 type AfterInactivityClusterDeregisteredEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -659,6 +678,7 @@ func NewAfterInactivityClusterDeregisteredEvent(
     clusterId strfmt.UUID,
 ) *AfterInactivityClusterDeregisteredEvent {
     return &AfterInactivityClusterDeregisteredEvent{
+        eventName: AfterInactivityClusterDeregisteredEventName,
         ClusterId: clusterId,
     }
 }
@@ -685,7 +705,7 @@ func SendAfterInactivityClusterDeregisteredEventAtTime(
 }
 
 func (e *AfterInactivityClusterDeregisteredEvent) GetName() string {
-    return "after_inactivity_cluster_deregistered"
+    return e.eventName
 }
 
 func (e *AfterInactivityClusterDeregisteredEvent) GetSeverity() string {
@@ -711,6 +731,7 @@ func (e *AfterInactivityClusterDeregisteredEvent) FormatMessage() string {
 // Event cluster_installation_completed
 //
 type ClusterInstallationCompletedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -720,6 +741,7 @@ func NewClusterInstallationCompletedEvent(
     clusterId strfmt.UUID,
 ) *ClusterInstallationCompletedEvent {
     return &ClusterInstallationCompletedEvent{
+        eventName: ClusterInstallationCompletedEventName,
         ClusterId: clusterId,
     }
 }
@@ -746,7 +768,7 @@ func SendClusterInstallationCompletedEventAtTime(
 }
 
 func (e *ClusterInstallationCompletedEvent) GetName() string {
-    return "cluster_installation_completed"
+    return e.eventName
 }
 
 func (e *ClusterInstallationCompletedEvent) GetSeverity() string {
@@ -772,6 +794,7 @@ func (e *ClusterInstallationCompletedEvent) FormatMessage() string {
 // Event cluster_installation_failed
 //
 type ClusterInstallationFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     FailureReason string
 }
@@ -783,6 +806,7 @@ func NewClusterInstallationFailedEvent(
     failureReason string,
 ) *ClusterInstallationFailedEvent {
     return &ClusterInstallationFailedEvent{
+        eventName: ClusterInstallationFailedEventName,
         ClusterId: clusterId,
         FailureReason: failureReason,
     }
@@ -814,7 +838,7 @@ func SendClusterInstallationFailedEventAtTime(
 }
 
 func (e *ClusterInstallationFailedEvent) GetName() string {
-    return "cluster_installation_failed"
+    return e.eventName
 }
 
 func (e *ClusterInstallationFailedEvent) GetSeverity() string {
@@ -841,6 +865,7 @@ func (e *ClusterInstallationFailedEvent) FormatMessage() string {
 // Event cluster_installation_canceled
 //
 type ClusterInstallationCanceledEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -850,6 +875,7 @@ func NewClusterInstallationCanceledEvent(
     clusterId strfmt.UUID,
 ) *ClusterInstallationCanceledEvent {
     return &ClusterInstallationCanceledEvent{
+        eventName: ClusterInstallationCanceledEventName,
         ClusterId: clusterId,
     }
 }
@@ -876,7 +902,7 @@ func SendClusterInstallationCanceledEventAtTime(
 }
 
 func (e *ClusterInstallationCanceledEvent) GetName() string {
-    return "cluster_installation_canceled"
+    return e.eventName
 }
 
 func (e *ClusterInstallationCanceledEvent) GetSeverity() string {
@@ -902,6 +928,7 @@ func (e *ClusterInstallationCanceledEvent) FormatMessage() string {
 // Event cancel_installation_failed
 //
 type CancelInstallationFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     Error string
 }
@@ -913,6 +940,7 @@ func NewCancelInstallationFailedEvent(
     error string,
 ) *CancelInstallationFailedEvent {
     return &CancelInstallationFailedEvent{
+        eventName: CancelInstallationFailedEventName,
         ClusterId: clusterId,
         Error: error,
     }
@@ -944,7 +972,7 @@ func SendCancelInstallationFailedEventAtTime(
 }
 
 func (e *CancelInstallationFailedEvent) GetName() string {
-    return "cancel_installation_failed"
+    return e.eventName
 }
 
 func (e *CancelInstallationFailedEvent) GetSeverity() string {
@@ -971,6 +999,7 @@ func (e *CancelInstallationFailedEvent) FormatMessage() string {
 // Event cluster_status_updated
 //
 type ClusterStatusUpdatedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     ClusterStatus string
     StatusInfo string
@@ -984,6 +1013,7 @@ func NewClusterStatusUpdatedEvent(
     statusInfo string,
 ) *ClusterStatusUpdatedEvent {
     return &ClusterStatusUpdatedEvent{
+        eventName: ClusterStatusUpdatedEventName,
         ClusterId: clusterId,
         ClusterStatus: clusterStatus,
         StatusInfo: statusInfo,
@@ -1020,7 +1050,7 @@ func SendClusterStatusUpdatedEventAtTime(
 }
 
 func (e *ClusterStatusUpdatedEvent) GetName() string {
-    return "cluster_status_updated"
+    return e.eventName
 }
 
 func (e *ClusterStatusUpdatedEvent) GetSeverity() string {
@@ -1048,6 +1078,7 @@ func (e *ClusterStatusUpdatedEvent) FormatMessage() string {
 // Event cluster_installation_reset
 //
 type ClusterInstallationResetEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -1057,6 +1088,7 @@ func NewClusterInstallationResetEvent(
     clusterId strfmt.UUID,
 ) *ClusterInstallationResetEvent {
     return &ClusterInstallationResetEvent{
+        eventName: ClusterInstallationResetEventName,
         ClusterId: clusterId,
     }
 }
@@ -1083,7 +1115,7 @@ func SendClusterInstallationResetEventAtTime(
 }
 
 func (e *ClusterInstallationResetEvent) GetName() string {
-    return "cluster_installation_reset"
+    return e.eventName
 }
 
 func (e *ClusterInstallationResetEvent) GetSeverity() string {
@@ -1109,6 +1141,7 @@ func (e *ClusterInstallationResetEvent) FormatMessage() string {
 // Event reset_installation_failed
 //
 type ResetInstallationFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     Error string
 }
@@ -1120,6 +1153,7 @@ func NewResetInstallationFailedEvent(
     error string,
 ) *ResetInstallationFailedEvent {
     return &ResetInstallationFailedEvent{
+        eventName: ResetInstallationFailedEventName,
         ClusterId: clusterId,
         Error: error,
     }
@@ -1151,7 +1185,7 @@ func SendResetInstallationFailedEventAtTime(
 }
 
 func (e *ResetInstallationFailedEvent) GetName() string {
-    return "reset_installation_failed"
+    return e.eventName
 }
 
 func (e *ResetInstallationFailedEvent) GetSeverity() string {
@@ -1178,6 +1212,7 @@ func (e *ResetInstallationFailedEvent) FormatMessage() string {
 // Event api_ingress_vip_updated
 //
 type ApiIngressVipUpdatedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     ApiVip string
     IngressVip string
@@ -1191,6 +1226,7 @@ func NewApiIngressVipUpdatedEvent(
     ingressVip string,
 ) *ApiIngressVipUpdatedEvent {
     return &ApiIngressVipUpdatedEvent{
+        eventName: ApiIngressVipUpdatedEventName,
         ClusterId: clusterId,
         ApiVip: apiVip,
         IngressVip: ingressVip,
@@ -1227,7 +1263,7 @@ func SendApiIngressVipUpdatedEventAtTime(
 }
 
 func (e *ApiIngressVipUpdatedEvent) GetName() string {
-    return "api_ingress_vip_updated"
+    return e.eventName
 }
 
 func (e *ApiIngressVipUpdatedEvent) GetSeverity() string {
@@ -1255,6 +1291,7 @@ func (e *ApiIngressVipUpdatedEvent) FormatMessage() string {
 // Event api_ingress_vip_timed_out
 //
 type ApiIngressVipTimedOutEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     TimeoutInterval int
 }
@@ -1266,6 +1303,7 @@ func NewApiIngressVipTimedOutEvent(
     timeoutInterval int,
 ) *ApiIngressVipTimedOutEvent {
     return &ApiIngressVipTimedOutEvent{
+        eventName: ApiIngressVipTimedOutEventName,
         ClusterId: clusterId,
         TimeoutInterval: timeoutInterval,
     }
@@ -1297,7 +1335,7 @@ func SendApiIngressVipTimedOutEventAtTime(
 }
 
 func (e *ApiIngressVipTimedOutEvent) GetName() string {
-    return "api_ingress_vip_timed_out"
+    return e.eventName
 }
 
 func (e *ApiIngressVipTimedOutEvent) GetSeverity() string {
@@ -1324,6 +1362,7 @@ func (e *ApiIngressVipTimedOutEvent) FormatMessage() string {
 // Event prepare_installation_failed
 //
 type PrepareInstallationFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     Error string
 }
@@ -1335,6 +1374,7 @@ func NewPrepareInstallationFailedEvent(
     error string,
 ) *PrepareInstallationFailedEvent {
     return &PrepareInstallationFailedEvent{
+        eventName: PrepareInstallationFailedEventName,
         ClusterId: clusterId,
         Error: error,
     }
@@ -1366,7 +1406,7 @@ func SendPrepareInstallationFailedEventAtTime(
 }
 
 func (e *PrepareInstallationFailedEvent) GetName() string {
-    return "prepare_installation_failed"
+    return e.eventName
 }
 
 func (e *PrepareInstallationFailedEvent) GetSeverity() string {
@@ -1393,6 +1433,7 @@ func (e *PrepareInstallationFailedEvent) FormatMessage() string {
 // Event cluster_prepare_installation_started
 //
 type ClusterPrepareInstallationStartedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -1402,6 +1443,7 @@ func NewClusterPrepareInstallationStartedEvent(
     clusterId strfmt.UUID,
 ) *ClusterPrepareInstallationStartedEvent {
     return &ClusterPrepareInstallationStartedEvent{
+        eventName: ClusterPrepareInstallationStartedEventName,
         ClusterId: clusterId,
     }
 }
@@ -1428,7 +1470,7 @@ func SendClusterPrepareInstallationStartedEventAtTime(
 }
 
 func (e *ClusterPrepareInstallationStartedEvent) GetName() string {
-    return "cluster_prepare_installation_started"
+    return e.eventName
 }
 
 func (e *ClusterPrepareInstallationStartedEvent) GetSeverity() string {
@@ -1454,6 +1496,7 @@ func (e *ClusterPrepareInstallationStartedEvent) FormatMessage() string {
 // Event installation_preparing_timed_out
 //
 type InstallationPreparingTimedOutEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -1463,6 +1506,7 @@ func NewInstallationPreparingTimedOutEvent(
     clusterId strfmt.UUID,
 ) *InstallationPreparingTimedOutEvent {
     return &InstallationPreparingTimedOutEvent{
+        eventName: InstallationPreparingTimedOutEventName,
         ClusterId: clusterId,
     }
 }
@@ -1489,7 +1533,7 @@ func SendInstallationPreparingTimedOutEventAtTime(
 }
 
 func (e *InstallationPreparingTimedOutEvent) GetName() string {
-    return "installation_preparing_timed_out"
+    return e.eventName
 }
 
 func (e *InstallationPreparingTimedOutEvent) GetSeverity() string {
@@ -1515,6 +1559,7 @@ func (e *InstallationPreparingTimedOutEvent) FormatMessage() string {
 // Event cluster_degraded_OLM_operators_failed
 //
 type ClusterDegradedOLMOperatorsFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     FailedOperators string
 }
@@ -1526,6 +1571,7 @@ func NewClusterDegradedOLMOperatorsFailedEvent(
     failedOperators string,
 ) *ClusterDegradedOLMOperatorsFailedEvent {
     return &ClusterDegradedOLMOperatorsFailedEvent{
+        eventName: ClusterDegradedOLMOperatorsFailedEventName,
         ClusterId: clusterId,
         FailedOperators: failedOperators,
     }
@@ -1557,7 +1603,7 @@ func SendClusterDegradedOLMOperatorsFailedEventAtTime(
 }
 
 func (e *ClusterDegradedOLMOperatorsFailedEvent) GetName() string {
-    return "cluster_degraded_OLM_operators_failed"
+    return e.eventName
 }
 
 func (e *ClusterDegradedOLMOperatorsFailedEvent) GetSeverity() string {
@@ -1584,6 +1630,7 @@ func (e *ClusterDegradedOLMOperatorsFailedEvent) FormatMessage() string {
 // Event expired_image_deleted
 //
 type ExpiredImageDeletedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -1593,6 +1640,7 @@ func NewExpiredImageDeletedEvent(
     clusterId strfmt.UUID,
 ) *ExpiredImageDeletedEvent {
     return &ExpiredImageDeletedEvent{
+        eventName: ExpiredImageDeletedEventName,
         ClusterId: clusterId,
     }
 }
@@ -1619,7 +1667,7 @@ func SendExpiredImageDeletedEventAtTime(
 }
 
 func (e *ExpiredImageDeletedEvent) GetName() string {
-    return "expired_image_deleted"
+    return e.eventName
 }
 
 func (e *ExpiredImageDeletedEvent) GetSeverity() string {
@@ -1645,6 +1693,7 @@ func (e *ExpiredImageDeletedEvent) FormatMessage() string {
 // Event cluster_operator_status
 //
 type ClusterOperatorStatusEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     OperatorName string
     Status string
@@ -1660,6 +1709,7 @@ func NewClusterOperatorStatusEvent(
     statusInfo string,
 ) *ClusterOperatorStatusEvent {
     return &ClusterOperatorStatusEvent{
+        eventName: ClusterOperatorStatusEventName,
         ClusterId: clusterId,
         OperatorName: operatorName,
         Status: status,
@@ -1701,7 +1751,7 @@ func SendClusterOperatorStatusEventAtTime(
 }
 
 func (e *ClusterOperatorStatusEvent) GetName() string {
-    return "cluster_operator_status"
+    return e.eventName
 }
 
 func (e *ClusterOperatorStatusEvent) GetSeverity() string {
@@ -1730,6 +1780,7 @@ func (e *ClusterOperatorStatusEvent) FormatMessage() string {
 // Event download_image_fetch_failed
 //
 type DownloadImageFetchFailedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
 }
 
@@ -1739,6 +1790,7 @@ func NewDownloadImageFetchFailedEvent(
     infraEnvId strfmt.UUID,
 ) *DownloadImageFetchFailedEvent {
     return &DownloadImageFetchFailedEvent{
+        eventName: DownloadImageFetchFailedEventName,
         InfraEnvId: infraEnvId,
     }
 }
@@ -1765,7 +1817,7 @@ func SendDownloadImageFetchFailedEventAtTime(
 }
 
 func (e *DownloadImageFetchFailedEvent) GetName() string {
-    return "download_image_fetch_failed"
+    return e.eventName
 }
 
 func (e *DownloadImageFetchFailedEvent) GetSeverity() string {
@@ -1794,6 +1846,7 @@ func (e *DownloadImageFetchFailedEvent) FormatMessage() string {
 // Event host_deregistered
 //
 type HostDeregisteredEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -1809,6 +1862,7 @@ func NewHostDeregisteredEvent(
     hostName string,
 ) *HostDeregisteredEvent {
     return &HostDeregisteredEvent{
+        eventName: HostDeregisteredEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -1850,7 +1904,7 @@ func SendHostDeregisteredEventAtTime(
 }
 
 func (e *HostDeregisteredEvent) GetName() string {
-    return "host_deregistered"
+    return e.eventName
 }
 
 func (e *HostDeregisteredEvent) GetSeverity() string {
@@ -1885,6 +1939,7 @@ func (e *HostDeregisteredEvent) FormatMessage() string {
 // Event host_installer_args_applied
 //
 type HostInstallerArgsAppliedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -1900,6 +1955,7 @@ func NewHostInstallerArgsAppliedEvent(
     hostName string,
 ) *HostInstallerArgsAppliedEvent {
     return &HostInstallerArgsAppliedEvent{
+        eventName: HostInstallerArgsAppliedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -1941,7 +1997,7 @@ func SendHostInstallerArgsAppliedEventAtTime(
 }
 
 func (e *HostInstallerArgsAppliedEvent) GetName() string {
-    return "host_installer_args_applied"
+    return e.eventName
 }
 
 func (e *HostInstallerArgsAppliedEvent) GetSeverity() string {
@@ -1976,6 +2032,7 @@ func (e *HostInstallerArgsAppliedEvent) FormatMessage() string {
 // Event host_bootstrap_set
 //
 type HostBootstrapSetEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -1991,6 +2048,7 @@ func NewHostBootstrapSetEvent(
     hostName string,
 ) *HostBootstrapSetEvent {
     return &HostBootstrapSetEvent{
+        eventName: HostBootstrapSetEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -2032,7 +2090,7 @@ func SendHostBootstrapSetEventAtTime(
 }
 
 func (e *HostBootstrapSetEvent) GetName() string {
-    return "host_bootstrap_set"
+    return e.eventName
 }
 
 func (e *HostBootstrapSetEvent) GetSeverity() string {
@@ -2067,6 +2125,7 @@ func (e *HostBootstrapSetEvent) FormatMessage() string {
 // Event host_status_updated
 //
 type HostStatusUpdatedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -2090,6 +2149,7 @@ func NewHostStatusUpdatedEvent(
     info string,
 ) *HostStatusUpdatedEvent {
     return &HostStatusUpdatedEvent{
+        eventName: HostStatusUpdatedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -2151,7 +2211,7 @@ func SendHostStatusUpdatedEventAtTime(
 }
 
 func (e *HostStatusUpdatedEvent) GetName() string {
-    return "host_status_updated"
+    return e.eventName
 }
 
 func (e *HostStatusUpdatedEvent) GetSeverity() string {
@@ -2190,6 +2250,7 @@ func (e *HostStatusUpdatedEvent) FormatMessage() string {
 // Event host_role_updated
 //
 type HostRoleUpdatedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
@@ -2205,6 +2266,7 @@ func NewHostRoleUpdatedEvent(
     suggestedRole string,
 ) *HostRoleUpdatedEvent {
     return &HostRoleUpdatedEvent{
+        eventName: HostRoleUpdatedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         HostName: hostName,
@@ -2246,7 +2308,7 @@ func SendHostRoleUpdatedEventAtTime(
 }
 
 func (e *HostRoleUpdatedEvent) GetName() string {
-    return "host_role_updated"
+    return e.eventName
 }
 
 func (e *HostRoleUpdatedEvent) GetSeverity() string {
@@ -2281,6 +2343,7 @@ func (e *HostRoleUpdatedEvent) FormatMessage() string {
 // Event image_status_updated
 //
 type ImageStatusUpdatedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -2302,6 +2365,7 @@ func NewImageStatusUpdatedEvent(
     info string,
 ) *ImageStatusUpdatedEvent {
     return &ImageStatusUpdatedEvent{
+        eventName: ImageStatusUpdatedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -2358,7 +2422,7 @@ func SendImageStatusUpdatedEventAtTime(
 }
 
 func (e *ImageStatusUpdatedEvent) GetName() string {
-    return "image_status_updated"
+    return e.eventName
 }
 
 func (e *ImageStatusUpdatedEvent) GetSeverity() string {
@@ -2396,6 +2460,7 @@ func (e *ImageStatusUpdatedEvent) FormatMessage() string {
 // Event host_installation_cancelled
 //
 type HostInstallationCancelledEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -2411,6 +2476,7 @@ func NewHostInstallationCancelledEvent(
     hostName string,
 ) *HostInstallationCancelledEvent {
     return &HostInstallationCancelledEvent{
+        eventName: HostInstallationCancelledEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -2452,7 +2518,7 @@ func SendHostInstallationCancelledEventAtTime(
 }
 
 func (e *HostInstallationCancelledEvent) GetName() string {
-    return "host_installation_cancelled"
+    return e.eventName
 }
 
 func (e *HostInstallationCancelledEvent) GetSeverity() string {
@@ -2487,6 +2553,7 @@ func (e *HostInstallationCancelledEvent) FormatMessage() string {
 // Event host_installation_started
 //
 type HostInstallationStartedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -2502,6 +2569,7 @@ func NewHostInstallationStartedEvent(
     hostName string,
 ) *HostInstallationStartedEvent {
     return &HostInstallationStartedEvent{
+        eventName: HostInstallationStartedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -2543,7 +2611,7 @@ func SendHostInstallationStartedEventAtTime(
 }
 
 func (e *HostInstallationStartedEvent) GetName() string {
-    return "host_installation_started"
+    return e.eventName
 }
 
 func (e *HostInstallationStartedEvent) GetSeverity() string {
@@ -2578,6 +2646,7 @@ func (e *HostInstallationStartedEvent) FormatMessage() string {
 // Event host_cancel_installation_failed
 //
 type HostCancelInstallationFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -2595,6 +2664,7 @@ func NewHostCancelInstallationFailedEvent(
     error string,
 ) *HostCancelInstallationFailedEvent {
     return &HostCancelInstallationFailedEvent{
+        eventName: HostCancelInstallationFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -2641,7 +2711,7 @@ func SendHostCancelInstallationFailedEventAtTime(
 }
 
 func (e *HostCancelInstallationFailedEvent) GetName() string {
-    return "host_cancel_installation_failed"
+    return e.eventName
 }
 
 func (e *HostCancelInstallationFailedEvent) GetSeverity() string {
@@ -2677,6 +2747,7 @@ func (e *HostCancelInstallationFailedEvent) FormatMessage() string {
 // Event host_installation_reset
 //
 type HostInstallationResetEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -2692,6 +2763,7 @@ func NewHostInstallationResetEvent(
     hostName string,
 ) *HostInstallationResetEvent {
     return &HostInstallationResetEvent{
+        eventName: HostInstallationResetEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -2733,7 +2805,7 @@ func SendHostInstallationResetEventAtTime(
 }
 
 func (e *HostInstallationResetEvent) GetName() string {
-    return "host_installation_reset"
+    return e.eventName
 }
 
 func (e *HostInstallationResetEvent) GetSeverity() string {
@@ -2768,6 +2840,7 @@ func (e *HostInstallationResetEvent) FormatMessage() string {
 // Event host_installation_reset_failed
 //
 type HostInstallationResetFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -2785,6 +2858,7 @@ func NewHostInstallationResetFailedEvent(
     error string,
 ) *HostInstallationResetFailedEvent {
     return &HostInstallationResetFailedEvent{
+        eventName: HostInstallationResetFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -2831,7 +2905,7 @@ func SendHostInstallationResetFailedEventAtTime(
 }
 
 func (e *HostInstallationResetFailedEvent) GetName() string {
-    return "host_installation_reset_failed"
+    return e.eventName
 }
 
 func (e *HostInstallationResetFailedEvent) GetSeverity() string {
@@ -2867,6 +2941,7 @@ func (e *HostInstallationResetFailedEvent) FormatMessage() string {
 // Event user_required_complete_installation_reset
 //
 type UserRequiredCompleteInstallationResetEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -2882,6 +2957,7 @@ func NewUserRequiredCompleteInstallationResetEvent(
     hostName string,
 ) *UserRequiredCompleteInstallationResetEvent {
     return &UserRequiredCompleteInstallationResetEvent{
+        eventName: UserRequiredCompleteInstallationResetEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -2923,7 +2999,7 @@ func SendUserRequiredCompleteInstallationResetEventAtTime(
 }
 
 func (e *UserRequiredCompleteInstallationResetEvent) GetName() string {
-    return "user_required_complete_installation_reset"
+    return e.eventName
 }
 
 func (e *UserRequiredCompleteInstallationResetEvent) GetSeverity() string {
@@ -2958,6 +3034,7 @@ func (e *UserRequiredCompleteInstallationResetEvent) FormatMessage() string {
 // Event host_set_status_failed
 //
 type HostSetStatusFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -2975,6 +3052,7 @@ func NewHostSetStatusFailedEvent(
     error string,
 ) *HostSetStatusFailedEvent {
     return &HostSetStatusFailedEvent{
+        eventName: HostSetStatusFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -3021,7 +3099,7 @@ func SendHostSetStatusFailedEventAtTime(
 }
 
 func (e *HostSetStatusFailedEvent) GetName() string {
-    return "host_set_status_failed"
+    return e.eventName
 }
 
 func (e *HostSetStatusFailedEvent) GetSeverity() string {
@@ -3057,6 +3135,7 @@ func (e *HostSetStatusFailedEvent) FormatMessage() string {
 // Event host_validation_failed
 //
 type HostValidationFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -3074,6 +3153,7 @@ func NewHostValidationFailedEvent(
     validationId string,
 ) *HostValidationFailedEvent {
     return &HostValidationFailedEvent{
+        eventName: HostValidationFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -3120,7 +3200,7 @@ func SendHostValidationFailedEventAtTime(
 }
 
 func (e *HostValidationFailedEvent) GetName() string {
-    return "host_validation_failed"
+    return e.eventName
 }
 
 func (e *HostValidationFailedEvent) GetSeverity() string {
@@ -3156,6 +3236,7 @@ func (e *HostValidationFailedEvent) FormatMessage() string {
 // Event host_validation_fixed
 //
 type HostValidationFixedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -3173,6 +3254,7 @@ func NewHostValidationFixedEvent(
     validationId string,
 ) *HostValidationFixedEvent {
     return &HostValidationFixedEvent{
+        eventName: HostValidationFixedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -3219,7 +3301,7 @@ func SendHostValidationFixedEventAtTime(
 }
 
 func (e *HostValidationFixedEvent) GetName() string {
-    return "host_validation_fixed"
+    return e.eventName
 }
 
 func (e *HostValidationFixedEvent) GetSeverity() string {
@@ -3255,6 +3337,7 @@ func (e *HostValidationFixedEvent) FormatMessage() string {
 // Event quick_disk_format_performed
 //
 type QuickDiskFormatPerformedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -3274,6 +3357,7 @@ func NewQuickDiskFormatPerformedEvent(
     diskId string,
 ) *QuickDiskFormatPerformedEvent {
     return &QuickDiskFormatPerformedEvent{
+        eventName: QuickDiskFormatPerformedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -3325,7 +3409,7 @@ func SendQuickDiskFormatPerformedEventAtTime(
 }
 
 func (e *QuickDiskFormatPerformedEvent) GetName() string {
-    return "quick_disk_format_performed"
+    return e.eventName
 }
 
 func (e *QuickDiskFormatPerformedEvent) GetSeverity() string {
@@ -3362,6 +3446,7 @@ func (e *QuickDiskFormatPerformedEvent) FormatMessage() string {
 // Event infra_env_registration_failed
 //
 type InfraEnvRegistrationFailedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
     Error string
 }
@@ -3373,6 +3458,7 @@ func NewInfraEnvRegistrationFailedEvent(
     error string,
 ) *InfraEnvRegistrationFailedEvent {
     return &InfraEnvRegistrationFailedEvent{
+        eventName: InfraEnvRegistrationFailedEventName,
         InfraEnvId: infraEnvId,
         Error: error,
     }
@@ -3404,7 +3490,7 @@ func SendInfraEnvRegistrationFailedEventAtTime(
 }
 
 func (e *InfraEnvRegistrationFailedEvent) GetName() string {
-    return "infra_env_registration_failed"
+    return e.eventName
 }
 
 func (e *InfraEnvRegistrationFailedEvent) GetSeverity() string {
@@ -3434,6 +3520,7 @@ func (e *InfraEnvRegistrationFailedEvent) FormatMessage() string {
 // Event infra_env_registered
 //
 type InfraEnvRegisteredEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
 }
 
@@ -3443,6 +3530,7 @@ func NewInfraEnvRegisteredEvent(
     infraEnvId strfmt.UUID,
 ) *InfraEnvRegisteredEvent {
     return &InfraEnvRegisteredEvent{
+        eventName: InfraEnvRegisteredEventName,
         InfraEnvId: infraEnvId,
     }
 }
@@ -3469,7 +3557,7 @@ func SendInfraEnvRegisteredEventAtTime(
 }
 
 func (e *InfraEnvRegisteredEvent) GetName() string {
-    return "infra_env_registered"
+    return e.eventName
 }
 
 func (e *InfraEnvRegisteredEvent) GetSeverity() string {
@@ -3498,6 +3586,7 @@ func (e *InfraEnvRegisteredEvent) FormatMessage() string {
 // Event infra_env_deregister_failed
 //
 type InfraEnvDeregisterFailedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
     Error string
 }
@@ -3509,6 +3598,7 @@ func NewInfraEnvDeregisterFailedEvent(
     error string,
 ) *InfraEnvDeregisterFailedEvent {
     return &InfraEnvDeregisterFailedEvent{
+        eventName: InfraEnvDeregisterFailedEventName,
         InfraEnvId: infraEnvId,
         Error: error,
     }
@@ -3540,7 +3630,7 @@ func SendInfraEnvDeregisterFailedEventAtTime(
 }
 
 func (e *InfraEnvDeregisterFailedEvent) GetName() string {
-    return "infra_env_deregister_failed"
+    return e.eventName
 }
 
 func (e *InfraEnvDeregisterFailedEvent) GetSeverity() string {
@@ -3570,6 +3660,7 @@ func (e *InfraEnvDeregisterFailedEvent) FormatMessage() string {
 // Event infra_env_deregistered
 //
 type InfraEnvDeregisteredEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
 }
 
@@ -3579,6 +3670,7 @@ func NewInfraEnvDeregisteredEvent(
     infraEnvId strfmt.UUID,
 ) *InfraEnvDeregisteredEvent {
     return &InfraEnvDeregisteredEvent{
+        eventName: InfraEnvDeregisteredEventName,
         InfraEnvId: infraEnvId,
     }
 }
@@ -3605,7 +3697,7 @@ func SendInfraEnvDeregisteredEventAtTime(
 }
 
 func (e *InfraEnvDeregisteredEvent) GetName() string {
-    return "infra_env_deregistered"
+    return e.eventName
 }
 
 func (e *InfraEnvDeregisteredEvent) GetSeverity() string {
@@ -3634,6 +3726,7 @@ func (e *InfraEnvDeregisteredEvent) FormatMessage() string {
 // Event discovery_ignition_config_applied
 //
 type DiscoveryIgnitionConfigAppliedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -3643,6 +3736,7 @@ func NewDiscoveryIgnitionConfigAppliedEvent(
     clusterId strfmt.UUID,
 ) *DiscoveryIgnitionConfigAppliedEvent {
     return &DiscoveryIgnitionConfigAppliedEvent{
+        eventName: DiscoveryIgnitionConfigAppliedEventName,
         ClusterId: clusterId,
     }
 }
@@ -3669,7 +3763,7 @@ func SendDiscoveryIgnitionConfigAppliedEventAtTime(
 }
 
 func (e *DiscoveryIgnitionConfigAppliedEvent) GetName() string {
-    return "discovery_ignition_config_applied"
+    return e.eventName
 }
 
 func (e *DiscoveryIgnitionConfigAppliedEvent) GetSeverity() string {
@@ -3695,6 +3789,7 @@ func (e *DiscoveryIgnitionConfigAppliedEvent) FormatMessage() string {
 // Event ignition_updated_therefore_image_deleted
 //
 type IgnitionUpdatedThereforeImageDeletedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -3704,6 +3799,7 @@ func NewIgnitionUpdatedThereforeImageDeletedEvent(
     clusterId strfmt.UUID,
 ) *IgnitionUpdatedThereforeImageDeletedEvent {
     return &IgnitionUpdatedThereforeImageDeletedEvent{
+        eventName: IgnitionUpdatedThereforeImageDeletedEventName,
         ClusterId: clusterId,
     }
 }
@@ -3730,7 +3826,7 @@ func SendIgnitionUpdatedThereforeImageDeletedEventAtTime(
 }
 
 func (e *IgnitionUpdatedThereforeImageDeletedEvent) GetName() string {
-    return "ignition_updated_therefore_image_deleted"
+    return e.eventName
 }
 
 func (e *IgnitionUpdatedThereforeImageDeletedEvent) GetSeverity() string {
@@ -3756,6 +3852,7 @@ func (e *IgnitionUpdatedThereforeImageDeletedEvent) FormatMessage() string {
 // Event download_image_find_failed
 //
 type DownloadImageFindFailedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
 }
 
@@ -3765,6 +3862,7 @@ func NewDownloadImageFindFailedEvent(
     infraEnvId strfmt.UUID,
 ) *DownloadImageFindFailedEvent {
     return &DownloadImageFindFailedEvent{
+        eventName: DownloadImageFindFailedEventName,
         InfraEnvId: infraEnvId,
     }
 }
@@ -3791,7 +3889,7 @@ func SendDownloadImageFindFailedEventAtTime(
 }
 
 func (e *DownloadImageFindFailedEvent) GetName() string {
-    return "download_image_find_failed"
+    return e.eventName
 }
 
 func (e *DownloadImageFindFailedEvent) GetSeverity() string {
@@ -3820,6 +3918,7 @@ func (e *DownloadImageFindFailedEvent) FormatMessage() string {
 // Event download_image_started
 //
 type DownloadImageStartedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
     ImageType string
 }
@@ -3831,6 +3930,7 @@ func NewDownloadImageStartedEvent(
     imageType string,
 ) *DownloadImageStartedEvent {
     return &DownloadImageStartedEvent{
+        eventName: DownloadImageStartedEventName,
         InfraEnvId: infraEnvId,
         ImageType: imageType,
     }
@@ -3862,7 +3962,7 @@ func SendDownloadImageStartedEventAtTime(
 }
 
 func (e *DownloadImageStartedEvent) GetName() string {
-    return "download_image_started"
+    return e.eventName
 }
 
 func (e *DownloadImageStartedEvent) GetSeverity() string {
@@ -3892,6 +3992,7 @@ func (e *DownloadImageStartedEvent) FormatMessage() string {
 // Event generate_image_start_failed
 //
 type GenerateImageStartFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -3901,6 +4002,7 @@ func NewGenerateImageStartFailedEvent(
     clusterId strfmt.UUID,
 ) *GenerateImageStartFailedEvent {
     return &GenerateImageStartFailedEvent{
+        eventName: GenerateImageStartFailedEventName,
         ClusterId: clusterId,
     }
 }
@@ -3927,7 +4029,7 @@ func SendGenerateImageStartFailedEventAtTime(
 }
 
 func (e *GenerateImageStartFailedEvent) GetName() string {
-    return "generate_image_start_failed"
+    return e.eventName
 }
 
 func (e *GenerateImageStartFailedEvent) GetSeverity() string {
@@ -3953,6 +4055,7 @@ func (e *GenerateImageStartFailedEvent) FormatMessage() string {
 // Event generate_image_contact_storage_backend_failed
 //
 type GenerateImageContactStorageBackendFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -3962,6 +4065,7 @@ func NewGenerateImageContactStorageBackendFailedEvent(
     clusterId strfmt.UUID,
 ) *GenerateImageContactStorageBackendFailedEvent {
     return &GenerateImageContactStorageBackendFailedEvent{
+        eventName: GenerateImageContactStorageBackendFailedEventName,
         ClusterId: clusterId,
     }
 }
@@ -3988,7 +4092,7 @@ func SendGenerateImageContactStorageBackendFailedEventAtTime(
 }
 
 func (e *GenerateImageContactStorageBackendFailedEvent) GetName() string {
-    return "generate_image_contact_storage_backend_failed"
+    return e.eventName
 }
 
 func (e *GenerateImageContactStorageBackendFailedEvent) GetSeverity() string {
@@ -4014,6 +4118,7 @@ func (e *GenerateImageContactStorageBackendFailedEvent) FormatMessage() string {
 // Event generate_image_update_metadata_failed
 //
 type GenerateImageUpdateMetadataFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -4023,6 +4128,7 @@ func NewGenerateImageUpdateMetadataFailedEvent(
     clusterId strfmt.UUID,
 ) *GenerateImageUpdateMetadataFailedEvent {
     return &GenerateImageUpdateMetadataFailedEvent{
+        eventName: GenerateImageUpdateMetadataFailedEventName,
         ClusterId: clusterId,
     }
 }
@@ -4049,7 +4155,7 @@ func SendGenerateImageUpdateMetadataFailedEventAtTime(
 }
 
 func (e *GenerateImageUpdateMetadataFailedEvent) GetName() string {
-    return "generate_image_update_metadata_failed"
+    return e.eventName
 }
 
 func (e *GenerateImageUpdateMetadataFailedEvent) GetSeverity() string {
@@ -4075,6 +4181,7 @@ func (e *GenerateImageUpdateMetadataFailedEvent) FormatMessage() string {
 // Event generate_image_commit_transaction_failed
 //
 type GenerateImageCommitTransactionFailedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -4084,6 +4191,7 @@ func NewGenerateImageCommitTransactionFailedEvent(
     clusterId strfmt.UUID,
 ) *GenerateImageCommitTransactionFailedEvent {
     return &GenerateImageCommitTransactionFailedEvent{
+        eventName: GenerateImageCommitTransactionFailedEventName,
         ClusterId: clusterId,
     }
 }
@@ -4110,7 +4218,7 @@ func SendGenerateImageCommitTransactionFailedEventAtTime(
 }
 
 func (e *GenerateImageCommitTransactionFailedEvent) GetName() string {
-    return "generate_image_commit_transaction_failed"
+    return e.eventName
 }
 
 func (e *GenerateImageCommitTransactionFailedEvent) GetSeverity() string {
@@ -4136,6 +4244,7 @@ func (e *GenerateImageCommitTransactionFailedEvent) FormatMessage() string {
 // Event generate_image_fetch_failed
 //
 type GenerateImageFetchFailedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
 }
 
@@ -4145,6 +4254,7 @@ func NewGenerateImageFetchFailedEvent(
     infraEnvId strfmt.UUID,
 ) *GenerateImageFetchFailedEvent {
     return &GenerateImageFetchFailedEvent{
+        eventName: GenerateImageFetchFailedEventName,
         InfraEnvId: infraEnvId,
     }
 }
@@ -4171,7 +4281,7 @@ func SendGenerateImageFetchFailedEventAtTime(
 }
 
 func (e *GenerateImageFetchFailedEvent) GetName() string {
-    return "generate_image_fetch_failed"
+    return e.eventName
 }
 
 func (e *GenerateImageFetchFailedEvent) GetSeverity() string {
@@ -4200,6 +4310,7 @@ func (e *GenerateImageFetchFailedEvent) FormatMessage() string {
 // Event existing_image_reused
 //
 type ExistingImageReusedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
     ImageType string
 }
@@ -4211,6 +4322,7 @@ func NewExistingImageReusedEvent(
     imageType string,
 ) *ExistingImageReusedEvent {
     return &ExistingImageReusedEvent{
+        eventName: ExistingImageReusedEventName,
         InfraEnvId: infraEnvId,
         ImageType: imageType,
     }
@@ -4242,7 +4354,7 @@ func SendExistingImageReusedEventAtTime(
 }
 
 func (e *ExistingImageReusedEvent) GetName() string {
-    return "existing_image_reused"
+    return e.eventName
 }
 
 func (e *ExistingImageReusedEvent) GetSeverity() string {
@@ -4272,6 +4384,7 @@ func (e *ExistingImageReusedEvent) FormatMessage() string {
 // Event install_config_applied
 //
 type InstallConfigAppliedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -4281,6 +4394,7 @@ func NewInstallConfigAppliedEvent(
     clusterId strfmt.UUID,
 ) *InstallConfigAppliedEvent {
     return &InstallConfigAppliedEvent{
+        eventName: InstallConfigAppliedEventName,
         ClusterId: clusterId,
     }
 }
@@ -4307,7 +4421,7 @@ func SendInstallConfigAppliedEventAtTime(
 }
 
 func (e *InstallConfigAppliedEvent) GetName() string {
-    return "install_config_applied"
+    return e.eventName
 }
 
 func (e *InstallConfigAppliedEvent) GetSeverity() string {
@@ -4333,6 +4447,7 @@ func (e *InstallConfigAppliedEvent) FormatMessage() string {
 // Event proxy_settings_changed
 //
 type ProxySettingsChangedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -4342,6 +4457,7 @@ func NewProxySettingsChangedEvent(
     clusterId strfmt.UUID,
 ) *ProxySettingsChangedEvent {
     return &ProxySettingsChangedEvent{
+        eventName: ProxySettingsChangedEventName,
         ClusterId: clusterId,
     }
 }
@@ -4368,7 +4484,7 @@ func SendProxySettingsChangedEventAtTime(
 }
 
 func (e *ProxySettingsChangedEvent) GetName() string {
-    return "proxy_settings_changed"
+    return e.eventName
 }
 
 func (e *ProxySettingsChangedEvent) GetSeverity() string {
@@ -4394,6 +4510,7 @@ func (e *ProxySettingsChangedEvent) FormatMessage() string {
 // Event disk_speed_slower_than_supported
 //
 type DiskSpeedSlowerThanSupportedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -4411,6 +4528,7 @@ func NewDiskSpeedSlowerThanSupportedEvent(
     fdatasyncDuration int64,
 ) *DiskSpeedSlowerThanSupportedEvent {
     return &DiskSpeedSlowerThanSupportedEvent{
+        eventName: DiskSpeedSlowerThanSupportedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -4457,7 +4575,7 @@ func SendDiskSpeedSlowerThanSupportedEventAtTime(
 }
 
 func (e *DiskSpeedSlowerThanSupportedEvent) GetName() string {
-    return "disk_speed_slower_than_supported"
+    return e.eventName
 }
 
 func (e *DiskSpeedSlowerThanSupportedEvent) GetSeverity() string {
@@ -4493,6 +4611,7 @@ func (e *DiskSpeedSlowerThanSupportedEvent) FormatMessage() string {
 // Event disable_host_fetch_failed
 //
 type DisableHostFetchFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -4508,6 +4627,7 @@ func NewDisableHostFetchFailedEvent(
     hostName string,
 ) *DisableHostFetchFailedEvent {
     return &DisableHostFetchFailedEvent{
+        eventName: DisableHostFetchFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -4549,7 +4669,7 @@ func SendDisableHostFetchFailedEventAtTime(
 }
 
 func (e *DisableHostFetchFailedEvent) GetName() string {
-    return "disable_host_fetch_failed"
+    return e.eventName
 }
 
 func (e *DisableHostFetchFailedEvent) GetSeverity() string {
@@ -4584,6 +4704,7 @@ func (e *DisableHostFetchFailedEvent) FormatMessage() string {
 // Event host_disable_failed
 //
 type HostDisableFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -4599,6 +4720,7 @@ func NewHostDisableFailedEvent(
     hostName string,
 ) *HostDisableFailedEvent {
     return &HostDisableFailedEvent{
+        eventName: HostDisableFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -4640,7 +4762,7 @@ func SendHostDisableFailedEventAtTime(
 }
 
 func (e *HostDisableFailedEvent) GetName() string {
-    return "host_disable_failed"
+    return e.eventName
 }
 
 func (e *HostDisableFailedEvent) GetSeverity() string {
@@ -4675,6 +4797,7 @@ func (e *HostDisableFailedEvent) FormatMessage() string {
 // Event host_disabled
 //
 type HostDisabledEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -4690,6 +4813,7 @@ func NewHostDisabledEvent(
     hostName string,
 ) *HostDisabledEvent {
     return &HostDisabledEvent{
+        eventName: HostDisabledEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -4731,7 +4855,7 @@ func SendHostDisabledEventAtTime(
 }
 
 func (e *HostDisabledEvent) GetName() string {
-    return "host_disabled"
+    return e.eventName
 }
 
 func (e *HostDisabledEvent) GetSeverity() string {
@@ -4766,6 +4890,7 @@ func (e *HostDisabledEvent) FormatMessage() string {
 // Event enable_host_fetch_failed
 //
 type EnableHostFetchFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -4781,6 +4906,7 @@ func NewEnableHostFetchFailedEvent(
     hostName string,
 ) *EnableHostFetchFailedEvent {
     return &EnableHostFetchFailedEvent{
+        eventName: EnableHostFetchFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -4822,7 +4948,7 @@ func SendEnableHostFetchFailedEventAtTime(
 }
 
 func (e *EnableHostFetchFailedEvent) GetName() string {
-    return "enable_host_fetch_failed"
+    return e.eventName
 }
 
 func (e *EnableHostFetchFailedEvent) GetSeverity() string {
@@ -4857,6 +4983,7 @@ func (e *EnableHostFetchFailedEvent) FormatMessage() string {
 // Event enable_host_disable_failed
 //
 type EnableHostDisableFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -4872,6 +4999,7 @@ func NewEnableHostDisableFailedEvent(
     hostName string,
 ) *EnableHostDisableFailedEvent {
     return &EnableHostDisableFailedEvent{
+        eventName: EnableHostDisableFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -4913,7 +5041,7 @@ func SendEnableHostDisableFailedEventAtTime(
 }
 
 func (e *EnableHostDisableFailedEvent) GetName() string {
-    return "enable_host_disable_failed"
+    return e.eventName
 }
 
 func (e *EnableHostDisableFailedEvent) GetSeverity() string {
@@ -4948,6 +5076,7 @@ func (e *EnableHostDisableFailedEvent) FormatMessage() string {
 // Event host_enabled
 //
 type HostEnabledEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -4963,6 +5092,7 @@ func NewHostEnabledEvent(
     hostName string,
 ) *HostEnabledEvent {
     return &HostEnabledEvent{
+        eventName: HostEnabledEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -5004,7 +5134,7 @@ func SendHostEnabledEventAtTime(
 }
 
 func (e *HostEnabledEvent) GetName() string {
-    return "host_enabled"
+    return e.eventName
 }
 
 func (e *HostEnabledEvent) GetSeverity() string {
@@ -5039,6 +5169,7 @@ func (e *HostEnabledEvent) FormatMessage() string {
 // Event host_discovery_ignition_config_applied
 //
 type HostDiscoveryIgnitionConfigAppliedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
@@ -5052,6 +5183,7 @@ func NewHostDiscoveryIgnitionConfigAppliedEvent(
     hostName string,
 ) *HostDiscoveryIgnitionConfigAppliedEvent {
     return &HostDiscoveryIgnitionConfigAppliedEvent{
+        eventName: HostDiscoveryIgnitionConfigAppliedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         HostName: hostName,
@@ -5088,7 +5220,7 @@ func SendHostDiscoveryIgnitionConfigAppliedEventAtTime(
 }
 
 func (e *HostDiscoveryIgnitionConfigAppliedEvent) GetName() string {
-    return "host_discovery_ignition_config_applied"
+    return e.eventName
 }
 
 func (e *HostDiscoveryIgnitionConfigAppliedEvent) GetSeverity() string {
@@ -5122,6 +5254,7 @@ func (e *HostDiscoveryIgnitionConfigAppliedEvent) FormatMessage() string {
 // Event host_reset_fetch_failed
 //
 type HostResetFetchFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
@@ -5135,6 +5268,7 @@ func NewHostResetFetchFailedEvent(
     hostName string,
 ) *HostResetFetchFailedEvent {
     return &HostResetFetchFailedEvent{
+        eventName: HostResetFetchFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         HostName: hostName,
@@ -5171,7 +5305,7 @@ func SendHostResetFetchFailedEventAtTime(
 }
 
 func (e *HostResetFetchFailedEvent) GetName() string {
-    return "host_reset_fetch_failed"
+    return e.eventName
 }
 
 func (e *HostResetFetchFailedEvent) GetSeverity() string {
@@ -5205,6 +5339,7 @@ func (e *HostResetFetchFailedEvent) FormatMessage() string {
 // Event host_logs_uploaded
 //
 type HostLogsUploadedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -5220,6 +5355,7 @@ func NewHostLogsUploadedEvent(
     hostName string,
 ) *HostLogsUploadedEvent {
     return &HostLogsUploadedEvent{
+        eventName: HostLogsUploadedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -5261,7 +5397,7 @@ func SendHostLogsUploadedEventAtTime(
 }
 
 func (e *HostLogsUploadedEvent) GetName() string {
-    return "host_logs_uploaded"
+    return e.eventName
 }
 
 func (e *HostLogsUploadedEvent) GetSeverity() string {
@@ -5296,6 +5432,7 @@ func (e *HostLogsUploadedEvent) FormatMessage() string {
 // Event cluster_logs_uploaded
 //
 type ClusterLogsUploadedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
 }
 
@@ -5305,6 +5442,7 @@ func NewClusterLogsUploadedEvent(
     clusterId strfmt.UUID,
 ) *ClusterLogsUploadedEvent {
     return &ClusterLogsUploadedEvent{
+        eventName: ClusterLogsUploadedEventName,
         ClusterId: clusterId,
     }
 }
@@ -5331,7 +5469,7 @@ func SendClusterLogsUploadedEventAtTime(
 }
 
 func (e *ClusterLogsUploadedEvent) GetName() string {
-    return "cluster_logs_uploaded"
+    return e.eventName
 }
 
 func (e *ClusterLogsUploadedEvent) GetSeverity() string {
@@ -5357,6 +5495,7 @@ func (e *ClusterLogsUploadedEvent) FormatMessage() string {
 // Event host_approved_updated
 //
 type HostApprovedUpdatedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
@@ -5372,6 +5511,7 @@ func NewHostApprovedUpdatedEvent(
     approvedValue bool,
 ) *HostApprovedUpdatedEvent {
     return &HostApprovedUpdatedEvent{
+        eventName: HostApprovedUpdatedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         HostName: hostName,
@@ -5413,7 +5553,7 @@ func SendHostApprovedUpdatedEventAtTime(
 }
 
 func (e *HostApprovedUpdatedEvent) GetName() string {
-    return "host_approved_updated"
+    return e.eventName
 }
 
 func (e *HostApprovedUpdatedEvent) GetSeverity() string {
@@ -5448,6 +5588,7 @@ func (e *HostApprovedUpdatedEvent) FormatMessage() string {
 // Event host_registration_succeeded
 //
 type HostRegistrationSucceededEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -5463,6 +5604,7 @@ func NewHostRegistrationSucceededEvent(
     hostName string,
 ) *HostRegistrationSucceededEvent {
     return &HostRegistrationSucceededEvent{
+        eventName: HostRegistrationSucceededEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -5504,7 +5646,7 @@ func SendHostRegistrationSucceededEventAtTime(
 }
 
 func (e *HostRegistrationSucceededEvent) GetName() string {
-    return "host_registration_succeeded"
+    return e.eventName
 }
 
 func (e *HostRegistrationSucceededEvent) GetSeverity() string {
@@ -5539,6 +5681,7 @@ func (e *HostRegistrationSucceededEvent) FormatMessage() string {
 // Event generate_image_format_failed
 //
 type GenerateImageFormatFailedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
 }
 
@@ -5548,6 +5691,7 @@ func NewGenerateImageFormatFailedEvent(
     infraEnvId strfmt.UUID,
 ) *GenerateImageFormatFailedEvent {
     return &GenerateImageFormatFailedEvent{
+        eventName: GenerateImageFormatFailedEventName,
         InfraEnvId: infraEnvId,
     }
 }
@@ -5574,7 +5718,7 @@ func SendGenerateImageFormatFailedEventAtTime(
 }
 
 func (e *GenerateImageFormatFailedEvent) GetName() string {
-    return "generate_image_format_failed"
+    return e.eventName
 }
 
 func (e *GenerateImageFormatFailedEvent) GetSeverity() string {
@@ -5603,6 +5747,7 @@ func (e *GenerateImageFormatFailedEvent) FormatMessage() string {
 // Event generate_minimal_iso_failed
 //
 type GenerateMinimalIsoFailedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
 }
 
@@ -5612,6 +5757,7 @@ func NewGenerateMinimalIsoFailedEvent(
     infraEnvId strfmt.UUID,
 ) *GenerateMinimalIsoFailedEvent {
     return &GenerateMinimalIsoFailedEvent{
+        eventName: GenerateMinimalIsoFailedEventName,
         InfraEnvId: infraEnvId,
     }
 }
@@ -5638,7 +5784,7 @@ func SendGenerateMinimalIsoFailedEventAtTime(
 }
 
 func (e *GenerateMinimalIsoFailedEvent) GetName() string {
-    return "generate_minimal_iso_failed"
+    return e.eventName
 }
 
 func (e *GenerateMinimalIsoFailedEvent) GetSeverity() string {
@@ -5667,6 +5813,7 @@ func (e *GenerateMinimalIsoFailedEvent) FormatMessage() string {
 // Event upload_image_failed
 //
 type UploadImageFailedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
 }
 
@@ -5676,6 +5823,7 @@ func NewUploadImageFailedEvent(
     infraEnvId strfmt.UUID,
 ) *UploadImageFailedEvent {
     return &UploadImageFailedEvent{
+        eventName: UploadImageFailedEventName,
         InfraEnvId: infraEnvId,
     }
 }
@@ -5702,7 +5850,7 @@ func SendUploadImageFailedEventAtTime(
 }
 
 func (e *UploadImageFailedEvent) GetName() string {
-    return "upload_image_failed"
+    return e.eventName
 }
 
 func (e *UploadImageFailedEvent) GetSeverity() string {
@@ -5731,6 +5879,7 @@ func (e *UploadImageFailedEvent) FormatMessage() string {
 // Event ignition_config_image_generated
 //
 type IgnitionConfigImageGeneratedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
     Details string
 }
@@ -5742,6 +5891,7 @@ func NewIgnitionConfigImageGeneratedEvent(
     details string,
 ) *IgnitionConfigImageGeneratedEvent {
     return &IgnitionConfigImageGeneratedEvent{
+        eventName: IgnitionConfigImageGeneratedEventName,
         InfraEnvId: infraEnvId,
         Details: details,
     }
@@ -5773,7 +5923,7 @@ func SendIgnitionConfigImageGeneratedEventAtTime(
 }
 
 func (e *IgnitionConfigImageGeneratedEvent) GetName() string {
-    return "ignition_config_image_generated"
+    return e.eventName
 }
 
 func (e *IgnitionConfigImageGeneratedEvent) GetSeverity() string {
@@ -5803,6 +5953,7 @@ func (e *IgnitionConfigImageGeneratedEvent) FormatMessage() string {
 // Event refresh_host_or_cluster_statuses_failed
 //
 type RefreshHostOrClusterStatusesFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -5818,6 +5969,7 @@ func NewRefreshHostOrClusterStatusesFailedEvent(
     message string,
 ) *RefreshHostOrClusterStatusesFailedEvent {
     return &RefreshHostOrClusterStatusesFailedEvent{
+        eventName: RefreshHostOrClusterStatusesFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -5859,7 +6011,7 @@ func SendRefreshHostOrClusterStatusesFailedEventAtTime(
 }
 
 func (e *RefreshHostOrClusterStatusesFailedEvent) GetName() string {
-    return "refresh_host_or_cluster_statuses_failed"
+    return e.eventName
 }
 
 func (e *RefreshHostOrClusterStatusesFailedEvent) GetSeverity() string {
@@ -5894,6 +6046,7 @@ func (e *RefreshHostOrClusterStatusesFailedEvent) FormatMessage() string {
 // Event host_install_progress_updated
 //
 type HostInstallProgressUpdatedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -5911,6 +6064,7 @@ func NewHostInstallProgressUpdatedEvent(
     event string,
 ) *HostInstallProgressUpdatedEvent {
     return &HostInstallProgressUpdatedEvent{
+        eventName: HostInstallProgressUpdatedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -5957,7 +6111,7 @@ func SendHostInstallProgressUpdatedEventAtTime(
 }
 
 func (e *HostInstallProgressUpdatedEvent) GetName() string {
-    return "host_install_progress_updated"
+    return e.eventName
 }
 
 func (e *HostInstallProgressUpdatedEvent) GetSeverity() string {
@@ -5993,6 +6147,7 @@ func (e *HostInstallProgressUpdatedEvent) FormatMessage() string {
 // Event register_host_to_infra_env_failed
 //
 type RegisterHostToInfraEnvFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -6008,6 +6163,7 @@ func NewRegisterHostToInfraEnvFailedEvent(
     message string,
 ) *RegisterHostToInfraEnvFailedEvent {
     return &RegisterHostToInfraEnvFailedEvent{
+        eventName: RegisterHostToInfraEnvFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -6049,7 +6205,7 @@ func SendRegisterHostToInfraEnvFailedEventAtTime(
 }
 
 func (e *RegisterHostToInfraEnvFailedEvent) GetName() string {
-    return "register_host_to_infra_env_failed"
+    return e.eventName
 }
 
 func (e *RegisterHostToInfraEnvFailedEvent) GetSeverity() string {
@@ -6084,6 +6240,7 @@ func (e *RegisterHostToInfraEnvFailedEvent) FormatMessage() string {
 // Event host_registration_failed
 //
 type HostRegistrationFailedEvent struct {
+    eventName string
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     ClusterId *strfmt.UUID
@@ -6099,6 +6256,7 @@ func NewHostRegistrationFailedEvent(
     message string,
 ) *HostRegistrationFailedEvent {
     return &HostRegistrationFailedEvent{
+        eventName: HostRegistrationFailedEventName,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         ClusterId: clusterId,
@@ -6140,7 +6298,7 @@ func SendHostRegistrationFailedEventAtTime(
 }
 
 func (e *HostRegistrationFailedEvent) GetName() string {
-    return "host_registration_failed"
+    return e.eventName
 }
 
 func (e *HostRegistrationFailedEvent) GetSeverity() string {
@@ -6175,6 +6333,7 @@ func (e *HostRegistrationFailedEvent) FormatMessage() string {
 // Event inactive_clusters_deregistered
 //
 type InactiveClustersDeregisteredEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     Message string
 }
@@ -6186,6 +6345,7 @@ func NewInactiveClustersDeregisteredEvent(
     message string,
 ) *InactiveClustersDeregisteredEvent {
     return &InactiveClustersDeregisteredEvent{
+        eventName: InactiveClustersDeregisteredEventName,
         ClusterId: clusterId,
         Message: message,
     }
@@ -6217,7 +6377,7 @@ func SendInactiveClustersDeregisteredEventAtTime(
 }
 
 func (e *InactiveClustersDeregisteredEvent) GetName() string {
-    return "inactive_clusters_deregistered"
+    return e.eventName
 }
 
 func (e *InactiveClustersDeregisteredEvent) GetSeverity() string {
@@ -6244,6 +6404,7 @@ func (e *InactiveClustersDeregisteredEvent) FormatMessage() string {
 // Event clusters_permanently_deleted
 //
 type ClustersPermanentlyDeletedEvent struct {
+    eventName string
     ClusterId strfmt.UUID
     Message string
 }
@@ -6255,6 +6416,7 @@ func NewClustersPermanentlyDeletedEvent(
     message string,
 ) *ClustersPermanentlyDeletedEvent {
     return &ClustersPermanentlyDeletedEvent{
+        eventName: ClustersPermanentlyDeletedEventName,
         ClusterId: clusterId,
         Message: message,
     }
@@ -6286,7 +6448,7 @@ func SendClustersPermanentlyDeletedEventAtTime(
 }
 
 func (e *ClustersPermanentlyDeletedEvent) GetName() string {
-    return "clusters_permanently_deleted"
+    return e.eventName
 }
 
 func (e *ClustersPermanentlyDeletedEvent) GetSeverity() string {
@@ -6313,6 +6475,7 @@ func (e *ClustersPermanentlyDeletedEvent) FormatMessage() string {
 // Event image_info_updated
 //
 type ImageInfoUpdatedEvent struct {
+    eventName string
     InfraEnvId strfmt.UUID
     Details string
 }
@@ -6324,6 +6487,7 @@ func NewImageInfoUpdatedEvent(
     details string,
 ) *ImageInfoUpdatedEvent {
     return &ImageInfoUpdatedEvent{
+        eventName: ImageInfoUpdatedEventName,
         InfraEnvId: infraEnvId,
         Details: details,
     }
@@ -6355,7 +6519,7 @@ func SendImageInfoUpdatedEventAtTime(
 }
 
 func (e *ImageInfoUpdatedEvent) GetName() string {
-    return "image_info_updated"
+    return e.eventName
 }
 
 func (e *ImageInfoUpdatedEvent) GetSeverity() string {
