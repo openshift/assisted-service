@@ -3709,11 +3709,10 @@ func (b *bareMetalInventory) getImageInfo(clusterId *strfmt.UUID) (*models.Image
 
 func (b *bareMetalInventory) generateV2NextStepRunnerCommand(ctx context.Context, params *installer.V2RegisterHostParams) *models.HostRegistrationResponseAO1NextStepRunnerCommand {
 
-	currentImageTag := extractImageTag(b.AgentDockerImg)
-	if params.NewHostParams.DiscoveryAgentVersion != currentImageTag {
+	if params.NewHostParams.DiscoveryAgentVersion != b.AgentDockerImg {
 		log := logutil.FromContext(ctx, b.log)
-		log.Infof("Host %s in infra-env %s has outdated agent image %s, updating to %s",
-			params.NewHostParams.HostID.String(), params.InfraEnvID.String(), params.NewHostParams.DiscoveryAgentVersion, currentImageTag)
+		log.Infof("Host %s in infra-env %s uses an outdated agent image %s, updating to %s",
+			params.NewHostParams.HostID.String(), params.InfraEnvID.String(), params.NewHostParams.DiscoveryAgentVersion, b.AgentDockerImg)
 	}
 
 	config := hostcommands.V2NextStepRunnerConfig{
@@ -3729,11 +3728,6 @@ func (b *bareMetalInventory) generateV2NextStepRunnerCommand(ctx context.Context
 		Command: command,
 		Args:    *args,
 	}
-}
-
-func extractImageTag(fullName string) string {
-	suffix := strings.Split(fullName, ":")
-	return suffix[len(suffix)-1]
 }
 
 func returnRegisterHostTransitionError(

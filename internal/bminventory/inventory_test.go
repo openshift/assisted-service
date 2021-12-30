@@ -65,6 +65,7 @@ import (
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -12323,25 +12324,65 @@ var _ = Describe("[V2UpdateCluster] AMS subscriptions", func() {
 	})
 })
 
-var _ = Describe("extract image version", func() {
+var _ = Describe("update image version", func() {
 
-	tag := uuid.New().String()
-	image := "quay.io/ocpmetal/image"
+	var (
+		ctx     = context.Background()
+		cfg     Config
+		bm      *bareMetalInventory
+		logHook *test.Hook
+		params  *installer.V2RegisterHostParams
+	)
 
-	It("image contains name and tag", func() {
-		Expect(extractImageTag(fmt.Sprintf("%s:%s", image, tag))).Should(Equal(tag))
+	BeforeEach(func() {
+		bm = createInventory(nil, cfg)
+		var testLog *logrus.Logger
+		testLog, logHook = test.NewNullLogger()
+		bm.log = testLog
+		hostID := strfmt.UUID(uuid.New().String())
+		params = &installer.V2RegisterHostParams{
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
+			NewHostParams: &models.HostCreateParams{
+				HostID: &hostID,
+			},
+		}
 	})
 
-	It("image does not contain tag", func() {
-		Expect(extractImageTag(image)).Should(Equal(image))
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
-	It("image contains multiple colons", func() {
-		Expect(extractImageTag(fmt.Sprintf("%s:%s:last_element", image, tag))).Should(Equal("last_element"))
+	It("same image", func() {
+		agentImage := fmt.Sprintf("%s:%s", "quay.io/ocpmetal/agent", uuid.New().String())
+		bm.AgentDockerImg = agentImage
+		params.NewHostParams.DiscoveryAgentVersion = agentImage
+		bm.generateV2NextStepRunnerCommand(ctx, params)
+		Expect(logHook.AllEntries()).To(BeEmpty())
 	})
 
-	It("image is an empty string", func() {
-		Expect(extractImageTag("")).Should(Equal(""))
+	It("image tag mismatch", func() {
+		imageName := "quay.io/edge-infrastructure/assisted-installer-agent"
+		bm.AgentDockerImg = fmt.Sprintf("%s:%s", imageName, uuid.New().String())
+		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("%s:%s", imageName, uuid.New().String())
+		bm.generateV2NextStepRunnerCommand(ctx, params)
+		Expect(logHook.LastEntry().Message).To(ContainSubstring("uses an outdated agent image"))
+	})
+
+	It("image name mismatch", func() {
+		imageTag := uuid.New().String()
+		bm.AgentDockerImg = fmt.Sprintf("%s:%s", "quay.io/edge-infrastructure/assisted-installer-agent", imageTag)
+		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("%s:%s", "quay.io/ocpmetal/agent", imageTag)
+		bm.generateV2NextStepRunnerCommand(ctx, params)
+		Expect(logHook.LastEntry().Message).To(ContainSubstring("uses an outdated agent image"))
+	})
+
+	It("image registry mismatch", func() {
+		imageTag := uuid.New().String()
+		imageName := "edge-infrastructure/assisted-installer-agent"
+		bm.AgentDockerImg = fmt.Sprintf("%s/%s:%s", "quay.io", imageName, imageTag)
+		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("%s/%s:%s", "docker.io", imageName, imageTag)
+		bm.generateV2NextStepRunnerCommand(ctx, params)
+		Expect(logHook.LastEntry().Message).To(ContainSubstring("uses an outdated agent image"))
 	})
 })
 
