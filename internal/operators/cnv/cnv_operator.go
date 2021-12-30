@@ -101,7 +101,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"CPU does not have virtualization support"}}, nil
 	}
 
-	if common.IsSingleNodeCluster(cluster) {
+	if common.IsSingleNodeCluster(cluster) && o.config.SNOInstallHPP {
 		if err = validDiscoverableSNODisk(inventory.Disks, host.InstallationDiskID, o.config.SNOPoolSizeRequestHPPGib); err != nil {
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 		}
@@ -207,7 +207,7 @@ func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.C
 		"Additional 1GiB of RAM per each supported SR-IOV NIC",
 		"CPU has virtualization flag (vmx or svm)",
 	}
-	if common.IsSingleNodeCluster(cluster) {
+	if common.IsSingleNodeCluster(cluster) && o.config.SNOInstallHPP {
 		qualitativeRequirements = append(qualitativeRequirements, fmt.Sprintf("Additional disk with %d Gi", o.config.SNOPoolSizeRequestHPPGib))
 	}
 	requirements := models.OperatorHardwareRequirements{

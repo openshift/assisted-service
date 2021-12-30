@@ -13,6 +13,8 @@ type Config struct {
 	SupportedSRIOVNetworkIC DeviceIDDecoder `envconfig:"CNV_SUPPORTED_SRIOV_NICS" default:"8086:158b,15b3:1015,15b3:1017,15b3:1013,15b3:101b"`
 	// CNV operator mode. It defines whether to use upstream `false` or downstream `true`
 	Mode bool `envconfig:"CNV_MODE" default:"true"`
+	// HPP install flag. It defines whether we should install HPP when CNV is on SNO
+	SNOInstallHPP bool `envconfig:"CNV_SNO_INSTALL_HPP" default:"true"`
 	// In CNV+SNO we'll deploy the HPP storage provisioner. This defines the request size for the storage pool that backs HPP; we validate by checking host's disks against this value
 	SNOPoolSizeRequestHPPGib int64 `envconfig:"CNV_SNO_POOL_SIZE_REQUEST_HPP_GIB" default:"50"`
 }

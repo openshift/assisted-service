@@ -229,6 +229,7 @@ var _ = Describe("CNV operator", func() {
 				"15b3:1015": true,
 			},
 			SNOPoolSizeRequestHPPGib: 50,
+			SNOInstallHPP:            true,
 		}
 		cnvOperator := cnv.NewCNVOperator(log, cfg, nil)
 		fullHaMode := models.ClusterHighAvailabilityModeFull
@@ -282,14 +283,15 @@ var _ = Describe("CNV operator", func() {
 		fullHaMode := models.ClusterHighAvailabilityModeFull
 		noneHaMode := models.ClusterHighAvailabilityModeNone
 
-		table.DescribeTable("should be returned", func(config cnv.Config, cluster common.Cluster) {
-			requirements, err := operator.GetPreflightRequirements(context.TODO(), &cluster)
+		table.DescribeTable("should be returned", func(cfg cnv.Config, cluster common.Cluster) {
+			cnvOperator := cnv.NewCNVOperator(log, cfg, nil)
+			requirements, err := cnvOperator.GetPreflightRequirements(context.TODO(), &cluster)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(requirements.Dependencies).To(ConsistOf(lso.Operator.Name))
 			Expect(requirements.OperatorName).To(BeEquivalentTo(cnv.Operator.Name))
 			numQualitative := 3
-			if common.IsSingleNodeCluster(&cluster) {
+			if common.IsSingleNodeCluster(&cluster) && cfg.SNOInstallHPP {
 				// CNV+SNO installs HPP storage; additional discoverable disk req
 				numQualitative += 1
 			}
@@ -306,7 +308,11 @@ var _ = Describe("CNV operator", func() {
 				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 				HighAvailabilityMode: &fullHaMode,
 			}}),
-			table.Entry("for SNO", cnv.Config{SNOPoolSizeRequestHPPGib: 50}, common.Cluster{Cluster: models.Cluster{
+			table.Entry("for SNO", cnv.Config{SNOPoolSizeRequestHPPGib: 50, SNOInstallHPP: true}, common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+				HighAvailabilityMode: &noneHaMode,
+			}}),
+			table.Entry("for SNO and opt out of HPP via env var", cnv.Config{SNOPoolSizeRequestHPPGib: 50, SNOInstallHPP: false}, common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 				HighAvailabilityMode: &noneHaMode,
 			}}),

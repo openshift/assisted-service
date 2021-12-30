@@ -58,7 +58,7 @@ func Manifests(config Config, isSingleNodeCluster bool) (map[string][]byte, []by
 
 	openshiftManifests := make(map[string][]byte)
 
-	if isSingleNodeCluster {
+	if isSingleNodeCluster && config.SNOInstallHPP {
 		cnvHpp, err := hpp(config.SNOPoolSizeRequestHPPGib)
 		if err != nil {
 			return nil, nil, err

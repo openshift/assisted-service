@@ -12,13 +12,14 @@ import (
 var _ = Describe("CNV manifest generation", func() {
 	fullHaMode := models.ClusterHighAvailabilityModeFull
 	noneHaMode := models.ClusterHighAvailabilityModeNone
-	operator := NewCNVOperator(common.GetTestLog(), Config{Mode: true}, nil)
+	operator := NewCNVOperator(common.GetTestLog(), Config{Mode: true, SNOInstallHPP: true}, nil)
 
 	Context("CNV Manifest", func() {
-		table.DescribeTable("Should create manifestes", func(cluster common.Cluster, isSno bool) {
-			openshiftManifests, manifest, err := operator.GenerateManifests(&cluster)
+		table.DescribeTable("Should create manifestes", func(cluster common.Cluster, isSno bool, cfg Config) {
+			cnvOperator := NewCNVOperator(common.GetTestLog(), cfg, nil)
+			openshiftManifests, manifest, err := cnvOperator.GenerateManifests(&cluster)
 			numManifests := 3
-			if isSno {
+			if isSno && cfg.SNOInstallHPP {
 				// Add Hostpathprovisioner CR and SC to expectation
 				numManifests += 2
 				Expect(common.IsSingleNodeCluster(&cluster)).To(BeTrue())
@@ -28,7 +29,7 @@ var _ = Describe("CNV manifest generation", func() {
 			Expect(openshiftManifests["99_openshift-cnv_ns.yaml"]).NotTo(HaveLen(0))
 			Expect(openshiftManifests["99_openshift-cnv_operator_group.yaml"]).NotTo(HaveLen(0))
 			Expect(openshiftManifests["99_openshift-cnv_subscription.yaml"]).NotTo(HaveLen(0))
-			if isSno {
+			if isSno && cfg.SNOInstallHPP {
 				Expect(openshiftManifests["99_openshift-cnv_hpp.yaml"]).NotTo(HaveLen(0))
 				Expect(openshiftManifests["99_openshift-cnv_hpp_sc.yaml"]).NotTo(HaveLen(0))
 			}
@@ -44,11 +45,15 @@ var _ = Describe("CNV manifest generation", func() {
 			table.Entry("for non-SNO cluster", common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 				HighAvailabilityMode: &fullHaMode,
-			}}, false),
+			}}, false, Config{Mode: true, SNOInstallHPP: true}),
 			table.Entry("for SNO cluster", common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 				HighAvailabilityMode: &noneHaMode,
-			}}, true),
+			}}, true, Config{Mode: true, SNOInstallHPP: true}),
+			table.Entry("for SNO cluster and opt out of HPP via env var", common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+				HighAvailabilityMode: &noneHaMode,
+			}}, true, Config{Mode: true, SNOInstallHPP: false}),
 		)
 
 		It("Should create downstream manifests", func() {
