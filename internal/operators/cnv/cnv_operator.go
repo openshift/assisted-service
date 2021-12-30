@@ -102,7 +102,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 	}
 
 	if common.IsSingleNodeCluster(cluster) {
-		if err = validDiscoverableSNODisk(inventory.Disks, host.InstallationDiskID); err != nil {
+		if err = validDiscoverableSNODisk(inventory.Disks, host.InstallationDiskID, o.config.SNOPoolSizeRequestHPPGib); err != nil {
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 		}
 	}
@@ -282,15 +282,15 @@ func getDeviceKey(vendorID string, deviceID string) string {
 	return vendorID + ":" + deviceID
 }
 
-// If CNV is deployed on SNO, we want at least one non bootable disk (i.e discoverable by LSO)
+// If CNV is deployed on SNO, we want at least one non bootable disk (i.e. discoverable by LSO)
 // with certain size threshold for the hpp storage pool
-func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string) error {
+func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string, diskThresholdGi int64) error {
 	for _, disk := range disks {
 		if (disk.DriveType == ocs.SsdDrive || disk.DriveType == ocs.HddDrive) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
-			if disk.SizeBytes > conversions.GibToBytes(discoverableDiskSizeThresholdGi) {
+			if disk.SizeBytes > conversions.GibToBytes(diskThresholdGi) {
 				return nil
 			}
 		}
 	}
-	return fmt.Errorf("CNV with SNO requires a discoverable disk with %d Gi", discoverableDiskSizeThresholdGi)
+	return fmt.Errorf("CNV with SNO requires a discoverable disk with %d Gi", diskThresholdGi)
 }

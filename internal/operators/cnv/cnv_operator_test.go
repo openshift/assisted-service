@@ -227,7 +227,9 @@ var _ = Describe("CNV operator", func() {
 			SupportedSRIOVNetworkIC: map[string]bool{
 				"8086:158b": true,
 				"15b3:1015": true,
-			}}
+			},
+			SNOPoolSizeRequestHPPGib: 50,
+		}
 		cnvOperator := cnv.NewCNVOperator(log, cfg, nil)
 		fullHaMode := models.ClusterHighAvailabilityModeFull
 		noneHaMode := models.ClusterHighAvailabilityModeNone

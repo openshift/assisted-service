@@ -15,8 +15,6 @@ const (
 
 	upstreamSourceName   string = "community-kubevirt-hyperconverged"
 	downstreamSourceName string = "kubevirt-hyperconverged"
-
-	discoverableDiskSizeThresholdGi int64 = 50
 )
 
 type manifestConfig struct {
@@ -61,7 +59,7 @@ func Manifests(config Config, isSingleNodeCluster bool) (map[string][]byte, []by
 	openshiftManifests := make(map[string][]byte)
 
 	if isSingleNodeCluster {
-		cnvHpp, err := hpp()
+		cnvHpp, err := hpp(config.SNOPoolSizeRequestHPPGib)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -105,9 +103,9 @@ func hco(config manifestConfig) ([]byte, error) {
 	return executeTemplate(data, "cnvHCO", cnvHCOManifestTemplate)
 }
 
-func hpp() ([]byte, error) {
+func hpp(diskThresholdGi int64) ([]byte, error) {
 	data := map[string]string{
-		"STORAGE_SIZE": fmt.Sprintf("%dGi", discoverableDiskSizeThresholdGi),
+		"STORAGE_SIZE": fmt.Sprintf("%dGi", diskThresholdGi),
 	}
 	return executeTemplate(data, "cnvHPP", cnvHPPManifestTemplate)
 }
