@@ -263,7 +263,7 @@ var _ = Describe("CNV operator", func() {
 			table.Entry("SNO and there is no disk with bigger size than threshold for HPP",
 				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &noneHaMode, Hosts: []*models.Host{masterWithLessDiskSizeAndVirt}}},
 				masterWithLessDiskSizeAndVirt,
-				api.ValidationResult{Status: api.Failure, ValidationId: cnvOperator.GetHostValidationID(), Reasons: []string{"CNV with SNO requires a discoverable disk with 50 Gi"}},
+				api.ValidationResult{Status: api.Failure, ValidationId: cnvOperator.GetHostValidationID(), Reasons: []string{"OpenShift Virtualization on SNO requires an additional disk with 50 Gi in order to provide persistent storage for VMs, using hostpath-provisioner"}},
 			),
 			table.Entry("SNO and there is a disk with bigger size than threshold for HPP",
 				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &noneHaMode, Hosts: []*models.Host{masterWithOneSatisfyingDiskAndVirt}}},

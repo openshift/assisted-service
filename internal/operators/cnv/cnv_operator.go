@@ -111,7 +111,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 
 	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
 	if role == models.HostRoleAutoAssign {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"All host roles must be assigned to enable CNV"}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"All host roles must be assigned to enable OpenShift Virtualization"}}, nil
 	}
 	requirements, err := o.GetHostRequirements(ctx, cluster, host)
 	if err != nil {
@@ -122,14 +122,14 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 
 	cpu := requirements.CPUCores
 	if inventory.CPU.Count < cpu {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy CNV. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy OpenShift Virtualization. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
 	}
 
 	mem := requirements.RAMMib
 	memBytes := conversions.MibToBytes(mem)
 	if inventory.Memory.UsableBytes < memBytes {
 		usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy CNV. Required memory is %d MiB but found %d MiB", mem, usableMemory)}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy OpenShift Virtualization. Required memory is %d MiB but found %d MiB", mem, usableMemory)}}, nil
 	}
 
 	// TODO: validate available devices on worker node like gpu and sr-iov and check whether there is enough memory to support them
@@ -292,5 +292,5 @@ func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string, d
 			}
 		}
 	}
-	return fmt.Errorf("CNV with SNO requires a discoverable disk with %d Gi", diskThresholdGi)
+	return fmt.Errorf("OpenShift Virtualization on SNO requires an additional disk with %d Gi in order to provide persistent storage for VMs, using hostpath-provisioner", diskThresholdGi)
 }
