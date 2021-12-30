@@ -201,11 +201,14 @@ func (o *operator) getWorkerRequirements(ctx context.Context, cluster *common.Cl
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error) {
 	qualitativeRequirements := []string{
 		"Additional 1GiB of RAM per each supported GPU",
 		"Additional 1GiB of RAM per each supported SR-IOV NIC",
 		"CPU has virtualization flag (vmx or svm)",
+	}
+	if common.IsSingleNodeCluster(cluster) {
+		qualitativeRequirements = append(qualitativeRequirements, fmt.Sprintf("Additional disk with %d Gi", o.config.SNOPoolSizeRequestHPPGib))
 	}
 	requirements := models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),

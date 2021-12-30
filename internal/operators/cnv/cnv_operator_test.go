@@ -279,21 +279,38 @@ var _ = Describe("CNV operator", func() {
 	})
 
 	Context("preflight hardware requirements", func() {
-		It("should be returned", func() {
-			requirements, err := operator.GetPreflightRequirements(context.TODO(), nil)
+		fullHaMode := models.ClusterHighAvailabilityModeFull
+		noneHaMode := models.ClusterHighAvailabilityModeNone
+
+		table.DescribeTable("should be returned", func(config cnv.Config, cluster common.Cluster) {
+			requirements, err := operator.GetPreflightRequirements(context.TODO(), &cluster)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(requirements.Dependencies).To(ConsistOf(lso.Operator.Name))
 			Expect(requirements.OperatorName).To(BeEquivalentTo(cnv.Operator.Name))
+			numQualitative := 3
+			if common.IsSingleNodeCluster(&cluster) {
+				// CNV+SNO installs HPP storage; additional discoverable disk req
+				numQualitative += 1
+			}
 
-			Expect(requirements.Requirements.Worker.Qualitative).To(HaveLen(3))
+			Expect(requirements.Requirements.Worker.Qualitative).To(HaveLen(numQualitative))
 			Expect(requirements.Requirements.Worker.Quantitative).To(BeEquivalentTo(newRequirements(cnv.WorkerCPU, cnv.WorkerMemory)))
 
-			Expect(requirements.Requirements.Master.Qualitative).To(HaveLen(3))
+			Expect(requirements.Requirements.Master.Qualitative).To(HaveLen(numQualitative))
 			Expect(requirements.Requirements.Master.Quantitative).To(BeEquivalentTo(newRequirements(cnv.MasterCPU, cnv.MasterMemory)))
 
 			Expect(requirements.Requirements.Master.Qualitative).To(BeEquivalentTo(requirements.Requirements.Worker.Qualitative))
-		})
+		},
+			table.Entry("for non-SNO", cnv.Config{SNOPoolSizeRequestHPPGib: 50}, common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+				HighAvailabilityMode: &fullHaMode,
+			}}),
+			table.Entry("for SNO", cnv.Config{SNOPoolSizeRequestHPPGib: 50}, common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+				HighAvailabilityMode: &noneHaMode,
+			}}),
+		)
 	})
 
 	Context("cluster requirements", func() {
