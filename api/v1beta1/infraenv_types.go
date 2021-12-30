@@ -125,6 +125,8 @@ type InfraEnvDebugInfo struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="ISO Created At",type="string",JSONPath=".status.createdTime",description="The Discovery ISO creation time"
+// +kubebuilder:printcolumn:name="ISO URL",type="string",JSONPath=".status.isoDownloadURL",description="The Discovery ISO download URL",priority=1
 
 type InfraEnv struct {
 	metav1.TypeMeta   `json:",inline"`

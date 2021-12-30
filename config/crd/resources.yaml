@@ -16,7 +16,16 @@ spec:
     singular: agentclusterinstall
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: The name of the cluster the ACI refers to.
+      jsonPath: .spec.clusterDeploymentRef.name
+      name: Cluster
+      type: string
+    - description: State of the ACI.
+      jsonPath: .spec.status.debugInfo.state
+      name: State
+      type: string
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: AgentClusterInstall represents a request to provision an agent
@@ -1256,7 +1265,17 @@ spec:
     singular: infraenv
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: The Discovery ISO creation time
+      jsonPath: .status.createdTime
+      name: ISO Created At
+      type: string
+    - description: The Discovery ISO download URL
+      jsonPath: .status.isoDownloadURL
+      name: ISO URL
+      priority: 1
+      type: string
+    name: v1beta1
     schema:
       openAPIV3Schema:
         properties:

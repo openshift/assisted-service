@@ -18,7 +18,16 @@ spec:
     singular: agentclusterinstall
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: The name of the cluster the ACI refers to.
+      jsonPath: .spec.clusterDeploymentRef.name
+      name: Cluster
+      type: string
+    - description: State of the ACI.
+      jsonPath: .spec.status.debugInfo.state
+      name: State
+      type: string
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: AgentClusterInstall represents a request to provision an agent
