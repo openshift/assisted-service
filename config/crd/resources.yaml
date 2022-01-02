@@ -222,6 +222,9 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              mastersSchedulable:
+                description: Set to true to allow control plane nodes to be schedulable
+                type: boolean
               networking:
                 description: Networking is the configuration for the pod network provider
                   in the cluster.

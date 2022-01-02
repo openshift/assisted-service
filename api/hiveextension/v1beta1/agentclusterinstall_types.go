@@ -155,6 +155,10 @@ type AgentClusterInstallSpec struct {
 	// DiskEncryption is the configuration to enable/disable disk encryption for cluster nodes.
 	// +optional
 	DiskEncryption *DiskEncryption `json:"diskEncryption,omitempty"`
+
+	// Set to true to allow control plane nodes to be schedulable
+	// +optional
+	MastersSchedulable bool `json:"mastersSchedulable,omitempty"`
 }
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.
