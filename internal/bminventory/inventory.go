@@ -784,7 +784,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 		NewImportClusterParams: &models.ImportClusterParams{
 			APIVipDnsname:      params.NewAddHostsClusterParams.APIVipDnsname,
 			Name:               params.NewAddHostsClusterParams.Name,
-			OpenshiftVersion:   params.NewAddHostsClusterParams.OpenshiftVersion,
+			OpenshiftVersion:   swag.StringValue(params.NewAddHostsClusterParams.OpenshiftVersion),
 			OpenshiftClusterID: params.NewAddHostsClusterParams.ID,
 		},
 	}
@@ -802,25 +802,12 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
 	apivipDnsname := swag.StringValue(params.NewImportClusterParams.APIVipDnsname)
 	clusterName := swag.StringValue(params.NewImportClusterParams.Name)
-	inputOpenshiftVersion := swag.StringValue(params.NewImportClusterParams.OpenshiftVersion)
+	inputOpenshiftVersion := params.NewImportClusterParams.OpenshiftVersion
 
 	log.Infof("Import add-hosts-cluster: %s, id %s, version %s, openshift cluster id %s", clusterName, id.String(), inputOpenshiftVersion, params.NewImportClusterParams.OpenshiftClusterID)
 
 	if clusterPkg.ClusterExists(b.db, *id) {
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
-	}
-
-	// Day2 supports only x86_64 for now
-	releaseImage, err := b.versionsHandler.GetReleaseImage(inputOpenshiftVersion, common.DefaultCPUArchitecture)
-	if err != nil {
-		log.WithError(err).Warnf("Failed to get release image for version %s - fallback to default version", inputOpenshiftVersion)
-
-		// Try to get default release image as a fallback
-		releaseImage, err = b.versionsHandler.GetDefaultReleaseImage(common.DefaultCPUArchitecture)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to get default release image")
-			return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get default release image"))
-		}
 	}
 
 	if kubeKey == nil {
@@ -832,9 +819,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		Href:               swag.String(url.String()),
 		Kind:               swag.String(models.ClusterKindAddHostsCluster),
 		Name:               clusterName,
-		OpenshiftVersion:   *releaseImage.Version,
 		OpenshiftClusterID: common.StrFmtUUIDVal(params.NewImportClusterParams.OpenshiftClusterID),
-		OcpReleaseImage:    *releaseImage.URL,
 		UserName:           ocm.UserNameFromContext(ctx),
 		OrgID:              ocm.OrgIDFromContext(ctx),
 		EmailDomain:        ocm.EmailDomainFromContext(ctx),
@@ -848,7 +833,24 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		KubeKeyNamespace: kubeKey.Namespace,
 	}
 
-	err = validations.ValidateClusterNameFormat(clusterName)
+	// Day2 supports only x86_64 for now
+	if inputOpenshiftVersion != "" {
+		releaseImage, err := b.versionsHandler.GetReleaseImage(inputOpenshiftVersion, common.DefaultCPUArchitecture)
+		if err != nil {
+			log.WithError(err).Warnf("Failed to get release image for version %s - fallback to default version", inputOpenshiftVersion)
+
+			// Try to get default release image as a fallback
+			releaseImage, err = b.versionsHandler.GetDefaultReleaseImage(common.DefaultCPUArchitecture)
+			if err != nil {
+				log.WithError(err).Errorf("Failed to get default release image")
+				return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get default release image"))
+			}
+		}
+		newCluster.OpenshiftVersion = *releaseImage.Version
+		newCluster.OcpReleaseImage = *releaseImage.URL
+	}
+
+	err := validations.ValidateClusterNameFormat(clusterName)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}

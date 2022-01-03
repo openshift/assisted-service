@@ -33,8 +33,7 @@ type ImportClusterParams struct {
 	OpenshiftClusterID *strfmt.UUID `json:"openshift_cluster_id"`
 
 	// Version of the OpenShift cluster.
-	// Required: true
-	OpenshiftVersion *string `json:"openshift_version"`
+	OpenshiftVersion string `json:"openshift_version,omitempty"`
 }
 
 // Validate validates this import cluster params
@@ -50,10 +49,6 @@ func (m *ImportClusterParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftClusterID(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateOpenshiftVersion(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -88,15 +83,6 @@ func (m *ImportClusterParams) validateOpenshiftClusterID(formats strfmt.Registry
 	}
 
 	if err := validate.FormatOf("openshift_cluster_id", "body", "uuid", m.OpenshiftClusterID.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *ImportClusterParams) validateOpenshiftVersion(formats strfmt.Registry) error {
-
-	if err := validate.Required("openshift_version", "body", m.OpenshiftVersion); err != nil {
 		return err
 	}
 

@@ -80,6 +80,7 @@ var _ = Describe("instruction_manager", func() {
 					MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
 					Name:              "example",
 					BaseDNSDomain:     "test.com",
+					OpenshiftVersion:  "4.9",
 				}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -169,6 +170,7 @@ var _ = Describe("instruction_manager", func() {
 				MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
 				Name:              "example",
 				BaseDNSDomain:     "test.com",
+				OpenshiftVersion:  "4.9",
 			}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -322,6 +324,7 @@ var _ = Describe("instruction_manager", func() {
 					ID:                &clusterId,
 					VipDhcpAllocation: swag.Bool(true),
 					MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
+					OpenshiftVersion:  "4.9",
 				}}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -393,8 +396,8 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 	h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
 	ExpectWithOffset(1, swag.StringValue(h.Status)).Should(Equal(state))
 	if funk.Contains(expectedStepTypes, models.StepTypeInstall) {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/disk/by-id/wwn-sda").Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
 		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(1)
 	}
