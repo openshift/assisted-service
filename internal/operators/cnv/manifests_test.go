@@ -20,8 +20,8 @@ var _ = Describe("CNV manifest generation", func() {
 			openshiftManifests, manifest, err := cnvOperator.GenerateManifests(&cluster)
 			numManifests := 3
 			if isSno && cfg.SNOInstallHPP {
-				// Add Hostpathprovisioner CR and SC to expectation
-				numManifests += 2
+				// Add Hostpathprovisioner StorageClass to expectation
+				numManifests += 1
 				Expect(common.IsSingleNodeCluster(&cluster)).To(BeTrue())
 			}
 			Expect(err).ShouldNot(HaveOccurred())
@@ -30,7 +30,7 @@ var _ = Describe("CNV manifest generation", func() {
 			Expect(openshiftManifests["99_openshift-cnv_operator_group.yaml"]).NotTo(HaveLen(0))
 			Expect(openshiftManifests["99_openshift-cnv_subscription.yaml"]).NotTo(HaveLen(0))
 			if isSno && cfg.SNOInstallHPP {
-				Expect(openshiftManifests["99_openshift-cnv_hpp.yaml"]).NotTo(HaveLen(0))
+				Expect(string(manifest)).To(ContainSubstring("HostPathProvisioner"))
 				Expect(openshiftManifests["99_openshift-cnv_hpp_sc.yaml"]).NotTo(HaveLen(0))
 			}
 

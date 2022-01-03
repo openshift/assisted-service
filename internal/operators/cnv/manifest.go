@@ -63,7 +63,9 @@ func Manifests(config Config, isSingleNodeCluster bool) (map[string][]byte, []by
 		if err != nil {
 			return nil, nil, err
 		}
-		openshiftManifests["99_openshift-cnv_hpp.yaml"] = cnvHpp
+		// Add HostPathProvisioner to CNV manifest
+		cnvHco = append(cnvHco, []byte("\n---\n")...)
+		cnvHco = append(cnvHco, cnvHpp...)
 		openshiftManifests["99_openshift-cnv_hpp_sc.yaml"] = []byte(cnvHPPStorageClass)
 	}
 	openshiftManifests["99_openshift-cnv_subscription.yaml"] = cnvSubsManifest
