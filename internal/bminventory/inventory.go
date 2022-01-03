@@ -6766,12 +6766,8 @@ func (b *bareMetalInventory) V2UpdateHostLogsProgress(ctx context.Context, param
 
 func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams) (*common.Host, error) {
 	log := logutil.FromContext(ctx, b.log)
-
-	host, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
-	if err != nil {
-		log.WithError(err).Errorf("failed to find host <%s>, infra env <%s>", params.HostID, params.InfraEnvID)
-		return nil, common.NewApiError(http.StatusNotFound, err)
-	}
+	var c *models.Cluster
+	var cluster *common.Cluster
 
 	txSuccess := false
 	tx := b.db.Begin()
@@ -6786,6 +6782,12 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 			tx.Rollback()
 		}
 	}()
+
+	host, err := common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to find host <%s>, infra env <%s>", params.HostID, params.InfraEnvID)
+		return nil, common.NewApiError(http.StatusNotFound, err)
+	}
 
 	err = b.updateHostRole(ctx, host, params.HostUpdateParams.HostRole, tx)
 	if err != nil {
@@ -6808,7 +6810,17 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 		return nil, err
 	}
 
-	err = b.refreshAfterUpdate(ctx, host, tx)
+	//get bound cluster
+	if host.ClusterID != nil {
+		cluster, err = common.GetClusterFromDBForUpdate(tx, *host.ClusterID, common.SkipEagerLoading)
+		if err != nil {
+			err = fmt.Errorf("can not find a cluster for host %s", params.HostID.String())
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+		c = &cluster.Cluster
+	}
+
+	err = b.refreshAfterUpdate(ctx, cluster, host, tx)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to refresh host %s, infra env %s during update", host.ID, host.InfraEnvID)
 		return nil, err
@@ -6825,18 +6837,6 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 	if err != nil {
 		log.WithError(err).Errorf("failed to get host <%s>, infra env <%s> after update", params.HostID, params.InfraEnvID)
 		return nil, common.NewApiError(http.StatusNotFound, err)
-	}
-
-	//get bound cluster
-	var c *models.Cluster
-	var cluster *common.Cluster
-	if host.ClusterID != nil {
-		cluster, err = common.GetClusterFromDB(b.db, *host.ClusterID, common.SkipEagerLoading)
-		if err != nil {
-			err = fmt.Errorf("can not find a cluster for host %s", params.HostID.String())
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
-		c = &cluster.Cluster
 	}
 
 	err = b.customizeHost(c, &host.Host)
@@ -6944,7 +6944,7 @@ func (b *bareMetalInventory) updateHostIgnitionEndpointToken(ctx context.Context
 	return nil
 }
 
-func (b *bareMetalInventory) refreshAfterUpdate(ctx context.Context, host *common.Host, db *gorm.DB) error {
+func (b *bareMetalInventory) refreshAfterUpdate(ctx context.Context, cluster *common.Cluster, host *common.Host, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, b.log)
 	if host.ClusterID != nil {
 		if host.Inventory != "" {
@@ -6958,6 +6958,15 @@ func (b *bareMetalInventory) refreshAfterUpdate(ctx context.Context, host *commo
 	err := b.hostApi.RefreshStatus(ctx, &host.Host, db)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to refresh host %s, infra env %s during update", host.ID, host.InfraEnvID)
+		return err
+	}
+
+	if host.ClusterID != nil {
+		_, err = b.clusterApi.RefreshStatus(ctx, cluster, db)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to refresh cluster %s, infra env %s during host update", host.ID, host.InfraEnvID)
+			return err
+		}
 	}
 	return err
 }
