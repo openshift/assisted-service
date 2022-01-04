@@ -13,7 +13,7 @@ var _ = Describe("Format command for starting next step agent", func() {
 
 	var config NextStepRunnerConfig
 
-	clusterID := uuid.New().String()
+	infraEnvId := uuid.New().String()
 	hostID := uuid.New().String()
 	serviceURL := uuid.New().String()
 	image := uuid.New().String()
@@ -21,7 +21,7 @@ var _ = Describe("Format command for starting next step agent", func() {
 
 	BeforeEach(func() {
 		config = NextStepRunnerConfig{
-			ClusterID:           clusterID,
+			InfraEnvID:          infraEnvId,
 			HostID:              hostID,
 			NextStepRunnerImage: image,
 		}
@@ -31,7 +31,7 @@ var _ = Describe("Format command for starting next step agent", func() {
 		config.ServiceBaseURL = serviceURL
 		command, args := GetNextStepRunnerCommand(&config)
 		Expect(command).Should(Equal("podman"))
-		assertValue("--cluster-id", clusterID, *args)
+		assertValue("--infra-env-id", infraEnvId, *args)
 		assertValue("--host-id", hostID, *args)
 		assertValue("--url", serviceURL, *args)
 		assertValue("--agent-version", image, *args)
@@ -52,6 +52,7 @@ var _ = Describe("Format command for starting next step agent", func() {
 	It("without custom CA certificate", func() {
 		config.UseCustomCACert = false
 		_, args := GetNextStepRunnerCommand(&config)
+
 		Expect(*args).ShouldNot(ContainElement("--cacert"))
 		Expect(*args).ShouldNot(ContainElement(certVolume))
 	})

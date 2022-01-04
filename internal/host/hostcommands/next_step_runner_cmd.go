@@ -10,7 +10,7 @@ import (
 
 type NextStepRunnerConfig struct {
 	ServiceBaseURL       string
-	ClusterID            string
+	InfraEnvID           string
 	HostID               string
 	UseCustomCACert      bool
 	NextStepRunnerImage  string
@@ -37,7 +37,7 @@ func GetNextStepRunnerCommand(config *NextStepRunnerConfig) (string, *[]string) 
 		"--env", "HTTP_PROXY", "--env", "HTTPS_PROXY", "--env", "NO_PROXY",
 		"--env", "http_proxy", "--env", "https_proxy", "--env", "no_proxy",
 		"--name", "next-step-runner", config.NextStepRunnerImage, "next_step_runner",
-		"--url", strings.TrimSpace(config.ServiceBaseURL), "--cluster-id", config.ClusterID, "--host-id", config.HostID,
+		"--url", strings.TrimSpace(config.ServiceBaseURL), "--infra-env-id", config.InfraEnvID, "--host-id", config.HostID,
 		"--agent-version", config.NextStepRunnerImage, fmt.Sprintf("--insecure=%s", strconv.FormatBool(config.SkipCertVerification)))
 
 	if config.UseCustomCACert {
