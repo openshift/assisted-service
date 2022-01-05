@@ -4577,10 +4577,13 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), constants.Kubeconfig); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, constants.Kubeconfig))
+
 	if err != nil {
 		return common.NewApiError(http.StatusConflict, err)
 	}
+
 	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), constants.Kubeconfig, contentLength)
 }
 
@@ -6737,11 +6740,23 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 }
 
 func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) middleware.Responder {
+	fileName := params.FileName
 	respBody, contentLength, err := b.V2DownloadClusterCredentialsInternal(ctx, params)
+
+	// Kubeconfig-noingress has been created during the installation, but it does not have the ingress CA.
+	// At the finalizing phase, we create the kubeconfig file and add the ingress CA.
+	// An ingress CA isn't required for normal login but for oauth login which isn't a common use case.
+	// Here we fallback to the kubeconfig-noingress for the kubeconfig filename.
+	if err != nil && params.FileName == constants.Kubeconfig {
+		fileName = constants.KubeconfigNoIngress
+		respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, constants.KubeconfigNoIngress, params.ClusterID.String())
+	}
+
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	return filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(respBody), params.FileName, contentLength)
+
+	return filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(respBody), fileName, contentLength)
 }
 
 func (b *bareMetalInventory) V2DownloadClusterFiles(ctx context.Context, params installer.V2DownloadClusterFilesParams) middleware.Responder {

@@ -14160,20 +14160,21 @@ var _ = Describe("[V2] V2DownloadClusterCredentials", func() {
 		ctx       = context.Background()
 		db        *gorm.DB
 		dbName    string
+		c         *common.Cluster
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 
-		cluster := common.Cluster{Cluster: models.Cluster{
+		c = &common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			PullSecretSet:    true,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Status:           swag.String(models.ClusterStatusInstalled),
+			Status:           swag.String(models.ClusterStatusPreparingForInstallation),
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		Expect(common.CreateInfraEnvForCluster(db, &cluster, models.ImageTypeFullIso)).ShouldNot(HaveOccurred())
+		Expect(db.Create(c).Error).ShouldNot(HaveOccurred())
+		Expect(common.CreateInfraEnvForCluster(db, c, models.ImageTypeFullIso)).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -14181,7 +14182,7 @@ var _ = Describe("[V2] V2DownloadClusterCredentials", func() {
 		ctrl.Finish()
 	})
 
-	It("v2 allows downloading cluster credentials files", func() {
+	It("v2 blocks downloading cluster credentials files", func() {
 		for _, fileName := range cluster.ClusterOwnerFileNames {
 			By(fmt.Sprintf("downloading %s", fileName))
 
@@ -14190,11 +14191,51 @@ var _ = Describe("[V2] V2DownloadClusterCredentials", func() {
 				FileName:  fileName,
 			}
 
-			r := io.NopCloser(bytes.NewReader([]byte("testfile")))
-			expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(r), fileName, int64(8))
-			mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", clusterID, fileName)).Return(r, int64(8), nil)
 			resp := bm.V2DownloadClusterCredentials(ctx, params)
-			Expect(resp).Should(Equal(expected))
+			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+		}
+	})
+
+	It("Kubeconfig is not available", func() {
+		status := models.ClusterStatusInstalling
+		c.Status = &status
+		db.Save(c)
+		By(fmt.Sprintf("downloading %s", constants.Kubeconfig))
+
+		params := installer.V2DownloadClusterCredentialsParams{
+			ClusterID: clusterID,
+			FileName:  constants.Kubeconfig,
+		}
+
+		r := io.NopCloser(bytes.NewReader([]byte("testfile")))
+		expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(r), constants.KubeconfigNoIngress, int64(8))
+		mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", clusterID, constants.KubeconfigNoIngress)).Return(r, int64(8), nil)
+		resp := bm.V2DownloadClusterCredentials(ctx, params)
+		Expect(resp).Should(Equal(expected))
+	})
+
+	It("v2 allows downloading cluster credentials files", func() {
+		statuses := []string{models.ClusterStatusInstalled, models.ClusterStatusCancelled, models.ClusterStatusError}
+
+		for index := range statuses {
+			c.Status = &statuses[index]
+			db.Save(c)
+
+			for _, fileName := range cluster.ClusterOwnerFileNames {
+				By(fmt.Sprintf("downloading %s", fileName))
+
+				params := installer.V2DownloadClusterCredentialsParams{
+					ClusterID: clusterID,
+					FileName:  fileName,
+				}
+
+				r := io.NopCloser(bytes.NewReader([]byte("testfile")))
+				expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(r), fileName, int64(8))
+				mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", clusterID, fileName)).Return(r, int64(8), nil)
+				resp := bm.V2DownloadClusterCredentials(ctx, params)
+				Expect(resp).Should(Equal(expected))
+			}
 		}
 	})
 })
@@ -14397,9 +14438,12 @@ var _ = Describe("Download presigned cluster credentials", func() {
 	})
 
 	It("kubeconfig presigned cluster is not in installed state", func() {
+		fullS3Path := fmt.Sprintf("%s/%s", clusterID.String(), constants.Kubeconfig)
+
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(
-			ctx, fmt.Sprintf("%s/%s", clusterID.String(), constants.Kubeconfig), constants.Kubeconfig, gomock.Any()).Return("", errors.New("some error"))
+			ctx, fullS3Path, constants.Kubeconfig, gomock.Any()).Return("", errors.New("some error"))
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockS3Client.EXPECT().DoesObjectExist(ctx, fullS3Path).Return(true, nil)
 		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
 			ClusterID: clusterID,
 			FileName:  constants.Kubeconfig,
@@ -14408,13 +14452,35 @@ var _ = Describe("Download presigned cluster credentials", func() {
 		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusInternalServerError)))
 	})
 
+	It("presigned cluster credentials  - downloading no-ingress kubeconfig", func() {
+		status := models.ClusterStatusInstalling
+		c.Status = &status
+		db.Save(&c)
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		fileName := constants.Kubeconfig
+		fullS3Name := fmt.Sprintf("%s/%s", clusterID.String(), fileName)
+
+		mockS3Client.EXPECT().DoesObjectExist(ctx, fullS3Name).Return(false, nil)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(
+			ctx, fmt.Sprintf("%s/%s", clusterID.String(), constants.KubeconfigNoIngress), constants.KubeconfigNoIngress, gomock.Any()).Return("url", nil)
+		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
+			ClusterID: clusterID,
+			FileName:  constants.Kubeconfig,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.V2GetPresignedForClusterCredentialsOK{}))
+		replyPayload := generateReply.(*installer.V2GetPresignedForClusterCredentialsOK).Payload
+		Expect(*replyPayload.URL).Should(Equal("url"))
+	})
+
 	It("presigned cluster credentials happy flow", func() {
 		status := models.ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		fullS3Name := fmt.Sprintf("%s/%s", clusterID.String(), constants.Kubeconfig)
+		mockS3Client.EXPECT().DoesObjectExist(ctx, fullS3Name).Return(true, nil)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(
-			ctx, fmt.Sprintf("%s/%s", clusterID.String(), constants.Kubeconfig), constants.Kubeconfig, gomock.Any()).Return("url", nil)
+			ctx, fullS3Name, constants.Kubeconfig, gomock.Any()).Return("url", nil)
 		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
 			ClusterID: clusterID,
 			FileName:  constants.Kubeconfig,
@@ -14427,8 +14493,10 @@ var _ = Describe("Download presigned cluster credentials", func() {
 	It("presigned cluster credentials download with invalid cluster id", func() {
 		clusterId := strToUUID(uuid.New().String())
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		fullS3Name := fmt.Sprintf("%s/%s", clusterId.String(), constants.Kubeconfig)
+		mockS3Client.EXPECT().DoesObjectExist(ctx, fullS3Name).Return(true, nil)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(
-			ctx, fmt.Sprintf("%s/%s", clusterId.String(), constants.Kubeconfig), constants.Kubeconfig, gomock.Any()).Return("", errors.New("some error"))
+			ctx, fullS3Name, constants.Kubeconfig, gomock.Any()).Return("", errors.New("some error"))
 		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
 			ClusterID: *clusterId,
 			FileName:  constants.Kubeconfig,
