@@ -76,7 +76,7 @@ import (
 const DefaultUser = "kubeadmin"
 
 const WindowBetweenRequestsInSeconds = 10 * time.Second
-const mediaDisconnectionMessage = "Unable to read from the discovery media. It was either disconnected, or poor network conditions prevented it from being read. Try using the minimal ISO option, and be sure to keep the media connected until the installation completes"
+const mediaDisconnectionMessage = "Unable to read from the discovery media. It was either disconnected or poor network conditions prevented it from being read. Try using the minimal ISO option and be sure to keep the media connected until the installation is completed"
 
 const (
 	MediaDisconnected int64 = 256
