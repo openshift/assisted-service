@@ -16,7 +16,17 @@ spec:
     singular: infraenv
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: The Discovery ISO creation time
+      jsonPath: .status.createdTime
+      name: ISO Created At
+      type: string
+    - description: The Discovery ISO download URL
+      jsonPath: .status.isoDownloadURL
+      name: ISO URL
+      priority: 1
+      type: string
+    name: v1beta1
     schema:
       openAPIV3Schema:
         properties:
