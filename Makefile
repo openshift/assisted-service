@@ -113,9 +113,10 @@ DEFAULT_OS_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_os_images.
 # Support all Release/OS images for CI
 ifeq ($(CI), true)
 	VERBOSE = true
-	RELEASE_IMAGES := $(or ${RELEASE_IMAGES},${DEFAULT_RELEASE_IMAGES})
-	OS_IMAGES := $(or ${OS_IMAGES},${DEFAULT_OS_IMAGES})
 endif
+
+RELEASE_IMAGES := $(or ${RELEASE_IMAGES},${DEFAULT_RELEASE_IMAGES})
+OS_IMAGES := $(or ${OS_IMAGES},${DEFAULT_OS_IMAGES})
 
 # Support default Release/OS image if lists not specified.
 # I.e. used on local deployments for using a single image,

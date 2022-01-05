@@ -3715,7 +3715,7 @@ func (b *bareMetalInventory) generateV2NextStepRunnerCommand(ctx context.Context
 			params.NewHostParams.HostID.String(), params.InfraEnvID.String(), params.NewHostParams.DiscoveryAgentVersion, b.AgentDockerImg)
 	}
 
-	config := hostcommands.V2NextStepRunnerConfig{
+	config := hostcommands.NextStepRunnerConfig{
 		ServiceBaseURL:       b.ServiceBaseURL,
 		InfraEnvID:           params.InfraEnvID.String(),
 		HostID:               params.NewHostParams.HostID.String(),
@@ -3723,7 +3723,7 @@ func (b *bareMetalInventory) generateV2NextStepRunnerCommand(ctx context.Context
 		NextStepRunnerImage:  b.AgentDockerImg,
 		SkipCertVerification: b.SkipCertVerification,
 	}
-	command, args := hostcommands.V2GetNextStepRunnerCommand(&config)
+	command, args := hostcommands.GetNextStepRunnerCommand(&config)
 	return &models.HostRegistrationResponseAO1NextStepRunnerCommand{
 		Command: command,
 		Args:    *args,
