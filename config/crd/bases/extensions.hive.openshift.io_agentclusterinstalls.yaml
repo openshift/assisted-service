@@ -307,7 +307,6 @@ spec:
                 type: string
             required:
             - clusterDeploymentRef
-            - imageSetRef
             - networking
             - provisionRequirements
             type: object

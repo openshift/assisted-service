@@ -101,7 +101,7 @@ type AgentClusterInstallSpec struct {
 
 	// ImageSetRef is a reference to a ClusterImageSet. The release image specified in the ClusterImageSet will be used
 	// to install the cluster.
-	ImageSetRef hivev1.ClusterImageSetReference `json:"imageSetRef"`
+	ImageSetRef *hivev1.ClusterImageSetReference `json:"imageSetRef,omitempty"`
 
 	// ClusterDeploymentRef is a reference to the ClusterDeployment associated with this AgentClusterInstall.
 	ClusterDeploymentRef corev1.LocalObjectReference `json:"clusterDeploymentRef"`
