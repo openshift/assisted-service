@@ -1139,7 +1139,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	clusterParams := &models.ImportClusterParams{
 		APIVipDnsname:    swag.String(apiVipDnsname),
 		Name:             swag.String(spec.ClusterName),
-		OpenshiftVersion: swag.String(*releaseImage.Version),
+		OpenshiftVersion: *releaseImage.Version,
 	}
 
 	// add optional parameter

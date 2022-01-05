@@ -99,7 +99,6 @@ var _ = Describe("Day2 cluster tests", func() {
 		cluster, err = userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
 			NewImportClusterParams: &models.ImportClusterParams{
 				Name:               swag.String("test-cluster"),
-				OpenshiftVersion:   swag.String(openshiftVersion),
 				APIVipDnsname:      swag.String("api_vip_dnsname"),
 				OpenshiftClusterID: &openshiftClusterID,
 			},
@@ -109,8 +108,6 @@ var _ = Describe("Day2 cluster tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("adding-hosts"))
 		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(statusInfoAddingHosts))
-		Expect(swag.StringValue(&cluster.GetPayload().OpenshiftVersion)).Should(ContainSubstring(openshiftVersion))
-		Expect(swag.StringValue(&cluster.GetPayload().OcpReleaseImage)).Should(ContainSubstring(openshiftVersion))
 		Expect(cluster.GetPayload().StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -562,7 +559,6 @@ var _ = Describe("[V2UpdateCluster] Day2 cluster tests", func() {
 		cluster, err = userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
 			NewImportClusterParams: &models.ImportClusterParams{
 				Name:               swag.String("test-cluster"),
-				OpenshiftVersion:   swag.String(openshiftVersion),
 				APIVipDnsname:      swag.String("api_vip_dnsname"),
 				OpenshiftClusterID: &openshiftClusterID,
 			},
@@ -572,8 +568,6 @@ var _ = Describe("[V2UpdateCluster] Day2 cluster tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("adding-hosts"))
 		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(statusInfoAddingHosts))
-		Expect(swag.StringValue(&cluster.GetPayload().OpenshiftVersion)).Should(ContainSubstring(openshiftVersion))
-		Expect(swag.StringValue(&cluster.GetPayload().OcpReleaseImage)).Should(ContainSubstring(openshiftVersion))
 		Expect(cluster.GetPayload().StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 
 		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
@@ -972,7 +966,6 @@ var _ = Describe("Day2 cluster with bind/unbind hosts", func() {
 		cluster, err = userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
 			NewImportClusterParams: &models.ImportClusterParams{
 				Name:               swag.String("test-cluster"),
-				OpenshiftVersion:   swag.String(openshiftVersion),
 				APIVipDnsname:      swag.String("api_vip_dnsname"),
 				OpenshiftClusterID: &openshiftClusterID,
 			},
@@ -1048,7 +1041,6 @@ var _ = Describe("Installation progress", func() {
 			importClusterReply, err := userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
 				NewImportClusterParams: &models.ImportClusterParams{
 					Name:               swag.String("day2-cluster"),
-					OpenshiftVersion:   swag.String(openshiftVersion),
 					APIVipDnsname:      swag.String("api_vip_dnsname"),
 					OpenshiftClusterID: &openshiftClusterID,
 				},
@@ -1156,7 +1148,6 @@ var _ = Describe("Installation progress", func() {
 			importClusterReply, err := userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
 				NewImportClusterParams: &models.ImportClusterParams{
 					Name:               swag.String("day2-cluster"),
-					OpenshiftVersion:   swag.String(openshiftVersion),
 					APIVipDnsname:      swag.String("api_vip_dnsname"),
 					OpenshiftClusterID: &openshiftClusterID,
 				},

@@ -113,27 +113,6 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		haMode = *cluster.HighAvailabilityMode
 	}
 
-	releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture)
-	if err != nil {
-		return "", err
-	}
-
-	mcoImage, err := i.ocRelease.GetMCOImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
-	if err != nil {
-		return "", err
-	}
-
-	mustGatherMap, err := i.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
-	if err != nil {
-		return "", err
-	}
-	mustGatherImages, err := i.getMustGatherArgument(mustGatherMap)
-	if err != nil {
-		return "", err
-	}
-
-	i.log.Infof("Install command releaseImage: %s, mcoImage: %s", *releaseImage.URL, mcoImage)
-
 	podmanCmd := podmanBaseCmd[:]
 	installerCmdArgs := []string{
 		"--role", string(role),
@@ -142,12 +121,35 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		"--host-id", string(*host.ID),
 		"--boot-device", bootdevice,
 		"--url", i.instructionConfig.ServiceBaseURL,
-		"--openshift-version", cluster.OpenshiftVersion,
 		"--high-availability-mode", haMode,
-		"--mco-image", mcoImage,
 		"--controller-image", i.instructionConfig.ControllerImage,
 		"--agent-image", i.instructionConfig.AgentImage,
-		"--must-gather-image", mustGatherImages,
+	}
+
+	if cluster.OpenshiftVersion != "" {
+		releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture)
+		if err != nil {
+			return "", err
+		}
+
+		mcoImage, err := i.ocRelease.GetMCOImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+		if err != nil {
+			return "", err
+		}
+		i.log.Infof("Install command releaseImage: %s, mcoImage: %s", *releaseImage.URL, mcoImage)
+
+		mustGatherMap, err := i.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
+		if err != nil {
+			return "", err
+		}
+		mustGatherImages, err := i.getMustGatherArgument(mustGatherMap)
+		if err != nil {
+			return "", err
+		}
+
+		installerCmdArgs = append(installerCmdArgs, "--must-gather-image", mustGatherImages)
+		installerCmdArgs = append(installerCmdArgs, "--openshift-version", cluster.OpenshiftVersion)
+		installerCmdArgs = append(installerCmdArgs, "--mco-image", mcoImage)
 	}
 
 	for _, diskToFormat := range disksToFormat {

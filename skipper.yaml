@@ -15,6 +15,9 @@ volumes:
   - $HOME/.kube/:$HOME/.kube
   - $HOME/.docker/:$HOME/.docker
   - $KUBECONFIG:$KUBECONFIG
+  - /etc/subuid:/etc/subuid
+  - /etc/subgid:/etc/subgid
+  - /run/lock/lockdev:/run/lock/lockdev
 
   # cache
   - $HOME/.cache/go-build:/go/pkg/mod

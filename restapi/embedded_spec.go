@@ -11826,7 +11826,6 @@ func init() {
       "required": [
         "name",
         "api_vip_dnsname",
-        "openshift_version",
         "openshift_cluster_id"
       ],
       "properties": {
@@ -25259,7 +25258,6 @@ func init() {
       "required": [
         "name",
         "api_vip_dnsname",
-        "openshift_version",
         "openshift_cluster_id"
       ],
       "properties": {

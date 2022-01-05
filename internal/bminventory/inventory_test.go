@@ -10401,7 +10401,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 			NewImportClusterParams: &models.ImportClusterParams{
 				APIVipDnsname:      &apiVIPDnsname,
 				Name:               &clusterName,
-				OpenshiftVersion:   swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		}
@@ -10429,7 +10429,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 			NewImportClusterParams: &models.ImportClusterParams{
 				APIVipDnsname:      &apiVIPDnsname,
 				Name:               &clusterName,
-				OpenshiftVersion:   swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		}
