@@ -498,31 +498,44 @@ func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessCon
 	}
 }
 
+func checkCidrsOverlapping(cluster *common.Cluster) error {
+	//Currently, the networks arrays can hold up to 2 subnets, one for each family
+	//in the same order. If machine networks is defined we assume it follows the
+	//same convension
+	var machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string
+	for index := range cluster.ClusterNetworks {
+		if index < len(cluster.MachineNetworks) {
+			machineNetworkCidr = string(cluster.MachineNetworks[index].Cidr)
+		}
+		clusterNetworkCidr = string(cluster.ClusterNetworks[index].Cidr)
+		serviceNetworkCidr = string(cluster.ServiceNetworks[index].Cidr)
+
+		if err := network.VerifyClusterCIDRsNotOverlap(machineNetworkCidr,
+			clusterNetworkCidr, serviceNetworkCidr,
+			network.IsMachineNetworkRequired(cluster)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) ValidationStatus {
-	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) {
-		if !validationStatusToBool(v.isClusterCidrDefined(c)) || !validationStatusToBool(v.isServiceCidrDefined(c)) {
-			return ValidationPending
-		}
-	} else {
-		if !validationStatusToBool(v.isMachineCidrDefined(c)) || !validationStatusToBool(v.isClusterCidrDefined(c)) || !validationStatusToBool(v.isServiceCidrDefined(c)) {
-			return ValidationPending
-		}
+	//If one of the required Cidr fields is empty return Pending status
+	if !validationStatusToBool(v.isClusterCidrDefined(c)) || !validationStatusToBool(v.isServiceCidrDefined(c)) {
+		return ValidationPending
+	}
+	if network.IsMachineNetworkRequired(c.cluster) && !validationStatusToBool(v.isMachineCidrDefined(c)) {
+		return ValidationPending
 	}
 
 	// TODO MGMT-7587: Support any number of subnets
 	// Assumes that the number of cluster networks equal to the number of service networks
-	for index := range c.cluster.ClusterNetworks {
-		machineNetworkCidr := ""
-		if len(c.cluster.MachineNetworks) > index {
-			machineNetworkCidr = string(c.cluster.MachineNetworks[index].Cidr)
-		}
+	if len(c.cluster.ClusterNetworks) != len(c.cluster.ServiceNetworks) {
+		return ValidationError
+	}
 
-		if network.VerifyClusterCIDRsNotOverlap(machineNetworkCidr,
-			string(c.cluster.ClusterNetworks[index].Cidr),
-			string(c.cluster.ServiceNetworks[index].Cidr),
-			swag.BoolValue(c.cluster.UserManagedNetworking)) != nil {
-			return ValidationFailure
-		}
+	if err := checkCidrsOverlapping(c.cluster); err != nil {
+		return ValidationFailure
 	}
 	return ValidationSuccess
 }
@@ -532,20 +545,8 @@ func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, 
 	case ValidationSuccess:
 		return "No CIDRS are overlapping."
 	case ValidationFailure:
-		// TODO MGMT-7587: Support any number of subnets
-		// Assumes that the number of cluster networks equal to the number of service networks
-		for index := range c.cluster.ClusterNetworks {
-			machineNetworkCidr := ""
-			if len(c.cluster.MachineNetworks) > index {
-				machineNetworkCidr = string(c.cluster.MachineNetworks[index].Cidr)
-			}
-
-			if err := network.VerifyClusterCIDRsNotOverlap(machineNetworkCidr,
-				string(c.cluster.ClusterNetworks[index].Cidr),
-				string(c.cluster.ServiceNetworks[index].Cidr),
-				swag.BoolValue(c.cluster.UserManagedNetworking)); err != nil {
-				return fmt.Sprintf("CIDRS Overlapping: %s.", err.Error())
-			}
+		if err := checkCidrsOverlapping(c.cluster); err != nil {
+			return fmt.Sprintf("CIDRS Overlapping: %s.", err.Error())
 		}
 		return ""
 	case ValidationPending:
@@ -553,6 +554,8 @@ func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, 
 			return "At least one of the CIDRs (Cluster Network, Service Network) is undefined."
 		}
 		return "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
+	case ValidationError:
+		return "A mismatch between the number of Cluster and Service networks"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}

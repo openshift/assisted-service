@@ -3,6 +3,7 @@ package network
 import (
 	"net"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -97,6 +98,10 @@ func GetAddressFamilies(networks interface{}) (ipv4 bool, ipv6 bool, err error) 
 	}
 
 	return ipv4, ipv6, nil
+}
+
+func IsMachineNetworkRequired(cluster *common.Cluster) bool {
+	return !swag.BoolValue(cluster.UserManagedNetworking) || common.IsSingleNodeCluster(cluster)
 }
 
 func IsMachineCidrAvailable(cluster *common.Cluster) bool {

@@ -1727,6 +1727,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 			userManagedNetworking bool
 			vipDhcpAllocation     bool
 			networkType           string
+			sno                   bool
 		}{
 			{
 				name:            "pending-for-input to pending-for-input",
@@ -1825,6 +1826,48 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				}),
 				errorExpected:         false,
 				userManagedNetworking: true,
+			},
+			{
+				name:     "pending-for-input to insufficient - overlapping (sno)", //MGMT-8748
+				srcState: models.ClusterStatusPendingForInput,
+				dstState: models.ClusterStatusInsufficient,
+				clusterNetworks: []*models.ClusterNetwork{
+					{Cidr: models.Subnet("10.16.0.0/14")},
+				},
+				serviceNetworks: []*models.ServiceNetwork{
+					{Cidr: models.Subnet("172.5.0.0/16")},
+				},
+				machineNetworks: []*models.MachineNetwork{
+					{Cidr: models.Subnet("10.16.116.80/28")},
+				},
+				apiVip:      "10.16.116.81",
+				ingressVip:  "10.16.116.82",
+				networkType: models.ClusterNetworkTypeOpenShiftSDN,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+						Inventory: common.GenerateTestInventoryWithNetwork(common.NetAddress{
+							IPv4Address: []string{"10.16.116.80/28"},
+						}),
+						Role: models.HostRoleMaster},
+				},
+				sno:               true,
+				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster Machine CIDR is equivalent to the calculated CIDR"},
+					IsApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API virtual IP is defined"},
+					IsApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					IsIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IP is defined"},
+					IsIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
+					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
+					noCidrOverlapping:                   {status: ValidationFailure, messagePattern: "MachineNetworkCIDR and ClusterNetworkCidr: CIDRS .* and .* overlap"},
+					networkPrefixValid:                  {status: ValidationFailure, messagePattern: "Host prefix, now 0, must be a positive integer"},
+					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
+				}),
+				errorExpected: false,
 			},
 			{
 				name:     "pending-for-input to insufficient - overlapping",
@@ -2099,7 +2142,12 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 						VipDhcpAllocation:     &t.vipDhcpAllocation,
 					},
 				}
+				if t.sno {
+					ha := models.ClusterHighAvailabilityModeNone
+					cluster.HighAvailabilityMode = &ha
+				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
 				for i := range t.hosts {
 					t.hosts[i].InfraEnvID = clusterId
 					t.hosts[i].ClusterID = &clusterId

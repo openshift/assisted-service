@@ -15,15 +15,7 @@ const MinMachineMaskDelta = 4
 // Minimum mask size for Machine CIDR to allow at least 4 addresses
 const MinSNOMachineMaskDelta = 2
 
-// VerifyCIDRsNotOverlap returns true if one of the CIDRs is a subset of the other.
-func verifyCIDRsNotOverlap(acidr, bcidr *net.IPNet) error {
-	if acidr.Contains(bcidr.IP) || bcidr.Contains(acidr.IP) {
-		return errors.Errorf("CIDRS %s and %s overlap", acidr.String(), bcidr.String())
-	}
-	return nil
-}
-
-func VerifyCIDRsNotOverlap(aCidrStr, bCidrStr string) error {
+func netsOverlap(aCidrStr, bCidrStr string) error {
 	if aCidrStr == "" || bCidrStr == "" {
 		return nil
 	}
@@ -35,7 +27,11 @@ func VerifyCIDRsNotOverlap(aCidrStr, bCidrStr string) error {
 	if err != nil {
 		return err
 	}
-	return verifyCIDRsNotOverlap(acidr, bcidr)
+	//overlapping occur if one of the CIDRs is a subset of the other
+	if acidr.Contains(bcidr.IP) || bcidr.Contains(acidr.IP) {
+		return errors.Errorf("CIDRS %s and %s overlap", acidr.String(), bcidr.String())
+	}
+	return nil
 }
 
 func verifySubnetCIDR(cidrStr string, minSubnetMaskSize int) error {
@@ -108,18 +104,18 @@ func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, num
 	return nil
 }
 
-func VerifyClusterCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string, userManagedNetworking bool) error {
-	if !userManagedNetworking {
-		err := VerifyCIDRsNotOverlap(machineNetworkCidr, serviceNetworkCidr)
+func VerifyClusterCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string, machineNetworkRequired bool) error {
+	if machineNetworkRequired {
+		err := netsOverlap(machineNetworkCidr, serviceNetworkCidr)
 		if err != nil {
 			return errors.Wrap(err, "MachineNetworkCIDR and ServiceNetworkCIDR")
 		}
-		err = VerifyCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr)
+		err = netsOverlap(machineNetworkCidr, clusterNetworkCidr)
 		if err != nil {
 			return errors.Wrap(err, "MachineNetworkCIDR and ClusterNetworkCidr")
 		}
 	}
-	err := VerifyCIDRsNotOverlap(serviceNetworkCidr, clusterNetworkCidr)
+	err := netsOverlap(serviceNetworkCidr, clusterNetworkCidr)
 	if err != nil {
 		return errors.Wrap(err, "ServiceNetworkCidr and ClusterNetworkCidr")
 	}
