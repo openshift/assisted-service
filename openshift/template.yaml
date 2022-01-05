@@ -112,7 +112,7 @@ parameters:
   value: "1h"
   required: false
 - name: CNV_SNO_INSTALL_HPP
-  value: "false"
+  value: "true"
   required: false
 apiVersion: v1
 kind: Template

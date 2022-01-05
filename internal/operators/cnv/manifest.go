@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"text/template"
+
+	"github.com/hashicorp/go-version"
+	"github.com/openshift/assisted-service/internal/common"
 )
 
 const (
@@ -15,6 +18,8 @@ const (
 
 	upstreamSourceName   string = "community-kubevirt-hyperconverged"
 	downstreamSourceName string = "kubevirt-hyperconverged"
+
+	minimalOpenShiftVersionForHPPSNO string = "4.10.0-0.0"
 )
 
 type manifestConfig struct {
@@ -36,7 +41,7 @@ func configSource(config Config) manifestConfig {
 }
 
 // Manifests returns manifests needed to deploy CNV
-func Manifests(config Config, isSingleNodeCluster bool) (map[string][]byte, []byte, error) {
+func Manifests(config Config, cluster *common.Cluster) (map[string][]byte, []byte, error) {
 	configSource := configSource(config)
 	cnvSubsManifest, err := subscription(configSource)
 
@@ -58,7 +63,7 @@ func Manifests(config Config, isSingleNodeCluster bool) (map[string][]byte, []by
 
 	openshiftManifests := make(map[string][]byte)
 
-	if isSingleNodeCluster && config.SNOInstallHPP {
+	if shouldInstallHPP(config, cluster) {
 		cnvHpp, err := hpp(config.SNOPoolSizeRequestHPPGib)
 		if err != nil {
 			return nil, nil, err
@@ -123,6 +128,29 @@ func executeTemplate(data map[string]string, contentName, content string) ([]byt
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func shouldInstallHPP(config Config, cluster *common.Cluster) bool {
+	if !common.IsSingleNodeCluster(cluster) || !config.SNOInstallHPP {
+		return false
+	}
+
+	// HPP on SNO is only supported from CNV 4.10
+	var err error
+	var ocpVersion, minimalVersionForHppSno *version.Version
+	ocpVersion, err = version.NewVersion(cluster.OpenshiftVersion)
+	if err != nil {
+		return false
+	}
+	minimalVersionForHppSno, err = version.NewVersion(minimalOpenShiftVersionForHPPSNO)
+	if err != nil {
+		return false
+	}
+	if ocpVersion.LessThan(minimalVersionForHppSno) {
+		return false
+	}
+
+	return true
 }
 
 const cnvSubscription = `apiVersion: operators.coreos.com/v1alpha1
