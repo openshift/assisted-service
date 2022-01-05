@@ -185,35 +185,49 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
-	return &models.OperatorHardwareRequirements{
-		OperatorName: o.GetName(),
-		Dependencies: o.GetDependencies(),
-		Requirements: &models.HostTypeHardwareRequirementsWrapper{
-			Master: &models.HostTypeHardwareRequirements{
-				Quantitative: &models.ClusterHostRequirementsDetails{
-					CPUCores: o.config.OCSPerHostCPUCompactMode,
-					RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBCompactMode),
-				},
-				Qualitative: []string{
-					"Requirements apply only for master-only clusters",
-					"At least 3 hosts",
-					"At least 1 non-boot disk on 3 hosts",
-				},
-			},
-			Worker: &models.HostTypeHardwareRequirements{
-				Quantitative: &models.ClusterHostRequirementsDetails{
-					CPUCores: o.config.OCSPerHostCPUStandardMode,
-					RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode),
-				},
-				Qualitative: []string{
-					"Requirements apply only for clusters with workers",
-					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSPerDiskRAMGiB),
-					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSPerDiskCPUCount),
-					"At least 3 workers",
-					"At least 1 non-boot disk on 3 workers",
+func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+
+	numOfHosts := len(cluster.Hosts)
+
+	if numOfHosts <= 3 { // Compact Mode
+		return &models.OperatorHardwareRequirements{
+			OperatorName: o.GetName(),
+			Dependencies: o.GetDependencies(),
+			Requirements: &models.HostTypeHardwareRequirementsWrapper{
+				Master: &models.HostTypeHardwareRequirements{
+					Quantitative: &models.ClusterHostRequirementsDetails{
+						CPUCores: o.config.OCSPerHostCPUCompactMode,
+						RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBCompactMode),
+					},
+					Qualitative: []string{
+						"Requirements apply only for master-only clusters",
+						fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSPerDiskRAMGiB),
+						fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSPerDiskCPUCount),
+						"At least 3 hosts",
+						"At least 1 non-boot disk on 3 hosts",
+					},
 				},
 			},
-		},
-	}, nil
+		}, nil
+	} else {
+		return &models.OperatorHardwareRequirements{
+			OperatorName: o.GetName(),
+			Dependencies: o.GetDependencies(),
+			Requirements: &models.HostTypeHardwareRequirementsWrapper{
+				Worker: &models.HostTypeHardwareRequirements{
+					Quantitative: &models.ClusterHostRequirementsDetails{
+						CPUCores: o.config.OCSPerHostCPUStandardMode,
+						RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode),
+					},
+					Qualitative: []string{
+						"Requirements apply only for clusters with workers",
+						fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSPerDiskRAMGiB),
+						fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSPerDiskCPUCount),
+						"At least 3 workers",
+						"At least 1 non-boot disk on 3 workers",
+					},
+				},
+			},
+		}, nil
+	}
 }
