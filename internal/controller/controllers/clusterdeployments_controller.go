@@ -195,16 +195,9 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 
-	if clusterDeployment.Spec.PullSecretRef == nil {
-		errorMessage := "Missing reference to pull secret"
-		log.WithError(err).Error(errorMessage)
-		return r.updateStatus(ctx, log, clusterInstall, cluster, newInputError(errorMessage))
-	}
-
-	// Make sure that the PullSecret Secret has the needed label
-	_, err = getSecret(ctx, r.Client, r.APIReader, types.NamespacedName{Namespace: req.Namespace, Name: clusterDeployment.Spec.PullSecretRef.Name})
+	err = r.validateClusterDeployment(ctx, log, clusterDeployment, clusterInstall)
 	if err != nil {
-		log.WithError(err).Error("error setting label on Pull Secret")
+		log.Error(err)
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 
@@ -235,21 +228,43 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		}
 	}
 
-	pullSecret, err := getPullSecretData(ctx, r.Client, r.APIReader, clusterDeployment.Spec.PullSecretRef, req.Namespace)
-	if err != nil {
-		log.WithError(err).Error("failed to get pull secret")
-		return r.updateStatus(ctx, log, clusterInstall, nil, err)
-	}
-
 	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster && !clusterInstall.Spec.HoldInstallation {
 		// Day 1
+		pullSecret, err := getPullSecretData(ctx, r.Client, r.APIReader, clusterDeployment.Spec.PullSecretRef, req.Namespace)
+		if err != nil {
+			log.WithError(err).Error("failed to get pull secret")
+			return r.updateStatus(ctx, log, clusterInstall, nil, err)
+		}
 		return r.installDay1(ctx, log, clusterDeployment, clusterInstall, cluster, pullSecret)
 	} else if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 		// Day 2
-		return r.installDay2Hosts(ctx, log, clusterDeployment, clusterInstall, cluster, pullSecret)
+		return r.installDay2Hosts(ctx, log, clusterDeployment, clusterInstall, cluster)
 	}
 
 	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
+}
+
+func (r *ClusterDeploymentsReconciler) validateClusterDeployment(ctx context.Context, log logrus.FieldLogger,
+	clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall) error {
+	if clusterDeployment.Spec.PullSecretRef == nil && !clusterDeployment.Spec.Installed {
+		return newInputError("missing reference to pull secret")
+	}
+
+	// Make sure that the PullSecret Secret exists
+	if clusterDeployment.Spec.PullSecretRef != nil {
+		_, err := getSecret(ctx, r.Client, r.APIReader, types.NamespacedName{Namespace: clusterDeployment.Namespace, Name: clusterDeployment.Spec.PullSecretRef.Name})
+		if err != nil {
+			log.WithError(err).Error("error getting Pull Secret")
+			return err
+		}
+	}
+
+	// Make sure that the ImageSetRef is set for clusters not already installed
+	if clusterInstall.Spec.ImageSetRef == nil && !clusterDeployment.Spec.Installed {
+		return newInputError("missing ImageSetRef for cluster that is not installed")
+	}
+
+	return nil
 }
 
 func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.Context, log logrus.FieldLogger, req ctrl.Request,
@@ -391,7 +406,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster, pullSecret string) (ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
 	for _, h := range cluster.Hosts {
 		commonh, err := r.Installer.GetCommonHostInternal(ctx, h.InfraEnvID.String(), h.ID.String())
 		if err != nil {
@@ -399,13 +414,6 @@ func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
 		if r.HostApi.IsInstallable(h) && commonh.Approved {
-			// Ensure release image exists in versions cache
-			_, err = r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret, cluster)
-			if err != nil {
-				log.WithError(err)
-				return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-			}
-
 			log.Infof("Installing Day2 host %s in %s %s", *h.ID, clusterDeployment.Name, clusterDeployment.Namespace)
 			err = r.Installer.InstallSingleDay2HostInternal(ctx, *cluster.ID, h.InfraEnvID, *h.ID)
 			if err != nil {
@@ -1122,24 +1130,9 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	id := strfmt.UUID(uuid.New().String())
 	apiVipDnsname := fmt.Sprintf("api.%s.%s", spec.ClusterName, spec.BaseDomain)
 
-	pullSecret, err := getPullSecretData(ctx, r.Client, r.APIReader, spec.PullSecretRef, key.Namespace)
-	if err != nil {
-		log.WithError(err).Error("failed to get pull secret")
-		return r.updateStatus(ctx, log, clusterInstall, nil, err)
-	}
-
-	releaseImage, err := r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret, nil)
-	if err != nil {
-		log.WithError(err)
-		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
-		// The controller will requeue after one minute, giving the user a chance to fix releaseImage
-		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
-	}
-
 	clusterParams := &models.ImportClusterParams{
-		APIVipDnsname:    swag.String(apiVipDnsname),
-		Name:             swag.String(spec.ClusterName),
-		OpenshiftVersion: *releaseImage.Version,
+		APIVipDnsname: swag.String(apiVipDnsname),
+		Name:          swag.String(spec.ClusterName),
 	}
 
 	// add optional parameter

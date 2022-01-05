@@ -75,7 +75,7 @@ func getDefaultSNOAgentClusterInstallSpec(clusterName string) hiveext.AgentClust
 			ControlPlaneAgents: 1,
 			WorkerAgents:       0,
 		},
-		ImageSetRef:          hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
+		ImageSetRef:          &hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
 		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterName},
 	}
 }
@@ -115,7 +115,7 @@ func getDefaultAgentClusterInstallSpec(clusterName string) hiveext.AgentClusterI
 			ControlPlaneAgents: 3,
 			WorkerAgents:       2,
 		},
-		ImageSetRef:          hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
+		ImageSetRef:          &hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
 		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterName},
 	}
 }
@@ -429,6 +429,47 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(aci.Status.DebugInfo.StateInfo).To(Equal(""))
 				Expect(aci.Status.DebugInfo.LogsURL).To(Equal(""))
 				Expect(aci.Status.DebugInfo.EventsURL).To(Equal(""))
+			})
+
+			It("no imagesetref when trying to create a day1 cluster", func() {
+				cluster := newClusterDeployment(clusterName, testNamespace,
+					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, ""))
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName), cluster)
+				aci.Spec.ImageSetRef = nil
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+
+				aci = getTestClusterInstall()
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotAvailableReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotAvailableMsg))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionUnknown))
+				Expect(aci.Status.DebugInfo.State).To(Equal(""))
+				Expect(aci.Status.DebugInfo.StateInfo).To(Equal(""))
+				Expect(aci.Status.DebugInfo.LogsURL).To(Equal(""))
+				Expect(aci.Status.DebugInfo.EventsURL).To(Equal(""))
+			})
+
+			It("no imagesetref when trying to create a day2 cluster", func() {
+				cluster := newClusterDeployment(clusterName, testNamespace,
+					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, ""))
+				cluster.Spec.Installed = true
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName), cluster)
+				aci.Spec.ImageSetRef = nil
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{RequeueAfter: 0}))
 			})
 
 			It("fail to get openshift version when trying to create a cluster", func() {
@@ -1600,7 +1641,6 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Hosts = []*models.Host{h}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
 			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(2)
-			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), backEndCluster.OpenshiftVersion, backEndCluster.CPUArchitecture).Return(releaseImage, nil)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(1)
 			mockInstallerInternal.EXPECT().InstallSingleDay2HostInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			request := newClusterDeploymentRequest(cluster)
@@ -1632,7 +1672,6 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(2)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(1)
 			mockInstallerInternal.EXPECT().InstallSingleDay2HostInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErr))
-			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
@@ -2555,7 +2594,6 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().
 				V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), common.DoInfraEnvCreation).
 				DoAndReturn(V2ImportClusterInternal)
-			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
@@ -2570,7 +2608,6 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().
 				V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), common.DoInfraEnvCreation).
 				Return(nil, errors.Errorf("failed to import cluster"))
-			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)

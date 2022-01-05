@@ -216,7 +216,7 @@ func FindStatusCondition(conditions []hivev1.ClusterInstallCondition, conditionT
 	return nil
 }
 
-// hasChangedImmutableField determines if a ClusterDeployment.spec immutable field was changed.
+// hasChangedImmutableField determines if a AgentClusterInstall.spec immutable field was changed.
 // it returns the diff string that shows the changes that are not supported
 func hasChangedImmutableField(oldObject, cd *hiveext.AgentClusterInstallSpec) (bool, string) {
 	r := &diffReporter{}

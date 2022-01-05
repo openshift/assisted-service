@@ -183,7 +183,7 @@ func addAnnotationToAgentClusterInstall(ctx context.Context, client k8sclient.Cl
 	}, "30s", "10s").Should(BeNil())
 }
 
-func deployClusterImageSetCRD(ctx context.Context, client k8sclient.Client, imageSetRef hivev1.ClusterImageSetReference) {
+func deployClusterImageSetCRD(ctx context.Context, client k8sclient.Client, imageSetRef *hivev1.ClusterImageSetReference) {
 	err := client.Create(ctx, &hivev1.ClusterImageSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterImageSet",
@@ -468,7 +468,7 @@ func getDefaultAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.Ag
 			NetworkType:    models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		SSHPublicKey: sshPublicKey,
-		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
+		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 3,
 			WorkerAgents:       0,
@@ -492,7 +492,7 @@ func getDefaultNonePlatformAgentClusterInstallSpec(clusterDeploymentName string)
 			UserManagedNetworking: true,
 		},
 		SSHPublicKey: sshPublicKey,
-		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
+		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 3,
 			WorkerAgents:       0,
@@ -513,7 +513,7 @@ func getDefaultSNOAgentClusterInstallSpec(clusterDeploymentName string) *hiveext
 			NetworkType:    models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		SSHPublicKey: sshPublicKey,
-		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
+		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 1,
 			WorkerAgents:       0,
@@ -536,7 +536,7 @@ func getDefaultAgentClusterIPv6InstallSpec(clusterDeploymentName string) *hiveex
 			NetworkType:    models.ClusterNetworkTypeOVNKubernetes,
 		},
 		SSHPublicKey: sshPublicKey,
-		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
+		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 3,
 			WorkerAgents:       0,
