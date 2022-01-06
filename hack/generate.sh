@@ -107,7 +107,7 @@ function generate_configuration() {
     sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" ${__root}/config/onprem-iso-fcc.yaml
 
     sed -i "s|HW_VALIDATOR_REQUIREMENTS=.*|HW_VALIDATOR_REQUIREMENTS=${HW_VALIDATOR_REQUIREMENTS}|" ${__root}/config/onprem-iso-fcc.yaml
-    docker run --rm -v ${__root}/config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > ${__root}/config/onprem-iso-config.ign
+    butane --pretty --strict ${__root}/config/onprem-iso-fcc.yaml -o ${__root}/config/onprem-iso-config.ign
 
     # Updated operator manifests with openshift versions
     sed -i "s|value: '.*' # os images|value: '${OPERATOR_OS_IMAGES}' # os images|" ${__root}/config/manager/manager.yaml
