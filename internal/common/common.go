@@ -42,6 +42,8 @@ const (
 	MirrorRegistriesConfigPath      = MirrorRegistriesConfigDir + "/" + MirrorRegistriesConfigFile
 	MaximumAllowedTimeDiffMinutes   = 4
 
+	IgnitionTokenKeyInSecret = "ignition-token"
+
 	FamilyIPv4 int32 = 4
 	FamilyIPv6 int32 = 6
 

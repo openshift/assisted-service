@@ -338,7 +338,7 @@ var _ = Describe("agent reconcile", func() {
 
 		host := newAgent("host", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		ignitionEndpointTokenSecret := newSecret(ignitionEndpointTokenSecretName, host.Namespace, map[string][]byte{
-			IgnitionTokenKeyInSecret: []byte("token"),
+			common.IgnitionTokenKeyInSecret: []byte("token"),
 		})
 		Expect(c.Create(ctx, ignitionEndpointTokenSecret)).To(BeNil())
 		host.Spec.IgnitionEndpointTokenReference = &v1beta1.IgnitionEndpointTokenReference{
