@@ -286,6 +286,7 @@ var _ = Describe("RegisterHost", func() {
 			Expect(h.Progress.CurrentStage).To(BeEmpty())
 			Expect(h.Progress.ProgressInfo).To(BeEmpty())
 			Expect(h.NtpSources).To(BeEmpty())
+			Expect(h.ImagesStatus).To(BeEmpty())
 		})
 
 		for i := range tests {
@@ -293,14 +294,15 @@ var _ = Describe("RegisterHost", func() {
 
 			It(t.name, func() {
 				Expect(db.Create(&models.Host{
-					ID:         &hostId,
-					InfraEnvID: infraEnvId,
-					ClusterID:  &clusterId,
-					Role:       models.HostRoleMaster,
-					Inventory:  defaultHwInfo,
-					Status:     swag.String(t.srcState),
-					Bootstrap:  true,
-					Kind:       swag.String(t.kind),
+					ID:           &hostId,
+					InfraEnvID:   infraEnvId,
+					ClusterID:    &clusterId,
+					Role:         models.HostRoleMaster,
+					Inventory:    defaultHwInfo,
+					Status:       swag.String(t.srcState),
+					Bootstrap:    true,
+					ImagesStatus: "{'image': 'success'}",
+					Kind:         swag.String(t.kind),
 					Progress: &models.HostProgressInfo{
 						CurrentStage: common.TestDefaultConfig.HostProgressStage,
 						ProgressInfo: "some info",
