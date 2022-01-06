@@ -19,7 +19,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
-	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
 	"github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/openshift/assisted-service/restapi/operations/managed_domains"
@@ -55,98 +54,14 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerBindHostHandler: installer.BindHostHandlerFunc(func(params installer.BindHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.BindHost has not yet been implemented")
 		}),
-		InstallerCancelInstallationHandler: installer.CancelInstallationHandlerFunc(func(params installer.CancelInstallationParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.CancelInstallation has not yet been implemented")
-		}),
-		InstallerCompleteInstallationHandler: installer.CompleteInstallationHandlerFunc(func(params installer.CompleteInstallationParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.CompleteInstallation has not yet been implemented")
-		}),
-		ManifestsCreateClusterManifestHandler: manifests.CreateClusterManifestHandlerFunc(func(params manifests.CreateClusterManifestParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation manifests.CreateClusterManifest has not yet been implemented")
-		}),
-		AssistedServiceIsoCreateISOAndUploadToS3Handler: assisted_service_iso.CreateISOAndUploadToS3HandlerFunc(func(params assisted_service_iso.CreateISOAndUploadToS3Params, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation assisted_service_iso.CreateISOAndUploadToS3 has not yet been implemented")
-		}),
-		ManifestsDeleteClusterManifestHandler: manifests.DeleteClusterManifestHandlerFunc(func(params manifests.DeleteClusterManifestParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation manifests.DeleteClusterManifest has not yet been implemented")
-		}),
-		InstallerDeregisterClusterHandler: installer.DeregisterClusterHandlerFunc(func(params installer.DeregisterClusterParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DeregisterCluster has not yet been implemented")
-		}),
-		InstallerDeregisterHostHandler: installer.DeregisterHostHandlerFunc(func(params installer.DeregisterHostParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DeregisterHost has not yet been implemented")
-		}),
 		InstallerDeregisterInfraEnvHandler: installer.DeregisterInfraEnvHandlerFunc(func(params installer.DeregisterInfraEnvParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DeregisterInfraEnv has not yet been implemented")
-		}),
-		InstallerDisableHostHandler: installer.DisableHostHandlerFunc(func(params installer.DisableHostParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DisableHost has not yet been implemented")
-		}),
-		InstallerDownloadClusterFilesHandler: installer.DownloadClusterFilesHandlerFunc(func(params installer.DownloadClusterFilesParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DownloadClusterFiles has not yet been implemented")
-		}),
-		InstallerDownloadClusterISOHandler: installer.DownloadClusterISOHandlerFunc(func(params installer.DownloadClusterISOParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DownloadClusterISO has not yet been implemented")
-		}),
-		InstallerDownloadClusterISOHeadersHandler: installer.DownloadClusterISOHeadersHandlerFunc(func(params installer.DownloadClusterISOHeadersParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DownloadClusterISOHeaders has not yet been implemented")
-		}),
-		InstallerDownloadClusterKubeconfigHandler: installer.DownloadClusterKubeconfigHandlerFunc(func(params installer.DownloadClusterKubeconfigParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DownloadClusterKubeconfig has not yet been implemented")
-		}),
-		InstallerDownloadClusterLogsHandler: installer.DownloadClusterLogsHandlerFunc(func(params installer.DownloadClusterLogsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DownloadClusterLogs has not yet been implemented")
-		}),
-		ManifestsDownloadClusterManifestHandler: manifests.DownloadClusterManifestHandlerFunc(func(params manifests.DownloadClusterManifestParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation manifests.DownloadClusterManifest has not yet been implemented")
-		}),
-		InstallerDownloadHostIgnitionHandler: installer.DownloadHostIgnitionHandlerFunc(func(params installer.DownloadHostIgnitionParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DownloadHostIgnition has not yet been implemented")
-		}),
-		InstallerDownloadHostLogsHandler: installer.DownloadHostLogsHandlerFunc(func(params installer.DownloadHostLogsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.DownloadHostLogs has not yet been implemented")
-		}),
-		AssistedServiceIsoDownloadISOHandler: assisted_service_iso.DownloadISOHandlerFunc(func(params assisted_service_iso.DownloadISOParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation assisted_service_iso.DownloadISO has not yet been implemented")
 		}),
 		InstallerDownloadMinimalInitrdHandler: installer.DownloadMinimalInitrdHandlerFunc(func(params installer.DownloadMinimalInitrdParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadMinimalInitrd has not yet been implemented")
 		}),
-		InstallerEnableHostHandler: installer.EnableHostHandlerFunc(func(params installer.EnableHostParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.EnableHost has not yet been implemented")
-		}),
-		InstallerGenerateClusterISOHandler: installer.GenerateClusterISOHandlerFunc(func(params installer.GenerateClusterISOParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GenerateClusterISO has not yet been implemented")
-		}),
-		InstallerGetClusterHandler: installer.GetClusterHandlerFunc(func(params installer.GetClusterParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetCluster has not yet been implemented")
-		}),
-		InstallerGetClusterDefaultConfigHandler: installer.GetClusterDefaultConfigHandlerFunc(func(params installer.GetClusterDefaultConfigParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetClusterDefaultConfig has not yet been implemented")
-		}),
-		InstallerGetClusterHostRequirementsHandler: installer.GetClusterHostRequirementsHandlerFunc(func(params installer.GetClusterHostRequirementsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetClusterHostRequirements has not yet been implemented")
-		}),
-		InstallerGetClusterInstallConfigHandler: installer.GetClusterInstallConfigHandlerFunc(func(params installer.GetClusterInstallConfigParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetClusterInstallConfig has not yet been implemented")
-		}),
 		InstallerGetClusterSupportedPlatformsHandler: installer.GetClusterSupportedPlatformsHandlerFunc(func(params installer.GetClusterSupportedPlatformsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetClusterSupportedPlatforms has not yet been implemented")
-		}),
-		InstallerGetCredentialsHandler: installer.GetCredentialsHandlerFunc(func(params installer.GetCredentialsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetCredentials has not yet been implemented")
-		}),
-		InstallerGetDiscoveryIgnitionHandler: installer.GetDiscoveryIgnitionHandlerFunc(func(params installer.GetDiscoveryIgnitionParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetDiscoveryIgnition has not yet been implemented")
-		}),
-		InstallerGetFreeAddressesHandler: installer.GetFreeAddressesHandlerFunc(func(params installer.GetFreeAddressesParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetFreeAddresses has not yet been implemented")
-		}),
-		InstallerGetHostHandler: installer.GetHostHandlerFunc(func(params installer.GetHostParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetHost has not yet been implemented")
-		}),
-		InstallerGetHostIgnitionHandler: installer.GetHostIgnitionHandlerFunc(func(params installer.GetHostIgnitionParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetHostIgnition has not yet been implemented")
 		}),
 		InstallerGetInfraEnvHandler: installer.GetInfraEnvHandlerFunc(func(params installer.GetInfraEnvParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetInfraEnv has not yet been implemented")
@@ -154,119 +69,20 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetInfraEnvDownloadURLHandler: installer.GetInfraEnvDownloadURLHandlerFunc(func(params installer.GetInfraEnvDownloadURLParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetInfraEnvDownloadURL has not yet been implemented")
 		}),
-		InstallerGetPreflightRequirementsHandler: installer.GetPreflightRequirementsHandlerFunc(func(params installer.GetPreflightRequirementsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetPreflightRequirements has not yet been implemented")
-		}),
-		AssistedServiceIsoGetPresignedForAssistedServiceISOHandler: assisted_service_iso.GetPresignedForAssistedServiceISOHandlerFunc(func(params assisted_service_iso.GetPresignedForAssistedServiceISOParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation assisted_service_iso.GetPresignedForAssistedServiceISO has not yet been implemented")
-		}),
-		InstallerGetPresignedForClusterFilesHandler: installer.GetPresignedForClusterFilesHandlerFunc(func(params installer.GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetPresignedForClusterFiles has not yet been implemented")
-		}),
-		InstallerInstallClusterHandler: installer.InstallClusterHandlerFunc(func(params installer.InstallClusterParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.InstallCluster has not yet been implemented")
-		}),
-		InstallerInstallHostHandler: installer.InstallHostHandlerFunc(func(params installer.InstallHostParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.InstallHost has not yet been implemented")
-		}),
-		InstallerInstallHostsHandler: installer.InstallHostsHandlerFunc(func(params installer.InstallHostsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.InstallHosts has not yet been implemented")
-		}),
-		ManifestsListClusterManifestsHandler: manifests.ListClusterManifestsHandlerFunc(func(params manifests.ListClusterManifestsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation manifests.ListClusterManifests has not yet been implemented")
-		}),
-		InstallerListClustersHandler: installer.ListClustersHandlerFunc(func(params installer.ListClustersParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.ListClusters has not yet been implemented")
-		}),
-		VersionsListComponentVersionsHandler: versions.ListComponentVersionsHandlerFunc(func(params versions.ListComponentVersionsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation versions.ListComponentVersions has not yet been implemented")
-		}),
-		EventsListEventsHandler: events.ListEventsHandlerFunc(func(params events.ListEventsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation events.ListEvents has not yet been implemented")
-		}),
-		InstallerListHostsHandler: installer.ListHostsHandlerFunc(func(params installer.ListHostsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.ListHosts has not yet been implemented")
-		}),
 		InstallerListInfraEnvsHandler: installer.ListInfraEnvsHandlerFunc(func(params installer.ListInfraEnvsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListInfraEnvs has not yet been implemented")
-		}),
-		ManagedDomainsListManagedDomainsHandler: managed_domains.ListManagedDomainsHandlerFunc(func(params managed_domains.ListManagedDomainsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation managed_domains.ListManagedDomains has not yet been implemented")
-		}),
-		OperatorsListOfClusterOperatorsHandler: operators.ListOfClusterOperatorsHandlerFunc(func(params operators.ListOfClusterOperatorsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation operators.ListOfClusterOperators has not yet been implemented")
-		}),
-		OperatorsListOperatorPropertiesHandler: operators.ListOperatorPropertiesHandlerFunc(func(params operators.ListOperatorPropertiesParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation operators.ListOperatorProperties has not yet been implemented")
-		}),
-		VersionsListSupportedOpenshiftVersionsHandler: versions.ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation versions.ListSupportedOpenshiftVersions has not yet been implemented")
-		}),
-		OperatorsListSupportedOperatorsHandler: operators.ListSupportedOperatorsHandlerFunc(func(params operators.ListSupportedOperatorsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation operators.ListSupportedOperators has not yet been implemented")
 		}),
 		InstallerRegenerateInfraEnvSigningKeyHandler: installer.RegenerateInfraEnvSigningKeyHandlerFunc(func(params installer.RegenerateInfraEnvSigningKeyParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegenerateInfraEnvSigningKey has not yet been implemented")
 		}),
-		InstallerRegisterAddHostsClusterHandler: installer.RegisterAddHostsClusterHandlerFunc(func(params installer.RegisterAddHostsClusterParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.RegisterAddHostsCluster has not yet been implemented")
-		}),
-		InstallerRegisterClusterHandler: installer.RegisterClusterHandlerFunc(func(params installer.RegisterClusterParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.RegisterCluster has not yet been implemented")
-		}),
 		InstallerRegisterInfraEnvHandler: installer.RegisterInfraEnvHandlerFunc(func(params installer.RegisterInfraEnvParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterInfraEnv has not yet been implemented")
-		}),
-		OperatorsReportMonitoredOperatorStatusHandler: operators.ReportMonitoredOperatorStatusHandlerFunc(func(params operators.ReportMonitoredOperatorStatusParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation operators.ReportMonitoredOperatorStatus has not yet been implemented")
-		}),
-		InstallerResetClusterHandler: installer.ResetClusterHandlerFunc(func(params installer.ResetClusterParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.ResetCluster has not yet been implemented")
-		}),
-		InstallerResetHostHandler: installer.ResetHostHandlerFunc(func(params installer.ResetHostParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.ResetHost has not yet been implemented")
-		}),
-		InstallerResetHostValidationHandler: installer.ResetHostValidationHandlerFunc(func(params installer.ResetHostValidationParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.ResetHostValidation has not yet been implemented")
 		}),
 		InstallerUnbindHostHandler: installer.UnbindHostHandlerFunc(func(params installer.UnbindHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UnbindHost has not yet been implemented")
 		}),
-		InstallerUpdateClusterHandler: installer.UpdateClusterHandlerFunc(func(params installer.UpdateClusterParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.UpdateCluster has not yet been implemented")
-		}),
-		InstallerUpdateClusterInstallConfigHandler: installer.UpdateClusterInstallConfigHandlerFunc(func(params installer.UpdateClusterInstallConfigParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.UpdateClusterInstallConfig has not yet been implemented")
-		}),
-		InstallerUpdateClusterLogsProgressHandler: installer.UpdateClusterLogsProgressHandlerFunc(func(params installer.UpdateClusterLogsProgressParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.UpdateClusterLogsProgress has not yet been implemented")
-		}),
-		InstallerUpdateDiscoveryIgnitionHandler: installer.UpdateDiscoveryIgnitionHandlerFunc(func(params installer.UpdateDiscoveryIgnitionParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.UpdateDiscoveryIgnition has not yet been implemented")
-		}),
-		InstallerUpdateHostIgnitionHandler: installer.UpdateHostIgnitionHandlerFunc(func(params installer.UpdateHostIgnitionParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.UpdateHostIgnition has not yet been implemented")
-		}),
-		InstallerUpdateHostInstallProgressHandler: installer.UpdateHostInstallProgressHandlerFunc(func(params installer.UpdateHostInstallProgressParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.UpdateHostInstallProgress has not yet been implemented")
-		}),
-		InstallerUpdateHostInstallerArgsHandler: installer.UpdateHostInstallerArgsHandlerFunc(func(params installer.UpdateHostInstallerArgsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.UpdateHostInstallerArgs has not yet been implemented")
-		}),
-		InstallerUpdateHostLogsProgressHandler: installer.UpdateHostLogsProgressHandlerFunc(func(params installer.UpdateHostLogsProgressParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.UpdateHostLogsProgress has not yet been implemented")
-		}),
 		InstallerUpdateInfraEnvHandler: installer.UpdateInfraEnvHandlerFunc(func(params installer.UpdateInfraEnvParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateInfraEnv has not yet been implemented")
-		}),
-		InstallerUploadClusterIngressCertHandler: installer.UploadClusterIngressCertHandlerFunc(func(params installer.UploadClusterIngressCertParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.UploadClusterIngressCert has not yet been implemented")
-		}),
-		InstallerUploadHostLogsHandler: installer.UploadHostLogsHandlerFunc(func(params installer.UploadHostLogsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.UploadHostLogs has not yet been implemented")
-		}),
-		InstallerUploadLogsHandler: installer.UploadLogsHandlerFunc(func(params installer.UploadLogsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.UploadLogs has not yet been implemented")
 		}),
 		InstallerV2CancelInstallationHandler: installer.V2CancelInstallationHandlerFunc(func(params installer.V2CancelInstallationParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2CancelInstallation has not yet been implemented")
@@ -509,148 +325,26 @@ type AssistedInstallAPI struct {
 
 	// InstallerBindHostHandler sets the operation handler for the bind host operation
 	InstallerBindHostHandler installer.BindHostHandler
-	// InstallerCancelInstallationHandler sets the operation handler for the cancel installation operation
-	InstallerCancelInstallationHandler installer.CancelInstallationHandler
-	// InstallerCompleteInstallationHandler sets the operation handler for the complete installation operation
-	InstallerCompleteInstallationHandler installer.CompleteInstallationHandler
-	// ManifestsCreateClusterManifestHandler sets the operation handler for the create cluster manifest operation
-	ManifestsCreateClusterManifestHandler manifests.CreateClusterManifestHandler
-	// AssistedServiceIsoCreateISOAndUploadToS3Handler sets the operation handler for the create i s o and upload to s3 operation
-	AssistedServiceIsoCreateISOAndUploadToS3Handler assisted_service_iso.CreateISOAndUploadToS3Handler
-	// ManifestsDeleteClusterManifestHandler sets the operation handler for the delete cluster manifest operation
-	ManifestsDeleteClusterManifestHandler manifests.DeleteClusterManifestHandler
-	// InstallerDeregisterClusterHandler sets the operation handler for the deregister cluster operation
-	InstallerDeregisterClusterHandler installer.DeregisterClusterHandler
-	// InstallerDeregisterHostHandler sets the operation handler for the deregister host operation
-	InstallerDeregisterHostHandler installer.DeregisterHostHandler
 	// InstallerDeregisterInfraEnvHandler sets the operation handler for the deregister infra env operation
 	InstallerDeregisterInfraEnvHandler installer.DeregisterInfraEnvHandler
-	// InstallerDisableHostHandler sets the operation handler for the disable host operation
-	InstallerDisableHostHandler installer.DisableHostHandler
-	// InstallerDownloadClusterFilesHandler sets the operation handler for the download cluster files operation
-	InstallerDownloadClusterFilesHandler installer.DownloadClusterFilesHandler
-	// InstallerDownloadClusterISOHandler sets the operation handler for the download cluster i s o operation
-	InstallerDownloadClusterISOHandler installer.DownloadClusterISOHandler
-	// InstallerDownloadClusterISOHeadersHandler sets the operation handler for the download cluster i s o headers operation
-	InstallerDownloadClusterISOHeadersHandler installer.DownloadClusterISOHeadersHandler
-	// InstallerDownloadClusterKubeconfigHandler sets the operation handler for the download cluster kubeconfig operation
-	InstallerDownloadClusterKubeconfigHandler installer.DownloadClusterKubeconfigHandler
-	// InstallerDownloadClusterLogsHandler sets the operation handler for the download cluster logs operation
-	InstallerDownloadClusterLogsHandler installer.DownloadClusterLogsHandler
-	// ManifestsDownloadClusterManifestHandler sets the operation handler for the download cluster manifest operation
-	ManifestsDownloadClusterManifestHandler manifests.DownloadClusterManifestHandler
-	// InstallerDownloadHostIgnitionHandler sets the operation handler for the download host ignition operation
-	InstallerDownloadHostIgnitionHandler installer.DownloadHostIgnitionHandler
-	// InstallerDownloadHostLogsHandler sets the operation handler for the download host logs operation
-	InstallerDownloadHostLogsHandler installer.DownloadHostLogsHandler
-	// AssistedServiceIsoDownloadISOHandler sets the operation handler for the download i s o operation
-	AssistedServiceIsoDownloadISOHandler assisted_service_iso.DownloadISOHandler
 	// InstallerDownloadMinimalInitrdHandler sets the operation handler for the download minimal initrd operation
 	InstallerDownloadMinimalInitrdHandler installer.DownloadMinimalInitrdHandler
-	// InstallerEnableHostHandler sets the operation handler for the enable host operation
-	InstallerEnableHostHandler installer.EnableHostHandler
-	// InstallerGenerateClusterISOHandler sets the operation handler for the generate cluster i s o operation
-	InstallerGenerateClusterISOHandler installer.GenerateClusterISOHandler
-	// InstallerGetClusterHandler sets the operation handler for the get cluster operation
-	InstallerGetClusterHandler installer.GetClusterHandler
-	// InstallerGetClusterDefaultConfigHandler sets the operation handler for the get cluster default config operation
-	InstallerGetClusterDefaultConfigHandler installer.GetClusterDefaultConfigHandler
-	// InstallerGetClusterHostRequirementsHandler sets the operation handler for the get cluster host requirements operation
-	InstallerGetClusterHostRequirementsHandler installer.GetClusterHostRequirementsHandler
-	// InstallerGetClusterInstallConfigHandler sets the operation handler for the get cluster install config operation
-	InstallerGetClusterInstallConfigHandler installer.GetClusterInstallConfigHandler
 	// InstallerGetClusterSupportedPlatformsHandler sets the operation handler for the get cluster supported platforms operation
 	InstallerGetClusterSupportedPlatformsHandler installer.GetClusterSupportedPlatformsHandler
-	// InstallerGetCredentialsHandler sets the operation handler for the get credentials operation
-	InstallerGetCredentialsHandler installer.GetCredentialsHandler
-	// InstallerGetDiscoveryIgnitionHandler sets the operation handler for the get discovery ignition operation
-	InstallerGetDiscoveryIgnitionHandler installer.GetDiscoveryIgnitionHandler
-	// InstallerGetFreeAddressesHandler sets the operation handler for the get free addresses operation
-	InstallerGetFreeAddressesHandler installer.GetFreeAddressesHandler
-	// InstallerGetHostHandler sets the operation handler for the get host operation
-	InstallerGetHostHandler installer.GetHostHandler
-	// InstallerGetHostIgnitionHandler sets the operation handler for the get host ignition operation
-	InstallerGetHostIgnitionHandler installer.GetHostIgnitionHandler
 	// InstallerGetInfraEnvHandler sets the operation handler for the get infra env operation
 	InstallerGetInfraEnvHandler installer.GetInfraEnvHandler
 	// InstallerGetInfraEnvDownloadURLHandler sets the operation handler for the get infra env download URL operation
 	InstallerGetInfraEnvDownloadURLHandler installer.GetInfraEnvDownloadURLHandler
-	// InstallerGetPreflightRequirementsHandler sets the operation handler for the get preflight requirements operation
-	InstallerGetPreflightRequirementsHandler installer.GetPreflightRequirementsHandler
-	// AssistedServiceIsoGetPresignedForAssistedServiceISOHandler sets the operation handler for the get presigned for assisted service i s o operation
-	AssistedServiceIsoGetPresignedForAssistedServiceISOHandler assisted_service_iso.GetPresignedForAssistedServiceISOHandler
-	// InstallerGetPresignedForClusterFilesHandler sets the operation handler for the get presigned for cluster files operation
-	InstallerGetPresignedForClusterFilesHandler installer.GetPresignedForClusterFilesHandler
-	// InstallerInstallClusterHandler sets the operation handler for the install cluster operation
-	InstallerInstallClusterHandler installer.InstallClusterHandler
-	// InstallerInstallHostHandler sets the operation handler for the install host operation
-	InstallerInstallHostHandler installer.InstallHostHandler
-	// InstallerInstallHostsHandler sets the operation handler for the install hosts operation
-	InstallerInstallHostsHandler installer.InstallHostsHandler
-	// ManifestsListClusterManifestsHandler sets the operation handler for the list cluster manifests operation
-	ManifestsListClusterManifestsHandler manifests.ListClusterManifestsHandler
-	// InstallerListClustersHandler sets the operation handler for the list clusters operation
-	InstallerListClustersHandler installer.ListClustersHandler
-	// VersionsListComponentVersionsHandler sets the operation handler for the list component versions operation
-	VersionsListComponentVersionsHandler versions.ListComponentVersionsHandler
-	// EventsListEventsHandler sets the operation handler for the list events operation
-	EventsListEventsHandler events.ListEventsHandler
-	// InstallerListHostsHandler sets the operation handler for the list hosts operation
-	InstallerListHostsHandler installer.ListHostsHandler
 	// InstallerListInfraEnvsHandler sets the operation handler for the list infra envs operation
 	InstallerListInfraEnvsHandler installer.ListInfraEnvsHandler
-	// ManagedDomainsListManagedDomainsHandler sets the operation handler for the list managed domains operation
-	ManagedDomainsListManagedDomainsHandler managed_domains.ListManagedDomainsHandler
-	// OperatorsListOfClusterOperatorsHandler sets the operation handler for the list of cluster operators operation
-	OperatorsListOfClusterOperatorsHandler operators.ListOfClusterOperatorsHandler
-	// OperatorsListOperatorPropertiesHandler sets the operation handler for the list operator properties operation
-	OperatorsListOperatorPropertiesHandler operators.ListOperatorPropertiesHandler
-	// VersionsListSupportedOpenshiftVersionsHandler sets the operation handler for the list supported openshift versions operation
-	VersionsListSupportedOpenshiftVersionsHandler versions.ListSupportedOpenshiftVersionsHandler
-	// OperatorsListSupportedOperatorsHandler sets the operation handler for the list supported operators operation
-	OperatorsListSupportedOperatorsHandler operators.ListSupportedOperatorsHandler
 	// InstallerRegenerateInfraEnvSigningKeyHandler sets the operation handler for the regenerate infra env signing key operation
 	InstallerRegenerateInfraEnvSigningKeyHandler installer.RegenerateInfraEnvSigningKeyHandler
-	// InstallerRegisterAddHostsClusterHandler sets the operation handler for the register add hosts cluster operation
-	InstallerRegisterAddHostsClusterHandler installer.RegisterAddHostsClusterHandler
-	// InstallerRegisterClusterHandler sets the operation handler for the register cluster operation
-	InstallerRegisterClusterHandler installer.RegisterClusterHandler
 	// InstallerRegisterInfraEnvHandler sets the operation handler for the register infra env operation
 	InstallerRegisterInfraEnvHandler installer.RegisterInfraEnvHandler
-	// OperatorsReportMonitoredOperatorStatusHandler sets the operation handler for the report monitored operator status operation
-	OperatorsReportMonitoredOperatorStatusHandler operators.ReportMonitoredOperatorStatusHandler
-	// InstallerResetClusterHandler sets the operation handler for the reset cluster operation
-	InstallerResetClusterHandler installer.ResetClusterHandler
-	// InstallerResetHostHandler sets the operation handler for the reset host operation
-	InstallerResetHostHandler installer.ResetHostHandler
-	// InstallerResetHostValidationHandler sets the operation handler for the reset host validation operation
-	InstallerResetHostValidationHandler installer.ResetHostValidationHandler
 	// InstallerUnbindHostHandler sets the operation handler for the unbind host operation
 	InstallerUnbindHostHandler installer.UnbindHostHandler
-	// InstallerUpdateClusterHandler sets the operation handler for the update cluster operation
-	InstallerUpdateClusterHandler installer.UpdateClusterHandler
-	// InstallerUpdateClusterInstallConfigHandler sets the operation handler for the update cluster install config operation
-	InstallerUpdateClusterInstallConfigHandler installer.UpdateClusterInstallConfigHandler
-	// InstallerUpdateClusterLogsProgressHandler sets the operation handler for the update cluster logs progress operation
-	InstallerUpdateClusterLogsProgressHandler installer.UpdateClusterLogsProgressHandler
-	// InstallerUpdateDiscoveryIgnitionHandler sets the operation handler for the update discovery ignition operation
-	InstallerUpdateDiscoveryIgnitionHandler installer.UpdateDiscoveryIgnitionHandler
-	// InstallerUpdateHostIgnitionHandler sets the operation handler for the update host ignition operation
-	InstallerUpdateHostIgnitionHandler installer.UpdateHostIgnitionHandler
-	// InstallerUpdateHostInstallProgressHandler sets the operation handler for the update host install progress operation
-	InstallerUpdateHostInstallProgressHandler installer.UpdateHostInstallProgressHandler
-	// InstallerUpdateHostInstallerArgsHandler sets the operation handler for the update host installer args operation
-	InstallerUpdateHostInstallerArgsHandler installer.UpdateHostInstallerArgsHandler
-	// InstallerUpdateHostLogsProgressHandler sets the operation handler for the update host logs progress operation
-	InstallerUpdateHostLogsProgressHandler installer.UpdateHostLogsProgressHandler
 	// InstallerUpdateInfraEnvHandler sets the operation handler for the update infra env operation
 	InstallerUpdateInfraEnvHandler installer.UpdateInfraEnvHandler
-	// InstallerUploadClusterIngressCertHandler sets the operation handler for the upload cluster ingress cert operation
-	InstallerUploadClusterIngressCertHandler installer.UploadClusterIngressCertHandler
-	// InstallerUploadHostLogsHandler sets the operation handler for the upload host logs operation
-	InstallerUploadHostLogsHandler installer.UploadHostLogsHandler
-	// InstallerUploadLogsHandler sets the operation handler for the upload logs operation
-	InstallerUploadLogsHandler installer.UploadLogsHandler
 	// InstallerV2CancelInstallationHandler sets the operation handler for the v2 cancel installation operation
 	InstallerV2CancelInstallationHandler installer.V2CancelInstallationHandler
 	// ManifestsV2CreateClusterManifestHandler sets the operation handler for the v2 create cluster manifest operation
@@ -856,98 +550,14 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerBindHostHandler == nil {
 		unregistered = append(unregistered, "installer.BindHostHandler")
 	}
-	if o.InstallerCancelInstallationHandler == nil {
-		unregistered = append(unregistered, "installer.CancelInstallationHandler")
-	}
-	if o.InstallerCompleteInstallationHandler == nil {
-		unregistered = append(unregistered, "installer.CompleteInstallationHandler")
-	}
-	if o.ManifestsCreateClusterManifestHandler == nil {
-		unregistered = append(unregistered, "manifests.CreateClusterManifestHandler")
-	}
-	if o.AssistedServiceIsoCreateISOAndUploadToS3Handler == nil {
-		unregistered = append(unregistered, "assisted_service_iso.CreateISOAndUploadToS3Handler")
-	}
-	if o.ManifestsDeleteClusterManifestHandler == nil {
-		unregistered = append(unregistered, "manifests.DeleteClusterManifestHandler")
-	}
-	if o.InstallerDeregisterClusterHandler == nil {
-		unregistered = append(unregistered, "installer.DeregisterClusterHandler")
-	}
-	if o.InstallerDeregisterHostHandler == nil {
-		unregistered = append(unregistered, "installer.DeregisterHostHandler")
-	}
 	if o.InstallerDeregisterInfraEnvHandler == nil {
 		unregistered = append(unregistered, "installer.DeregisterInfraEnvHandler")
-	}
-	if o.InstallerDisableHostHandler == nil {
-		unregistered = append(unregistered, "installer.DisableHostHandler")
-	}
-	if o.InstallerDownloadClusterFilesHandler == nil {
-		unregistered = append(unregistered, "installer.DownloadClusterFilesHandler")
-	}
-	if o.InstallerDownloadClusterISOHandler == nil {
-		unregistered = append(unregistered, "installer.DownloadClusterISOHandler")
-	}
-	if o.InstallerDownloadClusterISOHeadersHandler == nil {
-		unregistered = append(unregistered, "installer.DownloadClusterISOHeadersHandler")
-	}
-	if o.InstallerDownloadClusterKubeconfigHandler == nil {
-		unregistered = append(unregistered, "installer.DownloadClusterKubeconfigHandler")
-	}
-	if o.InstallerDownloadClusterLogsHandler == nil {
-		unregistered = append(unregistered, "installer.DownloadClusterLogsHandler")
-	}
-	if o.ManifestsDownloadClusterManifestHandler == nil {
-		unregistered = append(unregistered, "manifests.DownloadClusterManifestHandler")
-	}
-	if o.InstallerDownloadHostIgnitionHandler == nil {
-		unregistered = append(unregistered, "installer.DownloadHostIgnitionHandler")
-	}
-	if o.InstallerDownloadHostLogsHandler == nil {
-		unregistered = append(unregistered, "installer.DownloadHostLogsHandler")
-	}
-	if o.AssistedServiceIsoDownloadISOHandler == nil {
-		unregistered = append(unregistered, "assisted_service_iso.DownloadISOHandler")
 	}
 	if o.InstallerDownloadMinimalInitrdHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadMinimalInitrdHandler")
 	}
-	if o.InstallerEnableHostHandler == nil {
-		unregistered = append(unregistered, "installer.EnableHostHandler")
-	}
-	if o.InstallerGenerateClusterISOHandler == nil {
-		unregistered = append(unregistered, "installer.GenerateClusterISOHandler")
-	}
-	if o.InstallerGetClusterHandler == nil {
-		unregistered = append(unregistered, "installer.GetClusterHandler")
-	}
-	if o.InstallerGetClusterDefaultConfigHandler == nil {
-		unregistered = append(unregistered, "installer.GetClusterDefaultConfigHandler")
-	}
-	if o.InstallerGetClusterHostRequirementsHandler == nil {
-		unregistered = append(unregistered, "installer.GetClusterHostRequirementsHandler")
-	}
-	if o.InstallerGetClusterInstallConfigHandler == nil {
-		unregistered = append(unregistered, "installer.GetClusterInstallConfigHandler")
-	}
 	if o.InstallerGetClusterSupportedPlatformsHandler == nil {
 		unregistered = append(unregistered, "installer.GetClusterSupportedPlatformsHandler")
-	}
-	if o.InstallerGetCredentialsHandler == nil {
-		unregistered = append(unregistered, "installer.GetCredentialsHandler")
-	}
-	if o.InstallerGetDiscoveryIgnitionHandler == nil {
-		unregistered = append(unregistered, "installer.GetDiscoveryIgnitionHandler")
-	}
-	if o.InstallerGetFreeAddressesHandler == nil {
-		unregistered = append(unregistered, "installer.GetFreeAddressesHandler")
-	}
-	if o.InstallerGetHostHandler == nil {
-		unregistered = append(unregistered, "installer.GetHostHandler")
-	}
-	if o.InstallerGetHostIgnitionHandler == nil {
-		unregistered = append(unregistered, "installer.GetHostIgnitionHandler")
 	}
 	if o.InstallerGetInfraEnvHandler == nil {
 		unregistered = append(unregistered, "installer.GetInfraEnvHandler")
@@ -955,119 +565,20 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerGetInfraEnvDownloadURLHandler == nil {
 		unregistered = append(unregistered, "installer.GetInfraEnvDownloadURLHandler")
 	}
-	if o.InstallerGetPreflightRequirementsHandler == nil {
-		unregistered = append(unregistered, "installer.GetPreflightRequirementsHandler")
-	}
-	if o.AssistedServiceIsoGetPresignedForAssistedServiceISOHandler == nil {
-		unregistered = append(unregistered, "assisted_service_iso.GetPresignedForAssistedServiceISOHandler")
-	}
-	if o.InstallerGetPresignedForClusterFilesHandler == nil {
-		unregistered = append(unregistered, "installer.GetPresignedForClusterFilesHandler")
-	}
-	if o.InstallerInstallClusterHandler == nil {
-		unregistered = append(unregistered, "installer.InstallClusterHandler")
-	}
-	if o.InstallerInstallHostHandler == nil {
-		unregistered = append(unregistered, "installer.InstallHostHandler")
-	}
-	if o.InstallerInstallHostsHandler == nil {
-		unregistered = append(unregistered, "installer.InstallHostsHandler")
-	}
-	if o.ManifestsListClusterManifestsHandler == nil {
-		unregistered = append(unregistered, "manifests.ListClusterManifestsHandler")
-	}
-	if o.InstallerListClustersHandler == nil {
-		unregistered = append(unregistered, "installer.ListClustersHandler")
-	}
-	if o.VersionsListComponentVersionsHandler == nil {
-		unregistered = append(unregistered, "versions.ListComponentVersionsHandler")
-	}
-	if o.EventsListEventsHandler == nil {
-		unregistered = append(unregistered, "events.ListEventsHandler")
-	}
-	if o.InstallerListHostsHandler == nil {
-		unregistered = append(unregistered, "installer.ListHostsHandler")
-	}
 	if o.InstallerListInfraEnvsHandler == nil {
 		unregistered = append(unregistered, "installer.ListInfraEnvsHandler")
-	}
-	if o.ManagedDomainsListManagedDomainsHandler == nil {
-		unregistered = append(unregistered, "managed_domains.ListManagedDomainsHandler")
-	}
-	if o.OperatorsListOfClusterOperatorsHandler == nil {
-		unregistered = append(unregistered, "operators.ListOfClusterOperatorsHandler")
-	}
-	if o.OperatorsListOperatorPropertiesHandler == nil {
-		unregistered = append(unregistered, "operators.ListOperatorPropertiesHandler")
-	}
-	if o.VersionsListSupportedOpenshiftVersionsHandler == nil {
-		unregistered = append(unregistered, "versions.ListSupportedOpenshiftVersionsHandler")
-	}
-	if o.OperatorsListSupportedOperatorsHandler == nil {
-		unregistered = append(unregistered, "operators.ListSupportedOperatorsHandler")
 	}
 	if o.InstallerRegenerateInfraEnvSigningKeyHandler == nil {
 		unregistered = append(unregistered, "installer.RegenerateInfraEnvSigningKeyHandler")
 	}
-	if o.InstallerRegisterAddHostsClusterHandler == nil {
-		unregistered = append(unregistered, "installer.RegisterAddHostsClusterHandler")
-	}
-	if o.InstallerRegisterClusterHandler == nil {
-		unregistered = append(unregistered, "installer.RegisterClusterHandler")
-	}
 	if o.InstallerRegisterInfraEnvHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterInfraEnvHandler")
-	}
-	if o.OperatorsReportMonitoredOperatorStatusHandler == nil {
-		unregistered = append(unregistered, "operators.ReportMonitoredOperatorStatusHandler")
-	}
-	if o.InstallerResetClusterHandler == nil {
-		unregistered = append(unregistered, "installer.ResetClusterHandler")
-	}
-	if o.InstallerResetHostHandler == nil {
-		unregistered = append(unregistered, "installer.ResetHostHandler")
-	}
-	if o.InstallerResetHostValidationHandler == nil {
-		unregistered = append(unregistered, "installer.ResetHostValidationHandler")
 	}
 	if o.InstallerUnbindHostHandler == nil {
 		unregistered = append(unregistered, "installer.UnbindHostHandler")
 	}
-	if o.InstallerUpdateClusterHandler == nil {
-		unregistered = append(unregistered, "installer.UpdateClusterHandler")
-	}
-	if o.InstallerUpdateClusterInstallConfigHandler == nil {
-		unregistered = append(unregistered, "installer.UpdateClusterInstallConfigHandler")
-	}
-	if o.InstallerUpdateClusterLogsProgressHandler == nil {
-		unregistered = append(unregistered, "installer.UpdateClusterLogsProgressHandler")
-	}
-	if o.InstallerUpdateDiscoveryIgnitionHandler == nil {
-		unregistered = append(unregistered, "installer.UpdateDiscoveryIgnitionHandler")
-	}
-	if o.InstallerUpdateHostIgnitionHandler == nil {
-		unregistered = append(unregistered, "installer.UpdateHostIgnitionHandler")
-	}
-	if o.InstallerUpdateHostInstallProgressHandler == nil {
-		unregistered = append(unregistered, "installer.UpdateHostInstallProgressHandler")
-	}
-	if o.InstallerUpdateHostInstallerArgsHandler == nil {
-		unregistered = append(unregistered, "installer.UpdateHostInstallerArgsHandler")
-	}
-	if o.InstallerUpdateHostLogsProgressHandler == nil {
-		unregistered = append(unregistered, "installer.UpdateHostLogsProgressHandler")
-	}
 	if o.InstallerUpdateInfraEnvHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateInfraEnvHandler")
-	}
-	if o.InstallerUploadClusterIngressCertHandler == nil {
-		unregistered = append(unregistered, "installer.UploadClusterIngressCertHandler")
-	}
-	if o.InstallerUploadHostLogsHandler == nil {
-		unregistered = append(unregistered, "installer.UploadHostLogsHandler")
-	}
-	if o.InstallerUploadLogsHandler == nil {
-		unregistered = append(unregistered, "installer.UploadLogsHandler")
 	}
 	if o.InstallerV2CancelInstallationHandler == nil {
 		unregistered = append(unregistered, "installer.V2CancelInstallationHandler")
@@ -1345,130 +856,18 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind"] = installer.NewBindHost(o.context, o.InstallerBindHostHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/actions/cancel"] = installer.NewCancelInstallation(o.context, o.InstallerCancelInstallationHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/actions/complete_installation"] = installer.NewCompleteInstallation(o.context, o.InstallerCompleteInstallationHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/manifests"] = manifests.NewCreateClusterManifest(o.context, o.ManifestsCreateClusterManifestHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/assisted-service-iso"] = assisted_service_iso.NewCreateISOAndUploadToS3(o.context, o.AssistedServiceIsoCreateISOAndUploadToS3Handler)
-	if o.handlers["DELETE"] == nil {
-		o.handlers["DELETE"] = make(map[string]http.Handler)
-	}
-	o.handlers["DELETE"]["/v1/clusters/{cluster_id}/manifests"] = manifests.NewDeleteClusterManifest(o.context, o.ManifestsDeleteClusterManifestHandler)
-	if o.handlers["DELETE"] == nil {
-		o.handlers["DELETE"] = make(map[string]http.Handler)
-	}
-	o.handlers["DELETE"]["/v1/clusters/{cluster_id}"] = installer.NewDeregisterCluster(o.context, o.InstallerDeregisterClusterHandler)
-	if o.handlers["DELETE"] == nil {
-		o.handlers["DELETE"] = make(map[string]http.Handler)
-	}
-	o.handlers["DELETE"]["/v1/clusters/{cluster_id}/hosts/{host_id}"] = installer.NewDeregisterHost(o.context, o.InstallerDeregisterHostHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/v2/infra-envs/{infra_env_id}"] = installer.NewDeregisterInfraEnv(o.context, o.InstallerDeregisterInfraEnvHandler)
-	if o.handlers["DELETE"] == nil {
-		o.handlers["DELETE"] = make(map[string]http.Handler)
-	}
-	o.handlers["DELETE"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable"] = installer.NewDisableHost(o.context, o.InstallerDisableHostHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/downloads/files"] = installer.NewDownloadClusterFiles(o.context, o.InstallerDownloadClusterFilesHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/downloads/image"] = installer.NewDownloadClusterISO(o.context, o.InstallerDownloadClusterISOHandler)
-	if o.handlers["HEAD"] == nil {
-		o.handlers["HEAD"] = make(map[string]http.Handler)
-	}
-	o.handlers["HEAD"]["/v1/clusters/{cluster_id}/downloads/image"] = installer.NewDownloadClusterISOHeaders(o.context, o.InstallerDownloadClusterISOHeadersHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/downloads/kubeconfig"] = installer.NewDownloadClusterKubeconfig(o.context, o.InstallerDownloadClusterKubeconfigHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/logs"] = installer.NewDownloadClusterLogs(o.context, o.InstallerDownloadClusterLogsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/manifests/files"] = manifests.NewDownloadClusterManifest(o.context, o.ManifestsDownloadClusterManifestHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition"] = installer.NewDownloadHostIgnition(o.context, o.InstallerDownloadHostIgnitionHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewDownloadHostLogs(o.context, o.InstallerDownloadHostLogsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/assisted-service-iso/data"] = assisted_service_iso.NewDownloadISO(o.context, o.AssistedServiceIsoDownloadISOHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/minimal-initrd"] = installer.NewDownloadMinimalInitrd(o.context, o.InstallerDownloadMinimalInitrdHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable"] = installer.NewEnableHost(o.context, o.InstallerEnableHostHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/downloads/image"] = installer.NewGenerateClusterISO(o.context, o.InstallerGenerateClusterISOHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}"] = installer.NewGetCluster(o.context, o.InstallerGetClusterHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/default-config"] = installer.NewGetClusterDefaultConfig(o.context, o.InstallerGetClusterDefaultConfigHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/host-requirements"] = installer.NewGetClusterHostRequirements(o.context, o.InstallerGetClusterHostRequirementsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/install-config"] = installer.NewGetClusterInstallConfig(o.context, o.InstallerGetClusterInstallConfigHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters/{cluster_id}/supported-platforms"] = installer.NewGetClusterSupportedPlatforms(o.context, o.InstallerGetClusterSupportedPlatformsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/credentials"] = installer.NewGetCredentials(o.context, o.InstallerGetCredentialsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/discovery-ignition"] = installer.NewGetDiscoveryIgnition(o.context, o.InstallerGetDiscoveryIgnitionHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/free_addresses"] = installer.NewGetFreeAddresses(o.context, o.InstallerGetFreeAddressesHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts/{host_id}"] = installer.NewGetHost(o.context, o.InstallerGetHostHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts/{host_id}/ignition"] = installer.NewGetHostIgnition(o.context, o.InstallerGetHostIgnitionHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -1480,71 +879,7 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/preflight-requirements"] = installer.NewGetPreflightRequirements(o.context, o.InstallerGetPreflightRequirementsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/assisted-service-iso/presigned"] = assisted_service_iso.NewGetPresignedForAssistedServiceISO(o.context, o.AssistedServiceIsoGetPresignedForAssistedServiceISOHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/downloads/files-presigned"] = installer.NewGetPresignedForClusterFiles(o.context, o.InstallerGetPresignedForClusterFilesHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/actions/install"] = installer.NewInstallCluster(o.context, o.InstallerInstallClusterHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/install"] = installer.NewInstallHost(o.context, o.InstallerInstallHostHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/actions/install_hosts"] = installer.NewInstallHosts(o.context, o.InstallerInstallHostsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/manifests"] = manifests.NewListClusterManifests(o.context, o.ManifestsListClusterManifestsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters"] = installer.NewListClusters(o.context, o.InstallerListClustersHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/component_versions"] = versions.NewListComponentVersions(o.context, o.VersionsListComponentVersionsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/events"] = events.NewListEvents(o.context, o.EventsListEventsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts"] = installer.NewListHosts(o.context, o.InstallerListHostsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
 	o.handlers["GET"]["/v2/infra-envs"] = installer.NewListInfraEnvs(o.context, o.InstallerListInfraEnvsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/domains"] = managed_domains.NewListManagedDomains(o.context, o.ManagedDomainsListManagedDomainsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/clusters/{cluster_id}/monitored_operators"] = operators.NewListOfClusterOperators(o.context, o.OperatorsListOfClusterOperatorsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/supported-operators/{operator_name}"] = operators.NewListOperatorProperties(o.context, o.OperatorsListOperatorPropertiesHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/openshift_versions"] = versions.NewListSupportedOpenshiftVersions(o.context, o.VersionsListSupportedOpenshiftVersionsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v1/supported-operators"] = operators.NewListSupportedOperators(o.context, o.OperatorsListSupportedOperatorsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -1552,31 +887,7 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/v1/add_hosts_clusters"] = installer.NewRegisterAddHostsCluster(o.context, o.InstallerRegisterAddHostsClusterHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters"] = installer.NewRegisterCluster(o.context, o.InstallerRegisterClusterHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
 	o.handlers["POST"]["/v2/infra-envs"] = installer.NewRegisterInfraEnv(o.context, o.InstallerRegisterInfraEnvHandler)
-	if o.handlers["PUT"] == nil {
-		o.handlers["PUT"] = make(map[string]http.Handler)
-	}
-	o.handlers["PUT"]["/v1/clusters/{cluster_id}/monitored_operators"] = operators.NewReportMonitoredOperatorStatus(o.context, o.OperatorsReportMonitoredOperatorStatusHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/actions/reset"] = installer.NewResetCluster(o.context, o.InstallerResetClusterHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset"] = installer.NewResetHost(o.context, o.InstallerResetHostHandler)
-	if o.handlers["PATCH"] == nil {
-		o.handlers["PATCH"] = make(map[string]http.Handler)
-	}
-	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}"] = installer.NewResetHostValidation(o.context, o.InstallerResetHostValidationHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -1584,51 +895,7 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
-	o.handlers["PATCH"]["/v1/clusters/{cluster_id}"] = installer.NewUpdateCluster(o.context, o.InstallerUpdateClusterHandler)
-	if o.handlers["PATCH"] == nil {
-		o.handlers["PATCH"] = make(map[string]http.Handler)
-	}
-	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/install-config"] = installer.NewUpdateClusterInstallConfig(o.context, o.InstallerUpdateClusterInstallConfigHandler)
-	if o.handlers["PUT"] == nil {
-		o.handlers["PUT"] = make(map[string]http.Handler)
-	}
-	o.handlers["PUT"]["/v1/clusters/{cluster_id}/logs_progress"] = installer.NewUpdateClusterLogsProgress(o.context, o.InstallerUpdateClusterLogsProgressHandler)
-	if o.handlers["PATCH"] == nil {
-		o.handlers["PATCH"] = make(map[string]http.Handler)
-	}
-	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/discovery-ignition"] = installer.NewUpdateDiscoveryIgnition(o.context, o.InstallerUpdateDiscoveryIgnitionHandler)
-	if o.handlers["PATCH"] == nil {
-		o.handlers["PATCH"] = make(map[string]http.Handler)
-	}
-	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/hosts/{host_id}/ignition"] = installer.NewUpdateHostIgnition(o.context, o.InstallerUpdateHostIgnitionHandler)
-	if o.handlers["PUT"] == nil {
-		o.handlers["PUT"] = make(map[string]http.Handler)
-	}
-	o.handlers["PUT"]["/v1/clusters/{cluster_id}/hosts/{host_id}/progress"] = installer.NewUpdateHostInstallProgress(o.context, o.InstallerUpdateHostInstallProgressHandler)
-	if o.handlers["PATCH"] == nil {
-		o.handlers["PATCH"] = make(map[string]http.Handler)
-	}
-	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/hosts/{host_id}/installer-args"] = installer.NewUpdateHostInstallerArgs(o.context, o.InstallerUpdateHostInstallerArgsHandler)
-	if o.handlers["PUT"] == nil {
-		o.handlers["PUT"] = make(map[string]http.Handler)
-	}
-	o.handlers["PUT"]["/v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress"] = installer.NewUpdateHostLogsProgress(o.context, o.InstallerUpdateHostLogsProgressHandler)
-	if o.handlers["PATCH"] == nil {
-		o.handlers["PATCH"] = make(map[string]http.Handler)
-	}
 	o.handlers["PATCH"]["/v2/infra-envs/{infra_env_id}"] = installer.NewUpdateInfraEnv(o.context, o.InstallerUpdateInfraEnvHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/uploads/ingress-cert"] = installer.NewUploadClusterIngressCert(o.context, o.InstallerUploadClusterIngressCertHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewUploadHostLogs(o.context, o.InstallerUploadHostLogsHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v1/clusters/{cluster_id}/logs"] = installer.NewUploadLogs(o.context, o.InstallerUploadLogsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
