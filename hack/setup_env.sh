@@ -39,13 +39,26 @@ function spectral() {
   chmod +x /usr/local/bin/spectral
 }
 
+function butane() {
+  echo "Installing butane..."
+  curl https://mirror.openshift.com/pub/openshift-v4/clients/butane/latest/butane-${ARCH} --output /usr/local/bin/butane
+  chmod +x /usr/local/bin/butane
+}
+
 function assisted_service() {
+  ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
+
   latest_kubectl_version=$(curl --retry 5 -L -s https://dl.k8s.io/release/stable.txt)
   curl --retry 5 -L "https://dl.k8s.io/release/${latest_kubectl_version}/bin/linux/amd64/kubectl" -o /tmp/kubectl && \
     install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
     rm -f /tmp/kubectl
-  yum install -y docker podman libvirt-clients awscli python3-pip genisoimage skopeo p7zip && \
-    yum clean all
+
+  yum install -y --setopt=skip_missing_names_on_install=False \
+    docker podman awscli python3-pip genisoimage skopeo p7zip
+
+  yum clean all
+
+  butane
 
   kustomize
 
@@ -54,7 +67,6 @@ function assisted_service() {
   curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
     | sh -s -- -b $(go env GOPATH)/bin v1.36.0
 
-  ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
   OS=$(uname | awk '{print tolower($0)}')
   OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.10.1
   curl --retry 5 -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
