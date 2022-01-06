@@ -423,6 +423,17 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(stepReply).NotTo(BeNil())
 			Expect(strings.Contains(stepReply[0].Args[1], "/etc/pki:/etc/pki")).Should(BeTrue())
 		})
+
+		It("no must-gather , mco and openshift version in day2 installation", func() {
+			db.Model(&cluster).Update("kind", models.ClusterKindAddHostsCluster)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions)
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			Expect(strings.Contains(stepReply[0].Args[1], "--mco-image")).Should(BeFalse())
+			Expect(strings.Contains(stepReply[0].Args[1], "--openshift-version")).Should(BeFalse())
+			Expect(strings.Contains(stepReply[0].Args[1], "--must-gather-image")).Should(BeFalse())
+		})
 	})
 
 	Context("installer args", func() {

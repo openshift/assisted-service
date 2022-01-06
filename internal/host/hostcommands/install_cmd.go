@@ -126,7 +126,8 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		"--agent-image", i.instructionConfig.AgentImage,
 	}
 
-	if cluster.OpenshiftVersion != "" {
+	// those flags are not used on day2 installation
+	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
 		releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture)
 		if err != nil {
 			return "", err
