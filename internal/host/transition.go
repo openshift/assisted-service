@@ -33,10 +33,10 @@ var resetLogsField = []interface{}{"logs_info", "", "logs_started_at", strfmt.Da
 var resetProgressFields = []interface{}{"progress_current_stage", "", "progress_installation_percentage", 0,
 	"progress_progress_info", "", "progress_stage_started_at", strfmt.DateTime(time.Time{}), "progress_stage_updated_at", strfmt.DateTime(time.Time{})}
 
-var resetFields = append(resetProgressFields, "inventory", "", "bootstrap", false)
+var resetFields = append(resetProgressFields, "inventory", "", "bootstrap", false, "images_status", "")
 var restFieldsOnUnbind = append(append(resetProgressFields, resetLogsField...), "cluster_id", nil, "kind", swag.String(models.HostKindHost), "connectivity", "", "domain_name_resolutions", "",
 	"free_addresses", "", "images_status", "", "installation_disk_id", "", "installation_disk_path", "", "machine_config_pool_name", "",
-	"role", "auto-assign", "api_vip_connectivity", "", "suggested_role", "",
+	"role", "auto-assign", "api_vip_connectivity", "", "suggested_role", "", "images_status", "",
 	"stage_started_at", strfmt.DateTime(time.Time{}), "stage_updated_at", strfmt.DateTime(time.Time{}))
 
 ////////////////////////////////////////////////////////////////////////////
@@ -68,7 +68,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		// The reason for the double register is unknown (HW might have changed) -
 		// so we reset the hw info and progress, and start the discovery process again.
 		// also log info is not current and should be resetted, and progress should be cleared.
-		// In adition, due to late binding the kind should be set to the hostParam value,
+		// In addition, due to late binding the kind should be set to the hostParam value,
 		// because in day2 it may be changed during re-registration
 		extra := append(resetFields[:], "discovery_agent_version", params.discoveryAgentVersion, "ntp_sources", "", "kind", hostParam.Kind)
 		extra = append(extra, resetLogsField...)
