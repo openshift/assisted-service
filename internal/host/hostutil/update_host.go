@@ -70,7 +70,7 @@ func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 
 	if newStatus != srcStatus {
 		if statusInfo != "" {
-			statusInfo += fmt.Sprintf("(%s)", statusInfo)
+			statusInfo = fmt.Sprintf("(%s)", statusInfo)
 		}
 		eventgen.SendHostStatusUpdatedEvent(ctx, eventsHandler, hostId, infraEnvId, host.ClusterID, GetEventSeverityFromHostStatus(newStatus),
 			GetHostnameForMsg(&host.Host), srcStatus, newStatus, statusInfo)
