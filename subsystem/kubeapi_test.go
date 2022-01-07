@@ -2,6 +2,7 @@ package subsystem
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -126,6 +127,21 @@ func updateAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 		agent.Spec = *spec
 		return kubeClient.Update(ctx, agent)
 	}, "30s", "10s").Should(BeNil())
+}
+
+func deploySecret(ctx context.Context, client k8sclient.Client, secretName string, secretData map[string]string) {
+	err := client.Create(ctx, &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      secretName,
+		},
+		StringData: secretData,
+	})
+	Expect(err).To(BeNil())
 }
 
 func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, spec *hiveext.AgentClusterInstallSpec,
@@ -948,6 +964,85 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() int {
 			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
 		}, "2m", "2s").Should(Equal(0))
+	})
+
+	It("deploy CD with ACI and agents with ignitionEndpoint", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		caCertificateSecretName := "ca-certificate"
+		caCertificate := "abc"
+		deploySecret(ctx, kubeClient, caCertificateSecretName, map[string]string{corev1.TLSCertKey: caCertificate})
+		caSec := &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: Options.Namespace,
+				Name:      caCertificateSecretName,
+			},
+		}
+		defer func() {
+			_ = kubeClient.Delete(ctx, caSec)
+		}()
+		aciSNOSpec.IgnitionEndpoint = &hiveext.IgnitionEndpoint{
+			Url: "https://example.com",
+			CaCertificateReference: &hiveext.CaCertificateReference{
+				Namespace: Options.Namespace,
+				Name:      caCertificateSecretName,
+			},
+		}
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		b64Ca := b64.StdEncoding.EncodeToString([]byte(caCertificate))
+		Eventually(func() bool {
+			dbCluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+			return dbCluster != nil && *dbCluster.IgnitionEndpoint.CaCertificate == b64Ca
+		}, "1m", "10s").Should(BeTrue())
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		ignitionTokenSecretName := "ignition-token"
+		ignitionEndpointToken := "abcdef"
+		deploySecret(ctx, kubeClient, ignitionTokenSecretName, map[string]string{"ignition-token": ignitionEndpointToken})
+		tokenSec := &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: Options.Namespace,
+				Name:      ignitionTokenSecretName,
+			},
+		}
+		defer func() {
+			_ = kubeClient.Delete(ctx, tokenSec)
+		}()
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+
+		hostkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		agent := getAgentCRD(ctx, kubeClient, hostkey)
+		agent.Spec.IgnitionEndpointTokenReference = &v1beta1.IgnitionEndpointTokenReference{
+			Namespace: Options.Namespace,
+			Name:      ignitionTokenSecretName,
+		}
+		err := kubeClient.Update(ctx, agent)
+		Expect(err).To(BeNil())
+
+		By("Verify Ignition Token in DB")
+		Eventually(func() bool {
+			dbHost := GetHostByKubeKey(ctx, db, hostkey, waitForReconcileTimeout)
+			return dbHost != nil && dbHost.IgnitionEndpointToken == ignitionEndpointToken
+		}, "30s", "1s").Should(BeTrue())
 	})
 
 	It("verify InfraEnv ISODownloadURL and image CreatedTime are not changing - update Annotations", func() {
