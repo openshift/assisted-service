@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -97,14 +98,20 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 	}
 
 	if !virt.IsVirtSupported(inventory) {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"CPU does not have virtualization support "}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"CPU does not have virtualization support"}}, nil
+	}
+
+	if shouldInstallHPP(o.config, cluster) {
+		if err = validDiscoverableSNODisk(inventory.Disks, host.InstallationDiskID, o.config.SNOPoolSizeRequestHPPGib); err != nil {
+			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+		}
 	}
 
 	role := common.GetEffectiveRole(host)
 
 	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
 	if role == models.HostRoleAutoAssign {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"All host roles must be assigned to enable CNV"}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"All host roles must be assigned to enable OpenShift Virtualization"}}, nil
 	}
 	requirements, err := o.GetHostRequirements(ctx, cluster, host)
 	if err != nil {
@@ -115,14 +122,14 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 
 	cpu := requirements.CPUCores
 	if inventory.CPU.Count < cpu {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy CNV. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy OpenShift Virtualization. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
 	}
 
 	mem := requirements.RAMMib
 	memBytes := conversions.MibToBytes(mem)
 	if inventory.Memory.UsableBytes < memBytes {
 		usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy CNV. Required memory is %d MiB but found %d MiB", mem, usableMemory)}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy OpenShift Virtualization. Required memory is %d MiB but found %d MiB", mem, usableMemory)}}, nil
 	}
 
 	// TODO: validate available devices on worker node like gpu and sr-iov and check whether there is enough memory to support them
@@ -131,7 +138,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 
 // GenerateManifests generates manifests for the operator
 func (o *operator) GenerateManifests(c *common.Cluster) (map[string][]byte, []byte, error) {
-	return Manifests(o.config)
+	return Manifests(o.config, c)
 }
 
 // GetProperties provides description of operator properties: none required
@@ -194,11 +201,14 @@ func (o *operator) getWorkerRequirements(ctx context.Context, cluster *common.Cl
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error) {
 	qualitativeRequirements := []string{
 		"Additional 1GiB of RAM per each supported GPU",
 		"Additional 1GiB of RAM per each supported SR-IOV NIC",
 		"CPU has virtualization flag (vmx or svm)",
+	}
+	if shouldInstallHPP(o.config, cluster) {
+		qualitativeRequirements = append(qualitativeRequirements, fmt.Sprintf("Additional disk with %d Gi", o.config.SNOPoolSizeRequestHPPGib))
 	}
 	requirements := models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
@@ -273,4 +283,17 @@ func sanitizeID(id string) string {
 
 func getDeviceKey(vendorID string, deviceID string) string {
 	return vendorID + ":" + deviceID
+}
+
+// If CNV is deployed on SNO, we want at least one non bootable disk (i.e. discoverable by LSO)
+// with certain size threshold for the hpp storage pool
+func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string, diskThresholdGi int64) error {
+	for _, disk := range disks {
+		if (disk.DriveType == ocs.SsdDrive || disk.DriveType == ocs.HddDrive) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
+			if disk.SizeBytes > conversions.GibToBytes(diskThresholdGi) {
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("OpenShift Virtualization on SNO requires an additional disk with %d Gi in order to provide persistent storage for VMs, using hostpath-provisioner", diskThresholdGi)
 }

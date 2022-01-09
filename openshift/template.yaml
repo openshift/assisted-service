@@ -111,6 +111,9 @@ parameters:
 - name: INFRAENV_DELETION_WORKER_INTERVAL
   value: "1h"
   required: false
+- name: CNV_SNO_INSTALL_HPP
+  value: "true"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
@@ -320,6 +323,8 @@ objects:
                 value: ${INFRAENV_DELETION_WORKER_INTERVAL}
               - name: INFRAENV_DELETED_INACTIVE_AFTER
                 value: ${INFRAENV_DELETED_INACTIVE_AFTER}
+              - name: CNV_SNO_INSTALL_HPP
+                value: ${CNV_SNO_INSTALL_HPP}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"

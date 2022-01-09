@@ -2,7 +2,11 @@ package cnv
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
+
+	"github.com/hashicorp/go-version"
+	"github.com/openshift/assisted-service/internal/common"
 )
 
 const (
@@ -14,6 +18,8 @@ const (
 
 	upstreamSourceName   string = "community-kubevirt-hyperconverged"
 	downstreamSourceName string = "kubevirt-hyperconverged"
+
+	minimalOpenShiftVersionForHPPSNO string = "4.10.0-0.0"
 )
 
 type manifestConfig struct {
@@ -35,7 +41,7 @@ func configSource(config Config) manifestConfig {
 }
 
 // Manifests returns manifests needed to deploy CNV
-func Manifests(config Config) (map[string][]byte, []byte, error) {
+func Manifests(config Config, cluster *common.Cluster) (map[string][]byte, []byte, error) {
 	configSource := configSource(config)
 	cnvSubsManifest, err := subscription(configSource)
 
@@ -57,6 +63,16 @@ func Manifests(config Config) (map[string][]byte, []byte, error) {
 
 	openshiftManifests := make(map[string][]byte)
 
+	if shouldInstallHPP(config, cluster) {
+		cnvHpp, err := hpp(config.SNOPoolSizeRequestHPPGib)
+		if err != nil {
+			return nil, nil, err
+		}
+		// Add HostPathProvisioner to CNV manifest
+		cnvHco = append(cnvHco, []byte("\n---\n")...)
+		cnvHco = append(cnvHco, cnvHpp...)
+		openshiftManifests["99_openshift-cnv_hpp_sc.yaml"] = []byte(cnvHPPStorageClass)
+	}
 	openshiftManifests["99_openshift-cnv_subscription.yaml"] = cnvSubsManifest
 	openshiftManifests["99_openshift-cnv_ns.yaml"] = cnvNs
 	openshiftManifests["99_openshift-cnv_operator_group.yaml"] = cnvGrp
@@ -94,6 +110,13 @@ func hco(config manifestConfig) ([]byte, error) {
 	return executeTemplate(data, "cnvHCO", cnvHCOManifestTemplate)
 }
 
+func hpp(diskThresholdGi int64) ([]byte, error) {
+	data := map[string]string{
+		"STORAGE_SIZE": fmt.Sprintf("%dGi", diskThresholdGi),
+	}
+	return executeTemplate(data, "cnvHPP", cnvHPPManifestTemplate)
+}
+
 func executeTemplate(data map[string]string, contentName, content string) ([]byte, error) {
 	tmpl, err := template.New(contentName).Parse(content)
 	if err != nil {
@@ -105,6 +128,29 @@ func executeTemplate(data map[string]string, contentName, content string) ([]byt
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func shouldInstallHPP(config Config, cluster *common.Cluster) bool {
+	if !common.IsSingleNodeCluster(cluster) || !config.SNOInstallHPP {
+		return false
+	}
+
+	// HPP on SNO is only supported from CNV 4.10
+	var err error
+	var ocpVersion, minimalVersionForHppSno *version.Version
+	ocpVersion, err = version.NewVersion(cluster.OpenshiftVersion)
+	if err != nil {
+		return false
+	}
+	minimalVersionForHppSno, err = version.NewVersion(minimalOpenShiftVersionForHPPSNO)
+	if err != nil {
+		return false
+	}
+	if ocpVersion.LessThan(minimalVersionForHppSno) {
+		return false
+	}
+
+	return true
 }
 
 const cnvSubscription = `apiVersion: operators.coreos.com/v1alpha1
@@ -140,3 +186,34 @@ metadata:
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
   BareMetalPlatform: true`
+
+const cnvHPPManifestTemplate = `apiVersion: hostpathprovisioner.kubevirt.io/v1beta1
+kind: HostPathProvisioner
+metadata:
+  name: hostpath-provisioner
+spec:
+  imagePullPolicy: IfNotPresent
+  storagePools:
+    - name: sno
+      pvcTemplate:
+        storageClassName: localblock-sc
+        volumeMode: Block
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: "{{.STORAGE_SIZE}}"
+      path: "/var/hpvolumes"
+  workload:
+    nodeSelector:
+      kubernetes.io/os: linux`
+
+const cnvHPPStorageClass = `apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: sno-storage
+provisioner: kubevirt.io.hostpath-provisioner
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+parameters:
+  storagePool: sno`
