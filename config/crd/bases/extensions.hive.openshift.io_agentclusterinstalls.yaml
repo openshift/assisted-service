@@ -24,7 +24,7 @@ spec:
       name: Cluster
       type: string
     - description: State of the ACI.
-      jsonPath: .spec.status.debugInfo.state
+      jsonPath: .status.debugInfo.state
       name: State
       type: string
     name: v1beta1

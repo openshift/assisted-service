@@ -89,7 +89,7 @@ const (
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=agentclusterinstalls,shortName=aci
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".spec.clusterDeploymentRef.name",description="The name of the cluster the ACI refers to."
-// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".spec.status.debugInfo.state",description="State of the ACI."
+// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.debugInfo.state",description="State of the ACI."
 type AgentClusterInstall struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
