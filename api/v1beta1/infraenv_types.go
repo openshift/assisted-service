@@ -79,9 +79,15 @@ type InfraEnvSpec struct {
 	// removed.
 	// +optional
 	ClusterRef *ClusterReference `json:"clusterRef,omitempty"`
+
 	// Json formatted string containing the user overrides for the initial ignition config
 	// +optional
 	IgnitionConfigOverride string `json:"ignitionConfigOverride,omitempty"`
+
+	// CpuArchitecture specifies the target CPU architecture. Default is x86_64
+	// +kubebuilder:default=x86_64
+	// +optional
+	CpuArchitecture string `json:"cpuArchitecture,omitempty"`
 }
 
 // Proxy defines the proxy settings for agents and clusters that use the InfraEnv.

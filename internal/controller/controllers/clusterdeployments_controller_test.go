@@ -40,6 +40,11 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const (
+	CpuArchitectureX86 string = "x86_64"
+	CpuArchitectureArm string = "arm64"
+)
+
 func newClusterDeploymentRequest(cluster *hivev1.ClusterDeployment) ctrl.Request {
 	return ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -308,6 +313,31 @@ var _ = Describe("cluster reconcile", func() {
 					},
 				}
 				aci.Spec.IgnitionEndpoint = ignitionEndpoint
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+				validateCreation(cluster)
+			})
+
+			It("create new cluster with arm cpu architecture", func() {
+				clusterReply.Cluster.CPUArchitecture = CpuArchitectureArm
+				armReleaseImageUrl := "quay.io/openshift-release-dev/ocp-release:4.9.11-aarch64"
+				armOcpReleaseVersion := "4.9.11"
+				armOcpVersion := "4.9"
+				armReleaseImage := &models.ReleaseImage{
+					CPUArchitecture:  &clusterReply.Cluster.CPUArchitecture,
+					OpenshiftVersion: &armOcpVersion,
+					URL:              &armReleaseImageUrl,
+					Version:          &armOcpReleaseVersion,
+				}
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*armReleaseImage.Version))
+						Expect(params.NewClusterParams.CPUArchitecture).To(Equal(CpuArchitectureArm))
+					}).Return(clusterReply, nil)
+				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(armReleaseImage, nil)
+
+				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 				validateCreation(cluster)
 			})
