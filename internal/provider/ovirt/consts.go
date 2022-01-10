@@ -19,5 +19,5 @@ const (
 	vmNameReplacementStrFmt       = "name: %s"
 	templateNamePatternStr        = "template_name: +.*"
 	templateNameReplacementStrFmt = "template_name: %s"
-	manifestFileNameStrFmt        = "99_openshift-cluster-api_master-machines-%d.yaml"
+	manifestFileNameStrFmt        = "50_openshift-cluster-api_master-machines-%d.yaml"
 )
