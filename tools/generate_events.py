@@ -112,6 +112,12 @@ func (e *{{eventName}}) GetInfraEnvId() strfmt.UUID {
 }
 {%- endif %}
 
+{% if event.properties.info -%} 
+func (e *{{eventName}}) GetInfo() string {
+    return e.Info
+}
+{%- endif %}
+
 func (e *{{eventName}}) format(message *string) string {
     r := strings.NewReplacer(
 {%- for p, t in event['properties'].items() %}

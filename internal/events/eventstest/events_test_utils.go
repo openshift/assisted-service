@@ -114,6 +114,19 @@ func WithMessageContainsMatcher(expected string) eventPartMatcher {
 	}
 }
 
+func WithInfoMatcher(expected string) eventPartMatcher {
+	return func(event interface{}) bool {
+		e, ok := event.(eventsapi.InfoEvent)
+		if !ok {
+			return false
+		}
+		if e.GetInfo() == expected {
+			return true
+		}
+		return false
+	}
+}
+
 type EventMatcher struct {
 	matchers []eventPartMatcher
 	message  string

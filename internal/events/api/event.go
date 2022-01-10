@@ -65,3 +65,8 @@ type InfraEnvEvent interface {
 	GetInfraEnvId() strfmt.UUID
 	GetClusterId() *strfmt.UUID
 }
+
+type InfoEvent interface {
+	BaseEvent
+	GetInfo() string
+}

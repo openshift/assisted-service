@@ -723,3 +723,82 @@ func (mr *MockInfraEnvEventMockRecorder) GetSeverity() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSeverity", reflect.TypeOf((*MockInfraEnvEvent)(nil).GetSeverity))
 }
+
+// MockInfoEvent is a mock of InfoEvent interface.
+type MockInfoEvent struct {
+	ctrl     *gomock.Controller
+	recorder *MockInfoEventMockRecorder
+}
+
+// MockInfoEventMockRecorder is the mock recorder for MockInfoEvent.
+type MockInfoEventMockRecorder struct {
+	mock *MockInfoEvent
+}
+
+// NewMockInfoEvent creates a new mock instance.
+func NewMockInfoEvent(ctrl *gomock.Controller) *MockInfoEvent {
+	mock := &MockInfoEvent{ctrl: ctrl}
+	mock.recorder = &MockInfoEventMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockInfoEvent) EXPECT() *MockInfoEventMockRecorder {
+	return m.recorder
+}
+
+// FormatMessage mocks base method.
+func (m *MockInfoEvent) FormatMessage() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FormatMessage")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// FormatMessage indicates an expected call of FormatMessage.
+func (mr *MockInfoEventMockRecorder) FormatMessage() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatMessage", reflect.TypeOf((*MockInfoEvent)(nil).FormatMessage))
+}
+
+// GetInfo mocks base method.
+func (m *MockInfoEvent) GetInfo() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInfo")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetInfo indicates an expected call of GetInfo.
+func (mr *MockInfoEventMockRecorder) GetInfo() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfo", reflect.TypeOf((*MockInfoEvent)(nil).GetInfo))
+}
+
+// GetName mocks base method.
+func (m *MockInfoEvent) GetName() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetName")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetName indicates an expected call of GetName.
+func (mr *MockInfoEventMockRecorder) GetName() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetName", reflect.TypeOf((*MockInfoEvent)(nil).GetName))
+}
+
+// GetSeverity mocks base method.
+func (m *MockInfoEvent) GetSeverity() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSeverity")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetSeverity indicates an expected call of GetSeverity.
+func (mr *MockInfoEventMockRecorder) GetSeverity() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSeverity", reflect.TypeOf((*MockInfoEvent)(nil).GetSeverity))
+}
