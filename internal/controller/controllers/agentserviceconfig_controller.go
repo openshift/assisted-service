@@ -785,6 +785,12 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 		},
 	}
 
+	for _, key := range []string{"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY"} {
+		if value, ok := os.LookupEnv(key); ok {
+			container.Env = append(container.Env, corev1.EnvVar{Name: key, Value: value})
+		}
+	}
+
 	volumes := []corev1.Volume{
 		{
 			Name: "tls-certs",
