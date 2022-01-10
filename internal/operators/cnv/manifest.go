@@ -71,11 +71,11 @@ func Manifests(config Config, cluster *common.Cluster) (map[string][]byte, []byt
 		// Add HostPathProvisioner to CNV manifest
 		cnvHco = append(cnvHco, []byte("\n---\n")...)
 		cnvHco = append(cnvHco, cnvHpp...)
-		openshiftManifests["99_openshift-cnv_hpp_sc.yaml"] = []byte(cnvHPPStorageClass)
+		openshiftManifests["50_openshift-cnv_hpp_sc.yaml"] = []byte(cnvHPPStorageClass)
 	}
-	openshiftManifests["99_openshift-cnv_subscription.yaml"] = cnvSubsManifest
-	openshiftManifests["99_openshift-cnv_ns.yaml"] = cnvNs
-	openshiftManifests["99_openshift-cnv_operator_group.yaml"] = cnvGrp
+	openshiftManifests["50_openshift-cnv_subscription.yaml"] = cnvSubsManifest
+	openshiftManifests["50_openshift-cnv_ns.yaml"] = cnvNs
+	openshiftManifests["50_openshift-cnv_operator_group.yaml"] = cnvGrp
 	return openshiftManifests, cnvHco, nil
 }
 
