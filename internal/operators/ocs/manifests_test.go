@@ -21,9 +21,9 @@ var _ = Describe("OCS manifest generation", func() {
 			openshiftManifests, manifest, err := operator.GenerateManifests(&cluster)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(openshiftManifests).To(HaveLen(3))
-			Expect(openshiftManifests["99_openshift-ocs_ns.yaml"]).NotTo(HaveLen(0))
-			Expect(openshiftManifests["99_openshift-ocs_subscription.yaml"]).NotTo(HaveLen(0))
-			Expect(openshiftManifests["99_openshift-ocs_operator_group.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["openshift-ocs_ns.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["openshift-ocs_subscription.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["openshift-ocs_operator_group.yaml"]).NotTo(HaveLen(0))
 
 			for _, manifest := range openshiftManifests {
 				_, err = yaml.YAMLToJSON(manifest)
@@ -38,9 +38,9 @@ var _ = Describe("OCS manifest generation", func() {
 			openshiftManifests, manifest, err := operator.GenerateManifests(&cluster)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(openshiftManifests).To(HaveLen(3))
-			Expect(openshiftManifests["99_openshift-ocs_ns.yaml"]).NotTo(HaveLen(0))
-			Expect(openshiftManifests["99_openshift-ocs_subscription.yaml"]).NotTo(HaveLen(0))
-			Expect(openshiftManifests["99_openshift-ocs_operator_group.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["openshift-ocs_ns.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["openshift-ocs_subscription.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["openshift-ocs_operator_group.yaml"]).NotTo(HaveLen(0))
 
 			for _, manifest := range openshiftManifests {
 				_, err = yaml.YAMLToJSON(manifest)

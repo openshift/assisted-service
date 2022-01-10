@@ -40,9 +40,9 @@ func Manifests() (map[string][]byte, []byte, error) {
 		return nil, nil, err
 	}
 	openshiftManifests := make(map[string][]byte)
-	openshiftManifests["99_openshift-lso_ns.yaml"] = []byte(localStorageNamespace)
-	openshiftManifests["99_openshift-lso_operator_group.yaml"] = []byte(lsoOperatorGroup)
-	openshiftManifests["99_openshift-lso_subscription.yaml"] = lsoSubs
+	openshiftManifests["openshift-lso_ns.yaml"] = []byte(localStorageNamespace)
+	openshiftManifests["openshift-lso_operator_group.yaml"] = []byte(lsoOperatorGroup)
+	openshiftManifests["openshift-lso_subscription.yaml"] = lsoSubs
 	return openshiftManifests, []byte(localVolumeSet), nil
 }
 

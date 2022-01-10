@@ -32,14 +32,14 @@ var _ = Describe("CNV manifest generation", func() {
 					numManifests += 1
 					Expect(common.IsSingleNodeCluster(&cluster)).To(BeTrue())
 					Expect(string(manifest)).To(ContainSubstring("HostPathProvisioner"))
-					Expect(openshiftManifests["99_openshift-cnv_hpp_sc.yaml"]).NotTo(HaveLen(0))
+					Expect(openshiftManifests["openshift-cnv_hpp_sc.yaml"]).NotTo(HaveLen(0))
 				}
 			}
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(openshiftManifests).To(HaveLen(numManifests))
-			Expect(openshiftManifests["99_openshift-cnv_ns.yaml"]).NotTo(HaveLen(0))
-			Expect(openshiftManifests["99_openshift-cnv_operator_group.yaml"]).NotTo(HaveLen(0))
-			Expect(openshiftManifests["99_openshift-cnv_subscription.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["openshift-cnv_ns.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["openshift-cnv_operator_group.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["openshift-cnv_subscription.yaml"]).NotTo(HaveLen(0))
 
 			_, err = yaml.YAMLToJSON(manifest)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -73,8 +73,8 @@ var _ = Describe("CNV manifest generation", func() {
 			}}
 			openshiftManifests, _, err := operator.GenerateManifests(&cluster)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(meta(openshiftManifests["99_openshift-cnv_ns.yaml"], "name")).To(Equal("openshift-cnv"))
-			Expect(meta(openshiftManifests["99_openshift-cnv_subscription.yaml"], "namespace")).To(Equal("openshift-cnv"))
+			Expect(meta(openshiftManifests["openshift-cnv_ns.yaml"], "name")).To(Equal("openshift-cnv"))
+			Expect(meta(openshiftManifests["openshift-cnv_subscription.yaml"], "namespace")).To(Equal("openshift-cnv"))
 		})
 	})
 })

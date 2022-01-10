@@ -50,13 +50,13 @@ func Manifests(ocsConfig *Config) (map[string][]byte, []byte, error) {
 			return nil, nil, err
 		}
 	}
-	openshiftManifests["99_openshift-ocs_ns.yaml"] = []byte(ocsNamespace)
+	openshiftManifests["openshift-ocs_ns.yaml"] = []byte(ocsNamespace)
 	ocsSubscription, err := ocsSubscription()
 	if err != nil {
 		return map[string][]byte{}, []byte{}, err
 	}
-	openshiftManifests["99_openshift-ocs_subscription.yaml"] = []byte(ocsSubscription)
-	openshiftManifests["99_openshift-ocs_operator_group.yaml"] = []byte(ocsOperatorGroup)
+	openshiftManifests["openshift-ocs_subscription.yaml"] = []byte(ocsSubscription)
+	openshiftManifests["openshift-ocs_operator_group.yaml"] = []byte(ocsOperatorGroup)
 	return openshiftManifests, ocsSC, nil
 }
 
