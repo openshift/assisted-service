@@ -79,7 +79,6 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 				a.cache.Set(infraEnvID, "", cache.DefaultExpiration)
 			} else {
 				err := errors.Errorf("infraEnv %s does not exist", infraEnvID)
-				a.log.Error(err)
 				return nil, common.NewInfraError(http.StatusUnauthorized, err)
 			}
 		}
@@ -91,7 +90,6 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 				a.cache.Set(clusterID, "", cache.DefaultExpiration)
 			} else {
 				err := errors.Errorf("Cluster %s does not exist", clusterID)
-				a.log.Error(err)
 				return nil, common.NewInfraError(http.StatusUnauthorized, err)
 			}
 		}
