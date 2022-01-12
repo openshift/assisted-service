@@ -701,7 +701,7 @@ var _ = Describe("bmac reconcile", func() {
 			clusterName := "test-cluster"
 			pullSecretName := "pull-secret"
 
-			agent.Spec.Role = models.HostRoleWorker
+			agent.Status.Role = models.HostRoleWorker
 			agent.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{Name: clusterName, Namespace: testNamespace}
 			Expect(c.Create(ctx, agent)).To(BeNil())
 
