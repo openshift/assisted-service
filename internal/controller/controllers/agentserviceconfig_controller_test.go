@@ -414,6 +414,35 @@ var _ = Describe("newImageServiceDeployment", func() {
 			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceDeployment)
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
 		})
+
+		It("should set the proxy env vars", func() {
+			os.Setenv("HTTP_PROXY", "http://proxy.example.com")
+			os.Setenv("HTTPS_PROXY", "http://https-proxy.example.com")
+			os.Setenv("NO_PROXY", "http://no-proxy.example.com")
+			defer func() {
+				os.Unsetenv("HTTP_PROXY")
+				os.Unsetenv("HTTPS_PROXY")
+				os.Unsetenv("NO_PROXY")
+			}()
+
+			found := &appsv1.Deployment{}
+			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceDeployment)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+			var httpProxy, httpsProxy, noProxy string
+			for _, envVar := range found.Spec.Template.Spec.Containers[0].Env {
+				switch envVar.Name {
+				case "HTTP_PROXY":
+					httpProxy = envVar.Value
+				case "HTTPS_PROXY":
+					httpsProxy = envVar.Value
+				case "NO_PROXY":
+					noProxy = envVar.Value
+				}
+			}
+			Expect(httpProxy).To(Equal("http://proxy.example.com"))
+			Expect(httpsProxy).To(Equal("http://https-proxy.example.com"))
+			Expect(noProxy).To(Equal("http://no-proxy.example.com"))
+		})
 	})
 })
 
