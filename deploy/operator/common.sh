@@ -21,6 +21,7 @@ export ASSISTED_NAMESPACE="${ASSISTED_NAMESPACE:-assisted-installer}"
 export SPOKE_NAMESPACE="${SPOKE_NAMESPACE:-assisted-spoke-cluster}"
 export HIVE_NAMESPACE="${HIVE_NAMESPACE:-hive}"
 export ASSISTED_UPGRADE_OPERATOR="${ASSISTED_UPGRADE_OPERATOR:-false}"
+export ASSISTED_SERVICE_OPERATOR_CATALOG="assisted-service-operator-catalog"
 
 ############
 # Versions #
