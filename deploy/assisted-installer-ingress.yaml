@@ -1,5 +1,5 @@
 kind: Ingress
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 metadata:
   name: assisted-installer
   namespace: REPLACE_NAMESPACE
@@ -11,18 +11,30 @@ spec:
       http:
         paths:
           - path: "/api"
+            pathType: Prefix
             backend:
-              serviceName: assisted-service
-              servicePort: 8090
+              service:
+                name: assisted-service
+                port:
+                  number: 8090
           - path: "/ready"
+            pathType: Prefix
             backend:
-              serviceName: assisted-service
-              servicePort: 8090
+              service:
+                name: assisted-service
+                port:
+                  number: 8090
           - path: "/images"
+            pathType: Prefix
             backend:
-              serviceName: assisted-image-service
-              servicePort: 8080
+              service:
+                name: assisted-image-service
+                port:
+                  number: 8080
           - path: "/health"
+            pathType: Prefix
             backend:
-              serviceName: assisted-image-service
-              servicePort: 8080
+              service:
+                name: assisted-image-service
+                port:
+                  number: 8080
