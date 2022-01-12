@@ -8,8 +8,12 @@ spec:
     name: '{{ cluster_deployment_name }}'
   imageSetRef:
     name: '{{ cluster_image_set_name }}'
+{% if spoke_api_vip %}
   apiVIP: '{{ spoke_api_vip }}'
+{% endif %}
+{% if spoke_ingress_vip %}
   ingressVIP: '{{ spoke_ingress_vip }}'
+{% endif %}
   networking:
     clusterNetwork:
     - cidr: {{ cluster_subnet }}
@@ -27,6 +31,9 @@ spec:
 {% endif %}
     serviceNetwork:
     - {{ service_subnet }}
+{% if user_managed_networking %}
+    userManagedNetworking: {{ user_managed_networking }}
+{% endif %}
 {% if service_subnet_additional|length %}
     - {{ service_subnet_additional }}
 {% endif %}

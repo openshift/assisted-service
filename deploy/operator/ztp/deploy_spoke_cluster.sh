@@ -4,6 +4,9 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(realpath ${__dir}/../../..)"
 source ${__dir}/../common.sh
 source ${__dir}/../utils.sh
+source ${__dir}/none_platform_utils.sh
+
+set -x
 
 export ASSISTED_CLUSTER_NAME="${ASSISTED_CLUSTER_NAME:-assisted-test-cluster}"
 export ASSISTED_CLUSTER_DEPLOYMENT_NAME="${ASSISTED_CLUSTER_DEPLOYMENT_NAME:-assisted-test-cluster}"
@@ -18,11 +21,20 @@ export SPOKE_API_VIP="${SPOKE_API_VIP:-}"
 export SPOKE_INGRESS_VIP="${SPOKE_INGRESS_VIP:-}"
 export ASSISTED_STOP_AFTER_AGENT_DISCOVERY="${ASSISTED_STOP_AFTER_AGENT_DISCOVERY:-false}"
 export ASSISTED_UPGRADE_OPERATOR="${ASSISTED_UPGRADE_OPERATOR:-false}"
+export USER_MANAGED_NETWORKING="${USER_MANAGED_NETWORKING:-false}"
+export SPAWN_NONE_PLATFORM_LOAD_BALANCER="${SPAWN_NONE_PLATFORM_LOAD_BALANCER:-false}"
+export ADD_NONE_PLATFORM_LIBVIRT_DNS="${ADD_NONE_PLATFORM_LIBVIRT_DNS:-false}"
+export LIBVIRT_NONE_PLATFORM_NETWORK="${LIBVIRT_NONE_PLATFORM_NETWORK:-ostestbm}"
+export LOAD_BALANCER_IP="${LOAD_BALANCER_IP:-192.168.111.1}"
 
 if [[ "${IP_STACK}" == "v4" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
     export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V4}"
-    export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V4}"
+    if [ "${USER_MANAGED_NETWORKING}" != "true" ] ; then 
+        export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V4}"
+    else
+        unset EXTERNAL_SUBNET
+    fi
     export SERVICE_SUBNET="${SERVICE_SUBNET_V4}"
 elif [[ "${IP_STACK}" == "v6" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V6}"
@@ -41,7 +53,7 @@ elif [[ "${IP_STACK}" == "v4v6" ]]; then
 fi
 
 #  If spoke is a multi cluster then we need to pick IPs for API and Ingress
-if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ]; then
+if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ] && [ "${USER_MANAGED_NETWORKING}" != "true" ] ; then
     export SPOKE_API_VIP=${SPOKE_API_VIP:-$(nth_ip $EXTERNAL_SUBNET 85)}
     export SPOKE_INGRESS_VIP=${SPOKE_INGRESS_VIP:-$(nth_ip $EXTERNAL_SUBNET 87)}
 fi
@@ -81,6 +93,16 @@ echo "All ${SPOKE_CONTROLPLANE_AGENTS} agents have been discovered!"
 if [[ "${ASSISTED_STOP_AFTER_AGENT_DISCOVERY}" == "true" ]]; then
     echo "Agents have been discovered, do not wait for the cluster installtion to finish."
     exit
+fi
+
+if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ] && [ "${USER_MANAGED_NETWORKING}" == "true" ] ; then
+    if [ "${SPAWN_NONE_PLATFORM_LOAD_BALANCER}" == "true" ] ; then
+        setup_and_run_load_balancer
+    fi
+    if [ "${ADD_NONE_PLATFORM_LIBVIRT_DNS}" == "true" ] ; then
+        setup_libvirt_dns
+        open_firewall_ports
+    fi
 fi
 
 wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Stopped" "90m" "${SPOKE_NAMESPACE}"

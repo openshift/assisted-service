@@ -103,3 +103,32 @@ export ASSISTED_PULLSECRET_NAME=assisted-pull-secret
 export ASSISTED_PRIVATEKEY_NAME=assisted-ssh-private-key
 export SPOKE_CONTROLPLANE_AGENTS=1  # currently only single-node is supported
 ```
+
+## Running None Platform ZTP Flow (Testing only)
+
+Create ZTP installation flow for None platform. For this the following changes were needed:
+
+- Add user-managed-networking variable support for this flow as it is needed by assisted service
+- Remove API and Ingress VIPs from agentclusterinstall YAML file when running this flow.
+- Add load balancer on top of nginx for none platform use
+- Add support for DNS definition in libvirt that adds DNS names needed by Openshift to complete none platform installation.
+
+The following environment variables were added to support this flow:
+
+```
+# Set to true to use none platform
+export USER_MANAGED_NETWORKING="${USER_MANAGED_NETWORKING:-false}"
+
+# Spawn load balancer for none platform on local machine 
+export SPAWN_NONE_PLATFORM_LOAD_BALANCER="${SPAWN_NONE_PLATFORM_LOAD_BALANCER:-false}"
+
+# Add DNS entrries in LIBVIRT network to point to the load balancer IP address
+export ADD_NONE_PLATFORM_LIBVIRT_DNS="${ADD_NONE_PLATFORM_LIBVIRT_DNS:-false}"
+
+# Name of none platform network to add the DNS entries
+export LIBVIRT_NONE_PLATFORM_NETWORK="${LIBVIRT_NONE_PLATFORM_NETWORK:-ostestbm}"
+
+# The load balancer IP address
+export LOAD_BALANCER_IP="${LOAD_BALANCER_IP:-192.168.111.1}"
+```
+
