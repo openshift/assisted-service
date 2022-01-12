@@ -81,4 +81,28 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 		},
 	},
+	&models.FeatureSupportLevel{
+		OpenshiftVersion: "4.10",
+		Features: []*models.FeatureSupportLevelFeaturesItems0{
+			// Supported
+			{
+				FeatureID:    usageNameToID(usage.HighAvailabilityModeUsage),
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
+			// Dev-Preview features
+			{
+				FeatureID:    usageNameToID(usage.VipDhcpAllocationUsage),
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
+			},
+			{
+				FeatureID:    usageNameToID(usage.CPUArchitectureARM64),
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
+			},
+			// Unsupported features
+			{
+				FeatureID:    usageNameToID(usage.ClusterManagedNetworkWithVMs),
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
+		},
+	},
 }
