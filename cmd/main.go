@@ -143,6 +143,7 @@ var Options struct {
 	EnableElasticAPM               bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
 	WorkDir                        string        `envconfig:"WORK_DIR" default:"/data/"`
 	LivenessValidationTimeout      time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
+	V1APIEnabled                   bool          `envconfig:"V1_API_ENABLED" default:"true"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -466,6 +467,10 @@ func main() {
 		OperatorsAPI:          operatorsHandler,
 	})
 	failOnError(err, "Failed to init rest handler")
+
+	if !Options.V1APIEnabled {
+		h = app.DisableV1Middleware(h)
+	}
 
 	if Options.Auth.AllowedDomains != "" {
 		allowedDomains := strings.Split(strings.ReplaceAll(Options.Auth.AllowedDomains, " ", ""), ",")
