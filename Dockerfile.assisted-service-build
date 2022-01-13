@@ -6,7 +6,9 @@ ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 USER 0
 
-RUN yum install -y epel-release && yum install -y gcc genisoimage jq git
+RUN yum install -y epel-release \
+    && yum install -y --setopt=skip_missing_names_on_install=False \
+        gcc genisoimage jq git libvirt-client libvirt-devel
 
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.16 /usr/bin/gotestsum /usr/bin/make /usr/bin/
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.16 /usr/local/go /usr/local/go
