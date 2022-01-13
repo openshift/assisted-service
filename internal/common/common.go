@@ -47,12 +47,20 @@ ipv6.dhcp-duid=ll
 `
 
 // Configuration to be used by MCO manifest to get consistent IPv6 DHCP client identification.
-const Ipv6DuidRuntimeConf = `
+const Ipv6DuidRuntimeConfPre410 = `
 [connection]
 ipv6.dhcp-iaid=mac
 ipv6.dhcp-duid=ll
 [keyfile]
 path=/etc/NetworkManager/system-connections-merged
+`
+
+// Configuration of consistent IPv6 DHCP without the keyfile path set. This is because starting in
+// RHCOS 4.10 it is breaking the Network Manager configuration.
+const Ipv6DuidRuntimeConf = `
+[connection]
+ipv6.dhcp-iaid=mac
+ipv6.dhcp-duid=ll
 `
 
 // configuration of NM to disable handling of /etc/resolv.conf
