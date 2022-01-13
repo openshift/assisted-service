@@ -88,3 +88,66 @@ The request will be stored in a temporary file `$request_body` and will be used 
 ```
 curl -H "Content-Type: application/json" -X POST -d @$request_body ${ASSISTED_SERVICE_URL}/api/assisted-install/v1/clusters/$CLUSTER_ID/downloads/image
 ```
+
+## Additional nmstate configuration examples
+### Tagged VLAN
+```
+    dns-resolver:
+      config:
+        server:
+        - 192.168.143.1
+    interfaces:
+    - ipv4:
+        address:
+        - ip: 192.168.143.15
+          prefix-length: 24
+        dhcp: false
+        enabled: true
+      ipv6:
+        enabled: false
+      name: eth0.404
+      state: up
+      type: vlan
+      vlan:
+        base-iface: eth0
+        id: 404
+    routes:
+      config:
+      - destination: 0.0.0.0/0
+        next-hop-address: 192.168.143.1
+        next-hop-interface: eth0.404
+        table-id: 254
+```
+### Network Bond
+```
+    dns-resolver:
+      config:
+        server:
+        - 192.168.138.1
+    interfaces:
+    - ipv4:
+        address:
+        - ip: 192.168.138.15
+          prefix-length: 24
+        dhcp: false
+        enabled: true
+      ipv6:
+        enabled: false
+      link-aggregation:
+        mode: active-backup
+        options:
+          all_slaves_active: delivered
+          miimon: "140"
+        slaves:
+        - eth0
+        - eth1
+      name: bond0
+      state: up
+      type: bond
+    routes:
+      config:
+      - destination: 0.0.0.0/0
+        next-hop-address: 192.168.138.1
+        next-hop-interface: bond0
+        table-id: 254
+```
