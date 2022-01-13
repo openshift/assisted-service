@@ -32,8 +32,8 @@ Operation ID      | V1                               | V2                       
 ------------------|----------------------------------|----------------------------------|------------------------------------------------------------
 ListClusters      | GET /v1/clusters                 | GET /v2/clusters                 |
 RegisterCluster   | POST /v1/clusters                | POST /v2/clusters                | [Example](rest-api-getting-started.md#Register-A-Cluster)
-GetCluster        | GET /v1/clusters/{cluster_id}    | GET /v2/clusters/{cluster_id}    | [Example](rest-api-getting-started.mdnspect-Cluster-Status)
-UpdateCluster     | PATCH /v1/clusters/{cluster_id}  | PATCH /v2/clusters/{cluster_id}  | [Example](rest-api-getting-started.mdatch-Cluster) ; Modify hosts via new UpdateHost API
+GetCluster        | GET /v1/clusters/{cluster_id}    | GET /v2/clusters/{cluster_id}    | [Example](rest-api-getting-started.md#Inspect-Cluster-Status)
+UpdateCluster     | PATCH /v1/clusters/{cluster_id}  | PATCH /v2/clusters/{cluster_id}  | [Example](rest-api-getting-started.md#Patch-Cluster) ; Modify hosts via new UpdateHost API
 DeregisterCluster | DELETE /v1/clusters/{cluster_id} | DELETE /v2/clusters/{cluster_id} |
 
 #### Misc Cluster APIs
@@ -51,7 +51,7 @@ GetClusterInstallConfig           | GET /v1/clusters/{cluster_id}/install-config
 UpdateClusterInstallConfig        | PATCH /v1/clusters/{cluster_id}/install-config          | PUT /v2/clusters/{cluster_id}/install-config                  |
 GetDiscoveryIgnition              | GET /v1/clusters/{cluster_id}/discovery-ignition        | N/A                                                           | Deprecated in favor of `GetInfraEnv`
 UpdateDiscoveryIgnition           | PATCH /v1/clusters/{cluster_id}/discovery-ignition      | N/A                                                           | Deprecated in favor of `UpdateInfraEnv`
-InstallCluster                    | POST /v1/clusters/{cluster_id}/actions/install          | POST /v2/clusters/{cluster_id}/actions/install                | [Example](rest-api-getting-started.mdtart-Installation)
+InstallCluster                    | POST /v1/clusters/{cluster_id}/actions/install          | POST /v2/clusters/{cluster_id}/actions/install                | [Example](rest-api-getting-started.md#start-Installation)
 CancelInstallation                | POST /v1/clusters/{cluster_id}/actions/cancel           | POST /v2/clusters/{cluster_id}/actions/cancel                 |
 InstallHosts                      | POST /v1/clusters/{cluster_id}/actions/install_hosts    | N/A                                                           | Deprecated in favor of `InstallHost`
 ResetCluster                      | POST /v1/clusters/{cluster_id}/actions/reset            | POST /v2/clusters/{cluster_id}/actions/reset                  |
