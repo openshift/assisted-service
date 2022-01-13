@@ -58,24 +58,6 @@ const (
 	workerIgn = "worker.ign"
 )
 
-const SystemConnectionsMerged = `
-[Unit]
-After=systemd-tmpfiles-setup.service
-[Mount]
-Where=/etc/NetworkManager/system-connections-merged
-What=overlay
-Type=overlay
-Options=lowerdir=/etc/NetworkManager/system-connections,upperdir=/run/nm-system-connections,workdir=/run/nm-system-connections-work
-[Install]
-WantedBy=multi-user.target
-`
-
-const kniTempFile = `
-D /run/nm-system-connections 0755 root root - -
-D /run/nm-system-connections-work 0755 root root - -
-d /etc/NetworkManager/system-connections-merged 0755 root root -
-`
-
 const agentMessageOfTheDay = `
 **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  ** **  **  **  **  **  **  **
 This is a host being installed by the OpenShift Assisted Installer.
@@ -875,40 +857,27 @@ func (g *installerGenerator) updateDhcpFiles() error {
 	return nil
 }
 
-func encodeIpv6Contents() string {
-	return fmt.Sprintf("data:,%s", url.PathEscape(common.Ipv6DuidRuntimeConf))
+func encodeIpv6Contents(config string) string {
+	return fmt.Sprintf("data:,%s", url.PathEscape(config))
 }
 
+// addIpv6FileInIgnition adds a NetworkManager configuration ensuring that IPv6 DHCP requests use
+// consistent client identification.
 func (g *installerGenerator) addIpv6FileInIgnition(ignition string) error {
 	path := filepath.Join(g.workDir, ignition)
 	config, err := parseIgnitionFile(path)
 	if err != nil {
 		return err
 	}
-	setFileInIgnition(config, "/etc/NetworkManager/conf.d/01-ipv6.conf", encodeIpv6Contents(), false, 0o644)
-	err = writeIgnitionFile(path, config)
+	is410Version, err := common.VersionGreaterOrEqual(g.cluster.OpenshiftVersion, "4.10")
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (g *installerGenerator) addStaticNetworkConfigToIgnition(ignition string) error {
-	path := filepath.Join(g.workDir, ignition)
-	config, err := parseIgnitionFile(path)
-	if err != nil {
-		return err
+	v6config := common.Ipv6DuidRuntimeConfPre410
+	if is410Version {
+		v6config = common.Ipv6DuidRuntimeConf
 	}
-	is47Version, err := common.VersionGreaterOrEqual(g.cluster.OpenshiftVersion, "4.7")
-	if err != nil {
-		return err
-	}
-	if (swag.BoolValue(g.cluster.UserManagedNetworking) && is47Version) || !is47Version {
-		// add overlay configuration for NM in case of 4.7 and None platform.
-		// TODO - remove once this configuration is integrated in MCO for None platform (Bugzilla 1928473)
-		setFileInIgnition(config, "/etc/tmpfiles.d/kni.conf", fmt.Sprintf("data:,%s", url.PathEscape(kniTempFile)), false, 420)
-		setUnitInIgnition(config, SystemConnectionsMerged, "etc-NetworkManager-system\\x2dconnections\\x2dmerged.mount", true)
-	}
+	setFileInIgnition(config, "/etc/NetworkManager/conf.d/01-ipv6.conf", encodeIpv6Contents(v6config), false, 0o644)
 	err = writeIgnitionFile(path, config)
 	if err != nil {
 		return err
@@ -949,12 +918,6 @@ func (g *installerGenerator) updateIgnitions() error {
 		for _, ignition := range []string{masterIgn, workerIgn} {
 			if err = g.addIpv6FileInIgnition(ignition); err != nil {
 				return err
-			}
-
-			if g.cluster.StaticNetworkConfigured {
-				if err := g.addStaticNetworkConfigToIgnition(ignition); err != nil {
-					return err
-				}
 			}
 		}
 	}
@@ -1107,6 +1070,8 @@ func setFileInIgnition(config *config_latest_types.Config, filePath string, file
 	config.Storage.Files = append(config.Storage.Files, file)
 }
 
+//lint:ignore U1000 Ignore unused function
+//nolint:unused,deadcode
 func setUnitInIgnition(config *config_latest_types.Config, contents, name string, enabled bool) {
 	newUnit := config_latest_types.Unit{
 		Contents: swag.String(contents),
