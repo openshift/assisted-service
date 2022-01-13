@@ -1,7 +1,3 @@
-# Assisted Pull Request
-
-## Description
-
 <!--
 Please include a summary of the change and which issue is fixed. Please also include relevant motivation and context. List any dependencies that are required for this change.
 
@@ -22,7 +18,8 @@ how this code was tested. Here are some questions that may be worth answering:
 
 ## List all the issues related to this PR
 
-- [ ] New Feature
+- [ ] New Feature <!-- new functionality -->
+- [ ] Enhancement <!-- refactor, code changes, improvement, that won't add new features -->
 - [ ] Bug fix
 - [ ] Tests
 - [ ] Documentation
@@ -66,9 +63,9 @@ this PR directly to someone.
 
 ## Reviewers Checklist
 
-- [ ] Are the title and description (in both PR and commit) meaningful and clear?
-- [ ] Is there a bug required (and linked) for this change?
-- [ ] Should this PR be backported?
+- Are the title and description (in both PR and commit) meaningful and clear?
+- Is there a bug required (and linked) for this change?
+- Should this PR be backported?
 
 [Kubernetes community documentation]: https://github.com/kubernetes/community/blob/master/contributors/guide/pull-requests.md#commit-message-guidelines
 [CONTRIBUTING]: https://github.com/openshift/assisted-service/blob/master/CONTRIBUTING.md
