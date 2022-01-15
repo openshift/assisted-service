@@ -53,12 +53,11 @@ func (mr *MockHandlerMockRecorder) AddReleaseImage(arg0, arg1, arg2, arg3 interf
 }
 
 // GetCPUArchitectures mocks base method.
-func (m *MockHandler) GetCPUArchitectures(arg0 string) ([]string, error) {
+func (m *MockHandler) GetCPUArchitectures(arg0 string) []string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCPUArchitectures", arg0)
 	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // GetCPUArchitectures indicates an expected call of GetCPUArchitectures.

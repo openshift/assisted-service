@@ -75,7 +75,7 @@ The flow of adding a new version is a follows:
 * If a new RHCOS image is required:
   * Set ```OSImage``` in AgentServiceConfig under ```spec.osImages```
   * ```OSImage``` should include:
-    * ```openshiftVersion``` the OCP version in major.minor format.
+    * ```openshiftVersion``` the OCP version in major.minor or major.minor.patch format.
     * ```url``` the RHCOS image (optionally a mirror).
     * ```version``` the RHOCS version.
   * Upon starting the service, the relevant host [boot-files](https://github.com/openshift/assisted-service/blob/3823630a0900c7f7a7113d7be4ff5a404a35186b/swagger.yaml#L16) are uploaded to S3/File storage.
