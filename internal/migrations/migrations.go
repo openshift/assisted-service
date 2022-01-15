@@ -30,6 +30,7 @@ func post() []*gormigrate.Migration {
 	postMigrations := []*gormigrate.Migration{
 		changeOverridesToText(),
 		changeImageSSHKeyToText(),
+		changeClusterSshKeyToText(),
 		changeClusterValidationsInfoToText(),
 		changeHostValidationsInfoToText(),
 		multipleNetworks(),
