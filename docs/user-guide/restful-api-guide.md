@@ -12,7 +12,7 @@ The static network configurations per each host should contain:
 
 In the following example `server-a.yaml` and `server-b.yaml` files contain the nmstate configuration in YAML format for two nodes.
 Here is an example of the content of `server-a.yaml`, setting network configuration for two of its network interfaces:
-```
+```yaml
 dns-resolver:
   config:
     server:
@@ -45,7 +45,7 @@ routes:
 ```
 
 The `mac-interface-mapping` attribute should map the MAC Addresses of the host to the logical interface name as used in the `network_yaml` element (nmstate files):
-```
+```yaml
 mac_interface_map: [
     {
       mac_address: 02:00:00:2c:23:a5,
@@ -61,7 +61,7 @@ mac_interface_map: [
 In order to use `curl` to send a request for setting static network configuration, there is a need to JSON-encode the content of those files.
 This can be achieved using the `jq` tool as shown below:
 
-```
+```sh
 ASSISTED_SERVICE_URL=http://${host_address}:${port}
 CLUSTER_ID=...
 NODE_SSH_KEY="..."
@@ -85,13 +85,13 @@ jq -n --arg SSH_KEY "$NODE_SSH_KEY" --arg NMSTATE_YAML1 "$(cat server-a.yaml)" -
 ```
 The request will be stored in a temporary file `$request_body` and will be used as the request body of the `curl` command:
 
-```
+```sh
 curl -H "Content-Type: application/json" -X POST -d @$request_body ${ASSISTED_SERVICE_URL}/api/assisted-install/v1/clusters/$CLUSTER_ID/downloads/image
 ```
 
 ## Additional nmstate configuration examples
 ### Tagged VLAN
-```
+```yaml
     dns-resolver:
       config:
         server:
@@ -119,7 +119,7 @@ curl -H "Content-Type: application/json" -X POST -d @$request_body ${ASSISTED_SE
         table-id: 254
 ```
 ### Network Bond
-```
+```yaml
     dns-resolver:
       config:
         server:
