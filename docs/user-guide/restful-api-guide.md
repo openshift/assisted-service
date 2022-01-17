@@ -4,7 +4,7 @@ The purpose of this guide is to assist users in using the RESTful API for intera
 
 # Setting Static Network Config
 
-User may provide static network configurations when generating the discovery ISO.
+User may provide static network configurations when generating or updating the discovery ISO.
 The static network configurations per each host should contain:
 * [nmstate](https://www.nmstate.io/) file in YAML format, specifying the desired network configuration for the host
   * The file will contain interface logical names that will be replaced with host's actual interface name at discovery time
@@ -58,19 +58,17 @@ mac_interface_map: [
 ]
 ```
 
-In order to use `curl` to send a request for setting static network configuration, there is a need to JSON-encode the content of those files.
+In order to use `curl` to send a request for setting static network configuration in an existing infra-env, there is a need to JSON-encode the content of those files.
 This can be achieved using the `jq` tool as shown below:
 
 ```sh
 ASSISTED_SERVICE_URL=http://${host_address}:${port}
-CLUSTER_ID=...
+INFRA_ENV_ID=...
 NODE_SSH_KEY="..."
 request_body=$(mktemp)
 
 jq -n --arg SSH_KEY "$NODE_SSH_KEY" --arg NMSTATE_YAML1 "$(cat server-a.yaml)" --arg NMSTATE_YAML2 "$(cat server-b.yaml)" \
 '{
-  "ssh_public_key": $SSH_KEY,
-  "image_type": "full-iso",
   "static_network_config": [
     {
       "network_yaml": $NMSTATE_YAML1,
@@ -86,7 +84,7 @@ jq -n --arg SSH_KEY "$NODE_SSH_KEY" --arg NMSTATE_YAML1 "$(cat server-a.yaml)" -
 The request will be stored in a temporary file `$request_body` and will be used as the request body of the `curl` command:
 
 ```sh
-curl -H "Content-Type: application/json" -X POST -d @$request_body ${ASSISTED_SERVICE_URL}/api/assisted-install/v1/clusters/$CLUSTER_ID/downloads/image
+curl -H "Content-Type: application/json" -X PATCH -d @$request_body ${ASSISTED_SERVICE_URL}/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID
 ```
 
 ## Additional nmstate configuration examples
