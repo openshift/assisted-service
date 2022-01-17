@@ -55,7 +55,7 @@ var (
 	}
 	defaultSnoRequirements = models.ClusterHostRequirementsDetails{
 		CPUCores:                         8,
-		RAMMib:                           32768,
+		RAMMib:                           16384,
 		DiskSizeGb:                       120,
 		InstallationDiskSpeedThresholdMs: 10,
 	}
