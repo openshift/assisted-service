@@ -994,19 +994,19 @@ var _ = Describe("getOSImages", func() {
 			Url:              "rhcos_4.9",
 			RootFSUrl:        "rhcos_rootfs_4.9",
 			Version:          "version-49.123-0",
-			CPUArchitecture:  "x86_64",
+			CPUArchitecture:  CpuArchitectureX86,
 		},
 		{
 			OpenshiftVersion: "4.9",
 			Url:              "rhcos_4.9",
 			RootFSUrl:        "rhcos_rootfs_4.9",
 			Version:          "version-49.123-0",
-			CPUArchitecture:  "arm",
+			CPUArchitecture:  CpuArchitectureArm,
 		},
 	}
 	var defaultEnvOsImages = models.OsImages{
 		&models.OsImage{
-			CPUArchitecture:  swag.String("x86_64"),
+			CPUArchitecture:  swag.String(CpuArchitectureX86),
 			OpenshiftVersion: swag.String("4.8"),
 			URL:              swag.String("rhcos_4.8"),
 			RootfsURL:        swag.String("rhcos_rootfs_4.8"),
@@ -1015,14 +1015,14 @@ var _ = Describe("getOSImages", func() {
 	}
 	var outSpecOsImages = models.OsImages{
 		&models.OsImage{
-			CPUArchitecture:  swag.String("x86_64"),
+			CPUArchitecture:  swag.String(CpuArchitectureX86),
 			OpenshiftVersion: swag.String("4.9"),
 			RootfsURL:        swag.String("rhcos_rootfs_4.9"),
 			URL:              swag.String("rhcos_4.9"),
 			Version:          swag.String("version-49.123-0"),
 		},
 		&models.OsImage{
-			CPUArchitecture:  swag.String("arm"),
+			CPUArchitecture:  swag.String(CpuArchitectureArm),
 			OpenshiftVersion: swag.String("4.9"),
 			RootfsURL:        swag.String("rhcos_rootfs_4.9"),
 			URL:              swag.String("rhcos_4.9"),

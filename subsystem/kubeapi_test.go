@@ -56,8 +56,10 @@ const (
 
 var (
 	imageSetsData = map[string]string{
-		"openshift-v4.7.0": "quay.io/openshift-release-dev/ocp-release:4.7.2-x86_64",
-		"openshift-v4.8.0": "quay.io/openshift-release-dev/ocp-release:4.8.0-fc.0-x86_64",
+		"openshift-v4.7.0":     "quay.io/openshift-release-dev/ocp-release:4.7.2-x86_64",
+		"openshift-v4.8.0":     "quay.io/openshift-release-dev/ocp-release:4.8.0-fc.0-x86_64",
+		"openshift-v4.9.0":     "quay.io/openshift-release-dev/ocp-release:4.9.11-x86_64",
+		"openshift-v4.9.0-arm": "quay.io/openshift-release-dev/ocp-release:4.9.11-aarch64",
 	}
 )
 
@@ -775,7 +777,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 
 		infraNsName = types.NamespacedName{
-			Name:      "infraenv",
+			Name:      "infraenv" + randomNameSuffix(),
 			Namespace: Options.Namespace,
 		}
 		infraEnvSpec = getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
@@ -1162,6 +1164,45 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeTrue())
 
 		checkAgentCondition(ctx, host.ID.String(), v1beta1.BoundCondition, v1beta1.UnboundReason)
+	})
+
+	It("[kube-cpu-arch]create infra-env with arm64 cpu arch", func() {
+		infraEnvSpec.ClusterRef = nil
+		infraEnvSpec.CpuArchitecture = "arm64"
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvKey).Status.ISODownloadURL
+		}, "15s", "5s").Should(Not(BeEmpty()))
+
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		Expect(infraEnv.CPUArchitecture).To(Equal("arm64"))
+	})
+
+	It("[kube-cpu-arch]mismatch cpu architecture between infra-env and bound cluster", func() {
+		By("deploy cluster with openshiftVersion 4.9 and x86_64")
+		imageSetRef4_9 := &hivev1.ClusterImageSetReference{
+			Name: "openshift-v4.9.0",
+		}
+		aciSpec.ImageSetRef = imageSetRef4_9
+		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		By("deploy infraenv with a reference to openshiftVersion 4.9 cluster and arm64")
+		infraEnvSpec.CpuArchitecture = "arm64"
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		infraEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition,
+			"Specified CPU architecture doesn't match")
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {
@@ -1605,6 +1646,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.HTTPSProxy).Should(Equal(""))
 		Expect(cluster.AdditionalNtpSource).Should(Equal(""))
 		Expect(cluster.Hyperthreading).Should(Equal("all"))
+		Expect(cluster.CPUArchitecture).Should(Equal("x86_64"))
 
 		infraEnvSpec.Proxy = &v1beta1.Proxy{
 			NoProxy:    "192.168.1.1",
@@ -1634,6 +1676,22 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(infraEnv.AdditionalNtpSources).Should(ContainSubstring("192.168.1.4"))
 		By("InfraEnv image type defaults to minimal-iso.")
 		Expect(common.ImageTypeValue(infraEnv.Type)).Should(Equal(models.ImageTypeMinimalIso))
+	})
+
+	It("[kube-cpu-arch]deploy ClusterDeployment with arm64 architecture", func() {
+		//Note: arm is supported with user managed networking only
+		armImageSetRef := &hivev1.ClusterImageSetReference{Name: "openshift-v4.9.0-arm"}
+		aciSNOSpec.ImageSetRef = armImageSetRef
+		deployClusterImageSetCRD(ctx, kubeClient, armImageSetRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.CPUArchitecture).Should(Equal("arm64"))
 	})
 
 	It("deploy clusterDeployment and infraEnv with ignition override", func() {

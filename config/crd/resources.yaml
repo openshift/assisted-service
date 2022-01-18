@@ -372,7 +372,7 @@ spec:
                 properties:
                   eventsURL:
                     description: EventsURL specifies an HTTP/S URL that contains events
-                      which occured during the cluster installation process
+                      which occurred during the cluster installation process
                     type: string
                   logsURL:
                     description: LogsURL specifies a url for download controller logs
@@ -1320,6 +1320,11 @@ spec:
                       name must be unique.
                     type: string
                 type: object
+              cpuArchitecture:
+                default: x86_64
+                description: CpuArchitecture specifies the target CPU architecture.
+                  Default is x86_64
+                type: string
               ignitionConfigOverride:
                 description: Json formatted string containing the user overrides for
                   the initial ignition config

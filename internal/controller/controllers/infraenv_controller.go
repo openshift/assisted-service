@@ -329,6 +329,7 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 		log.WithError(err).Error("failed to get pull secret")
 		return nil, err
 	}
+
 	createParams := installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: &models.InfraEnvCreateParams{
 			Name:                   &key.Name,
@@ -336,6 +337,7 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 			IgnitionConfigOverride: infraEnv.Spec.IgnitionConfigOverride,
 			PullSecret:             &pullSecret,
 			SSHAuthorizedKey:       &infraEnv.Spec.SSHAuthorizedKey,
+			CPUArchitecture:        infraEnv.Spec.CpuArchitecture,
 		},
 	}
 	if infraEnv.Spec.Proxy != nil {
@@ -362,7 +364,7 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 		log.Infof("the amount of nmStateConfigs included in the image is: %d", len(staticNetworkConfig))
 		createParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
 	}
-	createParams.InfraenvCreateParams.CPUArchitecture = common.DefaultCPUArchitecture
+
 	return r.Installer.RegisterInfraEnvInternal(ctx, key, createParams)
 }
 

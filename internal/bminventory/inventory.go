@@ -473,7 +473,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	url := installer.V2GetClusterURL{ClusterID: id}
 
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
-	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
+	log.Infof("Register cluster: %s with id %s and params %+v", swag.StringValue(params.NewClusterParams.Name), id, params.NewClusterParams)
 	success := false
 	var err error
 	defer func() {
@@ -524,6 +524,10 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			"Openshift version %s support level is: %s, and can't be used for creating a new cluster",
 			swag.StringValue(params.NewClusterParams.OpenshiftVersion), releaseImage.SupportLevel))
 	}
+	log.Infof("selected cluster release image: arch=%s, openshiftVersion=%s, url=%s",
+		swag.StringValue(releaseImage.CPUArchitecture),
+		swag.StringValue(releaseImage.OpenshiftVersion),
+		swag.StringValue(releaseImage.URL))
 
 	if kubeKey == nil {
 		kubeKey = &types.NamespacedName{}

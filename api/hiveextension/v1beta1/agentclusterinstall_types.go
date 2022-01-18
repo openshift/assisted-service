@@ -212,7 +212,7 @@ type AgentClusterInstallStatus struct {
 }
 
 type DebugInfo struct {
-	// EventsURL specifies an HTTP/S URL that contains events which occured during the cluster installation process
+	// EventsURL specifies an HTTP/S URL that contains events which occurred during the cluster installation process
 	// +optional
 	EventsURL string `json:"eventsURL"`
 

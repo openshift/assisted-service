@@ -1045,12 +1045,13 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	clusterParams := &models.ClusterCreateParams{
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
-		OpenshiftVersion:      swag.String(*releaseImage.Version),
+		OpenshiftVersion:      releaseImage.Version,
 		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(false),
 		IngressVip:            clusterInstall.Spec.IngressVIP,
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
+		CPUArchitecture:       swag.StringValue(releaseImage.CPUArchitecture),
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
 	}
 
@@ -1164,20 +1165,28 @@ func (r *ClusterDeploymentsReconciler) addReleaseImage(
 	pullSecret string,
 	cluster *common.Cluster) (*models.ReleaseImage, error) {
 
-	var ocpReleaseVersion string
-	var cpuArchitecture string
-	if cluster != nil {
-		// Fetch release version and cpu architecture from the existing cluster
-		ocpReleaseVersion = cluster.OpenshiftVersion
-		cpuArchitecture = cluster.CPUArchitecture
-	}
+	var err error
 
+	// retrieve the release image url from the associated
+	// ClusterImageSetRef
 	releaseImageUrl, err := r.getReleaseImage(ctx, spec)
 	if err != nil {
 		return nil, err
 	}
 
-	releaseImage, err := r.Installer.AddReleaseImage(ctx, releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture)
+	var releaseImage *models.ReleaseImage
+	if cluster == nil {
+		// before creating the cluster the source of truth is the
+		// release image url from the ClusterImageSetRef
+		releaseImage, err = r.Installer.AddReleaseImage(ctx,
+			releaseImageUrl, pullSecret, "", "")
+	} else {
+		// If the cluster is already created, take the Release Version
+		// ane architecture from the version calculated by the BE.
+		releaseImage, err = r.Installer.AddReleaseImage(ctx,
+			releaseImageUrl, pullSecret, cluster.OpenshiftVersion, cluster.CPUArchitecture)
+	}
+
 	if err != nil {
 		err = errors.Wrapf(err, "failed to add release image: %s", releaseImageUrl)
 		return nil, err
