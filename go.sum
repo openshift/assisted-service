@@ -202,7 +202,9 @@ github.com/containers/ocicrypt v1.0.3/go.mod h1:CUBa+8MRNL/VkpxYIpaMtgn1WgXGyvPQ
 github.com/containers/storage v1.23.6/go.mod h1:haFs0HRowKwyzvWEx9EgI3WsL8XCSnBDb5f8P5CAxJY=
 github.com/coreos/bbolt v1.3.1-coreos.6/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
+github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
+github.com/coreos/etcd v3.3.15+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
 github.com/coreos/go-json v0.0.0-20170920214419-6a2fe990e083 h1:iLYct0QOZLUuTbFBf+PDiKvpG1xPicwkcgnKaGCeTgc=
 github.com/coreos/go-json v0.0.0-20170920214419-6a2fe990e083/go.mod h1:FmxyHfvrCFfCsXRylD4QQRlQmvzl+DG6iTHyEEykPfU=
