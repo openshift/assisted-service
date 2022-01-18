@@ -85,7 +85,6 @@ require (
 )
 
 replace (
-	github.com/coreos/etcd => github.com/coreos/etcd v3.3.13+incompatible
 	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20210409032903-31b989a197eb // Use OpenShift fork
 	go.etcd.io/bbolt => go.etcd.io/bbolt v1.3.5
