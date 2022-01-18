@@ -154,7 +154,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/clusters:
     post:
@@ -252,7 +252,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v1/clusters/{cluster_id}:
     get:
@@ -310,7 +310,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
     patch:
       deprecated: true
@@ -461,7 +461,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
     delete:
       tags:
@@ -818,7 +818,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v1/clusters/{cluster_id}/downloads/files-presigned:
     get:
@@ -1465,7 +1465,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v1/clusters/{cluster_id}/actions/install:
     post:
@@ -1710,7 +1710,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v1/clusters/{cluster_id}/hosts:
     get:
@@ -1758,7 +1758,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v1/clusters/{cluster_id}/hosts/{host_id}:
     get:
@@ -1974,7 +1974,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable:
     post:
@@ -2281,7 +2281,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v1/clusters/{cluster_id}/hosts/{host_id}/logs:
     post:
@@ -2347,7 +2347,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
     get:
       deprecated: true
@@ -2566,7 +2566,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v1/clusters/{cluster_id}/logs_progress:
     put:
@@ -2620,7 +2620,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v1/clusters/{cluster_id}/logs:
     post:
@@ -2685,7 +2685,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
     get:
       deprecated: true
@@ -2968,7 +2968,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v1/clusters/{cluster_id}/host-requirements:
     get:
@@ -3109,7 +3109,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v1/supported-operators:
     get:
@@ -3404,7 +3404,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/infra-envs/{infra_env_id}:
     get:
@@ -3454,7 +3454,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
     patch:
       tags:
@@ -3605,7 +3605,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
 
   /v2/infra-envs/{infra_env_id}/hosts:
@@ -3674,7 +3674,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
     get:
       tags:
         - installer
@@ -3718,7 +3718,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/infra-envs/{infra_env_id}/hosts/{host_id}:
     get:
@@ -3932,7 +3932,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
     post:
       tags:
@@ -3998,7 +3998,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress:
     put:
@@ -4058,7 +4058,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind:
     post:
@@ -4121,7 +4121,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind:
     post:
@@ -4182,7 +4182,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}:
     patch:
@@ -4443,7 +4443,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
     patch:
       tags:
         - installer
@@ -4562,7 +4562,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/infra-envs/{infra_env_id}/hosts/{host_id}/logs-progress:
     put:
@@ -4625,7 +4625,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/infra-envs/{infra_env_id}/regenerate-signing-key:
     post:
@@ -4852,7 +4852,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/clusters/{cluster_id}/downloads/credentials:
     get:
@@ -4911,7 +4911,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/clusters/{cluster_id}/downloads/files-presigned:
     get:
@@ -5433,7 +5433,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/clusters/{cluster_id}/actions/complete-installation:
     post:
@@ -5493,7 +5493,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/clusters/{cluster_id}/logs-progress:
     put:
@@ -5546,7 +5546,8 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
+
   /v2/clusters/{cluster_id}/manifests:
     get:
       tags:
@@ -5728,7 +5729,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/clusters/{cluster_id}/manifests/files:
     get:
@@ -5919,7 +5920,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/clusters/{cluster_id}/monitored-operators:
     get:
@@ -6024,7 +6025,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition:
     get:
@@ -6082,7 +6083,7 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/events:
     get:
@@ -6169,13 +6170,13 @@ paths:
         "503":
           description: Unavailable.
           schema:
-            $ref: '#/definitions/error'
+            type: string
 
   /v2/clusters/import:
     post:
       tags:
         - installer
-      description: Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
+      description: Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
       operationId: v2ImportCluster
       parameters:
         - in: body

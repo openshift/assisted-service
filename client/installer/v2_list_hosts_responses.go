@@ -270,22 +270,20 @@ func NewV2ListHostsServiceUnavailable() *V2ListHostsServiceUnavailable {
 Unavailable.
 */
 type V2ListHostsServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2ListHostsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts][%d] v2ListHostsServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2ListHostsServiceUnavailable) GetPayload() *models.Error {
+func (o *V2ListHostsServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2ListHostsServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

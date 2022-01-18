@@ -332,7 +332,7 @@ type DownloadClusterFilesServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewDownloadClusterFilesServiceUnavailable creates DownloadClusterFilesServiceUnavailable with default headers values
@@ -342,13 +342,13 @@ func NewDownloadClusterFilesServiceUnavailable() *DownloadClusterFilesServiceUna
 }
 
 // WithPayload adds the payload to the download cluster files service unavailable response
-func (o *DownloadClusterFilesServiceUnavailable) WithPayload(payload *models.Error) *DownloadClusterFilesServiceUnavailable {
+func (o *DownloadClusterFilesServiceUnavailable) WithPayload(payload string) *DownloadClusterFilesServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the download cluster files service unavailable response
-func (o *DownloadClusterFilesServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *DownloadClusterFilesServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -356,10 +356,8 @@ func (o *DownloadClusterFilesServiceUnavailable) SetPayload(payload *models.Erro
 func (o *DownloadClusterFilesServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

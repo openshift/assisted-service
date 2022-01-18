@@ -299,22 +299,20 @@ func NewUpdateClusterLogsProgressServiceUnavailable() *UpdateClusterLogsProgress
 Unavailable.
 */
 type UpdateClusterLogsProgressServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *UpdateClusterLogsProgressServiceUnavailable) Error() string {
 	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *UpdateClusterLogsProgressServiceUnavailable) GetPayload() *models.Error {
+func (o *UpdateClusterLogsProgressServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *UpdateClusterLogsProgressServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

@@ -261,22 +261,20 @@ func NewV2UpdateHostInstallProgressServiceUnavailable() *V2UpdateHostInstallProg
 Unavailable.
 */
 type V2UpdateHostInstallProgressServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2UpdateHostInstallProgressServiceUnavailable) Error() string {
 	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2UpdateHostInstallProgressServiceUnavailable) GetPayload() *models.Error {
+func (o *V2UpdateHostInstallProgressServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2UpdateHostInstallProgressServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

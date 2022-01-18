@@ -337,22 +337,20 @@ func NewV2ReportMonitoredOperatorStatusServiceUnavailable() *V2ReportMonitoredOp
 Unavailable.
 */
 type V2ReportMonitoredOperatorStatusServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) Error() string {
 	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) GetPayload() *models.Error {
+func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

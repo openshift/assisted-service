@@ -269,7 +269,7 @@ type UploadLogsServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewUploadLogsServiceUnavailable creates UploadLogsServiceUnavailable with default headers values
@@ -279,13 +279,13 @@ func NewUploadLogsServiceUnavailable() *UploadLogsServiceUnavailable {
 }
 
 // WithPayload adds the payload to the upload logs service unavailable response
-func (o *UploadLogsServiceUnavailable) WithPayload(payload *models.Error) *UploadLogsServiceUnavailable {
+func (o *UploadLogsServiceUnavailable) WithPayload(payload string) *UploadLogsServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the upload logs service unavailable response
-func (o *UploadLogsServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *UploadLogsServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -293,10 +293,8 @@ func (o *UploadLogsServiceUnavailable) SetPayload(payload *models.Error) {
 func (o *UploadLogsServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

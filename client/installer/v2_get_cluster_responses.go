@@ -272,22 +272,20 @@ func NewV2GetClusterServiceUnavailable() *V2GetClusterServiceUnavailable {
 Unavailable.
 */
 type V2GetClusterServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2GetClusterServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}][%d] v2GetClusterServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2GetClusterServiceUnavailable) GetPayload() *models.Error {
+func (o *V2GetClusterServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2GetClusterServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

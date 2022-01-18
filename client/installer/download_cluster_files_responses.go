@@ -312,22 +312,20 @@ func NewDownloadClusterFilesServiceUnavailable() *DownloadClusterFilesServiceUna
 Unavailable.
 */
 type DownloadClusterFilesServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *DownloadClusterFilesServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files][%d] downloadClusterFilesServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *DownloadClusterFilesServiceUnavailable) GetPayload() *models.Error {
+func (o *DownloadClusterFilesServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *DownloadClusterFilesServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

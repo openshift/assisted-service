@@ -259,7 +259,7 @@ type API interface {
 	   V2GetPreflightRequirements Get preflight requirements for a cluster.*/
 	V2GetPreflightRequirements(ctx context.Context, params *V2GetPreflightRequirementsParams) (*V2GetPreflightRequirementsOK, error)
 	/*
-	   V2ImportCluster Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster*/
+	   V2ImportCluster Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster*/
 	V2ImportCluster(ctx context.Context, params *V2ImportClusterParams) (*V2ImportClusterCreated, error)
 	/*
 	   V2InstallCluster Installs the OpenShift cluster.*/
@@ -2303,7 +2303,7 @@ func (a *Client) V2GetPreflightRequirements(ctx context.Context, params *V2GetPr
 }
 
 /*
-V2ImportCluster Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
+V2ImportCluster Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
 */
 func (a *Client) V2ImportCluster(ctx context.Context, params *V2ImportClusterParams) (*V2ImportClusterCreated, error) {
 

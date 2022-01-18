@@ -312,22 +312,20 @@ func NewDownloadHostIgnitionServiceUnavailable() *DownloadHostIgnitionServiceUna
 Unavailable.
 */
 type DownloadHostIgnitionServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *DownloadHostIgnitionServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *DownloadHostIgnitionServiceUnavailable) GetPayload() *models.Error {
+func (o *DownloadHostIgnitionServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *DownloadHostIgnitionServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

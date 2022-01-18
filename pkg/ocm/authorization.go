@@ -43,10 +43,10 @@ func (a authorization) AccessReview(ctx context.Context, username, action, resou
 				return false, common.NewInfraError(http.StatusUnauthorized, err)
 			}
 			if postResp.Status() >= 500 {
-				return false, common.NewApiError(http.StatusServiceUnavailable, err)
+				return false, common.NewServiceUnavailableError(err)
 			}
 		}
-		return false, common.NewApiError(http.StatusServiceUnavailable, err)
+		return false, common.NewServiceUnavailableError(err)
 	}
 
 	response, ok := postResp.GetResponse()
@@ -82,10 +82,10 @@ func (a authorization) CapabilityReview(ctx context.Context, username, capabilit
 				return false, common.NewInfraError(http.StatusUnauthorized, err)
 			}
 			if postResp.Status() >= 500 {
-				return false, common.NewApiError(http.StatusServiceUnavailable, err)
+				return false, common.NewServiceUnavailableError(err)
 			}
 		}
-		return false, common.NewApiError(http.StatusServiceUnavailable, err)
+		return false, common.NewServiceUnavailableError(err)
 	}
 
 	response, ok := postResp.GetResponse()

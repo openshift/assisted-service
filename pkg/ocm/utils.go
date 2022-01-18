@@ -81,7 +81,7 @@ func HandleOCMResponse(ctx context.Context, log sdkClient.Logger, response respo
 				return common.NewInfraError(http.StatusUnauthorized, err)
 			}
 		}
-		return common.NewApiError(http.StatusServiceUnavailable, err)
+		return common.NewServiceUnavailableError(err)
 	}
 	return nil
 }

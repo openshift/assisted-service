@@ -333,7 +333,7 @@ type GetInfraEnvServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewGetInfraEnvServiceUnavailable creates GetInfraEnvServiceUnavailable with default headers values
@@ -343,13 +343,13 @@ func NewGetInfraEnvServiceUnavailable() *GetInfraEnvServiceUnavailable {
 }
 
 // WithPayload adds the payload to the get infra env service unavailable response
-func (o *GetInfraEnvServiceUnavailable) WithPayload(payload *models.Error) *GetInfraEnvServiceUnavailable {
+func (o *GetInfraEnvServiceUnavailable) WithPayload(payload string) *GetInfraEnvServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get infra env service unavailable response
-func (o *GetInfraEnvServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *GetInfraEnvServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -357,10 +357,8 @@ func (o *GetInfraEnvServiceUnavailable) SetPayload(payload *models.Error) {
 func (o *GetInfraEnvServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

@@ -332,7 +332,7 @@ type V2DownloadHostIgnitionServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewV2DownloadHostIgnitionServiceUnavailable creates V2DownloadHostIgnitionServiceUnavailable with default headers values
@@ -342,13 +342,13 @@ func NewV2DownloadHostIgnitionServiceUnavailable() *V2DownloadHostIgnitionServic
 }
 
 // WithPayload adds the payload to the v2 download host ignition service unavailable response
-func (o *V2DownloadHostIgnitionServiceUnavailable) WithPayload(payload *models.Error) *V2DownloadHostIgnitionServiceUnavailable {
+func (o *V2DownloadHostIgnitionServiceUnavailable) WithPayload(payload string) *V2DownloadHostIgnitionServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the v2 download host ignition service unavailable response
-func (o *V2DownloadHostIgnitionServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *V2DownloadHostIgnitionServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -356,10 +356,8 @@ func (o *V2DownloadHostIgnitionServiceUnavailable) SetPayload(payload *models.Er
 func (o *V2DownloadHostIgnitionServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

@@ -269,7 +269,7 @@ type V2UpdateHostInstallProgressServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewV2UpdateHostInstallProgressServiceUnavailable creates V2UpdateHostInstallProgressServiceUnavailable with default headers values
@@ -279,13 +279,13 @@ func NewV2UpdateHostInstallProgressServiceUnavailable() *V2UpdateHostInstallProg
 }
 
 // WithPayload adds the payload to the v2 update host install progress service unavailable response
-func (o *V2UpdateHostInstallProgressServiceUnavailable) WithPayload(payload *models.Error) *V2UpdateHostInstallProgressServiceUnavailable {
+func (o *V2UpdateHostInstallProgressServiceUnavailable) WithPayload(payload string) *V2UpdateHostInstallProgressServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the v2 update host install progress service unavailable response
-func (o *V2UpdateHostInstallProgressServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *V2UpdateHostInstallProgressServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -293,10 +293,8 @@ func (o *V2UpdateHostInstallProgressServiceUnavailable) SetPayload(payload *mode
 func (o *V2UpdateHostInstallProgressServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

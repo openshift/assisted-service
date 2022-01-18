@@ -295,7 +295,7 @@ type InstallerAPI interface {
 	/* V2GetPreflightRequirements Get preflight requirements for a cluster. */
 	V2GetPreflightRequirements(ctx context.Context, params installer.V2GetPreflightRequirementsParams) middleware.Responder
 
-	/* V2ImportCluster Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster */
+	/* V2ImportCluster Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster */
 	V2ImportCluster(ctx context.Context, params installer.V2ImportClusterParams) middleware.Responder
 
 	/* V2InstallCluster Installs the OpenShift cluster. */

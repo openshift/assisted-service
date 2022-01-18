@@ -312,22 +312,20 @@ func NewV2DownloadClusterCredentialsServiceUnavailable() *V2DownloadClusterCrede
 Unavailable.
 */
 type V2DownloadClusterCredentialsServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2DownloadClusterCredentialsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials][%d] v2DownloadClusterCredentialsServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2DownloadClusterCredentialsServiceUnavailable) GetPayload() *models.Error {
+func (o *V2DownloadClusterCredentialsServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2DownloadClusterCredentialsServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

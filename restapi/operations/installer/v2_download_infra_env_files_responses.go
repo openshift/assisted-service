@@ -376,7 +376,7 @@ type V2DownloadInfraEnvFilesServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewV2DownloadInfraEnvFilesServiceUnavailable creates V2DownloadInfraEnvFilesServiceUnavailable with default headers values
@@ -386,13 +386,13 @@ func NewV2DownloadInfraEnvFilesServiceUnavailable() *V2DownloadInfraEnvFilesServ
 }
 
 // WithPayload adds the payload to the v2 download infra env files service unavailable response
-func (o *V2DownloadInfraEnvFilesServiceUnavailable) WithPayload(payload *models.Error) *V2DownloadInfraEnvFilesServiceUnavailable {
+func (o *V2DownloadInfraEnvFilesServiceUnavailable) WithPayload(payload string) *V2DownloadInfraEnvFilesServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the v2 download infra env files service unavailable response
-func (o *V2DownloadInfraEnvFilesServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *V2DownloadInfraEnvFilesServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -400,10 +400,8 @@ func (o *V2DownloadInfraEnvFilesServiceUnavailable) SetPayload(payload *models.E
 func (o *V2DownloadInfraEnvFilesServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

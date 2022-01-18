@@ -337,22 +337,20 @@ func NewV2UpdateHostLogsProgressServiceUnavailable() *V2UpdateHostLogsProgressSe
 Unavailable.
 */
 type V2UpdateHostLogsProgressServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2UpdateHostLogsProgressServiceUnavailable) Error() string {
 	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/logs-progress][%d] v2UpdateHostLogsProgressServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2UpdateHostLogsProgressServiceUnavailable) GetPayload() *models.Error {
+func (o *V2UpdateHostLogsProgressServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2UpdateHostLogsProgressServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

@@ -116,7 +116,7 @@ type ListSupportedOpenshiftVersionsServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewListSupportedOpenshiftVersionsServiceUnavailable creates ListSupportedOpenshiftVersionsServiceUnavailable with default headers values
@@ -126,13 +126,13 @@ func NewListSupportedOpenshiftVersionsServiceUnavailable() *ListSupportedOpenshi
 }
 
 // WithPayload adds the payload to the list supported openshift versions service unavailable response
-func (o *ListSupportedOpenshiftVersionsServiceUnavailable) WithPayload(payload *models.Error) *ListSupportedOpenshiftVersionsServiceUnavailable {
+func (o *ListSupportedOpenshiftVersionsServiceUnavailable) WithPayload(payload string) *ListSupportedOpenshiftVersionsServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the list supported openshift versions service unavailable response
-func (o *ListSupportedOpenshiftVersionsServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *ListSupportedOpenshiftVersionsServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -140,10 +140,8 @@ func (o *ListSupportedOpenshiftVersionsServiceUnavailable) SetPayload(payload *m
 func (o *ListSupportedOpenshiftVersionsServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

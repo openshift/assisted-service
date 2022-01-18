@@ -310,22 +310,20 @@ func NewV2GetNextStepsServiceUnavailable() *V2GetNextStepsServiceUnavailable {
 Unavailable.
 */
 type V2GetNextStepsServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2GetNextStepsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2GetNextStepsServiceUnavailable) GetPayload() *models.Error {
+func (o *V2GetNextStepsServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2GetNextStepsServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

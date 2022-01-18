@@ -348,22 +348,20 @@ func NewGetInfraEnvDownloadURLServiceUnavailable() *GetInfraEnvDownloadURLServic
 Unavailable.
 */
 type GetInfraEnvDownloadURLServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *GetInfraEnvDownloadURLServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *GetInfraEnvDownloadURLServiceUnavailable) GetPayload() *models.Error {
+func (o *GetInfraEnvDownloadURLServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *GetInfraEnvDownloadURLServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

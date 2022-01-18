@@ -421,7 +421,7 @@ type UnbindHostServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewUnbindHostServiceUnavailable creates UnbindHostServiceUnavailable with default headers values
@@ -431,13 +431,13 @@ func NewUnbindHostServiceUnavailable() *UnbindHostServiceUnavailable {
 }
 
 // WithPayload adds the payload to the unbind host service unavailable response
-func (o *UnbindHostServiceUnavailable) WithPayload(payload *models.Error) *UnbindHostServiceUnavailable {
+func (o *UnbindHostServiceUnavailable) WithPayload(payload string) *UnbindHostServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the unbind host service unavailable response
-func (o *UnbindHostServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *UnbindHostServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -445,10 +445,8 @@ func (o *UnbindHostServiceUnavailable) SetPayload(payload *models.Error) {
 func (o *UnbindHostServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

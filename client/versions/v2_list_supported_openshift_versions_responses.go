@@ -80,22 +80,20 @@ func NewV2ListSupportedOpenshiftVersionsServiceUnavailable() *V2ListSupportedOpe
 Unavailable.
 */
 type V2ListSupportedOpenshiftVersionsServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) GetPayload() *models.Error {
+func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

@@ -421,7 +421,7 @@ type V2RegisterHostServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewV2RegisterHostServiceUnavailable creates V2RegisterHostServiceUnavailable with default headers values
@@ -431,13 +431,13 @@ func NewV2RegisterHostServiceUnavailable() *V2RegisterHostServiceUnavailable {
 }
 
 // WithPayload adds the payload to the v2 register host service unavailable response
-func (o *V2RegisterHostServiceUnavailable) WithPayload(payload *models.Error) *V2RegisterHostServiceUnavailable {
+func (o *V2RegisterHostServiceUnavailable) WithPayload(payload string) *V2RegisterHostServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the v2 register host service unavailable response
-func (o *V2RegisterHostServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *V2RegisterHostServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -445,10 +445,8 @@ func (o *V2RegisterHostServiceUnavailable) SetPayload(payload *models.Error) {
 func (o *V2RegisterHostServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

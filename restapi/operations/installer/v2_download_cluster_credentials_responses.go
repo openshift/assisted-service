@@ -332,7 +332,7 @@ type V2DownloadClusterCredentialsServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewV2DownloadClusterCredentialsServiceUnavailable creates V2DownloadClusterCredentialsServiceUnavailable with default headers values
@@ -342,13 +342,13 @@ func NewV2DownloadClusterCredentialsServiceUnavailable() *V2DownloadClusterCrede
 }
 
 // WithPayload adds the payload to the v2 download cluster credentials service unavailable response
-func (o *V2DownloadClusterCredentialsServiceUnavailable) WithPayload(payload *models.Error) *V2DownloadClusterCredentialsServiceUnavailable {
+func (o *V2DownloadClusterCredentialsServiceUnavailable) WithPayload(payload string) *V2DownloadClusterCredentialsServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the v2 download cluster credentials service unavailable response
-func (o *V2DownloadClusterCredentialsServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *V2DownloadClusterCredentialsServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -356,10 +356,8 @@ func (o *V2DownloadClusterCredentialsServiceUnavailable) SetPayload(payload *mod
 func (o *V2DownloadClusterCredentialsServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

@@ -220,7 +220,7 @@ var mockOcmAuthInternalError = func(a *ocm.MockOCMAuthentication) {
 var mockOcmAuthSendRequestFailure = func(a *ocm.MockOCMAuthentication) {
 	a.EXPECT().AuthenticatePullSecret(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
-			return nil, common.NewApiError(http.StatusServiceUnavailable, errors.Errorf("error"))
+			return nil, common.NewServiceUnavailableError(errors.Errorf("error"))
 		}).Times(1)
 }
 

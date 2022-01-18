@@ -156,22 +156,20 @@ func NewV2ListFeatureSupportLevelsServiceUnavailable() *V2ListFeatureSupportLeve
 Unavailable.
 */
 type V2ListFeatureSupportLevelsServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2ListFeatureSupportLevelsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/feature-support-levels][%d] v2ListFeatureSupportLevelsServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2ListFeatureSupportLevelsServiceUnavailable) GetPayload() *models.Error {
+func (o *V2ListFeatureSupportLevelsServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2ListFeatureSupportLevelsServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

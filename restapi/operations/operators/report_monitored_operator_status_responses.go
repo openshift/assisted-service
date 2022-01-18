@@ -357,7 +357,7 @@ type ReportMonitoredOperatorStatusServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewReportMonitoredOperatorStatusServiceUnavailable creates ReportMonitoredOperatorStatusServiceUnavailable with default headers values
@@ -367,13 +367,13 @@ func NewReportMonitoredOperatorStatusServiceUnavailable() *ReportMonitoredOperat
 }
 
 // WithPayload adds the payload to the report monitored operator status service unavailable response
-func (o *ReportMonitoredOperatorStatusServiceUnavailable) WithPayload(payload *models.Error) *ReportMonitoredOperatorStatusServiceUnavailable {
+func (o *ReportMonitoredOperatorStatusServiceUnavailable) WithPayload(payload string) *ReportMonitoredOperatorStatusServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the report monitored operator status service unavailable response
-func (o *ReportMonitoredOperatorStatusServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *ReportMonitoredOperatorStatusServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -381,10 +381,8 @@ func (o *ReportMonitoredOperatorStatusServiceUnavailable) SetPayload(payload *mo
 func (o *ReportMonitoredOperatorStatusServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

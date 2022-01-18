@@ -386,22 +386,20 @@ func NewV2RegisterHostServiceUnavailable() *V2RegisterHostServiceUnavailable {
 Unavailable.
 */
 type V2RegisterHostServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2RegisterHostServiceUnavailable) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2RegisterHostServiceUnavailable) GetPayload() *models.Error {
+func (o *V2RegisterHostServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2RegisterHostServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

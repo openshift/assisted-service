@@ -337,22 +337,20 @@ func NewV2PostStepReplyServiceUnavailable() *V2PostStepReplyServiceUnavailable {
 Unavailable.
 */
 type V2PostStepReplyServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2PostStepReplyServiceUnavailable) Error() string {
 	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2PostStepReplyServiceUnavailable) GetPayload() *models.Error {
+func (o *V2PostStepReplyServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2PostStepReplyServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

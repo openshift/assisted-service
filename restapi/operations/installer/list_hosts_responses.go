@@ -248,7 +248,7 @@ type ListHostsServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewListHostsServiceUnavailable creates ListHostsServiceUnavailable with default headers values
@@ -258,13 +258,13 @@ func NewListHostsServiceUnavailable() *ListHostsServiceUnavailable {
 }
 
 // WithPayload adds the payload to the list hosts service unavailable response
-func (o *ListHostsServiceUnavailable) WithPayload(payload *models.Error) *ListHostsServiceUnavailable {
+func (o *ListHostsServiceUnavailable) WithPayload(payload string) *ListHostsServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the list hosts service unavailable response
-func (o *ListHostsServiceUnavailable) SetPayload(payload *models.Error) {
+func (o *ListHostsServiceUnavailable) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -272,10 +272,8 @@ func (o *ListHostsServiceUnavailable) SetPayload(payload *models.Error) {
 func (o *ListHostsServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(503)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }

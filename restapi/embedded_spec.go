@@ -334,7 +334,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -525,7 +525,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -815,7 +815,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -1338,7 +1338,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -2105,7 +2105,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -2694,7 +2694,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -3110,7 +3110,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -3199,7 +3199,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -3288,7 +3288,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -3613,7 +3613,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -3694,7 +3694,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -4168,7 +4168,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -4322,7 +4322,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -4421,7 +4421,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -4609,7 +4609,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -4717,7 +4717,7 @@ func init() {
     },
     "/v2/clusters/import": {
       "post": {
-        "description": "Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
+        "description": "Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
         "tags": [
           "installer"
         ],
@@ -4849,7 +4849,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -5135,7 +5135,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -5434,7 +5434,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -5631,7 +5631,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -6083,7 +6083,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -6163,7 +6163,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -6631,7 +6631,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -6846,7 +6846,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -7039,7 +7039,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -7131,7 +7131,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -7202,7 +7202,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -7357,7 +7357,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -7609,7 +7609,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -7684,7 +7684,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -7844,7 +7844,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -7943,7 +7943,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -8265,7 +8265,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -8563,7 +8563,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -8640,7 +8640,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -8901,7 +8901,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -8998,7 +8998,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -9092,7 +9092,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -9180,7 +9180,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -9266,7 +9266,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -13694,7 +13694,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -13885,7 +13885,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -14175,7 +14175,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -14698,7 +14698,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -15465,7 +15465,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -16054,7 +16054,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -16470,7 +16470,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -16559,7 +16559,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -16648,7 +16648,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -16973,7 +16973,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -17054,7 +17054,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -17528,7 +17528,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -17682,7 +17682,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -17781,7 +17781,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -17969,7 +17969,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -18077,7 +18077,7 @@ func init() {
     },
     "/v2/clusters/import": {
       "post": {
-        "description": "Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
+        "description": "Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
         "tags": [
           "installer"
         ],
@@ -18209,7 +18209,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -18495,7 +18495,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -18794,7 +18794,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -18991,7 +18991,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -19443,7 +19443,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -19523,7 +19523,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -19991,7 +19991,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -20206,7 +20206,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -20399,7 +20399,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -20491,7 +20491,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -20562,7 +20562,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -20717,7 +20717,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -20969,7 +20969,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -21044,7 +21044,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -21204,7 +21204,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -21303,7 +21303,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -21625,7 +21625,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -21923,7 +21923,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -22000,7 +22000,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -22261,7 +22261,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -22358,7 +22358,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -22452,7 +22452,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -22540,7 +22540,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }
@@ -22626,7 +22626,7 @@ func init() {
           "503": {
             "description": "Unavailable.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "type": "string"
             }
           }
         }

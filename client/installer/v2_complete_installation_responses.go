@@ -310,22 +310,20 @@ func NewV2CompleteInstallationServiceUnavailable() *V2CompleteInstallationServic
 Unavailable.
 */
 type V2CompleteInstallationServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *V2CompleteInstallationServiceUnavailable) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *V2CompleteInstallationServiceUnavailable) GetPayload() *models.Error {
+func (o *V2CompleteInstallationServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *V2CompleteInstallationServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

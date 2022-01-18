@@ -36,10 +36,10 @@ func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret s
 				return nil, common.NewInfraError(http.StatusUnauthorized, err)
 			}
 			if response.Status() >= 500 {
-				return nil, common.NewApiError(http.StatusServiceUnavailable, err)
+				return nil, common.NewServiceUnavailableError(err)
 			}
 		}
-		return nil, common.NewApiError(http.StatusServiceUnavailable, err)
+		return nil, common.NewServiceUnavailableError(err)
 	}
 
 	responseVal, ok := response.GetResponse()

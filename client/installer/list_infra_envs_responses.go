@@ -270,22 +270,20 @@ func NewListInfraEnvsServiceUnavailable() *ListInfraEnvsServiceUnavailable {
 Unavailable.
 */
 type ListInfraEnvsServiceUnavailable struct {
-	Payload *models.Error
+	Payload string
 }
 
 func (o *ListInfraEnvsServiceUnavailable) Error() string {
 	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsServiceUnavailable  %+v", 503, o.Payload)
 }
-func (o *ListInfraEnvsServiceUnavailable) GetPayload() *models.Error {
+func (o *ListInfraEnvsServiceUnavailable) GetPayload() string {
 	return o.Payload
 }
 
 func (o *ListInfraEnvsServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
-
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
