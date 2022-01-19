@@ -31,11 +31,11 @@ spec:
 {% endif %}
     serviceNetwork:
     - {{ service_subnet }}
-{% if user_managed_networking %}
-    userManagedNetworking: {{ user_managed_networking }}
-{% endif %}
 {% if service_subnet_additional|length %}
     - {{ service_subnet_additional }}
+{% endif %}
+{% if user_managed_networking %}
+    userManagedNetworking: {{ user_managed_networking }}
 {% endif %}
   provisionRequirements:
     controlPlaneAgents: {{ spoke_controlplane_agents }}
