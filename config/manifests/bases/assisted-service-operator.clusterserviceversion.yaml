@@ -39,6 +39,11 @@ spec:
           ~2-3GiB per supported OpenShift version). Minimum 100GiB recommended.
         displayName: Storage for service filesystem
         path: filesystemStorage
+      - description: ImageStorage defines the spec of the PersistentVolumeClaim to
+          be created for each replica of the image service. If a PersistentVolumeClaim
+          is provided 2GiB per OSImage entry is required
+        displayName: Storage for images
+        path: imageStorage
       - description: 'MirrorRegistryRef is the reference to the configmap that contains
           mirror registry configuration In case no configuration is need, this field
           will be nil. ConfigMap must contain to entries: ca-bundle.crt - hold the

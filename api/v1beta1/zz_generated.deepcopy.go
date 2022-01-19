@@ -152,6 +152,11 @@ func (in *AgentServiceConfigSpec) DeepCopyInto(out *AgentServiceConfigSpec) {
 	*out = *in
 	in.FileSystemStorage.DeepCopyInto(&out.FileSystemStorage)
 	in.DatabaseStorage.DeepCopyInto(&out.DatabaseStorage)
+	if in.ImageStorage != nil {
+		in, out := &in.ImageStorage, &out.ImageStorage
+		*out = new(corev1.PersistentVolumeClaimSpec)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.MirrorRegistryRef != nil {
 		in, out := &in.MirrorRegistryRef, &out.MirrorRegistryRef
 		*out = new(corev1.LocalObjectReference)

@@ -65,6 +65,12 @@ type AgentServiceConfigSpec struct {
 	// With respect to the resource requests, minimum 10GiB is recommended.
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Storage for database"
 	DatabaseStorage corev1.PersistentVolumeClaimSpec `json:"databaseStorage"`
+	// ImageStorage defines the spec of the PersistentVolumeClaim to be
+	// created for each replica of the image service.
+	// If a PersistentVolumeClaim is provided 2GiB per OSImage entry is required
+	// +optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Storage for images"
+	ImageStorage *corev1.PersistentVolumeClaimSpec `json:"imageStorage"`
 	// MirrorRegistryRef is the reference to the configmap that contains mirror registry configuration
 	// In case no configuration is need, this field will be nil. ConfigMap must contain to entries:
 	// ca-bundle.crt - hold the contents of mirror registry certificate/s
@@ -116,8 +122,8 @@ const (
 	ReasonIngressCertFailure string = "IngressCertFailure"
 	// ReasonConfigFailure when there was a failure configuring/deploying the assisted-service configmap.
 	ReasonConfigFailure string = "ConfigFailure"
-	// ReasonImageHandlerDeploymentFailure when there was a failure configuring/deploying the assisted-image-service deployment.
-	ReasonImageHandlerDeploymentFailure string = "ImageHandlerDeploymentFailure"
+	// ReasonImageHandlerStatefulSetFailure when there was a failure configuring/deploying the assisted-image-service stateful set.
+	ReasonImageHandlerStatefulSetFailure string = "ImageHandlerStatefulSetFailure"
 	// ReasonDeploymentFailure when there was a failure configuring/deploying the assisted-service deployment.
 	ReasonDeploymentFailure string = "DeploymentFailure"
 	// ReasonStorageFailure when there was a failure configuring/deploying the validating webhook.
