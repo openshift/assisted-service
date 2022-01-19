@@ -177,6 +177,14 @@ spec:
   resources:
    requests:
     storage: 8Gi
+ imageStorage:
+  storageClassName: ${STORAGE_CLASS_NAME}
+  accessModes:
+  - ReadWriteOnce
+  resources:
+   requests:
+    storage: 8Gi
+
 $(mirror_config)
 EOCR
 

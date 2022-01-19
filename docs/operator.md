@@ -102,6 +102,12 @@ spec:
     resources:
       requests:
         storage: 20Gi
+  imageStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
 EOF
 ```
 
@@ -166,6 +172,12 @@ spec:
     resources:
       requests:
         storage: 20Gi
+  imageStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
   osImages:
     - openshiftVersion: "4.6"
       version: "46.82.202012051820-0"
@@ -337,6 +349,12 @@ spec:
     resources:
       requests:
         storage: 20Gi
+  imageStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
   mirrorRegistryRef:
     name: mirror-registry-config-map
 EOF
