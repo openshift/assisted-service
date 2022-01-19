@@ -157,6 +157,10 @@ type AgentClusterInstallSpec struct {
 	// DiskEncryption is the configuration to enable/disable disk encryption for cluster nodes.
 	// +optional
 	DiskEncryption *DiskEncryption `json:"diskEncryption,omitempty"`
+
+	// Proxy defines the proxy settings used for the install config
+	// +optional
+	Proxy *Proxy `json:"proxy,omitempty"`
 }
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.
@@ -351,6 +355,23 @@ type CaCertificateReference struct {
 	Namespace string `json:"namespace"`
 	// Name is the name of the secret containing the CA certificate.
 	Name string `json:"name"`
+}
+
+// Proxy defines the proxy settings for the cluster.
+// At least one of HTTPProxy or HTTPSProxy is required.
+type Proxy struct {
+	// HTTPProxy is the URL of the proxy for HTTP requests.
+	// +optional
+	HTTPProxy string `json:"httpProxy,omitempty"`
+
+	// HTTPSProxy is the URL of the proxy for HTTPS requests.
+	// +optional
+	HTTPSProxy string `json:"httpsProxy,omitempty"`
+
+	// NoProxy is a comma-separated list of domains and CIDRs for which the proxy should not be
+	// used.
+	// +optional
+	NoProxy string `json:"noProxy,omitempty"`
 }
 
 func init() {

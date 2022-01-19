@@ -310,6 +310,21 @@ spec:
                 required:
                 - controlPlaneAgents
                 type: object
+              proxy:
+                description: Proxy defines the proxy settings used for the install
+                  config
+                properties:
+                  httpProxy:
+                    description: HTTPProxy is the URL of the proxy for HTTP requests.
+                    type: string
+                  httpsProxy:
+                    description: HTTPSProxy is the URL of the proxy for HTTPS requests.
+                    type: string
+                  noProxy:
+                    description: NoProxy is a comma-separated list of domains and
+                      CIDRs for which the proxy should not be used.
+                    type: string
+                type: object
               sshPublicKey:
                 description: SSHPublicKey will be added to all cluster hosts for use
                   in debugging.

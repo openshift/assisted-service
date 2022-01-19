@@ -290,6 +290,26 @@ var _ = Describe("cluster reconcile", func() {
 				validateCreation(cluster)
 			})
 
+			It("create new cluster with Proxy parameters", func() {
+				httpProxy := "http://proxy.org"
+				httpsProxy := "https://secureproxy.org"
+				noProxy := "acme.com"
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+						Expect(swag.StringValue(params.NewClusterParams.HTTPProxy)).To(Equal(httpProxy))
+						Expect(swag.StringValue(params.NewClusterParams.HTTPSProxy)).To(Equal(httpsProxy))
+						Expect(swag.StringValue(params.NewClusterParams.NoProxy)).To(Equal(noProxy))
+					}).Return(clusterReply, nil)
+				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+
+				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+				defaultAgentClusterInstallSpec.Proxy = &hiveext.Proxy{HTTPProxy: httpProxy, HTTPSProxy: httpsProxy, NoProxy: noProxy}
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+				validateCreation(cluster)
+			})
+
 			It("create new cluster with IgnitionEndpoint CaCertificate", func() {
 				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
 					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
@@ -2058,6 +2078,51 @@ var _ = Describe("cluster reconcile", func() {
 						To(Equal(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR))
 				}).Return(updateReply, nil)
 
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+		})
+
+		It("update proxy configuration", func() {
+			httpProxy := "http://proxy.org"
+			httpsProxy := "https://secureproxy.org"
+			noProxy := "acme.com"
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               &sId,
+					Name:             clusterName,
+					OpenshiftVersion: "4.8",
+					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:           swag.String(models.ClusterStatusInsufficient),
+					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
+					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			updateReply := getDefaultTestCluster()
+
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.V2UpdateClusterParams) {
+					Expect(swag.StringValue(param.ClusterUpdateParams.HTTPProxy)).To(Equal(httpProxy))
+					Expect(swag.StringValue(param.ClusterUpdateParams.HTTPSProxy)).To(Equal(httpsProxy))
+					Expect(swag.StringValue(param.ClusterUpdateParams.NoProxy)).To(Equal(noProxy))
+
+				}).Return(updateReply, nil)
+
+			aci.Spec.Proxy = &hiveext.Proxy{HTTPProxy: httpProxy, HTTPSProxy: httpsProxy, NoProxy: noProxy}
+			Expect(c.Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
