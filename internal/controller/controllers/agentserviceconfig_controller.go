@@ -243,34 +243,18 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		Message: msg,
 	})
 
-	for _, component := range []struct {
-		name          string
-		conditionType appsv1.DeploymentConditionType
-		fn            ComponentStatusFn
-	}{
-		{"agentinstalladmission", appsv1.DeploymentAvailable, r.deploymentStatus},
-		{"agentinstalladmission", appsv1.DeploymentProgressing, r.deploymentStatus},
-		{"assisted-image-service", appsv1.DeploymentAvailable, r.deploymentStatus},
-		{"assisted-image-service", appsv1.DeploymentProgressing, r.deploymentStatus},
-		{"assisted-service", appsv1.DeploymentAvailable, r.deploymentStatus},
-		{"assisted-service", appsv1.DeploymentProgressing, r.deploymentStatus},
-	} {
-		err := component.fn(ctx, log, component.name, component.conditionType)
-		if err != nil {
-			msg := "Deployment " + component.name + " is unhealthy."
-			log.WithError(err).Error(msg)
-			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    aiv1beta1.ConditionDeploymentsHealthy,
-				Status:  corev1.ConditionFalse,
-				Reason:  aiv1beta1.ReasonDeploymentFailure,
-				Message: msg,
-			})
-			if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
-				log.WithError(err).Error("Failed to update status")
-				return ctrl.Result{Requeue: true}, statusErr
-			}
-			return ctrl.Result{Requeue: true}, err
+	if err := r.monitorOperands(ctx, log, instance); err != nil {
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionDeploymentsHealthy,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonDeploymentFailure,
+			Message: err.Error(),
+		})
+		if updateErr := r.Status().Update(ctx, instance); updateErr != nil {
+			log.WithError(updateErr).Error("Failed to update status")
+			return ctrl.Result{Requeue: true}, updateErr
 		}
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
@@ -314,18 +298,36 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
-func (r *AgentServiceConfigReconciler) deploymentStatus(ctx context.Context, log logrus.FieldLogger, deploymentName string, conditionType appsv1.DeploymentConditionType) error {
-	deployment := &appsv1.Deployment{}
-	if err := r.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: "assisted-installer"}, deployment); err != nil {
-		return err
+func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
+	isStatusConditionFalse := func(conditions []appsv1.DeploymentCondition, conditionType appsv1.DeploymentConditionType) bool {
+		for _, condition := range conditions {
+			if condition.Type == conditionType {
+				return condition.Status == corev1.ConditionFalse
+			}
+		}
+		return false
 	}
-	for _, condition := range deployment.Status.Conditions {
-		if condition.Type == conditionType && condition.Status == corev1.ConditionFalse {
-			errMsg := fmt.Sprintf("Deployment: %s ConditionType: %s ConditionStatus: %s", deploymentName, conditionType, condition.Status)
-			log.Error(errMsg)
-			return pkgerror.New(errMsg)
+
+	// monitor deployments
+	for _, deployName := range []string{"agentinstalladmission", "assisted-service"} {
+		deployment := &appsv1.Deployment{}
+		if err := r.Get(ctx, types.NamespacedName{Name: deployName, Namespace: r.Namespace}, deployment); err != nil {
+			return err
+		}
+
+		if isStatusConditionFalse(deployment.Status.Conditions, appsv1.DeploymentAvailable) {
+			msg := fmt.Sprintf("Deployment %s is not available", deployName)
+			log.Error(msg)
+			return pkgerror.New(msg)
+		}
+
+		if isStatusConditionFalse(deployment.Status.Conditions, appsv1.DeploymentProgressing) {
+			msg := fmt.Sprintf("Deployment %s is not progressing", deployName)
+			log.Error(msg)
+			return pkgerror.New(msg)
 		}
 	}
+
 	return nil
 }
 
