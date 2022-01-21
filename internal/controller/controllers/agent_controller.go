@@ -317,6 +317,14 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 				return ctrl.Result{Requeue: true}, nil
 			}
 		}
+		if agent.Status.DebugInfo.LogsURL == "" && !time.Time(h.LogsCollectedAt).Equal(time.Time{}) { // logs collection time is updated means logs are available
+			logsURL, err := generateControllerLogsDownloadURL(r.ServiceBaseURL, clusterId.String(), r.AuthType, agent.Name, "host")
+			if err != nil {
+				log.WithError(err).Error("failed to generate controller logs URL")
+				return ctrl.Result{}, err
+			}
+			agent.Status.DebugInfo.LogsURL = logsURL
+		}
 		connected(agent, status)
 		requirementsMet(agent, status)
 		validated(agent, status, h)
@@ -346,6 +354,31 @@ func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1b
 		agent.Status.DebugInfo.EventsURL = eventUrl
 	}
 	return nil
+}
+
+func generateControllerLogsDownloadURL(baseURL string, clusterID string, authType auth.AuthType, host string, logsType string) (string, error) {
+	hostID := strfmt.UUID(host)
+	builder := &installer.V2DownloadClusterLogsURL{
+		ClusterID: strfmt.UUID(clusterID),
+		HostID:    &hostID,
+		LogsType:  &logsType,
+	}
+	u, err := builder.Build()
+	if err != nil {
+		return "", err
+	}
+
+	downloadURL := fmt.Sprintf("%s%s", baseURL, u.RequestURI())
+	if authType != auth.TypeLocal {
+		return downloadURL, nil
+	}
+
+	downloadURL, err = gencrypto.SignURL(downloadURL, clusterID, gencrypto.ClusterKey)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to sign %s controller logs URL for host %s", logsType, host)
+	}
+
+	return downloadURL, nil
 }
 
 func setConditionsUnknown(agent *aiv1beta1.Agent) {
