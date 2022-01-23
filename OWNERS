@@ -3,11 +3,10 @@
 filters:
   .*:
     approvers:
-      - code-reviewers
-      - romfreiman
+      - approvers
     reviewers:
-      - code-reviewers
-      - reviewers-only
+      - approvers
+      - reviewers
   Jenkinsfile:
     approvers:
       - ci-approvers
