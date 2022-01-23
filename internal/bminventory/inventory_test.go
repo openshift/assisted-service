@@ -1871,7 +1871,31 @@ var _ = Describe("PostStepReply", func() {
 			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
 		})
 
-		It("Media disconnection occurred", func() {
+		It("Media disconnection occurred before installation", func() {
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
+			params := installer.V2PostStepReplyParams{
+				InfraEnvID: *clusterId,
+				HostID:     *hostId,
+				Reply: &models.StepReply{
+					ExitCode: MediaDisconnected,
+					Output:   "output",
+					StepType: models.StepTypeFreeNetworkAddresses,
+				},
+			}
+
+			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
+			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
+			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusDisconnected))
+			Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage))
+		})
+
+		It("Media disconnection occurred after installation", func() {
+			host.Status = swag.String(models.HostStatusInstalling)
+			db.Updates(host)
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(host.ID.String()),
@@ -2411,7 +2435,7 @@ var _ = Describe("v2PostStepReply", func() {
 
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
-			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
+			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusDisconnected))
 			Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage))
 		})
 
