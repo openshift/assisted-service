@@ -1,6 +1,8 @@
 package common
 
 import (
+	"testing"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
@@ -125,6 +127,11 @@ WGf78pvkTQ2PcYg/WiCv+AVsaSaiEDUf4rDj55wQ30h78Ox5J2izd4I6QylB9Lpu
 fQEw+cWRxwFPJujSOTSKRHZDo1UwOIQbxqkbznSHlLCICEXxuvQ=
 -----END CERTIFICATE-----
 `
+
+func TestCommon(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Common test suite")
+}
 
 var _ = Describe("test PEM CA bundle verification", func() {
 	It("full CA chain", func() {
