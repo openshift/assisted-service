@@ -211,40 +211,10 @@ Default tag is latest
 
 There are two ways the assisted service can be deployed without using a Kubernetes cluster:
 
-#### Using a pod on your local host
+#### Using containers on your local host
 In this scenario the service and associated components are deployed onto your local host as a pod using Podman.
 
-```shell
-export SERVICE=quay.io/<your-org>/assisted-service:latest
-```
-
-To deploy, update SERVICE_BASE_URL in the onprem-environment file to match the hostname or IP address of your host. For example if your IP address is 192.168.122.2, then the SERVICE_BASE_URL would be set to <http://192.168.122.2:8090>. Port 8090 is the assisted-service API.
-
-Then deploy the containers:
-
-```shell
-make deploy-onprem
-```
-
-Check all containers are up and running:
-
-```shell
-podman ps -a
-```
-
-The UI will available at: `http://<host-ip-address>:8080`
-
-To remove the containers:
-
-```shell
-make clean-onprem
-```
-
-To run the subsystem tests:
-
-```shell
-make test-onprem
-```
+See the [README](./deploy/podman/) for details.
 
 #### Using assisted-service Live-ISO
 The assisted-service live ISO is a RHCOS live ISO that is customized with an ignition config file.

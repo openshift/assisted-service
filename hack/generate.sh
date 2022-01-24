@@ -97,10 +97,10 @@ function generate_configuration() {
     sed -i "s|value: '.*' # release images|value: '${RELEASE_IMAGES}' # release images|" ${__root}/openshift/template.yaml
     sed -i "s|value: '.*' # must-gather images|value: '${MUST_GATHER_IMAGES}' # must-gather images|" ${__root}/openshift/template.yaml
 
-    sed -i "s|OS_IMAGES=.*|OS_IMAGES=${OS_IMAGES}|" ${__root}/onprem-environment
-    sed -i "s|RELEASE_IMAGES=.*|RELEASE_IMAGES=${RELEASE_IMAGES}|" ${__root}/onprem-environment
-    sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" ${__root}/onprem-environment
-    sed -i "s|HW_VALIDATOR_REQUIREMENTS=.*|HW_VALIDATOR_REQUIREMENTS=${HW_VALIDATOR_REQUIREMENTS}|" ${__root}/onprem-environment
+    sed -i "s|OS_IMAGES:.*|OS_IMAGES: '${OS_IMAGES}'|" ${__root}/deploy/podman/configmap.yml
+    sed -i "s|RELEASE_IMAGES:.*|RELEASE_IMAGES: '${RELEASE_IMAGES}'|" ${__root}/deploy/podman/configmap.yml
+    sed -i "s|PUBLIC_CONTAINER_REGISTRIES:.*|PUBLIC_CONTAINER_REGISTRIES: '${PUBLIC_CONTAINER_REGISTRIES}'|" ${__root}/deploy/podman/configmap.yml
+    sed -i "s|HW_VALIDATOR_REQUIREMENTS:.*|HW_VALIDATOR_REQUIREMENTS: '${HW_VALIDATOR_REQUIREMENTS}'|" ${__root}/deploy/podman/configmap.yml
 
     sed -i "s|OS_IMAGES=.*|OS_IMAGES=${OS_IMAGES}|" ${__root}/config/onprem-iso-fcc.yaml
     sed -i "s|RELEASE_IMAGES=.*|RELEASE_IMAGES=${RELEASE_IMAGES}|" ${__root}/config/onprem-iso-fcc.yaml

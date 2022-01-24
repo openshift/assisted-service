@@ -383,12 +383,7 @@ podman-pull-service-from-docker-daemon:
 	podman pull "docker-daemon:${SERVICE}"
 
 deploy-onprem:
-	# Format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
-	podman pod create --name assisted-installer -p 5432:5432,8000:8000,8090:8090,8080:8080,8888:8888
-	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always --name postgres $(PSQL_IMAGE)
-	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name assisted-installer-ui $(ASSISTED_UI)
-	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always --restart always --name assisted-image-service $(IMAGE_SERVICE)
-	podman run -dt --pod assisted-installer --env-file onprem-environment ${PODMAN_PULL_FLAG} --env DUMMY_IGNITION=$(DUMMY_IGNITION) --restart always --name assisted-service $(SERVICE)
+	podman play kube --configmap deploy/podman/configmap.yml deploy/podman/pod.yml
 	./hack/retry.sh 90 2 "curl -f http://127.0.0.1:8090/ready"
 	./hack/retry.sh 60 10 "curl -f http://127.0.0.1:8888/health"
 
