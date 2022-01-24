@@ -1,6 +1,8 @@
 package common
 
 import (
+	"testing"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
@@ -126,13 +128,28 @@ fQEw+cWRxwFPJujSOTSKRHZDo1UwOIQbxqkbznSHlLCICEXxuvQ=
 -----END CERTIFICATE-----
 `
 
+func TestCommon(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Common test suite")
+}
+
 var _ = Describe("test PEM CA bundle verification", func() {
 	It("full CA chain", func() {
 		certs := []byte(redHatIntermediateChain + redHatRootCA)
 		err := VerifyCaBundle(certs)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
-	It("incomplete CA chain", func() {
+	It("full CA chain in reverse order", func() {
+		certs := []byte(redHatRootCA + redHatIntermediateChain)
+		err := VerifyCaBundle(certs)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+	It("only root CA in the chain", func() {
+		certs := []byte(redHatRootCA)
+		err := VerifyCaBundle(certs)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+	It("incomplete CA chain (no Root CA)", func() {
 		certs := []byte(redHatIntermediateChain)
 		err := VerifyCaBundle(certs)
 		Expect(err).Should(HaveOccurred())

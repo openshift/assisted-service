@@ -318,15 +318,31 @@ func VerifyCaBundle(pemCerts []byte) error {
 	if len(certs) == 0 {
 		return errors.New("the CA bundle does not contain any PEM certificate")
 	}
-	certPool := x509.NewCertPool()
+	rootCertPool := x509.NewCertPool()
+	intermediateCertPool := x509.NewCertPool()
+
+	// From all the certificates in the bundle we are building a store of Roots and Intermediaries
+	// that we will be using later for the verification
 	for i := range certs {
-		certPool.AddCert(&certs[i])
+		if certs[i].Issuer.CommonName == certs[i].Subject.CommonName {
+			rootCertPool.AddCert(&certs[i])
+		} else {
+			intermediateCertPool.AddCert(&certs[i])
+		}
 	}
 	verifyOptions := x509.VerifyOptions{
-		Roots: certPool,
+		Roots:         rootCertPool,
+		Intermediates: intermediateCertPool,
 	}
-	if _, err := certs[0].Verify(verifyOptions); err != nil {
-		return errors.New("unable to verify the full CA Chain")
+
+	// For all the certificates provided we are performing a validation based on the store
+	// that we have built above. In order for the bundle to be correct we need every certificate
+	// to validate against a Root present in the bundle.
+	for i := range certs {
+		if _, err := certs[i].Verify(verifyOptions); err != nil {
+			return errors.New("unable to verify the full CA Chain")
+		}
 	}
+
 	return nil
 }
