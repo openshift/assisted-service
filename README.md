@@ -30,9 +30,9 @@ Below are some recent demos and blog posts:
 
 By continuing to read this document you will learn how to build and deploy Assisted Service. If you are interested in using Assisted Service to deploy an OCP cluster, please refer to the [User Documentation](docs/user-guide/README.md).
 
-## Prerequisites
+## Development Prerequisites
 
-1. Docker
+1. Docker or Podman
 1. skipper <https://github.com/stratoscale/skipper>
 1. minikube (for tests)
 1. kubectl
