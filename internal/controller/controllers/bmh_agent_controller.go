@@ -1422,8 +1422,8 @@ func (r *BMACReconciler) formatMCSCertificateIgnition(mcsCert string) (string, e
 
 func (r *BMACReconciler) validateWorkerForDay2(log logrus.FieldLogger, agent *aiv1beta1.Agent) bool {
 	// Only worker role is supported for day2 operation
-	if agent.Spec.Role != models.HostRoleWorker || agent.Spec.ClusterDeploymentName == nil {
-		log.Debugf("Skipping spoke BareMetalHost reconcile for  agent %s/%s, role %s and clusterDeployment %s.", agent.Namespace, agent.Name, agent.Spec.Role, agent.Spec.ClusterDeploymentName)
+	if agent.Status.Role != models.HostRoleWorker || agent.Spec.ClusterDeploymentName == nil {
+		log.Debugf("Skipping spoke BareMetalHost reconcile for  agent %s/%s, role %s and clusterDeployment %s.", agent.Namespace, agent.Name, agent.Status.Role, agent.Spec.ClusterDeploymentName)
 		return false
 	}
 	return true
