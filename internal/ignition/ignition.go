@@ -869,7 +869,7 @@ func (g *installerGenerator) addIpv6FileInIgnition(ignition string) error {
 	if err != nil {
 		return err
 	}
-	is410Version, err := common.VersionGreaterOrEqual(g.cluster.OpenshiftVersion, "4.10")
+	is410Version, err := common.VersionGreaterOrEqual(g.cluster.OpenshiftVersion, "4.10.0-0.alpha")
 	if err != nil {
 		return err
 	}

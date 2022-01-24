@@ -231,6 +231,25 @@ var _ = Describe("get hosts by role", func() {
 	})
 })
 
+var _ = Describe("compare OCP 4.10 versions", func() {
+	It("GA release", func() {
+		is410Version, _ := VersionGreaterOrEqual("4.10.0", "4.10.0-0.alpha")
+		Expect(is410Version).Should(BeTrue())
+	})
+	It("pre-release", func() {
+		is410Version, _ := VersionGreaterOrEqual("4.10.0-fc.1", "4.10.0-0.alpha")
+		Expect(is410Version).Should(BeTrue())
+	})
+	It("pre-release z-stream", func() {
+		is410Version, _ := VersionGreaterOrEqual("4.10.1-fc.1", "4.10.0-0.alpha")
+		Expect(is410Version).Should(BeTrue())
+	})
+	It("nightly release", func() {
+		is410Version, _ := VersionGreaterOrEqual("4.10.0-0.nightly-2022-01-23-013716", "4.10.0-0.alpha")
+		Expect(is410Version).Should(BeTrue())
+	})
+})
+
 func createHost(hostRole models.HostRole, state string) *models.Host {
 	hostId := strfmt.UUID(uuid.New().String())
 	clusterId := strfmt.UUID(uuid.New().String())
