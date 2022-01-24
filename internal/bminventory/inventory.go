@@ -3943,11 +3943,19 @@ func (b *bareMetalInventory) handleReplyError(params installer.V2PostStepReplyPa
 }
 
 func (b *bareMetalInventory) handleMediaDisconnection(params installer.V2PostStepReplyParams, ctx context.Context, log logrus.FieldLogger, h *models.Host) error {
+	status := models.HostStatusError
+
+	if hostutil.IsBeforeInstallation(*h.Status) {
+		status = models.HostStatusDisconnected
+	} else if hostutil.IsUnboundHost(h) {
+		status = models.HostStatusDisconnectedUnbound
+	}
+
 	statusInfo := fmt.Sprintf("%s - %s", string(models.HostStageFailed), mediaDisconnectionMessage)
 
 	// Install command reports its status with a different API, directly from the assisted-installer.
 	// Just adding our diagnose to the existing error message.
-	if swag.StringValue(h.Status) == models.HostStatusError && h.StatusInfo != nil {
+	if swag.StringValue(h.Status) == status && h.StatusInfo != nil {
 		// Add the message only once
 		if strings.Contains(*h.StatusInfo, statusInfo) {
 			return nil
@@ -3959,7 +3967,7 @@ func (b *bareMetalInventory) handleMediaDisconnection(params installer.V2PostSte
 	}
 
 	_, err := hostutil.UpdateHostStatus(ctx, log, b.db, b.eventsHandler, *h.ClusterID, *h.ID,
-		swag.StringValue(h.Status), models.HostStatusError, statusInfo)
+		swag.StringValue(h.Status), status, statusInfo)
 
 	return err
 }
