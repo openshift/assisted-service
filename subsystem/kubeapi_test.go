@@ -128,7 +128,7 @@ func updateAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 		agent := getAgentClusterInstallCRD(ctx, client, installkey)
 		agent.Spec = *spec
 		return kubeClient.Update(ctx, agent)
-	}, "30s", "10s").Should(BeNil())
+	}, "30s", "1s").Should(BeNil())
 }
 
 func deploySecret(ctx context.Context, client k8sclient.Client, secretName string, secretData map[string]string) {
@@ -1032,13 +1032,14 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
-		agent := getAgentCRD(ctx, kubeClient, hostkey)
-		agent.Spec.IgnitionEndpointTokenReference = &v1beta1.IgnitionEndpointTokenReference{
-			Namespace: Options.Namespace,
-			Name:      ignitionTokenSecretName,
-		}
-		err := kubeClient.Update(ctx, agent)
-		Expect(err).To(BeNil())
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			agent.Spec.IgnitionEndpointTokenReference = &v1beta1.IgnitionEndpointTokenReference{
+				Namespace: Options.Namespace,
+				Name:      ignitionTokenSecretName,
+			}
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "1s").Should(BeNil())
 
 		By("Verify Ignition Token in DB")
 		Eventually(func() bool {
