@@ -29,3 +29,9 @@ The UI will available at: `http://<host-ip-address>:8080`
 ```shell
 podman play kube --down pod.yml
 ```
+
+## Optional Configuration
+
+Other environment variables may be set in configmap.yml. For example, custom
+agent (`AGENT_DOCKER_IMAGE`), installer (`INSTALLER_IMAGE`) and controller
+(`CONTROLLER_IMAGE`) images can be defined.
