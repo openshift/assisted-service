@@ -307,7 +307,6 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) (
 
 	numWorkers := len(workers)
 	if len(masters) != minMastersNeededForInstallation ||
-		numWorkers == common.IllegalWorkerHostsCount ||
 		nonHAMode && numWorkers != common.AllowedNumberOfWorkersInNoneHaMode {
 		status = ValidationFailure
 	}
