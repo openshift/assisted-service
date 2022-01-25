@@ -28,14 +28,18 @@ rules:
       - create
     apiGroups:
       - ''
+      - coordination.k8s.io
     resources:
       - configmaps
+      - leases
   - verbs:
       - get
       - update
       - delete
     apiGroups:
       - ''
+      - coordination.k8s.io
     resources:
       - configmaps
+      - leases
     resourceNames: ["assisted-service-leader-election-helper", "assisted-service-migration-helper", "assisted-service-baseiso-helper"]
