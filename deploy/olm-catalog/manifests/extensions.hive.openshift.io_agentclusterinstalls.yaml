@@ -323,6 +323,10 @@ spec:
                       CIDRs for which the proxy should not be used.
                     type: string
                 type: object
+              schedulableMasters:
+                description: SchedulableMasters enables ability to schedule workload
+                  on masters
+                type: boolean
               sshPublicKey:
                 description: SSHPublicKey will be added to all cluster hosts for use
                   in debugging.

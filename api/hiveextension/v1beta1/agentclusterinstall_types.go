@@ -161,6 +161,10 @@ type AgentClusterInstallSpec struct {
 	// Proxy defines the proxy settings used for the install config
 	// +optional
 	Proxy *Proxy `json:"proxy,omitempty"`
+
+	// SchedulableMasters enables ability to schedule workload on masters
+	// +optional
+	SchedulableMasters bool `json:"schedulableMasters,omitempty"`
 }
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.

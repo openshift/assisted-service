@@ -713,19 +713,20 @@ var _ = Describe("cluster reconcile", func() {
 		sId := strfmt.UUID(uuid.New().String())
 		backEndCluster := &common.Cluster{
 			Cluster: models.Cluster{
-				ID:               &sId,
-				Name:             clusterName,
-				OpenshiftVersion: "4.8",
-				ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-				ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-				NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-				Status:           swag.String(models.ClusterStatusReady),
-				IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-				APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-				BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-				SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-				Hyperthreading:   models.ClusterHyperthreadingAll,
-				Kind:             swag.String(models.ClusterKindCluster),
+				ID:                 &sId,
+				Name:               clusterName,
+				OpenshiftVersion:   "4.8",
+				ClusterNetworks:    clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+				ServiceNetworks:    serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+				NetworkType:        swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+				Status:             swag.String(models.ClusterStatusReady),
+				IngressVip:         defaultAgentClusterInstallSpec.IngressVIP,
+				APIVip:             defaultAgentClusterInstallSpec.APIVIP,
+				BaseDNSDomain:      defaultClusterSpec.BaseDomain,
+				SSHPublicKey:       defaultAgentClusterInstallSpec.SSHPublicKey,
+				Hyperthreading:     models.ClusterHyperthreadingAll,
+				Kind:               swag.String(models.ClusterKindCluster),
+				SchedulableMasters: swag.Bool(false),
 			},
 			PullSecret: testPullSecretVal,
 		}
@@ -1114,19 +1115,20 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 			backEndCluster = &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusReady),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
-					Kind:             swag.String(models.ClusterKindCluster),
+					ID:                 &sId,
+					Name:               clusterName,
+					OpenshiftVersion:   "4.8",
+					ClusterNetworks:    clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:    serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:        swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:             swag.String(models.ClusterStatusReady),
+					IngressVip:         defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:             defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:      defaultClusterSpec.BaseDomain,
+					SSHPublicKey:       defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:     models.ClusterHyperthreadingAll,
+					Kind:               swag.String(models.ClusterKindCluster),
+					SchedulableMasters: swag.Bool(false),
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2015,18 +2017,19 @@ var _ = Describe("cluster reconcile", func() {
 		getDefaultTestCluster := func() *common.Cluster {
 			return &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
+					ID:                 &sId,
+					Name:               clusterName,
+					OpenshiftVersion:   "4.8",
+					ClusterNetworks:    clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:    serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:        swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:             swag.String(models.ClusterStatusInsufficient),
+					IngressVip:         defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:             defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:      defaultClusterSpec.BaseDomain,
+					SSHPublicKey:       defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:     models.ClusterHyperthreadingAll,
+					SchedulableMasters: swag.Bool(false),
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2122,6 +2125,36 @@ var _ = Describe("cluster reconcile", func() {
 				}).Return(updateReply, nil)
 
 			aci.Spec.Proxy = &hiveext.Proxy{HTTPProxy: httpProxy, HTTPSProxy: httpsProxy, NoProxy: noProxy}
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+		})
+
+		It("Update schedulable masters property", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:   &sId,
+					Name: clusterName,
+				},
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			updateReply := getDefaultTestCluster()
+
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.V2UpdateClusterParams) {
+					Expect(param.ClusterUpdateParams.SchedulableMasters).NotTo(BeNil())
+					Expect(*param.ClusterUpdateParams.SchedulableMasters).To(Equal(true))
+				}).Return(updateReply, nil)
+
+			aci.Spec.SchedulableMasters = true
 			Expect(c.Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
@@ -2281,20 +2314,21 @@ var _ = Describe("cluster reconcile", func() {
 		It("only state changed", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
-					Kind:             swag.String(models.ClusterKindCluster),
-					ValidationsInfo:  "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
+					ID:                 &sId,
+					Name:               clusterName,
+					OpenshiftVersion:   "4.8",
+					ClusterNetworks:    clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:    serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:        swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:             swag.String(models.ClusterStatusInsufficient),
+					IngressVip:         defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:             defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:      defaultClusterSpec.BaseDomain,
+					SSHPublicKey:       defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:     models.ClusterHyperthreadingAll,
+					Kind:               swag.String(models.ClusterKindCluster),
+					SchedulableMasters: swag.Bool(false),
+					ValidationsInfo:    "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2361,18 +2395,19 @@ var _ = Describe("cluster reconcile", func() {
 		It("add install config overrides annotation", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
+					ID:                 &sId,
+					Name:               clusterName,
+					OpenshiftVersion:   "4.8",
+					ClusterNetworks:    clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:    serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:        swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:             swag.String(models.ClusterStatusInsufficient),
+					IngressVip:         defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:             defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:      defaultClusterSpec.BaseDomain,
+					SSHPublicKey:       defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:     models.ClusterHyperthreadingAll,
+					SchedulableMasters: swag.Bool(false),
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2415,6 +2450,7 @@ var _ = Describe("cluster reconcile", func() {
 					BaseDNSDomain:          defaultClusterSpec.BaseDomain,
 					SSHPublicKey:           defaultAgentClusterInstallSpec.SSHPublicKey,
 					Hyperthreading:         models.ClusterHyperthreadingAll,
+					SchedulableMasters:     swag.Bool(false),
 					InstallConfigOverrides: `{"controlPlane": {"hyperthreading": "Disabled"}}`,
 				},
 				PullSecret: testPullSecretVal,
@@ -2454,6 +2490,7 @@ var _ = Describe("cluster reconcile", func() {
 					BaseDNSDomain:          defaultClusterSpec.BaseDomain,
 					SSHPublicKey:           defaultAgentClusterInstallSpec.SSHPublicKey,
 					Hyperthreading:         models.ClusterHyperthreadingAll,
+					SchedulableMasters:     swag.Bool(false),
 					InstallConfigOverrides: `{"controlPlane": {"hyperthreading": "Disabled"}}`,
 				},
 				PullSecret: testPullSecretVal,
@@ -2485,18 +2522,19 @@ var _ = Describe("cluster reconcile", func() {
 		It("invalid install config overrides annotation", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
+					ID:                 &sId,
+					Name:               clusterName,
+					OpenshiftVersion:   "4.8",
+					ClusterNetworks:    clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:    serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:        swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:             swag.String(models.ClusterStatusInsufficient),
+					IngressVip:         defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:             defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:      defaultClusterSpec.BaseDomain,
+					SSHPublicKey:       defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:     models.ClusterHyperthreadingAll,
+					SchedulableMasters: swag.Bool(false),
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2535,18 +2573,19 @@ var _ = Describe("cluster reconcile", func() {
 		It("SSHPublicKey in ClusterDeployment has spaces in suffix", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:               &sId,
-					Name:             clusterName,
-					OpenshiftVersion: "4.8",
-					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
-					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:   models.ClusterHyperthreadingAll,
+					ID:                 &sId,
+					Name:               clusterName,
+					OpenshiftVersion:   "4.8",
+					ClusterNetworks:    clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:    serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:        swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:             swag.String(models.ClusterStatusInsufficient),
+					IngressVip:         defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:             defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:      defaultClusterSpec.BaseDomain,
+					SSHPublicKey:       defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:     models.ClusterHyperthreadingAll,
+					SchedulableMasters: swag.Bool(false),
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -2584,6 +2623,7 @@ var _ = Describe("cluster reconcile", func() {
 					BaseDNSDomain:        defaultClusterSpec.BaseDomain,
 					SSHPublicKey:         defaultAgentClusterInstallSpec.SSHPublicKey,
 					Hyperthreading:       models.ClusterHyperthreadingAll,
+					SchedulableMasters:   swag.Bool(false),
 					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
 				},
 				PullSecret: testPullSecretVal,
@@ -2611,19 +2651,20 @@ var _ = Describe("cluster reconcile", func() {
 		It("DHCP is enabled", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:                &sId,
-					Name:              clusterName,
-					OpenshiftVersion:  "4.8",
-					ClusterNetworks:   clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:   serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:       swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-					Status:            swag.String(models.ClusterStatusInstalling),
-					IngressVip:        defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:            defaultAgentClusterInstallSpec.APIVIP,
-					BaseDNSDomain:     defaultClusterSpec.BaseDomain,
-					SSHPublicKey:      defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:    models.ClusterHyperthreadingAll,
-					VipDhcpAllocation: swag.Bool(true),
+					ID:                 &sId,
+					Name:               clusterName,
+					OpenshiftVersion:   "4.8",
+					ClusterNetworks:    clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:    serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:        swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:             swag.String(models.ClusterStatusInstalling),
+					IngressVip:         defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:             defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:      defaultClusterSpec.BaseDomain,
+					SSHPublicKey:       defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:     models.ClusterHyperthreadingAll,
+					SchedulableMasters: swag.Bool(false),
+					VipDhcpAllocation:  swag.Bool(true),
 				},
 				PullSecret: testPullSecretVal,
 			}

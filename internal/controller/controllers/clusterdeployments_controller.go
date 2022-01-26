@@ -866,6 +866,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		params.NoProxy = swag.String("")
 	}
 
+	if cluster.SchedulableMasters == nil || *cluster.SchedulableMasters != clusterInstall.Spec.SchedulableMasters {
+		params.SchedulableMasters = swag.Bool(clusterInstall.Spec.SchedulableMasters)
+		update = true
+	}
+
 	if !update {
 		return cluster, nil
 	}
@@ -1063,6 +1068,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
 		CPUArchitecture:       swag.StringValue(releaseImage.CPUArchitecture),
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
+		SchedulableMasters:    swag.Bool(false),
 	}
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {

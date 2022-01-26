@@ -4218,7 +4218,7 @@ var _ = Describe("cluster", func() {
 			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
 		})
 
-		It("Update SchedulableMasters", func() {
+		It("Update schedulable masters", func() {
 
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 			clusterID = strfmt.UUID(uuid.New().String())
