@@ -31,7 +31,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.6
-	github.com/google/renameio v0.1.0
+	github.com/google/renameio v1.0.1
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-version v1.2.1
