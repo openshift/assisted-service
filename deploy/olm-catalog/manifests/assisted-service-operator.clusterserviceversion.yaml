@@ -664,22 +664,18 @@ spec:
           - create
         - apiGroups:
           - ""
-          - coordination.k8s.io
           resources:
           - configmaps
-          - leases
           verbs:
           - create
         - apiGroups:
           - ""
-          - coordination.k8s.io
           resourceNames:
           - assisted-service-leader-election-helper
           - assisted-service-migration-helper
           - assisted-service-baseiso-helper
           resources:
           - configmaps
-          - leases
           verbs:
           - get
           - update
