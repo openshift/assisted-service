@@ -6275,9 +6275,9 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			if err = b.clusterApi.AcceptRegistration(cluster); err != nil {
 				log.WithError(err).Errorf("failed to register host <%s> to infra-env %s due to: %s",
 					params.NewHostParams.HostID, params.InfraEnvID.String(), err.Error())
-				eventgen.SendRegisterHostToInfraEnvFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, cluster.ID, err.Error())
+				eventgen.SendHostRegistrationFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, cluster.ID, err.Error())
 
-				return common.NewApiError(http.StatusConflict, err)
+				return common.NewApiError(http.StatusBadRequest, err)
 			}
 		}
 		if common.IsSingleNodeCluster(cluster) {
