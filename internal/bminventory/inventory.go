@@ -1183,7 +1183,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 
 	if string(imageType) != prevType || version != prevVersion || arch != prevArch || !infraEnv.Generated {
 		var expiresAt *strfmt.DateTime
-		infraEnv.DownloadURL, expiresAt, err = b.generateImageDownloadURL(infraEnv.ID.String(), string(imageType), version, arch, infraEnv.ImageTokenKey)
+		infraEnv.DownloadURL, expiresAt, err = b.generateImageDownloadURL(ctx, infraEnv.ID.String(), string(imageType), version, arch, infraEnv.ImageTokenKey)
 		if err != nil {
 			return errors.Wrap(err, "failed to create download URL")
 		}

@@ -487,7 +487,7 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 		return common.GenerateErrorResponder(errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage))
 	}
 
-	newURL, expiresAt, err := b.generateImageDownloadURL(infraEnv.ID.String(), string(*infraEnv.Type), *osImage.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
+	newURL, expiresAt, err := b.generateImageDownloadURL(ctx, infraEnv.ID.String(), string(*infraEnv.Type), *osImage.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -505,8 +505,9 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 	return installer.NewGetInfraEnvDownloadURLOK().WithPayload(&models.InfraEnvImageURL{URL: newURL, ExpiresAt: *expiresAt})
 }
 
-func (b *bareMetalInventory) generateImageDownloadURL(infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {
+func (b *bareMetalInventory) generateImageDownloadURL(ctx context.Context, infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {
 	baseURL, err := url.Parse(b.ImageServiceBaseURL)
+	log := logutil.FromContext(ctx, b.log)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "failed to parse image service base URL")
 	}
@@ -537,6 +538,8 @@ func (b *bareMetalInventory) generateImageDownloadURL(infraEnvID, imageType, ver
 		if err != nil {
 			return "", nil, errors.Wrap(err, "failed to sign image URL with token")
 		}
+	} else if b.authHandler.AuthType() == auth.TypeNone {
+		log.Warn("Auth type is none: image URL will remain as " + urlString)
 	}
 
 	// parse the exp claim out of the url
