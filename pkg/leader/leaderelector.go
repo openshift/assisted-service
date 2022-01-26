@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	coordv1 "k8s.io/api/coordination/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -51,24 +51,20 @@ func (f *DummyElector) RunWithLeader(ctx context.Context, run func() error) erro
 var _ ElectorInterface = &Elector{}
 
 type Elector struct {
-	log      logrus.FieldLogger
-	config   Config
-	kube     *kubernetes.Clientset
-	lockName string
-	isLeader bool
+	log           logrus.FieldLogger
+	config        Config
+	kube          *kubernetes.Clientset
+	isLeader      bool
+	configMapName string
 }
 
-func NewElector(kubeClient *kubernetes.Clientset, config Config, lockName string, logger logrus.FieldLogger) *Elector {
-	logger = logger.WithField("lock", lockName)
-	return &Elector{log: logger, config: config, kube: kubeClient, lockName: lockName, isLeader: false}
+func NewElector(kubeClient *kubernetes.Clientset, config Config, configMapName string, logger logrus.FieldLogger) *Elector {
+	logger = logger.WithField("configMap", configMapName)
+	return &Elector{log: logger, config: config, kube: kubeClient, configMapName: configMapName, isLeader: false}
 }
 
 func (l *Elector) IsLeader() bool {
 	return l.isLeader
-}
-
-func (l *Elector) setLeader(status bool) {
-	l.isLeader = status
 }
 
 // Wait for leader, run given function, drop leader and exit.
@@ -94,7 +90,7 @@ func (l *Elector) waitForLeader(ctx context.Context) error {
 		case <-ctx.Done(): // Done returns a channel that's closed when work done on behalf of this context is canceled
 			return errors.Errorf("cancelled while waiting for leader")
 		case <-ticker.C:
-			if l.IsLeader() {
+			if l.isLeader {
 				l.log.Infof("Got leader, stop waiting")
 				return nil
 			}
@@ -102,37 +98,26 @@ func (l *Elector) waitForLeader(ctx context.Context) error {
 	}
 }
 
-/*
- * StartLeaderElection generates the resource on which the leader lock
- * will be attempted, generates the lock itself and runs the elector.
- *
- * Since in k8s 1.17 the ConfigMap lock was deprecated, this function
- * first attempt to clear the deprecated resources, to avoid having
- * multiple leaders, each locked on a different resource.
- *
- * With the next roll out version, the cleaning code can be removed.
- */
 func (l *Elector) StartLeaderElection(ctx context.Context) error {
-	// delete deprecated resources
-	l.clean()
 
-	// create an underlying lease resource for the resource lock
-	err := l.createLease()
+	// create manually to be sure that we can create configmaps
+	// don't start if we cannot
+	err := l.createConfigMap()
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "failed to create lock resource %s in namespace %s", l.lockName, l.config.Namespace)
+		return err
 	}
-	l.log.Infof("create lease %s in namespace %s", l.lockName, l.config.Namespace)
 
-	resourceLock, err := l.createResourceLock()
+	resourceLock, err := l.createResourceLock(l.configMapName)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create lock %s in namespace %s", l.lockName, l.config.Namespace)
+		return err
 	}
 
 	leaderElector, err := l.createLeaderElector(resourceLock)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create elector")
+		return err
 	}
 
+	l.log.Infof("Attempting to acquire leader lease")
 	// Running loop cause leaderElector.Run is blocking
 	// and needs to be restarted while leader is lost
 	// will exit if context was cancelled
@@ -149,26 +134,19 @@ func (l *Elector) StartLeaderElection(ctx context.Context) error {
 	return nil
 }
 
-func (l *Elector) clean() {
-	err := l.kube.CoreV1().ConfigMaps(l.config.Namespace).Delete(context.Background(),
-		l.lockName, metav1.DeleteOptions{})
-	if err != nil && !k8serrors.IsNotFound(err) {
-		l.log.WithError(err).Errorf("Failed to delete config map for leader lock %s", l.lockName)
-	}
-}
-
-func (l *Elector) createLease() error {
-	lease := &coordv1.Lease{
+func (l *Elector) createConfigMap() error {
+	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      l.lockName,
+			Name:      l.configMapName,
 			Namespace: l.config.Namespace,
 		},
 	}
-	_, err := l.kube.CoordinationV1().Leases(l.config.Namespace).Create(context.Background(), lease, metav1.CreateOptions{})
+
+	_, err := l.kube.CoreV1().ConfigMaps(l.config.Namespace).Create(context.TODO(), cm, metav1.CreateOptions{})
 	return err
 }
 
-func (l *Elector) createResourceLock() (resourcelock.Interface, error) {
+func (l *Elector) createResourceLock(name string) (resourcelock.Interface, error) {
 	// Leader id, needs to be unique
 	id, err := os.Hostname()
 	if err != nil {
@@ -177,9 +155,9 @@ func (l *Elector) createResourceLock() (resourcelock.Interface, error) {
 
 	id = id + "_" + string(uuid.NewUUID())
 
-	return resourcelock.New(resourcelock.LeasesResourceLock,
+	return resourcelock.New(resourcelock.ConfigMapsResourceLock,
 		l.config.Namespace,
-		l.lockName,
+		name,
 		l.kube.CoreV1(),
 		l.kube.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
@@ -195,12 +173,12 @@ func (l *Elector) createLeaderElector(resourceLock resourcelock.Interface) (*lea
 		RetryPeriod:   l.config.RetryInterval,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(_ context.Context) {
-				l.setLeader(true)
 				l.log.Infof("Successfully acquired leadership lease")
+				l.isLeader = true
 			},
 			OnStoppedLeading: func() {
-				l.setLeader(false)
 				l.log.Infof("NO LONGER LEADER")
+				l.isLeader = false
 			},
 		},
 	})

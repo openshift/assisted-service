@@ -10,8 +10,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/pkg/leader"
-	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -125,8 +123,7 @@ var _ = Describe("Leader tests", func() {
 		return
 	}
 
-	ctx := context.Background()
-	lockName := "leader-test"
+	configMapName := "leader-test"
 
 	kubeconfig := getKubeconfig()
 	if kubeconfig == "" {
@@ -153,8 +150,6 @@ var _ = Describe("Leader tests", func() {
 		for _, test := range tests {
 			test.stop()
 		}
-		_ = client.CoordinationV1().Leases(namespace).Delete(ctx, lockName, metav1.DeleteOptions{})
-		_ = client.CoreV1().ConfigMaps(namespace).Delete(ctx, lockName, metav1.DeleteOptions{})
 	})
 
 	BeforeEach(func() {
@@ -162,9 +157,9 @@ var _ = Describe("Leader tests", func() {
 	})
 
 	It("Leader test", func() {
-		leader1 := leader.NewElector(client, cf, lockName, log)
-		leader2 := leader.NewElector(client, cf, lockName, log)
-		leader3 := leader.NewElector(client, cf, lockName, log)
+		leader1 := leader.NewElector(client, cf, configMapName, log)
+		leader2 := leader.NewElector(client, cf, configMapName, log)
+		leader3 := leader.NewElector(client, cf, configMapName, log)
 
 		test1 := NewTest(leader1, "leader_1")
 		test2 := NewTest(leader2, "leader_2")
@@ -210,69 +205,37 @@ var _ = Describe("Leader tests", func() {
 
 	})
 
-	It("cleaning old leader lock configmap", func() {
-		By("create old lock config map and another one")
-		oldcm := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      lockName,
-				Namespace: namespace,
-			},
-		}
-		othercm := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "other-cm",
-				Namespace: namespace,
-			},
-		}
-		_, err := client.CoreV1().ConfigMaps(namespace).Create(ctx, oldcm, metav1.CreateOptions{})
-		Expect(err).NotTo(HaveOccurred())
-		_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, othercm, metav1.CreateOptions{})
-		Expect(err).NotTo(HaveOccurred())
-
-		By("create election leader")
-		leader := leader.NewElector(client, cf, lockName, log)
-		t := NewTest(leader, "leader_1")
-		tests = append(tests, t)
-		t.start()
-
-		By("verify that the old lock configmap is cleared but other configmaps are not")
-		_, err = client.CoreV1().ConfigMaps(namespace).Get(ctx, lockName, metav1.GetOptions{})
-		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-		_, err = client.CoreV1().ConfigMaps(namespace).Get(ctx, "other-cm", metav1.GetOptions{})
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("Bad lease name", func() {
-		By("Adding a leader with mismatched lock name and underlying resource")
-		leaderWithWrongResource := leader.NewElector(client, cf, "BADNAME", log)
-		err := leaderWithWrongResource.StartLeaderElection(ctx)
+	It("Bad config map name", func() {
+		By("Adding leader with bad configmap name, must fail. Will be the same for any configmap create error")
+		badConfigMap := leader.NewElector(client, cf, "badConfigMapName", log)
+		err := badConfigMap.StartLeaderElection(context.Background())
 		Expect(err).Should(HaveOccurred())
 	})
 
-	It("Test 2 leaders in parallel with different leases", func() {
-		leader1 := leader.NewElector(client, cf, lockName, log)
+	It("Test 2 leaders in parallel with different config map", func() {
+		leader1 := leader.NewElector(client, cf, configMapName, log)
 		test1 := NewTest(leader1, "leader_1")
 		tests = append(tests, test1)
 		test1.start()
 		waitForPredicate(timeout, test1.isLeader)
-		By("Adding leader with another lease, must become a leader")
-		anotherLease := leader.NewElector(client, cf, "another-lease", log)
-		anotherLeaseTest := NewTest(anotherLease, "another-lease")
-		tests = append(tests, anotherLeaseTest)
-		anotherLeaseTest.start()
-		waitForPredicate(timeout, anotherLeaseTest.isLeader)
+		By("Adding leader with another configmap, must become a leader")
+		anotherConfigMap := leader.NewElector(client, cf, "another-config-map", log)
+		anotherConfigMapTest := NewTest(anotherConfigMap, "another-config-map")
+		tests = append(tests, anotherConfigMapTest)
+		anotherConfigMapTest.start()
+		waitForPredicate(timeout, anotherConfigMapTest.isLeader)
 		log.Infof("Verify that previous leader was not changed")
 		waitForPredicate(timeout, test1.isLeader)
 	})
-	It("Deleting lock underlying resource in a loop", func() {
-		By("Deleting leases in a loop (it must be recreated all the time), leader will loose leader and retake it")
-		leader1 := leader.NewElector(client, cf, lockName, log)
+	It("Deleting configmap in a loop", func() {
+		By("Deleting configmap in a loop (it must be recreated all the time), leader will loose leader and retake it")
+		leader1 := leader.NewElector(client, cf, configMapName, log)
 		test1 := NewTest(leader1, "leader_1")
 		tests = append(tests, test1)
 		test1.start()
 		wasLost := false
 		for i := 0; i < 300; i++ {
-			_ = client.CoordinationV1().Leases(namespace).Delete(ctx, lockName, metav1.DeleteOptions{})
+			_ = client.CoreV1().ConfigMaps(namespace).Delete(context.TODO(), configMapName, metav1.DeleteOptions{})
 			if !test1.isLeader() {
 				wasLost = true
 				break
@@ -285,8 +248,8 @@ var _ = Describe("Leader tests", func() {
 	})
 	It("Verify run with leader", func() {
 		index := 0
-		leader1 := leader.NewElector(client, cf, lockName, log)
-		leader2 := leader.NewElector(client, cf, lockName, log)
+		leader1 := leader.NewElector(client, cf, configMapName, log)
+		leader2 := leader.NewElector(client, cf, configMapName, log)
 		test1 := NewTest(leader1, "leader_1")
 		tests = []*Test{test1}
 
@@ -297,7 +260,7 @@ var _ = Describe("Leader tests", func() {
 		By("leader2 run with leader, verify it waiting")
 
 		go func() {
-			err := leader2.RunWithLeader(ctx, func() error {
+			err := leader2.RunWithLeader(context.Background(), func() error {
 				index += 1
 				return nil
 			})
