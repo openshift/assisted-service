@@ -10,7 +10,7 @@ The following script provides an example of how to use the API in order to modif
 For more information about the API and its various authentication methods, see [this document](cloud.md).
 
 # Modify password script
-```
+```sh
 #!/bin/bash
 
 set -euo pipefail
@@ -28,7 +28,7 @@ if true; then
     echo "Don't forget to modify the script with your cluster ID, delete this warning after you did"
     exit 1
 fi
-CLUSTER_ID="243e09fb-d924-42a1-bad9-b78638b767d9" # Copy from Assisted Installer URL
+INFRA_ENV_ID="243e09fb-d924-42a1-bad9-b78638b767d9" # Get from Assisted Installer API
 DEST_ISO_FILE="changed_password.iso"
 ###############################
 
@@ -43,7 +43,7 @@ trap log EXIT
 
 echo "Password set log" > .set_iso_password_log
 
-DISCOVERY_IGN_URL=$OCM_API_ENDPOINT/assisted-install/v1/clusters/$CLUSTER_ID/downloads/'files?file_name=discovery.ign'
+DISCOVERY_IGN_URL=$OCM_API_ENDPOINT/assisted-install/v2/infra-envs/$INFRA_ENV_ID/downloads/'files?file_name=discovery.ign'
 
 if ! curl --fail -s ${DISCOVERY_IGN_URL} -H "Authorization: Bearer $TOKEN" >/dev/null; then
     echo "Can't seem to find a discovery.ign, please generate a discovery ISO file using the UI first"
@@ -75,7 +75,7 @@ echo ============================ >> .set_iso_password_log
 echo >> .set_iso_password_log
 
 echo Telling service to use our patched ignition file
-curl --fail -s $OCM_API_ENDPOINT/assisted-install/v1/clusters/$CLUSTER_ID/discovery-ignition -H "Authorization: Bearer $TOKEN" --request PATCH --header "Content-Type: application/json" --data @<(echo '{"config": "replaceme"}' | jq --rawfile ignition <(echo $NEW_IGNITION) '.config = $ignition')
+curl --fail -s $OCM_API_ENDPOINT/assisted-install/v2/infra-envs/$INFRA_ENV_ID -H "Authorization: Bearer $TOKEN" --request PATCH --header "Content-Type: application/json" --data @<(echo '{"ignition_config_override": "replaceme"}' | jq --rawfile ignition <(echo $NEW_IGNITION) '.config = $ignition')
 
 echo "Done, please re-generate the ISO using the UI and download the newly generated ISO"
 ```

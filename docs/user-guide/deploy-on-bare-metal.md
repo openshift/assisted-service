@@ -52,7 +52,7 @@ export IPXE_DIR=/tmp/ipxe/ai
 mkdir -p ${IPXE_DIR}
 
 # This command will download the ISO, extract the Images and create the ignition config files
-podman run -e BASE_URL=http://devscripts2ipv6.e2e.bos.redhat.com:8080 -e ISO_URL=http://devscripts2ipv6.e2e.bos.redhat.com:6008/api/assisted-install/v1/clusters/33ffb056-ee65-4fee-91c9-f60e5ebea4a3/downloads/image -v /tmp/ipxe/ai:/data:Z --net=host -it --rm quay.io/ohadlevy/ai-ipxe
+podman run -e BASE_URL=http://devscripts2ipv6.e2e.bos.redhat.com:8080 -e ISO_URL=$(curl http://devscripts2ipv6.e2e.bos.redhat.com:6008/api/assisted-install/v2/infra-envs/29b516fd-8f3a-42bf-8a59-cb20ef2630e0/downloads/image-url | jq ".url") -v /tmp/ipxe/ai:/data:Z --net=host -it --rm quay.io/ohadlevy/ai-ipxe
 
 # This command will host the iPXE files on an podman container
 podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm bitnami/nginx:latest
@@ -73,8 +73,9 @@ Now let's download that ISO in the provisioning machine, where the iPXE files wi
 ```shell
 export IPXE_DIR=/tmp/ipxe/ai
 export IMAGE_PATH=/tmp/discovery_image_ocp.iso
+expport ISO_URL=$(curl http://console.redhat.com/api/assisted-install/v2/infra-envs/<infra_env_id>/downloads/image-url | jq ".url")
 
-wget -O ${IMAGE_PATH} 'http://console.redhat.com/api/assisted-install/v1/clusters/<cluster_id>/downloads/image'
+wget -O ${IMAGE_PATH} ${ISO_URL}
 ```
 
 - Now we need to create the folder and the _ipxe_ file definition

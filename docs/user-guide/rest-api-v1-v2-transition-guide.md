@@ -49,7 +49,7 @@ GetClusterSupportedPlatforms      | N/A                                         
 GetClusterDefaultConfig           | GET /v1/clusters/default-config                         | GET /v2/clusters/default-config                               |
 GetClusterInstallConfig           | GET /v1/clusters/{cluster_id}/install-config            | GET /v2/clusters/{cluster_id}/install-config                  |
 UpdateClusterInstallConfig        | PATCH /v1/clusters/{cluster_id}/install-config          | PUT /v2/clusters/{cluster_id}/install-config                  |
-GetDiscoveryIgnition              | GET /v1/clusters/{cluster_id}/discovery-ignition        | N/A                                                           | Deprecated in favor of `GetInfraEnv`
+GetDiscoveryIgnition              | GET /v1/clusters/{cluster_id}/discovery-ignition        | N/A                                                           | Deprecated in favor of `v2DownloadInfraEnvFiles`
 UpdateDiscoveryIgnition           | PATCH /v1/clusters/{cluster_id}/discovery-ignition      | N/A                                                           | Deprecated in favor of `UpdateInfraEnv`
 InstallCluster                    | POST /v1/clusters/{cluster_id}/actions/install          | POST /v2/clusters/{cluster_id}/actions/install                | [Example](rest-api-getting-started.md#start-Installation)
 CancelInstallation                | POST /v1/clusters/{cluster_id}/actions/cancel           | POST /v2/clusters/{cluster_id}/actions/cancel                 |
@@ -92,8 +92,8 @@ DeregisterInfraEnv | N/A | DELETE /v2/infra-envs/{infra_env_id} |
 Operation ID                   | V1                                            | V2                                                         | Notes
 -------------------------------|-----------------------------------------------|------------------------------------------------------------|-------------------------------
 DownloadInfraEnvDiscoveryImage | GET /v1/clusters/{cluster_id}/downloads/image | GET /v2/infra-envs/{infra_env_id}/downloads/image      	| Moved from Cluster to InfraEnv
-DownloadMinimalInitrd          | N/A                                           | GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd	|			
-DownloadInfraEnvFiles          | N/A                                           | GET /v2/infra-envs/{infra_env_id}/downloads/files      	| Download discovery.ign
+DownloadMinimalInitrd          | N/A                                           | GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd	|
+v2DownloadInfraEnvFiles        | N/A                                           | GET /v2/infra-envs/{infra_env_id}/downloads/files      	| Download discovery.ign
 
 ### Host
 #### Host CRUD
@@ -115,6 +115,6 @@ InstallHost	            | POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions
 ResetHost	            | POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset	                           | POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset	| Moved from Cluster to InfraEnv
 ResetHostValidation	    | PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id} | N/A				                                             	|
 UpdateHostIgnition	    | PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition	                               | PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition	    | Moved from Cluster to InfraEnv
-GetHostIgnition	        | GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition	                               | GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition	Done	| Moved from Cluster to InfraEnv
+GetHostIgnition	        | GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition	                               | GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition	    	| Moved from Cluster to InfraEnv
 BindHost	            | N/A                                                                                      | POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind    |
 UnbindHost	            | N/A                                                                                      | POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind  |
