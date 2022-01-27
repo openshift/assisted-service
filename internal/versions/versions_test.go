@@ -191,7 +191,7 @@ var _ = Describe("list versions", func() {
 			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 
 			for _, releaseImage := range *releaseImages {
-				key := *releaseImage.Version
+				key := *releaseImage.OpenshiftVersion
 				version := val.Payload[key]
 				architecture := *releaseImage.CPUArchitecture
 				if architecture == "" {
