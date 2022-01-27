@@ -748,6 +748,61 @@ var _ = Describe("agent reconcile", func() {
 		Expect(agent.Status.DebugInfo.EventsURL).To(HavePrefix(expectedEventUrlPrefix))
 	})
 
+	It("validate Logs URL", func() {
+		serviceBaseURL := "http://example.com"
+		hr.ServiceBaseURL = serviceBaseURL
+		hostId := strfmt.UUID(uuid.New().String())
+		expectedLogsUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v2/clusters/%s/logs", serviceBaseURL, sId.String())
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:         &hostId,
+				ClusterID:  &sId,
+				Status:     swag.String(models.HostStatusKnown),
+				StatusInfo: swag.String("Some status info"),
+			},
+		}
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				&commonHost.Host,
+			}}}
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		By("before installation")
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(Succeed())
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		Expect(c.Create(ctx, host)).To(Succeed())
+		request := newHostRequest(host)
+		result, err := hr.Reconcile(ctx, request)
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent := &v1beta1.Agent{}
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(Succeed())
+		Expect(agent.Status.DebugInfo.LogsURL).To(Equal(""))
+
+		By("during installation")
+		backEndCluster.Hosts[0].Status = swag.String(models.HostStatusInstalling)
+		backEndCluster.Hosts[0].LogsCollectedAt = strfmt.DateTime(time.Now())
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		_, err = hr.Reconcile(ctx, request)
+		Expect(err).To(BeNil())
+		Expect(c.Get(ctx, key, agent)).To(Succeed())
+		Expect(agent.Status.DebugInfo.LogsURL).To(HavePrefix(expectedLogsUrlPrefix))
+
+		By("after installation")
+		backEndCluster.Hosts[0].Status = swag.String(models.HostStatusInstalled)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		_, err = hr.Reconcile(ctx, request)
+		Expect(err).To(BeNil())
+		Expect(c.Get(ctx, key, agent)).To(Succeed())
+		Expect(agent.Status.DebugInfo.LogsURL).To(HavePrefix(expectedLogsUrlPrefix))
+	})
+
 	It("Agent update ignition override valid cases", func() {
 		hostId := strfmt.UUID(uuid.New().String())
 		commonHost := &common.Host{
