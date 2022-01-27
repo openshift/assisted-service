@@ -22,7 +22,7 @@ IP_STACK=v4  # disconnected env is not yet fully supported
 # for installation by assisted-service standards
 NUM_EXTRA_WORKERS=1
 EXTRA_WORKER_VCPU=8
-EXTRA_WORKER_MEMORY=32768
+EXTRA_WORKER_MEMORY=16384
 EXTRA_WORKER_DISK=120
 
 # This will enable us provisioning BMH by BMAC with the

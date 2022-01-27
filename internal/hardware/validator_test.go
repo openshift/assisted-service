@@ -41,7 +41,7 @@ const (
 	defaultWorkerDiskSize           = 20
 	defaultWorkerDiskSpeedThreshold = 2
 	defaultSnoCores                 = 8
-	defaultSnoRam                   = 32768
+	defaultSnoRam                   = 16384
 )
 
 var _ = Describe("Disk eligibility", func() {
@@ -417,7 +417,7 @@ var _ = Describe("Cluster host requirements", func() {
 			},
 			"sno": map[string]interface{}{
 				"cpu_cores":    8,
-				"ram_mib":      32768,
+				"ram_mib":      16384,
 				"disk_size_gb": 120,
 			},
 		},
@@ -731,7 +731,7 @@ var _ = Describe("Preflight host requirements", func() {
 			},
 			SNORequirements: &models.ClusterHostRequirementsDetails{
 				CPUCores:   8,
-				RAMMib:     32768,
+				RAMMib:     16384,
 				DiskSizeGb: 120,
 			},
 		},
