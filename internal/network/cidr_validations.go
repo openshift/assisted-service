@@ -12,8 +12,8 @@ const MinMaskDelta = 7
 // Minimum mask size for Machine CIDR to allow at least 16 addresses
 const MinMachineMaskDelta = 4
 
-// Minimum mask size for Machine CIDR to allow at least 4 addresses
-const MinSNOMachineMaskDelta = 2
+// Minimum mask size for Machine CIDR to allow at least 2 addresses
+const MinSNOMachineMaskDelta = 1
 
 func netsOverlap(aCidrStr, bCidrStr string) error {
 	if aCidrStr == "" || bCidrStr == "" {
