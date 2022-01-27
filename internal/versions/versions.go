@@ -100,7 +100,7 @@ func (h *handler) ListSupportedOpenshiftVersions(ctx context.Context, params ope
 func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
 	openshiftVersions := models.OpenshiftVersions{}
 	for _, releaseImage := range h.releaseImages {
-		key := *releaseImage.Version
+		key := *releaseImage.OpenshiftVersion
 		if swag.StringValue(releaseImage.CPUArchitecture) == "" {
 			// Empty implies default architecture
 			*releaseImage.CPUArchitecture = common.DefaultCPUArchitecture
@@ -111,7 +111,7 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 			openshiftVersion = models.OpenshiftVersion{
 				CPUArchitectures: []string{*releaseImage.CPUArchitecture},
 				Default:          releaseImage.Default,
-				DisplayName:      key,
+				DisplayName:      *releaseImage.Version,
 				SupportLevel:     h.getSupportLevel(*releaseImage),
 			}
 			openshiftVersions[key] = openshiftVersion
