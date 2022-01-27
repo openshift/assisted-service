@@ -1413,7 +1413,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 					return ctrl.Result{Requeue: true}, nil
 				}
 			}
-			clusterRequirementsMet(clusterInstall, status, registeredHosts, approvedHosts)
+			clusterRequirementsMet(clusterInstall, status, registeredHosts, approvedHosts, c.SchedulableMasters)
 			clusterValidated(clusterInstall, status, c)
 			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo), c.MonitoredOperators)
 			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
@@ -1514,7 +1514,7 @@ func clusterSpecSynced(cluster *hiveext.AgentClusterInstall, syncErr error) {
 	})
 }
 
-func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status string, registeredHosts, approvedHosts int) {
+func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status string, registeredHosts, approvedHosts int, schedulableMasters *bool) {
 	var condStatus corev1.ConditionStatus
 	var reason string
 	var msg string
@@ -1531,7 +1531,7 @@ func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status 
 			condStatus = corev1.ConditionFalse
 			reason = hiveext.ClusterUnapprovedAgentsReason
 			msg = fmt.Sprintf(hiveext.ClusterUnapprovedAgentsMsg, expectedHosts-approvedHosts)
-		} else if registeredHosts > expectedHosts {
+		} else if registeredHosts > expectedHosts && (schedulableMasters == nil || !*schedulableMasters) {
 			condStatus = corev1.ConditionFalse
 			reason = hiveext.ClusterAdditionalAgentsReason
 			msg = fmt.Sprintf(hiveext.ClusterAdditionalAgentsMsg, expectedHosts, registeredHosts)

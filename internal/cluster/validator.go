@@ -374,6 +374,7 @@ func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessCont
 // 1. have exactly three masters
 // 2. have less then 3 masters but enough to auto-assign hosts that can become masters
 // 3. have at least 2 workers or auto-assign hosts that can become workers, if workers configured
+//    and schedulable masters are disabled
 // 4. having more then 3 known masters is illegal
 func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) ValidationStatus {
 	minMastersNeededForInstallation := common.MinMasterHostsNeededForInstallation
@@ -425,8 +426,9 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) V
 		return boolToValidationStatus(false)
 	}
 
-	//validate worker candidates count
-	if len(workers) == common.IllegalWorkerHostsCount {
+	// Allow for 1 worker to be added if masters are schedulable. Otherwise,
+	// validation should fail.
+	if !common.AreMastersSchedulable(c.cluster) && len(workers) == common.IllegalWorkerHostsCount {
 		return boolToValidationStatus(false)
 	}
 
@@ -447,7 +449,7 @@ func (v *clusterValidator) printSufficientMastersCount(context *clusterPreproces
 		if noneHAMode {
 			return "Single-node clusters must have a single master node and no workers."
 		}
-		return fmt.Sprintf("Clusters must have exactly %d dedicated masters and if workers are added, there should be at least 2 workers. Please check your configuration and add or remove hosts as to meet the above requirement.",
+		return fmt.Sprintf("Clusters must have exactly %d dedicated masters and if workers are added, there should be at least 2 workers unless schedulable masters are enabled. Please check your configuration and add or remove hosts as to meet the above requirement.",
 			common.MinMasterHostsNeededForInstallation)
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
