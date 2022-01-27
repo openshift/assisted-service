@@ -3,6 +3,7 @@ package versions
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -37,7 +38,7 @@ type Handler interface {
 	GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error)
 	GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error)
 	GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error)
-	GetCPUArchitectures(openshiftVersion string) ([]string, error)
+	GetCPUArchitectures(openshiftVersion string) []string
 	GetOpenshiftVersions() []string
 	AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error)
 }
@@ -98,30 +99,32 @@ func (h *handler) ListSupportedOpenshiftVersions(ctx context.Context, params ope
 
 func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
 	openshiftVersions := models.OpenshiftVersions{}
-	availableOcpVersions := h.GetOpenshiftVersions()
-	for _, key := range availableOcpVersions {
-		// Fetch available architectures for openshift version
-		availableArchitectures, err := h.GetCPUArchitectures(key)
-		if err != nil {
-			return operations.NewListSupportedOpenshiftVersionsInternalServerError().
-				WithPayload(common.GenerateInternalFromError(err))
-		}
-		// Fetch release image for openshift version (values should be similar across architectures)
-		releaseImage, err := h.GetReleaseImage(key, common.DefaultCPUArchitecture)
-		if err != nil {
-			return operations.NewListSupportedOpenshiftVersionsInternalServerError().
-				WithPayload(common.GenerateInternalFromError(err))
+	for _, releaseImage := range h.releaseImages {
+		key := *releaseImage.Version
+		if swag.StringValue(releaseImage.CPUArchitecture) == "" {
+			// Empty implies default architecture
+			*releaseImage.CPUArchitecture = common.DefaultCPUArchitecture
 		}
 
-		openshiftVersion := models.OpenshiftVersion{
-			CPUArchitectures: availableArchitectures,
-			Default:          releaseImage.Default,
-			DisplayName:      *releaseImage.Version,
-			SupportLevel:     h.getSupportLevel(*releaseImage),
+		openshiftVersion, exists := openshiftVersions[key]
+		if !exists {
+			openshiftVersion = models.OpenshiftVersion{
+				CPUArchitectures: []string{*releaseImage.CPUArchitecture},
+				Default:          releaseImage.Default,
+				DisplayName:      key,
+				SupportLevel:     h.getSupportLevel(*releaseImage),
+			}
+			openshiftVersions[key] = openshiftVersion
+		} else {
+			openshiftVersion.CPUArchitectures = append(
+				openshiftVersion.CPUArchitectures, *releaseImage.CPUArchitecture)
+			if *releaseImage.CPUArchitecture == common.DefaultCPUArchitecture {
+				// Default flag is specified on x86 image
+				openshiftVersion.Default = releaseImage.Default
+			}
+			openshiftVersions[key] = openshiftVersion
 		}
-		openshiftVersions[key] = openshiftVersion
 	}
-
 	return operations.NewV2ListSupportedOpenshiftVersionsOK().WithPayload(openshiftVersions)
 }
 
@@ -129,9 +132,6 @@ func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSec
 	versionKey, err := h.getKey(openshiftVersion)
 	if err != nil {
 		return nil, err
-	}
-	if !funk.Contains(h.GetOpenshiftVersions(), versionKey) {
-		return nil, errors.Errorf("No operators must-gather version for unsupported openshift version %s", versionKey)
 	}
 	if h.mustGatherVersions == nil {
 		h.mustGatherVersions = make(MustGatherVersions)
@@ -175,42 +175,102 @@ func (h *handler) GetDefaultReleaseImage(cpuArchitecture string) (*models.Releas
 
 // Returns the OsImage entity
 func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
+	if cpuArchitecture == "" {
+		// Empty implies default CPU architecture
+		cpuArchitecture = common.DefaultCPUArchitecture
+	}
+	// Filter OS images by specified CPU architecture
+	osImages := funk.Filter(h.osImages, func(osImage *models.OsImage) bool {
+		if swag.StringValue(osImage.CPUArchitecture) == "" {
+			return cpuArchitecture == common.DefaultCPUArchitecture
+		}
+		return swag.StringValue(osImage.CPUArchitecture) == cpuArchitecture
+	})
+	if funk.IsEmpty(osImages) {
+		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in OS images list", cpuArchitecture)
+	}
+
+	// Search for specified x.y.z openshift version
+	osImage := funk.Find(osImages, func(osImage *models.OsImage) bool {
+		return swag.StringValue(osImage.OpenshiftVersion) == openshiftVersion
+	})
+
 	versionKey, err := h.getKey(openshiftVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, osImage := range h.osImages {
-		if cpuArchitecture == "" {
-			// Empty implies default CPU architecture
-			cpuArchitecture = common.DefaultCPUArchitecture
-		}
-		if *osImage.OpenshiftVersion == versionKey && *osImage.CPUArchitecture == cpuArchitecture {
-			return osImage, nil
+	if osImage == nil {
+		// Fallback to x.y version
+		osImage = funk.Find(osImages, func(osImage *models.OsImage) bool {
+			return *osImage.OpenshiftVersion == versionKey
+		})
+	}
+
+	if osImage == nil {
+		// Find latest available patch version by x.y version
+		osImages := funk.Filter(osImages, func(osImage *models.OsImage) bool {
+			imageVersionKey, err := h.getKey(*osImage.OpenshiftVersion)
+			if err != nil {
+				return false
+			}
+			return imageVersionKey == versionKey
+		}).([]*models.OsImage)
+		sort.Slice(osImages, func(i, j int) bool {
+			v1, _ := version.NewVersion(*osImages[i].OpenshiftVersion)
+			v2, _ := version.NewVersion(*osImages[j].OpenshiftVersion)
+			return v1.GreaterThan(v2)
+		})
+		if !funk.IsEmpty(osImages) {
+			osImage = osImages[0]
 		}
 	}
 
-	return nil, errors.Errorf("The requested OS image for version (%s) isn't specified in OS images list", versionKey)
+	if osImage != nil {
+		return osImage.(*models.OsImage), nil
+	}
+
+	return nil, errors.Errorf(
+		"The requested OS image for version (%s) and CPU architecture (%s) isn't specified in OS images list",
+		openshiftVersion, cpuArchitecture)
 }
 
 // Returns the ReleaseImage entity
 func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
-	versionKey, err := h.getKey(openshiftVersion)
-	if err != nil {
-		return nil, err
+	if cpuArchitecture == "" {
+		// Empty implies default CPU architecture
+		cpuArchitecture = common.DefaultCPUArchitecture
+	}
+	// Filter Release images by specified CPU architecture
+	releaseImages := funk.Filter(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
+		return swag.StringValue(releaseImage.CPUArchitecture) == cpuArchitecture
+	})
+	if funk.IsEmpty(releaseImages) {
+		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in release images list", cpuArchitecture)
+	}
+	// Search for specified x.y.z openshift version
+	releaseImage := funk.Find(releaseImages, func(releaseImage *models.ReleaseImage) bool {
+		return *releaseImage.OpenshiftVersion == openshiftVersion
+	})
+
+	if releaseImage == nil {
+		// Fallback to x.y version
+		versionKey, err := h.getKey(openshiftVersion)
+		if err != nil {
+			return nil, err
+		}
+		releaseImage = funk.Find(releaseImages, func(releaseImage *models.ReleaseImage) bool {
+			return *releaseImage.OpenshiftVersion == versionKey
+		})
 	}
 
-	for _, releaseImage := range h.releaseImages {
-		if cpuArchitecture == "" {
-			// Empty implies default CPU architecture
-			cpuArchitecture = common.DefaultCPUArchitecture
-		}
-		if *releaseImage.OpenshiftVersion == versionKey && *releaseImage.CPUArchitecture == cpuArchitecture {
-			return releaseImage, nil
-		}
+	if releaseImage != nil {
+		return releaseImage.(*models.ReleaseImage), nil
 	}
 
-	return nil, errors.Errorf("The requested release image for version (%s) isn't specified in release images list", versionKey)
+	return nil, errors.Errorf(
+		"The requested release image for version (%s) and CPU architecture (%s) isn't specified in release images list",
+		openshiftVersion, cpuArchitecture)
 }
 
 // Returns the latest OSImage entity for a specified CPU architecture
@@ -249,52 +309,43 @@ func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion
 		}
 	}
 
-	// Get minor version
-	ocpVersionKey, err := h.getKey(ocpReleaseVersion)
-	if err != nil {
-		return nil, err
-	}
-
 	// Ensure a relevant OsImage exists
-	osImage, err := h.GetOsImage(ocpVersionKey, cpuArchitecture)
+	osImage, err := h.GetOsImage(ocpReleaseVersion, cpuArchitecture)
 	if err != nil || osImage.URL == nil {
-		return nil, errors.Errorf("No OS images are available for version: %s", ocpVersionKey)
+		return nil, errors.Errorf("No OS images are available for version: %s", ocpReleaseVersion)
 	}
 
-	// Fetch ReleaseImage if exists
-	releaseImage, err := h.GetReleaseImage(ocpVersionKey, cpuArchitecture)
-	if err != nil {
+	// Fetch ReleaseImage if exists (not using GetReleaseImage as we search for the x.y.z image only)
+	releaseImage := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
+		return *releaseImage.OpenshiftVersion == ocpReleaseVersion && *releaseImage.CPUArchitecture == cpuArchitecture
+	})
+	if releaseImage == nil {
 		// Create a new ReleaseImage
 		releaseImage = &models.ReleaseImage{
-			OpenshiftVersion: &ocpVersionKey,
+			OpenshiftVersion: &ocpReleaseVersion,
 			CPUArchitecture:  &cpuArchitecture,
+			URL:              &releaseImageUrl,
+			Version:          &ocpReleaseVersion,
 		}
-	} else {
-		// Remove original ReleaseImage from array
-		h.releaseImages = funk.Subtract(h.releaseImages, models.ReleaseImages{releaseImage}).([]*models.ReleaseImage)
+
+		// Store in releaseImages array
+		h.releaseImages = append(h.releaseImages, releaseImage.(*models.ReleaseImage))
+		h.log.Infof("Stored release version: %s", ocpReleaseVersion)
 	}
 
-	// Update ReleaseImage
-	releaseImage.URL = &releaseImageUrl
-	releaseImage.Version = &ocpReleaseVersion
-
-	// Store in releaseImages array
-	h.releaseImages = append(h.releaseImages, releaseImage)
-	h.log.Infof("Stored release version: %s", ocpReleaseVersion)
-
-	return releaseImage, nil
+	return releaseImage.(*models.ReleaseImage), nil
 }
 
 // Get CPU architectures available for the specified openshift version
 // according to the OS images list.
-func (h *handler) GetCPUArchitectures(openshiftVersion string) ([]string, error) {
+func (h *handler) GetCPUArchitectures(openshiftVersion string) []string {
+	cpuArchitectures := []string{}
 	versionKey, err := h.getKey(openshiftVersion)
 	if err != nil {
-		return nil, err
+		return cpuArchitectures
 	}
-	cpuArchitectures := []string{}
 	for _, osImage := range h.osImages {
-		if *osImage.OpenshiftVersion == versionKey {
+		if *osImage.OpenshiftVersion == openshiftVersion || *osImage.OpenshiftVersion == versionKey {
 			if swag.StringValue(osImage.CPUArchitecture) == "" {
 				// Empty or missing property implies default CPU architecture
 				defaultArch := common.DefaultCPUArchitecture
@@ -305,8 +356,7 @@ func (h *handler) GetCPUArchitectures(openshiftVersion string) ([]string, error)
 			}
 		}
 	}
-
-	return cpuArchitectures, nil
+	return cpuArchitectures
 }
 
 // Get available openshift versions according to OS images list.
@@ -358,11 +408,7 @@ func (h *handler) validateVersions() error {
 
 	missingValueTemplate := "Missing value in OSImage for '%s' field (openshift_version: %s)"
 	for _, key := range openshiftVersions {
-		architectures, err := h.GetCPUArchitectures(key)
-		if err != nil {
-			return err
-		}
-
+		architectures := h.GetCPUArchitectures(key)
 		for _, architecture := range architectures {
 			osImage, err := h.GetOsImage(key, architecture)
 			if err != nil {

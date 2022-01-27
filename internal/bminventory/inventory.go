@@ -769,10 +769,7 @@ func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *mode
 		return "", errors.Errorf("Non x86_64 CPU architectures are supported only with User Managed Networking")
 	}
 
-	cpuArchitectures, err := b.versionsHandler.GetCPUArchitectures(*newClusterParams.OpenshiftVersion)
-	if err != nil {
-		return "", err
-	}
+	cpuArchitectures := b.versionsHandler.GetCPUArchitectures(*newClusterParams.OpenshiftVersion)
 	for _, cpuArchitecture := range cpuArchitectures {
 		if cpuArchitecture == newClusterParams.CPUArchitecture {
 			return cpuArchitecture, nil

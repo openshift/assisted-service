@@ -611,7 +611,7 @@ func uploadISOs(objectHandler s3wrapper.API, versionHandler versions.Handler, lo
 	versions := versionHandler.GetOpenshiftVersions()
 	for _, version := range versions {
 		currVersion := version
-		cpuArchitectures, _ := versionHandler.GetCPUArchitectures(currVersion)
+		cpuArchitectures := versionHandler.GetCPUArchitectures(currVersion)
 		for _, cpuArchitecture := range cpuArchitectures {
 			currCpuArchitecture := cpuArchitecture
 			errs.Go(func() error {

@@ -11794,7 +11794,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 		mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
-			[]string{common.TestDefaultConfig.OpenShiftVersion, "arm64"}, nil).Times(1)
+			[]string{common.TestDefaultConfig.OpenShiftVersion, "arm64"}).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
