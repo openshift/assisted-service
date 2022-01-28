@@ -727,6 +727,59 @@ func (r *ClusterDeploymentsReconciler) updateIgnitionInUpdateParams(ctx context.
 	return update, nil
 }
 
+func updateNetworks(networking hiveext.Networking, params *models.V2ClusterUpdateParams, cluster *common.Cluster) bool {
+	update := false
+
+	if len(networking.ClusterNetwork) > 0 {
+		newClusterNetworks := clusterNetworksEntriesToArray(networking.ClusterNetwork)
+		if len(newClusterNetworks) != len(cluster.ClusterNetworks) {
+			params.ClusterNetworks = newClusterNetworks
+			update = true
+		} else {
+			for index := range newClusterNetworks {
+				if newClusterNetworks[index].Cidr != cluster.ClusterNetworks[index].Cidr ||
+					newClusterNetworks[index].HostPrefix != cluster.ClusterNetworks[index].HostPrefix {
+					params.ClusterNetworks = newClusterNetworks
+					update = true
+					break
+				}
+			}
+		}
+	}
+	if len(networking.ServiceNetwork) > 0 {
+		newServiceNetworks := serviceNetworksEntriesToArray(networking.ServiceNetwork)
+		if len(newServiceNetworks) != len(cluster.ServiceNetworks) {
+			params.ServiceNetworks = newServiceNetworks
+			update = true
+		} else {
+			for index := range newServiceNetworks {
+				if newServiceNetworks[index].Cidr != cluster.ServiceNetworks[index].Cidr {
+					params.ServiceNetworks = newServiceNetworks
+					update = true
+					break
+				}
+			}
+		}
+	}
+	if len(networking.MachineNetwork) > 0 {
+		newMachineNetworks := machineNetworksEntriesToArray(networking.MachineNetwork)
+		if len(newMachineNetworks) != len(cluster.MachineNetworks) {
+			params.MachineNetworks = newMachineNetworks
+			update = true
+		} else {
+			for index := range newMachineNetworks {
+				if newMachineNetworks[index].Cidr != cluster.MachineNetworks[index].Cidr {
+					params.MachineNetworks = newMachineNetworks
+					update = true
+					break
+				}
+			}
+		}
+	}
+
+	return update
+}
+
 func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	log logrus.FieldLogger,
 	clusterDeployment *hivev1.ClusterDeployment,
@@ -747,52 +800,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	updateString(spec.ClusterName, cluster.Name, &params.Name)
 	updateString(spec.BaseDomain, cluster.BaseDNSDomain, &params.BaseDNSDomain)
 
-	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
-		newClusterNetworks := clusterNetworksEntriesToArray(clusterInstall.Spec.Networking.ClusterNetwork)
-		if len(newClusterNetworks) != len(cluster.ClusterNetworks) {
-			params.ClusterNetworks = newClusterNetworks
-			update = true
-		} else {
-			for index := range newClusterNetworks {
-				if newClusterNetworks[index].Cidr != cluster.ClusterNetworks[index].Cidr ||
-					newClusterNetworks[index].HostPrefix != cluster.ClusterNetworks[index].HostPrefix {
-					params.ClusterNetworks = newClusterNetworks
-					update = true
-					break
-				}
-			}
-		}
-	}
-	if len(clusterInstall.Spec.Networking.ServiceNetwork) > 0 {
-		newServiceNetworks := serviceNetworksEntriesToArray(clusterInstall.Spec.Networking.ServiceNetwork)
-		if len(newServiceNetworks) != len(cluster.ServiceNetworks) {
-			params.ServiceNetworks = newServiceNetworks
-			update = true
-		} else {
-			for index := range newServiceNetworks {
-				if newServiceNetworks[index].Cidr != cluster.ServiceNetworks[index].Cidr {
-					params.ServiceNetworks = newServiceNetworks
-					update = true
-					break
-				}
-			}
-		}
-	}
-	if len(clusterInstall.Spec.Networking.MachineNetwork) > 0 {
-		newMachineNetworks := machineNetworksEntriesToArray(clusterInstall.Spec.Networking.MachineNetwork)
-		if len(newMachineNetworks) != len(cluster.MachineNetworks) {
-			params.MachineNetworks = newMachineNetworks
-			update = true
-		} else {
-			for index := range newMachineNetworks {
-				if newMachineNetworks[index].Cidr != cluster.MachineNetworks[index].Cidr {
-					params.MachineNetworks = newMachineNetworks
-					update = true
-					break
-				}
-			}
-		}
-	}
+	update = updateNetworks(clusterInstall.Spec.Networking, params, cluster) || update
 
 	if clusterInstall.Spec.Networking.NetworkType != "" {
 		updateString(clusterInstall.Spec.Networking.NetworkType, swag.StringValue(cluster.NetworkType), &params.NetworkType)
