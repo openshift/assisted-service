@@ -5505,6 +5505,11 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "api_vip": {
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$"
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
@@ -14345,6 +14350,11 @@ func init() {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string",
           "x-nullable": true
+        },
+        "api_vip": {
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
+          "type": "string",
+          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$"
         },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",

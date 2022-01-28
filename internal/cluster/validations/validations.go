@@ -393,23 +393,49 @@ func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCID
 	return nil
 }
 
-func DerefString(obj interface{}) *string {
-	switch v := obj.(type) {
-	case string:
-		return swag.String(v)
-	case *string:
-		return v
-	default:
-		return nil
-	}
-}
-
 func ValidateIPAddresses(ipV6Supported bool, obj interface{}) error {
 	var allAddresses []*string
+	var apiVip string
+	var ingressVip string
+	var machineNetworks []*models.MachineNetwork
+	userManagedNetworking := false
+	vipDhcpAllocation := false
+	targetConfiguration := common.Cluster{}
 
-	ingressVip := funk.Get(obj, "IngressVip")
-	apiVip := funk.Get(obj, "APIVip")
-	allAddresses = append(allAddresses, DerefString(ingressVip), DerefString(apiVip))
+	switch c := obj.(type) {
+	case *models.ClusterCreateParams:
+		apiVip = c.APIVip
+		ingressVip = c.IngressVip
+		machineNetworks = c.MachineNetworks
+		if c.UserManagedNetworking != nil {
+			userManagedNetworking = *c.UserManagedNetworking
+		}
+		if c.VipDhcpAllocation != nil {
+			vipDhcpAllocation = *c.VipDhcpAllocation
+		}
+		targetConfiguration.ClusterNetworks = c.ClusterNetworks
+		targetConfiguration.ServiceNetworks = c.ServiceNetworks
+		targetConfiguration.MachineNetworks = c.MachineNetworks
+	case *models.V2ClusterUpdateParams:
+		if c.APIVip != nil {
+			apiVip = *c.APIVip
+		}
+		if c.IngressVip != nil {
+			ingressVip = *c.IngressVip
+		}
+		machineNetworks = c.MachineNetworks
+		if c.UserManagedNetworking != nil {
+			userManagedNetworking = *c.UserManagedNetworking
+		}
+		if c.VipDhcpAllocation != nil {
+			vipDhcpAllocation = *c.VipDhcpAllocation
+		}
+		targetConfiguration.ClusterNetworks = c.ClusterNetworks
+		targetConfiguration.ServiceNetworks = c.ServiceNetworks
+		targetConfiguration.MachineNetworks = c.MachineNetworks
+	}
+
+	allAddresses = append(allAddresses, swag.String(ingressVip), swag.String(apiVip))
 	allAddresses = append(allAddresses, common.GetNetworksCidrs(obj)...)
 
 	err := ValidateIPAddressFamily(ipV6Supported, allAddresses...)
@@ -420,6 +446,51 @@ func ValidateIPAddresses(ipV6Supported bool, obj interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	// When running with User Managed Networking we do not allow setting any advanced network
+	// parameters via the Cluster configuration
+	if userManagedNetworking {
+		if vipDhcpAllocation {
+			err = errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		if ingressVip != "" {
+			err = errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		if apiVip != "" {
+			err = errors.Errorf("API VIP cannot be set with User Managed Networking")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	reqDualStack := network.CheckIfClusterIsDualStack(&targetConfiguration)
+
+	// In any case, if VIPs are provided, they must pass the validation for being part of the
+	// primary Machine Network and for non-overlapping addresses
+	if vipDhcpAllocation {
+		if apiVip != "" {
+			err = errors.Errorf("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		if ingressVip != "" {
+			err = errors.Errorf("Setting Ingress VIP is forbidden when cluster is in vip-dhcp-allocation mode")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	} else {
+		if len(machineNetworks) > 0 {
+			err = network.VerifyVips(nil, string(machineNetworks[0].Cidr), apiVip, ingressVip, reqDualStack, nil)
+		} else if reqDualStack {
+			err = errors.Errorf("Dual-stack cluster cannot be created with empty Machine Networks")
+			return common.NewApiError(http.StatusBadRequest, err)
+		} else {
+			err = network.VerifyDifferentVipAddresses(apiVip, ingressVip)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

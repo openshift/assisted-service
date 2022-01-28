@@ -3254,18 +3254,6 @@ var _ = Describe("cluster", func() {
 					validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{})
 				})
 
-				It("Fail with DHCP", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(true),
-							VipDhcpAllocation:     swag.Bool(true),
-						},
-					})
-
-					verifyApiErrorString(reply, http.StatusBadRequest, "VIP DHCP Allocation cannot be enabled with User Managed Networking")
-				})
-
 				It("Fail with DHCP when UserManagedNetworking was set", func() {
 					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("user_managed_networking", true).Error).ShouldNot(HaveOccurred())
 
@@ -3277,28 +3265,6 @@ var _ = Describe("cluster", func() {
 					})
 
 					verifyApiErrorString(reply, http.StatusBadRequest, "VIP DHCP Allocation cannot be enabled with User Managed Networking")
-				})
-
-				It("Fail with Ingress VIP", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(true),
-							IngressVip:            swag.String("10.35.20.10"),
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Ingress VIP cannot be set with User Managed Networking")
-				})
-
-				It("Fail with API VIP", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(true),
-							APIVip:                swag.String("10.35.20.10"),
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "API VIP cannot be set with User Managed Networking")
 				})
 
 				It("Fail with Machine CIDR", func() {
@@ -3370,18 +3336,6 @@ var _ = Describe("cluster", func() {
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest,
 						"ingress-vip <1.2.3.20> does not belong to machine-network-cidr <10.11.0.0/16>")
-				})
-				It("Same api and ingress", func() {
-					apiVip := "10.11.12.15"
-					ingressVip := apiVip
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     &apiVip,
-							IngressVip: &ingressVip,
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("api-vip and ingress-vip cannot have the same value: %s", apiVip))
 				})
 				It("Bad apiVip ip", func() {
 					apiVip := "not.an.ip.test"
@@ -3458,7 +3412,7 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							APIVip:          &apiVip,
 							IngressVip:      &ingressVip,
-							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.12.0.0/16"}},
+							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest,
@@ -3623,19 +3577,6 @@ var _ = Describe("cluster", func() {
 					ingressVip         = "10.11.12.16"
 					primaryMachineCIDR = models.Subnet("10.11.0.0/16")
 				)
-
-				It("Vips in DHCP", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:            &apiVip,
-							IngressVip:        &ingressVip,
-							VipDhcpAllocation: swag.Bool(true),
-							MachineNetworks:   []*models.MachineNetwork{{Cidr: primaryMachineCIDR}},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
-				})
 
 				It("Success in DHCP", func() {
 					mockSuccess(3)
@@ -5261,16 +5202,20 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
 					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
 				Expect(err).ToNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 			})
 
 			mockSuccess := func(times int) {
 				mockClusterUpdateSuccess(times, 3)
 			}
 
+			mockClusterUpdatability := func(times int) {
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(times * 1)
+			}
+
 			Context("UserManagedNetworking", func() {
 				It("success", func() {
 					mockSuccess(1)
+					mockClusterUpdatability(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -5284,6 +5229,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				It("Unset non relevant parameters", func() {
 					mockSuccess(1)
+					mockClusterUpdatability(1)
 
 					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
 						"api_vip":     common.TestIPv4Networking.APIVip,
@@ -5320,6 +5266,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				})
 
 				It("Fail with DHCP when UserManagedNetworking was set", func() {
+					mockClusterUpdatability(1)
 					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("user_managed_networking", true).Error).ShouldNot(HaveOccurred())
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -5355,6 +5302,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				})
 
 				It("Fail with Machine CIDR", func() {
+					mockClusterUpdatability(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -5366,6 +5314,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				})
 
 				It("Fail with non-x86_64 CPU architecture", func() {
+					mockClusterUpdatability(1)
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
@@ -5386,6 +5335,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				It("Success with non-x86_64 CPU architecture in case override is allowed", func() {
 					mockClusterUpdateSuccess(1, 0)
+					mockClusterUpdatability(1)
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
@@ -5407,6 +5357,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 			It("NetworkType", func() {
 				mockSuccess(1)
+				mockClusterUpdatability(1)
 				networkType := "OpenShiftSDN"
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
@@ -5421,6 +5372,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 			Context("Non DHCP", func() {
 				It("No machine network", func() {
+					mockClusterUpdatability(1)
 					apiVip := "8.8.8.8"
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -5432,6 +5384,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						fmt.Sprintf("Calculate machine network CIDR: No suitable matching CIDR found for VIP %s", apiVip))
 				})
 				It("Api and ingress mismatch", func() {
+					mockClusterUpdatability(1)
 					apiVip := "10.11.12.15"
 					ingressVip := "1.2.3.20"
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -5457,6 +5410,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("api-vip and ingress-vip cannot have the same value: %s", apiVip))
 				})
 				It("Bad apiVip ip", func() {
+					mockClusterUpdatability(1)
 					apiVip := "not.an.ip.test"
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -5467,6 +5421,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("Could not parse VIP ip %s", apiVip))
 				})
 				It("Bad ingressVip ip", func() {
+					mockClusterUpdatability(1)
 					ingressVip := "not.an.ip.test"
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -5478,6 +5433,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				})
 				It("Update success", func() {
 					mockSuccess(1)
+					mockClusterUpdatability(1)
 
 					apiVip := "10.11.12.15"
 					ingressVip := "10.11.12.16"
@@ -5524,6 +5480,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					Expect(actualNetworks).To(Equal(expectedNetworks))
 				})
 				It("Machine network CIDR in non dhcp", func() {
+					mockClusterUpdatability(1)
 					apiVip := "10.11.12.15"
 					ingressVip := "10.11.12.16"
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -5531,7 +5488,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							APIVip:          &apiVip,
 							IngressVip:      &ingressVip,
-							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.12.0.0/16"}},
+							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest,
@@ -5539,6 +5496,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				})
 				It("Machine network CIDR in non dhcp for dual-stack", func() {
 					mockSuccess(1)
+					mockClusterUpdatability(1)
 
 					apiVip := "10.11.12.15"
 					ingressVip := "10.11.12.16"
@@ -5557,6 +5515,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				})
 				It("Wrong order of machine network CIDRs in non dhcp for dual-stack", func() {
 					mockSuccess(1)
+					mockClusterUpdatability(1)
 
 					apiVip := "10.11.12.15"
 					ingressVip := "10.11.12.16"
@@ -5602,6 +5561,10 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					apiVip     = "10.11.12.15"
 					ingressVip = "10.11.12.16"
 				)
+
+				BeforeEach(func() {
+					mockClusterUpdatability(1)
+				})
 
 				It("Update success", func() {
 					mockSuccess(1)
@@ -5770,7 +5733,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				It("Success in DHCP", func() {
 					mockSuccess(3)
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(2)
+					mockClusterUpdatability(1)
 
 					By("Original machine cidr", func() {
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -5788,6 +5751,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					})
 
 					By("Override machine cidr", func() {
+						mockClusterUpdatability(1)
 						machineNetworks := common.TestIPv4Networking.MachineNetworks
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
@@ -5834,6 +5798,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					})
 
 					By("Turn off DHCP allocation", func() {
+						mockClusterUpdatability(1)
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -5852,6 +5817,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				})
 				It("DHCP non existent network (no error)", func() {
 					mockSuccess(1)
+					mockClusterUpdatability(1)
 					machineNetworks := []*models.MachineNetwork{{Cidr: "10.13.0.0/16"}}
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -5878,6 +5844,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					})
 
 					It("Fail to set IPv6 machine CIDR when VIP DHCP is true", func() {
+						mockClusterUpdatability(1)
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -5889,6 +5856,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					})
 
 					It("Fail to set IPv6 machine CIDR when VIP DHCP was true", func() {
+						mockClusterUpdatability(1)
 						Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("vip_dhcp_allocation", true).Error).ShouldNot(HaveOccurred())
 
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -5902,6 +5870,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 					It("Set VIP DHCP true when machine CIDR was IPv6", func() {
 						mockSuccess(1)
+						mockClusterUpdatability(1)
 
 						Expect(db.Save(machineNetworks[0]).Error).ShouldNot(HaveOccurred())
 
@@ -5932,6 +5901,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 					It("Allow setting dual-stack machine CIDRs when VIP DHCP is true and IPv4 is the first one", func() {
 						mockSuccess(1)
+						mockClusterUpdatability(1)
 
 						Expect(db.Save(machineNetworks[0]).Error).ShouldNot(HaveOccurred())
 						Expect(db.Save(machineNetworks[1]).Error).ShouldNot(HaveOccurred())
@@ -5953,6 +5923,10 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			})
 
 			Context("NTP", func() {
+				BeforeEach(func() {
+					mockClusterUpdatability(1)
+				})
+
 				It("Empty NTP source", func() {
 					mockSuccess(1)
 
@@ -6067,6 +6041,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				BeforeEach(func() {
 					setNetworksClusterID(clusterID, clusterNetworks, serviceNetworks, machineNetworks)
+					mockClusterUpdatability(1)
 				})
 
 				It("No new networks data", func() {
@@ -10019,6 +9994,271 @@ var _ = Describe("TestRegisterCluster", func() {
 				Expect(swag.StringValue(c.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTpmv2))
 			})
 		})
+	})
+
+	var _ = Describe("API and Ingress VIPs", func() {
+		BeforeEach(func() {
+			Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+			db, dbName = common.PrepareTestDB()
+			cfg.DiskEncryptionSupport = false
+			bm = createInventory(db, cfg)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			mockUsageReports()
+		})
+
+		AfterEach(func() {
+			ctrl.Finish()
+			common.DeleteTestDB(db, dbName)
+		})
+
+		Context("V2 Register cluster", func() {
+			It("Dual-stack cluster with VIPs - positive", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(ctx)
+
+				apiVip := "1.2.3.5"
+				ingressVip := "1.2.3.6"
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						APIVip:            apiVip,
+						IngressVip:        ingressVip,
+						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
+						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
+						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
+						VipDhcpAllocation: swag.Bool(false),
+					},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated).Payload
+				Expect(actual.APIVip).To(Equal(apiVip))
+				Expect(actual.IngressVip).To(Equal(ingressVip))
+				Expect(actual.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+				Expect(actual.ClusterNetworks).To(Equal(common.TestDualStackNetworking.ClusterNetworks))
+				Expect(actual.MachineNetworks).To(Equal(common.TestDualStackNetworking.MachineNetworks))
+				Expect(actual.ServiceNetworks).To(Equal(common.TestDualStackNetworking.ServiceNetworks))
+			})
+			It("Single-stack with VIPs - positive", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(ctx)
+
+				apiVip := "1.2.3.5"
+				ingressVip := "1.2.3.6"
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						APIVip:            apiVip,
+						IngressVip:        ingressVip,
+						ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
+						MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
+						ServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+						VipDhcpAllocation: swag.Bool(false),
+					},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated).Payload
+				Expect(actual.APIVip).To(Equal(apiVip))
+				Expect(actual.IngressVip).To(Equal(ingressVip))
+				Expect(actual.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+				Expect(actual.ClusterNetworks).To(Equal(common.TestIPv4Networking.ClusterNetworks))
+				Expect(actual.MachineNetworks).To(Equal(common.TestIPv4Networking.MachineNetworks))
+				Expect(actual.ServiceNetworks).To(Equal(common.TestIPv4Networking.ServiceNetworks))
+			})
+			It("Dual-stack with reused VIPs", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				apiVip := "1.2.3.5"
+				ingressVip := "1.2.3.5"
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						APIVip:            apiVip,
+						IngressVip:        ingressVip,
+						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
+						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
+						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
+						VipDhcpAllocation: swag.Bool(false),
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip and ingress-vip cannot have the same value: 1.2.3.5")
+			})
+			It("API VIP not in Machine Network", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				apiVip := "10.11.12.15"
+				ingressVip := "1.2.3.6"
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						APIVip:            apiVip,
+						IngressVip:        ingressVip,
+						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
+						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
+						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
+						VipDhcpAllocation: swag.Bool(false),
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <10.11.12.15> does not belong to machine-network-cidr <1.2.3.0/24>")
+			})
+			It("Ingress VIP not in Machine Network", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				apiVip := "1.2.3.5"
+				ingressVip := "10.11.12.16"
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						APIVip:            apiVip,
+						IngressVip:        ingressVip,
+						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
+						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
+						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
+						VipDhcpAllocation: swag.Bool(false),
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <10.11.12.16> does not belong to machine-network-cidr <1.2.3.0/24>")
+			})
+			It("API VIP with empty Machine Networks", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				apiVip := "10.11.12.15"
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						APIVip:            apiVip,
+						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
+						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
+						VipDhcpAllocation: swag.Bool(false),
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "Dual-stack cluster cannot be created with empty Machine Networks")
+			})
+			It("Ingress VIP with empty Machine Networks", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				ingressVip := "1.2.3.6"
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						IngressVip:        ingressVip,
+						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
+						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
+						VipDhcpAllocation: swag.Bool(false),
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "Dual-stack cluster cannot be created with empty Machine Networks")
+			})
+			It("API VIP from IPv6 Machine Network", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				apiVip := "1001:db8::64"
+				ingressVip := "1.2.3.6"
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						APIVip:            apiVip,
+						IngressVip:        ingressVip,
+						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
+						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
+						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
+						VipDhcpAllocation: swag.Bool(false),
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <1001:db8::64> does not belong to machine-network-cidr <1.2.3.0/24>")
+			})
+			It("Ingress VIP from IPv6 Machine Network", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				apiVip := "1.2.3.5"
+				ingressVip := "1001:db8::65"
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						APIVip:            apiVip,
+						IngressVip:        ingressVip,
+						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
+						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
+						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
+						VipDhcpAllocation: swag.Bool(false),
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <1001:db8::65> does not belong to machine-network-cidr <1.2.3.0/24>")
+			})
+		})
+
+		Context("V2 Update cluster", func() {
+			var clusterID strfmt.UUID
+
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:     &clusterID,
+					Kind:   swag.String(models.ClusterKindAddHostsCluster),
+					Status: swag.String(models.ClusterStatusInsufficient),
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				bm = createInventory(db, cfg)
+			})
+
+			It("Dual-stack cluster - positive", func() {
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockUsageReports()
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+
+				apiVip := "1.2.3.5"
+				ingressVip := "1.2.3.6"
+
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						APIVip:          swag.String(apiVip),
+						IngressVip:      swag.String(ingressVip),
+						ClusterNetworks: common.TestDualStackNetworking.ClusterNetworks,
+						MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+						ServiceNetworks: common.TestDualStackNetworking.ServiceNetworks,
+					},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				actual := reply.(*installer.V2UpdateClusterCreated).Payload
+				Expect(actual.APIVip).To(Equal(apiVip))
+				Expect(actual.IngressVip).To(Equal(ingressVip))
+				Expect(actual.ClusterNetworks).To(Equal(common.TestDualStackNetworking.ClusterNetworks))
+				Expect(actual.MachineNetworks).To(Equal(common.TestDualStackNetworking.MachineNetworks))
+				Expect(actual.ServiceNetworks).To(Equal(common.TestDualStackNetworking.ServiceNetworks))
+			})
+			It("Dual-stack with empty VIPs", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
+						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
+						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
+						VipDhcpAllocation: swag.Bool(false),
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <> does not belong to machine-network-cidr <1.2.3.0/24>")
+			})
+		})
+
 	})
 
 	var _ = Describe("Disk encryption disabled", func() {

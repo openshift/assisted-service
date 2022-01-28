@@ -1438,6 +1438,8 @@ var _ = Describe("cluster install", func() {
 		It("report usage new dual-stack cluster", func() {
 			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
+					APIVip:        "1.2.3.8",
+					IngressVip:    "1.2.3.9",
 					BaseDNSDomain: "example.com",
 					ClusterNetworks: []*models.ClusterNetwork{
 						{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23},
