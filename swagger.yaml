@@ -7677,12 +7677,12 @@ definitions:
       install_started_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: The time that this cluster started installation.
       install_completed_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: The time that this cluster completed installation.
       host_networks:
         type: array
