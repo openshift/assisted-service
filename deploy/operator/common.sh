@@ -30,7 +30,7 @@ DEFAULT_OS_IMAGES="${DEFAULT_OS_IMAGES:-$(cat ${__root}/data/default_os_images.j
 DEFAULT_RELEASE_IMAGES="${DEFAULT_RELEASE_IMAGES:-$(cat ${__root}/data/default_release_images.json)}"
 
 # Get sorted release images relevant for the operator (only default cpu architecture)
-SORTED_RELEASE_IMAGES=$(echo ${DEFAULT_RELEASE_IMAGES} | jq -rc 'map(select(.cpu_architecture=="x86_64")) | sort_by(.openshift_version)')
+SORTED_RELEASE_IMAGES=$(echo ${DEFAULT_RELEASE_IMAGES} | jq -rc 'map(select(.cpu_architecture=="x86_64")) | sort_by(.openshift_version|split(".")|map(tonumber))')
 
 if [[ "${ASSISTED_UPGRADE_OPERATOR}" == "false" ]]; then
     RELEASE_IMAGE=$(echo ${SORTED_RELEASE_IMAGES} | jq -rc '[.[].url][-1]')
@@ -44,4 +44,4 @@ fi
 
 export ASSISTED_OPENSHIFT_VERSION="${ASSISTED_OPENSHIFT_VERSION:-openshift-v${VERSION}}"
 export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}}"
-export OS_IMAGES=$(echo ${DEFAULT_OS_IMAGES} | jq -rc 'map(select(.openshift_version>="4.8"))')
+export OS_IMAGES=$(echo ${DEFAULT_OS_IMAGES} | jq -rc 'map(select((.openshift_version|split(".")|map(tonumber)) >= [4,8]))')
