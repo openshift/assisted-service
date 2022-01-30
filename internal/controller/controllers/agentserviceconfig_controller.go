@@ -74,7 +74,8 @@ const (
 	defaultIngressCertCMName      string = "default-ingress-cert"
 	defaultIngressCertCMNamespace string = "openshift-config-managed"
 
-	configmapAnnotation = "unsupported.agent-install.openshift.io/assisted-service-configmap"
+	configmapAnnotation                 = "unsupported.agent-install.openshift.io/assisted-service-configmap"
+	imageServiceSkipVerifyTLSAnnotation = "unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls"
 
 	assistedConfigHashAnnotation = "agent-install.openshift.io/config-hash"
 	mirrorConfigHashAnnotation   = "agent-install.openshift.io/mirror-hash"
@@ -803,6 +804,11 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 }
 
 func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	skipVerifyTLS, ok := instance.ObjectMeta.GetAnnotations()[imageServiceSkipVerifyTLSAnnotation]
+	if !ok {
+		skipVerifyTLS = "false"
+	}
+
 	deploymentLabels := map[string]string{
 		"app": imageServiceName,
 	}
@@ -825,6 +831,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 			{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
 			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + r.Namespace + ".svc:" + servicePort.String()},
 			{Name: "REQUEST_AUTH_TYPE", Value: "param"},
+			{Name: "INSECURE_SKIP_VERIFY", Value: skipVerifyTLS},
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "tls-certs", MountPath: "/etc/image-service/certs"},
