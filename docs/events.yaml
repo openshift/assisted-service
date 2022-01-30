@@ -670,16 +670,6 @@ x-events:
     host_name: string
     event: string
 
-- name: register_host_to_infra_env_failed
-  message: "{message}"
-  event_type: host
-  severity: "error"
-  properties:
-    host_id: UUID
-    infra_env_id: UUID
-    cluster_id: UUID_PTR
-    message: string
-
 - name: host_registration_failed
   message: "{message}"
   event_type: host
