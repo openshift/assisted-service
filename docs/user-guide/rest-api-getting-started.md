@@ -115,7 +115,7 @@ See [infra_env.json](samples/infra_env.json)
 * operationId: `GetInfraEnvDownloadURL`
 
 ```bash
-curl <HOST>:<PORT>/api/assisted-install/v2/infra-envs/<infra_env_id>/downloads/image-url | jq '.'
+curl <HOST>:<PORT>/api/assisted-install/v2/infra-envs/<infra_env_id>/downloads/image-url | jq '.url'
 ```
 
 ### Result
