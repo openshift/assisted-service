@@ -9678,7 +9678,7 @@ func init() {
           "description": "The time that this cluster completed installation.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "install_config_overrides": {
           "description": "JSON-formatted string containing the user overrides for the install-config.yaml file.",
@@ -9690,7 +9690,7 @@ func init() {
           "description": "The time that this cluster started installation.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "kind": {
           "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n",
@@ -23218,7 +23218,7 @@ func init() {
           "description": "The time that this cluster completed installation.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "install_config_overrides": {
           "description": "JSON-formatted string containing the user overrides for the install-config.yaml file.",
@@ -23230,7 +23230,7 @@ func init() {
           "description": "The time that this cluster started installation.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "kind": {
           "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n",
