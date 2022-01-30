@@ -645,38 +645,27 @@ spec:
         - apiGroups:
           - ""
           resources:
-          - pods
-          - endpoints
-          - services
-          verbs:
-          - get
-          - watch
-          - list
-        - apiGroups:
-          - batch
-          resources:
-          - jobs
-          verbs:
-          - get
-          - watch
-          - list
-          - delete
-          - create
-        - apiGroups:
-          - ""
-          resources:
           - configmaps
           verbs:
           - create
         - apiGroups:
           - ""
           resourceNames:
+          - assisted-service-baseiso-helper
           - assisted-service-leader-election-helper
           - assisted-service-migration-helper
-          - assisted-service-baseiso-helper
           resources:
           - configmaps
           verbs:
+          - get
+          - update
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - create
           - get
           - update
           - delete

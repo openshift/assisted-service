@@ -4,38 +4,32 @@ metadata:
   name: assisted-service
   namespace: default
 rules:
-  - verbs:
-      - get
-      - watch
-      - list
-    apiGroups:
-      - ''
+  - apiGroups:
+    - ''
     resources:
-      - pods
-      - endpoints
-      - services
-  - verbs:
-      - get
-      - watch
-      - list
-      - delete
+    - configmaps
+    verbs:
       - create
-    apiGroups:
-      - batch
-    resources:
-      - jobs
-  - verbs:
-      - create
-    apiGroups:
+
+  - apiGroups:
       - ''
     resources:
       - configmaps
-  - verbs:
+    verbs:
       - get
       - update
       - delete
-    apiGroups:
-      - ''
+    resourceNames:
+      - assisted-service-baseiso-helper
+      - assisted-service-leader-election-helper
+      - assisted-service-migration-helper
+
+  - apiGroups:
+    - coordination.k8s.io
     resources:
-      - configmaps
-    resourceNames: ["assisted-service-leader-election-helper", "assisted-service-migration-helper", "assisted-service-baseiso-helper"]
+      - leases
+    verbs:
+      - create
+      - get
+      - update
+      - delete
