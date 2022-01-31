@@ -10,7 +10,7 @@ The following script provides an example of how to use the Assisted Installer AP
 For more information about the API and its various authentication methods, see [this document](cloud.md).
 
 # Set discovery ISO type
-```
+```sh
 #!/bin/bash
 
 set -euo pipefail
@@ -26,8 +26,8 @@ if [ -z ${SSH_KEY+x} ]; then
 	exit 1
 fi
 
-if [ -z ${CLUSTER_ID+x} ]; then
-	echo 'Please set CLUSTER_ID to your cluster ID, which can be found in the Assisted Installer URL'
+if [ -z ${INFRA_ENV_ID+x} ]; then
+	echo 'Please set INFRA_ENV_ID to your infra-env ID, which can be found in the Assisted Installer URL'
 	exit 1
 fi
 
@@ -46,9 +46,9 @@ function log() {
 trap log EXIT
 
 echo Telling service to generate a minimal ISO with our public SSH key file
-curl -fail -s $OCM_API_ENDPOINT/assisted-install/v1/clusters/$CLUSTER_ID/downloads/image -H "Authorization: Bearer $TOKEN" --request POST --header "Content-Type: application/json" --data @<(echo '{"image_type": "minimal-iso", "ssh_public_key": ""}' | jq --rawfile pubkey <(echo -n $SSH_KEY) '.ssh_public_key = $pubkey')
+curl -fail -s $OCM_API_ENDPOINT/assisted-install/v2/infra-envs/$INFRA_ENV_ID -H "Authorization: Bearer $TOKEN" --request POST --header "Content-Type: application/json" --data @<(echo '{"image_type": "minimal-iso", "ssh_authorized_key": ""}' | jq --rawfile pubkey <(echo -n $SSH_KEY) '.ssh_authorized_key = $pubkey')
 
 echo "Done, retrieving ISO url..."
 
-curl -s $OCM_API_ENDPOINT/assisted-install/v1/clusters/$CLUSTER_ID -H "Authorization: Bearer $TOKEN" --request GET | jq '.image_info.download_url' -r
+curl -H "Authorization: Bearer $TOKEN" --request GET $OCM_API_ENDPOINT/assisted-install/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID/downloads/image-url | jq ".url"
 ```

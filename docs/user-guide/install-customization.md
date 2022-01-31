@@ -8,7 +8,7 @@ These will only take effect after the machine config operator is up and running 
 
 ### Create a cluster manifest
 
-```
+```sh
 # base64 encoding of the example from https://docs.openshift.com/container-platform/4.6/installing/install_config/installing-customizing.html 
 content=YXBpVmVyc2lvbjogbWFjaGluZWNvbmZpZ3VyYXRpb24ub3BlbnNoaWZ0LmlvL3YxCmtpbmQ6IE1hY2hpbmVDb25maWcKbWV0YWRhdGE6CiAgbGFiZWxzOgogICAgbWFjaGluZWNvbmZpZ3VyYXRpb24ub3BlbnNoaWZ0LmlvL3JvbGU6IG1hc3RlcgogIG5hbWU6IDk5LW9wZW5zaGlmdC1tYWNoaW5lY29uZmlnLW1hc3Rlci1rYXJncwpzcGVjOgogIGtlcm5lbEFyZ3VtZW50czoKICAgIC0gJ2xvZ2xldmVsPTcnCg==
 file=99-openshift-machineconfig-master-kargs.yaml
@@ -19,15 +19,15 @@ curl \
     --header "Authorization: Bearer $TOKEN" \
     --request POST \
     --data "{\"file_name\":\"$file\", \"folder\":\"$folder\", \"content\":\"$content\"}" \
-"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v1/clusters/$CLUSTER_ID/manifests"
+"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/manifests"
 ```
 
 ### View a manifest’s contents
 
-```
+```sh
 file=openshift/99-openshift-machineconfig-master-kargs.yaml
 
-curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v1/clusters/$CLUSTER_ID/manifests/files?file_name=$file"
+curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/manifests/files?file_name=$file"
 ```
 
 ## Discovery Ignition
@@ -39,7 +39,7 @@ The discovery ignition must use version 3.1.0 regardless of the version of the c
 
 ### Patch the discovery ignition
 
-```
+```sh
 # ignition patch file
 {
   "config": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/containers/registries.conf\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"},\"contents\": {\"source\": \"data:text/plain;base64,dW5xdWFsaWZpZWQtc2VhcmNoLXJlZ2lzdHJpZXMgPSBbInJlZ2lzdHJ5LmFjY2Vzcy5yZWRoYXQuY29tIiwgImRvY2tlci5pbyJdCltbcmVnaXN0cnldXQogICBwcmVmaXggPSAiIgogICBsb2NhdGlvbiA9ICJxdWF5LmlvL29jcG1ldGFsIgogICBtaXJyb3ItYnktZGlnZXN0LW9ubHkgPSBmYWxzZQogICBbW3JlZ2lzdHJ5Lm1pcnJvcl1dCiAgIGxvY2F0aW9uID0gImxvY2FsLnJlZ2lzdHJ5OjUwMDAvb2NwbWV0YWwiCg==\"}}]}}"
@@ -50,13 +50,13 @@ curl \
     --header "Authorization: Bearer $TOKEN" \
     --request PATCH \
     --data @discovery-ign.json \
-"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v1/clusters/$CLUSTER_ID/discovery-ignition"
+"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID"
 ```
 
 ### View the discovery ignition
 
-```
-curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v1/clusters/$CLUSTER_ID/discovery-ignition"
+```sh
+curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID/downloads/'files?file_name=discovery.ign"
 ```
 
 ## Install Config
@@ -68,8 +68,8 @@ Note, some of this content will be pinned to particular values by the assisted-i
 
 You can compose the install-config overrides by creating a json string with the options you wish to set.
 An example install config with disabled hyperthreading for the control plane:
-```
-apiVersion: v1
+```yaml
+apiVersion: extensions.hive.openshift.io/v1beta1
 baseDomain: example.com
 controlPlane:
   name: master
@@ -84,23 +84,25 @@ pullSecret: '{"auths": ...}'
 sshKey: ssh-ed25519 AAAA...
 ```
 should look like this:
-```"{\"controlPlane\":{\"hyperthreading\":\"Disabled\"}}"```
+```sh
+"{\"controlPlane\":{\"hyperthreading\":\"Disabled\"}}"
+```
 
 ### Patch the install config
 
-```
+```sh
 curl \
     --header "Content-Type: application/json" \
     --header "Authorization: Bearer $TOKEN" \
     --request PATCH \
     --data '"{\"controlPlane\":{\"hyperthreading\":\"Disabled\"}}"' \
-"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v1/clusters/$CLUSTER_ID/install-config"
+"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/install-config"
 ```
 
 ### View the install config
 
-```
-curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v1/clusters/$CLUSTER_ID/install-config"
+```sh
+curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/install-config"
 ```
 
 ## Pointer Ignition
@@ -119,19 +121,19 @@ This means that the version required for the override will change depending on t
 
 ### Patch the pointer ignition
 
-```
+```sh
 curl \
     --header "Content-Type: application/json" \
     --header "Authorization: Bearer $TOKEN" \
     --request PATCH \
     --data '{"config": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/example\", \"contents\": {\"source\": \"data:text/plain;base64,SGVsbG8gZnJvbSBob3N0IDg0Njk2NzdiLThlZGEtNDQzOS1iNDQwLTc3ZGM5M2FkZmNlZgo=\"}}]}}"}' \
-"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v1/clusters/$CLUSTER_ID/hosts/$HOST_ID/ignition"
+"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID/hosts/$HOST_ID/ignition"
 ```
 
 ### View the pointer ignition
 
-```
-curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v1/clusters/$CLUSTER_ID/hosts/$HOST_ID/ignition"
+```sh
+curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID/$HOST_ID/ignition
 ```
 
 ## Installer Params
@@ -141,18 +143,18 @@ The only parameters that can be set with this endpoint are: ["--append-karg", "-
 
 ### Set the installer params
 
-```
+```sh
 curl \
     --header "Content-Type: application/json" \
     --header "Authorization: Bearer $TOKEN" \
     --request PATCH \
     --data '{"args": ["--append-karg", "nameserver=8.8.8.8", "-n"]}' \
-"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v1/clusters/$CLUSTER_ID/hosts/$HOST_ID/installer-args"
+"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID/hosts/$HOST_ID/installer-args"
 ```
 
 ## Adding aditional trust bundle
 Any additional trust bundles need to be added to both the discovery ISO and to the install-config. The trust bundle can contain one or more additional CA certificates in the format:
-```
+```sh
 -----BEGIN CERTIFICATE-----
 ...base-64-encoded, DER Certificate Authority cert...
 -----END CERTIFICATE-----
@@ -163,7 +165,7 @@ Any additional trust bundles need to be added to both the discovery ISO and to t
 ```
 ### Add additional trust bundle in discovery ISO
 The additional trust bundle must be embeded into discovery ignition override
-```
+```sh
 request_body=$(mktemp)
 jq -n --arg OVERRIDE "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/pki/ca-trust/source/anchors/extra_ca.pem\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"},\"contents\": {\"source\": \"data:text/plain;base64,$(cat ca.pem | base64 -w 0)\"}}]}}" \
 '{
@@ -171,7 +173,7 @@ jq -n --arg OVERRIDE "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"f
 }' > $request_body
 ```
 Patch the discovery ignition override with the resulting file:
-```
+```sh
 curl \
     --header "Content-Type: application/json" \
     --header "Authorization: Bearer $TOKEN" \
@@ -181,7 +183,7 @@ curl \
 ```
 ### Add additionalTrustbundle in install-config
 Create file to patch install config
-```
+```sh
 install_config_patch=$(mktemp)
 jq -n --arg BUNDLE "$(cat ca.pem)" \
 '{
@@ -189,7 +191,7 @@ jq -n --arg BUNDLE "$(cat ca.pem)" \
 }| tojson' > $install_config_body
 ```
 Patch the install-config with the resulting file
-```
+```sh
 curl \
     --header "Content-Type: application/json" \
     --header "Authorization: Bearer $TOKEN" \

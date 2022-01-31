@@ -24,7 +24,7 @@
   "high_availability_mode": "Full",
   "host_networks": [],
   "hosts": [],
-  "href": "/api/assisted-install/v1/clusters/948b8ba9-798f-4310-bb08-67a6b56ebdcc",
+  "href": "/api/assisted-install/v2/clusters/948b8ba9-798f-4310-bb08-67a6b56ebdcc",
   "hyperthreading": "all",
   "id": "948b8ba9-798f-4310-bb08-67a6b56ebdcc",
   "ignition_endpoint": {},
