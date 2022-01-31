@@ -41,8 +41,8 @@ var _ = Describe("Day2 v1 cluster tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("adding-hosts"))
 		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(statusInfoAddingHosts))
-		Expect(swag.StringValue(&cluster.GetPayload().OpenshiftVersion)).Should(ContainSubstring(openshiftVersion))
-		Expect(swag.StringValue(&cluster.GetPayload().OcpReleaseImage)).Should(ContainSubstring(openshiftVersion))
+		Expect(swag.StringValue(&cluster.GetPayload().OpenshiftVersion)).Should(BeEmpty())
+		Expect(swag.StringValue(&cluster.GetPayload().OcpReleaseImage)).Should(BeEmpty())
 		Expect(cluster.GetPayload().StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
