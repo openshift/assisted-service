@@ -68,7 +68,8 @@ func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, ocsClusterR
 	var err error
 
 	hosts := cluster.Hosts
-	compactMode := int64(len(hosts)) == 3
+	compactMode := int64(len(hosts)) == o.config.OCSNumMinimumHosts
+
 	for _, host := range hosts { // if the worker nodes >=3 , install OCS on all the worker nodes if they satisfy OCS requirements
 
 		/* If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
@@ -76,22 +77,25 @@ func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, ocsClusterR
 		We ignore the role check for a cluster of 3 nodes as they will all be master nodes. OCS validations will proceed as for a compact deployment.
 		*/
 		role := common.GetEffectiveRole(host)
+		label := host.Labels
+
 		if !compactMode {
 			if role == models.HostRoleAutoAssign {
 				status = "For OCS Standard Mode, all host roles must be assigned to master or worker."
 				err = errors.New("Role is set to auto-assign for host ")
 				return status, err
-			}
-			if role == models.HostRoleWorker {
+			} else if label == ocsLabel && role == models.HostRoleWorker {
 				status, err = o.computeNodeResourceUtil(host, ocsClusterResources)
 				if err != nil {
 					return status, err
 				}
 			}
 		} else {
-			status, err = o.computeNodeResourceUtil(host, ocsClusterResources)
-			if err != nil {
-				return status, err
+			if label == ocsLabel && (role == models.HostRoleMaster || role == models.HostRoleAutoAssign) {
+				status, err = o.computeNodeResourceUtil(host, ocsClusterResources)
+				if err != nil {
+					return status, err
+				}
 			}
 		}
 	}

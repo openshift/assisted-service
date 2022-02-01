@@ -3,7 +3,6 @@ package ocs
 import (
 	"context"
 	"fmt"
-
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -13,6 +12,8 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 )
+
+const ocsLabel string = "cluster.ocs.openshift.io/openshift-storage"
 
 // operator is an OCS OLM operator plugin; it implements api.Operator
 type operator struct {
@@ -77,13 +78,15 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 
 // ValidateHost verifies whether this operator is valid for given host
 func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
-	numOfHosts := len(cluster.Hosts)
+	//ocsLabel := "node.ocs.openshift.io/storage"
+	numOfHosts := int64(len(cluster.Hosts))
+
 	if host.Inventory == "" {
-		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in the host."}}, nil
+		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in host"}}, nil
 	}
 	inventory, err := common.UnmarshalInventory(host.Inventory)
 	if err != nil {
-		message := "Failed to get inventory from host."
+		message := "Failed to get inventory from host"
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, err
 	}
 
@@ -93,24 +96,34 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
 
-	// compact mode
-	if numOfHosts <= 3 {
-		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
-			if diskCount == 0 {
-				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disks, OCS requires at least one non-bootable disk on each host in compact mode."}}, nil
-			}
-			return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
-		}
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"OCS unsupported Host Role for Compact Mode."}}, nil
-	}
+	role := common.GetEffectiveRole(host)
+	label := host.Labels
 
-	// Standard mode
-	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
-	if host.Role == models.HostRoleAutoAssign {
-		status := "For OCS Standard Mode, host role must be assigned to master or worker."
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
+	if numOfHosts <= o.config.OCSNumMinimumHosts { // compact mode
+		if role == models.HostRoleMaster || role == models.HostRoleAutoAssign {
+			if diskCount == 0 {
+				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"In compact mode, OCS requires at least one non-bootable disk on each labeled host"}}, nil
+			} else { // diskCount > 0
+				if label == ocsLabel {
+					return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
+				} else { // label != ocsLabel
+					return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{"Host not selected for OCS"}}, nil
+				}
+			}
+		} else { // role == models.HostRoleWorker
+			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"In compact mode, host role must be master or auto-assign"}}, nil
+		}
+	} else { // standard mode
+		if role == models.HostRoleAutoAssign {
+			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"In standard mode, host role must be master or worker"}}, nil
+		} else { // role == models.HostRoleMaster || role == models.HostRoleWorker
+			if label == ocsLabel {
+				return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
+			} else {
+				return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{"Host not selected for OCS"}}, nil
+			}
+		}
 	}
-	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 }
 
 // GenerateManifests generates manifests for the operator
@@ -131,7 +144,8 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 
 // GetHostRequirements provides operator's requirements towards the host
 func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
-	numOfHosts := len(cluster.Hosts)
+	//ocsLabel := "node.ocs.openshift.io/storage"
+	numOfHosts := int64(len(cluster.Hosts))
 
 	var diskCount int64 = 0
 	if host.Inventory != "" {
@@ -146,42 +160,49 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 	}
 
 	role := common.GetEffectiveRole(host)
-	if numOfHosts <= 3 { // Compact Mode
+	label := host.Labels
+
+	if numOfHosts <= o.config.OCSNumMinimumHosts { // Compact mode
 		var reqDisks int64 = 1
 		if diskCount > 0 {
 			reqDisks = diskCount
 		}
-		// for each disk ocs requires 2 CPUs and 5 GiB RAM
-		if role == models.HostRoleMaster || role == models.HostRoleAutoAssign {
+		if label == ocsLabel && (role == models.HostRoleMaster || role == models.HostRoleAutoAssign) {
 			return &models.ClusterHostRequirementsDetails{
 				CPUCores: o.config.OCSPerHostCPUCompactMode + (reqDisks * o.config.OCSPerDiskCPUCount),
 				RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBCompactMode + (reqDisks * o.config.OCSPerDiskRAMGiB)),
 			}, nil
+		} else if label == ocsLabel && role == models.HostRoleWorker {
+			return &models.ClusterHostRequirementsDetails{
+				CPUCores: o.config.OCSPerHostCPUStandardMode + (reqDisks * o.config.OCSPerDiskCPUCount),
+				RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode + (reqDisks * o.config.OCSPerDiskRAMGiB)),
+			}, nil
+		} else { // label != ocsLabel
+			return &models.ClusterHostRequirementsDetails{CPUCores: 0, RAMMib: 0}, nil
 		}
-		// regular worker req
-		return &models.ClusterHostRequirementsDetails{
-			CPUCores: o.config.OCSPerHostCPUStandardMode + (reqDisks * o.config.OCSPerDiskCPUCount),
-			RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode + (reqDisks * o.config.OCSPerDiskRAMGiB)),
-		}, nil
+	} else { // Standard mode
+		if label != ocsLabel || role == models.HostRoleMaster { // In standard mode, OCS does not run on master nodes so return zero
+			return &models.ClusterHostRequirementsDetails{CPUCores: 0, RAMMib: 0}, nil
+		} else { // label == ocsLabel && (role == models.HostRoleWorker || role == models.HostRoleAutoAssign)
+			return &models.ClusterHostRequirementsDetails{
+				CPUCores: o.config.OCSPerHostCPUStandardMode + (diskCount * o.config.OCSPerDiskCPUCount),
+				RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode + (diskCount * o.config.OCSPerDiskRAMGiB)),
+			}, nil
+		}
 	}
 
-	// In standard mode, OCS does not run on master nodes so return zero
-	if role == models.HostRoleMaster {
-		return &models.ClusterHostRequirementsDetails{CPUCores: 0, RAMMib: 0}, nil
-	}
-
-	// worker and auto-assign
-	if diskCount > 0 {
-		// for each disk ocs requires 2 CPUs and 5 GiB RAM
-		return &models.ClusterHostRequirementsDetails{
-			CPUCores: o.config.OCSPerHostCPUStandardMode + (diskCount * o.config.OCSPerDiskCPUCount),
-			RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode + (diskCount * o.config.OCSPerDiskRAMGiB)),
-		}, nil
-	}
-	return &models.ClusterHostRequirementsDetails{
-		CPUCores: o.config.OCSPerHostCPUStandardMode,
-		RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode),
-	}, nil
+	//// worker and auto-assign
+	//if diskCount > 0 {
+	//	// for each disk ocs requires 2 CPUs and 5 GiB RAM
+	//	return &models.ClusterHostRequirementsDetails{
+	//		CPUCores: o.config.OCSPerHostCPUStandardMode + (diskCount * o.config.OCSPerDiskCPUCount),
+	//		RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode + (diskCount * o.config.OCSPerDiskRAMGiB)),
+	//	}, nil
+	//}
+	//return &models.ClusterHostRequirementsDetails{
+	//	CPUCores: o.config.OCSPerHostCPUStandardMode,
+	//	RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode),
+	//}, nil
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
