@@ -109,6 +109,9 @@ type Config struct {
 	ISOImageType                    string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
 	IPv6Support                     bool              `envconfig:"IPV6_SUPPORT" default:"true"`
 	DiskEncryptionSupport           bool              `envconfig:"DISK_ENCRYPTION_SUPPORT" default:"true"`
+	// TODO: remove when baremetal will be supported in arm
+	// this env allows to set specific image to extract openshift-baremetal-install
+	InstallerReleaseImageOverrideUnsupported string `envconfig:"INSTALLER_RELEASE_IMAGE_OVERRIDE_UNSUPPORTED" default:""`
 }
 
 const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
@@ -765,7 +768,7 @@ func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *mode
 		return common.DefaultCPUArchitecture, nil
 	}
 
-	if !swag.BoolValue(newClusterParams.UserManagedNetworking) {
+	if !swag.BoolValue(newClusterParams.UserManagedNetworking) && b.InstallerReleaseImageOverrideUnsupported == "" {
 		return "", errors.Errorf("Non x86_64 CPU architectures are supported only with User Managed Networking")
 	}
 

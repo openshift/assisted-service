@@ -385,7 +385,18 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 // Generate generates ignition files and applies modifications.
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error {
 	log := logutil.FromContext(ctx, g.log)
-	installerPath, err := installercache.Get(g.releaseImage, g.releaseImageMirror, g.installerDir,
+
+	installerReleaseImage := g.releaseImage
+
+	// TODO: remove when baremetal will be supported in arm
+	// this env allows to set specific image to extract openshift-baremetal-install
+	val, present := os.LookupEnv("INSTALLER_RELEASE_IMAGE_OVERRIDE_UNSUPPORTED")
+	if present {
+		log.Infof("Overriding image to to extract openshift installer to %s", val)
+		installerReleaseImage = val
+	}
+
+	installerPath, err := installercache.Get(installerReleaseImage, g.releaseImageMirror, g.installerDir,
 		g.cluster.PullSecret, platformType, log)
 	if err != nil {
 		return errors.Wrap(err, "failed to get installer path")
