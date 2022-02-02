@@ -7739,7 +7739,7 @@ var _ = Describe("infraEnvs", func() {
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
-					OpenshiftVersion: swag.String(MinimalOpenShiftVersionForNoneHA),
+					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
 					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 				},
 			})
@@ -7770,7 +7770,7 @@ var _ = Describe("infraEnvs", func() {
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
-					OpenshiftVersion: swag.String(MinimalOpenShiftVersionForNoneHA),
+					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
 					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 					ClusterID:        &clusterID,
 					CPUArchitecture:  "x86_64",
@@ -7825,7 +7825,7 @@ var _ = Describe("infraEnvs", func() {
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
-					OpenshiftVersion: swag.String(MinimalOpenShiftVersionForNoneHA),
+					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
 					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 					ClusterID:        &clusterID,
 					CPUArchitecture:  "arm64",
@@ -7844,7 +7844,7 @@ var _ = Describe("infraEnvs", func() {
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:                   swag.String("some-infra-env-name"),
-					OpenshiftVersion:       swag.String(MinimalOpenShiftVersionForNoneHA),
+					OpenshiftVersion:       MinimalOpenShiftVersionForNoneHA,
 					PullSecret:             swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 					IgnitionConfigOverride: override,
 				},
@@ -7866,7 +7866,7 @@ var _ = Describe("infraEnvs", func() {
 				reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 					InfraenvCreateParams: &models.InfraEnvCreateParams{
 						Name:             swag.String(infraEnvName),
-						OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 						PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 					},
 				})

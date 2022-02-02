@@ -576,11 +576,11 @@ var _ = Describe("list versions", func() {
 		)
 
 		It("only one OS image", func() {
-			h, err = NewHandler(logger, mockRelease, versions, defaultOsImages[:2], *releaseImages, nil, "")
+			h, err = NewHandler(logger, mockRelease, versions, defaultOsImages[0:1], *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
 			osImage, err = h.GetLatestOsImage(common.TestDefaultConfig.CPUArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(*osImage.OpenshiftVersion).Should(Equal("4.9"))
+			Expect(*osImage.OpenshiftVersion).Should(Equal("4.10.1"))
 			Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
 		})
 
@@ -589,7 +589,7 @@ var _ = Describe("list versions", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			osImage, err = h.GetLatestOsImage(common.TestDefaultConfig.CPUArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(*osImage.OpenshiftVersion).Should(Equal("4.9.1"))
+			Expect(*osImage.OpenshiftVersion).Should(Equal("4.10.1"))
 			Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
 		})
 	})

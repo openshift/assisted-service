@@ -282,8 +282,14 @@ func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, err
 		if err != nil {
 			continue
 		}
-		if latest == nil || *osImage.OpenshiftVersion > *latest.OpenshiftVersion {
+		if latest == nil {
 			latest = osImage
+		} else {
+			imageVer, _ := version.NewVersion(*osImage.OpenshiftVersion)
+			latestVer, _ := version.NewVersion(*latest.OpenshiftVersion)
+			if imageVer.GreaterThan(latestVer) {
+				latest = osImage
+			}
 		}
 	}
 	if latest == nil {

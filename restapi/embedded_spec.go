@@ -11982,7 +11982,6 @@ func init() {
       "type": "object",
       "required": [
         "name",
-        "openshift_version",
         "pull_secret"
       ],
       "properties": {
@@ -25415,7 +25414,6 @@ func init() {
       "type": "object",
       "required": [
         "name",
-        "openshift_version",
         "pull_secret"
       ],
       "properties": {

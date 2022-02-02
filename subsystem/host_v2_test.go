@@ -27,7 +27,7 @@ var _ = Describe("Host tests v2", func() {
 		infraEnv, err = userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
 			InfraenvCreateParams: &models.InfraEnvCreateParams{
 				Name:             swag.String("test-infra-env"),
-				OpenshiftVersion: swag.String(openshiftVersion),
+				OpenshiftVersion: openshiftVersion,
 				PullSecret:       swag.String(pullSecret),
 				SSHAuthorizedKey: swag.String(sshPublicKey),
 				ImageType:        models.ImageTypeFullIso,
@@ -154,7 +154,7 @@ var _ = Describe("Host tests v2", func() {
 		infraEnv2, err := userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
 			InfraenvCreateParams: &models.InfraEnvCreateParams{
 				Name:             swag.String("another test-infra-env"),
-				OpenshiftVersion: swag.String(openshiftVersion),
+				OpenshiftVersion: openshiftVersion,
 				PullSecret:       swag.String(pullSecret),
 				SSHAuthorizedKey: swag.String(sshPublicKey),
 				ImageType:        models.ImageTypeFullIso,
@@ -232,7 +232,7 @@ var _ = Describe("Day2 Host tests v2", func() {
 		infraEnv, err = userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
 			InfraenvCreateParams: &models.InfraEnvCreateParams{
 				Name:             swag.String("test-infra-env"),
-				OpenshiftVersion: swag.String(openshiftVersion),
+				OpenshiftVersion: openshiftVersion,
 				PullSecret:       swag.String(pullSecret),
 				SSHAuthorizedKey: swag.String(sshPublicKey),
 				ImageType:        models.ImageTypeFullIso,

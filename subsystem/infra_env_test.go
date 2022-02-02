@@ -20,7 +20,7 @@ var registerInfraEnv = func(clusterID *strfmt.UUID) *models.InfraEnv {
 	request, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: &models.InfraEnvCreateParams{
 			Name:             swag.String("test-infra-env"),
-			OpenshiftVersion: swag.String(openshiftVersion),
+			OpenshiftVersion: openshiftVersion,
 			PullSecret:       swag.String(pullSecret),
 			SSHAuthorizedKey: swag.String(sshPublicKey),
 			ImageType:        models.ImageTypeFullIso,
