@@ -1676,6 +1676,49 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		verifyHyperthreadingSetup(models.ClusterHyperthreadingWorkers)
 	})
 
+	It("deploy clusterDeployment with Proxy", func() {
+		httpProxy := "http://proxy.org"
+		httpsProxy := "http://secureproxy.org"
+		noProxy := "acme.com"
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+
+		By("new deployment with proxy")
+		aciSpec.Proxy = &hiveext.Proxy{HTTPProxy: httpProxy, HTTPSProxy: httpsProxy, NoProxy: noProxy}
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
+
+		Eventually(func() bool {
+			c := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+			return c.HTTPProxy == httpProxy &&
+				c.HTTPSProxy == httpsProxy &&
+				c.NoProxy == noProxy
+		}, "1m", "10s").Should(BeTrue())
+
+		By("update deployment with new proxy values")
+		httpProxy = "http://proxy2.org"
+		httpsProxy = "http://secureproxy2.org"
+		noProxy = "acme2.com"
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.Proxy = &hiveext.Proxy{HTTPProxy: httpProxy, HTTPSProxy: httpsProxy, NoProxy: noProxy}
+
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
+		Eventually(func() bool {
+			c := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+			return c.HTTPProxy == httpProxy &&
+				c.HTTPSProxy == httpsProxy &&
+				c.NoProxy == noProxy
+		}, "1m", "10s").Should(BeTrue())
+	})
+
 	It("deploy clusterDeployment with install config override", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
