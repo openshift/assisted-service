@@ -137,7 +137,7 @@ type Cluster struct {
 
 	// The time that this cluster completed installation.
 	// Format: date-time
-	InstallCompletedAt strfmt.DateTime `json:"install_completed_at,omitempty" gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"`
+	InstallCompletedAt strfmt.DateTime `json:"install_completed_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// JSON-formatted string containing the user overrides for the install-config.yaml file.
 	// Example: {\"networking\":{\"networkType\": \"OVNKubernetes\"},\"fips\":true}
@@ -145,7 +145,7 @@ type Cluster struct {
 
 	// The time that this cluster started installation.
 	// Format: date-time
-	InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty" gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"`
+	InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// Indicates the type of this object. Will be 'Cluster' if this is a complete object,
 	// 'AddHostsCluster' for cluster that add hosts to existing OCP cluster,
