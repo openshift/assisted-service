@@ -206,7 +206,7 @@ func getDefaultClusterCreateParams() *models.ClusterCreateParams {
 func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallConfigGenerator, mockVersions *versions.MockHandler) {
 	if mockGenerator != nil {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
-		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 }
 
@@ -4312,6 +4312,118 @@ var _ = Describe("cluster", func() {
 			Expect(count).To(Equal(int64(1)))
 		})
 
+		It("success arm64 baremetal platform", func() {
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			bm.AllowInstallerReleaseImageOverride = true
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:               &clusterID,
+				APIVip:           "10.11.12.13",
+				IngressVip:       "10.11.20.50",
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				Status:           swag.String(models.ClusterStatusReady),
+				CPUArchitecture:  "arm64",
+				Platform: &models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+				},
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+			addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname2", "bootMode", "10.11.200.180/16"), db)
+			err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
+				makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
+			Expect(err).ToNot(HaveOccurred())
+
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			mockGenerateAdditionalManifestsSuccess()
+			armRelease := &models.ReleaseImage{
+				URL: swag.String("quay.io/openshift-release-dev/ocp-release:4.6.16-aarch64"),
+			}
+			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), "arm64").Return(armRelease, nil).Times(1)
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.DefaultCPUArchitecture).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+			mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), *armRelease.URL, *common.TestDefaultConfig.ReleaseImage.URL).Return(nil).Times(1)
+
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForRefresh(mockHostApi)
+			mockHandlePreInstallationSuccess(mockClusterApi, DoneChannel)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+			setDefaultHostSetBootstrap(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockClusterRefreshStatus(mockClusterApi)
+			mockClusterDeleteLogsSuccess(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName),
+				eventstest.WithClusterIdMatcher(clusterID.String()),
+				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
+
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
+				ClusterID: clusterID,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2InstallClusterAccepted()))
+			waitForDoneChannel()
+
+			count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
+			Expect(count).To(Equal(int64(1)))
+		})
+
+		It("fail arm64 baremetal platform in case no x86 was found", func() {
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			bm.AllowInstallerReleaseImageOverride = true
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:               &clusterID,
+				APIVip:           "10.11.12.13",
+				IngressVip:       "10.11.20.50",
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				Status:           swag.String(models.ClusterStatusReady),
+				CPUArchitecture:  "arm64",
+				Platform: &models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+				},
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+			addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname2", "bootMode", "10.11.200.180/16"), db)
+			err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
+				makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
+			Expect(err).ToNot(HaveOccurred())
+
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			mockGenerateAdditionalManifestsSuccess()
+			armRelease := &models.ReleaseImage{
+				URL: swag.String("quay.io/openshift-release-dev/ocp-release:4.6.16-aarch64"),
+			}
+			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), "arm64").Return(armRelease, nil).Times(1)
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.DefaultCPUArchitecture).Return(nil, errors.Errorf("Dummy")).Times(1)
+
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForRefresh(mockHostApi)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+			setDefaultHostSetBootstrap(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockClusterRefreshStatus(mockClusterApi)
+			mockClusterDeleteLogsSuccess(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockClusterApi.EXPECT().HandlePreInstallError(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Do(func(ctx, c, err interface{}) { DoneChannel <- 1 })
+
+			_ = bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			waitForDoneChannel()
+		})
+
 		It("cluster doesn't exists", func() {
 			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: strfmt.UUID(uuid.New().String()),
@@ -5284,6 +5396,26 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					})
 
 					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
+				})
+
+				It("Success with non-x86_64 CPU architecture in case override is allowed", func() {
+					mockSuccess(1)
+					clusterID = strfmt.UUID(uuid.New().String())
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID:                    &clusterID,
+						CPUArchitecture:       "arm64",
+						UserManagedNetworking: swag.Bool(true),
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					bm.AllowInstallerReleaseImageOverride = true
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 				})
 			})
 

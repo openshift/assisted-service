@@ -122,7 +122,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			},
 		}
 		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
-			mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+			mockOperatorManager, mockProviderRegistry, "").(*installerGenerator)
 
 		err = g.updateBootstrap(context.Background(), examplePath)
 
@@ -258,7 +258,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 	Describe("update ignitions", func() {
 		It("with ca cert file", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", caCertPath, "", nil, log,
-				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "").(*installerGenerator)
 
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -281,7 +281,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("with no ca cert file", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "").(*installerGenerator)
 
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -300,7 +300,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("with service ips", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "").(*installerGenerator)
 
 			err := g.UpdateEtcHosts("10.10.10.1,10.10.10.2")
 			Expect(err).NotTo(HaveOccurred())
@@ -323,7 +323,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("with no service ips", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "").(*installerGenerator)
 
 			err := g.UpdateEtcHosts("")
 			Expect(err).NotTo(HaveOccurred())
@@ -353,7 +353,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		Context("DHCP generation", func() {
 			It("Definitions only", func() {
 				g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-					mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+					mockOperatorManager, mockProviderRegistry, "").(*installerGenerator)
 
 				g.encodedDhcpFileContents = "data:,abc"
 				err := g.updateIgnitions()
@@ -372,7 +372,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("Definitions+leases", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "").(*installerGenerator)
 
 			g.encodedDhcpFileContents = "data:,abc"
 			cluster.ApiVipLease = "api"
@@ -495,7 +495,7 @@ var _ = Describe("createHostIgnitions", func() {
 			}
 
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "").(*installerGenerator)
 
 			err := g.createHostIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -541,7 +541,7 @@ var _ = Describe("createHostIgnitions", func() {
 		}}
 
 		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-			mockOperatorManager, mockProviderRegistry).(*installerGenerator)
+			mockOperatorManager, mockProviderRegistry, "").(*installerGenerator)
 
 		err := g.createHostIgnitions()
 		Expect(err).NotTo(HaveOccurred())

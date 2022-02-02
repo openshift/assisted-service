@@ -18,7 +18,7 @@ import (
 )
 
 type InstallConfigGenerator interface {
-	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error
+	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string) error
 }
 
 //go:generate mockgen -package generator -destination mock_install_config.go . ISOInstallConfigGenerator
@@ -56,7 +56,7 @@ func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir str
 }
 
 // GenerateInstallConfig creates install config and ignition files
-func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error {
+func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string) error {
 	log := logutil.FromContext(ctx, k.log)
 	err := os.MkdirAll(k.workDir, 0o755)
 	if err != nil {
@@ -96,7 +96,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
 		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
-			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry)
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride)
 	}
 	err = generator.Generate(ctx, cfg, k.getClusterPlatformType(cluster))
 	if err != nil {
