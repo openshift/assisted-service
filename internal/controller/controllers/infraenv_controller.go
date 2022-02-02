@@ -354,7 +354,7 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 	}
 	if cluster != nil {
 		createParams.InfraenvCreateParams.ClusterID = cluster.ID
-		createParams.InfraenvCreateParams.OpenshiftVersion = &cluster.OpenshiftVersion
+		createParams.InfraenvCreateParams.OpenshiftVersion = cluster.OpenshiftVersion
 	}
 	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
 	if err != nil {

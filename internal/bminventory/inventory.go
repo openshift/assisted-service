@@ -1164,7 +1164,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 	updates["type"] = imageType
 	infraEnv.Type = common.ImageTypePtr(imageType)
 
-	osImage, err := b.getOsImageOrLatest(&infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := b.getOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return err
 	}
@@ -5796,7 +5796,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	if params.InfraenvCreateParams.Proxy != nil {
 		if err = validateProxySettings(params.InfraenvCreateParams.Proxy.HTTPProxy,
 			params.InfraenvCreateParams.Proxy.HTTPSProxy,
-			params.InfraenvCreateParams.Proxy.NoProxy, params.InfraenvCreateParams.OpenshiftVersion); err != nil {
+			params.InfraenvCreateParams.Proxy.NoProxy, &params.InfraenvCreateParams.OpenshiftVersion); err != nil {
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -5944,13 +5944,13 @@ func (b *bareMetalInventory) setDefaultRegisterInfraEnvParams(_ context.Context,
 	return params
 }
 
-func (b *bareMetalInventory) getOsImageOrLatest(version *string, cpuArch string) (*models.OsImage, error) {
+func (b *bareMetalInventory) getOsImageOrLatest(version string, cpuArch string) (*models.OsImage, error) {
 	var osImage *models.OsImage
 	var err error
-	if swag.StringValue(version) != "" {
-		osImage, err = b.versionsHandler.GetOsImage(swag.StringValue(version), cpuArch)
+	if version != "" {
+		osImage, err = b.versionsHandler.GetOsImage(version, cpuArch)
 		if err != nil {
-			err = errors.Errorf("No OS image for Openshift version %s", swag.StringValue(version))
+			err = errors.Errorf("No OS image for Openshift version %s", version)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	} else {
@@ -6029,7 +6029,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
-	if params, err = b.validateAndUpdateInfraEnvProxyParams(ctx, &params, &infraEnv.OpenshiftVersion); err != nil {
+	if params, err = b.validateAndUpdateInfraEnvProxyParams(ctx, &params, infraEnv.OpenshiftVersion); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -6146,7 +6146,7 @@ func (b *bareMetalInventory) validateAndUpdateInfraEnvParams(ctx context.Context
 	return *params, nil
 }
 
-func (b *bareMetalInventory) validateAndUpdateInfraEnvProxyParams(ctx context.Context, params *installer.UpdateInfraEnvParams, ocpVersion *string) (installer.UpdateInfraEnvParams, error) {
+func (b *bareMetalInventory) validateAndUpdateInfraEnvProxyParams(ctx context.Context, params *installer.UpdateInfraEnvParams, ocpVersion string) (installer.UpdateInfraEnvParams, error) {
 
 	log := logutil.FromContext(ctx, b.log)
 
@@ -6158,7 +6158,7 @@ func (b *bareMetalInventory) validateAndUpdateInfraEnvProxyParams(ctx context.Co
 
 		if err := validateProxySettings(params.InfraEnvUpdateParams.Proxy.HTTPProxy,
 			params.InfraEnvUpdateParams.Proxy.HTTPSProxy,
-			params.InfraEnvUpdateParams.Proxy.NoProxy, ocpVersion); err != nil {
+			params.InfraEnvUpdateParams.Proxy.NoProxy, &ocpVersion); err != nil {
 			log.WithError(err).Errorf("Failed to validate Proxy settings")
 			return installer.UpdateInfraEnvParams{}, err
 		}

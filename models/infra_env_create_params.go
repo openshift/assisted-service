@@ -41,8 +41,7 @@ type InfraEnvCreateParams struct {
 	Name *string `json:"name"`
 
 	// Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
-	// Required: true
-	OpenshiftVersion *string `json:"openshift_version"`
+	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
 	// proxy
 	Proxy *Proxy `json:"proxy,omitempty" gorm:"embedded;embeddedPrefix:proxy_"`
@@ -71,10 +70,6 @@ func (m *InfraEnvCreateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateName(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateOpenshiftVersion(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -128,15 +123,6 @@ func (m *InfraEnvCreateParams) validateImageType(formats strfmt.Registry) error 
 func (m *InfraEnvCreateParams) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *InfraEnvCreateParams) validateOpenshiftVersion(formats strfmt.Registry) error {
-
-	if err := validate.Required("openshift_version", "body", m.OpenshiftVersion); err != nil {
 		return err
 	}
 
