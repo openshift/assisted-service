@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/filanov/stateswitch/examples/host/host"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
@@ -432,74 +431,6 @@ var _ = Describe("Host tests", func() {
 		host = getHost(clusterID, *host.ID)
 		Expect(host.Connectivity).Should(Equal(connectivity))
 
-	})
-
-	It("free addresses report", func() {
-		h := &registerHost(clusterID).Host
-
-		free_addresses_report := "[{\"free_addresses\":[\"10.0.0.0\",\"10.0.0.1\"],\"network\":\"10.0.0.0/24\"},{\"free_addresses\":[\"10.0.1.0\"],\"network\":\"10.0.1.0/24\"}]"
-
-		_, err := agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
-			InfraEnvID: clusterID,
-			HostID:     *h.ID,
-			Reply: &models.StepReply{
-				ExitCode: 0,
-				Output:   free_addresses_report,
-				StepID:   string(models.StepTypeFreeNetworkAddresses),
-				StepType: models.StepTypeFreeNetworkAddresses,
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(db.Model(h).UpdateColumn("status", host.StateInsufficient).Error).NotTo(HaveOccurred())
-
-		freeAddressesReply, err := userBMClient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
-			ClusterID: clusterID,
-			Network:   "10.0.0.0/24",
-		})
-		Expect(err).ToNot(HaveOccurred())
-		Expect(freeAddressesReply.Payload).To(HaveLen(2))
-		Expect(freeAddressesReply.Payload[0]).To(Equal(strfmt.IPv4("10.0.0.0")))
-		Expect(freeAddressesReply.Payload[1]).To(Equal(strfmt.IPv4("10.0.0.1")))
-
-		freeAddressesReply, err = userBMClient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
-			ClusterID: clusterID,
-			Network:   "10.0.1.0/24",
-		})
-		Expect(err).ToNot(HaveOccurred())
-		Expect(freeAddressesReply.Payload).To(HaveLen(1))
-		Expect(freeAddressesReply.Payload[0]).To(Equal(strfmt.IPv4("10.0.1.0")))
-
-		freeAddressesReply, err = userBMClient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
-			ClusterID: clusterID,
-			Network:   "10.0.2.0/24",
-		})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(freeAddressesReply.Payload).To(BeEmpty())
-
-		_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
-			InfraEnvID: clusterID,
-			HostID:     *h.ID,
-			Reply: &models.StepReply{
-				ExitCode: 0,
-				Output:   "not a json",
-				StepID:   string(models.StepTypeFreeNetworkAddresses),
-				StepType: models.StepTypeFreeNetworkAddresses,
-			},
-		})
-		Expect(err).To(HaveOccurred())
-
-		//exit code is not 0
-		_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
-			InfraEnvID: clusterID,
-			HostID:     *h.ID,
-			Reply: &models.StepReply{
-				ExitCode: -1,
-				Error:    "some error",
-				Output:   "not a json",
-				StepID:   string(models.StepTypeFreeNetworkAddresses),
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Context("image availability", func() {
