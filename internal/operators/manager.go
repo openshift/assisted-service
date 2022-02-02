@@ -10,11 +10,11 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -36,7 +36,7 @@ type Manager struct {
 	log                logrus.FieldLogger
 	olmOperators       map[string]api.Operator
 	monitoredOperators map[string]*models.MonitoredOperator
-	manifestsAPI       restapi.ManifestsAPI
+	manifestsAPI       manifestsapi.ManifestsAPI
 	objectHandler      s3wrapper.API
 }
 
@@ -162,7 +162,7 @@ func (mgr *Manager) createCustomManifest(ctx context.Context, cluster *common.Cl
 
 func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte, folder string) error {
 	// all relevant logs of creating manifest will be inside CreateClusterManifest
-	response := mgr.manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+	_, err := mgr.manifestsAPI.CreateClusterManifestInternal(ctx, operations.CreateClusterManifestParams{
 		ClusterID: *cluster.ID,
 		CreateManifestParams: &models.CreateManifestParams{
 			Content:  swag.String(base64.StdEncoding.EncodeToString(content)),
@@ -171,11 +171,8 @@ func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster
 		},
 	})
 
-	if _, ok := response.(*operations.V2CreateClusterManifestCreated); !ok {
-		if apiErr, ok := response.(*common.ApiErrorResponse); ok {
-			return errors.Wrapf(apiErr, "Failed to create manifest %s for cluster %s", filename, cluster.ID)
-		}
-		return errors.Errorf("Failed to create manifest %s for cluster %s", filename, cluster.ID)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to create manifest %s for cluster %s", filename, cluster.ID)
 	}
 	return nil
 }

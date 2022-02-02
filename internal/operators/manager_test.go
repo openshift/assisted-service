@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 
-	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -72,16 +71,16 @@ var _ = Describe("Operators manager", func() {
 			cluster.MonitoredOperators = manager.GetSupportedOperatorsByType(models.OperatorTypeOlm)
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).DoAndReturn(
-				func(ctx context.Context, params operations.V2CreateClusterManifestParams) middleware.Responder {
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(ctx context.Context, params operations.CreateClusterManifestParams) (*models.Manifest, error) {
 					manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
 					if err != nil {
-						return common.GenerateErrorResponder(err)
+						return nil, err
 					}
 					if _, err := yaml.YAMLToJSON(manifestContent); err != nil {
-						return common.GenerateErrorResponder(err)
+						return nil, err
 					}
-					return operations.NewV2CreateClusterManifestCreated()
+					return &models.Manifest{}, nil
 				}).AnyTimes()
 			err := manager.GenerateManifests(ctx, cluster)
 			Expect(err).NotTo(HaveOccurred())
@@ -93,8 +92,10 @@ var _ = Describe("Operators manager", func() {
 				&lso.Operator,
 			}
 
+			m := models.Manifest{}
+
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(6)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&m, nil).Times(6)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -102,9 +103,9 @@ var _ = Describe("Operators manager", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&lso.Operator,
 			}
-
+			m := models.Manifest{}
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(3)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&m, nil).Times(3)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -113,9 +114,9 @@ var _ = Describe("Operators manager", func() {
 				&cnv.Operator,
 				&lso.Operator,
 			}
-
+			m := models.Manifest{}
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(6)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&m, nil).Times(6)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 	})
