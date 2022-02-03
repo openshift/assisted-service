@@ -6600,6 +6600,10 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	if _, err = b.refreshClusterStatus(ctx, host.ClusterID, b.db); err != nil {
+		log.WithError(err).Warnf("Failed to refresh cluster after unbind of host <%s>", params.HostID)
+	}
+
 	host, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
