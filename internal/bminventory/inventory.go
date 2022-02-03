@@ -806,9 +806,8 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
 	apivipDnsname := swag.StringValue(params.NewImportClusterParams.APIVipDnsname)
 	clusterName := swag.StringValue(params.NewImportClusterParams.Name)
-	inputOpenshiftVersion := params.NewImportClusterParams.OpenshiftVersion
 
-	log.Infof("Import add-hosts-cluster: %s, id %s, version %s, openshift cluster id %s", clusterName, id.String(), inputOpenshiftVersion, params.NewImportClusterParams.OpenshiftClusterID)
+	log.Infof("Import add-hosts-cluster: %s, id %s, openshift cluster id %s", clusterName, id.String(), params.NewImportClusterParams.OpenshiftClusterID)
 
 	if clusterPkg.ClusterExists(b.db, *id) {
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
@@ -830,28 +829,10 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		APIVipDNSName:      swag.String(apivipDnsname),
 		HostNetworks:       []*models.HostNetwork{},
 		Hosts:              []*models.Host{},
-		CPUArchitecture:    common.DefaultCPUArchitecture,
 		Platform:           &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 	},
 		KubeKeyName:      kubeKey.Name,
 		KubeKeyNamespace: kubeKey.Namespace,
-	}
-
-	// Day2 supports only x86_64 for now
-	if inputOpenshiftVersion != "" {
-		releaseImage, err := b.versionsHandler.GetReleaseImage(inputOpenshiftVersion, common.DefaultCPUArchitecture)
-		if err != nil {
-			log.WithError(err).Warnf("Failed to get release image for version %s - fallback to default version", inputOpenshiftVersion)
-
-			// Try to get default release image as a fallback
-			releaseImage, err = b.versionsHandler.GetDefaultReleaseImage(common.DefaultCPUArchitecture)
-			if err != nil {
-				log.WithError(err).Errorf("Failed to get default release image")
-				return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get default release image"))
-			}
-		}
-		newCluster.OpenshiftVersion = *releaseImage.Version
-		newCluster.OcpReleaseImage = *releaseImage.URL
 	}
 
 	err := validations.ValidateClusterNameFormat(clusterName)
@@ -866,7 +847,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	b.metricApi.ClusterRegistered(newCluster.OpenshiftVersion, *newCluster.ID, newCluster.EmailDomain)
+	b.metricApi.ClusterRegistered("", *newCluster.ID, newCluster.EmailDomain)
 	return &newCluster, nil
 }
 
@@ -5971,7 +5952,7 @@ func (b *bareMetalInventory) validateClusterInfraEnvRegister(clusterId *strfmt.U
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
-		if cluster.CPUArchitecture != arch {
+		if cluster.CPUArchitecture != "" && cluster.CPUArchitecture != arch {
 			err = errors.Errorf("Specified CPU architecture doesn't match the cluster (%s)",
 				cluster.CPUArchitecture)
 			return common.NewApiError(http.StatusBadRequest, err)
@@ -6547,7 +6528,7 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if cluster.CPUArchitecture != infraEnv.CPUArchitecture {
+	if cluster.CPUArchitecture != "" && cluster.CPUArchitecture != infraEnv.CPUArchitecture {
 		err = errors.Errorf("InfraEnv's CPU architecture (%s) doesn't match the cluster (%s)",
 			infraEnv.CPUArchitecture, cluster.CPUArchitecture)
 		return nil, common.NewApiError(http.StatusBadRequest, err)

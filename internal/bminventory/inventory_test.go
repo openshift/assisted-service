@@ -10375,19 +10375,18 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				APIVipDnsname:    &apiVIPDnsname,
 				ID:               &clusterID,
 				Name:             &clusterName,
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion), //deprecated argument in day2
 			},
 		}
 		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), common.DoInfraEnvCreation, gomock.Any()).Return(nil).Times(1)
-		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, clusterID, "Unknown").Times(1)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockMetric.EXPECT().ClusterRegistered("", clusterID, "Unknown").Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		actual := res.(*installer.RegisterAddHostsClusterCreated)
 
 		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
 		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
-		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
-		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImageUrl))
+		Expect(actual.Payload.OpenshiftVersion).To(BeEmpty())
+		Expect(actual.Payload.OcpReleaseImage).To(BeEmpty())
 		Expect(actual.Payload.Platform).To(Equal(&models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}))
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
 	})
@@ -10428,15 +10427,14 @@ var _ = Describe("Register AddHostsCluster test", func() {
 			},
 		}
 		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(nil).Times(1)
-		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, gomock.Any(), "Unknown").Times(1)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockMetric.EXPECT().ClusterRegistered("", gomock.Any(), "Unknown").Times(1)
 		res := bm.V2ImportCluster(ctx, params)
 		actual := res.(*installer.V2ImportClusterCreated)
 
 		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
 		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
-		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
-		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImageUrl))
+		Expect(actual.Payload.OpenshiftVersion).To(BeEmpty())
+		Expect(actual.Payload.OcpReleaseImage).To(BeEmpty())
 		Expect(actual.Payload.OpenshiftClusterID).To(Equal(openshiftClusterID))
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ImportClusterCreated()))
 	})
@@ -10456,16 +10454,14 @@ var _ = Describe("Register AddHostsCluster test", func() {
 			},
 		}
 		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(nil).Times(1)
-		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, gomock.Any(), "Unknown").Times(1)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(nil, errors.New("missing")).Times(1)
-		mockVersions.EXPECT().GetDefaultReleaseImage(gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockMetric.EXPECT().ClusterRegistered("", gomock.Any(), "Unknown").Times(1)
 		res := bm.V2ImportCluster(ctx, params)
 		actual := res.(*installer.V2ImportClusterCreated)
 
 		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
 		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
-		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
-		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImageUrl))
+		Expect(actual.Payload.OpenshiftVersion).To(BeEmpty())
+		Expect(actual.Payload.OcpReleaseImage).To(BeEmpty())
 		Expect(actual.Payload.OpenshiftClusterID).To(Equal(openshiftClusterID))
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ImportClusterCreated()))
 	})
@@ -12986,7 +12982,11 @@ var _ = Describe("BindHost", func() {
 
 	It("CPU architecture mismatch", func() {
 		infraEnvID = strfmt.UUID(uuid.New().String())
-		err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+		err := db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).
+			UpdateColumn("cpu_architecture", common.DefaultCPUArchitecture).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
 			ID:              &infraEnvID,
 			CPUArchitecture: "arm64",
 		}}).Error
