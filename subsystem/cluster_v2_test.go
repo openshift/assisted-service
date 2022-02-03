@@ -87,8 +87,11 @@ var _ = Describe("[V2ClusterTests]", func() {
 		h1 = &registerHost(infraEnvID).Host
 		generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
 		waitForHostStateV2(ctx, models.HostStatusKnownUnbound, defaultWaitForHostStateTimeout, h1)
-		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
-			IgnoreStateInfo)
+
+		By("verify that the cluster status is updated immediately")
+		c := getCluster(clusterID)
+		log.Info(c.ValidationsInfo)
+		Expect(*c.Status).To(Equal(models.ClusterStatusInsufficient))
 
 		By("verify that the unbound host still retains its name and disks count")
 		h1 = getHostV2(infraEnvID, *h1.ID)
