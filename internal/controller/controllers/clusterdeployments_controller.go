@@ -722,6 +722,16 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		update = true
 	}
 
+	if clusterInstall.Spec.Proxy != nil {
+		updateString(swag.StringValue(&clusterInstall.Spec.Proxy.HTTPProxy), cluster.HTTPProxy, &params.HTTPProxy)
+		updateString(swag.StringValue(&clusterInstall.Spec.Proxy.HTTPSProxy), cluster.HTTPSProxy, &params.HTTPSProxy)
+		updateString(swag.StringValue(&clusterInstall.Spec.Proxy.NoProxy), cluster.NoProxy, &params.NoProxy)
+	} else {
+		params.HTTPSProxy = swag.String("")
+		params.HTTPProxy = swag.String("")
+		params.NoProxy = swag.String("")
+	}
+
 	if !update {
 		return cluster, nil
 	}
@@ -943,6 +953,18 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 
 	if hyperthreadingInSpec(clusterInstall) {
 		clusterParams.Hyperthreading = getHyperthreading(clusterInstall)
+	}
+
+	if clusterInstall.Spec.Proxy != nil {
+		if clusterInstall.Spec.Proxy.NoProxy != "" {
+			clusterParams.NoProxy = swag.String(clusterInstall.Spec.Proxy.NoProxy)
+		}
+		if clusterInstall.Spec.Proxy.HTTPProxy != "" {
+			clusterParams.HTTPProxy = swag.String(clusterInstall.Spec.Proxy.HTTPProxy)
+		}
+		if clusterInstall.Spec.Proxy.HTTPSProxy != "" {
+			clusterParams.HTTPSProxy = swag.String(clusterInstall.Spec.Proxy.HTTPSProxy)
+		}
 	}
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.V2RegisterClusterParams{

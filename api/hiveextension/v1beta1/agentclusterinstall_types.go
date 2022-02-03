@@ -146,6 +146,10 @@ type AgentClusterInstallSpec struct {
 	// installation will not begin until this field is set to false.
 	// +optional
 	HoldInstallation bool `json:"holdInstallation,omitempty"`
+
+	// Proxy defines the proxy settings used for the install config
+	// +optional
+	Proxy *Proxy `json:"proxy,omitempty"`
 }
 
 // AgentClusterInstallStatus defines the observed state of the AgentClusterInstall.
@@ -294,4 +298,21 @@ type AgentClusterInstallList struct {
 
 func init() {
 	SchemeBuilder.Register(&AgentClusterInstall{}, &AgentClusterInstallList{})
+}
+
+// Proxy defines the proxy settings for the cluster.
+// At least one of HTTPProxy or HTTPSProxy is required.
+type Proxy struct {
+	// HTTPProxy is the URL of the proxy for HTTP requests.
+	// +optional
+	HTTPProxy string `json:"httpProxy,omitempty"`
+
+	// HTTPSProxy is the URL of the proxy for HTTPS requests.
+	// +optional
+	HTTPSProxy string `json:"httpsProxy,omitempty"`
+
+	// NoProxy is a comma-separated list of domains and CIDRs for which the proxy should not be
+	// used.
+	// +optional
+	NoProxy string `json:"noProxy,omitempty"`
 }
