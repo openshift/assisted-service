@@ -73,9 +73,9 @@ metadata:
               {
                 "cpuArchitecture": "x86_64",
                 "openshiftVersion": "4.10",
-                "rootFSUrl": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.10.0-fc.4/rhcos-4.10.0-fc.4-x86_64-live-rootfs.x86_64.img",
-                "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.10.0-fc.4/rhcos-4.10.0-fc.4-x86_64-live.x86_64.iso",
-                "version": "410.84.202201280407-0"
+                "rootFSUrl": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.10.0-rc.0/rhcos-4.10.0-rc.0-x86_64-live-rootfs.x86_64.img",
+                "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.10.0-rc.0/rhcos-4.10.0-rc.0-x86_64-live.x86_64.iso",
+                "version": "410.84.202202012119-0"
               }
             ]
           }
@@ -605,7 +605,7 @@ spec:
                 - name: INSTALLER_IMAGE
                   value: quay.io/edge-infrastructure/assisted-installer:latest
                 - name: OS_IMAGES
-                  value: '[{"openshift_version":"4.8","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-live-rootfs.x86_64.img","version":"48.84.202109241901-0"},{"openshift_version":"4.9","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-live-rootfs.x86_64.img","version":"49.84.202110081407-0"},{"openshift_version":"4.9","cpu_architecture":"arm64","url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live.aarch64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live-rootfs.aarch64.img","version":"49.84.202110080947-0"},{"openshift_version":"4.10","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.10.0-fc.4/rhcos-4.10.0-fc.4-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.10.0-fc.4/rhcos-4.10.0-fc.4-x86_64-live-rootfs.x86_64.img","version":"410.84.202201280407-0"}]'
+                  value: '[{"openshift_version":"4.8","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-live-rootfs.x86_64.img","version":"48.84.202109241901-0"},{"openshift_version":"4.9","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.0/rhcos-live-rootfs.x86_64.img","version":"49.84.202110081407-0"},{"openshift_version":"4.9","cpu_architecture":"arm64","url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live.aarch64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.9/4.9.0/rhcos-4.9.0-aarch64-live-rootfs.aarch64.img","version":"49.84.202110080947-0"},{"openshift_version":"4.10","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.10.0-rc.0/rhcos-4.10.0-rc.0-x86_64-live.x86_64.iso","rootfs_url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.10.0-rc.0/rhcos-4.10.0-rc.0-x86_64-live-rootfs.x86_64.img","version":"410.84.202202012119-0"}]'
                 - name: SERVICE_ACCOUNT_NAME
                   valueFrom:
                     fieldRef:
