@@ -526,6 +526,7 @@ var _ = Describe("createHostIgnitions", func() {
 				Expect(*f.Node.User.Name).To(Equal("root"))
 				Expect(*f.FileEmbedded1.Contents.Source).To(Equal(fmt.Sprintf("data:,%s", host.RequestedHostname)))
 				Expect(*f.FileEmbedded1.Mode).To(Equal(420))
+				Expect(*f.Node.Overwrite).To(Equal(true))
 			}
 		})
 	})

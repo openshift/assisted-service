@@ -681,7 +681,7 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 
 	config.Storage.Files = newFiles
 	if swag.StringValue(g.cluster.HighAvailabilityMode) != models.ClusterHighAvailabilityModeNone {
-		setFileInIgnition(config, "/opt/openshift/assisted-install-bootstrap", "data:,", false, 420)
+		setFileInIgnition(config, "/opt/openshift/assisted-install-bootstrap", "data:,", false, 420, false)
 	}
 
 	// add new Network Manager config file that disables handling of /etc/resolv.conf
@@ -699,7 +699,7 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 
 func setNMConfigration(config *config_latest_types.Config) {
 	fileContents := "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString([]byte(common.UnmanagedResolvConf))
-	setFileInIgnition(config, "/etc/NetworkManager/conf.d/99-kni.conf", fileContents, false, 420)
+	setFileInIgnition(config, "/etc/NetworkManager/conf.d/99-kni.conf", fileContents, false, 420, false)
 }
 
 func isBMHFile(file *config_latest_types.File) bool {
@@ -852,14 +852,14 @@ func (g *installerGenerator) updateDhcpFiles() error {
 	if err != nil {
 		return err
 	}
-	setFileInIgnition(config, "/etc/keepalived/unsupported-monitor.conf", g.encodedDhcpFileContents, false, 0o644)
+	setFileInIgnition(config, "/etc/keepalived/unsupported-monitor.conf", g.encodedDhcpFileContents, false, 0o644, false)
 	encodedApiVip := network.GetEncodedApiVipLease(g.cluster)
 	if encodedApiVip != "" {
-		setFileInIgnition(config, "/etc/keepalived/lease-api", encodedApiVip, false, 0o644)
+		setFileInIgnition(config, "/etc/keepalived/lease-api", encodedApiVip, false, 0o644, false)
 	}
 	encodedIngressVip := network.GetEncodedIngressVipLease(g.cluster)
 	if encodedIngressVip != "" {
-		setFileInIgnition(config, "/etc/keepalived/lease-ingress", encodedIngressVip, false, 0o644)
+		setFileInIgnition(config, "/etc/keepalived/lease-ingress", encodedIngressVip, false, 0o644, false)
 	}
 	err = writeIgnitionFile(path, config)
 	if err != nil {
@@ -888,7 +888,7 @@ func (g *installerGenerator) addIpv6FileInIgnition(ignition string) error {
 	if is410Version {
 		v6config = common.Ipv6DuidRuntimeConf
 	}
-	setFileInIgnition(config, "/etc/NetworkManager/conf.d/01-ipv6.conf", encodeIpv6Contents(v6config), false, 0o644)
+	setFileInIgnition(config, "/etc/NetworkManager/conf.d/01-ipv6.conf", encodeIpv6Contents(v6config), false, 0o644, false)
 	err = writeIgnitionFile(path, config)
 	if err != nil {
 		return err
@@ -1053,12 +1053,12 @@ func writeIgnitionFile(path string, config *config_latest_types.Config) error {
 	return nil
 }
 
-func setFileInIgnition(config *config_latest_types.Config, filePath string, fileContents string, appendContent bool, mode int) {
+func setFileInIgnition(config *config_latest_types.Config, filePath string, fileContents string, appendContent bool, mode int, overwrite bool) {
 	rootUser := "root"
 	file := config_latest_types.File{
 		Node: config_latest_types.Node{
 			Path:      filePath,
-			Overwrite: nil,
+			Overwrite: &overwrite,
 			Group:     config_latest_types.NodeGroup{},
 			User:      config_latest_types.NodeUser{Name: &rootUser},
 		},
@@ -1104,7 +1104,7 @@ func setCACertInIgnition(role models.HostRole, path string, workDir string, caCe
 		return err
 	}
 
-	setFileInIgnition(config, common.HostCACertPath, fmt.Sprintf("data:,%s", url.PathEscape(string(caCertData))), false, 420)
+	setFileInIgnition(config, common.HostCACertPath, fmt.Sprintf("data:,%s", url.PathEscape(string(caCertData))), false, 420, false)
 
 	fileName := fmt.Sprintf("%s.ign", role)
 	err = writeIgnitionFile(filepath.Join(workDir, fileName), config)
@@ -1130,7 +1130,7 @@ func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error
 				return errors.Wrapf(err, "failed to get hostname for host %s", host.ID)
 			}
 
-			setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420)
+			setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
 
 			configBytes, err := json.Marshal(config)
 			if err != nil {
@@ -1214,7 +1214,7 @@ func setEtcHostsInIgnition(role models.HostRole, path string, workDir string, co
 		return err
 	}
 
-	setFileInIgnition(config, "/etc/hosts", dataurl.EncodeBytes([]byte(content)), true, 420)
+	setFileInIgnition(config, "/etc/hosts", dataurl.EncodeBytes([]byte(content)), true, 420, false)
 
 	fileName := fmt.Sprintf("%s.ign", role)
 	err = writeIgnitionFile(filepath.Join(workDir, fileName), config)
@@ -1290,7 +1290,7 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 		return nil, errors.Errorf("failed to get hostname for host %s", host.ID)
 	}
 
-	setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420)
+	setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
 
 	configBytes, err := json.Marshal(config)
 	if err != nil {
