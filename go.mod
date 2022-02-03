@@ -25,17 +25,17 @@ require (
 	github.com/go-openapi/runtime v0.19.24
 	github.com/go-openapi/spec v0.20.4
 	github.com/go-openapi/strfmt v0.21.1
-	github.com/go-openapi/swag v0.19.15
+	github.com/go-openapi/swag v0.21.1
 	github.com/go-openapi/validate v0.20.3
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.6
-	github.com/google/renameio v0.1.0
+	github.com/google/renameio v1.0.1
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-version v1.2.1
-	github.com/iancoleman/strcase v0.1.2
+	github.com/iancoleman/strcase v0.2.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
