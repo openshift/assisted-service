@@ -18,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -248,7 +249,10 @@ func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr string)
 
 	if machineCidr != previousPrimaryMachineCidr {
 		if machineCidr != "" {
-			if err := db.Save(&models.MachineNetwork{
+			// MGMT-8853: Nothing is done when there's a conflict since there's no change to what's being inserted/updated.
+			if err := db.Clauses(clause.OnConflict{
+				DoNothing: true,
+			}).Create(&models.MachineNetwork{
 				ClusterID: *cluster.ID,
 				Cidr:      models.Subnet(machineCidr),
 			}).Error; err != nil {
