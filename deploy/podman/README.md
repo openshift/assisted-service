@@ -22,6 +22,17 @@ will connect to.
 podman play kube --configmap configmap.yml pod.yml
 ```
 
+To preserve data about existing clusters between pod reconfigurations the
+`pod-persistent.yml` manifest could be use instead, which creates additional
+volumes for database and cluster's artifacts:
+
+```shell
+podman play kube --configmap configmap.yml pod-persistent.yml
+```
+
+If you only want to provision a single cluster at a time, which is a common
+use case, persistence is not necessary.
+
 The UI will available at: `http://<host-ip-address>:8080`
 
 ## Remove it
