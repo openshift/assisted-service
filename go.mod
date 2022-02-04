@@ -25,7 +25,7 @@ require (
 	github.com/go-openapi/runtime v0.19.24
 	github.com/go-openapi/spec v0.20.4
 	github.com/go-openapi/strfmt v0.21.1
-	github.com/go-openapi/swag v0.19.15
+	github.com/go-openapi/swag v0.21.1
 	github.com/go-openapi/validate v0.20.3
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang-jwt/jwt/v4 v4.2.0
