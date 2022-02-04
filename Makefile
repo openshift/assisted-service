@@ -474,6 +474,7 @@ endif
 _unit_test_coverage: $(REPORTS)
 ifeq ($(CI), true)
 	gocov convert $(REPORTS)/unit_coverage.out | gocov-xml > $(REPORTS)/unit_coverage.xml
+	./hack/publish-codecov.sh
 endif
 
 run-db-container:
