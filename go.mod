@@ -12,8 +12,8 @@ require (
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect
 	github.com/containers/image/v5 v5.7.0
-	github.com/coreos/ignition/v2 v2.9.0
-	github.com/coreos/vcontext v0.0.0-20201120045928-b0e13dab675c
+	github.com/coreos/ignition/v2 v2.13.0
+	github.com/coreos/vcontext v0.0.0-20211021162308-f1dbbca7bef4
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
 	github.com/diskfs/go-diskfs v1.1.2-0.20210216073915-ba492710e2d8
 	github.com/dustin/go-humanize v1.0.0
@@ -63,7 +63,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d
 	github.com/thoas/go-funk v0.8.0
-	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50
+	github.com/vincent-petithory/dataurl v1.0.0
 	go.elastic.co/apm/module/apmhttp v1.15.0
 	go.elastic.co/apm/module/apmlogrus v1.15.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
