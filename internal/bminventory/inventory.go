@@ -4565,17 +4565,7 @@ func (b *bareMetalInventory) DownloadClusterFilesInternal(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
-	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), constants.Kubeconfig); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, constants.Kubeconfig))
-
-	if err != nil {
-		return common.NewApiError(http.StatusConflict, err)
-	}
-
-	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), constants.Kubeconfig, contentLength)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
@@ -4624,7 +4614,7 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 
 func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID, fileName string) error {
 	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Checking cluster cluster file for download: %s for cluster %s", fileName, clusterID)
+	log.Infof("Checking cluster file for download: %s for cluster %s", fileName, clusterID)
 
 	if !funk.Contains(clusterPkg.S3FileNames, fileName) && fileName != manifests.ManifestFolder {
 		err := errors.Errorf("invalid cluster file %s", fileName)
@@ -4814,11 +4804,7 @@ func (b *bareMetalInventory) downloadHostIgnition(ctx context.Context, clusterID
 }
 
 func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder {
-	c, err := b.GetCredentialsInternal(ctx, installer.V2GetCredentialsParams(params))
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewGetCredentialsOK().WithPayload(c)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params installer.V2GetCredentialsParams) (*models.Credentials, error) {

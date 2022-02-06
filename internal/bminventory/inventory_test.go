@@ -8758,44 +8758,6 @@ var _ = Describe("KubeConfig download", func() {
 		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
 
-	It("kubeconfig download no cluster id", func() {
-		clusterId := strToUUID(uuid.New().String())
-		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
-			ClusterID: *clusterId,
-		})
-		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusNotFound)))
-	})
-	It("kubeconfig download cluster is not in installed state", func() {
-		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
-			ClusterID: clusterID,
-		})
-		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
-	})
-	It("kubeconfig download s3download failure", func() {
-		status := models.ClusterStatusInstalled
-		c.Status = &status
-		db.Save(&c)
-		fileName := fmt.Sprintf("%s/%s", clusterID, constants.Kubeconfig)
-		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
-		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
-			ClusterID: clusterID,
-		})
-		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
-	})
-	It("kubeconfig download happy flow", func() {
-		status := models.ClusterStatusInstalled
-		c.Status = &status
-		db.Save(&c)
-		fileName := fmt.Sprintf("%s/%s", clusterID, constants.Kubeconfig)
-		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
-		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
-		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
-			ClusterID: clusterID,
-		})
-		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(r), constants.Kubeconfig, 4)))
-	})
 })
 
 var _ = Describe("DownloadMinimalInitrd", func() {
@@ -13793,15 +13755,15 @@ var _ = Describe("GetCredentials", func() {
 		objectName := fmt.Sprintf("%s/%s", *c.ID, "kubeadmin-password")
 		mockS3Client.EXPECT().Download(ctx, objectName).Return(ioutil.NopCloser(strings.NewReader("my_password")), int64(0), nil)
 
-		reply := bm.GetCredentials(ctx, installer.GetCredentialsParams{ClusterID: *c.ID})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewGetCredentialsOK())))
+		reply := bm.V2GetCredentials(ctx, installer.V2GetCredentialsParams{ClusterID: *c.ID})
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2GetCredentialsOK()))
 	})
 
 	It("Console operator not available", func() {
 
 		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(false)
 
-		reply := bm.GetCredentials(ctx, installer.GetCredentialsParams{ClusterID: *c.ID})
+		reply := bm.V2GetCredentials(ctx, installer.V2GetCredentialsParams{ClusterID: *c.ID})
 		verifyApiError(reply, http.StatusConflict)
 	})
 })
@@ -14075,6 +14037,24 @@ var _ = Describe("[V2] V2DownloadClusterCredentials", func() {
 			resp := bm.V2DownloadClusterCredentials(ctx, params)
 			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+		}
+	})
+
+	It("v2 downloading cluster credentials files - no cluster id", func() {
+		clusterId := strToUUID(uuid.New().String())
+
+		for _, fileName := range cluster.ClusterOwnerFileNames {
+			By(fmt.Sprintf("downloading %s", fileName))
+
+			params := installer.V2DownloadClusterCredentialsParams{
+				ClusterID: *clusterId,
+				FileName:  fileName,
+			}
+
+			resp := bm.V2DownloadClusterCredentials(ctx, params)
+			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusNotFound)))
+
 		}
 	})
 

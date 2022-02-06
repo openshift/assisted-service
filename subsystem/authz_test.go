@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"reflect"
 
 	"github.com/go-openapi/strfmt"
@@ -159,14 +158,12 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 	var (
 		ctx       context.Context
 		clusterID strfmt.UUID
-		file      *os.File
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		cID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 		Expect(err).ToNot(HaveOccurred())
-		file, err = ioutil.TempFile("", "tmp")
 		Expect(err).ToNot(HaveOccurred())
 		clusterID = cID
 		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
@@ -177,16 +174,17 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
 	})
 
-	Context("/v1/<cluster_id>/downloads/kubeconfig", func() {
+	Context("/v2/clusters/{cluster_id}/credentials", func() {
 		It("Should not allow read-only-admins to download kubeconfig", func() {
-			_, err := readOnlyAdminUserBMClient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+			_, err := readOnlyAdminUserBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 			Expect(err).To(HaveOccurred())
-			Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterKubeconfigForbidden())))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetCredentialsForbidden()))
 		})
 		It("Should allow 'user role' to download kubeconfig", func() {
-			res, err := userBMClient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+			completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
+			res, err := userBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterKubeconfigOK(file))))
+			Expect(res).To(BeAssignableToTypeOf(installer.NewV2GetCredentialsOK()))
 		})
 	})
 
@@ -244,12 +242,12 @@ var _ = Describe("Cluster credentials should be accessed only by cluster owner",
 
 	})
 	It("Should not allow read-only-admins to get credentials", func() {
-		_, err := readOnlyAdminUserBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
+		_, err := readOnlyAdminUserBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 		Expect(err).To(HaveOccurred())
-		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewGetCredentialsForbidden())))
+		Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetCredentialsForbidden()))
 	})
 	It("Should allow cluster user to get credentials", func() {
-		_, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
+		_, err := userBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 		Expect(err).ToNot(HaveOccurred())
 	})
 })
