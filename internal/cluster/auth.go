@@ -8,6 +8,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+func Asd() string {
+	return "asd"
+}
+
 func AgentToken(infraEnv *common.InfraEnv, authType auth.AuthType) (token string, err error) {
 	switch authType {
 	case auth.TypeRHSSO:
