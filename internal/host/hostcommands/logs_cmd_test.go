@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
+	"github.com/jinzhu/copier"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -57,8 +58,10 @@ var _ = Describe("upload_logs", func() {
 	})
 
 	It("get_step with logs", func() {
-		DefaultInstructionConfig.ServiceCACertPath = common.HostCACertPath
-		logsCmd = NewLogsCmd(common.GetTestLog(), db, DefaultInstructionConfig)
+		cfgCopy := InstructionConfig{}
+		Expect(copier.Copy(&cfgCopy, &DefaultInstructionConfig)).To(BeNil())
+		cfgCopy.ServiceCACertPath = common.HostCACertPath
+		logsCmd = NewLogsCmd(common.GetTestLog(), db, cfgCopy)
 		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
 		Expect(stepReply[0].StepType).To(Equal(models.StepTypeExecute))
 		Expect(stepErr).ShouldNot(HaveOccurred())
