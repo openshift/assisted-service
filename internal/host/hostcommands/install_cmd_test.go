@@ -434,6 +434,31 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(strings.Contains(stepReply[0].Args[1], "--openshift-version")).Should(BeFalse())
 			Expect(strings.Contains(stepReply[0].Args[1], "--must-gather-image")).Should(BeFalse())
 		})
+
+		Context("CA certificate", func() {
+			volumeMount := fmt.Sprintf("--volume %s:%s:rw", common.HostCACertPath, common.HostCACertPath)
+			cacertArgs := fmt.Sprintf("--cacert %s", common.HostCACertPath)
+
+			It("no CA certificate", func() {
+				config := &InstructionConfig{}
+				installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
+				stepReply, err := installCmd.GetSteps(ctx, &host)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(stepReply).NotTo(BeNil())
+				Expect(strings.Join(stepReply[0].Args, " ")).NotTo(ContainSubstring(volumeMount))
+				Expect(strings.Join(stepReply[0].Args, " ")).NotTo(ContainSubstring(cacertArgs))
+			})
+
+			It("with CA certificate", func() {
+				config := &InstructionConfig{ServiceCACertPath: "/path"}
+				installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
+				stepReply, err := installCmd.GetSteps(ctx, &host)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(stepReply).NotTo(BeNil())
+				Expect(strings.Join(stepReply[0].Args, " ")).To(ContainSubstring(volumeMount))
+				Expect(strings.Join(stepReply[0].Args, " ")).To(ContainSubstring(cacertArgs))
+			})
+		})
 	})
 
 	Context("installer args", func() {
@@ -479,6 +504,7 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(stepReply).NotTo(BeNil())
 			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", `["--append-karg","nameserver=8.8.8.8","-n","--copy-network"]`), 1)
 		})
+
 		It("non-empty installer args with copy network with static ip config", func() {
 			db.Model(&cluster).Update("image_static_network_config", "rkhkjgdfd")
 			host.InstallerArgs = `["--append-karg","nameserver=8.8.8.8","-n","--copy-network"]`
