@@ -73,7 +73,6 @@ import (
 
 const DefaultUser = "kubeadmin"
 
-const APINotFound = "V1 API not found"
 const WindowBetweenRequestsInSeconds = 10 * time.Second
 const mediaDisconnectionMessage = "Unable to read from the discovery media. It was either disconnected or poor network conditions prevented it from being read. Try using the minimal ISO option and be sure to keep the media connected until the installation is completed"
 
@@ -1985,7 +1984,7 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 }
 
 func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder {
-	return b.V2GetClusterInstallConfig(ctx, installer.V2GetClusterInstallConfigParams(params))
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) GetClusterDefaultConfig(_ context.Context, _ installer.GetClusterDefaultConfigParams) middleware.Responder {
@@ -2054,7 +2053,7 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {
-	return b.V2UpdateClusterInstallConfig(ctx, installer.V2UpdateClusterInstallConfigParams(params))
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error) {
@@ -5208,7 +5207,7 @@ func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params in
 }
 
 func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params installer.GetFreeAddressesParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(APINotFound))
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder {

@@ -9729,9 +9729,9 @@ var _ = Describe("GetClusterInstallConfig", func() {
 	})
 
 	It("check get install config flow", func() {
-		params := installer.GetClusterInstallConfigParams{ClusterID: clusterID}
+		params := installer.V2GetClusterInstallConfigParams{ClusterID: clusterID}
 		mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), false, "").Return([]byte("some string"), nil).Times(1)
-		response := bm.GetClusterInstallConfig(ctx, params)
+		response := bm.V2GetClusterInstallConfig(ctx, params)
 		_, ok := response.(*installer.V2GetClusterInstallConfigOK)
 		Expect(ok).To(BeTrue())
 	})
@@ -9771,7 +9771,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 
 	It("saves the given string to the cluster", func() {
 		override := `{"controlPlane": {"hyperthreading": "Disabled"}}`
-		params := installer.UpdateClusterInstallConfigParams{
+		params := installer.V2UpdateClusterInstallConfigParams{
 			ClusterID:           clusterID,
 			InstallConfigParams: override,
 		}
@@ -9779,7 +9779,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			eventstest.WithNameMatcher(eventgen.InstallConfigAppliedEventName),
 			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
 		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), params.InstallConfigParams).Return(nil).Times(1)
-		response := bm.UpdateClusterInstallConfig(ctx, params)
+		response := bm.V2UpdateClusterInstallConfig(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateClusterInstallConfigCreated{}))
 
 		var updated common.Cluster
@@ -9790,22 +9790,22 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 
 	It("returns not found with a non-existant cluster", func() {
 		override := `{"controlPlane": {"hyperthreading": "Disabled"}}`
-		params := installer.UpdateClusterInstallConfigParams{
+		params := installer.V2UpdateClusterInstallConfigParams{
 			ClusterID:           strfmt.UUID(uuid.New().String()),
 			InstallConfigParams: override,
 		}
-		response := bm.UpdateClusterInstallConfig(ctx, params)
+		response := bm.V2UpdateClusterInstallConfig(ctx, params)
 		verifyApiError(response, http.StatusNotFound)
 	})
 
 	It("returns bad request when validation fails", func() {
 		override := `{"controlPlane": {"hyperthreading": "Disabled"`
-		params := installer.UpdateClusterInstallConfigParams{
+		params := installer.V2UpdateClusterInstallConfigParams{
 			ClusterID:           clusterID,
 			InstallConfigParams: override,
 		}
 		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), params.InstallConfigParams).Return(fmt.Errorf("some error")).Times(1)
-		response := bm.UpdateClusterInstallConfig(ctx, params)
+		response := bm.V2UpdateClusterInstallConfig(ctx, params)
 		verifyApiError(response, http.StatusBadRequest)
 	})
 })
