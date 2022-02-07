@@ -1,0 +1,9 @@
+[
+    {
+        "openshift_version": "4.9",
+        "cpu_architecture": "x86_64",
+        "url": "https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/34.20210626.3.1/x86_64/fedora-coreos-34.20210626.3.1-live.x86_64.iso",
+        "rootfs_url": "https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/34.20210626.3.1/x86_64/fedora-coreos-34.20210626.3.1-live-rootfs.x86_64.img",
+        "version": "34.20210626.3.1"
+    }
+]

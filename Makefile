@@ -84,6 +84,12 @@ ifeq ($(DISABLE_TLS),true)
 	DISABLE_TLS_CMD := --disable-tls
 endif
 
+PODMAN_CONFIGMAP := deploy/podman/configmap.yml
+OKD := $(or ${OKD},false)
+ifeq ($(OKD),true)
+	PODMAN_CONFIGMAP := deploy/podman/okd-configmap.yml
+endif
+
 ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
 	STORAGE = filesystem
@@ -383,7 +389,7 @@ podman-pull-service-from-docker-daemon:
 	podman pull "docker-daemon:${SERVICE}"
 
 deploy-onprem:
-	podman play kube --configmap deploy/podman/configmap.yml deploy/podman/pod.yml
+	podman play kube --configmap ${PODMAN_CONFIGMAP} deploy/podman/pod.yml
 	./hack/retry.sh 90 2 "curl -f http://127.0.0.1:8090/ready"
 	./hack/retry.sh 60 10 "curl -f http://127.0.0.1:8888/health"
 
