@@ -10,6 +10,7 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -17,6 +18,7 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -669,6 +671,7 @@ var _ = Describe("bmac reconcile", func() {
 		var host *bmh_v1alpha1.BareMetalHost
 		var agent *v1beta1.Agent
 		var cluster *hivev1.ClusterDeployment
+		var clusterInstall *hiveext.AgentClusterInstall
 		var adminKubeconfigSecret *corev1.Secret
 		var secretName string
 		var bmhName string
@@ -717,7 +720,8 @@ var _ = Describe("bmac reconcile", func() {
 			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			cluster.Spec.Installed = true
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
-
+			clusterInstall = newAgentClusterInstall(cluster.Spec.ClusterInstallRef.Name, testNamespace, hiveext.AgentClusterInstallSpec{}, cluster)
+			Expect(c.Create(ctx, clusterInstall)).ShouldNot(HaveOccurred())
 			secretName = fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)
 			adminKubeconfigSecret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -833,6 +837,27 @@ var _ = Describe("bmac reconcile", func() {
 				err = spokeClient.Get(ctx, types.NamespacedName{Name: adminKubeconfigSecret.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeSecret)
 				Expect(err).To(BeNil())
 				Expect(spokeSecret.Data).To(Equal(adminKubeconfigSecret.Data))
+			})
+			It("should not set spoke BMH - None platform", func() {
+				clusterInstall.Spec.Networking.UserManagedNetworking = true
+				Expect(c.Update(ctx, clusterInstall)).ToNot(HaveOccurred())
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+
+				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
+				spokeClient := bmhr.spokeClient
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)
+				Expect(err).ToNot(BeNil())
+				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+				spokeSecret := &corev1.Secret{}
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: adminKubeconfigSecret.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeSecret)
+				Expect(err).ToNot(BeNil())
+				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 			})
 
 			It("validate label on Secrets", func() {
