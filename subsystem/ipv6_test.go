@@ -39,13 +39,14 @@ var _ = Describe("IPv6 installation", func() {
 	var (
 		ctx         = context.Background()
 		cluster     *models.Cluster
+		infraEnvID  *strfmt.UUID
 		clusterCIDR = "2002:db8::/53"
 		serviceCIDR = "2003:db8::/112"
 		clusterID   strfmt.UUID
 	)
 
 	BeforeEach(func() {
-		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:     "example.com",
 				ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 64}},
@@ -62,11 +63,10 @@ var _ = Describe("IPv6 installation", func() {
 		cluster = registerClusterReply.GetPayload()
 		clusterID = *cluster.ID
 		log.Infof("Register cluster %s", cluster.ID.String())
-		// in order to simulate infra env generation
-		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
+		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
 	})
 	It("install_cluster IPv6 happy flow", func() {
-		_ = registerHostsAndSetRolesV6(clusterID, 5)
+		_ = registerHostsAndSetRolesV6(clusterID, *infraEnvID, 5)
 		clusterReply, getErr := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
 			ClusterID: clusterID,
 		})
@@ -83,7 +83,7 @@ var _ = Describe("IPv6 installation", func() {
 		}
 
 		for _, host := range c.Hosts {
-			updateProgress(*host.ID, clusterID, models.HostStageDone)
+			updateProgress(*host.ID, host.InfraEnvID, models.HostStageDone)
 		}
 
 		waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
@@ -92,13 +92,13 @@ var _ = Describe("IPv6 installation", func() {
 	})
 })
 
-func registerHostsAndSetRolesV6(clusterID strfmt.UUID, numHosts int) []*models.Host {
+func registerHostsAndSetRolesV6(clusterID, infraEnvID strfmt.UUID, numHosts int) []*models.Host {
 	ctx := context.Background()
 	hosts := make([]*models.Host, 0)
 	ips := hostutil.GenerateIPv6Addresses(numHosts, defaultCIDRv6)
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
-		host := &registerHost(clusterID).Host
+		host := &registerHost(infraEnvID).Host
 		validHwInfoV6.Interfaces[0].IPV6Addresses = []string{ips[i]}
 		generateEssentialHostStepsWithInventory(ctx, host, hostname, validHwInfoV6)
 		var role models.HostRole
@@ -112,7 +112,7 @@ func registerHostsAndSetRolesV6(clusterID strfmt.UUID, numHosts int) []*models.H
 				HostRole: swag.String(string(role)),
 			},
 			HostID:     *host.ID,
-			InfraEnvID: clusterID,
+			InfraEnvID: infraEnvID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		hosts = append(hosts, host)

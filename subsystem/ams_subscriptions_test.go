@@ -338,16 +338,15 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("update subscription with openshfit (external) cluster ID", func() {
-				// in order to simulate infra env generation
-				generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-				registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
+				infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+				registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
 				setClusterAsInstalling(ctx, clusterID)
 			})
 
 			By("update subscription with console url", func() {
 				c := getCluster(clusterID)
 				for _, host := range c.Hosts {
-					updateProgress(*host.ID, clusterID, models.HostStageDone)
+					updateProgress(*host.ID, host.InfraEnvID, models.HostStageDone)
 				}
 				waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 				completeInstallation(agentBMClient, clusterID)
@@ -378,9 +377,8 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("update subscription with openshfit (external) cluster ID", func() {
-				// in order to simulate infra env generation
-				generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-				registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
+				infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+				registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
 				reply, err = userBMClient.Installer.V2InstallCluster(context.Background(), &installer.V2InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c := reply.GetPayload()

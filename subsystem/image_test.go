@@ -116,7 +116,7 @@ var _ = Describe("system-test proxy update tests", func() {
 
 	It("generate_image_after_proxy_was_set", func() {
 		// Generate infraEnv and ISO without proxy configured
-		infraEnvID := registerInfraEnv(&clusterID).ID
+		infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
 
 		// Update cluster with proxy settings
 		httpProxy := "http://proxyserver:3128"
@@ -139,7 +139,7 @@ var _ = Describe("system-test proxy update tests", func() {
 		time.Sleep(time.Second * 10)
 
 		// Generate infraEnv and ISO with proxy configured
-		_ = registerInfraEnv(&clusterID).ID
+		_ = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
 	})
 })
 

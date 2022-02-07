@@ -19,7 +19,7 @@ var _ = Describe("Host tests v2", func() {
 	ctx := context.Background()
 	var infraEnv *installer.RegisterInfraEnvCreated
 	var infraEnvID strfmt.UUID
-	var cluster *installer.RegisterClusterCreated
+	var cluster *installer.V2RegisterClusterCreated
 	var clusterID strfmt.UUID
 
 	BeforeEach(func() {
@@ -36,7 +36,7 @@ var _ = Describe("Host tests v2", func() {
 		Expect(err).NotTo(HaveOccurred())
 		infraEnvID = *infraEnv.GetPayload().ID
 
-		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(openshiftVersion),
@@ -224,7 +224,7 @@ var _ = Describe("Day2 Host tests v2", func() {
 	ctx := context.Background()
 	var infraEnv *installer.RegisterInfraEnvCreated
 	var infraEnvID strfmt.UUID
-	var cluster *installer.RegisterClusterCreated
+	var cluster *installer.V2RegisterClusterCreated
 	var clusterID strfmt.UUID
 
 	BeforeEach(func() {
@@ -241,7 +241,7 @@ var _ = Describe("Day2 Host tests v2", func() {
 		Expect(err).NotTo(HaveOccurred())
 		infraEnvID = *infraEnv.GetPayload().ID
 
-		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(openshiftVersion),
@@ -306,7 +306,7 @@ func waitForHostStateV2(ctx context.Context, state string, timeout time.Duration
 		}
 		return fmt.Errorf("Host %s in Infra Env %s switched backed to state %s, state info %s.",
 			*host.ID, host.InfraEnvID, lastState, lastStatusInfo)
-	}, 10, 1)
+	}, 10, 1).Should(Succeed())
 }
 
 func defaultInventory() string {

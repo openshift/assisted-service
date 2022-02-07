@@ -16,14 +16,14 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-var registerInfraEnv = func(clusterID *strfmt.UUID) *models.InfraEnv {
+var registerInfraEnv = func(clusterID *strfmt.UUID, imageType models.ImageType) *models.InfraEnv {
 	request, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: &models.InfraEnvCreateParams{
 			Name:             swag.String("test-infra-env"),
 			OpenshiftVersion: openshiftVersion,
 			PullSecret:       swag.String(pullSecret),
 			SSHAuthorizedKey: swag.String(sshPublicKey),
-			ImageType:        models.ImageTypeFullIso,
+			ImageType:        imageType,
 			ClusterID:        clusterID,
 		},
 	})
@@ -43,7 +43,7 @@ var _ = Describe("Infra_Env", func() {
 	)
 
 	BeforeEach(func() {
-		infraEnv = registerInfraEnv(nil)
+		infraEnv = registerInfraEnv(nil, models.ImageTypeFullIso)
 		clusterResp, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:                     swag.String("test-cluster"),
@@ -56,7 +56,7 @@ var _ = Describe("Infra_Env", func() {
 
 		Expect(err).NotTo(HaveOccurred())
 		clusterID = *clusterResp.GetPayload().ID
-		infraEnv2 = registerInfraEnv(&clusterID)
+		infraEnv2 = registerInfraEnv(&clusterID, models.ImageTypeFullIso)
 	})
 
 	JustBeforeEach(func() {

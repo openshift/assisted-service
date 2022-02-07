@@ -189,6 +189,50 @@ func (o *RegisterClusterForbidden) WriteResponse(rw http.ResponseWriter, produce
 	}
 }
 
+// RegisterClusterNotFoundCode is the HTTP code returned for type RegisterClusterNotFound
+const RegisterClusterNotFoundCode int = 404
+
+/*RegisterClusterNotFound Error.
+
+swagger:response registerClusterNotFound
+*/
+type RegisterClusterNotFound struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewRegisterClusterNotFound creates RegisterClusterNotFound with default headers values
+func NewRegisterClusterNotFound() *RegisterClusterNotFound {
+
+	return &RegisterClusterNotFound{}
+}
+
+// WithPayload adds the payload to the register cluster not found response
+func (o *RegisterClusterNotFound) WithPayload(payload *models.Error) *RegisterClusterNotFound {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register cluster not found response
+func (o *RegisterClusterNotFound) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterClusterNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // RegisterClusterMethodNotAllowedCode is the HTTP code returned for type RegisterClusterMethodNotAllowed
 const RegisterClusterMethodNotAllowedCode int = 405
 

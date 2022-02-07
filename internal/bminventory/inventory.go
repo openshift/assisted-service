@@ -352,14 +352,7 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
-	v2Params := installer.V2RegisterClusterParams{
-		NewClusterParams: params.NewClusterParams,
-	}
-	c, err := b.RegisterClusterInternal(ctx, nil, v2Params, true)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewRegisterClusterCreated().WithPayload(&c.Cluster)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, params installer.V2RegisterClusterParams) installer.V2RegisterClusterParams {

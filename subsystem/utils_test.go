@@ -152,15 +152,6 @@ func unbindHost(infraEnvID, hostID strfmt.UUID) *models.Host {
 	return host.GetPayload()
 }
 
-func getHost(clusterID, hostID strfmt.UUID) *models.Host {
-	host, err := userBMClient.Installer.GetHost(context.Background(), &installer.GetHostParams{
-		ClusterID: clusterID,
-		HostID:    hostID,
-	})
-	Expect(err).NotTo(HaveOccurred())
-	return host.GetPayload()
-}
-
 func getHostV2(infraEnvID, hostID strfmt.UUID) *models.Host {
 	host, err := userBMClient.Installer.V2GetHost(context.Background(), &installer.V2GetHostParams{
 		InfraEnvID: infraEnvID,
@@ -170,18 +161,8 @@ func getHostV2(infraEnvID, hostID strfmt.UUID) *models.Host {
 	return host.GetPayload()
 }
 
-func generateClusterISO(clusterID strfmt.UUID, imageType models.ImageType) {
-	_, err := userBMClient.Installer.GenerateClusterISO(context.Background(), &installer.GenerateClusterISOParams{
-		ClusterID: clusterID,
-		ImageCreateParams: &models.ImageCreateParams{
-			ImageType: imageType,
-		},
-	})
-	Expect(err).NotTo(HaveOccurred())
-}
-
 func registerCluster(ctx context.Context, client *client.AssistedInstall, clusterName string, pullSecret string) (strfmt.UUID, error) {
-	var cluster, err = client.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+	var cluster, err = client.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{
 			Name:             swag.String(clusterName),
 			OpenshiftVersion: swag.String(openshiftVersion),
@@ -236,18 +217,18 @@ func getNextSteps(infraEnvID, hostID strfmt.UUID) models.Steps {
 	return *steps.GetPayload()
 }
 
-func updateHostLogProgress(clusterID strfmt.UUID, hostID strfmt.UUID, progress models.LogsState) {
+func updateHostLogProgress(infraEnvID strfmt.UUID, hostID strfmt.UUID, progress models.LogsState) {
 	ctx := context.Background()
 
-	updateReply, err := agentBMClient.Installer.UpdateHostLogsProgress(ctx, &installer.UpdateHostLogsProgressParams{
-		ClusterID: clusterID,
-		HostID:    hostID,
+	updateReply, err := agentBMClient.Installer.V2UpdateHostLogsProgress(ctx, &installer.V2UpdateHostLogsProgressParams{
+		InfraEnvID: infraEnvID,
+		HostID:     hostID,
 		LogsProgressParams: &models.LogsProgressParams{
 			LogsState: common.LogStatePtr(progress),
 		},
 	})
 	Expect(err).ShouldNot(HaveOccurred())
-	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostLogsProgressNoContent()))
+	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostLogsProgressNoContent()))
 }
 
 func updateClusterLogProgress(clusterID strfmt.UUID, progress models.LogsState) {
