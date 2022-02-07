@@ -9,7 +9,6 @@ require (
 	github.com/aws/aws-sdk-go v1.34.28
 	github.com/buger/jsonparser v1.1.1
 	github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
-	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect
 	github.com/containers/image/v5 v5.7.0
 	github.com/coreos/ignition/v2 v2.13.0
@@ -18,7 +17,6 @@ require (
 	github.com/diskfs/go-diskfs v1.1.2-0.20210216073915-ba492710e2d8
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
-	github.com/frankban/quicktest v1.11.3 // indirect
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0
 	github.com/go-openapi/errors v0.20.1
 	github.com/go-openapi/loads v0.21.1
@@ -51,7 +49,7 @@ require (
 	github.com/openshift/generic-admission-server v1.14.1-0.20210422140326-da96454c926d
 	github.com/openshift/hive/apis v0.0.0-20210506000654-5c038fb05190
 	github.com/openshift/machine-api-operator v0.2.1-0.20201002104344-6abfb5440597
-	github.com/ory/dockertest/v3 v3.6.3
+	github.com/ory/dockertest/v3 v3.8.1
 	github.com/ovirt/go-ovirt-client v0.7.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pelletier/go-toml v1.8.1
@@ -59,7 +57,7 @@ require (
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.49.0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/rs/cors v1.8.2
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/slok/go-http-metrics v0.8.0
 	github.com/stretchr/testify v1.7.0
 	github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d
