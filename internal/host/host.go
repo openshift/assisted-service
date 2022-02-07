@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	reflect "reflect"
 	"strconv"
@@ -759,8 +760,8 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 
 		var eventInfo string
 		if newImageStatus.SizeBytes > 0 {
-			eventInfo += fmt.Sprintf("time: %f seconds; size: %f bytes; download rate: %f MBps",
-				newImageStatus.Time, newImageStatus.SizeBytes, newImageStatus.DownloadRate)
+			eventInfo += fmt.Sprintf("time: %.2f seconds; size: %.2f Megabytes; download rate: %.2f MBps",
+				newImageStatus.Time, newImageStatus.SizeBytes/math.Pow(1024, 2), newImageStatus.DownloadRate)
 		}
 
 		eventgen.SendImageStatusUpdatedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,

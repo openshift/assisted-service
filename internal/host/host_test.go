@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -2568,8 +2569,8 @@ var _ = Describe("UpdateImageStatus", func() {
 					hostutil.GetHostnameForMsg(&host), expectedImage.Name, expectedImage.Result)
 
 				if expectedImage.SizeBytes > 0 {
-					eventMsg += fmt.Sprintf(" time: %f seconds; size: %f bytes; download rate: %f MBps",
-						expectedImage.Time, expectedImage.SizeBytes, expectedImage.DownloadRate)
+					eventMsg += fmt.Sprintf(" time: %.2f seconds; size: %.2f Megabytes; download rate: %.2f MBps",
+						expectedImage.Time, expectedImage.SizeBytes/math.Pow(1024, 2), expectedImage.DownloadRate)
 				}
 
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
