@@ -539,7 +539,7 @@ func (b *bareMetalInventory) generateImageDownloadURL(ctx context.Context, infra
 			return "", nil, errors.Wrap(err, "failed to sign image URL with token")
 		}
 	} else if b.authHandler.AuthType() == auth.TypeNone {
-		log.Warn("Auth type is none: image URL will remain as " + urlString)
+		log.Infof("Auth type is none: image URL will remain as %s", urlString)
 	}
 
 	// parse the exp claim out of the url
