@@ -16,8 +16,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -75,6 +73,7 @@ import (
 
 const DefaultUser = "kubeadmin"
 
+const APINotFound = "V1 API not found"
 const WindowBetweenRequestsInSeconds = 10 * time.Second
 const mediaDisconnectionMessage = "Unable to read from the discovery media. It was either disconnected or poor network conditions prevented it from being read. Try using the minimal ISO option and be sure to keep the media connected until the installation is completed"
 
@@ -5208,67 +5207,8 @@ func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params in
 	return nil
 }
 
-func ipAsUint(ipStr string, log logrus.FieldLogger) uint64 {
-	parts := strings.Split(ipStr, ".")
-	if len(parts) != 4 {
-		log.Warnf("Invalid ip %s", ipStr)
-		return 0
-	}
-	var result uint64 = 0
-	for _, p := range parts {
-		result = result << 8
-		converted, err := strconv.ParseUint(p, 10, 64)
-		if err != nil {
-			log.WithError(err).Warnf("Conversion of %s to uint", p)
-			return 0
-		}
-		result += converted
-	}
-	return result
-}
-
-func applyLimit(ret models.FreeAddressesList, limitParam *int64) models.FreeAddressesList {
-	if limitParam != nil && *limitParam >= 0 && *limitParam < int64(len(ret)) {
-		return ret[:*limitParam]
-	}
-	return ret
-}
-
-func (b *bareMetalInventory) getFreeAddresses(_ context.Context, params installer.GetFreeAddressesParams, log logrus.FieldLogger) (models.FreeAddressesList, error) {
-	var hosts []*models.Host
-	err := b.db.Select("free_addresses").Find(&hosts, "cluster_id = ? and status in (?)", params.ClusterID.String(), []string{models.HostStatusInsufficient, models.HostStatusKnown}).Error
-	if err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Error retreiving hosts for cluster %s", params.ClusterID.String()))
-	}
-	if len(hosts) == 0 {
-		return nil, common.NewApiError(http.StatusNotFound, errors.Errorf("No hosts where found for cluster %s", params.ClusterID))
-	}
-	resultingSet := network.MakeFreeAddressesSet(hosts, params.Network, params.Prefix, log)
-
-	ret := models.FreeAddressesList{}
-	for a := range resultingSet {
-		ret = append(ret, a)
-	}
-
-	// Sort addresses
-	sort.Slice(ret, func(i, j int) bool {
-		return ipAsUint(ret[i].String(), log) < ipAsUint(ret[j].String(), log)
-	})
-
-	ret = applyLimit(ret, params.Limit)
-
-	return ret, nil
-}
-
 func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params installer.GetFreeAddressesParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-
-	results, err := b.getFreeAddresses(ctx, params, log)
-	if err != nil {
-		log.WithError(err).Warn("GetFreeAddresses")
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewGetFreeAddressesOK().WithPayload(results)
+	return common.NewApiError(http.StatusNotFound, errors.New(APINotFound))
 }
 
 func (b *bareMetalInventory) UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder {

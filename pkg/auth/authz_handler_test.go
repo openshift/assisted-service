@@ -441,11 +441,6 @@ var _ = Describe("authz", func() {
 			apiCall:      downloadClusterLogs,
 		},
 		{
-			name:         "get free addresses",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      getFreeAddresses,
-		},
-		{
 			name:         "list events",
 			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
 			apiCall:      listEvents,
@@ -915,16 +910,6 @@ func downloadClusterLogs(ctx context.Context, cli *client.AssistedInstall) error
 			ClusterID: strfmt.UUID(uuid.New().String()),
 		},
 		file)
-	return err
-}
-
-func getFreeAddresses(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.GetFreeAddresses(
-		ctx,
-		&installer.GetFreeAddressesParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-			Network:   "10.0.1.0/24",
-		})
 	return err
 }
 
