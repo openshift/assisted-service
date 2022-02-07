@@ -14,6 +14,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const APINotFound = "V1 API not found"
+
 type NotFound string
 
 func (f NotFound) Error() string {
