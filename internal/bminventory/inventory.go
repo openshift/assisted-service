@@ -67,6 +67,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -2961,7 +2962,8 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 		}
 		for _, machineNetwork := range cluster.MachineNetworks {
 			machineNetwork.ClusterID = *cluster.ID
-			if err = db.Save(machineNetwork).Error; err != nil {
+			// MGMT-8853: Nothing is done when there's a conflict since there's no change to what's being inserted/updated.
+			if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(machineNetwork).Error; err != nil {
 				err = errors.Wrapf(err, "failed to update machine network %v of cluster %s", *machineNetwork, params.ClusterID)
 				return common.NewApiError(http.StatusInternalServerError, err)
 			}
