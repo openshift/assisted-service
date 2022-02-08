@@ -20,7 +20,7 @@ require (
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
 	github.com/frankban/quicktest v1.11.3 // indirect
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0
-	github.com/go-openapi/errors v0.20.1
+	github.com/go-openapi/errors v0.20.2
 	github.com/go-openapi/loads v0.21.1
 	github.com/go-openapi/runtime v0.19.24
 	github.com/go-openapi/spec v0.20.4
