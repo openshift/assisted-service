@@ -2129,19 +2129,19 @@ var _ = Describe("cluster install", func() {
 			By("Test getting credentials for not found cluster")
 			{
 				missingClusterId := strfmt.UUID(uuid.New().String())
-				_, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: missingClusterId})
-				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewGetCredentialsNotFound())))
+				_, err := userBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: missingClusterId})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetCredentialsNotFound()))
 			}
 			By("Test getting credentials before console operator is available")
 			{
-				_, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
-				Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewGetCredentialsConflict())))
+				_, err := userBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetCredentialsConflict()))
 			}
 			By("Test happy flow")
 			{
 				setClusterAsFinalizing(ctx, clusterID)
 				completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
-				creds, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
+				creds, err := userBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creds.GetPayload().Username).To(Equal(bminventory.DefaultUser))
 				Expect(creds.GetPayload().ConsoleURL).To(Equal(common.GetConsoleUrl(cluster.Name, cluster.BaseDNSDomain)))
@@ -2314,11 +2314,10 @@ var _ = Describe("cluster install", func() {
 				Expect(sni.Size()).ShouldNot(Equal(0))
 
 				By("Trying to download kubeconfig file before it exists")
-				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+				_, err = userBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 				Expect(err).Should(HaveOccurred())
-				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterKubeconfigConflict())))
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetCredentialsConflict()))
 
 				By("Upload ingress ca")
 				res, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
@@ -2326,14 +2325,11 @@ var _ = Describe("cluster install", func() {
 				Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
 
 				// Download kubeconfig after uploading
-				file, err = ioutil.TempFile("", "tmp")
+				completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+				_, err = userBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
-				s, err := file.Stat()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(s.Size()).ShouldNot(Equal(0))
-				Expect(s.Size()).ShouldNot(Equal(sni.Size()))
 			}
 			By("Try to upload ingress ca second time, do nothing and return ok")
 			{
