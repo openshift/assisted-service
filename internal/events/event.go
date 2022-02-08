@@ -176,36 +176,6 @@ func (e *Events) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, 
 	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, name, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
 }
 
-func (e Events) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
-	var err error
-	var events []*common.Event
-
-	//initialize the selectedCategories either from the filter, if exists, or from the default values
-	selectedCategories := make([]string, 0)
-	if len(categories) > 0 {
-		selectedCategories = categories[:]
-	} else {
-		selectedCategories = append(selectedCategories, DefaultEventCategories...)
-	}
-
-	if hostID == nil {
-		err = e.clusterEventsQuery(&events, selectedCategories, clusterID).Error
-	} else {
-		err = e.hostEventsQuery(&events, selectedCategories, clusterID, hostID).Error
-	}
-	return events, err
-}
-
-func (e Events) clusterEventsQuery(events *[]*common.Event, selectedCategories []string, clusterID strfmt.UUID) *gorm.DB {
-	return e.db.Where("category IN (?)", selectedCategories).Order("event_time").
-		Find(events, "cluster_id = ?", clusterID.String())
-}
-
-func (e Events) hostEventsQuery(events *[]*common.Event, selectedCategories []string, clusterID strfmt.UUID, hostID *strfmt.UUID) *gorm.DB {
-	return e.db.Where("category IN (?)", selectedCategories).Order("event_time").
-		Find(events, "cluster_id = ? AND host_id = ?", clusterID.String(), (*hostID).String())
-}
-
 func (e Events) eventsQuery(ctx context.Context, events *[]*common.Event, selectedCategories []string, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) *gorm.DB {
 	whereCondition := make([]string, 0)
 	user := ocm.UserNameFromContext(ctx)

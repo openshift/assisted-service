@@ -47,9 +47,6 @@ func (c *controllerEventsWrapper) AddMetricsEvent(ctx context.Context, clusterID
 func (c *controllerEventsWrapper) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	// Disable metrics event for the controller since the current operator installations do not work with ELK
 }
-func (c *controllerEventsWrapper) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
-	return c.events.GetEvents(clusterID, hostID, categories...)
-}
 
 func (c *controllerEventsWrapper) V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
 	return c.events.V2GetEvents(ctx, clusterID, hostID, infraEnvID, categories...)
