@@ -1,7 +1,6 @@
 package registry
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/openshift/assisted-service/internal/common"
@@ -12,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,6 +42,8 @@ type ProviderRegistry interface {
 	PreCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
 	// PostCreateManifestsHook allows the provider to perform additional tasks required after the cluster manifests are created
 	PostCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
+	// GetActualSchedulableMasters allows the provider to set the default scheduling of workloads on masters
+	GetActualSchedulableMasters(cluster *common.Cluster) (bool, error)
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package registry -destination mock_registry.go . Registry
@@ -180,4 +182,17 @@ func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
 	providerRegistry.Register(vsphere.NewVsphereProvider(log))
 	providerRegistry.Register(baremetal.NewBaremetalProvider(log))
 	return providerRegistry
+}
+
+func (r *registry) GetActualSchedulableMasters(cluster *common.Cluster) (bool, error) {
+	if cluster == nil || cluster.Platform == nil {
+		return false, errors.New("unable to get the platform type")
+	}
+	currentProviderStr := string(common.PlatformTypeValue(cluster.Platform.Type))
+	currentProvider, err := r.Get(currentProviderStr)
+	if err != nil {
+		return false, errors.Wrapf(err, "error while getting the actual schedulable masters value on platform %s",
+			currentProviderStr)
+	}
+	return currentProvider.GetActualSchedulableMasters(cluster)
 }

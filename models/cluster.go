@@ -235,6 +235,9 @@ type Cluster struct {
 	// Format: date-time
 	UpdatedAt timeext.Time `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// False if the scheduling of workloads on masters has been set by the user through the API.
+	UseSchedulingDefaults *bool `json:"use_scheduling_defaults,omitempty"`
+
 	// Indicate if the networking is managed by the user.
 	UserManagedNetworking *bool `json:"user_managed_networking,omitempty"`
 

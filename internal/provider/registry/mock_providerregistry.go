@@ -82,6 +82,21 @@ func (mr *MockProviderRegistryMockRecorder) Get(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockProviderRegistry)(nil).Get), arg0)
 }
 
+// GetActualSchedulableMasters mocks base method.
+func (m *MockProviderRegistry) GetActualSchedulableMasters(arg0 *common.Cluster) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActualSchedulableMasters", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetActualSchedulableMasters indicates an expected call of GetActualSchedulableMasters.
+func (mr *MockProviderRegistryMockRecorder) GetActualSchedulableMasters(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActualSchedulableMasters", reflect.TypeOf((*MockProviderRegistry)(nil).GetActualSchedulableMasters), arg0)
+}
+
 // GetSupportedProvidersByHosts mocks base method.
 func (m *MockProviderRegistry) GetSupportedProvidersByHosts(arg0 []*models.Host) ([]models.PlatformType, error) {
 	m.ctrl.T.Helper()
