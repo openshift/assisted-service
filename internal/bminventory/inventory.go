@@ -290,9 +290,6 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	if params.NewClusterParams.Hyperthreading == nil {
 		params.NewClusterParams.Hyperthreading = swag.String(models.ClusterHyperthreadingAll)
 	}
-	if params.NewClusterParams.SchedulableMasters == nil {
-		params.NewClusterParams.SchedulableMasters = swag.Bool(false)
-	}
 	if params.NewClusterParams.Platform == nil {
 		params.NewClusterParams.Platform = &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
@@ -311,6 +308,9 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 			EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
 			Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 		}
+	}
+	if params.NewClusterParams.UseSchedulingDefaults == nil {
+		params.NewClusterParams.UseSchedulingDefaults = swag.Bool(true)
 	}
 
 	return params
@@ -465,6 +465,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			HighAvailabilityMode:  params.NewClusterParams.HighAvailabilityMode,
 			Hyperthreading:        swag.StringValue(params.NewClusterParams.Hyperthreading),
 			SchedulableMasters:    params.NewClusterParams.SchedulableMasters,
+			UseSchedulingDefaults: params.NewClusterParams.UseSchedulingDefaults,
 			Platform:              params.NewClusterParams.Platform,
 			ClusterNetworks:       params.NewClusterParams.ClusterNetworks,
 			ServiceNetworks:       params.NewClusterParams.ServiceNetworks,
@@ -475,6 +476,18 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
 		TriggerMonitorTimestamp: time.Now(),
+	}
+
+	if cluster.SchedulableMasters != nil {
+		cluster.UseSchedulingDefaults = swag.Bool(false)
+	}
+	if swag.BoolValue(cluster.UseSchedulingDefaults) {
+		var schedulableMasters bool
+		schedulableMasters, err = b.providerRegistry.GetActualSchedulableMasters(&cluster)
+		if err != nil {
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+		cluster.SchedulableMasters = swag.Bool(schedulableMasters)
 	}
 
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
@@ -2084,10 +2097,28 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
 		}
 	}
+
+	if params.ClusterUpdateParams.UseSchedulingDefaults != nil {
+		useSchedulingDefaults := swag.BoolValue(params.ClusterUpdateParams.UseSchedulingDefaults)
+		updates["use_scheduling_defaults"] = useSchedulingDefaults
+		if useSchedulingDefaults {
+			var schedulableMasters bool
+			schedulableMasters, err = b.providerRegistry.GetActualSchedulableMasters(cluster)
+			if err != nil {
+				msg := fmt.Sprintf("Can't update 'use_scheduling_defaults' to '%t' for cluster %s", useSchedulingDefaults, cluster.ID)
+				log.Error(msg)
+				return common.NewApiError(http.StatusInternalServerError, errors.Errorf(msg))
+			}
+			updates["schedulable_masters"] = schedulableMasters
+			b.setUsage(false, usage.SchedulableMasters, nil, usages)
+		}
+	}
+
 	if params.ClusterUpdateParams.SchedulableMasters != nil {
-		value := swag.BoolValue(params.ClusterUpdateParams.SchedulableMasters)
-		updates["schedulable_masters"] = value
-		b.setUsage(value, usage.SchedulableMasters, nil, usages)
+		schedulableMasters := swag.BoolValue(params.ClusterUpdateParams.SchedulableMasters)
+		updates["schedulable_masters"] = schedulableMasters
+		updates["use_scheduling_defaults"] = false
+		b.setUsage(true, usage.SchedulableMasters, nil, usages)
 	}
 
 	if params.ClusterUpdateParams.DiskEncryption != nil {
@@ -4799,12 +4830,38 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	if err = b.refreshSchedulableMasters(ctx, cluster); err != nil {
+		log.WithError(err).Errorf("Failed to refresh schedulable_masters while binding host <%s> to cluster <%s>",
+			params.HostID, *params.BindHostParams.ClusterID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	host, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	return host, nil
+}
+
+func (b *bareMetalInventory) refreshSchedulableMasters(ctx context.Context, cluster *common.Cluster) error {
+	if swag.BoolValue(cluster.UseSchedulingDefaults) {
+		schedulableMasters, err := b.providerRegistry.GetActualSchedulableMasters(cluster)
+		if err != nil {
+			return errors.Errorf("Failed get actual schedulable masters for cluster %s", cluster.ID)
+		}
+		clusterUpdateParams := installer.V2UpdateClusterParams{
+			ClusterID: *cluster.ID,
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
+				SchedulableMasters: swag.Bool(schedulableMasters),
+			},
+		}
+		_, err = b.UpdateClusterNonInteractive(ctx, clusterUpdateParams)
+		if err != nil {
+			return errors.Errorf("Failed to refresh schedulable_masters on cluster %s", cluster.ID)
+		}
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams) (*common.Host, error) {
@@ -4818,6 +4875,11 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 	}
 	if host.ClusterID == nil {
 		return nil, common.NewApiError(http.StatusConflict, errors.Errorf("Host %s is already unbound", params.HostID))
+	}
+
+	cluster, err := common.GetClusterFromDB(b.db, *host.ClusterID, common.SkipEagerLoading)
+	if err != nil {
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("Failed to find cluster %s", host.ClusterID))
 	}
 
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
@@ -4836,6 +4898,12 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 
 	if _, err = b.refreshClusterStatus(ctx, host.ClusterID, b.db); err != nil {
 		log.WithError(err).Warnf("Failed to refresh cluster after unbind of host <%s>", params.HostID)
+	}
+
+	if err = b.refreshSchedulableMasters(ctx, cluster); err != nil {
+		log.WithError(err).Errorf("Failed to refresh schedulable_masters while unbinding host <%s> from cluster <%s>",
+			params.HostID, *host.ClusterID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	host, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())

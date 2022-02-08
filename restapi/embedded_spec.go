@@ -5513,7 +5513,7 @@ func init() {
         "schedulable_masters": {
           "description": "Schedule workloads on masters",
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
@@ -5581,6 +5581,11 @@ func init() {
             },
             "type": "Time"
           }
+        },
+        "use_scheduling_defaults": {
+          "description": "False if the scheduling of workloads on masters has been set by the user through the API.",
+          "type": "boolean",
+          "default": true
         },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
@@ -5753,7 +5758,7 @@ func init() {
         "schedulable_masters": {
           "description": "Schedule workloads on masters",
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
@@ -5773,6 +5778,11 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string"
+        },
+        "use_scheduling_defaults": {
+          "description": "False if the scheduling of workloads on masters has been set by the user through the API.",
+          "type": "boolean",
+          "default": true
         },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
@@ -8880,7 +8890,7 @@ func init() {
         "schedulable_masters": {
           "description": "Schedule workloads on masters",
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
@@ -8901,6 +8911,11 @@ func init() {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string",
           "x-nullable": true
+        },
+        "use_scheduling_defaults": {
+          "description": "False if the scheduling of workloads on masters has been set by the user through the API.",
+          "type": "boolean",
+          "default": true
         },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
@@ -14635,7 +14650,7 @@ func init() {
         "schedulable_masters": {
           "description": "Schedule workloads on masters",
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
@@ -14703,6 +14718,11 @@ func init() {
             },
             "type": "Time"
           }
+        },
+        "use_scheduling_defaults": {
+          "description": "False if the scheduling of workloads on masters has been set by the user through the API.",
+          "type": "boolean",
+          "default": true
         },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
@@ -14875,7 +14895,7 @@ func init() {
         "schedulable_masters": {
           "description": "Schedule workloads on masters",
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
@@ -14895,6 +14915,11 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string"
+        },
+        "use_scheduling_defaults": {
+          "description": "False if the scheduling of workloads on masters has been set by the user through the API.",
+          "type": "boolean",
+          "default": true
         },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
@@ -17924,7 +17949,7 @@ func init() {
         "schedulable_masters": {
           "description": "Schedule workloads on masters",
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
@@ -17945,6 +17970,11 @@ func init() {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string",
           "x-nullable": true
+        },
+        "use_scheduling_defaults": {
+          "description": "False if the scheduling of workloads on masters has been set by the user through the API.",
+          "type": "boolean",
+          "default": true
         },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",

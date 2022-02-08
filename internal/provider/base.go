@@ -33,4 +33,6 @@ type Provider interface {
 	PreCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
 	// PostCreateManifestsHook allows the provider to perform additional tasks required after the cluster manifests are created
 	PostCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
+	// GetActualSchedulableMasters allows the provider to set the default scheduling of workloads on masters' side
+	GetActualSchedulableMasters(cluster *common.Cluster) (bool, error)
 }
