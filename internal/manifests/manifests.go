@@ -107,7 +107,7 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 }
 
 func (m *Manifests) ListClusterManifests(ctx context.Context, params operations.ListClusterManifestsParams) middleware.Responder {
-	return m.V2ListClusterManifests(ctx, operations.V2ListClusterManifestsParams(params))
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params operations.ListClusterManifestsParams) (models.ListManifests, error) {
@@ -189,11 +189,7 @@ func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params op
 }
 
 func (m *Manifests) DownloadClusterManifest(ctx context.Context, params operations.DownloadClusterManifestParams) middleware.Responder {
-	return m.V2DownloadClusterManifest(ctx, operations.V2DownloadClusterManifestParams{
-		ClusterID: params.ClusterID,
-		FileName:  params.FileName,
-		Folder:    params.Folder,
-	})
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (m *Manifests) V2DownloadClusterManifest(ctx context.Context, params operations.V2DownloadClusterManifestParams) middleware.Responder {

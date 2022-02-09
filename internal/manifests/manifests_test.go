@@ -397,7 +397,7 @@ spec:
 		})
 	})
 
-	Context("ListClusterManifests", func() {
+	Context("V2ListClusterManifests", func() {
 		It("lists manifest from different folders", func() {
 			manifests := []models.Manifest{
 				{
@@ -426,7 +426,7 @@ spec:
 
 			mockListByPrefix(clusterID, files)
 
-			response := manifestsAPI.ListClusterManifests(ctx, operations.ListClusterManifestsParams{
+			response := manifestsAPI.V2ListClusterManifests(ctx, operations.V2ListClusterManifestsParams{
 				ClusterID: *clusterID,
 			})
 			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2ListClusterManifestsOK()))
@@ -442,7 +442,7 @@ spec:
 		It("list manifests for new cluster", func() {
 			clusterID := registerCluster().ID
 			mockListByPrefix(clusterID, []string{})
-			response := manifestsAPI.ListClusterManifests(ctx, operations.ListClusterManifestsParams{
+			response := manifestsAPI.V2ListClusterManifests(ctx, operations.V2ListClusterManifestsParams{
 				ClusterID: *clusterID,
 			})
 			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2ListClusterManifestsOK()))
@@ -452,7 +452,7 @@ spec:
 		})
 
 		It("cluster doesn't exist", func() {
-			response := manifestsAPI.ListClusterManifests(ctx, operations.ListClusterManifestsParams{
+			response := manifestsAPI.V2ListClusterManifests(ctx, operations.V2ListClusterManifestsParams{
 				ClusterID: strfmt.UUID(uuid.New().String()),
 			})
 
@@ -541,7 +541,7 @@ spec:
 			mockS3Client.EXPECT().Download(ctx, gomock.Any()).Return(VoidReadCloser{}, int64(0), nil)
 			addManifestToCluster(clusterID, content, "file-1.yaml", defaultFolder)
 
-			response := manifestsAPI.DownloadClusterManifest(ctx, operations.DownloadClusterManifestParams{
+			response := manifestsAPI.V2DownloadClusterManifest(ctx, operations.V2DownloadClusterManifestParams{
 				ClusterID: *clusterID,
 				FileName:  "file-1.yaml",
 			})
@@ -552,7 +552,7 @@ spec:
 			clusterID := registerCluster().ID
 			mockObjectExists(false)
 
-			response := manifestsAPI.DownloadClusterManifest(ctx, operations.DownloadClusterManifestParams{
+			response := manifestsAPI.V2DownloadClusterManifest(ctx, operations.V2DownloadClusterManifestParams{
 				ClusterID: *clusterID,
 				FileName:  "file-1.yaml",
 			})
@@ -560,7 +560,7 @@ spec:
 		})
 
 		It("cluster doesn't exist", func() {
-			response := manifestsAPI.DownloadClusterManifest(ctx, operations.DownloadClusterManifestParams{
+			response := manifestsAPI.V2DownloadClusterManifest(ctx, operations.V2DownloadClusterManifestParams{
 				ClusterID: strfmt.UUID(uuid.New().String()),
 			})
 

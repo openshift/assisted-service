@@ -57,7 +57,7 @@ spec:
 		var originalFilesAmount int
 
 		By("List files before upload", func() {
-			response, err := userBMClient.Manifests.ListClusterManifests(ctx, &manifests.ListClusterManifestsParams{
+			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: *cluster.ID,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -79,7 +79,7 @@ spec:
 		})
 
 		By("List files after upload", func() {
-			response, err := userBMClient.Manifests.ListClusterManifests(ctx, &manifests.ListClusterManifestsParams{
+			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: *cluster.ID,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -99,7 +99,7 @@ spec:
 		By("download", func() {
 			buffer := new(bytes.Buffer)
 
-			_, err := userBMClient.Manifests.DownloadClusterManifest(ctx, &manifests.DownloadClusterManifestParams{
+			_, err := userBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
 				ClusterID: *cluster.ID,
 				FileName:  manifestFile.FileName,
 				Folder:    &manifestFile.Folder,
@@ -118,7 +118,7 @@ spec:
 		})
 
 		By("List files after delete", func() {
-			response, err := userBMClient.Manifests.ListClusterManifests(ctx, &manifests.ListClusterManifestsParams{
+			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: *cluster.ID,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -159,7 +159,7 @@ spec:
 		})
 
 		By("list manifests", func() {
-			response, err := userBMClient.Manifests.ListClusterManifests(ctx, &manifests.ListClusterManifestsParams{
+			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: clusterID,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -457,7 +457,7 @@ spec:
 					for i, manifestName := range t.expectedManifestsNames {
 
 						manifest := &bytes.Buffer{}
-						_, err := userBMClient.Manifests.DownloadClusterManifest(ctx, &manifests.DownloadClusterManifestParams{
+						_, err := userBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
 							ClusterID: clusterID,
 							FileName:  manifestName,
 							Folder:    &openshiftFolder,
