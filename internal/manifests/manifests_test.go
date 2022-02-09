@@ -100,7 +100,7 @@ var _ = Describe("ClusterManifestTests", func() {
 	}
 	addManifestToCluster := func(clusterID *strfmt.UUID, content, fileName, folderName string) {
 		expectUsageCalls()
-		response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+		response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 			ClusterID: *clusterID,
 			CreateManifestParams: &models.CreateManifestParams{
 				Content:  &content,
@@ -133,7 +133,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			clusterID := registerCluster().ID
 			mockUpload(1)
 			expectUsageCalls()
-			response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
 					Content:  &content,
@@ -151,7 +151,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			clusterID := registerCluster().ID
 			mockUpload(1)
 			expectUsageCalls()
-			response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
 					Content:  &content,
@@ -170,7 +170,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			clusterID := registerCluster().ID
 			mockUpload(2)
 			expectUsageCalls()
-			response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
 					Content:  &content,
@@ -184,7 +184,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
 
 			expectUsageCalls()
-			response = manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+			response = manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
 					Content:  &content,
@@ -199,7 +199,7 @@ var _ = Describe("ClusterManifestTests", func() {
 		})
 
 		It("cluster doesn't exist", func() {
-			response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: strfmt.UUID(uuid.New().String()),
 				CreateManifestParams: &models.CreateManifestParams{
 					Content:  &content,
@@ -215,7 +215,7 @@ var _ = Describe("ClusterManifestTests", func() {
 		It("fails due to non-base64 file content", func() {
 			clusterID := registerCluster().ID
 			invalidContent := "not base64 content"
-			response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
 					Content:  &invalidContent,
@@ -235,7 +235,7 @@ var _ = Describe("ClusterManifestTests", func() {
 				fileName := "99-openshift-machineconfig-master-kargs.json"
 				mockUpload(1)
 				expectUsageCalls()
-				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
 						Content:  &jsonContent,
@@ -254,7 +254,7 @@ var _ = Describe("ClusterManifestTests", func() {
 				fileName := "99-openshift-machineconfig-master-kargs.yml"
 				mockUpload(1)
 				expectUsageCalls()
-				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
 						Content:  &content,
@@ -315,7 +315,7 @@ spec:
 `)
 				mockUpload(1)
 				expectUsageCalls()
-				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
 						Content:  &aContent,
@@ -333,7 +333,7 @@ spec:
 				clusterID := registerCluster().ID
 				fileName := "99-test.json"
 				invalidJSONContent := encodeToBase64("not a valid JSON content")
-				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
 						Content:  &invalidJSONContent,
@@ -350,7 +350,7 @@ spec:
 				clusterID := registerCluster().ID
 				fileName := "99-test.yml"
 				invalidYAMLContent := encodeToBase64("not a valid YAML content")
-				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
 						Content:  &invalidYAMLContent,
@@ -366,7 +366,7 @@ spec:
 			It("fails for manifest with unsupported extension", func() {
 				clusterID := registerCluster().ID
 				fileName := "99-test.txt"
-				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
 						Content:  &content,
@@ -382,7 +382,7 @@ spec:
 			It("fails for filename that contains folder in the name", func() {
 				clusterID := registerCluster().ID
 				fileNameWithFolder := "openshift/99-test.yaml"
-				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
 						Content:  &content,
@@ -462,7 +462,7 @@ spec:
 		})
 	})
 
-	Context("DeleteClusterManifest", func() {
+	Context("V2DeleteClusterManifest", func() {
 		It("deletes manifest from default folder", func() {
 			clusterID := registerCluster().ID
 			mockUpload(1)
@@ -470,7 +470,7 @@ spec:
 			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, defaultFolder, "file-1.yaml")).Return(true, nil)
 			addManifestToCluster(clusterID, content, "file-1.yaml", defaultFolder)
 
-			response := manifestsAPI.DeleteClusterManifest(ctx, operations.DeleteClusterManifestParams{
+			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
 				ClusterID: *clusterID,
 				FileName:  "file-1.yaml",
 			})
@@ -484,7 +484,7 @@ spec:
 			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, validFolder, "file-1.yaml")).Return(true, nil)
 			addManifestToCluster(clusterID, content, "file-1.yaml", validFolder)
 
-			response := manifestsAPI.DeleteClusterManifest(ctx, operations.DeleteClusterManifestParams{
+			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
 				ClusterID: *clusterID,
 				FileName:  "file-1.yaml",
 				Folder:    &validFolder,
@@ -496,7 +496,7 @@ spec:
 			clusterID := registerCluster().ID
 			mockObjectExists(false)
 
-			response := manifestsAPI.DeleteClusterManifest(ctx, operations.DeleteClusterManifestParams{
+			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
 				ClusterID: *clusterID,
 				FileName:  "file-1.yaml",
 			})
@@ -504,7 +504,7 @@ spec:
 		})
 
 		It("cluster doesn't exist", func() {
-			response := manifestsAPI.DeleteClusterManifest(ctx, operations.DeleteClusterManifestParams{
+			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
 				ClusterID: strfmt.UUID(uuid.New().String()),
 				FileName:  "file-1.yaml",
 			})
@@ -523,7 +523,7 @@ spec:
 				},
 			}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-			response := manifestsAPI.DeleteClusterManifest(ctx, operations.DeleteClusterManifestParams{
+			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
 				ClusterID: *cluster.ID,
 				FileName:  "file-1.yaml",
 			})

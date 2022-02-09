@@ -72,8 +72,8 @@ var _ = Describe("Operators manager", func() {
 			cluster.MonitoredOperators = manager.GetSupportedOperatorsByType(models.OperatorTypeOlm)
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).DoAndReturn(
-				func(ctx context.Context, params operations.CreateClusterManifestParams) middleware.Responder {
+			manifestsAPI.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(ctx context.Context, params operations.V2CreateClusterManifestParams) middleware.Responder {
 					manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
 					if err != nil {
 						return common.GenerateErrorResponder(err)
@@ -94,7 +94,7 @@ var _ = Describe("Operators manager", func() {
 			}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(6)
+			manifestsAPI.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(6)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -104,7 +104,7 @@ var _ = Describe("Operators manager", func() {
 			}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(3)
+			manifestsAPI.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(3)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -115,7 +115,7 @@ var _ = Describe("Operators manager", func() {
 			}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(6)
+			manifestsAPI.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewV2CreateClusterManifestCreated()).Times(6)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 	})

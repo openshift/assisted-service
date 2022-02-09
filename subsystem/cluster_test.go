@@ -2835,7 +2835,7 @@ spec:
 					FileName: "99-openshift-machineconfig-master-kargs.yaml",
 					Folder:   "openshift",
 				}
-				response, err := userBMClient.Manifests.CreateClusterManifest(ctx, &manifests.CreateClusterManifestParams{
+				response, err := userBMClient.Manifests.V2CreateClusterManifest(ctx, &manifests.V2CreateClusterManifestParams{
 					ClusterID: clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
 						Content:  &base64Content,

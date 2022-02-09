@@ -53,7 +53,7 @@ type Manifests struct {
 }
 
 func (m *Manifests) CreateClusterManifest(ctx context.Context, params operations.CreateClusterManifestParams) middleware.Responder {
-	return m.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams(params))
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params operations.CreateClusterManifestParams) (*models.Manifest, error) {
@@ -139,7 +139,7 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 }
 
 func (m *Manifests) DeleteClusterManifest(ctx context.Context, params operations.DeleteClusterManifestParams) middleware.Responder {
-	return m.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams(params))
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params operations.DeleteClusterManifestParams) error {
