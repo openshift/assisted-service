@@ -320,19 +320,27 @@ var _ = Describe("Cluster", func() {
 
 		validPublicKey := sshPublicKey
 
+		//update host roles with v2 UpdateHost request
+		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *host1.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *host2.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
 		c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
 				SSHPublicKey: &validPublicKey,
-				HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-					{
-						ID:   *host1.ID,
-						Role: models.HostRoleUpdateParamsMaster,
-					},
-					{
-						ID:   *host2.ID,
-						Role: models.HostRoleUpdateParamsWorker,
-					},
-				},
 			},
 			ClusterID: clusterID,
 		})
@@ -2414,14 +2422,14 @@ var _ = Describe("cluster install", func() {
 			It("cancel installation with a disabled host", func() {
 				By("register a new worker")
 				disabledHost := registerNode(ctx, clusterID, "hostname", defaultCIDRv4)
-				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
+				_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+					HostUpdateParams: &models.HostUpdateParams{
+						HostRole: swag.String(string(models.HostRoleWorker)),
 					},
-					},
-					ClusterID: clusterID,
+					HostID:     *disabledHost.ID,
+					InfraEnvID: clusterID,
 				})
-				Expect(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				By("disable worker")
 				_, err = userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
@@ -2620,12 +2628,12 @@ var _ = Describe("cluster install", func() {
 						}
 					}
 					h := registerNode(ctx, clusterID, "hostname", defaultCIDRv4)
-					_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-						ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-							{ID: *h.ID, Role: models.HostRoleUpdateParamsMaster},
+					_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+						HostUpdateParams: &models.HostUpdateParams{
+							HostRole: swag.String(string(models.HostRoleMaster)),
 						},
-						},
-						ClusterID: clusterID,
+						HostID:     *h.ID,
+						InfraEnvID: clusterID,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -2701,14 +2709,14 @@ var _ = Describe("cluster install", func() {
 			It("reset cluster with a disabled host", func() {
 				By("register a new worker")
 				disabledHost := registerNode(ctx, clusterID, "hostname", defaultCIDRv4)
-				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
+				_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+					HostUpdateParams: &models.HostUpdateParams{
+						HostRole: swag.String(string(models.HostRoleWorker)),
 					},
-					},
-					ClusterID: clusterID,
+					HostID:     *disabledHost.ID,
+					InfraEnvID: clusterID,
 				})
-				Expect(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				By("disable worker")
 				_, err = userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
@@ -2757,14 +2765,14 @@ var _ = Describe("cluster install", func() {
 			It("reset cluster with hosts after reboot and one disabled host", func() {
 				By("register a new worker")
 				disabledHost := registerNode(ctx, clusterID, "hostname", defaultCIDRv4)
-				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
+				_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+					HostUpdateParams: &models.HostUpdateParams{
+						HostRole: swag.String(string(models.HostRoleWorker)),
 					},
-					},
-					ClusterID: clusterID,
+					HostID:     *disabledHost.ID,
+					InfraEnvID: clusterID,
 				})
-				Expect(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				By("disable worker")
 				_, err = userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
@@ -2894,11 +2902,25 @@ spec:
 		ingressVip := "1.2.3.6"
 
 		By("Two hosts are masters, one host is without role  -> state must be insufficient")
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *hosts[1].ID, Role: models.HostRoleUpdateParamsMaster},
+		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
 			},
+			HostID:     *hosts[0].ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *hosts[1].ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
 				APIVip:     &apiVip,
 				IngressVip: &ingressVip,
 			},
@@ -2908,13 +2930,28 @@ spec:
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout, clusterInsufficientStateInfo)
 
 		// add host and 2 workers (h4 has no inventory) --> insufficient state due to single worker
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *hosts[2].ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
-				{ID: *h5.ID, Role: models.HostRoleUpdateParamsWorker},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *hosts[2].ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h4.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h5.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout, clusterInsufficientStateInfo)
@@ -2923,11 +2960,12 @@ spec:
 		generateEssentialHostSteps(ctx, h4, "h4", newIPs[1])
 		// update role for the host4 to master -> state must be ready
 		generateFullMeshConnectivity(ctx, ips[0], hosts[0], hosts[1], hosts[2], h4, h5)
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h4.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
@@ -2946,12 +2984,32 @@ spec:
 		ingressVip := "1.2.3.6"
 
 		By("All hosts are workers -> state must be insufficient")
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *wh1.ID, Role: models.HostRoleUpdateParamsWorker},
-				{ID: *wh2.ID, Role: models.HostRoleUpdateParamsWorker},
-				{ID: *wh3.ID, Role: models.HostRoleUpdateParamsWorker},
+		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
 			},
+			HostID:     *wh1.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *wh2.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *wh3.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
 				APIVip:            &apiVip,
 				IngressVip:        &ingressVip,
@@ -2992,62 +3050,85 @@ spec:
 		Expect(*mh3.ID).To(BeElementOf(hids...))
 
 		By("Only two masters -> state must be insufficient")
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *mh1.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *mh2.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *mh3.ID, Role: models.HostRoleUpdateParamsWorker},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *mh1.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *mh2.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *mh3.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout, clusterInsufficientStateInfo)
 
 		By("Three master hosts -> state must be ready")
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *mh3.ID, Role: models.HostRoleUpdateParamsMaster},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *mh3.ID,
+			InfraEnvID: clusterID,
 		})
-		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, mh3)
-
 		Expect(err).NotTo(HaveOccurred())
+
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, mh3)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout, clusterReadyStateInfo)
 
 		By("Back to two master hosts -> state must be insufficient")
-		cluster, updateErr := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *mh3.ID, Role: models.HostRoleUpdateParamsWorker},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *mh3.ID,
+			InfraEnvID: clusterID,
 		})
-		Expect(updateErr).NotTo(HaveOccurred())
-		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal(models.ClusterStatusInsufficient))
-		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+		Expect(err).NotTo(HaveOccurred())
+
+		cluster = getCluster(clusterID)
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
+		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
 		By("Three master hosts -> state must be ready")
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *mh3.ID, Role: models.HostRoleUpdateParamsMaster},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *mh3.ID,
+			InfraEnvID: clusterID,
 		})
-		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, mh3)
-
 		Expect(err).NotTo(HaveOccurred())
+
+		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForHostStateTimeout, mh3)
 		waitForClusterState(ctx, clusterID, "ready", 60*time.Second, clusterReadyStateInfo)
 
 		By("Back to two master hosts -> state must be insufficient")
-		cluster, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *mh3.ID, Role: models.HostRoleUpdateParamsWorker},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *mh3.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal(models.ClusterStatusInsufficient))
-		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+
+		cluster = getCluster(clusterID)
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
+		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
 		_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
@@ -3097,16 +3178,40 @@ spec:
 
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h1)
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h2.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h3.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
-			}},
-			ClusterID: clusterID,
+
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h1.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h2.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h3.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h4.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
 		By("validate that host 1 is insufficient")
 		waitForHostState(ctx, clusterID, models.HostStatusInsufficient, defaultWaitForClusterStateTimeout, h1)
 	})
@@ -3115,11 +3220,12 @@ spec:
 		clusterID := *cluster.ID
 		//define h1 as known master
 		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
-			}},
-			ClusterID: clusterID,
+		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *hosts[0].ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -3143,16 +3249,39 @@ spec:
 
 		By("Verifying install command")
 		//install cluster should fail because only 2 hosts are known
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *hosts[1].ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *hosts[2].ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h1.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *hosts[1].ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *hosts[2].ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h4.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
 		_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 		Expect(err).Should(HaveOccurred())
 
@@ -3160,11 +3289,12 @@ spec:
 		disabledHost := registerNode(ctx, clusterID, "h1", newIPs[1])
 		disabledHost = getHost(clusterID, *disabledHost.ID)
 		waitForHostState(ctx, clusterID, models.HostStatusInsufficient, defaultWaitForHostStateTimeout, disabledHost)
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *disabledHost.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -3186,11 +3316,12 @@ spec:
 
 		By("add one more worker to get 2 functioning workers")
 		h5 := registerNode(ctx, clusterID, "h5", newIPs[1])
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h5.ID, Role: models.HostRoleUpdateParamsWorker},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h5.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
@@ -3208,11 +3339,12 @@ spec:
 		clusterID := *cluster.ID
 
 		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
-			}},
-			ClusterID: clusterID,
+		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *hosts[0].ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -3275,13 +3407,28 @@ spec:
 	It("set_requested_hostnames", func() {
 		clusterID := *cluster.ID
 		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *hosts[1].ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *hosts[2].ID, Role: models.HostRoleUpdateParamsMaster},
-			}},
-			ClusterID: clusterID,
+		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *hosts[0].ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *hosts[1].ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *hosts[2].ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -3328,33 +3475,42 @@ spec:
 		waitForHostState(ctx, clusterID, models.HostStatusInsufficient, time.Minute, h1, h5)
 
 		By("Change requested hostname of an insufficient node")
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
-				HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-					{ID: *hosts[0].ID, Hostname: "reqh0new"},
-				},
-				HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-					{ID: *h5.ID, Role: models.HostRoleUpdateParamsWorker},
-				},
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
 			},
-			ClusterID: clusterID,
+			HostID:     *h5.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostName: swag.String("reqh0new"),
+			},
+			HostID:     *hosts[0].ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, time.Minute, h1, h5)
 
 		By("change the requested hostname of the insufficient node")
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
-				HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-					{ID: *h3.ID, Hostname: "reqh2"},
-				},
-				HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-					{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
-				},
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
 			},
-			ClusterID: clusterID,
+			HostID:     *h4.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostName: swag.String("reqh2"),
+			},
+			HostID:     *h3.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, time.Minute, h3)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, time.Minute, clusterReadyStateInfo)
 		_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
@@ -3630,17 +3786,18 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int, clusterName s
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
 		host := registerNode(ctx, clusterID, hostname, ips[i])
-		var role models.HostRoleUpdateParams
+		var role models.HostRole
 		if i < 3 {
-			role = models.HostRoleUpdateParamsMaster
+			role = models.HostRoleMaster
 		} else {
-			role = models.HostRoleUpdateParamsWorker
+			role = models.HostRoleWorker
 		}
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *host.ID, Role: role},
-			}},
-			ClusterID: clusterID,
+		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(role)),
+			},
+			HostID:     *host.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		hosts = append(hosts, host)
@@ -3709,17 +3866,18 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int, clusterNa
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
 		host := registerNode(ctx, clusterID, hostname, ips[i])
-		var role models.HostRoleUpdateParams
+		var role models.HostRole
 		if i < 3 {
-			role = models.HostRoleUpdateParamsMaster
+			role = models.HostRoleMaster
 		} else {
-			role = models.HostRoleUpdateParamsWorker
+			role = models.HostRoleWorker
 		}
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *host.ID, Role: role},
-			}},
-			ClusterID: clusterID,
+		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(role)),
+			},
+			HostID:     *host.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		hosts = append(hosts, host)
@@ -4111,13 +4269,28 @@ var _ = Describe("Ovirt provider tests", func() {
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h1)
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h2)
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h3)
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h2.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h3.ID, Role: models.HostRoleUpdateParamsMaster},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h1.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h2.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h3.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -4165,15 +4338,44 @@ var _ = Describe("Ovirt provider tests", func() {
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h3)
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h4)
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h5)
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h2.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h3.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
-				{ID: *h5.ID, Role: models.HostRoleUpdateParamsWorker},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h1.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h2.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h3.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h4.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h5.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -4271,13 +4473,28 @@ var _ = Describe("Ovirt provider tests", func() {
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h1)
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h2)
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h3)
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h2.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h3.ID, Role: models.HostRoleUpdateParamsMaster},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h1.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h2.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h3.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -4325,15 +4542,44 @@ var _ = Describe("Ovirt provider tests", func() {
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h3)
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h4)
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h5)
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h2.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h3.ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
-				{ID: *h5.ID, Role: models.HostRoleUpdateParamsWorker},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h1.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h2.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h3.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h4.ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h5.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 

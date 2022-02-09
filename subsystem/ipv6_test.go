@@ -101,17 +101,18 @@ func registerHostsAndSetRolesV6(clusterID strfmt.UUID, numHosts int) []*models.H
 		host := &registerHost(clusterID).Host
 		validHwInfoV6.Interfaces[0].IPV6Addresses = []string{ips[i]}
 		generateEssentialHostStepsWithInventory(ctx, host, hostname, validHwInfoV6)
-		var role models.HostRoleUpdateParams
+		var role models.HostRole
 		if i < 3 {
-			role = models.HostRoleUpdateParamsMaster
+			role = models.HostRoleMaster
 		} else {
-			role = models.HostRoleUpdateParamsWorker
+			role = models.HostRoleWorker
 		}
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *host.ID, Role: role},
-			}},
-			ClusterID: clusterID,
+		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(role)),
+			},
+			HostID:     *host.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		hosts = append(hosts, host)
