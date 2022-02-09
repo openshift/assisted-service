@@ -15,15 +15,24 @@ const MinMachineMaskDelta = 4
 // Minimum mask size for Machine CIDR to allow at least 2 addresses
 const MinSNOMachineMaskDelta = 1
 
+// When illegal CIDR is passed to net.ParseCIDR, the error message might be misleading in case the cidr is empty
+func parseCIDR(cidr string) (ip net.IP, ipnet *net.IPNet, err error) {
+	ip, ipnet, err = net.ParseCIDR(cidr)
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to parse CIDR '%s'", cidr)
+	}
+	return
+}
+
 func netsOverlap(aCidrStr, bCidrStr string) error {
 	if aCidrStr == "" || bCidrStr == "" {
 		return nil
 	}
-	_, acidr, err := net.ParseCIDR(aCidrStr)
+	_, acidr, err := parseCIDR(aCidrStr)
 	if err != nil {
 		return err
 	}
-	_, bcidr, err := net.ParseCIDR(bCidrStr)
+	_, bcidr, err := parseCIDR(bCidrStr)
 	if err != nil {
 		return err
 	}
@@ -35,7 +44,7 @@ func netsOverlap(aCidrStr, bCidrStr string) error {
 }
 
 func verifySubnetCIDR(cidrStr string, minSubnetMaskSize int) error {
-	ip, cidr, err := net.ParseCIDR(cidrStr)
+	ip, cidr, err := parseCIDR(cidrStr)
 	if err != nil {
 		return err
 	}
@@ -80,7 +89,7 @@ func min(x, y int) int {
 }
 
 func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, numberOfHosts int) error {
-	_, cidr, err := net.ParseCIDR(clusterNetworkCIDR)
+	_, cidr, err := parseCIDR(clusterNetworkCIDR)
 	if err != nil {
 		return err
 	}
