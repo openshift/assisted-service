@@ -5279,7 +5279,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks (new API) - invalid CIDR, ClusterNetwork", func() {
@@ -5291,7 +5291,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks (old API) - invalid CIDR, ClusterNetwork", func() {
@@ -5301,7 +5301,7 @@ var _ = Describe("cluster", func() {
 							ClusterNetworkCidr: swag.String(""),
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks (new API - invalid HostPrefix, ClusterNetwork", func() {
@@ -5313,7 +5313,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks (old API) - invalid HostPrefix, ClusterNetwork", func() {
@@ -5335,7 +5335,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks - invalid CIDR, ServiceNetwork", func() {
@@ -5347,7 +5347,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks - invalid empty MachineNetwork", func() {
@@ -5359,7 +5359,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR '': Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks - invalid CIDR, MachineNetwork", func() {
@@ -5371,7 +5371,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: ""}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR '': Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Override networks with new API", func() {
@@ -7228,7 +7228,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks - invalid CIDR, ClusterNetwork", func() {
@@ -7240,7 +7240,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks - invalid HostPrefix, ClusterNetwork", func() {
@@ -7252,7 +7252,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks - invalid empty ServiceNetwork", func() {
@@ -7264,7 +7264,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks - invalid CIDR, ServiceNetwork", func() {
@@ -7276,7 +7276,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks - invalid empty MachineNetwork", func() {
@@ -7288,7 +7288,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR '': Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Empty networks - invalid CIDR, MachineNetwork", func() {
@@ -7300,7 +7300,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: ""}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR : invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR '': Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
 				It("Override networks", func() {
