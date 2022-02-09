@@ -143,21 +143,6 @@ func (mr *MockInstallerInternalsMockRecorder) DownloadClusterFilesInternal(arg0,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadClusterFilesInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DownloadClusterFilesInternal), arg0, arg1)
 }
 
-// GenerateClusterISOInternal mocks base method.
-func (m *MockInstallerInternals) GenerateClusterISOInternal(arg0 context.Context, arg1 installer.GenerateClusterISOParams) (*common.Cluster, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateClusterISOInternal", arg0, arg1)
-	ret0, _ := ret[0].(*common.Cluster)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GenerateClusterISOInternal indicates an expected call of GenerateClusterISOInternal.
-func (mr *MockInstallerInternalsMockRecorder) GenerateClusterISOInternal(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateClusterISOInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GenerateClusterISOInternal), arg0, arg1)
-}
-
 // GetClusterByKubeKey mocks base method.
 func (m *MockInstallerInternals) GetClusterByKubeKey(arg0 types.NamespacedName) (*common.Cluster, error) {
 	m.ctrl.T.Helper()

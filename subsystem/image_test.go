@@ -9,7 +9,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -51,7 +50,6 @@ var _ = Describe("system-test image tests", func() {
 				Expect(err).NotTo(HaveOccurred())
 				clusterID := *registerResp.GetPayload().ID
 
-				By("Generate ISO")
 				macInterfaceMap := models.MacInterfaceMap{
 					&models.MacInterfaceMapItems0{
 						LogicalNicName: "eth0",
@@ -67,7 +65,7 @@ var _ = Describe("system-test image tests", func() {
 				getResp, err := userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
 					InfraenvCreateParams: &models.InfraEnvCreateParams{
 						Name:                swag.String("iso-test-infra-env"),
-						OpenshiftVersion:    openshiftVersion,
+						OpenshiftVersion:    ocpVersion,
 						PullSecret:          swag.String(pullSecret),
 						SSHAuthorizedKey:    swag.String(sshPublicKey),
 						ImageType:           imageType,
@@ -92,55 +90,6 @@ var _ = Describe("system-test image tests", func() {
 	for _, imageType := range []models.ImageType{models.ImageTypeFullIso, models.ImageTypeMinimalIso} {
 		assertImageGenerates(imageType)
 	}
-})
-
-var _ = Describe("system-test proxy update tests", func() {
-	var (
-		ctx       = context.Background()
-		cluster   *installer.V2RegisterClusterCreated
-		clusterID strfmt.UUID
-	)
-
-	BeforeEach(func() {
-		var err error
-		cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(openshiftVersion),
-				PullSecret:       swag.String(pullSecret),
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-		clusterID = *cluster.GetPayload().ID
-	})
-
-	It("generate_image_after_proxy_was_set", func() {
-		// Generate infraEnv and ISO without proxy configured
-		infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
-
-		// Update cluster with proxy settings
-		httpProxy := "http://proxyserver:3128"
-		noProxy := "test.com"
-
-		_, err := userBMClient.Installer.UpdateInfraEnv(ctx, &installer.UpdateInfraEnvParams{
-			InfraEnvID: *infraEnvID,
-			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
-				Proxy: &models.Proxy{
-					HTTPProxy: &httpProxy,
-					NoProxy:   &noProxy,
-				},
-			},
-		})
-		Expect(err).ShouldNot(HaveOccurred())
-
-		//Note: Proxy settings changed event is not emitted in V2 API
-
-		// at least 10s must elapse between requests to generate the same ISO
-		time.Sleep(time.Second * 10)
-
-		// Generate infraEnv and ISO with proxy configured
-		_ = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
-	})
 })
 
 func verifyEventExistence(ClusterID strfmt.UUID, message string) {
