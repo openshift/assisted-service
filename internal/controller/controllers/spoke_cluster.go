@@ -3,11 +3,12 @@ package controllers
 import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func getSpokeClient(secret *corev1.Secret) (client.Client, error) {
+func getRestConfig(secret *corev1.Secret) (*rest.Config, error) {
 	if secret.Data == nil {
 		return nil, errors.Errorf("Secret %s/%s  does not contain any data", secret.Namespace, secret.Name)
 	}
@@ -21,9 +22,17 @@ func getSpokeClient(secret *corev1.Secret) (client.Client, error) {
 	}
 	restConfig, err := clientConfig.ClientConfig()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get restconfig for spoke kube client")
+		return nil, errors.Wrapf(err, "failed to get restconfig for kube client")
 	}
 
+	return restConfig, nil
+}
+
+func getSpokeClient(secret *corev1.Secret) (client.Client, error) {
+	restConfig, err := getRestConfig(secret)
+	if err != nil {
+		return nil, err
+	}
 	schemes := GetKubeClientSchemes()
 	targetClient, err := client.New(restConfig, client.Options{Scheme: schemes})
 	if err != nil {

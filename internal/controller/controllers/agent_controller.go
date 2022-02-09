@@ -42,7 +42,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
+	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -60,13 +62,15 @@ const (
 // AgentReconciler reconciles a Agent object
 type AgentReconciler struct {
 	client.Client
-	APIReader        client.Reader
-	Log              logrus.FieldLogger
-	Scheme           *runtime.Scheme
-	Installer        bminventory.InstallerInternals
-	CRDEventsHandler CRDEventsHandler
-	ServiceBaseURL   string
-	AuthType         auth.AuthType
+	APIReader                  client.Reader
+	Log                        logrus.FieldLogger
+	Scheme                     *runtime.Scheme
+	Installer                  bminventory.InstallerInternals
+	CRDEventsHandler           CRDEventsHandler
+	ServiceBaseURL             string
+	AuthType                   auth.AuthType
+	SpokeK8sClientFactory      SpokeK8sClientFactory
+	ApproveCsrsRequeueDuration time.Duration
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
@@ -204,6 +208,93 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, nil, false)
 }
 
+func (r *AgentReconciler) shouldApproveMoreCSRs(node *corev1.Node) bool {
+	return !isNodeReady(node)
+}
+
+// Validate that the CSR can be approved
+func (r *AgentReconciler) shouldApproveCSR(csr *certificatesv1.CertificateSigningRequest, agent *aiv1beta1.Agent, validateNodeCsr nodeCsrValidator) (bool, error) {
+	x509CSR, err := getX509ParsedRequest(csr)
+	if err != nil {
+		return false, err
+	}
+	if !isCsrAssociatedWithAgent(x509CSR, agent) {
+		return false, nil
+	}
+
+	return validateNodeCsr(agent, csr, x509CSR)
+}
+
+func (r *AgentReconciler) approveAIHostsCSRs(clients SpokeK8sClient, agent *aiv1beta1.Agent, validateNodeCsr nodeCsrValidator) {
+	csrList, err := clients.ListCsrs()
+	if err != nil {
+		r.Log.WithError(err).Errorf("Failed to get CSRs for agent %s/%s", agent.Namespace, agent.Name)
+		return
+	}
+	for i := range csrList.Items {
+		csr := &csrList.Items[i]
+		if !isCsrApproved(csr) {
+			shouldApprove, err := r.shouldApproveCSR(csr, agent, validateNodeCsr)
+			if err != nil || !shouldApprove {
+				if err != nil {
+					r.Log.WithError(err).Errorf("Failed checking if CSR %s should be approved for agent %s/%s",
+						csr.Name, agent.Namespace, agent.Name)
+				}
+				continue
+			}
+			if err = clients.ApproveCsr(csr); err != nil {
+				r.Log.WithError(err).Errorf("Failed to approve CSR %s for agent %s/%s", csr.Name, agent.Namespace, agent.Name)
+				continue
+			}
+		}
+	}
+}
+
+// Attempt to approve CSRs for agent. If already approved then the node will be marked as done
+// requeue means that approval will be attempted again
+func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1beta1.Agent) bool {
+	r.Log.Infof("Approving CSRs for agent %s/%s", agent.Namespace, agent.Name)
+	namespacedName := types.NamespacedName{
+		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Name:      fmt.Sprintf(adminKubeConfigStringTemplate, agent.Spec.ClusterDeploymentName.Name),
+	}
+
+	secret, err := getSecret(ctx, r.Client, r.APIReader, namespacedName)
+	if err != nil {
+		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to get secret", agent.Namespace, agent.Name)
+		return false
+	}
+	clients, err := r.SpokeK8sClientFactory.Create(secret)
+	if err != nil {
+		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
+		return false
+	}
+	hostname := getAgentHostname(agent)
+	var (
+		validateNodeCsr       nodeCsrValidator
+		shouldApproveMoreCSRs bool
+	)
+
+	// TODO: Node name might be FQDN and not just host name if cluster is IPv6
+	node, err := clients.GetNode(hostname)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			r.Log.WithError(err).Errorf("Agent %s/%s: Failed to get node %s", agent.Namespace, agent.Name, hostname)
+			return false
+		}
+		validateNodeCsr = validateNodeClientCSR
+		shouldApproveMoreCSRs = true
+	} else {
+		validateNodeCsr = createNodeServerCsrValidator(node)
+		shouldApproveMoreCSRs = r.shouldApproveMoreCSRs(node)
+	}
+
+	// Even if node is already ready, we try approving last time
+	r.approveAIHostsCSRs(clients, agent, validateNodeCsr)
+
+	return !shouldApproveMoreCSRs
+}
+
 func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *common.Host) (ctrl.Result, error) {
 	host, err2 := r.Installer.UnbindHostInternal(ctx, installer.UnbindHostParams{
 		HostID:     *h.ID,
@@ -272,11 +363,32 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 	return buildReply(nil)
 }
 
+func (r *AgentReconciler) isDay2NonePlatformHostRebooting(ctx context.Context, agent *aiv1beta1.Agent, h *models.Host) (bool, error) {
+	if swag.StringValue(h.Status) == models.HostStatusAddedToExistingCluster &&
+		h.Progress.CurrentStage == models.HostStageDone {
+		if agent.Status.Progress.CurrentStage == models.HostStageDone {
+			return false, nil
+		} else {
+			isNone, err := isAgentInNonePlatformCluster(ctx, r.Client, agent)
+			if err != nil {
+				return false, err
+			}
+			return isNone, nil
+		}
+	}
+	return false, nil
+}
+
 // updateStatus is updating all the Agent Conditions.
 // In case that an error has ocurred when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
 func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *models.Host, clusterId *strfmt.UUID, syncErr error, internal bool) (ctrl.Result, error) {
 
+	var (
+		err                 error
+		isNoneDay2Rebooting bool
+	)
+	ret := ctrl.Result{}
 	specSynced(agent, syncErr, internal)
 
 	if h != nil && h.Status != nil {
@@ -290,7 +402,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 
 		if h.ValidationsInfo != "" {
 			newValidationsInfo := ValidationsStatus{}
-			err := json.Unmarshal([]byte(h.ValidationsInfo), &newValidationsInfo)
+			err = json.Unmarshal([]byte(h.ValidationsInfo), &newValidationsInfo)
 			if err != nil {
 				log.WithError(err).Error("failed to umarshed ValidationsInfo")
 				return ctrl.Result{}, err
@@ -299,7 +411,16 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		}
 
 		if h.Progress != nil && h.Progress.CurrentStage != "" {
-			agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
+			if isNoneDay2Rebooting, err = r.isDay2NonePlatformHostRebooting(ctx, agent, h); err != nil {
+				log.WithError(err).Errorf("Failed to find if agent %s/%s belongs to none platform cluster and is rebooting", agent.Namespace, agent.Name)
+				return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
+			}
+
+			if isNoneDay2Rebooting {
+				agent.Status.Progress.CurrentStage = models.HostStageRebooting
+			} else {
+				agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
+			}
 			agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo
 			agent.Status.Progress.InstallationPercentage = h.Progress.InstallationPercentage
 			stageStartTime := metav1.NewTime(time.Time(h.Progress.StageStartedAt))
@@ -333,6 +454,14 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	} else {
 		setConditionsUnknown(agent)
 	}
+	if isNoneDay2Rebooting {
+		alreadyApproved := r.tryApproveDay2CSRs(ctx, agent)
+		if alreadyApproved {
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+		} else {
+			ret = ctrl.Result{RequeueAfter: r.ApproveCsrsRequeueDuration}
+		}
+	}
 	if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
 		log.WithError(updateErr).Error("failed to update agent Status")
 		return ctrl.Result{Requeue: true}, nil
@@ -340,7 +469,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	if syncErr != nil && internal {
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 	}
-	return ctrl.Result{}, nil
+	return ret, nil
 }
 
 func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, infraEnvId string) error {

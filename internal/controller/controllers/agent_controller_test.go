@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	common_api "github.com/openshift/assisted-service/api/common"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
@@ -24,6 +25,7 @@ import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -1241,6 +1243,505 @@ var _ = Describe("agent reconcile", func() {
 
 	})
 
+})
+
+type notFoundError struct{}
+
+func (n *notFoundError) Status() metav1.Status {
+	return metav1.Status{
+		Reason: metav1.StatusReasonNotFound,
+	}
+}
+
+func (n *notFoundError) Error() string {
+	return "Stam"
+}
+
+var _ = Describe("Approve CSRs", func() {
+	/* Decoded output of PEM formatted client CSR
+
+	Certificate Request:
+	    Data:
+	        Version: 1 (0x0)
+	        Subject: O = system:nodes, CN = system:node:ostest-extraworker-3
+	        Subject Public Key Info:
+	            Public Key Algorithm: id-ecPublicKey
+	                Public-Key: (256 bit)
+	                pub:
+	                    04:f3:d3:02:4d:a3:b4:33:47:94:54:20:36:e4:e0:
+	                    60:53:46:50:33:71:3d:17:2d:a8:d0:c9:c9:22:5d:
+	                    08:f1:a3:02:08:06:ec:a6:05:44:57:40:d0:96:18:
+	                    b1:d6:08:51:30:00:2f:79:c0:36:47:65:02:6f:c4:
+	                    67:52:14:bf:60
+	                ASN1 OID: prime256v1
+	                NIST CURVE: P-256
+	        Attributes:
+	            a0:00
+	    Signature Algorithm: ecdsa-with-SHA256
+	         30:44:02:20:13:06:4d:20:bf:21:d6:e0:9f:e7:fd:5b:e6:58:
+	         06:cf:32:2f:3b:63:82:fb:89:d2:f0:99:6a:2b:c2:84:87:84:
+	         02:20:59:76:4d:c4:d8:c5:8a:15:22:ee:f7:33:f1:54:4a:3e:
+	         72:51:53:6f:c2:17:d2:1c:64:77:30:48:87:58:19:f6
+	*/
+
+	x509ClientCsr := `-----BEGIN CERTIFICATE REQUEST-----
+MIH8MIGkAgEAMEIxFTATBgNVBAoTDHN5c3RlbTpub2RlczEpMCcGA1UEAxMgc3lz
+dGVtOm5vZGU6b3N0ZXN0LWV4dHJhd29ya2VyLTMwWTATBgcqhkjOPQIBBggqhkjO
+PQMBBwNCAATz0wJNo7QzR5RUIDbk4GBTRlAzcT0XLajQyckiXQjxowIIBuymBURX
+QNCWGLHWCFEwAC95wDZHZQJvxGdSFL9goAAwCgYIKoZIzj0EAwIDRwAwRAIgEwZN
+IL8h1uCf5/1b5lgGzzIvO2OC+4nS8JlqK8KEh4QCIFl2TcTYxYoVIu73M/FUSj5y
+UVNvwhfSHGR3MEiHWBn2
+-----END CERTIFICATE REQUEST-----
+`
+	/* Decoded output of PEM formatted server CSR
+
+	Certificate Request:
+	    Data:
+	        Version: 1 (0x0)
+	        Subject: O = system:nodes, CN = system:node:ostest-extraworker-3
+	        Subject Public Key Info:
+	            Public Key Algorithm: id-ecPublicKey
+	                Public-Key: (256 bit)
+	                pub:
+	                    04:04:dc:cd:e4:ae:6f:5c:62:e3:bd:da:89:5e:4c:
+	                    20:81:e2:16:ea:31:2b:23:5a:94:22:54:9d:d2:65:
+	                    db:aa:1e:17:82:29:1a:53:84:3d:03:13:ae:ca:e3:
+	                    c9:7d:13:83:b4:23:84:a3:ac:18:4b:99:38:42:43:
+	                    c7:97:6d:37:0c
+	                ASN1 OID: prime256v1
+	                NIST CURVE: P-256
+	        Attributes:
+	        Requested Extensions:
+	            X509v3 Subject Alternative Name:
+	                DNS:ostest-extraworker-3, IP Address:192.168.111.28
+	    Signature Algorithm: ecdsa-with-SHA256
+	         30:46:02:21:00:c1:fa:af:ae:e3:7e:b6:d8:2d:11:ce:a7:07:
+	         e6:9c:52:46:4d:34:f2:ab:ae:bd:bc:ae:49:5e:d3:91:b5:42:
+	         aa:02:21:00:a8:a0:3a:01:af:5e:55:4d:5e:4b:44:62:4b:f2:
+	         f3:e8:7c:11:b3:69:80:4c:d6:39:16:ba:59:3a:07:4c:dd:c2
+
+	*/
+	x509ServerCSR := `-----BEGIN CERTIFICATE REQUEST-----
+MIIBNjCB3AIBADBCMRUwEwYDVQQKEwxzeXN0ZW06bm9kZXMxKTAnBgNVBAMTIHN5
+c3RlbTpub2RlOm9zdGVzdC1leHRyYXdvcmtlci0zMFkwEwYHKoZIzj0CAQYIKoZI
+zj0DAQcDQgAEBNzN5K5vXGLjvdqJXkwggeIW6jErI1qUIlSd0mXbqh4XgikaU4Q9
+AxOuyuPJfRODtCOEo6wYS5k4QkPHl203DKA4MDYGCSqGSIb3DQEJDjEpMCcwJQYD
+VR0RBB4wHIIUb3N0ZXN0LWV4dHJhd29ya2VyLTOHBMCobxwwCgYIKoZIzj0EAwID
+SQAwRgIhAMH6r67jfrbYLRHOpwfmnFJGTTTyq669vK5JXtORtUKqAiEAqKA6Aa9e
+VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
+-----END CERTIFICATE REQUEST-----
+`
+	CommonHostname := "ostest-extraworker-3"
+	var (
+		c                     client.Client
+		hr                    *AgentReconciler
+		ctx                   = context.Background()
+		mockCtrl              *gomock.Controller
+		backEndCluster        *common.Cluster
+		hostRequest           ctrl.Request
+		agentKey              types.NamespacedName
+		hostId                strfmt.UUID
+		mockInstallerInternal *bminventory.MockInstallerInternals
+		mockClientFactory     *MockSpokeK8sClientFactory
+	)
+	newAgentClusterInstall := func(name, namespace string) *hiveext.AgentClusterInstall {
+		return &hiveext.AgentClusterInstall{
+			Spec: hiveext.AgentClusterInstallSpec{
+				Networking: hiveext.Networking{
+					UserManagedNetworking: true,
+				},
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "AgentClusterInstall",
+				APIVersion: "hiveextension/v1beta1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
+		}
+	}
+
+	generateInventory := func() string {
+		inventory := &models.Inventory{
+			Interfaces: []*models.Interface{
+				{
+					Name: "eth0",
+					IPV4Addresses: []string{
+						"192.168.111.28/24",
+					},
+					IPV6Addresses: []string{
+						"1001:db8::10/120",
+					},
+				},
+			},
+			Disks: []*models.Disk{
+				common.TestDefaultConfig.Disks,
+			},
+			Routes: common.TestDefaultRouteConfiguration,
+		}
+
+		b, err := json.Marshal(inventory)
+		Expect(err).To(Not(HaveOccurred()))
+		return string(b)
+	}
+
+	clientCsrs := func() *certificatesv1.CertificateSigningRequestList {
+		return &certificatesv1.CertificateSigningRequestList{
+			Items: []certificatesv1.CertificateSigningRequest{
+				{
+					Spec: certificatesv1.CertificateSigningRequestSpec{
+						Request: []byte(x509ClientCsr),
+						Usages: []certificatesv1.KeyUsage{
+							certificatesv1.UsageDigitalSignature,
+							certificatesv1.UsageKeyEncipherment,
+							certificatesv1.UsageClientAuth,
+						},
+						Groups: []string{
+							"system:serviceaccounts:openshift-machine-config-operator",
+							"system:serviceaccounts",
+							"system:authenticated",
+						},
+						Username: "system:serviceaccount:openshift-machine-config-operator:node-bootstrapper",
+					},
+				},
+			},
+		}
+	}
+
+	serverCsrs := func() *certificatesv1.CertificateSigningRequestList {
+		return &certificatesv1.CertificateSigningRequestList{
+			Items: []certificatesv1.CertificateSigningRequest{
+				{
+					Spec: certificatesv1.CertificateSigningRequestSpec{
+						Request: []byte(x509ServerCSR),
+						Usages: []certificatesv1.KeyUsage{
+							certificatesv1.UsageDigitalSignature,
+							certificatesv1.UsageKeyEncipherment,
+							certificatesv1.UsageServerAuth,
+						},
+						Groups: []string{
+							"system:authenticated",
+							"system:nodes",
+						},
+						Username: nodeUserPrefix + CommonHostname,
+					},
+				},
+			},
+		}
+	}
+
+	approveCsrs := func(csrs *certificatesv1.CertificateSigningRequestList) *certificatesv1.CertificateSigningRequestList {
+		csrs.Items[0].Status.Conditions = append(csrs.Items[0].Status.Conditions, certificatesv1.CertificateSigningRequestCondition{
+			Type:           certificatesv1.CertificateApproved,
+			Reason:         "NodeCSRApprove",
+			Message:        "This CSR was approved by the assisted-service",
+			Status:         corev1.ConditionTrue,
+			LastUpdateTime: metav1.Now(),
+		})
+		return csrs
+	}
+
+	approvedClientCsrs := func() *certificatesv1.CertificateSigningRequestList {
+		return approveCsrs(clientCsrs())
+	}
+
+	approvedServerCsrs := func() *certificatesv1.CertificateSigningRequestList {
+		return approveCsrs(serverCsrs())
+	}
+
+	BeforeEach(func() {
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+		mockClientFactory = NewMockSpokeK8sClientFactory(mockCtrl)
+		hr = &AgentReconciler{
+			Client:                     c,
+			Scheme:                     scheme.Scheme,
+			Log:                        common.GetTestLog(),
+			Installer:                  mockInstallerInternal,
+			APIReader:                  c,
+			SpokeK8sClientFactory:      mockClientFactory,
+			ApproveCsrsRequeueDuration: time.Minute,
+		}
+		sId := strfmt.UUID(uuid.New().String())
+		hostId = strfmt.UUID(uuid.New().String())
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:        &hostId,
+				ClusterID: &sId,
+				Kind:      swag.String(models.HostKindAddToExistingClusterHost),
+				Inventory: generateInventory(),
+				Status:    swag.String(models.HostStatusAddedToExistingCluster),
+				Progress: &models.HostProgressInfo{
+					CurrentStage: models.HostStageDone,
+				},
+			},
+		}
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				&commonHost.Host,
+			}}}
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace)
+		Expect(c.Create(ctx, aci)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		agentKey = types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeployment.Name)
+		adminKubeconfigSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: clusterDeployment.Namespace,
+			},
+			Data: map[string][]byte{
+				"kubeconfig": []byte(BASIC_KUBECONFIG),
+			},
+		}
+		Expect(c.Create(ctx, adminKubeconfigSecret)).ShouldNot(HaveOccurred())
+	})
+
+	tests := []struct {
+		name            string
+		hostname        string
+		createClient    bool
+		node            *corev1.Node
+		nodeError       error
+		csrs            *certificatesv1.CertificateSigningRequestList
+		approveExpected bool
+		initialStage    models.HostStage
+		expectedResult  ctrl.Result
+		expectedStatus  string
+		expectedStage   models.HostStage
+	}{
+		{
+			name:           "No matching node - No csrs",
+			createClient:   true,
+			csrs:           &certificatesv1.CertificateSigningRequestList{},
+			nodeError:      &notFoundError{},
+			expectedResult: ctrl.Result{RequeueAfter: time.Minute},
+			expectedStatus: models.HostStatusAddedToExistingCluster,
+			expectedStage:  models.HostStageRebooting,
+		},
+		{
+			name:         "Not ready matching node - 1 csrs",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:            serverCsrs(),
+			approveExpected: true,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus: models.HostStatusAddedToExistingCluster,
+			expectedStage:  models.HostStageRebooting,
+		},
+		{
+			name:            "Get node error",
+			createClient:    true,
+			hostname:        CommonHostname,
+			approveExpected: false,
+			nodeError:       errors.New("Stam"),
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus: models.HostStatusAddedToExistingCluster,
+			expectedStage:  models.HostStageRebooting,
+		},
+		{
+			name:            "Node not found with server CSR",
+			createClient:    true,
+			hostname:        CommonHostname,
+			csrs:            serverCsrs(),
+			approveExpected: false,
+			nodeError:       &notFoundError{},
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus: models.HostStatusAddedToExistingCluster,
+			expectedStage:  models.HostStageRebooting,
+		},
+		{
+			name:         "Not done Server CSR",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:            serverCsrs(),
+			approveExpected: true,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus: models.HostStatusAddedToExistingCluster,
+			expectedStage:  models.HostStageRebooting,
+		},
+		{
+			name:         "Done Server CSR",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:            serverCsrs(),
+			approveExpected: true,
+			expectedResult:  ctrl.Result{},
+			expectedStatus:  models.HostStatusAddedToExistingCluster,
+			expectedStage:   models.HostStageDone,
+		},
+		{
+			name:            "Not approved client CSR",
+			createClient:    true,
+			hostname:        CommonHostname,
+			nodeError:       &notFoundError{},
+			csrs:            clientCsrs(),
+			approveExpected: true,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus: models.HostStatusAddedToExistingCluster,
+			expectedStage:  models.HostStageRebooting,
+		},
+		{
+			name:            "Approved client CSR",
+			createClient:    true,
+			hostname:        CommonHostname,
+			nodeError:       &notFoundError{},
+			csrs:            approvedClientCsrs(),
+			approveExpected: false,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus: models.HostStatusAddedToExistingCluster,
+			expectedStage:  models.HostStageRebooting,
+		},
+		{
+			name:         "Approved Server CSR",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:            approvedServerCsrs(),
+			approveExpected: false,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus: models.HostStatusAddedToExistingCluster,
+			expectedStage:  models.HostStageRebooting,
+		},
+		{
+			name:           "Already done",
+			createClient:   false,
+			initialStage:   models.HostStageDone,
+			expectedResult: ctrl.Result{},
+			expectedStatus: models.HostStatusAddedToExistingCluster,
+			expectedStage:  models.HostStageDone,
+		},
+	}
+
+	for i := range tests {
+		t := &tests[i]
+		It(t.name, func() {
+			agentSpec := v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}}
+			if t.hostname != "" {
+				agentSpec.Hostname = t.hostname
+			}
+			host := newAgent(hostId.String(), testNamespace, agentSpec)
+			host.Spec.Approved = true
+			mockInstallerInternal.EXPECT().UpdateHostApprovedInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil)
+			if t.initialStage != "" {
+				host.Status.Progress.CurrentStage = t.initialStage
+			}
+			Expect(c.Create(ctx, host)).To(BeNil())
+			if t.createClient {
+				mockClient := NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().Create(gomock.Any()).Return(mockClient, nil)
+				if t.node != nil || t.nodeError != nil {
+					mockClient.EXPECT().GetNode(gomock.Any()).Return(t.node, t.nodeError)
+				}
+				if t.csrs != nil {
+					mockClient.EXPECT().ListCsrs().Return(t.csrs, nil)
+				}
+				if t.approveExpected {
+					mockClient.EXPECT().ApproveCsr(gomock.Any()).Return(nil)
+				}
+			}
+			hostRequest = newHostRequest(host)
+			result, err := hr.Reconcile(ctx, hostRequest)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(t.expectedResult))
+			agent := &v1beta1.Agent{}
+			Expect(c.Get(ctx, agentKey, agent)).To(BeNil())
+			Expect(agent.Status.DebugInfo.State).To(Equal(t.expectedStatus))
+			Expect(agent.Status.Progress.CurrentStage).To(Equal(t.expectedStage))
+		})
+	}
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
 })
 
 var _ = Describe("TestConditions", func() {

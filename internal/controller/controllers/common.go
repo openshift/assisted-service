@@ -284,3 +284,40 @@ func generateEventsURL(baseURL string, authType auth.AuthType, signParams gencry
 	}
 	return eventsURL, nil
 }
+
+//
+//  In assisted installer, UserManagedNetworking implicates none platform.  This flag is part of AgentClusterInstall spec.
+//
+func isNonePlatformCluster(ctx context.Context, client client.Client, cd *hivev1.ClusterDeployment) (isNone, propagateError bool, err error) {
+	if cd.Spec.ClusterInstallRef == nil {
+		return false, false, errors.Errorf("Cluster Install Reference is null for cluster deployment ns=%s name=%s", cd.Namespace, cd.Name)
+	}
+	clusterInstall := hiveext.AgentClusterInstall{}
+	namespacedName := types.NamespacedName{
+		Namespace: cd.Namespace,
+		Name:      cd.Spec.ClusterInstallRef.Name,
+	}
+	if err = client.Get(ctx, namespacedName, &clusterInstall); err != nil {
+		return false, !k8serrors.IsNotFound(err), errors.Wrapf(err, "Could not get AgentClusterInstall %s for ClusterDeployment %s", cd.Spec.ClusterInstallRef.Name, cd.Name)
+	}
+	return clusterInstall.Spec.Networking.UserManagedNetworking, false, nil
+}
+
+//
+//  We get first agent's cluster deployment and then we query if it belongs to none platform cluster
+//
+func isAgentInNonePlatformCluster(ctx context.Context, client client.Client, agent *aiv1beta1.Agent) (isNone bool, err error) {
+	var cd hivev1.ClusterDeployment
+	if agent.Spec.ClusterDeploymentName == nil {
+		return false, errors.Errorf("No cluster deployment for agent %s/%s", agent.Namespace, agent.Name)
+	}
+	namespacedName := types.NamespacedName{
+		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Name:      agent.Spec.ClusterDeploymentName.Name,
+	}
+	if err = client.Get(ctx, namespacedName, &cd); err != nil {
+		return false, errors.Wrapf(err, "Failed to get cluster deployment %s/%s", namespacedName.Namespace, namespacedName.Name)
+	}
+	isNone, _, err = isNonePlatformCluster(ctx, client, &cd)
+	return
+}

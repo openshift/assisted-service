@@ -144,6 +144,7 @@ var Options struct {
 	WorkDir                        string        `envconfig:"WORK_DIR" default:"/data/"`
 	LivenessValidationTimeout      time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
 	V1APIEnabled                   bool          `envconfig:"V1_API_ENABLED" default:"true"`
+	ApproveCsrsRequeueDuration     time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -542,14 +543,16 @@ func main() {
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{
-				Client:           ctrlMgr.GetClient(),
-				APIReader:        ctrlMgr.GetAPIReader(),
-				Log:              log,
-				Scheme:           ctrlMgr.GetScheme(),
-				Installer:        bm,
-				CRDEventsHandler: crdEventsHandler,
-				ServiceBaseURL:   Options.BMConfig.ServiceBaseURL,
-				AuthType:         Options.Auth.AuthType,
+				Client:                     ctrlMgr.GetClient(),
+				APIReader:                  ctrlMgr.GetAPIReader(),
+				Log:                        log,
+				Scheme:                     ctrlMgr.GetScheme(),
+				Installer:                  bm,
+				CRDEventsHandler:           crdEventsHandler,
+				ServiceBaseURL:             Options.BMConfig.ServiceBaseURL,
+				AuthType:                   Options.Auth.AuthType,
+				SpokeK8sClientFactory:      controllers.NewSpokeK8sClientFactory(log),
+				ApproveCsrsRequeueDuration: Options.ApproveCsrsRequeueDuration,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
 			failOnError((&controllers.BMACReconciler{
