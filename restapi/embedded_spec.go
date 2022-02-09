@@ -9433,7 +9433,7 @@ func init() {
           "type": "string"
         },
         "is_success": {
-          "description": "API VIP connectivity check result.",
+          "description": "Ignition downloadability check result.",
           "type": "boolean"
         }
       }
@@ -22972,7 +22972,7 @@ func init() {
           "type": "string"
         },
         "is_success": {
-          "description": "API VIP connectivity check result.",
+          "description": "Ignition downloadability check result.",
           "type": "boolean"
         }
       }

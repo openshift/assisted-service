@@ -20,7 +20,7 @@ type APIVipConnectivityResponse struct {
 	// Ignition fetched from the specified API VIP
 	Ignition string `json:"ignition,omitempty"`
 
-	// API VIP connectivity check result.
+	// Ignition downloadability check result.
 	IsSuccess bool `json:"is_success,omitempty"`
 }
 
