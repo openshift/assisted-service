@@ -363,7 +363,7 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 	}
 	if params.LogsType == string(models.LogsTypeController) {
 		firstClusterLogCollectionEvent := false
-		if swag.IsZero(currentCluster.ControllerLogsCollectedAt) {
+		if time.Time(currentCluster.ControllerLogsCollectedAt).Equal(time.Time{}) {
 			firstClusterLogCollectionEvent = true
 		}
 		err = b.clusterApi.SetUploadControllerLogsAt(ctx, currentCluster, b.db)

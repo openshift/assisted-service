@@ -9394,7 +9394,7 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 
 	It("Upload Controller logs Happy flow", func() {
-		params := installer.UploadLogsParams{
+		params := installer.V2UploadLogsParams{
 			ClusterID:   clusterID,
 			Upfile:      kubeconfigFile,
 			HTTPRequest: request,
@@ -9408,22 +9408,23 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockClusterApi.EXPECT().SetUploadControllerLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		mockClusterApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCollecting)).Return(nil).Times(2)
 		By("Upload cluster logs for the first time")
-		reply := bm.UploadLogs(ctx, params)
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadLogsNoContent()))
+		reply := bm.V2UploadLogs(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UploadLogsNoContent()))
 		By("Upload cluster logs for the second time - expect no additional event to be published")
 		err := db.Model(c).Update("controller_logs_collected_at", strfmt.DateTime(time.Now())).Error
 		Expect(err).ShouldNot(HaveOccurred())
-		reply = bm.UploadLogs(ctx, params)
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadLogsNoContent()))
+		reply = bm.V2UploadLogs(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UploadLogsNoContent()))
 	})
 	It("Download controller log where not uploaded yet", func() {
 		logsType := string(models.LogsTypeController)
-		params := installer.DownloadClusterLogsParams{
+		params := installer.V2DownloadClusterLogsParams{
 			ClusterID: clusterID,
 			LogsType:  &logsType,
 		}
-		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusConflict)
+		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusConflict)
 	})
+
 	It("Download S3 logs where not uploaded yet", func() {
 		params := installer.DownloadHostLogsParams{
 			ClusterID: clusterID,
@@ -9431,6 +9432,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		}
 		verifyApiError(bm.DownloadHostLogs(ctx, params), http.StatusConflict)
 	})
+
 	It("Download S3 object not found", func() {
 		params := installer.DownloadHostLogsParams{
 			ClusterID: clusterID,
@@ -9474,7 +9476,7 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 	It("Download Controller logs happy flow", func() {
 		logsType := string(models.LogsTypeController)
-		params := installer.DownloadClusterLogsParams{
+		params := installer.V2DownloadClusterLogsParams{
 			ClusterID: clusterID,
 			LogsType:  &logsType,
 		}
@@ -9483,7 +9485,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		db.Save(&c)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
-		generateReply := bm.DownloadClusterLogs(ctx, params)
+		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		downloadFileName := fmt.Sprintf("mycluster_%s_%s.tar.gz", clusterID, logsType)
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r), downloadFileName, 4)))
 	})
@@ -9564,39 +9566,39 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 	It("download cluster logs no cluster", func() {
 		clusterId := strToUUID(uuid.New().String())
-		params := installer.DownloadClusterLogsParams{
+		params := installer.V2DownloadClusterLogsParams{
 			ClusterID: *clusterId,
 		}
-		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
+		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusNotFound)
 	})
 
 	It("download cluster logs CreateTarredClusterLogs failed", func() {
-		params := installer.DownloadClusterLogsParams{
+		params := installer.V2DownloadClusterLogsParams{
 			ClusterID: clusterID,
 		}
 		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
-		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
+		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
 	})
 
 	It("download cluster logs Download failed", func() {
-		params := installer.DownloadClusterLogsParams{
+		params := installer.V2DownloadClusterLogsParams{
 			ClusterID: clusterID,
 		}
 		fileName := fmt.Sprintf("%s_logs.zip", clusterID)
 		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
-		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
+		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
 	})
 
 	It("download cluster logs happy flow", func() {
-		params := installer.DownloadClusterLogsParams{
+		params := installer.V2DownloadClusterLogsParams{
 			ClusterID: clusterID,
 		}
 		fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", clusterID)
 		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
-		generateReply := bm.DownloadClusterLogs(ctx, params)
+		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r),
 			fmt.Sprintf("mycluster_%s.tar", clusterID), 4)))
 	})
@@ -9626,7 +9628,7 @@ var _ = Describe("Upload and Download logs test", func() {
 
 	It("Download unregistered cluster controller log success", func() {
 		logsType := string(models.LogsTypeController)
-		params := installer.DownloadClusterLogsParams{
+		params := installer.V2DownloadClusterLogsParams{
 			ClusterID: clusterID,
 			LogsType:  &logsType,
 		}
@@ -9639,14 +9641,14 @@ var _ = Describe("Upload and Download logs test", func() {
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		fileName := bm.getLogsFullName(clusterID.String(), logsType)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
-		generateReply := bm.DownloadClusterLogs(ctx, params)
+		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		downloadFileName := fmt.Sprintf("mycluster_%s_%s.tar.gz", clusterID, logsType)
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r), downloadFileName, 4)))
 	})
 
 	It("Download unregistered cluster controller log failure - permanently deleted", func() {
 		logsType := string(models.LogsTypeController)
-		params := installer.DownloadClusterLogsParams{
+		params := installer.V2DownloadClusterLogsParams{
 			ClusterID: clusterID,
 			LogsType:  &logsType,
 		}
@@ -9656,7 +9658,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
 		dbReply = db.Unscoped().Where("id = ?", clusterID).Delete(&common.Cluster{})
 		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
-		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
+		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusNotFound)
 	})
 })
 

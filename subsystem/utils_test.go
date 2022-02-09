@@ -253,14 +253,14 @@ func updateHostLogProgress(clusterID strfmt.UUID, hostID strfmt.UUID, progress m
 func updateClusterLogProgress(clusterID strfmt.UUID, progress models.LogsState) {
 	ctx := context.Background()
 
-	updateReply, err := agentBMClient.Installer.UpdateClusterLogsProgress(ctx, &installer.UpdateClusterLogsProgressParams{
+	updateReply, err := agentBMClient.Installer.V2UpdateClusterLogsProgress(ctx, &installer.V2UpdateClusterLogsProgressParams{
 		ClusterID: clusterID,
 		LogsProgressParams: &models.LogsProgressParams{
 			LogsState: common.LogStatePtr(progress),
 		},
 	})
 	Expect(err).ShouldNot(HaveOccurred())
-	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateClusterLogsProgressNoContent()))
+	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterLogsProgressNoContent()))
 }
 
 func updateProgress(hostID strfmt.UUID, infraEnvID strfmt.UUID, current_step models.HostStage) {

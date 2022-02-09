@@ -5199,10 +5199,7 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 }
 
 func (b *bareMetalInventory) UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder {
-	return b.V2UpdateClusterLogsProgress(ctx, installer.V2UpdateClusterLogsProgressParams{
-		ClusterID:          params.ClusterID,
-		LogsProgressParams: params.LogsProgressParams,
-	})
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder {
@@ -5220,11 +5217,7 @@ func (b *bareMetalInventory) UpdateHostLogsProgress(ctx context.Context, params 
 }
 
 func (b *bareMetalInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
-	err := b.v1uploadLogs(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewUploadLogsNoContent()
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) v1uploadLogs(ctx context.Context, params installer.UploadLogsParams) error {
@@ -5324,7 +5317,7 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Ho
 }
 
 func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
-	return b.V2DownloadClusterLogs(ctx, installer.V2DownloadClusterLogsParams(params))
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
