@@ -4844,36 +4844,7 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 }
 
 func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Update host %s install progress", params.HostID)
-	host, err := common.GetHostFromDB(b.db, params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		log.WithError(err).Errorf("failed to find host %s", params.HostID)
-		return installer.NewUpdateHostInstallProgressNotFound().
-			WithPayload(common.GenerateError(http.StatusNotFound, err))
-	}
-
-	if params.HostProgress.CurrentStage != host.Progress.CurrentStage || params.HostProgress.ProgressInfo != host.Progress.ProgressInfo {
-		if err := b.hostApi.UpdateInstallProgress(ctx, &host.Host, params.HostProgress); err != nil {
-			log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
-			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-		}
-
-		event := fmt.Sprintf("reached installation stage %s", params.HostProgress.CurrentStage)
-		if params.HostProgress.ProgressInfo != "" {
-			event += fmt.Sprintf(": %s", params.HostProgress.ProgressInfo)
-		}
-
-		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-		eventgen.SendHostInstallProgressUpdatedEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID, hostutil.GetHostnameForMsg(&host.Host), event)
-
-		if err := b.clusterApi.UpdateInstallProgress(ctx, params.ClusterID); err != nil {
-			log.WithError(err).Errorf("failed to update cluster %s progress", params.ClusterID)
-			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-		}
-	}
-
-	return installer.NewUpdateHostInstallProgressOK()
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder {
@@ -5015,64 +4986,7 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 }
 
 func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.InstallHostParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	var h *models.Host
-	var cluster *common.Cluster
-	var err error
-
-	log.Info("Install single day2 host: ", params.HostID)
-	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	for i := range cluster.Hosts {
-		if *cluster.Hosts[i].ID == params.HostID {
-			h = cluster.Hosts[i]
-			break
-		}
-	}
-	if h == nil {
-		log.WithError(err).Errorf("host %s not found", params.HostID)
-		return common.NewApiError(http.StatusNotFound, err)
-	}
-
-	if !hostutil.IsDay2Host(h) {
-		log.Errorf("InstallHost for host %s is forbidden: not a Day2 hosts", params.HostID.String())
-		return common.NewApiError(http.StatusConflict, fmt.Errorf("method only allowed when adding hosts to an existing cluster"))
-	}
-
-	if swag.StringValue(h.Status) != models.HostStatusKnown {
-		log.Errorf("Install host for host %s, state %s is forbidden: host not in Known state", params.HostID.String(), swag.StringValue(h.Status))
-		return common.NewApiError(http.StatusConflict, fmt.Errorf("cannot install host in state %s", swag.StringValue(h.Status)))
-	}
-
-	_, err = b.hostApi.AutoAssignRole(ctx, h, b.db)
-	if err != nil {
-		log.Errorf("Failed to update role for host %s", params.HostID)
-		return common.GenerateErrorResponder(err)
-	}
-
-	err = b.hostApi.RefreshStatus(ctx, h, b.db)
-	if err != nil {
-		log.Errorf("Failed to refresh host %s", params.HostID)
-		return common.GenerateErrorResponder(err)
-	}
-
-	if swag.StringValue(h.Status) != models.HostStatusKnown {
-		return common.NewApiError(http.StatusConflict, fmt.Errorf("cannot install host in state %s after refresh", swag.StringValue(h.Status)))
-	}
-	err = b.createAndUploadNodeIgnition(ctx, cluster, h, "")
-	if err != nil {
-		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
-		return common.GenerateErrorResponder(err)
-	}
-	err = b.hostApi.Install(ctx, h, b.db)
-	if err != nil {
-		// we just logs the error, each host install is independent
-		log.Errorf("Failed to move host %s to installing", h.RequestedHostname)
-		return common.GenerateErrorResponder(err)
-	}
-
-	return installer.NewInstallHostAccepted().WithPayload(h)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) V2ResetHost(ctx context.Context, params installer.V2ResetHostParams) middleware.Responder {

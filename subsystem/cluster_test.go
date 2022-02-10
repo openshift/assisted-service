@@ -1972,8 +1972,8 @@ var _ = Describe("cluster install", func() {
 					CurrentStage: step,
 				}
 
-				_, err := agentBMClient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
-					ClusterID:    clusterID,
+				_, err := agentBMClient.Installer.V2UpdateHostInstallProgress(ctx, &installer.V2UpdateHostInstallProgressParams{
+					InfraEnvID:   hosts[0].InfraEnvID,
 					HostProgress: installProgress,
 					HostID:       *hosts[0].ID,
 				})
@@ -2011,8 +2011,8 @@ var _ = Describe("cluster install", func() {
 					CurrentStage: models.HostStageFailed,
 				}
 
-				_, err := agentBMClient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
-					ClusterID:    clusterID,
+				_, err := agentBMClient.Installer.V2UpdateHostInstallProgress(ctx, &installer.V2UpdateHostInstallProgressParams{
+					InfraEnvID:   hosts[0].InfraEnvID,
 					HostProgress: installProgress,
 					HostID:       *hosts[0].ID,
 				})
@@ -2038,8 +2038,8 @@ var _ = Describe("cluster install", func() {
 					CurrentStage: models.HostStageInstalling,
 				}
 
-				_, err := agentBMClient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
-					ClusterID:    clusterID,
+				_, err := agentBMClient.Installer.V2UpdateHostInstallProgress(ctx, &installer.V2UpdateHostInstallProgressParams{
+					InfraEnvID:   hosts[1].InfraEnvID,
 					HostProgress: installProgress,
 					HostID:       *hosts[1].ID,
 				})
@@ -2064,8 +2064,8 @@ var _ = Describe("cluster install", func() {
 					CurrentStage: models.HostStageDone,
 				}
 
-				_, err := agentBMClient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
-					ClusterID:    clusterID,
+				_, err := agentBMClient.Installer.V2UpdateHostInstallProgress(ctx, &installer.V2UpdateHostInstallProgressParams{
+					InfraEnvID:   hosts[1].InfraEnvID,
 					HostProgress: installProgress,
 					HostID:       *hosts[1].ID,
 				})
