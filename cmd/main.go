@@ -63,12 +63,10 @@ import (
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"go.elastic.co/apm/module/apmhttp"
 	"go.elastic.co/apm/module/apmlogrus"
-	"golang.org/x/sync/errgroup"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -205,6 +203,10 @@ func main() {
 	flag.Parse()
 
 	log.Println("Starting bm service")
+
+	if Options.BMConfig.ImageServiceBaseURL == "" {
+		log.Fatal("IMAGE_SERVICE_BASE_URL is required")
+	}
 
 	var osImagesArray models.OsImages
 	if Options.OsImages == "" {
@@ -481,33 +483,10 @@ func main() {
 	}
 
 	h = app.WithMetricsResponderMiddleware(h)
-	apiEnabler := NewApiEnabler(h, log)
-	h = app.WithHealthMiddleware(apiEnabler, []*thread.Thread{hostStateMonitor, clusterStateMonitor},
+	h = app.WithHealthMiddleware(h, []*thread.Thread{hostStateMonitor, clusterStateMonitor},
 		log.WithField("pkg", "healthcheck"), Options.LivenessValidationTimeout)
 	h = requestid.Middleware(h)
 	h = spec.WithSpecMiddleware(h)
-
-	go func() {
-		// only need to upload images if we're not using the image service
-		if bm.ImageServiceBaseURL == "" {
-			// Upload ISOs with a leader lock if we're running with multiple replicas
-			if Options.DeployTarget == deployment_type_k8s {
-				baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
-					RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
-					"assisted-service-baseiso-helper",
-					log.WithField("pkg", "baseISOUploadLeader"))
-
-				uploadFunc := func() error { return uploadISOs(objectHandler, versionHandler, log) }
-				failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), uploadFunc), "Failed to upload boot files")
-			} else {
-				failOnError(uploadISOs(objectHandler, versionHandler, log), "Failed to upload boot files")
-			}
-		} else {
-			log.Infof("Skipping ISO upload, image service running at %s", bm.ImageServiceBaseURL)
-		}
-
-		apiEnabler.Enable()
-	}()
 
 	go func() {
 		if log.Level == logrus.DebugLevel {
@@ -568,10 +547,7 @@ func main() {
 				CRDEventsHandler: crdEventsHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller AgentClusterInstall")
 
-			log.Info("waiting for REST api readiness before starting controllers")
-			apiEnabler.WaitForEnabled()
-
-			log.Infof("REST api is now ready, starting controllers")
+			log.Infof("Starting controllers")
 			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
 		}
 	}()
@@ -597,34 +573,6 @@ func generateAPMTransactionName(request *http.Request) string {
 
 	// This matches the `operationId` in the swagger file
 	return route.Operation.ID
-}
-
-func uploadISOs(objectHandler s3wrapper.API, versionHandler versions.Handler, log logrus.FieldLogger) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	errs, _ := errgroup.WithContext(ctx)
-	//cancel the context in case this method ends
-	defer cancel()
-
-	//starts a functional context to pass to loggers and derived flows
-	uploadctx := requestid.ToContext(context.Background(), "main-uploadISOs")
-
-	// Checks whether latest version of minimal ISO templates already exists
-	// Must be done while holding the leader lock but outside of the version loop
-	haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(uploadctx, log, objectHandler)
-	versions := versionHandler.GetOpenshiftVersions()
-	for _, version := range versions {
-		currVersion := version
-		cpuArchitectures := versionHandler.GetCPUArchitectures(currVersion)
-		for _, cpuArchitecture := range cpuArchitectures {
-			currCpuArchitecture := cpuArchitecture
-			errs.Go(func() error {
-				err := objectHandler.UploadISOs(uploadctx, currVersion, currCpuArchitecture, haveLatestMinimalTemplate)
-				return errors.Wrapf(err, "Failed uploading boot files for OCP version %s CPU architecture %s", currVersion, currCpuArchitecture)
-			})
-		}
-	}
-
-	return errs.Wait()
 }
 
 func setupDB(log logrus.FieldLogger) *gorm.DB {
@@ -724,41 +672,6 @@ func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.C
 		}
 	}
 	return storageClient
-}
-
-func NewApiEnabler(h http.Handler, log logrus.FieldLogger) *ApiEnabler {
-	return &ApiEnabler{
-		log:       log,
-		isEnabled: false,
-		inner:     h,
-	}
-}
-
-type ApiEnabler struct {
-	log       logrus.FieldLogger
-	isEnabled bool
-	inner     http.Handler
-}
-
-func (a *ApiEnabler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !a.isEnabled {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		return
-	} else if r.Method == http.MethodGet && r.URL.Path == "/ready" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-	a.inner.ServeHTTP(w, r)
-}
-func (a *ApiEnabler) Enable() {
-	a.isEnabled = true
-	a.log.Info("API is enabled")
-}
-
-func (a *ApiEnabler) WaitForEnabled() {
-	for !a.isEnabled {
-		time.Sleep(time.Second)
-	}
 }
 
 func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.DB, log logrus.FieldLogger) error {
