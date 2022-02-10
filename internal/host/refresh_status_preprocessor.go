@@ -195,8 +195,8 @@ func newValidations(v *validator) []validation {
 		},
 		{
 			id:        IsIgnitionDownloadable,
-			condition: v.isAPIVipConnected,
-			formatter: v.printAPIVipConnected,
+			condition: v.isIgnitionDownloadable,
+			formatter: v.printIgnitionDownloadable,
 		},
 		{
 			id:        BelongsToMajorityGroup,

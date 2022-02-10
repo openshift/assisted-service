@@ -691,7 +691,7 @@ func (v *validator) printHostnameValid(c *validationContext, status ValidationSt
 	}
 }
 
-func (v *validator) isAPIVipConnected(c *validationContext) ValidationStatus {
+func (v *validator) isIgnitionDownloadable(c *validationContext) ValidationStatus {
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput
 	}
@@ -708,15 +708,15 @@ func (v *validator) isAPIVipConnected(c *validationContext) ValidationStatus {
 	return boolValue(response.IsSuccess)
 }
 
-func (v *validator) printAPIVipConnected(c *validationContext, status ValidationStatus) string {
+func (v *validator) printIgnitionDownloadable(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		if swag.BoolValue(c.cluster.UserManagedNetworking) {
 			return "No API VIP needed: User Managed Networking"
 		}
-		return "API VIP connectivity success"
+		return "Ignition is downloadable"
 	case ValidationFailure:
-		return "API VIP connectivity failure"
+		return "Ignition is not downloadable"
 	case ValidationPending:
 		return "Missing inventory"
 	default:
