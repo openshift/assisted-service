@@ -986,19 +986,47 @@ func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, log lo
 }
 
 func (r *ClusterDeploymentsReconciler) getClusterDeploymentManifest(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall) (map[string]string, error) {
-	configuredManifests := &corev1.ConfigMap{}
-	configuredManifests.Data = map[string]string{}
-	// get manifests from configmap if we have reference for it
-	if clusterInstall.Spec.ManifestsConfigMapRef != nil {
-		err := r.Get(ctx, types.NamespacedName{Namespace: clusterInstall.Namespace,
-			Name: clusterInstall.Spec.ManifestsConfigMapRef.Name}, configuredManifests)
+	configuredManifests := map[string]string{}
+
+	// Get manifests from referenced ConfigMaps (fallback to single ManifestsConfigMapRef)
+	if clusterInstall.Spec.ManifestsConfigMapRefs != nil {
+		for _, ref := range clusterInstall.Spec.ManifestsConfigMapRefs {
+			configMap, err := r.getManifestConfigMap(ctx, log, clusterInstall, ref.Name)
+			if err != nil {
+				return nil, err
+			}
+			// Add data to manifests map
+			for k, v := range configMap.Data {
+				configuredManifests[k] = v
+			}
+		}
+	} else if clusterInstall.Spec.ManifestsConfigMapRef != nil {
+		configMap, err := r.getManifestConfigMap(ctx, log, clusterInstall, clusterInstall.Spec.ManifestsConfigMapRef.Name)
 		if err != nil {
-			log.WithError(err).Errorf("Failed to get configmap %s in %s",
-				clusterInstall.Spec.ManifestsConfigMapRef.Name, clusterInstall.Namespace)
 			return nil, err
 		}
+		configuredManifests = configMap.Data
 	}
-	return configuredManifests.Data, nil
+
+	return configuredManifests, nil
+}
+
+func (r *ClusterDeploymentsReconciler) getManifestConfigMap(ctx context.Context, log logrus.FieldLogger,
+	clusterInstall *hiveext.AgentClusterInstall, configMapName string) (*corev1.ConfigMap, error) {
+	configMap := &corev1.ConfigMap{}
+	configMap.Data = map[string]string{}
+	err := r.Get(ctx,
+		types.NamespacedName{
+			Namespace: clusterInstall.Namespace,
+			Name:      configMapName,
+		},
+		configMap,
+	)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get configmap %s in %s", configMapName, clusterInstall.Namespace)
+		return nil, err
+	}
+	return configMap, nil
 }
 
 func (r *ClusterDeploymentsReconciler) addCustomManifests(ctx context.Context, log logrus.FieldLogger,
@@ -1015,7 +1043,9 @@ func (r *ClusterDeploymentsReconciler) addCustomManifests(ctx context.Context, l
 	// if reference to manifests was deleted from cluster deployment
 	// but we already added some in previous reconcile loop, we want to clean them.
 	// if no reference were provided we will delete all manifests that were in the list
-	if clusterInstall.Spec.ManifestsConfigMapRef == nil && len(alreadyCreatedManifests) == 0 {
+	if len(alreadyCreatedManifests) == 0 &&
+		clusterInstall.Spec.ManifestsConfigMapRef == nil &&
+		clusterInstall.Spec.ManifestsConfigMapRefs == nil {
 		log.Debugf("Nothing to do, skipping manifest creation")
 		return nil
 	}
