@@ -288,12 +288,15 @@ func getDeviceKey(vendorID string, deviceID string) string {
 // If CNV is deployed on SNO, we want at least one non bootable disk (i.e. discoverable by LSO)
 // with certain size threshold for the hpp storage pool
 func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string, diskThresholdGi int64) error {
+	thresholdBytes := conversions.GibToBytes(diskThresholdGi)
+	thresholdGB := conversions.BytesToGb(thresholdBytes)
+
 	for _, disk := range disks {
 		if (disk.DriveType == ocs.SsdDrive || disk.DriveType == ocs.HddDrive) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
-			if disk.SizeBytes > conversions.GibToBytes(diskThresholdGi) {
+			if disk.SizeBytes > thresholdBytes {
 				return nil
 			}
 		}
 	}
-	return fmt.Errorf("OpenShift Virtualization on SNO requires an additional disk with %d Gi in order to provide persistent storage for VMs, using hostpath-provisioner", diskThresholdGi)
+	return fmt.Errorf("OpenShift Virtualization on SNO requires an additional disk with %d GB (%d Gi) in order to provide persistent storage for VMs, using hostpath-provisioner", thresholdGB, diskThresholdGi)
 }
