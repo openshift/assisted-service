@@ -10073,7 +10073,6 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		db            *gorm.DB
 		dbName        string
 		ctx           = context.Background()
-		clusterID     strfmt.UUID
 		clusterName   string
 		apiVIPDnsname string
 		request       *http.Request
@@ -10082,7 +10081,6 @@ var _ = Describe("Register AddHostsCluster test", func() {
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
-		clusterID = strfmt.UUID(uuid.New().String())
 		clusterName = "add-hosts-cluster"
 		apiVIPDnsname = "api-vip.redhat.com"
 		bm = createInventory(db, cfg)
@@ -10093,53 +10091,6 @@ var _ = Describe("Register AddHostsCluster test", func() {
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
-	})
-
-	It("Create AddHosts cluster", func() {
-		defaultHostNetworks := make([]*models.HostNetwork, 0)
-		defaultHosts := make([]*models.Host, 0)
-
-		params := installer.RegisterAddHostsClusterParams{
-			HTTPRequest: request,
-			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
-				APIVipDnsname:    &apiVIPDnsname,
-				ID:               &clusterID,
-				Name:             &clusterName,
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion), //deprecated argument in day2
-			},
-		}
-		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), common.DoInfraEnvCreation, gomock.Any()).Return(nil).Times(1)
-		mockMetric.EXPECT().ClusterRegistered("", clusterID, "Unknown").Times(1)
-		res := bm.RegisterAddHostsCluster(ctx, params)
-		actual := res.(*installer.RegisterAddHostsClusterCreated)
-
-		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
-		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
-		Expect(actual.Payload.OpenshiftVersion).To(BeEmpty())
-		Expect(actual.Payload.OcpReleaseImage).To(BeEmpty())
-		Expect(actual.Payload.Platform).To(Equal(&models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}))
-		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
-	})
-
-	It("Create AddHosts cluster -  cluster id already exists", func() {
-		params := installer.RegisterAddHostsClusterParams{
-			HTTPRequest: request,
-			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
-				APIVipDnsname:    &apiVIPDnsname,
-				ID:               &clusterID,
-				Name:             &clusterName,
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-			},
-		}
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			Kind:             swag.String(models.ClusterKindAddHostsCluster),
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Status:           swag.String(models.ClusterStatusAddingHosts),
-		}}).Error
-		Expect(err).ShouldNot(HaveOccurred())
-		res := bm.RegisterAddHostsCluster(ctx, params)
-		verifyApiError(res, http.StatusBadRequest)
 	})
 
 	It("Create V2 AddHosts cluster", func() {
