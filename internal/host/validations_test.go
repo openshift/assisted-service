@@ -120,12 +120,13 @@ var _ = Describe("Validations test", func() {
 
 		getDay2Host := func() models.Host {
 			h := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleWorker)
-			*h.Kind = models.HostKindAddToExistingClusterHost
+			h.Kind = swag.String(models.HostKindAddToExistingClusterHost)
 			return h
 		}
 
 		createDay2Cluster := func() {
 			c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
+			c.Kind = swag.String(models.ClusterKindAddHostsCluster)
 			c.DiskEncryption = &models.DiskEncryption{}
 			Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 		}
@@ -412,6 +413,23 @@ var _ = Describe("Validations test", func() {
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationFailure))
 			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enabled in host's BIOS"))
+		})
+
+		It("day2 host - disk encryption is not available", func() {
+			createDay2Cluster()
+
+			h := getDay2Host() //explicit set the role to worker
+			h.Inventory = common.GenerateTestInventoryWithTpmVersion("")
+			configBytes, err := json.Marshal(types.Config{})
+			Expect(err).To(Not(HaveOccurred()))
+			h.APIVipConnectivity = hostutil.GenerateTestAPIVIpConnectivity(string(configBytes))
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			_, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			Expect(found).To(BeFalse())
 		})
 
 		It("day2 host - pending on APIVipConnectivity response", func() {
