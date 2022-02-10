@@ -162,7 +162,7 @@ func (mgr *Manager) createCustomManifest(ctx context.Context, cluster *common.Cl
 
 func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte, folder string) error {
 	// all relevant logs of creating manifest will be inside CreateClusterManifest
-	response := mgr.manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+	response := mgr.manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 		ClusterID: *cluster.ID,
 		CreateManifestParams: &models.CreateManifestParams{
 			Content:  swag.String(base64.StdEncoding.EncodeToString(content)),

@@ -65,7 +65,7 @@ spec:
 		})
 
 		By("upload", func() {
-			response, err := userBMClient.Manifests.CreateClusterManifest(ctx, &manifests.CreateClusterManifestParams{
+			response, err := userBMClient.Manifests.V2CreateClusterManifest(ctx, &manifests.V2CreateClusterManifestParams{
 				ClusterID: *cluster.ID,
 				CreateManifestParams: &models.CreateManifestParams{
 					Content:  &base64Content,
@@ -109,7 +109,7 @@ spec:
 		})
 
 		By("delete", func() {
-			_, err := userBMClient.Manifests.DeleteClusterManifest(ctx, &manifests.DeleteClusterManifestParams{
+			_, err := userBMClient.Manifests.V2DeleteClusterManifest(ctx, &manifests.V2DeleteClusterManifestParams{
 				ClusterID: *cluster.ID,
 				FileName:  manifestFile.FileName,
 				Folder:    &manifestFile.Folder,
