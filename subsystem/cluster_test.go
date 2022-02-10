@@ -2871,7 +2871,7 @@ spec:
 				waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForClusterStateTimeout, c.Hosts...)
 
 				// verify manifest remains after cluster reset
-				response2, err := userBMClient.Manifests.ListClusterManifests(ctx, &manifests.ListClusterManifestsParams{
+				response2, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 					ClusterID: *cluster.ID,
 				})
 				Expect(err).ShouldNot(HaveOccurred())
