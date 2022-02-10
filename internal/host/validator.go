@@ -393,11 +393,9 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) Va
 		return ValidationPending
 	}
 
-	role := common.GetEffectiveRole(c.host)
-	if role == models.HostRoleAutoAssign {
-		return ValidationPending
-	}
-
+	//day2 validation is taking the disk encryption data solely from
+	//the host inventory and set the diskEncryption field on the cluster
+	//according to that information
 	if hostutil.IsDay2Host(c.host) {
 		luks, err := v.getDiskEncryptionForDay2(c.host)
 		if err != nil {
@@ -421,6 +419,13 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) Va
 			// Only Tpm2 and Tang are available for disk encryption
 			return ValidationFailure
 		}
+	}
+
+	//day 1 validation is relying on the host's role and the user
+	//configuration to check if the disk encryption setup is valid
+	role := common.GetEffectiveRole(c.host)
+	if role == models.HostRoleAutoAssign {
+		return ValidationPending
 	}
 
 	if !isDiskEncryptionEnabledForRole(*c.cluster.DiskEncryption, role) {
