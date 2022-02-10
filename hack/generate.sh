@@ -88,6 +88,8 @@ function generate_events() {
 function generate_configuration() {
     OS_IMAGES=$(< ${__root}/data/default_os_images.json tr -d "\n\t ")
     RELEASE_IMAGES=$(< ${__root}/data/default_release_images.json tr -d "\n\t ")
+    OKD_OS_IMAGES=$(< ${__root}/data/default_okd_os_images.json tr -d "\n\t ")
+    OKD_RELEASE_IMAGES=$(< ${__root}/data/default_okd_release_images.json tr -d "\n\t ")
     MUST_GATHER_IMAGES=$(< ${__root}/data/default_must_gather_versions.json tr -d "\n\t ")
     OPERATOR_OS_IMAGES=$(< ${__root}/data/default_os_images.json jq -c 'del (.[] | select(.openshift_version == "4.6",.openshift_version == "4.7"))')
     PUBLIC_CONTAINER_REGISTRIES=$(< ${__root}/data/default_public_container_registries.txt)
@@ -99,8 +101,10 @@ function generate_configuration() {
 
     sed -i "s|OS_IMAGES:.*|OS_IMAGES: '${OS_IMAGES}'|" ${__root}/deploy/podman/configmap.yml
     sed -i "s|RELEASE_IMAGES:.*|RELEASE_IMAGES: '${RELEASE_IMAGES}'|" ${__root}/deploy/podman/configmap.yml
-    sed -i "s|PUBLIC_CONTAINER_REGISTRIES:.*|PUBLIC_CONTAINER_REGISTRIES: '${PUBLIC_CONTAINER_REGISTRIES}'|" ${__root}/deploy/podman/configmap.yml
-    sed -i "s|HW_VALIDATOR_REQUIREMENTS:.*|HW_VALIDATOR_REQUIREMENTS: '${HW_VALIDATOR_REQUIREMENTS}'|" ${__root}/deploy/podman/configmap.yml
+    sed -i "s|OS_IMAGES:.*|OS_IMAGES: '${OKD_OS_IMAGES}'|" ${__root}/deploy/podman/okd-configmap.yml
+    sed -i "s|RELEASE_IMAGES:.*|RELEASE_IMAGES: '${OKD_RELEASE_IMAGES}'|" ${__root}/deploy/podman/okd-configmap.yml
+    sed -i "s|PUBLIC_CONTAINER_REGISTRIES:.*|PUBLIC_CONTAINER_REGISTRIES: '${PUBLIC_CONTAINER_REGISTRIES}'|" ${__root}/deploy/podman/{okd-,}configmap.yml
+    sed -i "s|HW_VALIDATOR_REQUIREMENTS:.*|HW_VALIDATOR_REQUIREMENTS: '${HW_VALIDATOR_REQUIREMENTS}'|" ${__root}/deploy/podman/{okd-,}configmap.yml
 
     sed -i "s|OS_IMAGES=.*|OS_IMAGES=${OS_IMAGES}|" ${__root}/config/onprem-iso-fcc.yaml
     sed -i "s|RELEASE_IMAGES=.*|RELEASE_IMAGES=${RELEASE_IMAGES}|" ${__root}/config/onprem-iso-fcc.yaml

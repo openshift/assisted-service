@@ -130,6 +130,44 @@ IMAGE=$(echo $1 | sed 's/:.*//')
 podman images | grep $IMAGE || podman rmi --force $1 || true
 `
 
+const okdBinariesOverlayTemplate = `#!/bin/env bash
+set -eux
+# Fetch an image with OKD rpms
+RPMS_IMAGE="%s"
+while ! podman pull --quiet "${RPMS_IMAGE}"
+do
+    echo "Pull failed. Retrying ${RPMS_IMAGE}..."
+    sleep 5
+done
+mnt=$(podman image mount "${RPMS_IMAGE}")
+# Extract machine-config-daemon binary
+cp -rvf ${mnt}/binaries/machine-config-daemon /usr/local/bin/machine-config-daemon
+chmod a+x /usr/local/bin/machine-config-daemon
+restorecon -Rv /usr/local/bin/machine-config-daemon
+# Install RPMs in overlayed FS
+mkdir /tmp/rpms
+cp -rvf ${mnt}/rpms/* /tmp/rpms
+tmpd=$(mktemp -d)
+mkdir ${tmpd}/{upper,work}
+mount -t overlay -o lowerdir=/usr,upperdir=${tmpd}/upper,workdir=${tmpd}/work overlay /usr
+rpm -Uvh /tmp/rpms/*
+podman rmi -f "${RPMS_IMAGE}"
+# Expand /var to 6G (3.2G on 16GB VM in insufficient)
+/bin/truncate -s 6G /run/ephemeral.xfsloop
+losetup -c /dev/loop0
+xfs_growfs /var
+mount -o remount,size=6G /run
+`
+
+const okdHoldAgentUntilBinariesLanded = `[Unit]
+Wants=okd-overlay.service
+After=okd-overlay.service
+`
+
+const okdHoldPivot = `[Unit]
+ConditionPathExists=/enoent
+`
+
 const discoveryIgnitionConfigFormat = `{
   "ignition": {
     "version": "3.1.0"{{if .PROXY_SETTINGS}},
@@ -155,7 +193,17 @@ const discoveryIgnitionConfigFormat = `{
         "name": "pre-network-manager-config.service",
         "enabled": true,
         "contents": "[Unit]\nDescription=Prepare network manager config content\nBefore=dracut-initqueue.service\nAfter=dracut-cmdline.service\nDefaultDependencies=no\n[Service]\nUser=root\nType=oneshot\nTimeoutSec=60\nExecStart=/bin/bash /usr/local/bin/pre-network-manager-config.sh\nPrivateTmp=true\nRemainAfterExit=no\n[Install]\nWantedBy=multi-user.target"
-    }{{end}}
+    }{{end}}{{if .OKDBinaries}},
+    {
+        "name": "okd-overlay.service",
+        "enabled": true,
+        "contents": "[Service]\nType=oneshot\nExecStart=/usr/local/bin/okd-binaries.sh\n\n[Unit]\nWants=network-online.target\nAfter=network-online.target\n\n[Install]\nWantedBy=multi-user.target"
+    },
+    {
+        "name": "systemd-journal-gatewayd.socket",
+        "enabled": true,
+        "contents": "[Unit]\nDescription = Fake systemd-journal-gatewayd.socket\n\n[Socket]\nListenStream = 19531\nAccept = yes\n\n[Install]\nWantedBy = sockets.target"
+		}{{end}}
     ]
   },
   "storage": {
@@ -265,6 +313,32 @@ const discoveryIgnitionConfigFormat = `{
         "name": "root"
       },
       "contents": { "source": "data:text/plain;base64,{{.FileContents}}"}
+    }{{end}}{{if .OKDBinaries}},
+    {
+      "path": "/usr/local/bin/okd-binaries.sh",
+      "mode": 755,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.OKDBinaries}}" }
+    }{{end}}{{if .OKDHoldPivot}},{
+      "path": "/etc/systemd/system/release-image-pivot.service.d/wait-for-okd.conf",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.OKDHoldPivot}}" }
+    }{{end}}{{if .OKDHoldAgent}},
+    {
+      "path": "/etc/systemd/system/agent.service.d/wait-for-okd.conf",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.OKDHoldAgent}}" }
     }{{end}}]
   }
 }`
@@ -339,6 +413,7 @@ type IgnitionConfig struct {
 	ServiceCACertPath    string        `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	ServiceIPs           string        `envconfig:"SERVICE_IPS" default:""`
 	SkipCertVerification bool          `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	OKDRPMsImage         string        `envconfig:"OKD_RPMS_IMAGE" default:""`
 }
 
 type ignitionBuilder struct {
@@ -1378,6 +1453,13 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		}
 		ignitionParams["MirrorRegistriesConfig"] = base64.StdEncoding.EncodeToString(registriesContents)
 		ignitionParams["MirrorRegistriesCAConfig"] = base64.StdEncoding.EncodeToString(caContents)
+	}
+
+	if cfg.OKDRPMsImage != "" {
+		okdBinariesOverlay := fmt.Sprintf(okdBinariesOverlayTemplate, cfg.OKDRPMsImage)
+		ignitionParams["OKDBinaries"] = base64.StdEncoding.EncodeToString([]byte(okdBinariesOverlay))
+		ignitionParams["OKDHoldPivot"] = base64.StdEncoding.EncodeToString([]byte(okdHoldPivot))
+		ignitionParams["OKDHoldAgent"] = base64.StdEncoding.EncodeToString([]byte(okdHoldAgentUntilBinariesLanded))
 	}
 
 	tmpl, err := template.New("ignitionConfig").Parse(discoveryIgnitionConfigFormat)

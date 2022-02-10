@@ -35,3 +35,20 @@ podman play kube --down pod.yml
 Other environment variables may be set in configmap.yml. For example, custom
 agent (`AGENT_DOCKER_IMAGE`), installer (`INSTALLER_IMAGE`) and controller
 (`CONTROLLER_IMAGE`) images can be defined.
+
+## OKD configuration
+
+Assisted Service can install OKD clusters using a different set of parameters:
+```shell
+podman play kube --configmap okd_configmap.yml pod.yml
+```
+or
+```shell
+make deploy-onprem OKD=true
+```
+for developers
+
+Configuration differences are:
+* `OS_IMAGES` should point to Fedora CoreOS (see [Fedora CoreOS Release artifacts](https://getfedora.org/en/coreos/download?tab=metal_virtualized&stream=stable&arch=x86_64))
+* `RELEASE_IMAGES` lists available OKD versions (see [OKD Releases](https://github.com/openshift/okd/releases))
+* `OKD_RPMS_IMAGE` is additional image containing Kubelet/CRI-O RPMs (see [example repo](https://github.com/vrutkovs/okd-rpms))
