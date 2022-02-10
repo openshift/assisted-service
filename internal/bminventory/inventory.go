@@ -982,84 +982,11 @@ func (b *bareMetalInventory) deleteOrUnbindHosts(ctx context.Context, cluster *c
 }
 
 func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder {
-	return b.DownloadISOInternal(ctx, params.ClusterID)
-}
-
-func (b *bareMetalInventory) DownloadISOInternal(ctx context.Context, infraEnvID strfmt.UUID) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-
-	infraEnv, err := common.GetInfraEnvFromDB(b.db, infraEnvID)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get infra env %s", infraEnvID)
-		return common.GenerateErrorResponder(err)
-	}
-
-	if b.ImageServiceBaseURL != "" && infraEnv.DownloadURL != "" {
-		log.Warnf("Redirecting image download to %s: download is not supported at this endpoint", infraEnv.DownloadURL)
-		return installer.NewDownloadClusterISOMovedPermanently().WithLocation(infraEnv.DownloadURL)
-	}
-
-	imgName := getImageName(infraEnv.ID)
-	exists, err := b.objectHandler.DoesObjectExist(ctx, imgName)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get ISO for cluster %s", infraEnv.ID.String())
-		eventgen.SendDownloadImageFetchFailedEvent(ctx, b.eventsHandler, infraEnvID)
-
-		return installer.NewDownloadClusterISOInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-	if !exists {
-		eventgen.SendDownloadImageFindFailedEvent(ctx, b.eventsHandler, infraEnvID)
-
-		return installer.NewDownloadClusterISONotFound().
-			WithPayload(common.GenerateError(http.StatusNotFound, errors.New("The image was not found "+
-				"(perhaps it expired) - please generate the image and try again")))
-	}
-	reader, contentLength, err := b.objectHandler.Download(ctx, imgName)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get ISO for cluster %s", infraEnv.ID.String())
-		eventgen.SendDownloadImageFetchFailedEvent(ctx, b.eventsHandler, infraEnvID)
-		return installer.NewDownloadClusterISOInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-	eventgen.SendDownloadImageStartedEvent(ctx, b.eventsHandler, infraEnvID, string(common.ImageTypeValue(infraEnv.Type)))
-
-	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(reader),
-		fmt.Sprintf("cluster-%s-discovery.iso", infraEnvID),
-		contentLength)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder {
-	return b.DownloadISOHeadersInternal(ctx, params.ClusterID)
-}
-
-func (b *bareMetalInventory) DownloadISOHeadersInternal(ctx context.Context, infraEnvID strfmt.UUID) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-
-	infraEnv, err := common.GetInfraEnvFromDB(b.db, infraEnvID)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get infra env %s", infraEnvID)
-		return common.GenerateErrorResponder(err)
-	}
-
-	imgName := getImageName(infraEnv.ID)
-	exists, err := b.objectHandler.DoesObjectExist(ctx, imgName)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get ISO for infra env %s", infraEnv.ID.String())
-		eventgen.SendDownloadImageFetchFailedEvent(ctx, b.eventsHandler, infraEnvID)
-		return installer.NewDownloadClusterISOHeadersInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-	if !exists {
-		return installer.NewDownloadClusterISOHeadersNotFound().
-			WithPayload(common.GenerateError(http.StatusNotFound, errors.New("The image was not found")))
-	}
-	imgSize, err := b.objectHandler.GetObjectSizeBytes(ctx, imgName)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get ISO size for cluster %s", infraEnv.ID.String())
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
-	return installer.NewDownloadClusterISOHeadersOK().WithContentLength(imgSize)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType, generated bool, v2 bool) error {
