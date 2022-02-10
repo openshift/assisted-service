@@ -103,6 +103,13 @@ S3 service (minio), DB and will use the image generator to create the images in 
 skipper make deploy-all
 ```
 
+Note: when deployed in minikube, we need to be running [minikube tunnel](https://minikube.sigs.k8s.io/docs/handbook/accessing/#using-minikube-tunnel), as some services are type `LoadBalancer` and need to be exposed.
+
+```shell
+nohup minikube tunnel &>/dev/null
+```
+
+
 ### Deploy to OpenShift
 
 Besides default minikube deployment, the service supports deployment to OpenShift cluster using ingress as the access point to the service.
