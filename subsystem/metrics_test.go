@@ -365,7 +365,7 @@ var _ = Describe("Metrics tests", func() {
 
 		BeforeEach(func() {
 			//start host installation process
-			registerHostsAndSetRoles(clusterID, 3, "test-cluster", "example.com")
+			registerHostsAndSetRoles(clusterID, clusterID, 3, "test-cluster", "example.com")
 			c = installCluster(clusterID)
 			for _, host := range c.Hosts {
 				waitForHostState(ctx, clusterID, "installing", defaultWaitForHostStateTimeout, host)
@@ -1025,7 +1025,7 @@ var _ = Describe("Metrics tests", func() {
 		It("'all-hosts-are-ready-to-install' failed", func() {
 
 			// create a validation success
-			hosts, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
+			hosts, _ := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 			c := getCluster(clusterID)
 			for _, h := range c.Hosts {
 				generateDomainResolution(ctx, h, "test-cluster", "example.com")
@@ -1056,7 +1056,7 @@ var _ = Describe("Metrics tests", func() {
 		It("'all-hosts-are-ready-to-install' got fixed", func() {
 
 			// create a validation failure
-			hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
+			hosts, ips := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 			c := getCluster(clusterID)
 			for _, h := range c.Hosts {
 				generateDomainResolution(ctx, h, "test-cluster", "example.com")
@@ -1088,7 +1088,7 @@ var _ = Describe("Metrics tests", func() {
 		It("'sufficient-masters-count' failed", func() {
 
 			// create a validation success
-			hosts, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
+			hosts, _ := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDSufficientMastersCount)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationChangedMetric)
@@ -1113,7 +1113,7 @@ var _ = Describe("Metrics tests", func() {
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersCount)
 
 			// create a validation success
-			register3nodes(ctx, clusterID, defaultCIDRv4)
+			register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDSufficientMastersCount)
 
 			// check generated events
