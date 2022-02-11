@@ -15,7 +15,6 @@ import (
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client/assisted_service_iso"
 	"github.com/openshift/assisted-service/client/events"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/client/versions"
@@ -34,32 +33,6 @@ var _ = Describe("system-test image tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resp.Payload).ShouldNot(BeEmpty())
 		ocpVersions = resp.Payload
-	})
-
-	It("live iso endpoints always return BadRequest", func() {
-		for ocpVersion := range ocpVersions {
-			By(fmt.Sprintf("For version %s", ocpVersion))
-			By("Create ISO")
-			ignitionParams := models.AssistedServiceIsoCreateParams{
-				SSHPublicKey:     sshPublicKey,
-				PullSecret:       pullSecret,
-				OpenshiftVersion: ocpVersion,
-			}
-			_, err := userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
-				AssistedServiceIsoCreateParams: &ignitionParams,
-			})
-			Expect(err).To(HaveOccurred())
-
-			By("Download ISO")
-			file, err := ioutil.TempFile("", "tmp")
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer os.Remove(file.Name())
-
-			_, err = userBMClient.AssistedServiceIso.DownloadISO(ctx, &assisted_service_iso.DownloadISOParams{}, file)
-			Expect(err).To(HaveOccurred())
-		}
 	})
 
 	assertImageGenerates := func(imageType models.ImageType) {

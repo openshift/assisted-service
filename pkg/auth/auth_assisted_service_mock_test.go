@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/restapi"
-	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
 	eventsapi "github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	managed_domains_api "github.com/openshift/assisted-service/restapi/operations/managed_domains"
@@ -548,38 +547,4 @@ func (f fakeManagedDomainsAPI) V2ListManagedDomains(
 	_ context.Context,
 	_ managed_domains_api.V2ListManagedDomainsParams) middleware.Responder {
 	return managed_domains_api.NewV2ListManagedDomainsOK()
-}
-
-type fakeAssistedServiceIsoAPI struct{}
-
-func (f fakeAssistedServiceIsoAPI) CreateISOAndUploadToS3(ctx context.Context, params assisted_service_iso.CreateISOAndUploadToS3Params) middleware.Responder {
-	return assisted_service_iso.NewCreateISOAndUploadToS3Created()
-}
-
-func (f fakeAssistedServiceIsoAPI) DownloadISO(ctx context.Context, params assisted_service_iso.DownloadISOParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return assisted_service_iso.NewDownloadISOInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
-	return filemiddleware.NewResponder(
-		assisted_service_iso.NewDownloadISOOK().WithPayload(io.ReadCloser(file)),
-		"test",
-		0)
-}
-
-func (f fakeAssistedServiceIsoAPI) DownloadISOHeaders(ctx context.Context, params assisted_service_iso.DownloadISOParams) middleware.Responder {
-	_, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return assisted_service_iso.NewDownloadISOInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
-	return filemiddleware.NewResponder(
-		assisted_service_iso.NewDownloadISOOK(),
-		"test",
-		0)
-}
-
-func (f fakeAssistedServiceIsoAPI) GetPresignedForAssistedServiceISO(ctx context.Context, params assisted_service_iso.GetPresignedForAssistedServiceISOParams) middleware.Responder {
-	return assisted_service_iso.NewGetPresignedForAssistedServiceISOOK()
 }

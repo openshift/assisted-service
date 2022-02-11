@@ -193,13 +193,12 @@ var _ = Describe("authz", func() {
 					Cache:         authzCache,
 				},
 				log.WithField("pkg", "auth"), nil).CreateAuthorizer(),
-			InstallerAPI:          fakeInventory{},
-			AssistedServiceIsoAPI: fakeAssistedServiceIsoAPI{},
-			EventsAPI:             &fakeEventsAPI{},
-			Logger:                logrus.Printf,
-			VersionsAPI:           fakeVersionsAPI{},
-			ManagedDomainsAPI:     fakeManagedDomainsAPI{},
-			InnerMiddleware:       nil,
+			InstallerAPI:      fakeInventory{},
+			EventsAPI:         &fakeEventsAPI{},
+			Logger:            logrus.Printf,
+			VersionsAPI:       fakeVersionsAPI{},
+			ManagedDomainsAPI: fakeManagedDomainsAPI{},
+			InnerMiddleware:   nil,
 		})
 	Expect(err).To(BeNil())
 
