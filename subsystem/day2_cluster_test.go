@@ -396,9 +396,11 @@ var _ = Describe("Day2 cluster tests", func() {
 		h1 = getHostV2(infraEnvID, *h1.ID)
 		Expect(*h1.Status).Should(Equal("insufficient"))
 		Expect(h1.Role).Should(Equal(models.HostRoleWorker))
+		Expect(h1.MachineConfigPoolName).Should(Equal(string(models.HostRoleWorker)))
 		h2 = getHostV2(infraEnvID, *h2.ID)
 		Expect(*h2.Status).Should(Equal("insufficient"))
 		Expect(h2.Role).Should(Equal(models.HostRoleWorker))
+		Expect(h2.MachineConfigPoolName).Should(Equal(string(models.HostRoleWorker)))
 
 		c := getCluster(clusterID)
 		Expect(*c.Status).Should(Equal("adding-hosts"))

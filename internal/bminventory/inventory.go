@@ -6122,6 +6122,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	//day2 host is always a worker
 	if hostutil.IsDay2Host(host) {
 		host.Role = models.HostRoleWorker
+		host.MachineConfigPoolName = string(models.HostRoleWorker)
 	}
 
 	if err = b.hostApi.RegisterHost(ctx, host, tx); err != nil {
