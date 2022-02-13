@@ -167,7 +167,7 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		Expect(err).ToNot(HaveOccurred())
 		clusterID = cID
 		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-		registerHostsAndSetRoles(clusterID, minHosts, "test-cluster", "example.com")
+		registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
 		setClusterAsFinalizing(ctx, clusterID)
 		res, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
 		Expect(err).NotTo(HaveOccurred())
@@ -233,7 +233,7 @@ var _ = Describe("Cluster credentials should be accessed only by cluster owner",
 		Expect(err).ToNot(HaveOccurred())
 		clusterID = cID
 		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-		registerHostsAndSetRoles(clusterID, minHosts, "test-cluster", "example.com")
+		registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
 		setClusterAsFinalizing(ctx, clusterID)
 		res, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
 		Expect(err).NotTo(HaveOccurred())

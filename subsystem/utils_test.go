@@ -442,8 +442,8 @@ func generateEssentialPrepareForInstallationSteps(ctx context.Context, hosts ...
 	}
 }
 
-func registerNode(ctx context.Context, clusterID strfmt.UUID, name, ip string) *models.Host {
-	h := &registerHost(clusterID).Host
+func registerNode(ctx context.Context, infraenvID strfmt.UUID, name, ip string) *models.Host {
+	h := &registerHost(infraenvID).Host
 	generateEssentialHostSteps(ctx, h, name, ip)
 	generateEssentialPrepareForInstallationSteps(ctx, h)
 	return h
@@ -547,11 +547,11 @@ func v2UpdateVipParams(ctx context.Context, clusterID strfmt.UUID) {
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func register3nodes(ctx context.Context, clusterID strfmt.UUID, cidr string) ([]*models.Host, []string) {
+func register3nodes(ctx context.Context, clusterID, infraenvID strfmt.UUID, cidr string) ([]*models.Host, []string) {
 	ips := hostutil.GenerateIPv4Addresses(3, cidr)
-	h1 := registerNode(ctx, clusterID, "h1", ips[0])
-	h2 := registerNode(ctx, clusterID, "h2", ips[1])
-	h3 := registerNode(ctx, clusterID, "h3", ips[2])
+	h1 := registerNode(ctx, infraenvID, "h1", ips[0])
+	h2 := registerNode(ctx, infraenvID, "h2", ips[1])
+	h3 := registerNode(ctx, infraenvID, "h3", ips[2])
 	updateVipParams(ctx, clusterID)
 	generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
 

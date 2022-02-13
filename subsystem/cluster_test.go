@@ -1176,7 +1176,7 @@ var _ = Describe("cluster install", func() {
 	It("auto-assign", func() {
 		By("register 3 hosts all with master hw information cluster expected to be ready")
 		clusterID := *cluster.ID
-		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
+		hosts, ips := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 		h1, h2, h3 := hosts[0], hosts[1], hosts[2]
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
@@ -1252,7 +1252,7 @@ var _ = Describe("cluster install", func() {
 	It("Schedulable masters", func() {
 		By("register 3 hosts all with master hw information cluster expected to be ready")
 		clusterID := *cluster.ID
-		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
+		hosts, ips := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 		h1, h2, h3 := hosts[0], hosts[1], hosts[2]
 		for _, h := range hosts {
 			generateDomainResolution(ctx, h, "test-cluster", "example.com")
@@ -1296,7 +1296,7 @@ var _ = Describe("cluster install", func() {
 	It("[V2UpdateCluster] Schedulable masters", func() {
 		By("register 3 hosts all with master hw information cluster expected to be ready")
 		clusterID := *cluster.ID
-		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
+		hosts, ips := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 		h1, h2, h3 := hosts[0], hosts[1], hosts[2]
 		for _, h := range hosts {
 			generateDomainResolution(ctx, h, "test-cluster", "example.com")
@@ -1584,7 +1584,7 @@ var _ = Describe("cluster install", func() {
 		var clusterID strfmt.UUID
 		BeforeEach(func() {
 			clusterID = *cluster.ID
-			registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
+			registerHostsAndSetRoles(clusterID, clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 		})
 
 		Context("NTP cases", func() {
@@ -2161,7 +2161,7 @@ var _ = Describe("cluster install", func() {
 			By("Download before upload")
 			{
 
-				nodes, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
+				nodes, _ := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2DownloadClusterLogs(ctx, &installer.V2DownloadClusterLogsParams{ClusterID: clusterID, HostID: nodes[1].ID}, file)
@@ -2173,7 +2173,7 @@ var _ = Describe("cluster install", func() {
 			{
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
-				_, _ = register3nodes(ctx, clusterID, defaultCIDRv4)
+				_, _ = register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 				_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: clusterID, LogsType: string(models.LogsTypeController), Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 				logsType := string(models.LogsTypeController)
@@ -2190,7 +2190,7 @@ var _ = Describe("cluster install", func() {
 			{
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
-				hosts, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
+				hosts, _ := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *hosts[0].ID, Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -2213,7 +2213,7 @@ var _ = Describe("cluster install", func() {
 				cmd := exec.Command("head", "-c", "200MB", "/dev/urandom")
 				err = cmd.Run()
 				Expect(err).NotTo(HaveOccurred())
-				nodes, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
+				nodes, _ := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 				// test hosts logs
 				kubeconfigFile, err := os.Open(filePath)
 				Expect(err).NotTo(HaveOccurred())
@@ -2252,7 +2252,7 @@ var _ = Describe("cluster install", func() {
 		})
 
 		It("Download cluster logs", func() {
-			nodes, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
+			nodes, _ := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 			for _, host := range nodes {
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
@@ -2893,7 +2893,7 @@ spec:
 
 		checkUpdateAtWhileStatic(ctx, clusterID)
 
-		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
+		hosts, ips := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 		newIPs := hostutil.GenerateIPv4Addresses(2, ips[2])
 		h4 := &registerHost(clusterID).Host
 		h5 := registerNode(ctx, clusterID, "h5", newIPs[0])
@@ -3219,7 +3219,7 @@ spec:
 	It("unique_hostname_validation", func() {
 		clusterID := *cluster.ID
 		//define h1 as known master
-		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
+		hosts, ips := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
 			HostUpdateParams: &models.HostUpdateParams{
 				HostRole: swag.String(string(models.HostRoleMaster)),
@@ -3338,7 +3338,7 @@ spec:
 		localhost := "localhost"
 		clusterID := *cluster.ID
 
-		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
+		hosts, ips := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
 			HostUpdateParams: &models.HostUpdateParams{
 				HostRole: swag.String(string(models.HostRoleMaster)),
@@ -3384,7 +3384,7 @@ spec:
 
 	It("different_roles_stages", func() {
 		clusterID := *cluster.ID
-		registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
+		registerHostsAndSetRoles(clusterID, clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 		c := installCluster(clusterID)
 		Expect(len(c.Hosts)).Should(Equal(5))
 
@@ -3406,7 +3406,7 @@ spec:
 
 	It("set_requested_hostnames", func() {
 		clusterID := *cluster.ID
-		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
+		hosts, ips := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
 		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
 			HostUpdateParams: &models.HostUpdateParams{
 				HostRole: swag.String(string(models.HostRoleMaster)),
@@ -3669,7 +3669,7 @@ var _ = Describe("cluster install, with default network params", func() {
 
 	It("install cluster", func() {
 		clusterID := *cluster.ID
-		registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
+		registerHostsAndSetRoles(clusterID, clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 		rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		c := rep.GetPayload()
@@ -3700,7 +3700,7 @@ var _ = Describe("cluster install, with default network params", func() {
 	Context("fail disk speed", func() {
 		It("first host", func() {
 			clusterID := *cluster.ID
-			registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
+			registerHostsAndSetRoles(clusterID, clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := rep.GetPayload()
@@ -3712,7 +3712,7 @@ var _ = Describe("cluster install, with default network params", func() {
 		})
 		It("all hosts", func() {
 			clusterID := *cluster.ID
-			registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
+			registerHostsAndSetRoles(clusterID, clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := rep.GetPayload()
@@ -3724,7 +3724,7 @@ var _ = Describe("cluster install, with default network params", func() {
 		})
 		It("last host", func() {
 			clusterID := *cluster.ID
-			registerHostsAndSetRoles(clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
+			registerHostsAndSetRoles(clusterID, clusterID, 5, cluster.Name, cluster.BaseDNSDomain)
 			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := rep.GetPayload()
@@ -3778,14 +3778,14 @@ var _ = Describe("Verify ISO is deleted on cluster de-registration", func() {
 	})
 })
 
-func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int, clusterName string, baseDNSDomain string) []*models.Host {
+func registerHostsAndSetRoles(clusterID, infraenvID strfmt.UUID, numHosts int, clusterName string, baseDNSDomain string) []*models.Host {
 	ctx := context.Background()
 	hosts := make([]*models.Host, 0)
 
 	ips := hostutil.GenerateIPv4Addresses(numHosts, defaultCIDRv4)
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
-		host := registerNode(ctx, clusterID, hostname, ips[i])
+		host := registerNode(ctx, infraenvID, hostname, ips[i])
 		var role models.HostRole
 		if i < 3 {
 			role = models.HostRoleMaster
@@ -3797,7 +3797,7 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int, clusterName s
 				HostRole: swag.String(string(role)),
 			},
 			HostID:     *host.ID,
-			InfraEnvID: clusterID,
+			InfraEnvID: infraenvID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		hosts = append(hosts, host)
