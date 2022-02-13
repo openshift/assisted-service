@@ -6288,6 +6288,12 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		c = &cluster.Cluster
 	}
 
+	//day2 host is always a worker
+	if hostutil.IsDay2Host(host) {
+		host.Role = models.HostRoleWorker
+		host.MachineConfigPoolName = string(models.HostRoleWorker)
+	}
+
 	if err = b.hostApi.RegisterHost(ctx, host, tx); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> infra-env <%s>",
 			params.NewHostParams.HostID.String(), params.InfraEnvID.String())
