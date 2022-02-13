@@ -2526,7 +2526,7 @@ var _ = Describe("cluster install", func() {
 				installCluster(clusterID)
 				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
@@ -2580,7 +2580,7 @@ var _ = Describe("cluster install", func() {
 					installCluster(clusterID)
 					_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 					Expect(err).NotTo(HaveOccurred())
-					_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+					_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 					Expect(err).NotTo(HaveOccurred())
 					rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 					Expect(err).NotTo(HaveOccurred())
@@ -2650,11 +2650,11 @@ var _ = Describe("cluster install", func() {
 				}
 			})
 			It("reset ready/installing cluster", func() {
-				_, err := userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
-				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewResetClusterConflict())))
+				_, err := userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2ResetClusterConflict()))
 				c := installCluster(clusterID)
 				waitForHostState(ctx, clusterID, models.HostStatusInstalling, defaultWaitForHostStateTimeout, c.Hosts...)
-				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
@@ -2680,7 +2680,7 @@ var _ = Describe("cluster install", func() {
 				h2 := getHost(clusterID, *c.Hosts[1].ID)
 				Expect(*h2.Status).Should(Equal(models.HostStatusInstalled))
 
-				_, err := userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				_, err := userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForClusterStateTimeout, c.Hosts...)
 			})
@@ -2691,7 +2691,7 @@ var _ = Describe("cluster install", func() {
 				updateProgress(*c.Hosts[0].ID, clusterID, models.HostStageRebooting)
 				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout, clusterResetStateInfo)
 				for _, host := range c.Hosts {
@@ -2742,7 +2742,7 @@ var _ = Describe("cluster install", func() {
 				By("reset installation")
 				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
@@ -2799,7 +2799,7 @@ var _ = Describe("cluster install", func() {
 				By("reset installation and verify hosts statuses")
 				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
@@ -2817,7 +2817,7 @@ var _ = Describe("cluster install", func() {
 
 			It("reset installation - cluster in finalizing status", func() {
 				setClusterAsFinalizing(ctx, clusterID)
-				_, err := userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				_, err := userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
@@ -2866,7 +2866,7 @@ spec:
 				h2 := getHost(clusterID, *c.Hosts[1].ID)
 				Expect(*h2.Status).Should(Equal(models.HostStatusInstalled))
 
-				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				waitForHostState(ctx, clusterID, models.HostStatusResettingPendingUserAction, defaultWaitForClusterStateTimeout, c.Hosts...)
 
