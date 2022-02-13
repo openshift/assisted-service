@@ -1,4 +1,4 @@
-FROM quay.io/edge-infrastructure/postgresql-12-centos7:latest
+FROM quay.io/centos/centos:stream8
 
 ENV GOPATH=/go
 ENV GOROOT=/usr/local/go
@@ -6,13 +6,12 @@ ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 USER 0
 
-RUN yum install -y epel-release \
-    && yum install -y --setopt=skip_missing_names_on_install=False \
-        gcc genisoimage jq git libvirt-client libvirt-devel
+RUN dnf install -y epel-release \
+    && dnf install -y \
+        gcc genisoimage jq git libvirt-client libvirt-devel postgresql-server
 
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.16 /usr/bin/gotestsum /usr/bin/make /usr/bin/
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.16 /usr/local/go /usr/local/go
-
 
 COPY ./hack/setup_env.sh ./dev-requirements.txt ./
 RUN ./setup_env.sh assisted_service
