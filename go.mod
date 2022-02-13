@@ -59,7 +59,7 @@ require (
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.49.0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/rs/cors v1.8.2
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/slok/go-http-metrics v0.8.0
 	github.com/stretchr/testify v1.7.0
 	github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d
@@ -82,7 +82,7 @@ require (
 	k8s.io/kube-aggregator v0.20.0
 	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
 	sigs.k8s.io/controller-runtime v0.9.0
-	sigs.k8s.io/yaml v1.2.0
+	sigs.k8s.io/yaml v1.3.0
 )
 
 replace (
