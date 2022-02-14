@@ -7,7 +7,12 @@ metadata:
 spec:
   containers:
   - args:
+    - su
+    - -c
     - run-postgresql
+    - -s
+    - /bin/sh
+    - postgres
     image: quay.io/centos7/postgresql-12-centos7:latest
     name: db
     envFrom:
