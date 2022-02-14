@@ -577,10 +577,9 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
 	var db *gorm.DB
 	var err error
-	// Tries to open a db connection every 2 seconds for up to 10 seconds.
-	timeout := 10 * time.Second
+	// Tries to open a db connection every 2 seconds
 	retryInterval := 2 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	log.Info("Connecting to DB")
 	wait.UntilWithContext(ctx, func(ctx context.Context) {
