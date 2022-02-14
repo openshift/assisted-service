@@ -48,20 +48,20 @@ iPXE deployment method
 The automatic way is done using podman, just follow this steps:
 
 ```shell
-export IPXE_DIR=/tmp/ipxe/ai
+IPXE_DIR=/tmp/ipxe/ai
 mkdir -p ${IPXE_DIR}
 
 # This command will download the ISO, extract the Images and create the ignition config files
 podman run -e BASE_URL=http://devscripts2ipv6.e2e.bos.redhat.com:8080 -e ISO_URL=$(curl http://devscripts2ipv6.e2e.bos.redhat.com:6008/api/assisted-install/v2/infra-envs/29b516fd-8f3a-42bf-8a59-cb20ef2630e0/downloads/image-url | jq ".url") -v /tmp/ipxe/ai:/data:Z --net=host -it --rm quay.io/ohadlevy/ai-ipxe
 
 # This command will host the iPXE files on an podman container
-podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm bitnami/nginx:latest
+podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm docker.io/bitnami/nginx:latest
 ```
 
 To ensure if your container is working fine, check the url with a `curl` command
 
 ```shell
-curl http://$(hostname):8080/ipxe/ipxe
+curl http://$(hostname):8080/ipxe
 ```
 
 ### Manual
@@ -71,9 +71,9 @@ The manual way is explained here. You need at least to have the Discovery ISO al
 Now let's download that ISO in the provisioning machine, where the iPXE files will be hosted (use the _Command to download the ISO_ button from the Assisted Service website
 
 ```shell
-export IPXE_DIR=/tmp/ipxe/ai
-export IMAGE_PATH=/tmp/discovery_image_ocp.iso
-expport ISO_URL=$(curl http://console.redhat.com/api/assisted-install/v2/infra-envs/<infra_env_id>/downloads/image-url | jq ".url")
+IPXE_DIR=/tmp/ipxe/ai
+IMAGE_PATH=/tmp/discovery_image_ocp.iso
+ISO_URL=$(curl http://console.redhat.com/api/assisted-install/v2/infra-envs/<infra_env_id>/downloads/image-url | jq ".url")
 
 wget -O ${IMAGE_PATH} ${ISO_URL}
 ```
@@ -95,12 +95,12 @@ EOF
 - We also need to extract the images from the ISO
 
 ```shell
-export PXE_IMAGES=`isoinfo -i $IMAGE_PATH -f | grep -i images/pxeboot`
+PXE_IMAGES=$(isoinfo -R -i $IMAGE_PATH -f | grep -i images/pxeboot)
 
 for img in $PXE_IMAGES; do
-  export name=`basename ${img,,} | sed 's/\;1//' | sed 's/\.$//'`
+  name=$(basename ${img})
   echo extracting $name
-  isoinfo -i $IMAGE_PATH -x $img > $IPXE_DIR/$name
+  isoinfo -R -i $IMAGE_PATH -x $img > $IPXE_DIR/$name
 done
 ```
 
@@ -108,21 +108,20 @@ done
 
 ```shell
 echo writing custom user ignition
-echo '{' > $IPXE_DIR/config.ign
-isoinfo -i $IMAGE_PATH -x '/IMAGES/IGNITION.IMG;1' | xz -dc - | sed '1d; $d' >> $IPXE_DIR/config.ign
-echo '}' >> $IPXE_DIR/config.ign
+ziptool=$(isoinfo -R -i $IMAGE_PATH -x /images/ignition.img | file -b - | cut -d ' ' -f 1)
+isoinfo -R -i $IMAGE_PATH -x /images/ignition.img | ${ziptool,,} -dc | cpio -iD $IPXE_DIR
 ```
 
 - After the Ignition files creation we need to host the files, for that we will use a podman contianer based on nginx
 
 ```shell
-podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm bitnami/nginx:latest
+podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm docker.io/bitnami/nginx:latest
 ```
 
 - To ensure if your container is working fine, check the url with a `curl` command
 
 ```shell
-curl http://$(hostname):8080/ipxe/ipxe
+curl http://$(hostname):8080/ipxe
 ```
 
 ### Booting the nodes from iPXE
