@@ -152,7 +152,10 @@ mkdir ${tmpd}/{upper,work}
 mount -t overlay -o lowerdir=/usr,upperdir=${tmpd}/upper,workdir=${tmpd}/work overlay /usr
 rpm -Uvh /tmp/rpms/*
 podman rmi -f "${RPMS_IMAGE}"
-# Expand /var to 6G (3.2G on 16GB VM in insufficient)
+# Expand /var to 6G if necessary
+if (( $(stat -c%%s /run/ephemeral.xfsloop) > 6*1024*1024*1024 )); then
+  exit 0
+fi
 /bin/truncate -s 6G /run/ephemeral.xfsloop
 losetup -c /dev/loop0
 xfs_growfs /var
