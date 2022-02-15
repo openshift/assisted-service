@@ -1805,77 +1805,7 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 }
 
 func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	cluster := &common.Cluster{}
-	var err error
-
-	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	// auto select hosts roles if not selected yet.
-	err = b.db.Transaction(func(tx *gorm.DB) error {
-		for i := range cluster.Hosts {
-			if swag.StringValue(cluster.Hosts[i].Status) != models.HostStatusKnown {
-				continue
-			}
-			if _, err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	if err = b.refreshAllHosts(ctx, cluster); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	txSuccess := false
-	tx := b.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("InstallHosts failed")
-			tx.Rollback()
-		}
-		if r := recover(); r != nil {
-			log.Error("InstallHosts failed")
-			tx.Rollback()
-		}
-	}()
-
-	// in case host monitor already updated the state we need to use FOR UPDATE option
-	if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	// move hosts to installing
-	for i := range cluster.Hosts {
-		if swag.StringValue(cluster.Hosts[i].Status) != models.HostStatusKnown {
-			continue
-		}
-		err = b.createAndUploadNodeIgnition(ctx, cluster, cluster.Hosts[i], "")
-		if err != nil {
-			log.Errorf("Failed to upload ignition for host %s", cluster.Hosts[i].RequestedHostname)
-			continue
-		}
-		if installErr := b.hostApi.Install(ctx, cluster.Hosts[i], tx); installErr != nil {
-			// we just logs the error, each host install is independent
-			log.Errorf("Failed to move host %s to installing", cluster.Hosts[i].RequestedHostname)
-		}
-	}
-
-	err = tx.Commit().Error
-	if err != nil {
-		log.Error(err)
-		return common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
-	}
-	txSuccess = true
-
-	return installer.NewInstallHostsAccepted().WithPayload(&cluster.Cluster)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster common.Cluster, db *gorm.DB) error {
@@ -4909,7 +4839,7 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 }
 
 func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder {
-	return b.V2ResetCluster(ctx, installer.V2ResetClusterParams{ClusterID: params.ClusterID})
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.InstallHostParams) middleware.Responder {

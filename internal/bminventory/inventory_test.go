@@ -5625,7 +5625,7 @@ var _ = Describe("cluster", func() {
 			})
 			It("reset installation success", func() {
 				setResetClusterSuccess()
-				resetReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
+				resetReply := bm.V2ResetCluster(ctx, installer.V2ResetClusterParams{
 					ClusterID: clusterID,
 				})
 				Expect(resetReply).Should(BeAssignableToTypeOf(installer.NewV2ResetClusterAccepted()))
@@ -5633,7 +5633,7 @@ var _ = Describe("cluster", func() {
 			It("reset cluster conflict", func() {
 				setResetClusterConflict()
 
-				cancelReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
+				cancelReply := bm.V2ResetCluster(ctx, installer.V2ResetClusterParams{
 					ClusterID: clusterID,
 				})
 
@@ -5642,7 +5642,7 @@ var _ = Describe("cluster", func() {
 			It("reset cluster internal error", func() {
 				setResetClusterInternalServerError()
 
-				cancelReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
+				cancelReply := bm.V2ResetCluster(ctx, installer.V2ResetClusterParams{
 					ClusterID: clusterID,
 				})
 
@@ -10531,95 +10531,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster test", func() {
 		mockClusterApi.EXPECT().TransformClusterToDay2(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.New("blah"))
 		_, err := bm.TransformClusterToDay2Internal(ctx, clusterID)
 		Expect(err).Should(HaveOccurred())
-	})
-})
-
-var _ = Describe("Install Hosts test", func() {
-
-	var (
-		bm        *bareMetalInventory
-		cfg       Config
-		db        *gorm.DB
-		ctx       = context.Background()
-		clusterID strfmt.UUID
-		dbName    string
-		request   *http.Request
-	)
-
-	BeforeEach(func() {
-		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
-		clusterID = strfmt.UUID(uuid.New().String())
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			Kind:             swag.String(models.ClusterKindAddHostsCluster),
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Status:           swag.String(models.ClusterStatusAddingHosts),
-		}}).Error
-		Expect(err).ShouldNot(HaveOccurred())
-
-		bm = createInventory(db, cfg)
-		body := &bytes.Buffer{}
-		request, _ = http.NewRequest("POST", "test", body)
-		mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
-
-	It("InstallHosts all known", func() {
-		params := installer.InstallHostsParams{
-			HTTPRequest: request,
-			ClusterID:   clusterID,
-		}
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(3)
-		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(3)
-		res := bm.InstallHosts(ctx, params)
-		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostsAccepted()))
-	})
-
-	It("InstallHosts not all known", func() {
-		params := installer.InstallHostsParams{
-			HTTPRequest: request,
-			ClusterID:   clusterID,
-		}
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalling, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		knownHostID := strfmt.UUID(uuid.New().String())
-		addHost(knownHostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalled, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname3", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusAddedToExistingCluster, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname4", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
-		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(5)
-		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		fileName := fmt.Sprintf("%s/worker-%s.ign", clusterID, knownHostID)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
-		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
-		res := bm.InstallHosts(ctx, params)
-		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostsAccepted()))
-	})
-
-	It("InstallHosts all not known", func() {
-		params := installer.InstallHostsParams{
-			HTTPRequest: request,
-			ClusterID:   clusterID,
-		}
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalling, models.HostKindAddToExistingClusterHost, clusterID, clusterID, "", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, clusterID, "", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusDisconnected, models.HostKindAddToExistingClusterHost, clusterID, clusterID, "", db)
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(0)
-		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(0)
-		res := bm.InstallHosts(ctx, params)
-		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostsAccepted()))
 	})
 })
 
