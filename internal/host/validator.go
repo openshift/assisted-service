@@ -1172,8 +1172,18 @@ func (v *validator) printDefaultRoute(c *validationContext, status ValidationSta
 	}
 }
 
-func isNonePlatformMultiNodeInstallation(c *validationContext) bool {
-	return swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster)
+func shouldValidateDnsResolution(c *validationContext) bool {
+	// Skip DNS resolution checks in IPI network mode
+	if !swag.BoolValue(c.cluster.UserManagedNetworking) {
+		return false
+	}
+
+	// If its an SNO cluster with DNSMasq manifests enabled the check should be skipped
+	networkCfg, err := network.NewConfig()
+	if err != nil {
+		return false
+	}
+	return !(common.IsSingleNodeCluster(c.cluster) && networkCfg.EnableSingleNodeDnsmasq)
 }
 
 func domainNameToResolve(c *validationContext, name string) string {
@@ -1184,7 +1194,7 @@ func (v *validator) isAPIDomainNameResolvedCorrectly(c *validationContext) Valid
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput
 	}
-	if !isNonePlatformMultiNodeInstallation(c) {
+	if !shouldValidateDnsResolution(c) {
 		return ValidationSuccess
 	}
 	apiDomainName := domainNameToResolve(c, constants.APIName)
@@ -1200,7 +1210,7 @@ func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContex
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput
 	}
-	if !isNonePlatformMultiNodeInstallation(c) {
+	if !shouldValidateDnsResolution(c) {
 		return ValidationSuccess
 	}
 	apiInternalDomainName := domainNameToResolve(c, constants.APIInternalName)
@@ -1216,7 +1226,7 @@ func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) Vali
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput
 	}
-	if !isNonePlatformMultiNodeInstallation(c) {
+	if !shouldValidateDnsResolution(c) {
 		return ValidationSuccess
 	}
 	appsDomainName := fmt.Sprintf("%s.apps.%s.%s", constants.AppsSubDomainNameHostDNSValidation, c.cluster.Name, c.cluster.BaseDNSDomain)

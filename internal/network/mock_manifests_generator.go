@@ -105,3 +105,17 @@ func (mr *MockManifestsGeneratorAPIMockRecorder) AddTelemeterManifest(ctx, log, 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTelemeterManifest", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddTelemeterManifest), ctx, log, c)
 }
+
+// IsSNODNSMasqEnabled mocks base method.
+func (m *MockManifestsGeneratorAPI) IsSNODNSMasqEnabled() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsSNODNSMasqEnabled")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsSNODNSMasqEnabled indicates an expected call of IsSNODNSMasqEnabled.
+func (mr *MockManifestsGeneratorAPIMockRecorder) IsSNODNSMasqEnabled() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSNODNSMasqEnabled", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).IsSNODNSMasqEnabled))
+}

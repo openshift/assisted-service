@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/go-openapi/swag"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/models"
@@ -26,10 +27,12 @@ type ManifestsGeneratorAPI interface {
 	AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
+	IsSNODNSMasqEnabled() bool
 }
 
 type Config struct {
-	ServiceBaseURL string `envconfig:"SERVICE_BASE_URL"`
+	ServiceBaseURL          string `envconfig:"SERVICE_BASE_URL"`
+	EnableSingleNodeDnsmasq bool   `envconfig:"ENABLE_SINGLE_NODE_DNSMASQ" default:"false"`
 }
 
 type ManifestsGenerator struct {
@@ -371,7 +374,15 @@ func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *commo
 	return nil
 }
 
+func (m *ManifestsGenerator) IsSNODNSMasqEnabled() bool {
+	return m.Config.EnableSingleNodeDnsmasq
+}
+
 func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
+	if !m.IsSNODNSMasqEnabled() {
+		return nil
+	}
+
 	filename := "dnsmasq-bootstrap-in-place.yaml"
 
 	content, err := createDnsmasqForSingleNode(log, cluster)
@@ -493,4 +504,14 @@ func (m *ManifestsGenerator) AddTelemeterManifest(ctx context.Context, log logru
 	}
 
 	return nil
+}
+
+// NewConfig returns network config if env vars can be parsed
+func NewConfig() (*Config, error) {
+	networkCfg := Config{}
+	if err := envconfig.Process("", networkCfg); err != nil {
+		// TODO: throw error here?
+		return &networkCfg, fmt.Errorf("failed to process env var to build network config")
+	}
+	return &networkCfg, nil
 }
