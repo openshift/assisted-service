@@ -5,16 +5,25 @@ local host in containers using [Podman](https://podman.io/).
 
 ## Requirements
 
-Make sure you have [podman](https://podman.io) installed.
+Make sure you have [podman](https://podman.io) version 3.3+ installed. If you
+must use an older version of podman, reference the [previous documentation and
+procedure](https://github.com/openshift/assisted-service/tree/v2.0.11#deploy-without-a-kubernetes-cluster)
+to avoid a [podman bug](https://github.com/containers/podman/issues/9609).
 
 Grab [pod.yml](./pod.yml) and [configmap.yml](configmap.yml) from this
 directory. No need to clone the whole repo.
 
-Change `SERVICE_BASE_URL` in [configmap.yml](./configmap.yml) to match the
-hostname or IP address of your host. For example if your IP address is
-192.168.122.2, then the `SERVICE_BASE_URL` would be set to
-<http://192.168.122.2:8090>. Port 8090 is the assisted-service API that agents
-will connect to.
+Change `IMAGE_SERVICE_BASE_URL` and `SERVICE_BASE_URL` in
+[configmap.yml](./configmap.yml) to match the hostname or IP address of your
+host. For example if your IP address is 192.168.122.2, then the
+`SERVICE_BASE_URL` would be set to <http://192.168.122.2:8090>. Port 8090 is
+the assisted-service API that agents will connect to.
+
+## Optional Configuration
+
+Other environment variables may be set in configmap.yml. For example, custom
+agent (`AGENT_DOCKER_IMAGE`), installer (`INSTALLER_IMAGE`) and controller
+(`CONTROLLER_IMAGE`) images can be defined.
 
 ## Run it
 
@@ -40,12 +49,6 @@ The UI will available at: `http://<host-ip-address>:8080`
 ```shell
 podman play kube --down pod.yml
 ```
-
-## Optional Configuration
-
-Other environment variables may be set in configmap.yml. For example, custom
-agent (`AGENT_DOCKER_IMAGE`), installer (`INSTALLER_IMAGE`) and controller
-(`CONTROLLER_IMAGE`) images can be defined.
 
 ## OKD configuration
 
