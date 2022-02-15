@@ -24,9 +24,9 @@ var _ = Describe("list base domains", func() {
 			"example.com": "abc/route53",
 		}
 		h = NewHandler(baseDNSDomains)
-		reply := h.ListManagedDomains(context.Background(), operations.ListManagedDomainsParams{})
-		Expect(reply).Should(BeAssignableToTypeOf(operations.NewListManagedDomainsOK()))
-		val, _ := reply.(*operations.ListManagedDomainsOK)
+		reply := h.V2ListManagedDomains(context.Background(), operations.V2ListManagedDomainsParams{})
+		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListManagedDomainsOK()))
+		val, _ := reply.(*operations.V2ListManagedDomainsOK)
 		domains := val.Payload
 		Expect(len(domains)).Should(Equal(1))
 		Expect(domains[0].Domain).Should(Equal("example.com"))
@@ -35,9 +35,9 @@ var _ = Describe("list base domains", func() {
 	It("empty", func() {
 		baseDNSDomains = map[string]string{}
 		h = NewHandler(baseDNSDomains)
-		reply := h.ListManagedDomains(context.Background(), operations.ListManagedDomainsParams{})
-		Expect(reply).Should(BeAssignableToTypeOf(operations.NewListManagedDomainsOK()))
-		val, _ := reply.(*operations.ListManagedDomainsOK)
+		reply := h.V2ListManagedDomains(context.Background(), operations.V2ListManagedDomainsParams{})
+		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListManagedDomainsOK()))
+		val, _ := reply.(*operations.V2ListManagedDomainsOK)
 		domains := val.Payload
 		Expect(len(domains)).Should(Equal(0))
 	})
@@ -46,7 +46,7 @@ var _ = Describe("list base domains", func() {
 			"example.com": "abcroute53",
 		}
 		h = NewHandler(baseDNSDomains)
-		reply := h.ListManagedDomains(context.Background(), operations.ListManagedDomainsParams{})
-		Expect(reply).Should(BeAssignableToTypeOf(operations.NewListManagedDomainsInternalServerError()))
+		reply := h.V2ListManagedDomains(context.Background(), operations.V2ListManagedDomainsParams{})
+		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListManagedDomainsInternalServerError()))
 	})
 })

@@ -924,9 +924,9 @@ func listEvents(ctx context.Context, cli *client.AssistedInstall) error {
 }
 
 func listManagedDomains(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.ManagedDomains.ListManagedDomains(
+	_, err := cli.ManagedDomains.V2ListManagedDomains(
 		ctx,
-		&managed_domains.ListManagedDomainsParams{})
+		&managed_domains.V2ListManagedDomainsParams{})
 	return err
 }
 

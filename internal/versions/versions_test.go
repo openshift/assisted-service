@@ -134,7 +134,7 @@ var _ = Describe("list versions", func() {
 			Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
 			h, err = NewHandler(logger, mockRelease, versions, defaultOsImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
-			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
+			reply := h.V2ListComponentVersions(context.Background(), operations.V2ListComponentVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListComponentVersionsOK()))
 			val, _ := reply.(*operations.V2ListComponentVersionsOK)
 			Expect(val.Payload.Versions["assisted-installer-service"]).
@@ -152,7 +152,7 @@ var _ = Describe("list versions", func() {
 			Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
 			h, err = NewHandler(logger, mockRelease, versions, defaultOsImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
-			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
+			reply := h.V2ListComponentVersions(context.Background(), operations.V2ListComponentVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListComponentVersionsOK()))
 			val, _ := reply.(*operations.V2ListComponentVersionsOK)
 			Expect(val.Payload.Versions["assisted-installer-service"]).Should(Equal("self-version"))
@@ -186,7 +186,7 @@ var _ = Describe("list versions", func() {
 
 			h, err = NewHandler(logger, mockRelease, versions, *osImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
-			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
+			reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 
@@ -233,7 +233,7 @@ var _ = Describe("list versions", func() {
 		It("missing release images", func() {
 			h, err = NewHandler(logger, mockRelease, versions, defaultOsImages, models.ReleaseImages{}, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
-			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
+			reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 			Expect(val.Payload).Should(BeEmpty())

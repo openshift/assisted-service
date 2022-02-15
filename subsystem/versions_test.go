@@ -10,8 +10,8 @@ import (
 
 var _ = Describe("[minimal-set]test versions", func() {
 	It("get versions list", func() {
-		reply, err := userBMClient.Versions.ListComponentVersions(context.Background(),
-			&versions.ListComponentVersionsParams{})
+		reply, err := userBMClient.Versions.V2ListComponentVersions(context.Background(),
+			&versions.V2ListComponentVersionsParams{})
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// service, agent, installer, controller
@@ -19,8 +19,8 @@ var _ = Describe("[minimal-set]test versions", func() {
 	})
 
 	It("get openshift versions list", func() {
-		reply, err := userBMClient.Versions.ListSupportedOpenshiftVersions(context.Background(),
-			&versions.ListSupportedOpenshiftVersionsParams{})
+		reply, err := userBMClient.Versions.V2ListSupportedOpenshiftVersions(context.Background(),
+			&versions.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(reply.GetPayload())).To(BeNumerically(">=", 1))
 	})
