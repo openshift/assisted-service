@@ -363,7 +363,7 @@ var _ = Describe("test AMS subscriptions", func() {
 		It("UpdateSubscription failed", func() {
 
 			var clusterID strfmt.UUID
-			var reply *installer.InstallClusterAccepted
+			var reply *installer.V2InstallClusterAccepted
 			var err error
 
 			By("create subscription", func() {
@@ -381,7 +381,7 @@ var _ = Describe("test AMS subscriptions", func() {
 				// in order to simulate infra env generation
 				generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 				registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
-				reply, err = userBMClient.Installer.InstallCluster(context.Background(), &installer.InstallClusterParams{ClusterID: clusterID})
+				reply, err = userBMClient.Installer.V2InstallCluster(context.Background(), &installer.V2InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c := reply.GetPayload()
 				Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))

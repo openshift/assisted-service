@@ -5444,7 +5444,7 @@ var _ = Describe("cluster", func() {
 				eventstest.WithClusterIdMatcher(clusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
 
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
 			})
 
@@ -5456,7 +5456,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("cluster doesn't exists", func() {
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: strfmt.UUID(uuid.New().String()),
 			})
 			verifyApiError(reply, http.StatusNotFound)
@@ -5464,7 +5464,7 @@ var _ = Describe("cluster", func() {
 
 		It("failed to auto-assign role", func() {
 			mockAutoAssignFailed()
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
 			})
 			verifyApiError(reply, http.StatusInternalServerError)
@@ -5483,7 +5483,7 @@ var _ = Describe("cluster", func() {
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
 			})
 			verifyApiError(reply, http.StatusInternalServerError)
@@ -5498,7 +5498,7 @@ var _ = Describe("cluster", func() {
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
 			Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).UpdateColumn("status", "insufficient").Error).To(Not(HaveOccurred()))
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
 			})
 			verifyApiError(reply, http.StatusConflict)
@@ -5515,7 +5515,7 @@ var _ = Describe("cluster", func() {
 			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return([]*strfmt.UUID{}, nil).Times(1)
 
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
 			})
 			verifyApiError(reply, http.StatusInternalServerError)
@@ -5531,7 +5531,7 @@ var _ = Describe("cluster", func() {
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
 			})
 			verifyApiError(reply, http.StatusInternalServerError)
@@ -5548,7 +5548,7 @@ var _ = Describe("cluster", func() {
 			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
 
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
 			})
 			verifyApiError(reply, http.StatusInternalServerError)
@@ -5576,7 +5576,7 @@ var _ = Describe("cluster", func() {
 				eventstest.WithClusterIdMatcher(clusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).MinTimes(0)
 
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
 			})
 
@@ -5594,7 +5594,7 @@ var _ = Describe("cluster", func() {
 			It("cancel installation success", func() {
 				setCancelInstallationSuccess()
 
-				cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
+				cancelReply := bm.V2CancelInstallation(ctx, installer.V2CancelInstallationParams{
 					ClusterID: clusterID,
 				})
 				Expect(cancelReply).Should(BeAssignableToTypeOf(installer.NewV2CancelInstallationAccepted()))
@@ -5602,7 +5602,7 @@ var _ = Describe("cluster", func() {
 			It("cancel installation conflict", func() {
 				setCancelInstallationHostConflict()
 
-				cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
+				cancelReply := bm.V2CancelInstallation(ctx, installer.V2CancelInstallationParams{
 					ClusterID: clusterID,
 				})
 
@@ -5611,7 +5611,7 @@ var _ = Describe("cluster", func() {
 			It("cancel installation internal error", func() {
 				setCancelInstallationInternalServerError()
 
-				cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
+				cancelReply := bm.V2CancelInstallation(ctx, installer.V2CancelInstallationParams{
 					ClusterID: clusterID,
 				})
 
@@ -11809,7 +11809,7 @@ var _ = Describe("AMS subscriptions", func() {
 						mockClusterApi.EXPECT().HandlePreInstallError(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Do(func(ctx, c, err interface{}) { doneChannel <- 1 })
 					}
 
-					reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+					reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 						ClusterID: clusterID,
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2InstallClusterAccepted()))
