@@ -72,7 +72,7 @@ require (
 	gopkg.in/ini.v1 v1.66.4
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
-	gorm.io/driver/postgres v1.2.1
+	gorm.io/driver/postgres v1.2.3
 	gorm.io/gorm v1.22.3
 	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
