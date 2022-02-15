@@ -15,7 +15,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
@@ -120,7 +119,6 @@ var Options struct {
 	LogConfig                      logconfig.Config
 	LeaderConfig                   leader.Config
 	ValidationsConfig              validations.Config
-	AssistedServiceISOConfig       assistedserviceiso.Config
 	ManifestsGeneratorConfig       network.Config
 	EnableKubeAPI                  bool `envconfig:"ENABLE_KUBE_API" default:"false"`
 	InfraEnvConfig                 controllers.InfraEnvConfig
@@ -430,7 +428,6 @@ func main() {
 		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
 	imageExpirationMonitor.Start()
 	defer imageExpirationMonitor.Stop()
-	assistedServiceISO := assistedserviceiso.NewAssistedServiceISOApi(objectHandler, authHandler, logrus.WithField("pkg", "assistedserviceiso"), pullSecretValidator, Options.AssistedServiceISOConfig)
 
 	//Set inner handler chain. Inner handlers requires access to the Route
 	innerHandler := func() func(http.Handler) http.Handler {
@@ -453,21 +450,20 @@ func main() {
 
 	operatorsHandler := handler.NewHandler(operatorsManager, log.WithField("pkg", "operators"), db, eventsHandler, clusterApi)
 	h, err := restapi.Handler(restapi.Config{
-		AuthAgentAuth:         authHandler.AuthAgentAuth,
-		AuthUserAuth:          authHandler.AuthUserAuth,
-		AuthURLAuth:           authHandler.AuthURLAuth,
-		AuthImageAuth:         authHandler.AuthImageAuth,
-		APIKeyAuthenticator:   authHandler.CreateAuthenticator(),
-		Authorizer:            authzHandler.CreateAuthorizer(),
-		InstallerAPI:          bm,
-		AssistedServiceIsoAPI: assistedServiceISO,
-		EventsAPI:             events,
-		Logger:                log.Printf,
-		VersionsAPI:           versionHandler,
-		ManagedDomainsAPI:     domainHandler,
-		InnerMiddleware:       innerHandler(),
-		ManifestsAPI:          manifestsApi,
-		OperatorsAPI:          operatorsHandler,
+		AuthAgentAuth:       authHandler.AuthAgentAuth,
+		AuthUserAuth:        authHandler.AuthUserAuth,
+		AuthURLAuth:         authHandler.AuthURLAuth,
+		AuthImageAuth:       authHandler.AuthImageAuth,
+		APIKeyAuthenticator: authHandler.CreateAuthenticator(),
+		Authorizer:          authzHandler.CreateAuthorizer(),
+		InstallerAPI:        bm,
+		EventsAPI:           events,
+		Logger:              log.Printf,
+		VersionsAPI:         versionHandler,
+		ManagedDomainsAPI:   domainHandler,
+		InnerMiddleware:     innerHandler(),
+		ManifestsAPI:        manifestsApi,
+		OperatorsAPI:        operatorsHandler,
 	})
 	failOnError(err, "Failed to init rest handler")
 

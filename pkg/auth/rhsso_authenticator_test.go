@@ -158,16 +158,15 @@ var _ = Describe("auth handler test", func() {
 			}
 
 			h, _ := restapi.Handler(restapi.Config{
-				AuthAgentAuth:         authHandler.AuthAgentAuth,
-				AuthUserAuth:          authHandler.AuthUserAuth,
-				APIKeyAuthenticator:   authHandler.CreateAuthenticator(),
-				InstallerAPI:          fakeInventory{},
-				AssistedServiceIsoAPI: fakeAssistedServiceIsoAPI{},
-				EventsAPI:             nil,
-				Logger:                logrus.Printf,
-				VersionsAPI:           nil,
-				ManagedDomainsAPI:     nil,
-				InnerMiddleware:       nil,
+				AuthAgentAuth:       authHandler.AuthAgentAuth,
+				AuthUserAuth:        authHandler.AuthUserAuth,
+				APIKeyAuthenticator: authHandler.CreateAuthenticator(),
+				InstallerAPI:        fakeInventory{},
+				EventsAPI:           nil,
+				Logger:              logrus.Printf,
+				VersionsAPI:         nil,
+				ManagedDomainsAPI:   nil,
+				InnerMiddleware:     nil,
 			})
 
 			cfg := client.Config{

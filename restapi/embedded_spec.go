@@ -94,162 +94,6 @@ func init() {
         }
       }
     },
-    "/v1/assisted-service-iso": {
-      "post": {
-        "description": "Creates ISO for the user and uploads to S3.",
-        "tags": [
-          "assisted-service-iso"
-        ],
-        "operationId": "CreateISOAndUploadToS3",
-        "deprecated": true,
-        "parameters": [
-          {
-            "description": "Parameters for creating an Assisted Service ISO.",
-            "name": "assisted-service-iso-create-params",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/assisted-service-iso-create-params"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Success."
-          },
-          "400": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/v1/assisted-service-iso/data": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Downloads the Assisted Service ISO.",
-        "produces": [
-          "application/octet-stream"
-        ],
-        "tags": [
-          "assisted-service-iso"
-        ],
-        "operationId": "DownloadISO",
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "string",
-              "format": "binary"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/v1/assisted-service-iso/presigned": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Retrieves a pre-signed S3 URL for downloading assisted-service ISO.",
-        "tags": [
-          "assisted-service-iso"
-        ],
-        "operationId": "GetPresignedForAssistedServiceISO",
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/presigned"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/v1/clusters": {
       "get": {
         "security": [
@@ -9438,23 +9282,6 @@ func init() {
         }
       }
     },
-    "assisted-service-iso-create-params": {
-      "type": "object",
-      "properties": {
-        "openshift_version": {
-          "description": "Version of the OpenShift cluster.",
-          "type": "string"
-        },
-        "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
-          "type": "string"
-        },
-        "ssh_public_key": {
-          "description": "SSH public key for debugging the installation.",
-          "type": "string"
-        }
-      }
-    },
     "bind-host-params": {
       "required": [
         "cluster_id"
@@ -13347,10 +13174,6 @@ func init() {
       "name": "Assisted installation"
     },
     {
-      "description": "ISO that contains the Assisted Service.",
-      "name": "assisted-service-iso"
-    },
-    {
       "description": "Events related to a cluster installation.",
       "name": "events"
     },
@@ -13442,162 +13265,6 @@ func init() {
             "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/infra_error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/v1/assisted-service-iso": {
-      "post": {
-        "description": "Creates ISO for the user and uploads to S3.",
-        "tags": [
-          "assisted-service-iso"
-        ],
-        "operationId": "CreateISOAndUploadToS3",
-        "deprecated": true,
-        "parameters": [
-          {
-            "description": "Parameters for creating an Assisted Service ISO.",
-            "name": "assisted-service-iso-create-params",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/assisted-service-iso-create-params"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Success."
-          },
-          "400": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/v1/assisted-service-iso/data": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Downloads the Assisted Service ISO.",
-        "produces": [
-          "application/octet-stream"
-        ],
-        "tags": [
-          "assisted-service-iso"
-        ],
-        "operationId": "DownloadISO",
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "string",
-              "format": "binary"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/v1/assisted-service-iso/presigned": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Retrieves a pre-signed S3 URL for downloading assisted-service ISO.",
-        "tags": [
-          "assisted-service-iso"
-        ],
-        "operationId": "GetPresignedForAssistedServiceISO",
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/presigned"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -22977,23 +22644,6 @@ func init() {
         }
       }
     },
-    "assisted-service-iso-create-params": {
-      "type": "object",
-      "properties": {
-        "openshift_version": {
-          "description": "Version of the OpenShift cluster.",
-          "type": "string"
-        },
-        "pull_secret": {
-          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
-          "type": "string"
-        },
-        "ssh_public_key": {
-          "description": "SSH public key for debugging the installation.",
-          "type": "string"
-        }
-      }
-    },
     "bind-host-params": {
       "required": [
         "cluster_id"
@@ -26766,10 +26416,6 @@ func init() {
     {
       "description": "Agent-driven installation",
       "name": "Assisted installation"
-    },
-    {
-      "description": "ISO that contains the Assisted Service.",
-      "name": "assisted-service-iso"
     },
     {
       "description": "Events related to a cluster installation.",

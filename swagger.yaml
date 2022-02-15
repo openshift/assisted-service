@@ -11,8 +11,6 @@ basePath: /api/assisted-install
 tags:
   - name: Assisted installation
     description: Agent-driven installation
-  - name: assisted-service-iso
-    description: ISO that contains the Assisted Service.
   - name: events
     description: Events related to a cluster installation.
   - name: installer
@@ -3206,106 +3204,6 @@ paths:
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        "500":
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-
-  /v1/assisted-service-iso:
-    post:
-      deprecated: true
-      tags:
-        - assisted-service-iso
-      description: Creates ISO for the user and uploads to S3.
-      operationId: CreateISOAndUploadToS3
-      parameters:
-        - in: body
-          name: assisted-service-iso-create-params
-          required: true
-          description: Parameters for creating an Assisted Service ISO.
-          schema:
-            $ref: '#/definitions/assisted-service-iso-create-params'
-      responses:
-        "201":
-          description: Success.
-        "400":
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-        "401":
-          description: Unauthorized.
-          schema:
-            $ref: '#/definitions/infra_error'
-        "403":
-          description: Forbidden.
-          schema:
-            $ref: '#/definitions/infra_error'
-        "500":
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-
-  /v1/assisted-service-iso/data:
-    get:
-      deprecated: true
-      tags:
-        - assisted-service-iso
-      description: Downloads the Assisted Service ISO.
-      security:
-        - userAuth: [admin, read-only-admin, user]
-      operationId: DownloadISO
-      produces:
-        # application/vnd.efi.iso is not supported
-        - application/octet-stream
-      responses:
-        "200":
-          description: Success.
-          schema:
-            type: string
-            format: binary
-        "401":
-          description: Unauthorized.
-          schema:
-            $ref: '#/definitions/infra_error'
-        "403":
-          description: Forbidden.
-          schema:
-            $ref: '#/definitions/infra_error'
-        "404":
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-        "500":
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-
-  /v1/assisted-service-iso/presigned:
-    get:
-      deprecated: true
-      tags:
-        - assisted-service-iso
-      security:
-        - userAuth: [admin, read-only-admin, user]
-      description: Retrieves a pre-signed S3 URL for downloading assisted-service ISO.
-      operationId: GetPresignedForAssistedServiceISO
-      responses:
-        "200":
-          description: Success.
-          schema:
-            $ref: '#/definitions/presigned'
-        "401":
-          description: Unauthorized.
-          schema:
-            $ref: '#/definitions/infra_error'
-        "403":
-          description: Forbidden.
-          schema:
-            $ref: '#/definitions/infra_error'
-        "404":
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
         "500":
           description: Error.
           schema:
@@ -6606,19 +6504,6 @@ definitions:
       image_type:
         description: Type of image that should be generated.
         $ref: '#/definitions/image_type'
-
-  assisted-service-iso-create-params:
-    type: object
-    properties:
-      openshift_version:
-        type: string
-        description: Version of the OpenShift cluster.
-      ssh_public_key:
-        type: string
-        description: SSH public key for debugging the installation.
-      pull_secret:
-        type: string
-        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
 
   host-create-params:
     type: object
