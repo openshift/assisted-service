@@ -54,7 +54,7 @@ podman play kube --down pod.yml
 
 Assisted Service can install OKD clusters using a different set of parameters:
 ```shell
-podman play kube --configmap okd_configmap.yml pod.yml
+podman play kube --configmap okd-configmap.yml pod.yml
 ```
 or
 ```shell
