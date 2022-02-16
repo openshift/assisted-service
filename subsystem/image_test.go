@@ -41,7 +41,7 @@ var _ = Describe("system-test image tests", func() {
 				By(fmt.Sprintf("For version %s", ocpVersion))
 				By("Register Cluster")
 
-				registerResp, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+				registerResp, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						Name:             swag.String("test-cluster"),
 						OpenshiftVersion: swag.String(ocpVersion),
@@ -64,26 +64,24 @@ var _ = Describe("system-test image tests", func() {
 				}
 
 				config := common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.0.2.155", "192.0.2.156", "192.0.2.1", macInterfaceMap)
-
-				_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
-					ClusterID: clusterID,
-					ImageCreateParams: &models.ImageCreateParams{
+				getResp, err := userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:                swag.String("iso-test-infra-env"),
+						OpenshiftVersion:    openshiftVersion,
+						PullSecret:          swag.String(pullSecret),
+						SSHAuthorizedKey:    swag.String(sshPublicKey),
 						ImageType:           imageType,
 						StaticNetworkConfig: []*models.HostStaticNetworkConfig{config},
+						ClusterID:           &clusterID,
 					},
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				getResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(getResp.Payload.ImageInfo).NotTo(BeNil())
-
 				By("Download ISO")
-
-				downloadIso(ctx, getResp.Payload.ImageInfo.DownloadURL)
+				downloadIso(ctx, getResp.Payload.DownloadURL)
 
 				By("Download ISO Headers")
-				downloadIsoHeaders(ctx, getResp.Payload.ImageInfo.DownloadURL)
+				downloadIsoHeaders(ctx, getResp.Payload.DownloadURL)
 
 				By("Verify events")
 				verifyEventExistence(clusterID, "Successfully registered cluster")
@@ -99,13 +97,13 @@ var _ = Describe("system-test image tests", func() {
 var _ = Describe("system-test proxy update tests", func() {
 	var (
 		ctx       = context.Background()
-		cluster   *installer.RegisterClusterCreated
+		cluster   *installer.V2RegisterClusterCreated
 		clusterID strfmt.UUID
 	)
 
 	BeforeEach(func() {
 		var err error
-		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(openshiftVersion),
@@ -117,73 +115,32 @@ var _ = Describe("system-test proxy update tests", func() {
 	})
 
 	It("generate_image_after_proxy_was_set", func() {
-		// Generate ISO of registered cluster without proxy configured
-		_, err := userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
-			ClusterID:         clusterID,
-			ImageCreateParams: &models.ImageCreateParams{},
-		})
-		Expect(err).NotTo(HaveOccurred())
+		// Generate infraEnv and ISO without proxy configured
+		infraEnvID := registerInfraEnv(&clusterID).ID
 
 		// Update cluster with proxy settings
 		httpProxy := "http://proxyserver:3128"
 		noProxy := "test.com"
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
-				HTTPProxy: &httpProxy,
-				NoProxy:   &noProxy,
+
+		_, err := userBMClient.Installer.UpdateInfraEnv(ctx, &installer.UpdateInfraEnvParams{
+			InfraEnvID: *infraEnvID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+				Proxy: &models.Proxy{
+					HTTPProxy: &httpProxy,
+					NoProxy:   &noProxy,
+				},
 			},
-			ClusterID: clusterID,
 		})
 		Expect(err).ShouldNot(HaveOccurred())
 
-		// Verify proxy settings changed event emitted
-		verifyEventExistence(clusterID, "Proxy settings changed")
+		//Note: Proxy settings changed event is not emitted in V2 API
 
 		// at least 10s must elapse between requests to generate the same ISO
 		time.Sleep(time.Second * 10)
 
-		// Generate ISO of registered cluster with proxy configured
-		_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
-			ClusterID:         clusterID,
-			ImageCreateParams: &models.ImageCreateParams{},
-		})
-		Expect(err).NotTo(HaveOccurred())
+		// Generate infraEnv and ISO with proxy configured
+		_ = registerInfraEnv(&clusterID).ID
 	})
-
-	It("[V2UpdateCluster] generate_image_after_proxy_was_set", func() {
-		// Generate ISO of registered cluster without proxy configured
-		_, err := userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
-			ClusterID:         clusterID,
-			ImageCreateParams: &models.ImageCreateParams{},
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		// Update cluster with proxy settings
-		httpProxy := "http://proxyserver:3128"
-		noProxy := "test.com"
-		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				HTTPProxy: &httpProxy,
-				NoProxy:   &noProxy,
-			},
-			ClusterID: clusterID,
-		})
-		Expect(err).ShouldNot(HaveOccurred())
-
-		// Verify proxy settings changed event emitted
-		verifyEventExistence(clusterID, "Proxy settings changed")
-
-		// at least 10s must elapse between requests to generate the same ISO
-		time.Sleep(time.Second * 10)
-
-		// Generate ISO of registered cluster with proxy configured
-		_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
-			ClusterID:         clusterID,
-			ImageCreateParams: &models.ImageCreateParams{},
-		})
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 })
 
 func verifyEventExistence(ClusterID strfmt.UUID, message string) {
