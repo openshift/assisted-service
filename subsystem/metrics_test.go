@@ -1014,10 +1014,10 @@ var _ = Describe("Metrics tests", func() {
 
 	Context("Cluster validation metrics", func() {
 
-		deregisterHost := func(hostID strfmt.UUID) {
-			_, err := userBMClient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
-				ClusterID: clusterID,
-				HostID:    hostID,
+		removeHost := func(host *models.Host) {
+			_, err := userBMClient.Installer.V2DeregisterHost(ctx, &installer.V2DeregisterHostParams{
+				InfraEnvID: host.InfraEnvID,
+				HostID:     *host.ID,
 			})
 			Expect(err).NotTo(HaveOccurred())
 		}
@@ -1035,12 +1035,9 @@ var _ = Describe("Metrics tests", func() {
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDAllHostsAreReadyToInstall), clusterValidationChangedMetric)
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDAllHostsAreReadyToInstall), clusterValidationFailedMetric)
 
-			// create a validation failure
-			_, err := userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
-				ClusterID: clusterID,
-				HostID:    *hosts[0].ID,
-			})
-			Expect(err).NotTo(HaveOccurred())
+			// create a validation failure by causing the a host to not be ready
+			generateHWPostStepReply(ctx, hosts[0], validHwInfo, "localhost")
+			waitForHostStateV2(ctx, models.HostStatusInsufficient, defaultWaitForHostStateTimeout, hosts[0])
 
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDAllHostsAreReadyToInstall)
 
@@ -1062,23 +1059,13 @@ var _ = Describe("Metrics tests", func() {
 				generateDomainResolution(ctx, h, "test-cluster", "example.com")
 			}
 
-			_, err := userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
-				ClusterID: clusterID,
-				HostID:    *hosts[0].ID,
-			})
-			Expect(err).NotTo(HaveOccurred())
+			removeHost(hosts[0])
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersCount)
 
 			// create a validation success
-			_, err = userBMClient.Installer.EnableHost(ctx, &installer.EnableHostParams{
-				ClusterID: clusterID,
-				HostID:    *hosts[0].ID,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			generateEssentialHostSteps(ctx, hosts[0], "h1", ips[0])
-			for _, h := range c.Hosts {
-				generateDomainResolution(ctx, h, "test-cluster", "example.com")
-			}
+			h1 := registerNode(ctx, clusterID, "h1-new", ips[0])
+			v2UpdateVipParams(ctx, clusterID)
+			generateFullMeshConnectivity(ctx, ips[0], h1, hosts[1], hosts[2])
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDAllHostsAreReadyToInstall)
 
 			// check generated events
@@ -1095,7 +1082,7 @@ var _ = Describe("Metrics tests", func() {
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationFailedMetric)
 
 			// create a validation failure
-			deregisterHost(*hosts[0].ID)
+			removeHost(hosts[0])
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersCount)
 
 			// check generated events

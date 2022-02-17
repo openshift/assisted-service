@@ -563,27 +563,6 @@ var _ = Describe("Host tests", func() {
 		})
 	})
 
-	It("disable enable", func() {
-		host := &registerHost(clusterID).Host
-		_, err := userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
-			ClusterID: clusterID,
-			HostID:    *host.ID,
-		})
-		Expect(err).NotTo(HaveOccurred())
-		host = getHost(clusterID, *host.ID)
-		Expect(*host.Status).Should(Equal("disabled"))
-		Expect(len(getNextSteps(clusterID, *host.ID).Instructions)).Should(Equal(0))
-
-		_, err = userBMClient.Installer.EnableHost(ctx, &installer.EnableHostParams{
-			ClusterID: clusterID,
-			HostID:    *host.ID,
-		})
-		Expect(err).NotTo(HaveOccurred())
-		host = getHost(clusterID, *host.ID)
-		Expect(*host.Status).Should(Equal("discovering"))
-		Expect(len(getNextSteps(clusterID, *host.ID).Instructions)).ShouldNot(Equal(0))
-	})
-
 	It("register_same_host_id", func() {
 		hostID := strToUUID(uuid.New().String())
 		// register to cluster1
