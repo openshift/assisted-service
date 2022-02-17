@@ -5274,25 +5274,11 @@ func (b *bareMetalInventory) GetHostByKubeKey(key types.NamespacedName) (*common
 }
 
 func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {
-
-	cluster, err := b.getCluster(ctx, params.ClusterID.String(), common.UseEagerLoading)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	requirementsList := models.ClusterHostRequirementsList{}
-	for _, clusterHost := range cluster.Hosts {
-		hostRequirements, err := b.hwValidator.GetClusterHostRequirements(ctx, cluster, clusterHost)
-		if err != nil {
-			return common.GenerateErrorResponder(err)
-		}
-		requirementsList = append(requirementsList, hostRequirements)
-	}
-
-	return installer.NewGetClusterHostRequirementsOK().WithPayload(requirementsList)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) GetPreflightRequirements(ctx context.Context, params installer.GetPreflightRequirementsParams) middleware.Responder {
-	return b.V2GetPreflightRequirements(ctx, installer.V2GetPreflightRequirementsParams{ClusterID: params.ClusterID})
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) V2ResetHostValidation(ctx context.Context, params installer.V2ResetHostValidationParams) middleware.Responder {

@@ -3566,9 +3566,9 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 	})
 
 	It("should be reported for cluster", func() {
-		params := installer.GetPreflightRequirementsParams{ClusterID: clusterID}
+		params := installer.V2GetPreflightRequirementsParams{ClusterID: clusterID}
 
-		response, err := userBMClient.Installer.GetPreflightRequirements(ctx, &params)
+		response, err := userBMClient.Installer.V2GetPreflightRequirements(ctx, &params)
 
 		Expect(err).ToNot(HaveOccurred())
 		requirements := response.GetPayload()
