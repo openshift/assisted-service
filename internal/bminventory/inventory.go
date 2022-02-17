@@ -1545,7 +1545,7 @@ func (b *bareMetalInventory) storeOpenshiftClusterID(ctx context.Context, cluste
 }
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
-	return b.V2InstallCluster(ctx, installer.V2InstallClusterParams(params))
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.Context, amsSubscriptionID, openshiftClusterID strfmt.UUID) error {
@@ -4776,7 +4776,7 @@ func setInfraEnvPullSecret(infraEnv *common.InfraEnv, pullSecret string) {
 }
 
 func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
-	return b.V2CancelInstallation(ctx, installer.V2CancelInstallationParams(params))
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error) {

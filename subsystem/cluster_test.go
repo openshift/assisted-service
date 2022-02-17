@@ -498,7 +498,7 @@ func waitForMachineNetworkCIDR(
 
 func installCluster(clusterID strfmt.UUID) *models.Cluster {
 	ctx := context.Background()
-	reply, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+	reply, err := userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 	c := reply.GetPayload()
 	Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
@@ -521,7 +521,7 @@ func installCluster(clusterID strfmt.UUID) *models.Cluster {
 func tryInstallClusterWithDiskResponses(clusterID strfmt.UUID, successfulHosts, failedHosts []*models.Host) *models.Cluster {
 	Expect(len(failedHosts)).To(BeNumerically(">", 0))
 	ctx := context.Background()
-	reply, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+	reply, err := userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 	c := reply.GetPayload()
 	Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
@@ -1213,7 +1213,7 @@ var _ = Describe("cluster install", func() {
 			IgnoreStateInfo)
 
 		By("start installation and validate roles")
-		_, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		_, err := userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		generateEssentialPrepareForInstallationSteps(ctx, h1, h2, h3, h4, h5, h6)
 		waitForClusterState(context.Background(), clusterID, models.ClusterStatusInstalling,
@@ -1286,7 +1286,7 @@ var _ = Describe("cluster install", func() {
 			IgnoreStateInfo)
 
 		By("start installation")
-		_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		_, err = userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		generateEssentialPrepareForInstallationSteps(ctx, h1, h2, h3, h4, h5)
 		waitForClusterState(context.Background(), clusterID, models.ClusterStatusInstalling,
@@ -1330,7 +1330,7 @@ var _ = Describe("cluster install", func() {
 			IgnoreStateInfo)
 
 		By("start installation")
-		_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		_, err = userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		generateEssentialPrepareForInstallationSteps(ctx, h1, h2, h3, h4, h5)
 		waitForClusterState(context.Background(), clusterID, models.ClusterStatusInstalling,
@@ -1878,13 +1878,13 @@ var _ = Describe("cluster install", func() {
 		//	By("try to install host with host without a role")
 		//	host := &registerHost(clusterID).Host
 		//	generateHWPostStepReply(host, validHwInfo, "host")
-		//	_, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
-		//	Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewInstallClusterConflict())))
+		//	_, err := userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
+		//	Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewV2InstallClusterConflict())))
 		//	By("install after disabling host without a role")
 		//	_, err = userBMClient.Installer.DisableHost(ctx,
 		//		&installer.DisableHostParams{ClusterID: clusterID, HostID: *host.ID})
 		//	Expect(err).NotTo(HaveOccurred())
-		//	_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		//	_, err = userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 		//	Expect(err).NotTo(HaveOccurred())
 		//})
 
@@ -2361,7 +2361,7 @@ var _ = Describe("cluster install", func() {
 			It("cancel running installation", func() {
 				c := installCluster(clusterID)
 				waitForHostState(ctx, clusterID, models.HostStatusInstalling, defaultWaitForHostStateTimeout, c.Hosts...)
-				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				_, err := userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				waitForClusterState(ctx, clusterID, models.ClusterStatusCancelled, defaultWaitForClusterStateTimeout, clusterCanceledInfo)
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
@@ -2375,8 +2375,8 @@ var _ = Describe("cluster install", func() {
 				Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
 			})
 			It("cancel installation conflicts", func() {
-				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
-				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewCancelInstallationConflict())))
+				_, err := userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2CancelInstallationConflict()))
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c := rep.GetPayload()
@@ -2393,7 +2393,7 @@ var _ = Describe("cluster install", func() {
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
 				waitForHostState(ctx, clusterID, models.HostStatusError, defaultWaitForHostStateTimeout, c.Hosts...)
 				By("cancel installation, check cluster and hosts statuses")
-				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 				rep, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
@@ -2415,7 +2415,7 @@ var _ = Describe("cluster install", func() {
 				h2 := getHost(clusterID, *c.Hosts[1].ID)
 				Expect(*h2.Status).Should(Equal(models.HostStatusInstalled))
 
-				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				_, err := userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 				waitForHostState(ctx, clusterID, models.HostStatusCancelled, defaultWaitForClusterStateTimeout, c.Hosts...)
 			})
@@ -2453,7 +2453,7 @@ var _ = Describe("cluster install", func() {
 				}
 
 				By("cancel installation")
-				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
@@ -2492,13 +2492,13 @@ var _ = Describe("cluster install", func() {
 					defaultWaitForClusterStateTimeout,
 					clusterInstallingPendingUserActionStateInfo)
 
-				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 				waitForHostState(ctx, clusterID, models.HostStatusCancelled, defaultWaitForHostStateTimeout, c.Hosts...)
 			})
 			It("cancel installation - cluster in finalizing status", func() {
 				setClusterAsFinalizing(ctx, clusterID)
-				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				_, err := userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
@@ -2524,7 +2524,7 @@ var _ = Describe("cluster install", func() {
 			It("reset cluster and register hosts", func() {
 				By("verify reset success")
 				installCluster(clusterID)
-				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				_, err := userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
@@ -2578,7 +2578,7 @@ var _ = Describe("cluster install", func() {
 
 					By("verify reset success")
 					installCluster(clusterID)
-					_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+					_, err := userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
 					Expect(err).NotTo(HaveOccurred())
 					_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 					Expect(err).NotTo(HaveOccurred())
@@ -2689,7 +2689,7 @@ var _ = Describe("cluster install", func() {
 				c := installCluster(clusterID)
 				Expect(len(c.Hosts)).Should(Equal(5))
 				updateProgress(*c.Hosts[0].ID, clusterID, models.HostStageRebooting)
-				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				_, err := userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
@@ -2740,7 +2740,7 @@ var _ = Describe("cluster install", func() {
 				}
 
 				By("reset installation")
-				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
@@ -2797,7 +2797,7 @@ var _ = Describe("cluster install", func() {
 				}
 
 				By("reset installation and verify hosts statuses")
-				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
@@ -3282,7 +3282,7 @@ spec:
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		_, err = userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 		Expect(err).Should(HaveOccurred())
 
 		By("Registering one more host with same hostname")
@@ -3330,7 +3330,7 @@ spec:
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
 
 		By("Verify install after disabling the host with same hostname")
-		_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		_, err = userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -3465,7 +3465,7 @@ spec:
 		waitForHostState(ctx, clusterID, models.HostStatusInsufficient, time.Minute, h3, h4)
 
 		By("Check cluster install fails on validation")
-		_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		_, err = userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 		Expect(err).Should(HaveOccurred())
 
 		By("Registering new host with same hostname as in node's requested_hostname")
@@ -3513,7 +3513,7 @@ spec:
 
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, time.Minute, h3)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, time.Minute, clusterReadyStateInfo)
-		_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		_, err = userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -4181,7 +4181,7 @@ var _ = Describe("disk encryption", func() {
 
 		registerHostsAndSetRolesDHCP(*c.ID, 3, "test-cluster", "example.com")
 
-		reply, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: *c.ID})
+		reply, err := userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: *c.ID})
 		Expect(err).NotTo(HaveOccurred())
 		c = reply.GetPayload()
 

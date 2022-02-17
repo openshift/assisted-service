@@ -150,7 +150,7 @@ spec:
 
 		By("install cluster", func() {
 			registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
-			reply, err := userBMClient.Installer.InstallCluster(context.Background(), &installer.InstallClusterParams{ClusterID: clusterID})
+			reply, err := userBMClient.Installer.V2InstallCluster(context.Background(), &installer.V2InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := reply.GetPayload()
 			Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
@@ -445,7 +445,7 @@ spec:
 
 					generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 					registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
-					reply, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+					reply, err := userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 					Expect(err).NotTo(HaveOccurred())
 					c := reply.GetPayload()
 					generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
