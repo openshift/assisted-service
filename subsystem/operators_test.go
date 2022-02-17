@@ -81,7 +81,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 			cluster := reply.GetPayload()
 
-			getClusterReply, err := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(*cluster.ID))
+			getClusterReply, err := userBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(*cluster.ID))
 			Expect(err).NotTo(HaveOccurred())
 
 			cluster = getClusterReply.GetPayload()
@@ -117,7 +117,7 @@ var _ = Describe("Operators endpoint tests", func() {
 					ClusterID: clusterID,
 				})
 				Expect(err).ToNot(HaveOccurred())
-				getReply, err2 := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(clusterID))
+				getReply, err2 := userBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
 				Expect(err2).ToNot(HaveOccurred())
 				c := &common.Cluster{Cluster: *getReply.Payload}
 
@@ -136,7 +136,7 @@ var _ = Describe("Operators endpoint tests", func() {
 					ClusterID: clusterID,
 				})
 				Expect(err).ToNot(HaveOccurred())
-				getReply, err := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(clusterID))
+				getReply, err := userBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
 				Expect(err).ToNot(HaveOccurred())
 				c := &common.Cluster{Cluster: *getReply.Payload}
 
@@ -158,7 +158,7 @@ var _ = Describe("Operators endpoint tests", func() {
 					ClusterID: clusterID,
 				})
 				Expect(err).ToNot(HaveOccurred())
-				getReply, err2 := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(clusterID))
+				getReply, err2 := userBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
 				Expect(err2).ToNot(HaveOccurred())
 				c := &common.Cluster{Cluster: *getReply.Payload}
 
@@ -177,7 +177,7 @@ var _ = Describe("Operators endpoint tests", func() {
 					ClusterID: clusterID,
 				})
 				Expect(err).ToNot(HaveOccurred())
-				getReply, err := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(clusterID))
+				getReply, err := userBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
 				Expect(err).ToNot(HaveOccurred())
 				c := &common.Cluster{Cluster: *getReply.Payload}
 

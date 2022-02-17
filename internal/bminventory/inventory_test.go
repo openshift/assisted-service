@@ -2356,10 +2356,10 @@ var _ = Describe("cluster", func() {
 			It("success", func() {
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
 				mockDurationsSuccess()
-				reply := bm.GetCluster(ctx, installer.GetClusterParams{
+				reply := bm.V2GetCluster(ctx, installer.V2GetClusterParams{
 					ClusterID: clusterID,
 				})
-				actual, ok := reply.(*installer.GetClusterOK)
+				actual, ok := reply.(*installer.V2GetClusterOK)
 				Expect(ok).To(BeTrue())
 				Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
 				Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
@@ -2396,13 +2396,13 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("Unfamilliar ID", func() {
-				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: "12345"})
+				resp := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: "12345"})
 				Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
 			})
 
 			It("DB inaccessible", func() {
 				common.DeleteTestDB(db, dbName)
-				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID})
+				resp := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID})
 				Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusInternalServerError, errors.Errorf(""))))
 			})
 		})
@@ -2435,8 +2435,8 @@ var _ = Describe("cluster", func() {
 			It("success", func() {
 				deleteCluster(false)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
-				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
-				cluster := resp.(*installer.GetClusterOK).Payload
+				resp := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+				cluster := resp.(*installer.V2GetClusterOK).Payload
 				Expect(cluster.ID.String()).Should(Equal(clusterID.String()))
 				Expect(cluster.TotalHostCount).Should(Equal(int64(3)))
 				Expect(cluster.ReadyHostCount).Should(Equal(int64(3)))
@@ -2450,7 +2450,7 @@ var _ = Describe("cluster", func() {
 
 			It("failure - cluster was permanently deleted", func() {
 				deleteCluster(true)
-				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+				resp := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
 				Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
 			})
 
@@ -2459,7 +2459,7 @@ var _ = Describe("cluster", func() {
 				payload := &ocm.AuthPayload{}
 				payload.Role = ocm.UserRole
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
-				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+				resp := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
 				Expect(resp).Should(BeAssignableToTypeOf(common.NewInfraError(http.StatusForbidden, errors.Errorf(""))))
 			})
 		})
@@ -9145,7 +9145,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 	}
 
 	validateHostsInventory := func(vsphereHostsCount int, genericHostsCount int) {
-		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID}).(*installer.GetClusterOK)
+		getReply := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID}).(*installer.V2GetClusterOK)
 		Expect(len(getReply.Payload.Hosts)).Should(Equal(vsphereHostsCount + genericHostsCount))
 		vsphereHosts := 0
 		genericHosts := 0
@@ -10753,8 +10753,8 @@ var _ = Describe("AMS subscriptions", func() {
 			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterDeregisteredEventName)))
 
-			reply = bm.DeregisterCluster(ctx, installer.DeregisterClusterParams{ClusterID: clusterID})
-			Expect(reply).Should(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
+			reply = bm.V2DeregisterCluster(ctx, installer.V2DeregisterClusterParams{ClusterID: clusterID})
+			Expect(reply).Should(BeAssignableToTypeOf(&installer.V2DeregisterClusterNoContent{}))
 		})
 
 		It("update cluster name happy flow", func() {
@@ -10949,8 +10949,8 @@ var _ = Describe("AMS subscriptions", func() {
 			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterDeregisteredEventName)))
 
-			reply = bm.DeregisterCluster(ctx, installer.DeregisterClusterParams{ClusterID: clusterID})
-			Expect(reply).Should(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
+			reply = bm.V2DeregisterCluster(ctx, installer.V2DeregisterClusterParams{ClusterID: clusterID})
+			Expect(reply).Should(BeAssignableToTypeOf(&installer.V2DeregisterClusterNoContent{}))
 		})
 	})
 })
@@ -11773,14 +11773,14 @@ var _ = Describe("BindHost", func() {
 		Expect(db.Model(&hostObj).Update("cluster_id", clusterID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&hostObj).Update("status", "known").Error).ShouldNot(HaveOccurred())
 		// Deregister Cluster
-		deregisterParams := installer.DeregisterClusterParams{
+		deregisterParams := installer.V2DeregisterClusterParams{
 			ClusterID: clusterID,
 		}
 		mockAccountsMgmt.EXPECT().GetSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
 		mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
 		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any()).Times(1)
-		response = bm.DeregisterCluster(ctx, deregisterParams)
-		Expect(response).To(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
+		response = bm.V2DeregisterCluster(ctx, deregisterParams)
+		Expect(response).To(BeAssignableToTypeOf(&installer.V2DeregisterClusterNoContent{}))
 	})
 
 	It("Deregister cluster - mixed bind host", func() {
@@ -11806,7 +11806,7 @@ var _ = Describe("BindHost", func() {
 		Expect(db.Model(&hostObj).Update("cluster_id", clusterID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&hostObj).Update("status", "known").Error).ShouldNot(HaveOccurred())
 		// Deregister Cluster
-		deregisterParams := installer.DeregisterClusterParams{
+		deregisterParams := installer.V2DeregisterClusterParams{
 			ClusterID: clusterID,
 		}
 		mockAccountsMgmt.EXPECT().GetSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
@@ -11817,8 +11817,8 @@ var _ = Describe("BindHost", func() {
 			eventstest.WithNameMatcher(eventgen.HostDeregisteredEventName),
 			eventstest.WithHostIdMatcher(host2ID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
-		response = bm.DeregisterCluster(ctx, deregisterParams)
-		Expect(response).To(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
+		response = bm.V2DeregisterCluster(ctx, deregisterParams)
+		Expect(response).To(BeAssignableToTypeOf(&installer.V2DeregisterClusterNoContent{}))
 	})
 })
 

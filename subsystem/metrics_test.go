@@ -313,7 +313,7 @@ func v2RegisterDay2Cluster(ctx context.Context) strfmt.UUID {
 
 func metricsDeregisterCluster(ctx context.Context, clusterID strfmt.UUID) {
 
-	_, err := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
+	_, err := userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{
 		ClusterID: clusterID,
 	})
 	Expect(err).NotTo(HaveOccurred())

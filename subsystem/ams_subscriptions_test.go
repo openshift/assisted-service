@@ -99,7 +99,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("delete 'reserved' subscription", func() {
-				_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -132,7 +132,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			By("delete subscription", func() {
 				// don't delete 'active' subscription
 				// we can't really check that because it is done in an external dependency (AMS) so we just check there are no errors in the flow
-				_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})
@@ -155,7 +155,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 
@@ -165,7 +165,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -188,7 +188,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 
@@ -198,7 +198,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 		})
