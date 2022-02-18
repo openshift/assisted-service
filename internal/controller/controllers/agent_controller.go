@@ -437,14 +437,14 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
-		}
-		if agent.Status.DebugInfo.LogsURL == "" && !time.Time(h.LogsCollectedAt).Equal(time.Time{}) { // logs collection time is updated means logs are available
-			logsURL, err := generateControllerLogsDownloadURL(r.ServiceBaseURL, clusterId.String(), r.AuthType, agent.Name, "host")
-			if err != nil {
-				log.WithError(err).Error("failed to generate controller logs URL")
-				return ctrl.Result{}, err
+			if agent.Status.DebugInfo.LogsURL == "" && !time.Time(h.LogsCollectedAt).Equal(time.Time{}) { // logs collection time is updated means logs are available
+				logsURL, err := generateControllerLogsDownloadURL(r.ServiceBaseURL, clusterId.String(), r.AuthType, agent.Name, "host")
+				if err != nil {
+					log.WithError(err).Error("failed to generate controller logs URL")
+					return ctrl.Result{}, err
+				}
+				agent.Status.DebugInfo.LogsURL = logsURL
 			}
-			agent.Status.DebugInfo.LogsURL = logsURL
 		}
 		connected(agent, status)
 		requirementsMet(agent, status)

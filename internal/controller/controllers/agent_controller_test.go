@@ -578,6 +578,30 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
+	It("Agent status update does not fail when unbind fails", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		logCollectionTime, _ := strfmt.ParseDateTime("2022-02-17T21:41:51Z")
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:              &hostId,
+				ClusterID:       &sId,
+				Inventory:       common.GenerateTestDefaultInventory(),
+				Status:          swag.String(models.HostStatusKnown),
+				StatusInfo:      swag.String("Some status info"),
+				LogsCollectedAt: logCollectionTime,
+			},
+		}
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host.Spec.ClusterDeploymentName = nil
+		Expect(c.Create(ctx, host)).To(BeNil())
+		errString := "failed to find host in infraEnv"
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any()).Return(commonHost, common.NewApiError(http.StatusNotFound, errors.New(errString)))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+	})
+
 	It("Agent bind", func() {
 		hostId := strfmt.UUID(uuid.New().String())
 		commonHost := &common.Host{
