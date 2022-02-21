@@ -5,11 +5,16 @@
 package controllers
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
 	v1 "k8s.io/api/certificates/v1"
 	v10 "k8s.io/api/core/v1"
+	meta "k8s.io/apimachinery/pkg/api/meta"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	types "k8s.io/apimachinery/pkg/types"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MockSpokeK8sClient is a mock of SpokeK8sClient interface.
@@ -49,6 +54,77 @@ func (mr *MockSpokeK8sClientMockRecorder) ApproveCsr(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApproveCsr", reflect.TypeOf((*MockSpokeK8sClient)(nil).ApproveCsr), arg0)
 }
 
+// Create mocks base method.
+func (m *MockSpokeK8sClient) Create(arg0 context.Context, arg1 client.Object, arg2 ...client.CreateOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Create", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockSpokeK8sClientMockRecorder) Create(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockSpokeK8sClient)(nil).Create), varargs...)
+}
+
+// Delete mocks base method.
+func (m *MockSpokeK8sClient) Delete(arg0 context.Context, arg1 client.Object, arg2 ...client.DeleteOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Delete", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockSpokeK8sClientMockRecorder) Delete(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockSpokeK8sClient)(nil).Delete), varargs...)
+}
+
+// DeleteAllOf mocks base method.
+func (m *MockSpokeK8sClient) DeleteAllOf(arg0 context.Context, arg1 client.Object, arg2 ...client.DeleteAllOfOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteAllOf", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAllOf indicates an expected call of DeleteAllOf.
+func (mr *MockSpokeK8sClientMockRecorder) DeleteAllOf(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllOf", reflect.TypeOf((*MockSpokeK8sClient)(nil).DeleteAllOf), varargs...)
+}
+
+// Get mocks base method.
+func (m *MockSpokeK8sClient) Get(arg0 context.Context, arg1 types.NamespacedName, arg2 client.Object) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockSpokeK8sClientMockRecorder) Get(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockSpokeK8sClient)(nil).Get), arg0, arg1, arg2)
+}
+
 // GetNode mocks base method.
 func (m *MockSpokeK8sClient) GetNode(arg0 string) (*v10.Node, error) {
 	m.ctrl.T.Helper()
@@ -64,6 +140,25 @@ func (mr *MockSpokeK8sClientMockRecorder) GetNode(arg0 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNode", reflect.TypeOf((*MockSpokeK8sClient)(nil).GetNode), arg0)
 }
 
+// List mocks base method.
+func (m *MockSpokeK8sClient) List(arg0 context.Context, arg1 client.ObjectList, arg2 ...client.ListOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "List", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// List indicates an expected call of List.
+func (mr *MockSpokeK8sClientMockRecorder) List(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockSpokeK8sClient)(nil).List), varargs...)
+}
+
 // ListCsrs mocks base method.
 func (m *MockSpokeK8sClient) ListCsrs() (*v1.CertificateSigningRequestList, error) {
 	m.ctrl.T.Helper()
@@ -77,4 +172,84 @@ func (m *MockSpokeK8sClient) ListCsrs() (*v1.CertificateSigningRequestList, erro
 func (mr *MockSpokeK8sClientMockRecorder) ListCsrs() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCsrs", reflect.TypeOf((*MockSpokeK8sClient)(nil).ListCsrs))
+}
+
+// Patch mocks base method.
+func (m *MockSpokeK8sClient) Patch(arg0 context.Context, arg1 client.Object, arg2 client.Patch, arg3 ...client.PatchOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Patch", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Patch indicates an expected call of Patch.
+func (mr *MockSpokeK8sClientMockRecorder) Patch(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Patch", reflect.TypeOf((*MockSpokeK8sClient)(nil).Patch), varargs...)
+}
+
+// RESTMapper mocks base method.
+func (m *MockSpokeK8sClient) RESTMapper() meta.RESTMapper {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RESTMapper")
+	ret0, _ := ret[0].(meta.RESTMapper)
+	return ret0
+}
+
+// RESTMapper indicates an expected call of RESTMapper.
+func (mr *MockSpokeK8sClientMockRecorder) RESTMapper() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RESTMapper", reflect.TypeOf((*MockSpokeK8sClient)(nil).RESTMapper))
+}
+
+// Scheme mocks base method.
+func (m *MockSpokeK8sClient) Scheme() *runtime.Scheme {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Scheme")
+	ret0, _ := ret[0].(*runtime.Scheme)
+	return ret0
+}
+
+// Scheme indicates an expected call of Scheme.
+func (mr *MockSpokeK8sClientMockRecorder) Scheme() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Scheme", reflect.TypeOf((*MockSpokeK8sClient)(nil).Scheme))
+}
+
+// Status mocks base method.
+func (m *MockSpokeK8sClient) Status() client.StatusWriter {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Status")
+	ret0, _ := ret[0].(client.StatusWriter)
+	return ret0
+}
+
+// Status indicates an expected call of Status.
+func (mr *MockSpokeK8sClientMockRecorder) Status() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*MockSpokeK8sClient)(nil).Status))
+}
+
+// Update mocks base method.
+func (m *MockSpokeK8sClient) Update(arg0 context.Context, arg1 client.Object, arg2 ...client.UpdateOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Update", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockSpokeK8sClientMockRecorder) Update(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockSpokeK8sClient)(nil).Update), varargs...)
 }
