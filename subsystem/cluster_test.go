@@ -1381,17 +1381,23 @@ var _ = Describe("cluster install", func() {
 			proxy := "http://1.1.1.1:8080"
 			no_proxy := "a.redhat.com"
 			ovn := "OVNKubernetes"
+			hostname := "h1"
+			_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+				HostUpdateParams: &models.HostUpdateParams{
+					HostName: &hostname,
+				},
+				HostID:     *h.ID,
+				InfraEnvID: clusterID,
+			})
+			Expect(err).NotTo(HaveOccurred())
 			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 				ClusterUpdateParams: &models.ClusterUpdateParams{
-					VipDhcpAllocation:   swag.Bool(false),
-					AdditionalNtpSource: &ntpSources,
-					HTTPProxy:           &proxy,
-					HTTPSProxy:          &proxy,
-					NoProxy:             &no_proxy,
-					NetworkType:         &ovn,
-					HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-						{ID: *h.ID, Hostname: "h1"},
-					},
+					VipDhcpAllocation:     swag.Bool(false),
+					AdditionalNtpSource:   &ntpSources,
+					HTTPProxy:             &proxy,
+					HTTPSProxy:            &proxy,
+					NoProxy:               &no_proxy,
+					NetworkType:           &ovn,
 					UserManagedNetworking: swag.Bool(false),
 				},
 				ClusterID: clusterID,
@@ -3359,22 +3365,25 @@ spec:
 		Expect(h1Host.RequestedHostname).Should(Equal(localhost))
 
 		By("Setting hostname to valid name")
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-				{ID: *h1Host.ID, Hostname: "reqh0"},
-			}},
-			ClusterID: clusterID,
+		hostname := "reqh0"
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostName: &hostname,
+			},
+			HostID:     *h1Host.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, 60*time.Second, h1)
 
 		By("Setting hostname to localhost")
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-				{ID: *h1Host.ID, Hostname: localhost},
-			}},
-			ClusterID: clusterID,
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostName: &localhost,
+			},
+			HostID:     *h1Host.ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -3437,12 +3446,22 @@ spec:
 		h3 := getHost(clusterID, *hosts[2].ID)
 		waitForHostState(ctx, clusterID, models.HostStatusKnown, time.Minute, h1, h2, h3)
 		// update requested hostnames
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-				{ID: *hosts[0].ID, Hostname: "reqh0"},
-				{ID: *hosts[1].ID, Hostname: "reqh1"},
-			}},
-			ClusterID: clusterID,
+		hostname := "reqh0"
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostName: &hostname,
+			},
+			HostID:     *hosts[0].ID,
+			InfraEnvID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		hostname = "reqh1"
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostName: &hostname,
+			},
+			HostID:     *hosts[1].ID,
+			InfraEnvID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 

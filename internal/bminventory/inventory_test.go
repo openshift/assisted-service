@@ -8399,6 +8399,8 @@ var _ = Describe("infraEnvs host", func() {
 			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockUsage.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
 				InfraEnvID: infraEnvID,
 				HostID:     hostID,

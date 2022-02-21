@@ -6488,6 +6488,7 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 	log := logutil.FromContext(ctx, b.log)
 	var c *models.Cluster
 	var cluster *common.Cluster
+	var usages usage.FeatureUsage = make(usage.FeatureUsage)
 
 	txSuccess := false
 	tx := b.db.Begin()
@@ -6513,7 +6514,7 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 	if err != nil {
 		return nil, err
 	}
-	err = b.updateHostName(ctx, host, params.HostUpdateParams.HostName, tx)
+	err = b.updateHostName(ctx, host, params.HostUpdateParams.HostName, usages, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -6538,6 +6539,18 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 		c = &cluster.Cluster
+
+		//in case a cluster is bound, report the host related usages
+		//make sure that host information is added to the existing data
+		//and not replacing it
+		if funk.NotEmpty(usages) {
+			if clusterusage, e := usage.Unmarshal(cluster.FeatureUsage); e == nil {
+				for k, v := range usages {
+					clusterusage[k] = v
+				}
+				b.usageApi.Save(tx, *cluster.ID, clusterusage)
+			}
+		}
 	}
 
 	err = b.refreshAfterUpdate(ctx, cluster, host, tx)
@@ -6582,7 +6595,7 @@ func (b *bareMetalInventory) updateHostRole(ctx context.Context, host *common.Ho
 	return nil
 }
 
-func (b *bareMetalInventory) updateHostName(ctx context.Context, host *common.Host, hostname *string, db *gorm.DB) error {
+func (b *bareMetalInventory) updateHostName(ctx context.Context, host *common.Host, hostname *string, usages usage.FeatureUsage, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, b.log)
 	if hostname == nil {
 		log.Infof("No request for hostname update for host %s", host.ID)
@@ -6599,6 +6612,7 @@ func (b *bareMetalInventory) updateHostName(ctx context.Context, host *common.Ho
 			*hostname, host.ID, host.InfraEnvID)
 		return common.NewApiError(http.StatusConflict, err)
 	}
+	b.setUsage(true, usage.RequestedHostnameUsage, &map[string]interface{}{"host_count": 1.0}, usages)
 	return nil
 }
 
