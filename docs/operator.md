@@ -248,14 +248,12 @@ oc rollout restart deployment/assisted-service -n assisted-installer
 
 ### Toggle TLS Check on Assisted Image Service
 
-It is possible to toggle TLS checking from the Assisted Image Service by using the annotation `"unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls"` on the AgentServiceConfig CR. By default, this is set to `false`, meaning all TLS connections are verified. When this annotation is set to `true`, then the Assisted Image Service skips verifying TLS connections.
-
-It affects the following services: downloading ISO images from a secure server.
+It is possible to toggle TLS checking from the Assisted Image Service by using the annotation `"unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls"` on the AgentServiceConfig CR. By default, this is set to `true`, meaning TLS connections not are verified when downloading the base ISO images. When this annotation is set to `false`, then the Assisted Image Service will verify certificates for those connections.
 
 Add the annotation to the AgentServiceConfig:
 
 ```bash
-oc annotate --overwrite AgentServiceConfig agent unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls=true
+oc annotate --overwrite AgentServiceConfig agent unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls=false
 ```
 
 ### Mirror Registry Configuration

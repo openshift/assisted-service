@@ -444,6 +444,37 @@ var _ = Describe("newImageServiceDeployment", func() {
 			Expect(noProxy).To(Equal("http://no-proxy.example.com"))
 		})
 	})
+
+	It("sets INSECURE_SKIP_VERIFY to true by default", func() {
+		AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceDeployment)
+
+		found := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+
+		var skipVerifyTLS string
+		for _, envVar := range found.Spec.Template.Spec.Containers[0].Env {
+			if envVar.Name == "INSECURE_SKIP_VERIFY" {
+				skipVerifyTLS = envVar.Value
+			}
+		}
+		Expect(skipVerifyTLS).To(Equal("true"))
+	})
+
+	It("sets INSECURE_SKIP_VERIFY based on the annotation", func() {
+		asc.ObjectMeta.Annotations = map[string]string{imageServiceSkipVerifyTLSAnnotation: "false"}
+		AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceDeployment)
+
+		found := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+
+		var skipVerifyTLS string
+		for _, envVar := range found.Spec.Template.Spec.Containers[0].Env {
+			if envVar.Name == "INSECURE_SKIP_VERIFY" {
+				skipVerifyTLS = envVar.Value
+			}
+		}
+		Expect(skipVerifyTLS).To(Equal("false"))
+	})
 })
 
 var _ = Describe("ensureAgentRoute", func() {

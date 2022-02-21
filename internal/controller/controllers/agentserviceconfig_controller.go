@@ -806,7 +806,7 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	skipVerifyTLS, ok := instance.ObjectMeta.GetAnnotations()[imageServiceSkipVerifyTLSAnnotation]
 	if !ok {
-		skipVerifyTLS = "false"
+		skipVerifyTLS = "true"
 	}
 
 	deploymentLabels := map[string]string{
