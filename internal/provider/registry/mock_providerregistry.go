@@ -5,6 +5,7 @@
 package registry
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -13,6 +14,7 @@ import (
 	provider "github.com/openshift/assisted-service/internal/provider"
 	usage "github.com/openshift/assisted-service/internal/usage"
 	models "github.com/openshift/assisted-service/models"
+	logrus "github.com/sirupsen/logrus"
 )
 
 // MockProviderRegistry is a mock of ProviderRegistry interface.
@@ -67,6 +69,20 @@ func (mr *MockProviderRegistryMockRecorder) AreHostsSupported(arg0, arg1 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AreHostsSupported", reflect.TypeOf((*MockProviderRegistry)(nil).AreHostsSupported), arg0, arg1)
 }
 
+// GenerateProviderManifests mocks base method.
+func (m *MockProviderRegistry) GenerateProviderManifests(arg0 context.Context, arg1 *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateProviderManifests", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GenerateProviderManifests indicates an expected call of GenerateProviderManifests.
+func (mr *MockProviderRegistryMockRecorder) GenerateProviderManifests(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateProviderManifests", reflect.TypeOf((*MockProviderRegistry)(nil).GenerateProviderManifests), arg0, arg1)
+}
+
 // Get mocks base method.
 func (m *MockProviderRegistry) Get(arg0 string) (provider.Provider, error) {
 	m.ctrl.T.Helper()
@@ -110,6 +126,18 @@ func (m *MockProviderRegistry) GetSupportedProvidersByHosts(arg0 []*models.Host)
 func (mr *MockProviderRegistryMockRecorder) GetSupportedProvidersByHosts(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedProvidersByHosts", reflect.TypeOf((*MockProviderRegistry)(nil).GetSupportedProvidersByHosts), arg0)
+}
+
+// InitProviders mocks base method.
+func (m *MockProviderRegistry) InitProviders(arg0 logrus.FieldLogger) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "InitProviders", arg0)
+}
+
+// InitProviders indicates an expected call of InitProviders.
+func (mr *MockProviderRegistryMockRecorder) InitProviders(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitProviders", reflect.TypeOf((*MockProviderRegistry)(nil).InitProviders), arg0)
 }
 
 // IsHostSupported mocks base method.
