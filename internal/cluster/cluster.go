@@ -130,11 +130,10 @@ type PrepareConfig struct {
 }
 
 type Config struct {
-	PrepareConfig           PrepareConfig
-	InstallationTimeout     time.Duration `envconfig:"INSTALLATION_TIMEOUT" default:"24h"`
-	FinalizingTimeout       time.Duration `envconfig:"FINALIZING_TIMEOUT" default:"5h"`
-	MonitorBatchSize        int           `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
-	EnableSingleNodeDnsmasq bool          `envconfig:"ENABLE_SINGLE_NODE_DNSMASQ" default:"false"`
+	PrepareConfig       PrepareConfig
+	InstallationTimeout time.Duration `envconfig:"INSTALLATION_TIMEOUT" default:"24h"`
+	FinalizingTimeout   time.Duration `envconfig:"FINALIZING_TIMEOUT" default:"5h"`
+	MonitorBatchSize    int           `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
 }
 
 type Manager struct {
@@ -1151,7 +1150,7 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 		return errors.Wrap(err, "failed to add chrony manifest")
 	}
 
-	if common.IsSingleNodeCluster(cluster) && m.EnableSingleNodeDnsmasq {
+	if common.IsSingleNodeCluster(cluster) && m.manifestsGeneratorAPI.IsSNODNSMasqEnabled() {
 		if err := m.manifestsGeneratorAPI.AddDnsmasqForSingleNode(ctx, log, cluster); err != nil {
 			return errors.Wrap(err, "failed to add dnsmasq manifest")
 		}

@@ -316,6 +316,47 @@ var _ = Describe("dnsmasq manifest", func() {
 			_, err := createDnsmasqForSingleNode(logrus.New(), cluster)
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("don't inject DNSMasq SNO manifest", func() {
+			cluster := createCluster("", "1001:db8::/120",
+				createInventory(addIPv6Addresses(createInterface(), "1001:db8::1/120")))
+			cluster.Hosts[0].Bootstrap = true
+			cluster.Cluster.BaseDNSDomain = "test.com"
+			cluster.Cluster.Name = "test"
+			clusterId := strfmt.UUID(uuid.New().String())
+			cluster.ID = &clusterId
+
+			ctrl := gomock.NewController(GinkgoT())
+			mockManifestsApi := manifestsapi.NewMockManifestsAPI(ctrl)
+			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+				FileName: "dnsmasq-bootstrap-in-place.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil).Times(0)
+			manifestsGenerator := NewManifestsGenerator(mockManifestsApi,
+				Config{ServiceBaseURL: stageServiceBaseURL, EnableSingleNodeDnsmasq: false})
+			err := manifestsGenerator.AddDnsmasqForSingleNode(context.TODO(), logrus.New(), cluster)
+			Expect(err).To(Not(HaveOccurred()))
+		})
+		It("inject DNSMasq SNO manifest", func() {
+			cluster := createCluster("", "1001:db8::/120",
+				createInventory(addIPv6Addresses(createInterface(), "1001:db8::1/120")))
+			cluster.Hosts[0].Bootstrap = true
+			cluster.Cluster.BaseDNSDomain = "test.com"
+			cluster.Cluster.Name = "test"
+			clusterId := strfmt.UUID(uuid.New().String())
+			cluster.ID = &clusterId
+
+			ctrl := gomock.NewController(GinkgoT())
+			mockManifestsApi := manifestsapi.NewMockManifestsAPI(ctrl)
+			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+				FileName: "dnsmasq-bootstrap-in-place.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil).Times(1)
+			manifestsGenerator := NewManifestsGenerator(mockManifestsApi,
+				Config{ServiceBaseURL: stageServiceBaseURL, EnableSingleNodeDnsmasq: true})
+			err := manifestsGenerator.AddDnsmasqForSingleNode(context.TODO(), logrus.New(), cluster)
+			Expect(err).To(Not(HaveOccurred()))
+		})
 	})
 
 })
