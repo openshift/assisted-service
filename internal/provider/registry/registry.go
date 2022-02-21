@@ -1,18 +1,39 @@
 package registry
 
 import (
+	"bytes"
+	"context"
+	"encoding/base64"
 	"fmt"
+	"html/template"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/baremetal"
 	"github.com/openshift/assisted-service/internal/provider/ovirt"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
+	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	SchedulableMastersManifestFileName = "50-schedulable_masters.yaml"
+	SchedulableMastersManifestTemplate = `apiVersion: config.openshift.io/v1
+kind: Scheduler
+metadata:
+  name: cluster
+spec:
+  mastersSchedulable: {{.SCHEDULABLE_MASTERS}}
+  policy:
+    name: ""
+status: {}
+`
 )
 
 // ErrNoSuchProvider is returned or thrown in panic when the specified provider is not registered.
@@ -42,8 +63,12 @@ type ProviderRegistry interface {
 	PreCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
 	// PostCreateManifestsHook allows the provider to perform additional tasks required after the cluster manifests are created
 	PostCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
+	// InitProviders populates the registry with the implemented providers
+	InitProviders(log logrus.FieldLogger)
 	// GetActualSchedulableMasters allows the provider to set the default scheduling of workloads on masters
 	GetActualSchedulableMasters(cluster *common.Cluster) (bool, error)
+	// GenerateProviderManifests allows the registry to add custom manifests
+	GenerateProviderManifests(ctx context.Context, cluster *common.Cluster) error
 }
 
 //go:generate mockgen -package registry -destination mock_registry.go . Registry
@@ -57,13 +82,15 @@ type Registry interface {
 }
 
 type registry struct {
-	providers map[string]provider.Provider
+	providers    map[string]provider.Provider
+	manifestsAPI manifestsapi.ManifestsAPI
 }
 
 // NewProviderRegistry creates a new copy of a Registry.
-func NewProviderRegistry() ProviderRegistry {
+func NewProviderRegistry(manifestsAPI manifestsapi.ManifestsAPI) ProviderRegistry {
 	return &registry{
-		providers: map[string]provider.Provider{},
+		providers:    map[string]provider.Provider{},
+		manifestsAPI: manifestsAPI,
 	}
 }
 
@@ -81,6 +108,12 @@ func (r *registry) Get(name string) (provider.Provider, error) {
 // Name returns the name of the provider
 func (r *registry) Name() models.PlatformType {
 	return ""
+}
+
+func (r *registry) InitProviders(log logrus.FieldLogger) {
+	r.Register(ovirt.NewOvirtProvider(log))
+	r.Register(vsphere.NewVsphereProvider(log))
+	r.Register(baremetal.NewBaremetalProvider(log))
 }
 
 func (r *registry) AddPlatformToInstallConfig(p models.PlatformType, cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
@@ -176,14 +209,6 @@ func (r *registry) PostCreateManifestsHook(cluster *common.Cluster, envVars *[]s
 	return currentProvider.PostCreateManifestsHook(cluster, envVars, workDir)
 }
 
-func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
-	providerRegistry := NewProviderRegistry()
-	providerRegistry.Register(ovirt.NewOvirtProvider(log))
-	providerRegistry.Register(vsphere.NewVsphereProvider(log))
-	providerRegistry.Register(baremetal.NewBaremetalProvider(log))
-	return providerRegistry
-}
-
 func (r *registry) GetActualSchedulableMasters(cluster *common.Cluster) (bool, error) {
 	if cluster == nil || cluster.Platform == nil {
 		return false, errors.New("unable to get the platform type")
@@ -195,4 +220,76 @@ func (r *registry) GetActualSchedulableMasters(cluster *common.Cluster) (bool, e
 			currentProviderStr)
 	}
 	return currentProvider.GetActualSchedulableMasters(cluster)
+}
+
+func (r *registry) GenerateProviderManifests(ctx context.Context, cluster *common.Cluster) error {
+	manifests, err := r.generateProviderManifestsInternal(cluster)
+	if err != nil {
+		return errors.Wrapf(err, "failed to generate provider manifests")
+	}
+	for filename, content := range manifests {
+		if err = r.createClusterManifests(ctx, cluster, filename, content); err != nil {
+			return fmt.Errorf("error while creating the manifest '%s', error %w", filename, err)
+		}
+	}
+	return nil
+}
+
+func (r *registry) generateProviderManifestsInternal(cluster *common.Cluster) (map[string][]byte, error) {
+	manifests := make(map[string][]byte)
+	filename, content, err := r.generateSchedulableMastersManifest(cluster)
+	if err != nil {
+		return nil, err
+	}
+	if filename == "" {
+		return nil, errors.New("template filename cannot be empty")
+	}
+	manifests[filename] = content
+	return manifests, nil
+}
+
+func (r *registry) generateSchedulableMastersManifest(cluster *common.Cluster) (string, []byte, error) {
+	schedulableMasters, err := r.GetActualSchedulableMasters(cluster)
+	if err != nil {
+		return "", nil, err
+	}
+	templateParams := map[string]interface{}{
+		"SCHEDULABLE_MASTERS": schedulableMasters,
+	}
+	content, err := fillTemplate(templateParams, SchedulableMastersManifestTemplate, nil)
+	if err != nil {
+		return "", nil, err
+	}
+	return SchedulableMastersManifestFileName, content, nil
+}
+
+func (r *registry) createClusterManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte) error {
+	// all relevant logs of creating manifest will be inside CreateClusterManifest
+	_, err := r.manifestsAPI.CreateClusterManifestInternal(ctx, operations.V2CreateClusterManifestParams{
+		ClusterID: *cluster.ID,
+		CreateManifestParams: &models.CreateManifestParams{
+			Content:  swag.String(base64.StdEncoding.EncodeToString(content)),
+			FileName: &filename,
+			Folder:   swag.String(models.ManifestFolderOpenshift),
+		},
+	})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to create manifest %s", filename)
+	}
+
+	return nil
+}
+
+func fillTemplate(manifestParams map[string]interface{}, templateData string, log logrus.FieldLogger) ([]byte, error) {
+	tmpl, err := template.New("template").Parse(templateData)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to create template")
+	}
+	buf := &bytes.Buffer{}
+	if err = tmpl.Execute(buf, manifestParams); err != nil {
+		log.WithError(err).Errorf("Failed to set manifest params %v to template", manifestParams)
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }

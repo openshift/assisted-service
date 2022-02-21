@@ -255,8 +255,6 @@ func main() {
 	Options.InstructionConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.OperatorsConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.GeneratorConfig.ReleaseImageMirror = Options.ReleaseImageMirror
-	//Initialize Provider API
-	providerRegistry := registry.InitProviderRegistry(log.WithField("pkg", "provider"))
 	// Make sure that prepare for installation timeout is more than the timeouts of all underlying tools + 2m extra
 	Options.ClusterConfig.PrepareConfig.PrepareForInstallationTimeout = maxDuration(Options.ClusterConfig.PrepareConfig.PrepareForInstallationTimeout,
 		maxDuration(Options.InstructionConfig.DiskCheckTimeout, Options.InstructionConfig.ImageAvailabilityTimeout)+2*time.Minute)
@@ -277,7 +275,6 @@ func main() {
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
 	mirrorRegistriesBuilder := mirrorregistries.New()
 	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder)
-	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig)
 
 	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
@@ -285,6 +282,10 @@ func main() {
 	createS3Bucket(objectHandler, log)
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler, usageManager)
+	//Initialize Provider API
+	providerRegistry := registry.NewProviderRegistry(manifestsApi)
+	providerRegistry.InitProviders(log.WithField("pkg", "provider"))
+	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
 	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig, objectHandler, extracterHandler)
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
@@ -351,7 +352,7 @@ func main() {
 	dnsApi := dns.NewDNSHandler(Options.BMConfig.BaseDNSDomains, log)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi, authHandler)
+		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi, authHandler, providerRegistry)
 	infraEnvApi := infraenv.NewManager(log.WithField("pkg", "host-state"), db, objectHandler)
 
 	clusterStateMonitor := thread.New(
