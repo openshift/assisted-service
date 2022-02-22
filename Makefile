@@ -53,7 +53,6 @@ CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${C
 MUST_GATHER_IMAGES := $(or ${MUST_GATHER_IMAGES}, $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_must_gather_versions.json)))
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
-PUBLISH_TAG := $(or ${GIT_REVISION})
 APPLY_MANIFEST := $(or ${APPLY_MANIFEST},True)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -236,20 +235,6 @@ update-service: build-in-docker
 
 update: build-all
 	docker push $(SERVICE)
-
-define publish_image
-	${1} tag ${2} ${3}
-	${1} push ${3}
-endef # publish_image
-
-publish:
-	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
-	$(call publish_image,docker,${BUNDLE_IMAGE},quay.io/ocpmetal/assisted-service-operator-bundle:${PUBLISH_TAG})
-	skipper make publish-client
-
-build-publish-index:
-	skipper make operator-index-build BUNDLE_IMAGE=quay.io/ocpmetal/assisted-service-operator-bundle:${PUBLISH_TAG}
-	$(call publish_image,docker,${INDEX_IMAGE},quay.io/ocpmetal/assisted-service-index:${PUBLISH_TAG})
 
 publish-client: generate-python-client
 	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*.whl"
@@ -542,16 +527,10 @@ clean-onprem:
 ############
 # Operator #
 ############
-# TODO(djzager): remove when prow/ci-index is updated to use generate-bundle
-operator-bundle: generate-bundle
 
-# Build the bundle and index images.
-.PHONY: operator-bundle-build operator-bundle-update
+.PHONY: operator-bundle-build operator-index-build
 operator-bundle-build: generate-bundle
 	docker build $(CONTAINER_BUILD_PARAMS) -f deploy/olm-catalog/bundle.Dockerfile -t $(BUNDLE_IMAGE) .
-
-operator-bundle-update:
-	docker push $(BUNDLE_IMAGE)
 
 operator-index-build:
 	opm index add --bundles $(BUNDLE_IMAGE) --tag $(INDEX_IMAGE) --container-tool docker
