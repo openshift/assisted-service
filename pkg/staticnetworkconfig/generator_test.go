@@ -1,6 +1,7 @@
 package staticnetworkconfig
 
 import (
+	"encoding/json"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -57,13 +58,16 @@ var _ = Describe("StaticNetworkConfig", func() {
 			common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
 			common.FormatStaticConfigHostYAML("nic20", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
 		}
-		expectedOutput := staticNetworkConfig[0].NetworkYaml + hostStaticNetworkDelimeter + "mac10=nic10" + staticNetworkConfigHostsDelimeter + staticNetworkConfig[1].NetworkYaml + hostStaticNetworkDelimeter + "mac20=nic20"
-		formattedOutput := staticNetworkGenerator.FormatStaticNetworkConfigForDB(staticNetworkConfig)
-		Expect(formattedOutput).To(Equal(expectedOutput))
+		expectedOutputAsBytes, err := json.Marshal(&staticNetworkConfig)
+		Expect(err).ToNot(HaveOccurred())
+		formattedOutput, err := staticNetworkGenerator.FormatStaticNetworkConfigForDB(staticNetworkConfig)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(formattedOutput).To(Equal(string(expectedOutputAsBytes)))
 	})
 
 	It("check empty formating static network for DB", func() {
-		formattedOutput := staticNetworkGenerator.FormatStaticNetworkConfigForDB(nil)
+		formattedOutput, err := staticNetworkGenerator.FormatStaticNetworkConfigForDB(nil)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(formattedOutput).To(Equal(""))
 	})
 })

@@ -1215,7 +1215,12 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
-	staticNetworkConfig := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.ImageCreateParams.StaticNetworkConfig)
+	staticNetworkConfig, err := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.ImageCreateParams.StaticNetworkConfig)
+	if err != nil {
+		ret := common.NewApiError(http.StatusInternalServerError, err)
+		log.WithError(ret).Error("Format static network config")
+		return nil, ret
+	}
 
 	var imageExists bool
 	if infraEnv.SSHAuthorizedKey == params.ImageCreateParams.SSHPublicKey &&
@@ -5507,6 +5512,10 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		return nil, err
 	}
 
+	staticNetworkConfig, err := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraenvCreateParams.StaticNetworkConfig)
+	if err != nil {
+		return nil, err
+	}
 	infraEnv := common.InfraEnv{
 		Generated: false,
 		InfraEnv: models.InfraEnv{
@@ -5519,7 +5528,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			EmailDomain:            ocm.EmailDomainFromContext(ctx),
 			OpenshiftVersion:       *osImage.OpenshiftVersion,
 			IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
-			StaticNetworkConfig:    b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraenvCreateParams.StaticNetworkConfig),
+			StaticNetworkConfig:    staticNetworkConfig,
 			Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
 			AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
 			SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
@@ -5754,7 +5763,10 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 	}
 
 	if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
-		staticNetworkConfig := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraEnvUpdateParams.StaticNetworkConfig)
+		staticNetworkConfig, err := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraEnvUpdateParams.StaticNetworkConfig)
+		if err != nil {
+			return err
+		}
 		if staticNetworkConfig != infraEnv.StaticNetworkConfig {
 			updates["static_network_config"] = staticNetworkConfig
 		}
