@@ -295,7 +295,22 @@ data:
         - 'loglevel=7'`
 ```
 
-Create/update AgentClusterInstall with field manifestsConfigMapRef:
+Create/update AgentClusterInstall with field manifestsConfigMapRefs:
+```yaml
+apiVersion: extensions.hive.openshift.io/v1beta1
+kind: AgentClusterInstall
+metadata:
+  name: my-baremetal-cluster
+  namespace: mynamespace
+spec:
+    manifestsConfigMapRefs:
+    - name: manifests-config-map-1
+    - name: manifests-config-map-2
+```
+manifestsConfigMapRefs is an array of references to user-provided manifests ConfigMaps.
+This field should be used instead of the deprecated manifestsConfigMapRef.
+
+[Deprecated] Create/update AgentClusterInstall with field manifestsConfigMapRef:
 ```yaml
 apiVersion: extensions.hive.openshift.io/v1beta1
 kind: AgentClusterInstall
@@ -308,6 +323,7 @@ spec:
 ```
 If manifests provided in configmap data section will be in bad format or configmap will not exists but will be referenced
 we will set error in Sync condition only if cluster will be ready for installation. Changing configmap should fix the issue.
+Note: this field is ignored when ManifestsConfigMapRefs is set.
 
 ## Teardown procedure
 

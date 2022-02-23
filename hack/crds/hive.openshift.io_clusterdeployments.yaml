@@ -895,6 +895,22 @@ spec:
                           TODO: Add other useful fields. apiVersion, kind, uid?'
                         type: string
                     type: object
+                  manifestsConfigMapRefs:
+                    description: ManifestsConfigMapRefs are references to user-provided
+                      manifests ConfigMaps to add to or replace manifests that are generated
+                      by the installer.
+                    items:
+                      description: ManifestsConfigMapReference is a reference to a manifests
+                        ConfigMap
+                      properties:
+                        name:
+                          description: Name is the name of the ConfigMap that this refers
+                            to
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
                   releaseImage:
                     description: ReleaseImage is the image containing metadata for
                       all components that run in the cluster, and is the primary and

@@ -3534,6 +3534,79 @@ spec:
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
 	})
 
+	It("deploy agentClusterInstall with multiple manifest references (in invalid format and then fix it)", func() {
+		By("Create cluster")
+		configMapName1 := "cluster-install-config-1"
+		configMapName2 := "cluster-install-config-2"
+		refs := []hiveext.ManifestsConfigMapReference{
+			{Name: configMapName1},
+			{Name: configMapName2},
+		}
+		aciSNOSpec.ManifestsConfigMapRefs = refs
+		content := `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-openshift-machineconfig-master-kargs
+spec:
+  kernelArguments:
+    - 'loglevel=7'`
+
+		By("Start installation without config map")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		By("Approve Agent")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterReadyReason)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterBackendErrorReason)
+
+		By("Deploy bad config map")
+		data := map[string]string{"test.yaml": content, "test.dc": "test"}
+		cm1 := deployOrUpdateConfigMap(ctx, kubeClient, refs[0].Name, data)
+		defer func() {
+			_ = kubeClient.Delete(ctx, cm1)
+		}()
+		cm2 := deployOrUpdateConfigMap(ctx, kubeClient, refs[1].Name, data)
+		defer func() {
+			_ = kubeClient.Delete(ctx, cm2)
+		}()
+
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterReadyReason)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterInputErrorReason)
+
+		By("Fixing configmap and expecting installation to start")
+		// adding sleep to be sure all reconciles will finish, will test that requeue worked as expected
+		time.Sleep(30 * time.Second)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterReadyReason)
+
+		data = map[string]string{"test.yaml": content, "test2.yaml": content}
+		deployOrUpdateConfigMap(ctx, kubeClient, refs[0].Name, data)
+		deployOrUpdateConfigMap(ctx, kubeClient, refs[1].Name, data)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
+	})
+
 	It("delete agent and validate host deregistration", func() {
 		By("Deploy SNO cluster")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)

@@ -1936,6 +1936,127 @@ var _ = Describe("cluster reconcile", func() {
 
 		})
 
+		It("multiple ConfigMaps - successfully created", func() {
+			configMapName1 := "cluster-install-config-1"
+			configMapName2 := "cluster-install-config-2"
+			refs := []hiveext.ManifestsConfigMapReference{
+				{Name: configMapName1},
+				{Name: configMapName2},
+			}
+			data := map[string]string{"test.yaml": "test"}
+			cm1 := &corev1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ConfigMap",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: cluster.ObjectMeta.Namespace,
+					Name:      configMapName1,
+				},
+				Data: data,
+			}
+			Expect(c.Create(ctx, cm1)).To(BeNil())
+			cm2 := &corev1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ConfigMap",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: cluster.ObjectMeta.Namespace,
+					Name:      configMapName2,
+				},
+				Data: data,
+			}
+			Expect(c.Create(ctx, cm2)).To(BeNil())
+
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(5)
+			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+			installClusterReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:         backEndCluster.ID,
+					Status:     swag.String(models.ClusterStatusPreparingForInstallation),
+					StatusInfo: swag.String("Waiting for control plane"),
+				},
+			}
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+				Return(installClusterReply, nil)
+
+			cluster = getTestCluster()
+			aci.Spec.ManifestsConfigMapRefs = refs
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(hiveext.ClusterInstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
+		})
+
+		It("multiple ConfigMaps - failure in manifests map creation (missing ConfigMap)", func() {
+			configMapName1 := "cluster-install-config-1"
+			configMapName2 := "cluster-install-config-2"
+			refs := []hiveext.ManifestsConfigMapReference{
+				{Name: configMapName1},
+				{Name: "invalid"},
+			}
+			data := map[string]string{"test.yaml": "test"}
+			cm1 := &corev1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ConfigMap",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: cluster.ObjectMeta.Namespace,
+					Name:      "invalid",
+				},
+				Data: data,
+			}
+			Expect(c.Create(ctx, cm1)).To(BeNil())
+			cm2 := &corev1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ConfigMap",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: cluster.ObjectMeta.Namespace,
+					Name:      configMapName2,
+				},
+				Data: data,
+			}
+			Expect(c.Create(ctx, cm2)).To(BeNil())
+
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(15)
+
+			cluster = getTestCluster()
+			aci.Spec.ManifestsConfigMapRefs = refs
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}))
+
+			aci = getTestClusterInstall()
+			expectedState := fmt.Sprintf("%s configmaps \"%s\" not found", hiveext.ClusterBackendErrorMsg, configMapName1)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
+		})
+
 		It("getReleaseImage failed due to an invalid ImageSetRef - should not requeue", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusReady)
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
