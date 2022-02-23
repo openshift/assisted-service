@@ -1653,19 +1653,7 @@ func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params
 }
 
 func (b *bareMetalInventory) GetClusterDefaultConfig(_ context.Context, _ installer.GetClusterDefaultConfigParams) middleware.Responder {
-	return installer.NewGetClusterDefaultConfigOK().WithPayload(b.getClusterDefaultConfig())
-}
-
-func (b *bareMetalInventory) getClusterDefaultConfig() *models.ClusterDefaultConfig {
-	body := &models.ClusterDefaultConfig{}
-
-	body.NtpSource = b.Config.DefaultNTPSource
-	body.ClusterNetworkCidr = b.Config.DefaultClusterNetworkCidr
-	body.ServiceNetworkCidr = b.Config.DefaultServiceNetworkCidr
-	body.ClusterNetworkHostPrefix = b.Config.DefaultClusterNetworkHostPrefix
-	body.InactiveDeletionHours = int64(b.gcConfig.DeregisterInactiveAfter.Hours())
-
-	return body
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error) {
@@ -3229,17 +3217,7 @@ func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, clust
 }
 
 func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
-	v2Params := installer.V2ListClustersParams{
-		AmsSubscriptionIds:      params.AmsSubscriptionIds,
-		GetUnregisteredClusters: params.GetUnregisteredClusters,
-		OpenshiftClusterID:      params.OpenshiftClusterID,
-		WithHosts:               params.WithHosts,
-	}
-	clusters, err := b.listClustersInternal(ctx, v2Params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewListClustersOK().WithPayload(clusters)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params installer.V2ListClustersParams) ([]*models.Cluster, error) {
@@ -4445,51 +4423,35 @@ func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.I
 }
 
 func (b *bareMetalInventory) V2ResetHost(ctx context.Context, params installer.V2ResetHostParams) middleware.Responder {
-	host, err := b.resetHost(ctx, params.HostID, params.InfraEnvID)
-	if err != nil {
-		return err
-	}
-	return installer.NewV2ResetHostOK().WithPayload(host)
-}
-
-func (b *bareMetalInventory) ResetHost(ctx context.Context, params installer.ResetHostParams) middleware.Responder {
-	host, err := b.resetHost(ctx, params.HostID, params.ClusterID)
-	if err != nil {
-		return err
-	}
-	return installer.NewResetHostOK().WithPayload(host)
-}
-
-func (b *bareMetalInventory) resetHost(ctx context.Context, hostId, infraEnvId strfmt.UUID) (*models.Host, middleware.Responder) {
 	log := logutil.FromContext(ctx, b.log)
-	log.Info("Resetting host: ", hostId)
-	host, err := common.GetHostFromDB(b.db, infraEnvId.String(), hostId.String())
+	log.Info("Resetting host: ", params.HostID)
+	host, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.WithError(err).Errorf("host %s not found", hostId)
-			return nil, common.NewApiError(http.StatusNotFound, err)
+			log.WithError(err).Errorf("host %s not found", params.HostID.String())
+			return common.NewApiError(http.StatusNotFound, err)
 		}
-		log.WithError(err).Errorf("failed to get host %s", hostId)
-		eventgen.SendHostResetFetchFailedEvent(ctx, b.eventsHandler, hostId, infraEnvId, hostutil.GetHostnameForMsg(&host.Host))
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+		log.WithError(err).Errorf("failed to get host %s", params.HostID.String())
+		eventgen.SendHostResetFetchFailedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, hostutil.GetHostnameForMsg(&host.Host))
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if !hostutil.IsDay2Host(&host.Host) {
-		log.Errorf("ResetHost for host %s is forbidden: not a Day2 hosts", hostId)
-		return nil, common.NewApiError(http.StatusConflict, fmt.Errorf("method only allowed when adding hosts to an existing cluster"))
+		log.Errorf("ResetHost for host %s is forbidden: not a Day2 hosts", params.HostID.String())
+		return common.NewApiError(http.StatusConflict, fmt.Errorf("method only allowed when adding hosts to an existing cluster"))
 	}
 
 	if host.ClusterID == nil {
-		err = fmt.Errorf("host %s is not bound to any cluster, cannot reset host", hostId)
-		log.Errorf("ResetHost for host %s is forbidden: not a Day2 hosts", hostId)
-		return nil, common.NewApiError(http.StatusConflict, fmt.Errorf("method only allowed when host assigned to an existing cluster"))
+		err = fmt.Errorf("host %s is not bound to any cluster, cannot reset host", params.HostID.String())
+		log.Errorf("ResetHost for host %s is forbidden: not a Day2 hosts", params.HostID.String())
+		return common.NewApiError(http.StatusConflict, fmt.Errorf("method only allowed when host assigned to an existing cluster"))
 	}
 
 	cluster, err := common.GetClusterFromDB(b.db, *host.ClusterID, common.SkipEagerLoading)
 	if err != nil {
-		err = fmt.Errorf("can not find a cluster for host %s, cannot reset host", hostId)
+		err = fmt.Errorf("can not find a cluster for host %s, cannot reset host", params.HostID.String())
 		log.Errorln(err.Error())
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	err = b.db.Transaction(func(tx *gorm.DB) error {
@@ -4503,10 +4465,14 @@ func (b *bareMetalInventory) resetHost(ctx context.Context, hostId, infraEnvId s
 	})
 
 	if err != nil {
-		return nil, common.GenerateErrorResponder(err)
+		return common.GenerateErrorResponder(err)
 	}
 
-	return &host.Host, nil
+	return installer.NewV2ResetHostOK().WithPayload(&host.Host)
+}
+
+func (b *bareMetalInventory) ResetHost(ctx context.Context, params installer.ResetHostParams) middleware.Responder {
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder {

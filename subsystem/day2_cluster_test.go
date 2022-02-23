@@ -73,14 +73,14 @@ var _ = Describe("Day2 v2 cluster tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(getReply.GetPayload().Hosts[0].ClusterID.String()).Should(Equal(clusterID.String()))
 
-		list, err2 := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+		list, err2 := userBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 		Expect(err2).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(1))
 
 		_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 
-		list, err = userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+		list, err = userBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(0))
 
@@ -150,14 +150,14 @@ var _ = Describe("Day2 cluster tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(getReply.GetPayload().Hosts[0].ClusterID.String()).Should(Equal(clusterID.String()))
 
-		list, err2 := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+		list, err2 := userBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 		Expect(err2).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(1))
 
 		_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 
-		list, err = userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+		list, err = userBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(0))
 
