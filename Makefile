@@ -123,19 +123,11 @@ endif
 RELEASE_IMAGES := $(or ${RELEASE_IMAGES},${DEFAULT_RELEASE_IMAGES})
 OS_IMAGES := $(or ${OS_IMAGES},${DEFAULT_OS_IMAGES})
 
-# Support default Release/OS image if lists not specified.
-# I.e. used on local deployments for using a single image,
-# instead of using all images as in CI.
-ifndef RELEASE_IMAGES
-ifndef OS_IMAGES
-	DEFAULT_VERSION := $(shell (echo '$(DEFAULT_RELEASE_IMAGES)' | jq -c 'map(select(.default))[0].openshift_version'))
-	RELEASE_IMAGES := $(shell (echo '$(DEFAULT_RELEASE_IMAGES)' | jq -c --arg v $(DEFAULT_VERSION) 'map(select(.openshift_version==$$v))'))
-	OS_IMAGES := $(shell (echo '$(DEFAULT_OS_IMAGES)' | jq -c --arg v $(DEFAULT_VERSION) 'map(select(.openshift_version==$$v))'))
+# Support given Release/OS images.
+ifdef OPENSHIFT_VERSION
+	RELEASE_IMAGES := $(shell (echo '$(RELEASE_IMAGES)' | jq -c --arg v $(OPENSHIFT_VERSION) 'map(select(.openshift_version==$$v))'))
+	OS_IMAGES := $(shell (echo '$(OS_IMAGES)' | jq -c --arg v $(OPENSHIFT_VERSION) 'map(select(.openshift_version==$$v))'))
 endif
-endif
-
-# Support all OS images if missing - for kube-api flow
-OS_IMAGES := $(or ${OS_IMAGES},${DEFAULT_OS_IMAGES})
 
 ifeq ($(VERBOSE), true)
 	GO_TEST_FORMAT=standard-verbose
