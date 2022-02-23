@@ -400,16 +400,6 @@ var _ = Describe("authz", func() {
 			agentAuthSupport: true,
 		},
 		{
-			name:         "enable host",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      enableHost,
-		},
-		{
-			name:         "disable host",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      disableHost,
-		},
-		{
 			name:             "get next steps",
 			apiCall:          getNextSteps,
 			agentAuthSupport: true,
@@ -807,26 +797,6 @@ func updateHostInstallProgress(ctx context.Context, cli *client.AssistedInstall)
 			HostProgress: &models.HostProgress{
 				CurrentStage: models.HostStageStartingInstallation,
 			},
-		})
-	return err
-}
-
-func enableHost(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.EnableHost(
-		ctx,
-		&installer.EnableHostParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-			HostID:    strfmt.UUID(uuid.New().String()),
-		})
-	return err
-}
-
-func disableHost(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.DisableHost(
-		ctx,
-		&installer.DisableHostParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-			HostID:    strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }

@@ -38,7 +38,6 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/conversions"
-	"github.com/thoas/go-funk"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/utils/pointer"
 )
@@ -506,8 +505,7 @@ func installCluster(clusterID strfmt.UUID) *models.Cluster {
 	waitForClusterState(ctx, clusterID, models.ClusterStatusInstalling,
 		180*time.Second, "Installation in progress")
 
-	waitForHostState(ctx, models.HostStatusInstalling, defaultWaitForHostStateTimeout,
-		funk.Filter(c.Hosts, func(host *models.Host) bool { return swag.StringValue(host.Status) != models.HostStatusDisabled }).([]*models.Host)...)
+	waitForHostState(ctx, models.HostStatusInstalling, defaultWaitForHostStateTimeout, c.Hosts...)
 
 	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
@@ -529,8 +527,7 @@ func tryInstallClusterWithDiskResponses(clusterID strfmt.UUID, successfulHosts, 
 
 	waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient,
 		180*time.Second, IgnoreStateInfo)
-	waitForHostState(ctx, models.HostStatusInsufficient, defaultWaitForHostStateTimeout,
-		funk.Filter(failedHosts, func(host *models.Host) bool { return swag.StringValue(host.Status) != models.HostStatusDisabled }).([]*models.Host)...)
+	waitForHostState(ctx, models.HostStatusInsufficient, defaultWaitForHostStateTimeout, failedHosts...)
 
 	expectedKnownHosts := make([]*models.Host, 0)
 outer:
@@ -543,8 +540,7 @@ outer:
 		expectedKnownHosts = append(expectedKnownHosts, h)
 	}
 
-	waitForHostState(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout,
-		funk.Filter(expectedKnownHosts, func(host *models.Host) bool { return swag.StringValue(host.Status) != models.HostStatusDisabled }).([]*models.Host)...)
+	waitForHostState(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, expectedKnownHosts...)
 
 	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())

@@ -18,7 +18,8 @@ func convertHostsToConnectivityCheckParams(currentHostId *strfmt.UUID, hosts []*
 		// discovering - Host doesn't have inventory yet
 		// disabled - Host does not participate in cluster
 		// disconnected - Host does not have connectivity to the network now
-		if funk.ContainsString([]string{models.HostStatusDiscovering, models.HostStatusDisabled, models.HostStatusDisconnected}, swag.StringValue(hosts[i].Status)) {
+		if funk.ContainsString([]string{models.HostStatusDiscovering, models.HostStatusDisconnected},
+			swag.StringValue(hosts[i].Status)) {
 			continue
 		}
 		if hosts[i].ID.String() != currentHostId.String() {

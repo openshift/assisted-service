@@ -81,7 +81,7 @@ type validation struct {
 func (c *validationContext) loadCluster() error {
 	var err error
 	if c.cluster == nil {
-		c.cluster, err = common.GetClusterFromDBWithoutDisabledHosts(c.db, *c.host.ClusterID)
+		c.cluster, err = common.GetClusterFromDBWithHosts(c.db, *c.host.ClusterID)
 	}
 	return err
 }
@@ -729,15 +729,6 @@ func (v *validator) printIgnitionDownloadable(c *validationContext, status Valid
 	}
 }
 
-func getNumEnabledHosts(hosts []*models.Host) int {
-	ret := 0
-	for _, h := range hosts {
-		if swag.StringValue(h.Status) != models.HostStatusDisabled {
-			ret++
-		}
-	}
-	return ret
-}
 func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
 	if !network.IsMachineCidrAvailable(c.cluster) {
 		return ValidationPending
@@ -794,7 +785,7 @@ func (v *validator) belongsToMajorityGroup(c *validationContext) ValidationStatu
 	} else {
 		ret = v.belongsToL2MajorityGroup(c, majorityGroups)
 	}
-	if ret == ValidationFailure && getNumEnabledHosts(c.cluster.Hosts) < 3 {
+	if ret == ValidationFailure && len(c.cluster.Hosts) < 3 {
 		return ValidationPending
 	}
 	return ret
@@ -814,8 +805,8 @@ func (v *validator) printBelongsToMajorityGroup(c *validationContext, status Val
 	case ValidationPending:
 		if !network.IsMachineCidrAvailable(c.cluster) || c.cluster.ConnectivityMajorityGroups == "" {
 			return "Machine Network CIDR or Connectivity Majority Groups missing"
-		} else if getNumEnabledHosts(c.cluster.Hosts) < 3 {
-			return "Not enough enabled hosts in cluster to calculate connectivity groups"
+		} else if len(c.cluster.Hosts) < 3 {
+			return "Not enough hosts in cluster to calculate connectivity groups"
 		}
 		// Shouldn't happen
 		return "Not enough information to calculate host majority groups"
@@ -830,7 +821,6 @@ func (v *validator) missingNTPSyncResult(db *gorm.DB, host *models.Host) Validat
 		models.HostStatusDisconnectedUnbound,
 		models.HostStatusDiscoveringUnbound,
 		models.HostStatusKnownUnbound,
-		models.HostStatusDisabledUnbound,
 	}
 	if funk.ContainsString(unboundStatuses, swag.StringValue(host.Status)) {
 		sources, err := common.GetHostNTPSources(db, host)

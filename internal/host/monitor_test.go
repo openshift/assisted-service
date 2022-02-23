@@ -319,38 +319,6 @@ var _ = Describe("TestHostMonitoring - with infra-env", func() {
 			Expect(count).Should(Equal(int64(nHosts)))
 		}
 
-		registerAndValidateDisconnectedAndDisabled := func(nDisconnected, nDisabled int) {
-			for i := 0; i < nDisconnected; i++ {
-				if i%10 == 0 {
-					infraEnvID = strfmt.UUID(uuid.New().String())
-					infraEnv := hostutil.GenerateTestInfraEnv(infraEnvID)
-					Expect(db.Save(infraEnv).Error).ToNot(HaveOccurred())
-				}
-				host = hostutil.GenerateTestHostWithInfraEnv(strfmt.UUID(uuid.New().String()), infraEnvID, models.HostStatusDiscoveringUnbound, models.HostRoleWorker)
-				host.Inventory = workerInventory()
-				Expect(state.RegisterHost(ctx, &host, db)).ShouldNot(HaveOccurred())
-				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
-				db.Save(&host)
-			}
-			for i := 0; i < nDisabled; i++ {
-				if i%10 == 0 {
-					infraEnvID = strfmt.UUID(uuid.New().String())
-					infraEnv := hostutil.GenerateTestInfraEnv(infraEnvID)
-					Expect(db.Save(infraEnv).Error).ToNot(HaveOccurred())
-				}
-				host = hostutil.GenerateTestHostWithInfraEnv(strfmt.UUID(uuid.New().String()), infraEnvID, models.HostStatusDisabledUnbound, models.HostRoleWorker)
-				host.Inventory = workerInventory()
-				Expect(state.RegisterHost(ctx, &host, db)).ShouldNot(HaveOccurred())
-				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
-				db.Save(&host)
-			}
-			state.HostMonitoring()
-			var count int64
-			Expect(db.Model(&models.Host{}).Where("status = ?", models.HostStatusDisconnectedUnbound).Count(&count).Error).
-				ShouldNot(HaveOccurred())
-			Expect(count).Should(Equal(int64(nDisconnected)))
-		}
-
 		It("5 hosts all disconnected", func() {
 			mockMetricApi.EXPECT().MonitoredHostsCount(int64(5)).Times(1)
 			registerAndValidateDisconnected(5)
@@ -364,10 +332,6 @@ var _ = Describe("TestHostMonitoring - with infra-env", func() {
 		It("765 hosts all disconnected", func() {
 			mockMetricApi.EXPECT().MonitoredHostsCount(int64(765)).Times(1)
 			registerAndValidateDisconnected(765)
-		})
-		It("765 hosts disconnected, 5 disabled", func() {
-			mockMetricApi.EXPECT().MonitoredHostsCount(int64(765)).Times(1)
-			registerAndValidateDisconnectedAndDisabled(765, 5)
 		})
 	})
 })

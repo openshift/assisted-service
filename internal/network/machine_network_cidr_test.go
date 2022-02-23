@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -47,22 +46,6 @@ func createCluster(apiVip string, machineCidr string, inventories ...string) *co
 
 var _ = Describe("inventory", func() {
 
-	createDisabledHosts := func(inventories ...string) []*models.Host {
-		ret := make([]*models.Host, 0)
-		for _, i := range inventories {
-			ret = append(ret, &models.Host{Inventory: i,
-				Status: swag.String(models.HostStatusDisabled)})
-		}
-		return ret
-	}
-
-	createDisabledCluster := func(apiVip string, machineCidr string, inventories ...string) *common.Cluster {
-		return &common.Cluster{Cluster: models.Cluster{
-			APIVip:          apiVip,
-			MachineNetworks: CreateMachineNetworksArray(machineCidr),
-			Hosts:           createDisabledHosts(inventories...),
-		}}
-	}
 	Context("CalculateMachineNetworkCIDR", func() {
 		It("happpy flow", func() {
 			cluster := createCluster("1.2.5.6", "",
@@ -81,14 +64,6 @@ var _ = Describe("inventory", func() {
 			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(cidr).To(Equal("1001:db8::/120"))
-		})
-
-		It("Disabled", func() {
-			cluster := createDisabledCluster("1.2.5.6", "",
-				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
-				createInventory(createInterface("127.0.0.1/17")))
-			_, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
-			Expect(err).To(HaveOccurred())
 		})
 
 		It("Illegal VIP", func() {
@@ -206,21 +181,6 @@ var _ = Describe("inventory", func() {
 			Expect(err).To(HaveOccurred())
 			err = VerifyVips(cluster.Hosts, primaryMachineCidr, cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).To(HaveOccurred())
-		})
-		It("Disabled", func() {
-			cluster := createCluster("1.2.5.6", primaryMachineCidr,
-				createInventory(createInterface("1.2.5.7/23")))
-			cluster.IngressVip = "1.2.5.8"
-			cluster.Hosts = []*models.Host{
-				{
-					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.9\"]}]",
-					Status:        swag.String(models.HostStatusDisabled),
-				},
-			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, cluster.APIVip, cluster.IngressVip, false, log)
-			Expect(err).ToNot(HaveOccurred())
-			err = VerifyVips(cluster.Hosts, primaryMachineCidr, cluster.APIVip, cluster.IngressVip, true, log)
-			Expect(err).ToNot(HaveOccurred())
 		})
 		It("Empty", func() {
 			cluster := createCluster("1.2.5.6", primaryMachineCidr,

@@ -1039,8 +1039,6 @@ func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 	workers := []*models.Host{}
 	for i := range hosts {
 		switch {
-		case hosts[i].Status != nil && *hosts[i].Status == models.HostStatusDisabled:
-			continue
 		case common.GetEffectiveRole(hosts[i]) == models.HostRoleMaster:
 			masters = append(masters, hosts[i])
 		default:
@@ -1062,9 +1060,7 @@ func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) error {
 	toUpload := fileNames[:]
 	for _, host := range cluster.Hosts {
-		if swag.StringValue(host.Status) != models.HostStatusDisabled {
-			toUpload = append(toUpload, hostutil.IgnitionFileName(host))
-		}
+		toUpload = append(toUpload, hostutil.IgnitionFileName(host))
 	}
 
 	for _, fileName := range toUpload {

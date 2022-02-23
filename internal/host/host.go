@@ -139,10 +139,7 @@ type API interface {
 	IsRequireUserActionReset(h *models.Host) bool
 	ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 	ResetPendingUserAction(ctx context.Context, h *models.Host, db *gorm.DB) error
-	// Disable host from getting any requests
-	DisableHost(ctx context.Context, h *models.Host, db *gorm.DB) error
-	// Enable host to get requests (disabled by default)
-	EnableHost(ctx context.Context, h *models.Host, db *gorm.DB) error
+
 	// Install host - db is optional, for transactions
 	Install(ctx context.Context, h *models.Host, db *gorm.DB) error
 	GetStagesByRole(h *models.Host, isSNO bool) []models.HostStage
@@ -487,20 +484,6 @@ func (m *Manager) Install(ctx context.Context, h *models.Host, db *gorm.DB) erro
 	return m.sm.Run(TransitionTypeInstallHost, newStateHost(h), &TransitionArgsInstallHost{
 		ctx: ctx,
 		db:  cdb,
-	})
-}
-
-func (m *Manager) EnableHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	return m.sm.Run(TransitionTypeEnableHost, newStateHost(h), &TransitionArgsEnableHost{
-		ctx: ctx,
-		db:  db,
-	})
-}
-
-func (m *Manager) DisableHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	return m.sm.Run(TransitionTypeDisableHost, newStateHost(h), &TransitionArgsDisableHost{
-		ctx: ctx,
-		db:  db,
 	})
 }
 
@@ -852,8 +835,6 @@ func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason
 	if err != nil {
 		isFailed = true
 		return common.NewApiError(http.StatusConflict, err)
-	} else if swag.StringValue(h.Status) == models.HostStatusDisabled {
-		shouldAddEvent = false
 	}
 	return nil
 }
@@ -913,8 +894,6 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 	if err = m.sm.Run(transitionType, newStateHost(h), transitionArgs); err != nil {
 		isFailed = true
 		return common.NewApiError(http.StatusConflict, err)
-	} else if swag.StringValue(h.Status) == models.HostStatusDisabled {
-		shouldAddEvent = false
 	}
 	return nil
 }
@@ -942,8 +921,6 @@ func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db
 	if err != nil {
 		isFailed = true
 		return err
-	} else if swag.StringValue(h.Status) == models.HostStatusDisabled {
-		shouldAddEvent = false
 	}
 	return nil
 }
@@ -1129,8 +1106,8 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 	// since aggregated functions can not run within a FOR UPDATE transaction
 	// we are now calculating the master count with SELECT query (Bug 2012570)
 	var masters []string
-	reply := db.Model(&models.Host{}).Where("cluster_id = ? and id != ? and status != ? and (role = ? or suggested_role = ?)",
-		h.ClusterID, h.ID, models.HostStatusDisabled, models.HostRoleMaster, models.HostRoleMaster).Pluck("id", &masters)
+	reply := db.Model(&models.Host{}).Where("cluster_id = ? and id != ? and (role = ? or suggested_role = ?)",
+		h.ClusterID, h.ID, models.HostRoleMaster, models.HostRoleMaster).Pluck("id", &masters)
 
 	if err = reply.Error; err != nil {
 		log.WithError(err).Errorf("failed to count masters in cluster %s", h.ClusterID.String())

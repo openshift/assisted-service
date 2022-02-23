@@ -1147,37 +1147,6 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
-				name:            "insufficient to ready with disabled master",
-				srcState:        models.ClusterStatusInsufficient,
-				dstState:        models.ClusterStatusReady,
-				machineNetworks: common.TestIPv4Networking.MachineNetworks,
-				apiVip:          common.TestIPv4Networking.APIVip,
-				ingressVip:      common.TestIPv4Networking.IngressVip,
-				dnsDomain:       "test.com",
-				pullSecretSet:   true,
-				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusDisabled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
-					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
-				},
-				statusInfoChecker: makeValueChecker(StatusInfoReady),
-				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
-					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
-					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					IsApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API virtual IP is defined"},
-					IsApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					IsIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IP is defined"},
-					IsIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
-					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-				}),
-				errorExpected: false,
-			},
-			{
 				name:            "insufficient to ready",
 				srcState:        models.ClusterStatusInsufficient,
 				dstState:        models.ClusterStatusReady,
@@ -1387,16 +1356,16 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 
 var _ = Describe("RefreshCluster - preparing for install", func() {
 	var (
-		ctx                                     = context.Background()
-		db                                      *gorm.DB
-		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
-		cluster                                 common.Cluster
-		clusterApi                              *Manager
-		mockEvents                              *eventsapi.MockHandler
-		mockHostAPI                             *host.MockAPI
-		mockMetric                              *metrics.MockAPI
-		ctrl                                    *gomock.Controller
-		dbName                                  string
+		ctx                         = context.Background()
+		db                          *gorm.DB
+		clusterId, hid1, hid2, hid3 strfmt.UUID
+		cluster                     common.Cluster
+		clusterApi                  *Manager
+		mockEvents                  *eventsapi.MockHandler
+		mockHostAPI                 *host.MockAPI
+		mockMetric                  *metrics.MockAPI
+		ctrl                        *gomock.Controller
+		dbName                      string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -1417,8 +1386,6 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
-		hid4 = strfmt.UUID(uuid.New().String())
-		hid5 = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 	tests := []struct {
@@ -1448,31 +1415,6 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 				{
 					ID:     &hid3,
 					Status: swag.String(models.HostStatusPreparingForInstallation),
-				},
-			},
-			statusInfoChecker: makeValueChecker(statusInfoPreparingForInstallation),
-		},
-		{
-			name:       "no change - all hosts prepared + disabled",
-			apiVip:     common.TestIPv4Networking.APIVip,
-			ingressVip: common.TestIPv4Networking.IngressVip,
-			dstState:   models.ClusterStatusPreparingForInstallation,
-			hosts: []models.Host{
-				{
-					ID:     &hid1,
-					Status: swag.String(models.HostStatusPreparingSuccessful),
-				},
-				{
-					ID:     &hid2,
-					Status: swag.String(models.HostStatusPreparingSuccessful),
-				},
-				{
-					ID:     &hid3,
-					Status: swag.String(models.HostStatusPreparingSuccessful),
-				},
-				{
-					ID:     &hid4,
-					Status: swag.String(models.HostStatusDisabled),
 				},
 			},
 			statusInfoChecker: makeValueChecker(statusInfoPreparingForInstallation),
@@ -1586,36 +1528,6 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 			installationStatus: common.InstallationPreparationSucceeded,
 			statusInfoChecker:  makeValueChecker(statusInfoInstalling),
 		},
-		{
-			name:       "all hosts prepared + preparation succeeded + disabled",
-			apiVip:     common.TestIPv4Networking.APIVip,
-			ingressVip: common.TestIPv4Networking.IngressVip,
-			dstState:   models.ClusterStatusInstalling,
-			hosts: []models.Host{
-				{
-					ID:     &hid1,
-					Status: swag.String(models.HostStatusPreparingSuccessful),
-				},
-				{
-					ID:     &hid2,
-					Status: swag.String(models.HostStatusPreparingSuccessful),
-				},
-				{
-					ID:     &hid3,
-					Status: swag.String(models.HostStatusPreparingSuccessful),
-				},
-				{
-					ID:     &hid4,
-					Status: swag.String(models.HostStatusDisabled),
-				},
-				{
-					ID:     &hid5,
-					Status: swag.String(models.HostStatusDisabled),
-				},
-			},
-			installationStatus: common.InstallationPreparationSucceeded,
-			statusInfoChecker:  makeValueChecker(statusInfoInstalling),
-		},
 	}
 	for i := range tests {
 		t := tests[i]
@@ -1648,12 +1560,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 			case models.ClusterStatusInsufficient:
 				mockHostAPIIsRequireUserActionResetFalse()
 			case models.ClusterStatusInstalling:
-				nonDisabled := 0
-				for _, h := range t.hosts {
-					if swag.StringValue(h.Status) != models.HostStatusDisabled {
-						nonDisabled++
-					}
-				}
+				nonDisabled := len(t.hosts)
 				mockMetric.EXPECT().InstallationStarted(gomock.Any(), clusterId, gomock.Any(), gomock.Any()).Times(1)
 				mockMetric.EXPECT().ClusterHostInstallationCount(gomock.Any(), nonDisabled, gomock.Any()).Times(1)
 			}
@@ -3847,36 +3754,6 @@ var _ = Describe("NTP refresh cluster", func() {
 				}),
 				errorExpected: false,
 			},
-
-			{
-				name:          "ready to ready with disabled",
-				srcState:      models.ClusterStatusReady,
-				dstState:      models.ClusterStatusReady,
-				pullSecretSet: true,
-				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid4, Status: swag.String(models.HostStatusDisabled), Inventory: defaultInventoryWithTimestamp(1601909239 + 1000), Role: models.HostRoleWorker},
-					{ID: &hid5, Status: swag.String(models.HostStatusDisabled), Inventory: defaultInventoryWithTimestamp(1601909239 - 1000), Role: models.HostRoleWorker},
-				},
-				statusInfoChecker: makeValueChecker(StatusInfoReady),
-				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
-					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
-					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					IsApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
-					IsApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					IsIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
-					IsIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
-					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates"},
-					IsNtpServerConfigured:               {status: ValidationSuccess, messagePattern: "No ntp problems found"},
-				}),
-				errorExpected: false,
-			},
-
 			{
 				name:          "ready to insufficient with disconnected",
 				srcState:      models.ClusterStatusReady,
@@ -4094,31 +3971,6 @@ var _ = Describe("Single node", func() {
 				}),
 				errorExpected: false,
 			},
-			{
-				name:          "non ha mode, 2 nodes, one disabled",
-				srcState:      models.ClusterStatusInsufficient,
-				dstState:      models.ClusterStatusReady,
-				pullSecretSet: true,
-				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusDisabled), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-				},
-				statusInfoChecker: makeValueChecker(StatusInfoReady),
-				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
-					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
-					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					IsApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
-					IsApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					IsIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
-					IsIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
-					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				}),
-				errorExpected: false,
-			},
-
 			{
 				name:          "non ha mode, 2 nodes, master and worker",
 				srcState:      models.ClusterStatusReady,

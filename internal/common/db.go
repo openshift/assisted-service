@@ -177,8 +177,8 @@ func GetClusterFromDBForUpdate(db *gorm.DB, clusterId strfmt.UUID, eagerLoading 
 	return c, nil
 }
 
-func GetClusterFromDBWithoutDisabledHosts(db *gorm.DB, clusterId strfmt.UUID) (*Cluster, error) {
-	db = LoadTableFromDB(db, HostsTable, "status <> ?", models.HostStatusDisabled)
+func GetClusterFromDBWithHosts(db *gorm.DB, clusterId strfmt.UUID) (*Cluster, error) {
+	db = LoadTableFromDB(db, HostsTable)
 	db = LoadClusterTablesFromDB(db, HostsTable)
 
 	return GetClusterFromDB(db, clusterId, SkipEagerLoading)
@@ -357,9 +357,7 @@ func (c *Cluster) AfterFind(db *gorm.DB) error {
 			c.EnabledHostCount++
 			continue
 		}
-		if *h.Status != models.HostStatusDisabled {
-			c.EnabledHostCount++
-		}
+		c.EnabledHostCount++
 	}
 	c.TotalHostCount = int64(len(c.Hosts))
 	return nil

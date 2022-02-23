@@ -718,18 +718,6 @@ var _ = Describe("Generator UploadToS3", func() {
 		return mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any())
 	}
 
-	It("disabled host", func() {
-		cluster.Hosts = []*models.Host{
-			{Status: swag.String(models.HostStatusDisabled)},
-		}
-		generator.cluster = cluster
-
-		mockUploadFile().Return(nil).Times(len(fileNames))
-		mockUploadObjectTimestamp().Return(true, nil).Times(len(fileNames))
-
-		Expect(generator.UploadToS3(ctx)).Should(Succeed())
-	})
-
 	Context("cluster with known hosts", func() {
 		BeforeEach(func() {
 			hostID1 := strfmt.UUID(uuid.New().String())

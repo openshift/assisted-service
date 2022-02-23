@@ -289,52 +289,6 @@ func (th *transitionHandler) PostInstallHost(sw stateswitch.StateSwitch, args st
 }
 
 ////////////////////////////////////////////////////////////////////////////
-// Disable host
-////////////////////////////////////////////////////////////////////////////
-
-type TransitionArgsDisableHost struct {
-	ctx context.Context
-	db  *gorm.DB
-}
-
-func (th *transitionHandler) PostDisableHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
-	sHost, ok := sw.(*stateHost)
-	if !ok {
-		return errors.New("PostDisableHost incompatible type of StateSwitch")
-	}
-	params, ok := args.(*TransitionArgsDisableHost)
-	if !ok {
-		return errors.New("PostDisableHost invalid argument")
-	}
-
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		statusInfoDisabled)
-}
-
-////////////////////////////////////////////////////////////////////////////
-// Enable host
-////////////////////////////////////////////////////////////////////////////
-
-type TransitionArgsEnableHost struct {
-	ctx context.Context
-	db  *gorm.DB
-}
-
-func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
-	sHost, ok := sw.(*stateHost)
-	if !ok {
-		return errors.New("PostEnableHost incompatible type of StateSwitch")
-	}
-	params, ok := args.(*TransitionArgsEnableHost)
-	if !ok {
-		return errors.New("PostEnableHost invalid argument")
-	}
-
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoDiscovering,
-		resetFields[:]...)
-}
-
-////////////////////////////////////////////////////////////////////////////
 // Bind host
 ////////////////////////////////////////////////////////////////////////////
 

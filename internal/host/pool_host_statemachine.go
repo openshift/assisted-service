@@ -32,36 +32,6 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 		PostTransition:   th.PostRegisterHost,
 	})
 
-	// Disabled host can register if it was booted, no change in the state.
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType:   TransitionTypeRegisterHost,
-		SourceStates:     []stateswitch.State{stateswitch.State(models.HostStatusDisabledUnbound)},
-		DestinationState: stateswitch.State(models.HostStatusDisabledUnbound),
-	})
-
-	// Disable host
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeDisableHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusDisconnectedUnbound),
-			stateswitch.State(models.HostStatusDiscoveringUnbound),
-			stateswitch.State(models.HostStatusInsufficientUnbound),
-			stateswitch.State(models.HostStatusKnownUnbound),
-		},
-		DestinationState: stateswitch.State(models.HostStatusDisabledUnbound),
-		PostTransition:   th.PostDisableHost,
-	})
-
-	// Enable host
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeEnableHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusDisabledUnbound),
-		},
-		DestinationState: stateswitch.State(models.HostStatusDiscoveringUnbound),
-		PostTransition:   th.PostEnableHost,
-	})
-
 	// Bind host
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeBindHost,
@@ -73,7 +43,6 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 	})
 
 	// Refresh host
-
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
@@ -120,7 +89,6 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 
 	// Noop transitions
 	for _, state := range []stateswitch.State{
-		stateswitch.State(models.HostStatusDisabledUnbound),
 		stateswitch.State(models.HostStatusBinding),
 		stateswitch.State(models.HostStatusUnbinding),
 	} {

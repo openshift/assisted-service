@@ -131,15 +131,15 @@ var _ = Describe("Log Fields on Context", func() {
 
 		It("host_id should be populated if there is such route param", func() {
 
-			mockInstallApi.EXPECT().EnableHost(gomock.Any(), gomock.Any()).DoAndReturn(
-				func(ctx context.Context, params installer.EnableHostParams) middleware.Responder {
+			mockInstallApi.EXPECT().V2GetHost(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(ctx context.Context, params installer.V2GetHostParams) middleware.Responder {
 					FromContext(ctx, logger).Info("say something")
-					return installer.NewEnableHostOK()
+					return installer.NewV2GetHostOK()
 				}).Times(1)
 
-			_, err := bmclient.Installer.EnableHost(context.TODO(), &clientInstaller.EnableHostParams{
-				ClusterID: cluster_id,
-				HostID:    host_id,
+			_, err := bmclient.Installer.V2GetHost(context.TODO(), &clientInstaller.V2GetHostParams{
+				InfraEnvID: cluster_id,
+				HostID:     host_id,
 			})
 
 			Expect(err).NotTo(HaveOccurred())

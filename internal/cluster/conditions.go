@@ -43,7 +43,6 @@ func (v *clusterValidator) isUnPreparingHostsExist(c *clusterPreprocessContext) 
 	validStates := []string{
 		models.HostStatusPreparingForInstallation,
 		models.HostStatusPreparingSuccessful,
-		models.HostStatusDisabled,
 		models.HostStatusPreparingFailed,
 		models.HostStatusKnown,
 	}

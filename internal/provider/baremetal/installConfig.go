@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"sort"
 
-	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
@@ -30,9 +29,6 @@ func (p baremetalProvider) AddPlatformToInstallConfig(
 		return hostutil.GetHostnameForMsg(sortedHosts[i]) < hostutil.GetHostnameForMsg(sortedHosts[j])
 	})
 	for _, host := range sortedHosts {
-		if swag.StringValue(host.Status) == models.HostStatusDisabled {
-			continue
-		}
 		hostName := hostutil.GetHostnameForMsg(host)
 		p.Log.Infof("Host name is %s", hostName)
 		hosts[yamlHostIdx].Name = hostName

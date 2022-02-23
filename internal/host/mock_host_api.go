@@ -83,34 +83,6 @@ func (mr *MockAPIMockRecorder) CancelInstallation(arg0, arg1, arg2, arg3 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInstallation", reflect.TypeOf((*MockAPI)(nil).CancelInstallation), arg0, arg1, arg2, arg3)
 }
 
-// DisableHost mocks base method.
-func (m *MockAPI) DisableHost(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DisableHost", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DisableHost indicates an expected call of DisableHost.
-func (mr *MockAPIMockRecorder) DisableHost(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableHost", reflect.TypeOf((*MockAPI)(nil).DisableHost), arg0, arg1, arg2)
-}
-
-// EnableHost mocks base method.
-func (m *MockAPI) EnableHost(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnableHost", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// EnableHost indicates an expected call of EnableHost.
-func (mr *MockAPIMockRecorder) EnableHost(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableHost", reflect.TypeOf((*MockAPI)(nil).EnableHost), arg0, arg1, arg2)
-}
-
 // GetHostByKubeKey mocks base method.
 func (m *MockAPI) GetHostByKubeKey(arg0 types.NamespacedName) (*common.Host, error) {
 	m.ctrl.T.Helper()
