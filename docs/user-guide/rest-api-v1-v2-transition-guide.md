@@ -60,6 +60,7 @@ GetFreeAddresses                  | GET /v1/clusters/{cluster_id}/free_addresses
 GetClusterHostRequirements        | GET /v1/clusters/{cluster_id}/host-requirements         | N/A                                                           | Deprecated in favor of `GetPreflightRequirements`
 GetPreflightRequirements          | GET /v1/clusters/{cluster_id}/preflight-requirements    | GET /v2/clusters/{cluster_id}/preflight-requirements          |
 UploadLogs                        | POST /v1/clusters/{cluster_id}/logs                     | POST /v2/clusters/{cluster_id}/logs                           |
+UploadClusterIngressCert          | POST /v1/clusters/{cluster_id}/uploads/ingress-cert     | POST /v2/clusters/{cluster_id}/uploads/ingress-cert           |
 
 #### Cluster Manifests
 Operation ID            | V1                                            | V2                                            | Notes
@@ -71,12 +72,13 @@ DownloadClusterManifest	| GET /v1/clusters/{cluster_id}/manifests/files	| GET /v
 
 
 #### Cluster APIs used by Agent / Controller
-Operation ID            | V1                                            | V2                                            | Notes
-------------------------|-----------------------------------------------|-----------------------------------------------|------
-ListClusterManifests	| GET /v1/clusters/{cluster_id}/manifests	    | GET /v2/clusters/{cluster_id}/manifests	    |
-CreateClusterManifest	| POST /v1/clusters/{cluster_id}/manifests	    | POST /v2/clusters/{cluster_id}/manifests	    |
-DeleteClusterManifest	| DELETE /v1/clusters/{cluster_id}/manifests	| DELETE /v2/clusters/{cluster_id}/manifests	|
-DownloadClusterManifest	| GET /v1/clusters/{cluster_id}/manifests/files	| GET /v2/clusters/{cluster_id}/manifests/files	|
+Operation ID            | V1                                                           | V2                                                           | Notes
+------------------------|--------------------------------------------------------------|--------------------------------------------------------------|------
+ListClusterManifests	| GET /v1/clusters/{cluster_id}/manifests	                   | GET /v2/clusters/{cluster_id}/manifests	                  |
+CreateClusterManifest	| POST /v1/clusters/{cluster_id}/manifests	                   | POST /v2/clusters/{cluster_id}/manifests	                  |
+DeleteClusterManifest	| DELETE /v1/clusters/{cluster_id}/manifests	               | DELETE /v2/clusters/{cluster_id}/manifests	                  |
+DownloadClusterManifest	| GET /v1/clusters/{cluster_id}/manifests/files     	       | GET /v2/clusters/{cluster_id}/manifests/files                |
+CompleteInstallation    | POST /v1/clusters/{cluster_id}/actions/complete_installation | POST /v2/clusters/{cluster_id}/actions/complete-installation |
 
 
 ### InfraEnv

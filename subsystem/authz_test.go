@@ -201,9 +201,9 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
 
 		setClusterAsFinalizing(ctx, clusterID)
-		res, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+		res, err := agentBMClient.Installer.V2UploadClusterIngressCert(ctx, &installer.V2UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
+		Expect(res).To(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertCreated()))
 	})
 
 	Context("/v2/clusters/{cluster_id}/credentials", func() {
@@ -268,9 +268,9 @@ var _ = Describe("Cluster credentials should be accessed only by cluster owner",
 		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
 		registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
 		setClusterAsFinalizing(ctx, clusterID)
-		res, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+		res, err := agentBMClient.Installer.V2UploadClusterIngressCert(ctx, &installer.V2UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
+		Expect(res).To(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertCreated()))
 		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
 	})
 

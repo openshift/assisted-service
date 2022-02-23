@@ -4703,11 +4703,7 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 }
 
 func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder {
-	return b.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
-		ClusterID:             params.ClusterID,
-		DiscoveryAgentVersion: params.DiscoveryAgentVersion,
-		IngressCertParams:     params.IngressCertParams,
-	})
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 // Merging given ingress ca certificate into kubeconfig
@@ -4910,11 +4906,7 @@ func (b *bareMetalInventory) resetHost(ctx context.Context, hostId, infraEnvId s
 }
 
 func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder {
-	return b.V2CompleteInstallation(ctx, installer.V2CompleteInstallationParams{
-		ClusterID:             params.ClusterID,
-		CompletionParams:      params.CompletionParams,
-		DiscoveryAgentVersion: params.DiscoveryAgentVersion,
-	})
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) deleteDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
