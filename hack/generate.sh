@@ -18,7 +18,7 @@ function generate_go_server() {
 }
 
 function generate_go_client() {
-    rm -rf client models
+    rm -rf client models/*.go
     docker run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
         quay.io/goswagger/swagger:v0.28.0 generate client --template=stratoscale -f swagger.yaml
 }
@@ -51,13 +51,13 @@ function generate_keys() {
 }
 
 function remove_dashes_and_dots() {
-    for f in models/* ; do
+    for f in models/*.go ; do
         sed -i 's/Dash//g;s/Dot//g' $f
     done
 }
 
 function validate_swagger_file() {
-    egrep -r 'Dash|Dot' models | grep -v //  | awk '\
+    egrep -r 'Dash|Dot' models/*.go | grep -v //  | awk '\
         {reversed=gensub("Dash","-","g", $2); \
          reversed=gensub("Dot",".","g",reversed); \
          original=gensub("\"","","g", $5);\
