@@ -201,7 +201,7 @@ var _ = Describe("list versions", func() {
 					Expect(version.Default).Should(Equal(releaseImage.Default))
 				}
 				Expect(version.CPUArchitectures).Should(ContainElement(architecture))
-				Expect(version.DisplayName).Should(Equal(*releaseImage.Version))
+				Expect(version.DisplayName).Should(Equal(releaseImage.Version))
 				Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage)))
 			}
 		})
@@ -219,15 +219,15 @@ var _ = Describe("list versions", func() {
 
 			// Production release version
 			releaseImage.Version = swag.String("4.8.12")
-			Expect(h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
+			Expect(*h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
 
 			// Beta release version
 			releaseImage.Version = swag.String("4.9.0-rc.4")
-			Expect(h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelBeta))
+			Expect(*h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelBeta))
 
 			// Support level specified in release image
 			releaseImage.SupportLevel = models.OpenshiftVersionSupportLevelProduction
-			Expect(h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
+			Expect(*h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
 		})
 
 		It("missing release images", func() {
