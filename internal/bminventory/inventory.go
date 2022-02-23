@@ -3492,22 +3492,7 @@ func (b *bareMetalInventory) GetHost(_ context.Context, params installer.GetHost
 }
 
 func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	cluster, err := common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get list of hosts for cluster %s", params.ClusterID)
-		return installer.NewListHostsInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-
-	for _, host := range cluster.Hosts {
-		if err := b.customizeHost(&cluster.Cluster, host); err != nil {
-			return common.GenerateErrorResponder(err)
-		}
-		// Clear this field as it is not needed to be sent via API
-		host.FreeAddresses = ""
-	}
-
-	return installer.NewListHostsOK().WithPayload(cluster.Hosts)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error) {
@@ -5027,13 +5012,7 @@ func (b *bareMetalInventory) V2ResetHostValidation(ctx context.Context, params i
 }
 
 func (b *bareMetalInventory) ResetHostValidation(ctx context.Context, params installer.ResetHostValidationParams) middleware.Responder {
-	err := b.hostApi.ResetHostValidation(ctx, params.HostID, params.ClusterID, params.ValidationID, nil)
-	if err != nil {
-		log := logutil.FromContext(ctx, b.log)
-		log.WithError(err).Error("Reset host validation")
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewResetHostValidationOK()
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error) {

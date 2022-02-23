@@ -45,11 +45,11 @@ var _ = Describe("Host tests", func() {
 		Expect(*host.Status).Should(Equal("discovering"))
 		Expect(host.StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 
-		list, err := userBMClient.Installer.ListHosts(ctx, &installer.ListHostsParams{ClusterID: clusterID})
+		list, err := userBMClient.Installer.V2ListHosts(ctx, &installer.V2ListHostsParams{InfraEnvID: *infraEnvID})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(1))
 
-		list, err = agentBMClient.Installer.ListHosts(ctx, &installer.ListHostsParams{ClusterID: clusterID})
+		list, err = agentBMClient.Installer.V2ListHosts(ctx, &installer.V2ListHostsParams{InfraEnvID: *infraEnvID})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(1))
 
@@ -58,7 +58,7 @@ var _ = Describe("Host tests", func() {
 			HostID:     *host.ID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		list, err = userBMClient.Installer.ListHosts(ctx, &installer.ListHostsParams{ClusterID: clusterID})
+		list, err = userBMClient.Installer.V2ListHosts(ctx, &installer.V2ListHostsParams{InfraEnvID: *infraEnvID})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(0))
 
