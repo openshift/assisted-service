@@ -59,6 +59,7 @@ DownloadClusterLogs               | GET /v1/clusters/{cluster_id}/logs          
 GetFreeAddresses                  | GET /v1/clusters/{cluster_id}/free_addresses            | N/A                                                           |
 GetClusterHostRequirements        | GET /v1/clusters/{cluster_id}/host-requirements         | N/A                                                           | Deprecated in favor of `GetPreflightRequirements`
 GetPreflightRequirements          | GET /v1/clusters/{cluster_id}/preflight-requirements    | GET /v2/clusters/{cluster_id}/preflight-requirements          |
+UploadLogs                        | POST /v1/clusters/{cluster_id}/logs                     | POST /v2/clusters/{cluster_id}/logs                           |
 
 #### Cluster Manifests
 Operation ID            | V1                                            | V2                                            | Notes
@@ -121,3 +122,5 @@ UnbindHost	                   | N/A                                             
 ListManagedDomains             | GET /v1/domains                                                                          | GET /v2/domains                                                    |
 ListComponentVersions          | GET /v1/component-versions                                                               | GET /v2/component-versions                                         |
 ListSupportedOpenshiftVersions | GET /v1/openshift_versions                                                               | GET /v2/openshift-versions                                         |
+DownloadHostLogs               | GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs                                       | N/A                                                                | Deprecated in favor of `DownloadClusterLogs`
+UploadHostLogs                 | POST /v1/clusters/{cluster_id}/hosts/{host_id}/logs                                      | N/A                                                                | Deprecated in favor of `UploadLogs`

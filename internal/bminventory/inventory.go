@@ -4989,71 +4989,6 @@ func (b *bareMetalInventory) UploadLogs(ctx context.Context, params installer.Up
 	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
-func (b *bareMetalInventory) v1uploadLogs(ctx context.Context, params installer.UploadLogsParams) error {
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Uploading logs from cluster %s", params.ClusterID)
-
-	defer func() {
-		// Closing file and removing all temporary files created by Multipart
-		params.Upfile.Close()
-		params.HTTPRequest.Body.Close()
-		err := params.HTTPRequest.MultipartForm.RemoveAll()
-		if err != nil {
-			log.WithError(err).Warnf("Failed to delete temporary files used for upload")
-		}
-	}()
-
-	if params.LogsType == string(models.LogsTypeHost) {
-		dbHost, err := b.GetCommonHostInternal(ctx, params.ClusterID.String(), params.HostID.String())
-		if err != nil {
-			return err
-		}
-
-		err = b.uploadHostLogs(ctx, dbHost, params.Upfile)
-		if err != nil {
-			return err
-		}
-
-		eventgen.SendHostLogsUploadedEvent(ctx, b.eventsHandler, *params.HostID, dbHost.InfraEnvID, &params.ClusterID,
-			hostutil.GetHostnameForMsg(&dbHost.Host))
-		return nil
-	}
-
-	currentCluster, err := b.getCluster(ctx, params.ClusterID.String())
-	if err != nil {
-		return err
-	}
-	fileName := b.getLogsFullName(params.ClusterID.String(), params.LogsType)
-	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
-	err = b.objectHandler.UploadStream(ctx, params.Upfile, fileName)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to upload %s to s3", fileName)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	if params.LogsType == string(models.LogsTypeController) {
-		firstClusterLogCollectionEvent := false
-		if time.Time(currentCluster.ControllerLogsCollectedAt).Equal(time.Time{}) {
-			firstClusterLogCollectionEvent = true
-		}
-		err = b.clusterApi.SetUploadControllerLogsAt(ctx, currentCluster, b.db)
-		if err != nil {
-			log.WithError(err).Errorf("Failed update cluster %s controller_logs_collected_at flag", params.ClusterID)
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
-		err = b.clusterApi.UpdateLogsProgress(ctx, currentCluster, string(models.LogsStateCollecting))
-		if err != nil {
-			log.WithError(err).Errorf("Failed update cluster %s log progress %s", params.ClusterID, string(models.LogsStateCollecting))
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
-		if firstClusterLogCollectionEvent { // Issue an event only for the very first cluster log collection event.
-			eventgen.SendClusterLogsUploadedEvent(ctx, b.eventsHandler, params.ClusterID)
-		}
-	}
-
-	log.Infof("Done uploading file %s", fileName)
-	return nil
-}
-
 func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Host, upFile io.ReadCloser) error {
 	log := logutil.FromContext(ctx, b.log)
 
@@ -5090,34 +5025,11 @@ func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params ins
 }
 
 func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
-	err := b.v1uploadLogs(ctx, installer.UploadLogsParams{ClusterID: params.ClusterID, HostID: &params.HostID, HTTPRequest: params.HTTPRequest,
-		LogsType: string(models.LogsTypeHost), Upfile: params.Upfile})
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewUploadHostLogsNoContent()
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Downloading logs from host %s in cluster %s", params.HostID, params.ClusterID)
-	fileName, downloadFileName, err := b.getLogFileForDownload(ctx, &params.ClusterID, &params.HostID, "host")
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
-	if err != nil {
-		if _, ok := err.(common.NotFound); ok {
-			log.WithError(err).Warnf("File not found %s", fileName)
-			return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", params.HostID))
-		}
-
-		log.WithError(err).Errorf("failed to download file %s", fileName)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	return filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(respBody), downloadFileName, contentLength)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) prepareClusterLogs(ctx context.Context, cluster *common.Cluster) (string, error) {
