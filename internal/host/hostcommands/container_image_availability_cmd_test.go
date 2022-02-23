@@ -63,7 +63,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(step).NotTo(BeNil())
 
-		defaultReleaseImage := common.TestDefaultConfig.Version.ReleaseImage
+		defaultReleaseImage := common.TestDefaultConfig.ReleaseImageUrl
 		request := &models.ContainerImageAvailabilityRequest{
 			Images:  []string{defaultReleaseImage, defaultMCOImage, ocpMustGatherImage, cmd.instructionConfig.InstallerImage},
 			Timeout: defaultImageAvailabilityTimeoutSeconds,
@@ -131,7 +131,7 @@ var _ = Describe("get images", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mco, nil).Times(1)
 		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(1)
-		release := common.TestDefaultConfig.Version.ReleaseImage
+		release := common.TestDefaultConfig.ReleaseImageUrl
 		expected := []string{release, mco, defaultMustGatherVersion["ocp"]}
 		images, err := cmd.getImages(cluster)
 		Expect(err).NotTo(HaveOccurred())

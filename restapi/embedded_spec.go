@@ -12360,6 +12360,11 @@ func init() {
     },
     "openshift-version": {
       "type": "object",
+      "required": [
+        "display_name",
+        "support_level",
+        "cpu_architectures"
+      ],
       "properties": {
         "cpu_architectures": {
           "description": "Available CPU architectures.",
@@ -12374,26 +12379,6 @@ func init() {
         },
         "display_name": {
           "description": "Name of the version to be presented to the user.",
-          "type": "string"
-        },
-        "release_image": {
-          "description": "The installation image of the OpenShift cluster.",
-          "type": "string"
-        },
-        "release_version": {
-          "description": "OCP version from the release metadata.",
-          "type": "string"
-        },
-        "rhcos_image": {
-          "description": "The base RHCOS image used for the discovery iso.",
-          "type": "string"
-        },
-        "rhcos_rootfs": {
-          "description": "The RHCOS rootfs url.",
-          "type": "string"
-        },
-        "rhcos_version": {
-          "description": "Build ID of the RHCOS image.",
           "type": "string"
         },
         "support_level": {
@@ -25604,6 +25589,11 @@ func init() {
     },
     "openshift-version": {
       "type": "object",
+      "required": [
+        "display_name",
+        "support_level",
+        "cpu_architectures"
+      ],
       "properties": {
         "cpu_architectures": {
           "description": "Available CPU architectures.",
@@ -25618,26 +25608,6 @@ func init() {
         },
         "display_name": {
           "description": "Name of the version to be presented to the user.",
-          "type": "string"
-        },
-        "release_image": {
-          "description": "The installation image of the OpenShift cluster.",
-          "type": "string"
-        },
-        "release_version": {
-          "description": "OCP version from the release metadata.",
-          "type": "string"
-        },
-        "rhcos_image": {
-          "description": "The base RHCOS image used for the discovery iso.",
-          "type": "string"
-        },
-        "rhcos_rootfs": {
-          "description": "The RHCOS rootfs url.",
-          "type": "string"
-        },
-        "rhcos_version": {
-          "description": "Build ID of the RHCOS image.",
           "type": "string"
         },
         "support_level": {

@@ -8692,25 +8692,14 @@ definitions:
 
   openshift-version:
     type: object
+    required:
+      - display_name
+      - support_level
+      - cpu_architectures
     properties:
       display_name:
         type: string
         description: Name of the version to be presented to the user.
-      release_image:
-        type: string
-        description: The installation image of the OpenShift cluster.
-      release_version:
-        type: string
-        description: OCP version from the release metadata.
-      rhcos_image:
-        type: string
-        description: The base RHCOS image used for the discovery iso.
-      rhcos_rootfs:
-        type: string
-        description: The RHCOS rootfs url.
-      rhcos_version:
-        type: string
-        description: Build ID of the RHCOS image.
       support_level:
         type: string
         enum: [beta, production, maintenance]

@@ -112,7 +112,7 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 			openshiftVersion = models.OpenshiftVersion{
 				CPUArchitectures: []string{*releaseImage.CPUArchitecture},
 				Default:          releaseImage.Default,
-				DisplayName:      *releaseImage.Version,
+				DisplayName:      releaseImage.Version,
 				SupportLevel:     h.getSupportLevel(*releaseImage),
 			}
 			openshiftVersions[key] = openshiftVersion
@@ -386,18 +386,18 @@ func (h *handler) getKey(openshiftVersion string) (string, error) {
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
 
-func (h *handler) getSupportLevel(releaseImage models.ReleaseImage) string {
+func (h *handler) getSupportLevel(releaseImage models.ReleaseImage) *string {
 	if releaseImage.SupportLevel != "" {
-		return releaseImage.SupportLevel
+		return &releaseImage.SupportLevel
 	}
 
 	preReleases := []string{"-fc", "-rc", "nightly"}
 	for _, preRelease := range preReleases {
 		if strings.Contains(*releaseImage.Version, preRelease) {
-			return models.OpenshiftVersionSupportLevelBeta
+			return swag.String(models.OpenshiftVersionSupportLevelBeta)
 		}
 	}
-	return models.OpenshiftVersionSupportLevelProduction
+	return swag.String(models.OpenshiftVersionSupportLevelProduction)
 }
 
 // Ensure no missing values in OS images and Release images.
