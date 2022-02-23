@@ -1062,6 +1062,15 @@ var _ = Describe("agent reconcile", func() {
 		macAddress := "some MAC address"
 		hostId := strfmt.UUID(uuid.New().String())
 		inventory := models.Inventory{
+			CPU: &models.CPU{
+				Architecture: common.DefaultCPUArchitecture,
+				Flags:        []string{"vmx"},
+			},
+			SystemVendor: &models.SystemVendor{
+				Manufacturer: "Red Hat",
+				ProductName:  "RHEL",
+				Virtual:      true,
+			},
 			Interfaces: []*models.Interface{
 				{
 					Name: "eth0",
@@ -1075,8 +1084,8 @@ var _ = Describe("agent reconcile", func() {
 				},
 			},
 			Disks: []*models.Disk{
-				{Path: "/dev/sda", Bootable: true},
-				{Path: "/dev/sdb", Bootable: false},
+				{Path: "/dev/sda", Bootable: true, DriveType: "HDD"},
+				{Path: "/dev/sdb", Bootable: false, DriveType: "HDD"},
 			},
 		}
 		inv, _ := json.Marshal(&inventory)
@@ -1098,7 +1107,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -1114,6 +1123,17 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 		Expect(agent.Status.Inventory.Interfaces[0].MacAddress).To(Equal(macAddress))
+		Expect(agent.ObjectMeta.Annotations[InventoryLabelPrefix+"version"]).To(Equal("0.1"))
+		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"storage-hasnonrotationaldisk"]).To(Equal("false"))
+		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"cpu-architecture"]).To(Equal(common.DefaultCPUArchitecture))
+		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"cpu-virtenabled"]).To(Equal("true"))
+		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-manufacturer"]).To(Equal("Red Hat"))
+		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-productname"]).To(Equal("RHEL"))
+		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-isvirtual"]).To(Equal("true"))
+
+		result, err = hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
 	})
 
 	It("Agent ntp sources, role, bootstrap status", func() {

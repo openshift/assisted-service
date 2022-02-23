@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -56,7 +57,9 @@ import (
 )
 
 const (
-	AgentFinalizerName = "agent." + aiv1beta1.Group + "/ai-deprovision"
+	AgentFinalizerName      = "agent." + aiv1beta1.Group + "/ai-deprovision"
+	InventoryLabelPrefix    = "inventory." + aiv1beta1.Group + "/"
+	InventoryHashAnnotation = InventoryLabelPrefix + "inventoryHash"
 )
 
 // AgentReconciler reconciles a Agent object
@@ -98,6 +101,13 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if agent.ObjectMeta.Annotations == nil {
+		agent.ObjectMeta.Annotations = make(map[string]string)
+	}
+	if agent.ObjectMeta.Labels == nil {
+		agent.ObjectMeta.Labels = make(map[string]string)
 	}
 
 	if agent.ObjectMeta.DeletionTimestamp.IsZero() { // agent not being deleted
@@ -948,7 +958,29 @@ func (r *AgentReconciler) updateInventory(log logrus.FieldLogger, host *models.H
 			}
 		}
 	}
+
+	updateInventoryLabels(agent)
 	return nil
+}
+
+func updateInventoryLabels(agent *aiv1beta1.Agent) {
+	inventory := agent.Status.Inventory
+	hasSSD := false
+	for _, d := range inventory.Disks {
+		if d.DriveType == "SSD" {
+			hasSSD = true
+			break
+		}
+	}
+	hasVirt := funk.Contains(inventory.Cpu.Flags, "vmx") || funk.Contains(inventory.Cpu.Flags, "svm")
+
+	agent.ObjectMeta.Annotations[InventoryLabelPrefix+"version"] = "0.1"
+	agent.ObjectMeta.Labels[InventoryLabelPrefix+"storage-hasnonrotationaldisk"] = strconv.FormatBool(hasSSD)
+	agent.ObjectMeta.Labels[InventoryLabelPrefix+"cpu-architecture"] = inventory.Cpu.Architecture
+	agent.ObjectMeta.Labels[InventoryLabelPrefix+"cpu-virtenabled"] = strconv.FormatBool(hasVirt)
+	agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-manufacturer"] = inventory.SystemVendor.Manufacturer
+	agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-productname"] = inventory.SystemVendor.ProductName
+	agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-isvirtual"] = strconv.FormatBool(inventory.SystemVendor.Virtual)
 }
 
 func (r *AgentReconciler) updateHostIgnition(ctx context.Context, log logrus.FieldLogger, host *common.Host, agent *aiv1beta1.Agent) error {
