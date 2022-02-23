@@ -57,9 +57,9 @@ type clusterValidationResult struct {
 	Message string                     `json:"message"`
 }
 
-func isHostValidationInStatus(clusterID, hostID strfmt.UUID, validationID models.HostValidationID, expectedStatus string) (bool, error) {
+func isHostValidationInStatus(clusterID, infraEnvID, hostID strfmt.UUID, validationID models.HostValidationID, expectedStatus string) (bool, error) {
 	var validationRes map[string][]hostValidationResult
-	h := getHost(clusterID, hostID)
+	h := getHostV2(infraEnvID, hostID)
 	if h.ValidationsInfo == "" {
 		return false, nil
 	}
@@ -95,11 +95,11 @@ func isClusterValidationInStatus(clusterID strfmt.UUID, validationID models.Clus
 	return false, nil
 }
 
-func waitForHostValidationStatus(clusterID, hostID strfmt.UUID, expectedStatus string, hostValidationIDs ...models.HostValidationID) {
+func waitForHostValidationStatus(clusterID, infraEnvID, hostID strfmt.UUID, expectedStatus string, hostValidationIDs ...models.HostValidationID) {
 
 	waitFunc := func() (bool, error) {
 		for _, vID := range hostValidationIDs {
-			cond, _ := isHostValidationInStatus(clusterID, hostID, vID, expectedStatus)
+			cond, _ := isHostValidationInStatus(clusterID, infraEnvID, hostID, vID, expectedStatus)
 			if !cond {
 				return false, nil
 			}
@@ -341,16 +341,16 @@ func generateValidInventoryWithInterface(networkInterface string) string {
 var _ = Describe("Metrics tests", func() {
 
 	var (
-		ctx       context.Context = context.Background()
-		clusterID strfmt.UUID
+		ctx        context.Context = context.Background()
+		clusterID  strfmt.UUID
+		infraEnvID *strfmt.UUID
 	)
 
 	BeforeEach(func() {
 		var err error
 		clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 		Expect(err).NotTo(HaveOccurred())
-		// in order to simulate infra env generation
-		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
+		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
 	})
 
 	Context("host metrics events", func() {
@@ -365,10 +365,10 @@ var _ = Describe("Metrics tests", func() {
 
 		BeforeEach(func() {
 			//start host installation process
-			registerHostsAndSetRoles(clusterID, clusterID, 3, "test-cluster", "example.com")
+			registerHostsAndSetRoles(clusterID, *infraEnvID, 3, "test-cluster", "example.com")
 			c = installCluster(clusterID)
 			for _, host := range c.Hosts {
-				waitForHostState(ctx, clusterID, "installing", defaultWaitForHostStateTimeout, host)
+				waitForHostState(ctx, "installing", defaultWaitForHostStateTimeout, host)
 				if host.Bootstrap {
 					bootstrap = *host
 				}
@@ -392,7 +392,7 @@ var _ = Describe("Metrics tests", func() {
 			t := tests[i]
 			It(t.name, func() {
 				//move the bootstrap host to the desired state
-				updateProgress(*bootstrap.ID, clusterID, t.dstStage)
+				updateProgress(*bootstrap.ID, *infraEnvID, t.dstStage)
 
 				//read metrics events
 				evs := getMetricEvents(context.TODO(), clusterID)
@@ -430,17 +430,17 @@ var _ = Describe("Metrics tests", func() {
 		It("'connected' failed before reboot", func() {
 
 			// create a validation success
-			h := &registerHost(clusterID).Host
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDConnected)
+			h := &registerHost(*infraEnvID).Host
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDConnected)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDConnected), hostValidationChangedMetric)
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDConnected), hostValidationFailedMetric)
 
 			// create a validation failure
-			checkedInAt := time.Now().Add(-host.MaxHostDisconnectionTime)
+			checkedInAt := time.Now().Add(-2 * host.MaxHostDisconnectionTime)
 			err := db.Model(h).UpdateColumns(&models.Host{CheckedInAt: strfmt.DateTime(checkedInAt)}).Error
 			Expect(err).NotTo(HaveOccurred())
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDConnected)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDConnected)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDConnected, true)
@@ -454,11 +454,11 @@ var _ = Describe("Metrics tests", func() {
 		It("'connected' failed after reboot", func() {
 
 			// create a validation success
-			h := &registerHost(clusterID).Host
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDConnected)
+			h := &registerHost(*infraEnvID).Host
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDConnected)
 
 			// create a validation failure
-			checkedInAt := time.Now().Add(-host.MaxHostDisconnectionTime)
+			checkedInAt := time.Now().Add(-2 * host.MaxHostDisconnectionTime)
 			err := db.Model(h).UpdateColumns(&models.Host{
 				CheckedInAt: strfmt.DateTime(checkedInAt),
 				Progress: &models.HostProgressInfo{
@@ -466,7 +466,7 @@ var _ = Describe("Metrics tests", func() {
 				},
 			}).Error
 			Expect(err).NotTo(HaveOccurred())
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDConnected)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDConnected)
 
 			// check no generated events
 			assertNoValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDConnected)
@@ -475,16 +475,16 @@ var _ = Describe("Metrics tests", func() {
 		It("'connected' got fixed", func() {
 
 			// create a validation failure
-			h := &registerHost(clusterID).Host
-			checkedInAt := time.Now().Add(-host.MaxHostDisconnectionTime)
+			h := &registerHost(*infraEnvID).Host
+			checkedInAt := time.Now().Add(-2 * host.MaxHostDisconnectionTime)
 			err := db.Model(h).UpdateColumns(&models.Host{CheckedInAt: strfmt.DateTime(checkedInAt)}).Error
 			Expect(err).NotTo(HaveOccurred())
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDConnected)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDConnected)
 
 			// create a validation success
 			err = db.Model(h).UpdateColumns(&models.Host{CheckedInAt: strfmt.DateTime(time.Now())}).Error
 			Expect(err).NotTo(HaveOccurred())
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDConnected)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDConnected)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDConnected, false)
@@ -499,8 +499,8 @@ var _ = Describe("Metrics tests", func() {
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDHasInventory), hostValidationFailedMetric)
 
 			// create a validation failure
-			h := &registerHost(clusterID).Host
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDHasInventory)
+			h := &registerHost(*infraEnvID).Host
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDHasInventory)
 
 			// check generated metrics
 			metricsDeregisterCluster(ctx, clusterID)
@@ -510,12 +510,12 @@ var _ = Describe("Metrics tests", func() {
 		It("'has-inventory' got fixed", func() {
 
 			// create a validation failure
-			h := &registerHost(clusterID).Host
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDHasInventory)
+			h := &registerHost(*infraEnvID).Host
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDHasInventory)
 
 			// create a validation success
 			generateHWPostStepReply(ctx, h, validHwInfo, "master-0")
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDHasInventory)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDHasInventory)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHasInventory, false)
@@ -524,10 +524,10 @@ var _ = Describe("Metrics tests", func() {
 		It("'has-min-hw-capacity' failed", func() {
 
 			// create a validation success
-			h := &registerHost(clusterID).Host
+			h := &registerHost(*infraEnvID).Host
 			err := db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventory(), Status: &hostStatusInsufficient}).Error
 			Expect(err).NotTo(HaveOccurred())
-			waitForHostValidationStatus(clusterID, *h.ID, "success",
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success",
 				models.HostValidationIDHasMinCPUCores,
 				models.HostValidationIDHasMinMemory,
 				models.HostValidationIDValidPlatformNetworkSettings,
@@ -556,7 +556,7 @@ var _ = Describe("Metrics tests", func() {
 				Routes:       common.TestDefaultRouteConfiguration,
 			}
 			generateHWPostStepReply(ctx, h, nonValidInventory, "master-0")
-			waitForHostValidationStatus(clusterID, *h.ID, "failure",
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure",
 				models.HostValidationIDHasMinCPUCores,
 				models.HostValidationIDHasMinMemory,
 				models.HostValidationIDValidPlatformNetworkSettings,
@@ -588,7 +588,7 @@ var _ = Describe("Metrics tests", func() {
 		It("'has-min-hw-capacity' got fixed", func() {
 
 			// create a validation failure
-			h := &registerHost(clusterID).Host
+			h := &registerHost(*infraEnvID).Host
 			nonValidInventory := &models.Inventory{
 				CPU:          &models.CPU{Count: 1},
 				Memory:       &models.Memory{PhysicalBytes: int64(4 * units.GiB), UsableBytes: int64(4 * units.GiB)},
@@ -598,7 +598,7 @@ var _ = Describe("Metrics tests", func() {
 				Routes:       common.TestDefaultRouteConfiguration,
 			}
 			generateHWPostStepReply(ctx, h, nonValidInventory, "master-0")
-			waitForHostValidationStatus(clusterID, *h.ID, "failure",
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure",
 				models.HostValidationIDHasMinCPUCores,
 				models.HostValidationIDHasMinMemory,
 				models.HostValidationIDValidPlatformNetworkSettings,
@@ -607,7 +607,7 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation success
 			generateHWPostStepReply(ctx, h, validHwInfo, "master-0")
-			waitForHostValidationStatus(clusterID, *h.ID, "success",
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success",
 				models.HostValidationIDHasMinCPUCores,
 				models.HostValidationIDHasMinMemory,
 				models.HostValidationIDValidPlatformNetworkSettings,
@@ -631,8 +631,8 @@ var _ = Describe("Metrics tests", func() {
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDMachineCidrDefined), hostValidationFailedMetric)
 
 			// create a validation failure
-			h := &registerHost(clusterID).Host
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDMachineCidrDefined)
+			h := &registerHost(*infraEnvID).Host
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDMachineCidrDefined)
 
 			// check generated metrics
 			metricsDeregisterCluster(ctx, clusterID)
@@ -642,12 +642,12 @@ var _ = Describe("Metrics tests", func() {
 		It("'machine-cidr-defined' got fixed", func() {
 
 			// create a validation failure
-			h := &registerHost(clusterID).Host
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDMachineCidrDefined)
+			h := &registerHost(*infraEnvID).Host
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDMachineCidrDefined)
 
 			// create a validation success
 			generateHWPostStepReply(ctx, h, validHwInfo, "master-0")
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDMachineCidrDefined)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDMachineCidrDefined)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDMachineCidrDefined, false)
@@ -656,12 +656,12 @@ var _ = Describe("Metrics tests", func() {
 		It("'hostname-unique' failed", func() {
 
 			// create a validation success
-			h1 := &registerHost(clusterID).Host
-			h2 := &registerHost(clusterID).Host
+			h1 := &registerHost(*infraEnvID).Host
+			h2 := &registerHost(*infraEnvID).Host
 			generateHWPostStepReply(ctx, h1, validHwInfo, "master-0")
 			generateHWPostStepReply(ctx, h2, validHwInfo, "master-1")
-			waitForHostValidationStatus(clusterID, *h1.ID, "success", models.HostValidationIDHostnameUnique)
-			waitForHostValidationStatus(clusterID, *h2.ID, "success", models.HostValidationIDHostnameUnique)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "success", models.HostValidationIDHostnameUnique)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h2.ID, "success", models.HostValidationIDHostnameUnique)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDHostnameUnique), hostValidationChangedMetric)
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDHostnameUnique), hostValidationFailedMetric)
@@ -669,8 +669,8 @@ var _ = Describe("Metrics tests", func() {
 			// create a validation failure
 			generateHWPostStepReply(ctx, h1, validHwInfo, "nonUniqName")
 			generateHWPostStepReply(ctx, h2, validHwInfo, "nonUniqName")
-			waitForHostValidationStatus(clusterID, *h1.ID, "failure", models.HostValidationIDHostnameUnique)
-			waitForHostValidationStatus(clusterID, *h2.ID, "failure", models.HostValidationIDHostnameUnique)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "failure", models.HostValidationIDHostnameUnique)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h2.ID, "failure", models.HostValidationIDHostnameUnique)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "nonUniqName", models.HostValidationIDHostnameUnique, true)
@@ -685,17 +685,17 @@ var _ = Describe("Metrics tests", func() {
 		It("'hostname-unique' got fixed", func() {
 
 			// create a validation failure
-			h1 := &registerHost(clusterID).Host
-			h2 := &registerHost(clusterID).Host
+			h1 := &registerHost(*infraEnvID).Host
+			h2 := &registerHost(*infraEnvID).Host
 			generateHWPostStepReply(ctx, h1, validHwInfo, "master-0")
 			generateHWPostStepReply(ctx, h2, validHwInfo, "master-0")
-			waitForHostValidationStatus(clusterID, *h1.ID, "failure", models.HostValidationIDHostnameUnique)
-			waitForHostValidationStatus(clusterID, *h2.ID, "failure", models.HostValidationIDHostnameUnique)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "failure", models.HostValidationIDHostnameUnique)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h2.ID, "failure", models.HostValidationIDHostnameUnique)
 
 			// create a validation success
 			generateHWPostStepReply(ctx, h2, validHwInfo, "master-1")
-			waitForHostValidationStatus(clusterID, *h1.ID, "success", models.HostValidationIDHostnameUnique)
-			waitForHostValidationStatus(clusterID, *h2.ID, "success", models.HostValidationIDHostnameUnique)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "success", models.HostValidationIDHostnameUnique)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h2.ID, "success", models.HostValidationIDHostnameUnique)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHostnameUnique, false)
@@ -705,9 +705,9 @@ var _ = Describe("Metrics tests", func() {
 		It("'hostname-valid' failed", func() {
 
 			// create a validation success
-			h := &registerHost(clusterID).Host
+			h := &registerHost(*infraEnvID).Host
 			generateHWPostStepReply(ctx, h, validHwInfo, "master-0")
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDHostnameValid)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDHostnameValid)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDHostnameValid), hostValidationChangedMetric)
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDHostnameValid), hostValidationFailedMetric)
@@ -715,7 +715,7 @@ var _ = Describe("Metrics tests", func() {
 			// create a validation failure
 			// 'localhost' is a forbidden host name
 			generateHWPostStepReply(ctx, h, validHwInfo, "localhost")
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDHostnameValid)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDHostnameValid)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "localhost", models.HostValidationIDHostnameValid, true)
@@ -729,14 +729,14 @@ var _ = Describe("Metrics tests", func() {
 		It("'hostname-valid' got fixed", func() {
 
 			// create a validation failure
-			h := &registerHost(clusterID).Host
+			h := &registerHost(*infraEnvID).Host
 			// 'localhost' is a forbidden host name
 			generateHWPostStepReply(ctx, h, validHwInfo, "localhost")
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDHostnameValid)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDHostnameValid)
 
 			// create a validation success
 			generateHWPostStepReply(ctx, h, validHwInfo, "master-0")
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDHostnameValid)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDHostnameValid)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHostnameValid, false)
@@ -745,10 +745,10 @@ var _ = Describe("Metrics tests", func() {
 		It("'belongs-to-machine-cidr' failed", func() {
 
 			// create a validation success
-			h := &registerHost(clusterID).Host
+			h := &registerHost(*infraEnvID).Host
 			err := db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("1.2.3.4/24")}).Error
 			Expect(err).NotTo(HaveOccurred())
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDBelongsToMachineCidr), hostValidationChangedMetric)
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDBelongsToMachineCidr), hostValidationFailedMetric)
@@ -757,7 +757,7 @@ var _ = Describe("Metrics tests", func() {
 			err = db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("")}).Error
 			Expect(err).NotTo(HaveOccurred())
 			// machine-cidr doesn't change after it is set
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDBelongsToMachineCidr)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDBelongsToMachineCidr)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDBelongsToMachineCidr, true)
@@ -771,19 +771,19 @@ var _ = Describe("Metrics tests", func() {
 		It("'belongs-to-machine-cidr' got fixed", func() {
 
 			// create a validation failure
-			h := &registerHost(clusterID).Host
+			h := &registerHost(*infraEnvID).Host
 			err := db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("1.2.3.4/24")}).Error
 			Expect(err).NotTo(HaveOccurred())
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
 			err = db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("")}).Error
 			Expect(err).NotTo(HaveOccurred())
 			// machine-cidr removed after the network interface was deleted
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDBelongsToMachineCidr)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDBelongsToMachineCidr)
 
 			// create a validation success
 			err = db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("1.2.3.4/24")}).Error
 			Expect(err).NotTo(HaveOccurred())
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDBelongsToMachineCidr, false)
@@ -792,20 +792,19 @@ var _ = Describe("Metrics tests", func() {
 		It("'ignition-downloadable' failed", func() {
 
 			day2ClusterID := registerDay2Cluster(ctx)
-			// in order to simulate infra env generation
-			generateClusterISO(day2ClusterID, models.ImageTypeMinimalIso)
+			day2InfraEnvID := registerInfraEnv(&day2ClusterID, models.ImageTypeMinimalIso).ID
 
 			// create a validation success
-			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
+			h := registerNode(ctx, *day2InfraEnvID, "master-0", defaultCIDRv4)
 			generateApiVipPostStepReply(ctx, h, true)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
+			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationChangedMetric)
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationFailedMetric)
 
 			// create a validation failure
 			generateApiVipPostStepReply(ctx, h, false)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
+			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
 
 			// check generated events
 			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDIgnitionDownloadable, true)
@@ -819,20 +818,19 @@ var _ = Describe("Metrics tests", func() {
 		It("[V2UpdateCluster] 'ignition-downloadable' failed", func() {
 
 			day2ClusterID := v2RegisterDay2Cluster(ctx)
-			// in order to simulate infra env generation
-			generateClusterISO(day2ClusterID, models.ImageTypeMinimalIso)
+			day2InfraEnvID := registerInfraEnv(&day2ClusterID, models.ImageTypeMinimalIso).ID
 
 			// create a validation success
-			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
+			h := registerNode(ctx, *day2InfraEnvID, "master-0", defaultCIDRv4)
 			generateApiVipPostStepReply(ctx, h, true)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
+			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationChangedMetric)
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationFailedMetric)
 
 			// create a validation failure
 			generateApiVipPostStepReply(ctx, h, false)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
+			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
 
 			// check generated events
 			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDIgnitionDownloadable, true)
@@ -846,17 +844,16 @@ var _ = Describe("Metrics tests", func() {
 		It("'ignition-downloadable' got fixed", func() {
 
 			day2ClusterID := registerDay2Cluster(ctx)
-			// in order to simulate infra env generation
-			generateClusterISO(day2ClusterID, models.ImageTypeMinimalIso)
+			day2InfraEnvID := registerInfraEnv(&day2ClusterID, models.ImageTypeMinimalIso).ID
 
 			// create a validation failure
-			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
+			h := registerNode(ctx, *day2InfraEnvID, "master-0", defaultCIDRv4)
 			generateApiVipPostStepReply(ctx, h, false)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
+			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
 
 			// create a validation success
 			generateApiVipPostStepReply(ctx, h, true)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
+			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
 
 			// check generated events
 			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDIgnitionDownloadable, false)
@@ -865,17 +862,16 @@ var _ = Describe("Metrics tests", func() {
 		It("[V2UpdateCluster] 'ignition-downloadable' got fixed", func() {
 
 			day2ClusterID := v2RegisterDay2Cluster(ctx)
-			// in order to simulate infra env generation
-			generateClusterISO(day2ClusterID, models.ImageTypeMinimalIso)
+			day2InfraEnvID := registerInfraEnv(&day2ClusterID, models.ImageTypeMinimalIso).ID
 
 			// create a validation failure
-			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
+			h := registerNode(ctx, *day2InfraEnvID, "master-0", defaultCIDRv4)
 			generateApiVipPostStepReply(ctx, h, false)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
+			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
 
 			// create a validation success
 			generateApiVipPostStepReply(ctx, h, true)
-			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
+			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
 
 			// check generated events
 			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDIgnitionDownloadable, false)
@@ -885,16 +881,16 @@ var _ = Describe("Metrics tests", func() {
 
 			ips := hostutil.GenerateIPv4Addresses(4, defaultCIDRv4)
 			// create a validation success
-			h1 := registerNode(ctx, clusterID, "h1", ips[0])
-			h2 := registerNode(ctx, clusterID, "h2", ips[1])
-			h3 := registerNode(ctx, clusterID, "h3", ips[2])
-			h4 := registerNode(ctx, clusterID, "h4", ips[3])
+			h1 := registerNode(ctx, *infraEnvID, "h1", ips[0])
+			h2 := registerNode(ctx, *infraEnvID, "h2", ips[1])
+			h3 := registerNode(ctx, *infraEnvID, "h3", ips[2])
+			h4 := registerNode(ctx, *infraEnvID, "h4", ips[3])
 			generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
-			waitForHostValidationStatus(clusterID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
 
 			// create a validation failure
 			generateFullMeshConnectivity(ctx, ips[0], h2, h3, h4)
-			waitForHostValidationStatus(clusterID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "h1", models.HostValidationIDBelongsToMajorityGroup, true)
@@ -915,16 +911,16 @@ var _ = Describe("Metrics tests", func() {
 		It("'belongs-to-majority-group' got fixed", func() {
 			ips := hostutil.GenerateIPv4Addresses(4, defaultCIDRv4)
 			// create a validation failure
-			h1 := registerNode(ctx, clusterID, "h1", ips[0])
-			h2 := registerNode(ctx, clusterID, "h2", ips[1])
-			h3 := registerNode(ctx, clusterID, "h3", ips[2])
-			h4 := registerNode(ctx, clusterID, "h4", ips[3])
+			h1 := registerNode(ctx, *infraEnvID, "h1", ips[0])
+			h2 := registerNode(ctx, *infraEnvID, "h2", ips[1])
+			h3 := registerNode(ctx, *infraEnvID, "h3", ips[2])
+			h4 := registerNode(ctx, *infraEnvID, "h4", ips[3])
 			generateFullMeshConnectivity(ctx, ips[0], h2, h3, h4)
-			waitForHostValidationStatus(clusterID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
 
 			// create a validation success
 			generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
-			waitForHostValidationStatus(clusterID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "h1", models.HostValidationIDBelongsToMajorityGroup, false)
@@ -933,16 +929,16 @@ var _ = Describe("Metrics tests", func() {
 		It("'ntp-synced' failed", func() {
 
 			// create a validation success
-			h := &registerHost(clusterID).Host
+			h := &registerHost(*infraEnvID).Host
 			generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDNtpSynced)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDNtpSynced)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDNtpSynced), hostValidationChangedMetric)
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDNtpSynced), hostValidationFailedMetric)
 
 			// create a validation failure
 			generateNTPPostStepReply(ctx, h, nil)
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDNtpSynced)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDNtpSynced)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDNtpSynced, true)
@@ -956,13 +952,13 @@ var _ = Describe("Metrics tests", func() {
 		It("'ntp-synced' got fixed", func() {
 
 			// create a validation failure
-			h := &registerHost(clusterID).Host
+			h := &registerHost(*infraEnvID).Host
 			generateNTPPostStepReply(ctx, h, nil)
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDNtpSynced)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDNtpSynced)
 
 			// create a validation success
 			generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
-			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDNtpSynced)
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDNtpSynced)
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDNtpSynced, false)
@@ -971,9 +967,9 @@ var _ = Describe("Metrics tests", func() {
 			BeforeEach(func() {
 				// create hosts and report connectivity metrics
 				ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
-				h1 := registerNode(ctx, clusterID, "h1", ips[0])
-				h2 := registerNode(ctx, clusterID, "h2", ips[1])
-				h3 := registerNode(ctx, clusterID, "h3", ips[2])
+				h1 := registerNode(ctx, *infraEnvID, "h1", ips[0])
+				h2 := registerNode(ctx, *infraEnvID, "h2", ips[1])
+				h3 := registerNode(ctx, *infraEnvID, "h3", ips[2])
 				updateVipParams(ctx, clusterID)
 				generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
 			}, 0)
@@ -993,9 +989,9 @@ var _ = Describe("Metrics tests", func() {
 			BeforeEach(func() {
 				// create hosts and report connectivity metrics
 				ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
-				h1 := registerNode(ctx, clusterID, "h1", ips[0])
-				h2 := registerNode(ctx, clusterID, "h2", ips[1])
-				h3 := registerNode(ctx, clusterID, "h3", ips[2])
+				h1 := registerNode(ctx, *infraEnvID, "h1", ips[0])
+				h2 := registerNode(ctx, *infraEnvID, "h2", ips[1])
+				h3 := registerNode(ctx, *infraEnvID, "h3", ips[2])
 				v2UpdateVipParams(ctx, clusterID)
 				generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
 			}, 0)
@@ -1025,7 +1021,7 @@ var _ = Describe("Metrics tests", func() {
 		It("'all-hosts-are-ready-to-install' failed", func() {
 
 			// create a validation success
-			hosts, _ := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
+			hosts, _ := register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
 			c := getCluster(clusterID)
 			for _, h := range c.Hosts {
 				generateDomainResolution(ctx, h, "test-cluster", "example.com")
@@ -1053,7 +1049,7 @@ var _ = Describe("Metrics tests", func() {
 		It("'all-hosts-are-ready-to-install' got fixed", func() {
 
 			// create a validation failure
-			hosts, ips := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
+			hosts, ips := register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
 			c := getCluster(clusterID)
 			for _, h := range c.Hosts {
 				generateDomainResolution(ctx, h, "test-cluster", "example.com")
@@ -1063,7 +1059,7 @@ var _ = Describe("Metrics tests", func() {
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersCount)
 
 			// create a validation success
-			h1 := registerNode(ctx, clusterID, "h1-new", ips[0])
+			h1 := registerNode(ctx, *infraEnvID, "h1-new", ips[0])
 			v2UpdateVipParams(ctx, clusterID)
 			generateFullMeshConnectivity(ctx, ips[0], h1, hosts[1], hosts[2])
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDAllHostsAreReadyToInstall)
@@ -1075,7 +1071,7 @@ var _ = Describe("Metrics tests", func() {
 		It("'sufficient-masters-count' failed", func() {
 
 			// create a validation success
-			hosts, _ := register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
+			hosts, _ := register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDSufficientMastersCount)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationChangedMetric)
@@ -1100,7 +1096,7 @@ var _ = Describe("Metrics tests", func() {
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersCount)
 
 			// create a validation success
-			register3nodes(ctx, clusterID, clusterID, defaultCIDRv4)
+			register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDSufficientMastersCount)
 
 			// check generated events
@@ -1111,8 +1107,8 @@ var _ = Describe("Metrics tests", func() {
 
 			ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
 			// create a validation success
-			h1 := registerNode(ctx, clusterID, "h1", ips[0])
-			registerNode(ctx, clusterID, "h2", ips[1])
+			h1 := registerNode(ctx, *infraEnvID, "h1", ips[0])
+			registerNode(ctx, *infraEnvID, "h2", ips[1])
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDNtpServerConfigured)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDNtpServerConfigured), clusterValidationChangedMetric)
@@ -1138,8 +1134,8 @@ var _ = Describe("Metrics tests", func() {
 		It("'ntp-server-configured' got fixed", func() {
 			ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
 			// create a validation failure
-			h1 := registerNode(ctx, clusterID, "h1", ips[0])
-			registerNode(ctx, clusterID, "h2", ips[1])
+			h1 := registerNode(ctx, *infraEnvID, "h1", ips[0])
+			registerNode(ctx, *infraEnvID, "h2", ips[1])
 			nonSyncedInventory := &models.Inventory{
 				Timestamp: validHwInfo.Timestamp + (common.MaximumAllowedTimeDiffMinutes+1)*60,
 			}
@@ -1164,14 +1160,7 @@ var _ = Describe("Metrics tests", func() {
 		It("'assisted_installer_filesystem_usage_percentage' metric recorded", func() {
 			By("Generate ISO for cluster")
 			imageType := models.ImageTypeMinimalIso
-			_, err := userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
-				ClusterID: clusterID,
-				ImageCreateParams: &models.ImageCreateParams{
-					ImageType: imageType,
-				},
-			})
-
-			Expect(err).NotTo(HaveOccurred())
+			_ = registerInfraEnv(&clusterID, imageType).ID
 			verifyEventExistence(clusterID, fmt.Sprintf("Image type is \"%s\"", imageType))
 
 			By("Verify filesystem metrics")

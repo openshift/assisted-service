@@ -47,6 +47,12 @@ func (o *RegisterClusterReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return nil, result
+	case 404:
+		result := NewRegisterClusterNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 405:
 		result := NewRegisterClusterMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -183,6 +189,38 @@ func (o *RegisterClusterForbidden) GetPayload() *models.InfraError {
 func (o *RegisterClusterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.InfraError)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewRegisterClusterNotFound creates a RegisterClusterNotFound with default headers values
+func NewRegisterClusterNotFound() *RegisterClusterNotFound {
+	return &RegisterClusterNotFound{}
+}
+
+/* RegisterClusterNotFound describes a response with status code 404, with default header values.
+
+Error.
+*/
+type RegisterClusterNotFound struct {
+	Payload *models.Error
+}
+
+func (o *RegisterClusterNotFound) Error() string {
+	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterNotFound  %+v", 404, o.Payload)
+}
+func (o *RegisterClusterNotFound) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *RegisterClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

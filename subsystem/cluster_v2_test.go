@@ -38,11 +38,11 @@ var _ = Describe("[V2ClusterTests]", func() {
 		clusterID = *clusterReq.GetPayload().ID
 
 		//standalone infraEnv
-		infraEnv := registerInfraEnv(nil)
+		infraEnv := registerInfraEnv(nil, models.ImageTypeFullIso)
 		infraEnvID = *infraEnv.ID
 
 		//bound infraEnv
-		infraEnv = registerInfraEnv(&clusterID)
+		infraEnv = registerInfraEnv(&clusterID, models.ImageTypeFullIso)
 		boundInfraEnv = *infraEnv.ID
 
 		By("register h2 h3 to cluster via the bound infraEnv")

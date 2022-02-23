@@ -19,9 +19,10 @@ import (
 
 var _ = Describe("manifests tests", func() {
 	var (
-		ctx     = context.Background()
-		cluster *models.Cluster
-		content = `apiVersion: machineconfiguration.openshift.io/v1
+		ctx        = context.Background()
+		cluster    *models.Cluster
+		infraEnvID *strfmt.UUID
+		content    = `apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
   labels:
@@ -40,7 +41,7 @@ spec:
 			Folder:   "openshift",
 		}
 
-		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(openshiftVersion),
@@ -51,6 +52,7 @@ spec:
 		})
 		Expect(err).NotTo(HaveOccurred())
 		cluster = registerClusterReply.GetPayload()
+		infraEnvID = registerInfraEnv(cluster.ID, models.ImageTypeMinimalIso).ID
 	})
 
 	It("[minimal-set]upload_download_manifest", func() {
@@ -149,7 +151,7 @@ spec:
 		clusterID := *cluster.ID
 
 		By("install cluster", func() {
-			registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
+			registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
 			reply, err := userBMClient.Installer.V2InstallCluster(context.Background(), &installer.V2InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := reply.GetPayload()
@@ -189,7 +191,7 @@ var _ = Describe("disk encryption", func() {
 
 		By("cluster creation", func() {
 
-			registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
 					OpenshiftVersion: swag.String(openshiftVersion),
@@ -427,7 +429,7 @@ spec:
 
 				By("register cluster", func() {
 
-					registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+					registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 						NewClusterParams: &models.ClusterCreateParams{
 							Name:             swag.String("test-cluster"),
 							OpenshiftVersion: swag.String(openshiftVersion),
@@ -442,9 +444,8 @@ spec:
 				})
 
 				By("install cluster", func() {
-
-					generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-					registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
+					infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+					registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
 					reply, err := userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 					Expect(err).NotTo(HaveOccurred())
 					c := reply.GetPayload()

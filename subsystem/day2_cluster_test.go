@@ -21,10 +21,11 @@ const (
 	statusInfoAddingHosts = "cluster is adding hosts to existing OCP cluster"
 )
 
-var _ = Describe("Day2 v1 cluster tests", func() {
+var _ = Describe("Day2 v2 cluster tests", func() {
 	ctx := context.Background()
 	var cluster *installer.RegisterAddHostsClusterCreated
 	var clusterID strfmt.UUID
+	var infraEnvID *strfmt.UUID
 	var err error
 
 	BeforeEach(func() {
@@ -52,16 +53,15 @@ var _ = Describe("Day2 v1 cluster tests", func() {
 			ClusterID: *cluster.GetPayload().ID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		// in order to simulate infra env generation
-		generateClusterISO(*cluster.GetPayload().ID, models.ImageTypeMinimalIso)
 	})
 
 	JustBeforeEach(func() {
 		clusterID = *cluster.GetPayload().ID
+		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
 	})
 
 	It("cluster CRUD", func() {
-		_ = &registerHost(clusterID).Host
+		_ = &registerHost(*infraEnvID).Host
 		Expect(err).NotTo(HaveOccurred())
 		getReply, err1 := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err1).NotTo(HaveOccurred())
@@ -593,8 +593,6 @@ var _ = Describe("[V2UpdateCluster] Day2 cluster tests", func() {
 
 		Expect(err1).NotTo(HaveOccurred())
 		infraEnvID = *res.GetPayload().ID
-		// in order to simulate infra env generation
-		// generateClusterISO(*cluster.GetPayload().ID, models.ImageTypeMinimalIso)
 	})
 
 	JustBeforeEach(func() {

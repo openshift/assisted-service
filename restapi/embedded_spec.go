@@ -226,6 +226,12 @@ func init() {
               "$ref": "#/definitions/infra_error"
             }
           },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "405": {
             "description": "Method Not Allowed.",
             "schema": {
@@ -13406,6 +13412,12 @@ func init() {
             "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "405": {

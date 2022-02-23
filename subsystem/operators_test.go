@@ -46,7 +46,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 	Context("Create cluster", func() {
 		It("Have builtins", func() {
-			reply, err := userBMClient.Installer.RegisterCluster(context.TODO(), &installer.RegisterClusterParams{
+			reply, err := userBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
 					OpenshiftVersion: swag.String(openshiftVersion),
@@ -66,7 +66,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		It("New OLM", func() {
 			newOperator := ocs.Operator.Name
 
-			reply, err := userBMClient.Installer.RegisterCluster(context.TODO(), &installer.RegisterClusterParams{
+			reply, err := userBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
 					OpenshiftVersion: swag.String(openshiftVersion),
@@ -92,7 +92,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 	Context("Update cluster", func() {
 		BeforeEach(func() {
-			registerClusterReply, err := userBMClient.Installer.RegisterCluster(context.TODO(), &installer.RegisterClusterParams{
+			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
 					OpenshiftVersion: swag.String(openshiftVersion),
@@ -189,11 +189,11 @@ var _ = Describe("Operators endpoint tests", func() {
 	})
 
 	Context("Monitored operators", func() {
-		var cluster *installer.RegisterClusterCreated
+		var cluster *installer.V2RegisterClusterCreated
 		ctx := context.Background()
 		BeforeEach(func() {
 			var err error
-			cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
 					OpenshiftVersion: swag.String(openshiftVersion),
@@ -265,9 +265,8 @@ var _ = Describe("Operators endpoint tests", func() {
 			cID, err := registerCluster(context.TODO(), userBMClient, "test-cluster", pullSecret)
 			Expect(err).ToNot(HaveOccurred())
 			clusterID = cID
-			// in order to simulate infra env generation
-			generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-			registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
+			infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+			registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
 		})
 
 		It("All OLM operators available", func() {
@@ -324,9 +323,8 @@ var _ = Describe("Operators endpoint tests", func() {
 			cID, err := registerCluster(context.TODO(), userBMClient, "test-cluster", pullSecret)
 			Expect(err).ToNot(HaveOccurred())
 			clusterID = cID
-			// in order to simulate infra env generation
-			generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-			registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
+			infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+			registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
 		})
 
 		It("All OLM operators available", func() {

@@ -3303,11 +3303,11 @@ var _ = Describe("cluster", func() {
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
@@ -3324,7 +3324,7 @@ var _ = Describe("cluster", func() {
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
 			verifyApiError(reply, http.StatusBadRequest)
@@ -3341,7 +3341,7 @@ var _ = Describe("cluster", func() {
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
 			verifyApiError(reply, http.StatusBadRequest)
@@ -3356,11 +3356,11 @@ var _ = Describe("cluster", func() {
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
@@ -3375,11 +3375,11 @@ var _ = Describe("cluster", func() {
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
@@ -3398,7 +3398,7 @@ var _ = Describe("cluster", func() {
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
 			clusterParams.UserManagedNetworking = swag.Bool(false)
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
 			verifyApiErrorString(reply, http.StatusBadRequest, errStr)
@@ -3416,7 +3416,7 @@ var _ = Describe("cluster", func() {
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
 			clusterParams.VipDhcpAllocation = swag.Bool(true)
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
 			verifyApiErrorString(reply, http.StatusBadRequest,
@@ -3433,11 +3433,11 @@ var _ = Describe("cluster", func() {
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 		clusterParams.HighAvailabilityMode = &noneHaMode
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
 		Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 		Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
@@ -3531,11 +3531,11 @@ var _ = Describe("cluster", func() {
 
 			mockClusterRegisterSuccess(true)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: getDefaultClusterCreateParams(),
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
 			Expect(err).ToNot(HaveOccurred())
 
@@ -3557,11 +3557,11 @@ var _ = Describe("cluster", func() {
 
 			mockClusterRegisterSuccess(true)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: getDefaultClusterCreateParams(),
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 
 			clusterId := *actual.Payload.ID
 			addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, "known", models.HostKindHost, clusterId, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
@@ -3610,7 +3610,7 @@ var _ = Describe("cluster", func() {
 					}, nil).Times(1)
 			}
 
-			Context("RegisterCluster", func() {
+			Context("V2 V2RegisterCluster", func() {
 				BeforeEach(func() {
 					bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 						db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
@@ -3619,11 +3619,11 @@ var _ = Describe("cluster", func() {
 				It("OLM register default value - only builtins", func() {
 					mockClusterRegisterSuccess(true)
 
-					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: getDefaultClusterCreateParams(),
 					})
-					Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-					actual := reply.(*installer.RegisterClusterCreated)
+					Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+					actual := reply.(*installer.V2RegisterClusterCreated)
 					Expect(containsMonitoredOperator(actual.Payload.MonitoredOperators, &common.TestDefaultConfig.MonitoredOperator)).To(BeTrue())
 				})
 
@@ -3641,11 +3641,11 @@ var _ = Describe("cluster", func() {
 					clusterParams.OlmOperators = []*models.OperatorCreateParams{
 						{Name: newOperatorName, Properties: newProperties},
 					}
-					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
-					Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-					actual := reply.(*installer.RegisterClusterCreated)
+					Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+					actual := reply.(*installer.V2RegisterClusterCreated)
 
 					expectedMonitoredOperator := models.MonitoredOperator{
 						Name:             newOperatorName,
@@ -3673,11 +3673,11 @@ var _ = Describe("cluster", func() {
 					clusterParams.OlmOperators = []*models.OperatorCreateParams{
 						{Name: newOperatorName},
 					}
-					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
-					Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-					actual := reply.(*installer.RegisterClusterCreated)
+					Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+					actual := reply.(*installer.V2RegisterClusterCreated)
 
 					expectedUpdatedMonitoredOperator := models.MonitoredOperator{
 						Name:             newOperatorName,
@@ -3719,7 +3719,7 @@ var _ = Describe("cluster", func() {
 					clusterParams.OlmOperators = []*models.OperatorCreateParams{
 						{Name: newOperatorName},
 					}
-					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
@@ -5835,15 +5835,15 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 			mockClusterRegisterSuccess(true)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("some-cluster-name"),
 					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 				},
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
 			Expect(err).ToNot(HaveOccurred())
 
@@ -9909,7 +9909,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		mockUsageReports()
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:                 swag.String("some-cluster-name"),
 				OpenshiftVersion:     swag.String(common.TestDefaultConfig.OpenShiftVersion),
@@ -9917,8 +9917,8 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 				HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 			},
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-		c = reply.(*installer.RegisterClusterCreated).Payload
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+		c = reply.(*installer.V2RegisterClusterCreated).Payload
 		clusterID = *c.ID
 
 	})
@@ -10565,21 +10565,21 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: getDefaultClusterCreateParams(),
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 	})
 
 	It("SchedulableMasters default value", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: getDefaultClusterCreateParams(),
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(false)))
 	})
 
@@ -10588,11 +10588,11 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockAMSSubscription(ctx)
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.SchedulableMasters = swag.Bool(true)
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
 	})
 
@@ -10600,11 +10600,11 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: getDefaultClusterCreateParams(),
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(false)))
 	})
 
@@ -10614,11 +10614,11 @@ var _ = Describe("TestRegisterCluster", func() {
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.UserManagedNetworking = swag.Bool(true)
 		clusterParams.VipDhcpAllocation = swag.Bool(false)
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 	})
 
@@ -10631,7 +10631,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.UserManagedNetworking = swag.Bool(true)
 		clusterParams.VipDhcpAllocation = swag.Bool(true)
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
 		verifyApiError(reply, http.StatusBadRequest)
@@ -10645,7 +10645,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.UserManagedNetworking = swag.Bool(true)
 		clusterParams.IngressVip = "10.35.10.10"
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
 		verifyApiError(reply, http.StatusBadRequest)
@@ -10666,7 +10666,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			SupportLevel:     models.OpenshiftVersionSupportLevelMaintenance,
 		}
 		mockVersions.EXPECT().GetReleaseImage(*releaseImage.OpenshiftVersion, *releaseImage.CPUArchitecture).Return(releaseImage, nil).Times(1)
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
 		verifyApiError(reply, http.StatusBadRequest)
@@ -10679,7 +10679,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 				eventstest.WithMessageContainsMatcher("Setting Tang mode but tang_servers isn't set"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
@@ -10696,7 +10696,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				eventstest.WithMessageContainsMatcher("Tang URL isn't valid"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(2)
 			By("URL not set", func() {
-				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
@@ -10709,7 +10709,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			By("URL not valid", func() {
-				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
@@ -10727,7 +10727,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 				eventstest.WithMessageContainsMatcher("Tang thumbprint isn't set"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
@@ -10743,7 +10743,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
@@ -10751,22 +10751,22 @@ var _ = Describe("TestRegisterCluster", func() {
 					},
 				},
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 		})
 
 		It("Specifying mode without state", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
 						Mode: swag.String(models.DiskEncryptionModeTpmv2),
 					},
 				},
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnNone)))
 		})
 
@@ -10774,7 +10774,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
@@ -10782,8 +10782,8 @@ var _ = Describe("TestRegisterCluster", func() {
 					},
 				},
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnAll)))
 			Expect(actual.Payload.DiskEncryption.Mode).To(Equal(swag.String(models.DiskEncryptionModeTpmv2)))
 		})
@@ -10792,15 +10792,15 @@ var _ = Describe("TestRegisterCluster", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
 					},
 				},
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnAll)))
 			Expect(actual.Payload.DiskEncryption.Mode).To(Equal(swag.String(models.DiskEncryptionModeTpmv2)))
 		})
@@ -10809,15 +10809,15 @@ var _ = Describe("TestRegisterCluster", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
 					},
 				},
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnNone)))
 		})
 
@@ -10834,11 +10834,11 @@ var _ = Describe("TestRegisterCluster", func() {
 				mockUsageReports()
 				mockAMSSubscription(ctx)
 
-				reply := diskEncryptionBm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				reply := diskEncryptionBm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{},
 				})
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-				c = reply.(*installer.RegisterClusterCreated).Payload
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				c = reply.(*installer.V2RegisterClusterCreated).Payload
 				Expect(swag.StringValue(c.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnNone))
 				Expect(swag.StringValue(c.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTpmv2))
 			})
@@ -10924,15 +10924,15 @@ var _ = Describe("TestRegisterCluster", func() {
 				mockClusterRegisterSuccess(true)
 				mockAMSSubscription(ctx)
 
-				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
 						},
 					},
 				})
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-				actual := reply.(*installer.RegisterClusterCreated)
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
 				Expect(actual.Payload.DiskEncryption.EnableOn).To(Equal(swag.String(models.DiskEncryptionEnableOnNone)))
 				Expect(actual.Payload.DiskEncryption.Mode).To(Equal(swag.String(models.DiskEncryptionModeTpmv2)))
 			})
@@ -10942,7 +10942,7 @@ var _ = Describe("TestRegisterCluster", func() {
 					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 					eventstest.WithMessageContainsMatcher(errorMsg),
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
@@ -10957,7 +10957,7 @@ var _ = Describe("TestRegisterCluster", func() {
 					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 					eventstest.WithMessageContainsMatcher(errorMsg),
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
@@ -10972,7 +10972,7 @@ var _ = Describe("TestRegisterCluster", func() {
 					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 					eventstest.WithMessageContainsMatcher(errorMsg),
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
@@ -11213,11 +11213,11 @@ var _ = Describe("TestRegisterCluster", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: getDefaultClusterCreateParams(),
 			})
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			Expect(actual.Payload.AdditionalNtpSource).To(Equal(defaultNtpSource))
 		})
 
@@ -11229,11 +11229,11 @@ var _ = Describe("TestRegisterCluster", func() {
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.AdditionalNtpSource = &newNtpSource
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			Expect(actual.Payload.AdditionalNtpSource).To(Equal(newNtpSource))
 		})
 	})
@@ -11244,10 +11244,10 @@ var _ = Describe("TestRegisterCluster", func() {
 			eventstest.WithMessageContainsMatcher("error"),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 		bm.clusterApi = mockClusterApi
-		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.DoInfraEnvCreation, gomock.Any()).Return(errors.Errorf("error")).Times(1)
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(errors.Errorf("error")).Times(1)
 		mockClusterRegisterSteps()
 
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: getDefaultClusterCreateParams(),
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusInternalServerError, errors.Errorf("error"))))
@@ -11258,11 +11258,11 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: getDefaultClusterCreateParams(),
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
 	})
 
@@ -11278,7 +11278,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.PullSecret = swag.String("")
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
@@ -11294,7 +11294,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.OpenshiftVersion = swag.String("999")
 		clusterParams.PullSecret = swag.String("")
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
@@ -11303,11 +11303,11 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("openshift release image and version successfully defined", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: getDefaultClusterCreateParams(),
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
 		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImageUrl))
 	})
@@ -11316,7 +11316,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("some-cluster-name"),
 				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
@@ -11324,8 +11324,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 			},
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.CPUArchitecture).To(Equal(common.TestDefaultConfig.CPUArchitecture))
 	})
 
@@ -11335,7 +11335,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
 			[]string{common.TestDefaultConfig.OpenShiftVersion, "arm64"}).Times(1)
 
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:                  swag.String("some-cluster-name"),
 				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
@@ -11345,8 +11345,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 			},
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.CPUArchitecture).To(Equal("arm64"))
 	})
 
@@ -11355,7 +11355,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 			eventstest.WithMessageContainsMatcher("Non x86_64 CPU architectures are supported only with User Managed Networking"),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:                  swag.String("some-cluster-name"),
 				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
@@ -11371,15 +11371,15 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("some-cluster-name"),
 				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 			},
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.CPUArchitecture).To(Equal(common.TestDefaultConfig.CPUArchitecture))
 	})
 
@@ -11393,7 +11393,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		registerCluster := func() *models.Cluster {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("some-cluster-name"),
 					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
@@ -11403,8 +11403,8 @@ var _ = Describe("TestRegisterCluster", func() {
 					MachineNetworks:  machineNetworks,
 				},
 			})
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-			return reply.(*installer.RegisterClusterCreated).Payload
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+			return reply.(*installer.V2RegisterClusterCreated).Payload
 		}
 
 		It("Networking defaults", func() {
@@ -11415,15 +11415,15 @@ var _ = Describe("TestRegisterCluster", func() {
 
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("some-cluster-name"),
 					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				},
 			})
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			Expect(actual.Payload.ClusterNetworks).To(HaveLen(1))
 			Expect(string(actual.Payload.ClusterNetworks[0].Cidr)).To(Equal(defaultClusterNetwork))
 			Expect(actual.Payload.ServiceNetworks).To(HaveLen(1))
@@ -11485,11 +11485,11 @@ var _ = Describe("AMS subscriptions", func() {
 			mockAMSSubscription(ctx)
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String(clusterName)
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(c.AmsSubscriptionID).To(Equal(strfmt.UUID("")))
@@ -11501,14 +11501,14 @@ var _ = Describe("AMS subscriptions", func() {
 				eventstest.WithMessageContainsMatcher("failed to integrate with AMS on cluster registration"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = mockClusterApi
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.DoInfraEnvCreation, gomock.Any()).Return(nil)
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(nil)
 			mockClusterRegisterSteps()
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any(), clusterName).Return(nil, errors.New("dummy"))
 			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
 
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String(clusterName)
-			err := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			err := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
 			Expect(err).To(HaveOccurred())
@@ -11520,7 +11520,7 @@ var _ = Describe("AMS subscriptions", func() {
 				eventstest.WithMessageContainsMatcher("failed to integrate with AMS on cluster registration"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = mockClusterApi
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.DoInfraEnvCreation, gomock.Any()).Return(nil)
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(nil)
 			mockClusterRegisterSteps()
 			mockAMSSubscription(ctx)
 			mockClusterApi.EXPECT().UpdateAmsSubscriptionID(ctx, gomock.Any(), strfmt.UUID("")).Return(common.NewApiError(http.StatusInternalServerError, errors.New("dummy")))
@@ -11529,7 +11529,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String("ams-cluster")
-			err := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			err := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
 			Expect(err).To(HaveOccurred())
@@ -11545,11 +11545,11 @@ var _ = Describe("AMS subscriptions", func() {
 
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String("ams-cluster")
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			clusterID := *reply.(*installer.RegisterClusterCreated).Payload.ID
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			clusterID := *reply.(*installer.V2RegisterClusterCreated).Payload.ID
 
 			mockAccountsMgmt.EXPECT().GetSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
 			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
@@ -11568,11 +11568,11 @@ var _ = Describe("AMS subscriptions", func() {
 
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String(clusterName)
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
 			Expect(err).ToNot(HaveOccurred())
 
@@ -11601,11 +11601,11 @@ var _ = Describe("AMS subscriptions", func() {
 
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String(clusterName)
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
 			Expect(err).ToNot(HaveOccurred())
 
@@ -11631,11 +11631,11 @@ var _ = Describe("AMS subscriptions", func() {
 
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String(clusterName)
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
 			Expect(err).ToNot(HaveOccurred())
 
@@ -11741,11 +11741,11 @@ var _ = Describe("AMS subscriptions", func() {
 
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String("ams-cluster")
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			clusterID := *reply.(*installer.RegisterClusterCreated).Payload.ID
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			clusterID := *reply.(*installer.V2RegisterClusterCreated).Payload.ID
 
 			// deregister
 			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
@@ -11790,15 +11790,15 @@ var _ = Describe("[V2UpdateCluster] AMS subscriptions", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String(clusterName),
 					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 				},
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
 			Expect(err).ToNot(HaveOccurred())
 
@@ -11825,15 +11825,15 @@ var _ = Describe("[V2UpdateCluster] AMS subscriptions", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String(clusterName),
 					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 				},
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
 			Expect(err).ToNot(HaveOccurred())
 
@@ -11857,15 +11857,15 @@ var _ = Describe("[V2UpdateCluster] AMS subscriptions", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String(clusterName),
 					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 				},
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
 			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
 			Expect(err).ToNot(HaveOccurred())
 
@@ -13086,10 +13086,10 @@ var _ = Describe("IPv6 support disabled", func() {
 
 	Context("Register cluster", func() {
 
-		var params installer.RegisterClusterParams
+		var params installer.V2RegisterClusterParams
 
 		BeforeEach(func() {
-			params = installer.RegisterClusterParams{
+			params = installer.V2RegisterClusterParams{
 				NewClusterParams: getDefaultClusterCreateParams(),
 			}
 		})
@@ -13107,7 +13107,7 @@ var _ = Describe("IPv6 support disabled", func() {
 				params.NewClusterParams.ClusterNetworks = []*models.ClusterNetwork{
 					{Cidr: "2001:db8::/64"},
 				}
-				reply := bm.RegisterCluster(ctx, params)
+				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 			})
 
@@ -13115,13 +13115,13 @@ var _ = Describe("IPv6 support disabled", func() {
 				params.NewClusterParams.ServiceNetworks = []*models.ServiceNetwork{
 					{Cidr: "2001:db8::/64"},
 				}
-				reply := bm.RegisterCluster(ctx, params)
+				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 			})
 
 			It("IPv6 ingress VIP rejected", func() {
 				params.NewClusterParams.IngressVip = "2001:db8::1"
-				reply := bm.RegisterCluster(ctx, params)
+				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 			})
 		})
@@ -13283,10 +13283,10 @@ var _ = Describe("Dual-stack cluster", func() {
 	})
 
 	Context("Register cluster", func() {
-		var params installer.RegisterClusterParams
+		var params installer.V2RegisterClusterParams
 
 		BeforeEach(func() {
-			params = installer.RegisterClusterParams{
+			params = installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{},
 			}
 		})
@@ -13299,7 +13299,7 @@ var _ = Describe("Dual-stack cluster", func() {
 					eventstest.WithMessageContainsMatcher(errStr),
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
-				reply := bm.RegisterCluster(ctx, params)
+				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
 			It("v6-first in service networks rejected", func() {
@@ -13309,7 +13309,7 @@ var _ = Describe("Dual-stack cluster", func() {
 					eventstest.WithMessageContainsMatcher(errStr),
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
-				reply := bm.RegisterCluster(ctx, params)
+				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
 			It("v6-first in machine networks rejected", func() {
@@ -13319,7 +13319,7 @@ var _ = Describe("Dual-stack cluster", func() {
 					eventstest.WithMessageContainsMatcher(errStr),
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
-				reply := bm.RegisterCluster(ctx, params)
+				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
 		})
@@ -13333,7 +13333,7 @@ var _ = Describe("Dual-stack cluster", func() {
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
 				params.NewClusterParams.ServiceNetworks = common.TestIPv4Networking.ServiceNetworks
-				reply := bm.RegisterCluster(ctx, params)
+				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
 			It("Single cluster network", func() {
@@ -13344,7 +13344,7 @@ var _ = Describe("Dual-stack cluster", func() {
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.ClusterNetworks = common.TestIPv4Networking.ClusterNetworks
 				params.NewClusterParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
-				reply := bm.RegisterCluster(ctx, params)
+				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
 			It("Single machine network", func() {
@@ -13355,7 +13355,7 @@ var _ = Describe("Dual-stack cluster", func() {
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
 				params.NewClusterParams.MachineNetworks = common.TestIPv4Networking.MachineNetworks
-				reply := bm.RegisterCluster(ctx, params)
+				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
 		})
@@ -13534,7 +13534,7 @@ var _ = Describe("Platform tests", func() {
 		bm                 *bareMetalInventory
 		db                 *gorm.DB
 		dbName             string
-		registerParams     *installer.RegisterClusterParams
+		registerParams     *installer.V2RegisterClusterParams
 		getVSpherePlatform = func() *models.Platform {
 			return &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeVsphere),
@@ -13592,7 +13592,7 @@ var _ = Describe("Platform tests", func() {
 		bm.ocmClient = nil
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.Name = swag.String("cluster")
-		registerParams = &installer.RegisterClusterParams{
+		registerParams = &installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		}
 
@@ -13609,9 +13609,9 @@ var _ = Describe("Platform tests", func() {
 	Context("Register cluster", func() {
 
 		It("default platform", func() {
-			reply := bm.RegisterCluster(ctx, *registerParams)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			cluster := reply.(*installer.RegisterClusterCreated).Payload
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
 		})
@@ -13621,18 +13621,18 @@ var _ = Describe("Platform tests", func() {
 				Type: common.PlatformTypePtr(models.PlatformTypeVsphere),
 			}
 
-			reply := bm.RegisterCluster(ctx, *registerParams)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			cluster := reply.(*installer.RegisterClusterCreated).Payload
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeVsphere))
 		})
 
 		It("vsphere platform with credentials", func() {
 			registerParams.NewClusterParams.Platform = getVSpherePlatform()
-			reply := bm.RegisterCluster(ctx, *registerParams)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			cluster := reply.(*installer.RegisterClusterCreated).Payload
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeVsphere))
 		})
@@ -13643,9 +13643,9 @@ var _ = Describe("Platform tests", func() {
 				Ovirt: &models.OvirtPlatform{},
 			}
 
-			reply := bm.RegisterCluster(ctx, *registerParams)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			cluster := reply.(*installer.RegisterClusterCreated).Payload
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeOvirt))
 			Expect(cluster.Platform.Ovirt).ShouldNot(BeNil())
@@ -13653,9 +13653,9 @@ var _ = Describe("Platform tests", func() {
 
 		It("ovirt platform with credentials", func() {
 			registerParams.NewClusterParams.Platform = getovirtPlatform()
-			reply := bm.RegisterCluster(ctx, *registerParams)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			cluster := reply.(*installer.RegisterClusterCreated).Payload
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeOvirt))
 			Expect(cluster.Platform.Ovirt).ShouldNot(BeNil())

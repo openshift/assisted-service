@@ -409,8 +409,8 @@ func checkAgentCondition(ctx context.Context, hostId string, conditionType condi
 	}, "3m", "20s").Should(Equal(reason))
 }
 
-func registerIPv6MasterNode(ctx context.Context, clusterID strfmt.UUID, name, ip string) *models.Host {
-	host := &registerHost(clusterID).Host
+func registerIPv6MasterNode(ctx context.Context, infraEnvID strfmt.UUID, name, ip string) *models.Host {
+	host := &registerHost(infraEnvID).Host
 	validHwInfoV6.Interfaces[0].IPV6Addresses = []string{ip}
 	generateEssentialHostStepsWithInventory(ctx, host, name, validHwInfoV6)
 	generateEssentialPrepareForInstallationSteps(ctx, host)

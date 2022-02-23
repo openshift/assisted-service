@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
@@ -118,12 +119,27 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("can get owned infra-env", func() {
-			_, err := userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: userClusterID})
+			infraEnvID := registerInfraEnv(&userClusterID, models.ImageTypeMinimalIso).ID
+			_, err := userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can't get not owned infra-env", func() {
-			_, err := userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: userClusterID2})
+
+			request, err := user2BMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("test-infra-env-2"),
+					OpenshiftVersion: openshiftVersion,
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					SSHAuthorizedKey: swag.String(sshPublicKey),
+					ImageType:        models.ImageTypeMinimalIso,
+					ClusterID:        &userClusterID2,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			infraEnvID2 := request.GetPayload().ID
+
+			_, err = userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID2})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewGetInfraEnvNotFound()))
 		})
@@ -142,12 +158,26 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("can get owned infra-env", func() {
-			_, err := agentBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: userClusterID})
+			infraEnvID := registerInfraEnv(&userClusterID, models.ImageTypeMinimalIso).ID
+			_, err := agentBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can't get not owned infra-env", func() {
-			_, err := agentBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: userClusterID2})
+			request, err := user2BMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("test-infra-env-agent-2"),
+					OpenshiftVersion: openshiftVersion,
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					SSHAuthorizedKey: swag.String(sshPublicKey),
+					ImageType:        models.ImageTypeMinimalIso,
+					ClusterID:        &userClusterID2,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			infraEnvID2 := request.GetPayload().ID
+
+			_, err = agentBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID2})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewGetInfraEnvNotFound()))
 		})
@@ -156,8 +186,9 @@ var _ = Describe("test authorization", func() {
 
 var _ = Describe("Make sure that sensitive files are accessible only by owners of cluster", func() {
 	var (
-		ctx       context.Context
-		clusterID strfmt.UUID
+		ctx        context.Context
+		clusterID  strfmt.UUID
+		infraEnvID *strfmt.UUID
 	)
 
 	BeforeEach(func() {
@@ -166,8 +197,9 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		Expect(err).ToNot(HaveOccurred())
 		Expect(err).ToNot(HaveOccurred())
 		clusterID = cID
-		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-		registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
+		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+		registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
+
 		setClusterAsFinalizing(ctx, clusterID)
 		res, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
 		Expect(err).NotTo(HaveOccurred())
@@ -226,21 +258,22 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 var _ = Describe("Cluster credentials should be accessed only by cluster owner", func() {
 	var ctx context.Context
 	var clusterID strfmt.UUID
+	var infraEnvID *strfmt.UUID
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		cID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 		Expect(err).ToNot(HaveOccurred())
 		clusterID = cID
-		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
-		registerHostsAndSetRoles(clusterID, clusterID, minHosts, "test-cluster", "example.com")
+		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+		registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
 		setClusterAsFinalizing(ctx, clusterID)
 		res, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
 		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
-
 	})
+
 	It("Should not allow read-only-admins to get credentials", func() {
 		_, err := readOnlyAdminUserBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 		Expect(err).To(HaveOccurred())

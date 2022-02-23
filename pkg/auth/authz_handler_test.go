@@ -557,9 +557,9 @@ var _ = Describe("authz", func() {
 })
 
 func registerCluster(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.RegisterCluster(
+	_, err := cli.Installer.V2RegisterCluster(
 		ctx,
-		&installer.RegisterClusterParams{
+		&installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test"),
 				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
