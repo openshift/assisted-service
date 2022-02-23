@@ -36,11 +36,12 @@ func (m *MockStaticNetworkConfig) EXPECT() *MockStaticNetworkConfigMockRecorder 
 }
 
 // FormatStaticNetworkConfigForDB mocks base method.
-func (m *MockStaticNetworkConfig) FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) string {
+func (m *MockStaticNetworkConfig) FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FormatStaticNetworkConfigForDB", staticNetworkConfig)
 	ret0, _ := ret[0].(string)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // FormatStaticNetworkConfigForDB indicates an expected call of FormatStaticNetworkConfigForDB.

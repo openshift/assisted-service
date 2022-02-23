@@ -17,10 +17,8 @@ import (
 	"golang.org/x/sync/semaphore"
 	"gopkg.in/ini.v1"
 	"gopkg.in/yaml.v2"
+	"k8s.io/apimachinery/pkg/util/json"
 )
-
-const staticNetworkConfigHostsDelimeter = "ZZZZZ"
-const hostStaticNetworkDelimeter = "HHHHH"
 
 type Config struct {
 	MaxConcurrentGenerations int64 `envconfig:"MAX_CONCURRENT_NMSTATECTL_GENERATIONS" default:"30"`
@@ -34,7 +32,7 @@ type StaticNetworkConfigData struct {
 //go:generate mockgen -source=generator.go -package=staticnetworkconfig -destination=mock_generator.go
 type StaticNetworkConfig interface {
 	GenerateStaticNetworkConfigData(ctx context.Context, hostsYAMLS string) ([]StaticNetworkConfigData, error)
-	FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) string
+	FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) (string, error)
 	ValidateStaticConfigParams(ctx context.Context, staticNetworkConfig []*models.HostStaticNetworkConfig) error
 }
 
@@ -51,11 +49,16 @@ func New(log logrus.FieldLogger, cfg Config) StaticNetworkConfig {
 		sem:    semaphore.NewWeighted(cfg.MaxConcurrentGenerations)}
 }
 
-func (s *StaticNetworkConfigGenerator) GenerateStaticNetworkConfigData(ctx context.Context, hostsYAMLS string) ([]StaticNetworkConfigData, error) {
-	hostsConfig := strings.Split(hostsYAMLS, staticNetworkConfigHostsDelimeter)
-	s.log.Infof("Start configuring static network for %d hosts", len(hostsConfig))
+func (s *StaticNetworkConfigGenerator) GenerateStaticNetworkConfigData(ctx context.Context, staticNetworkConfigStr string) ([]StaticNetworkConfigData, error) {
+
+	staticNetworkConfig, err := s.decodeStaticNetworkConfig(staticNetworkConfigStr)
+	if err != nil {
+		s.log.WithError(err).Errorf("Failed to decode static network config")
+		return nil, err
+	}
+	s.log.Infof("Start configuring static network for %d hosts", len(staticNetworkConfig))
 	filesList := []StaticNetworkConfigData{}
-	for i, hostConfig := range hostsConfig {
+	for i, hostConfig := range staticNetworkConfig {
 		hostFileList, err := s.generateHostStaticNetworkConfigData(ctx, hostConfig, fmt.Sprintf("host%d", i))
 		if err != nil {
 			s.log.WithError(err).Errorf("Failed to create static config for host")
@@ -66,15 +69,9 @@ func (s *StaticNetworkConfigGenerator) GenerateStaticNetworkConfigData(ctx conte
 	return filesList, nil
 }
 
-func (s *StaticNetworkConfigGenerator) generateHostStaticNetworkConfigData(ctx context.Context, hostConfigString, hostDir string) ([]StaticNetworkConfigData, error) {
-	hostConfig := strings.Split(hostConfigString, hostStaticNetworkDelimeter)
-	if len(hostConfig) != 2 {
-		msg := fmt.Sprintf("Invalid format of the host config string %s", hostConfig)
-		s.log.Errorf("%s", msg)
-		return nil, fmt.Errorf("%s", msg)
-	}
-	hostYAML := hostConfig[0]
-	macInterfaceMapping := hostConfig[1]
+func (s *StaticNetworkConfigGenerator) generateHostStaticNetworkConfigData(ctx context.Context, hostConfig *models.HostStaticNetworkConfig, hostDir string) ([]StaticNetworkConfigData, error) {
+	hostYAML := hostConfig.NetworkYaml
+	macInterfaceMapping := s.formatMacInterfaceMap(hostConfig.MacInterfaceMap)
 	result, err := s.executeNMStatectl(ctx, hostYAML)
 	if err != nil {
 		return nil, err
@@ -217,15 +214,26 @@ func (s *StaticNetworkConfigGenerator) validateNMStateYaml(ctx context.Context, 
 	return err
 }
 
-func (s *StaticNetworkConfigGenerator) FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) string {
-	lines := make([]string, len(staticNetworkConfig))
-	for i, hostConfig := range staticNetworkConfig {
-		hostLine := hostConfig.NetworkYaml + hostStaticNetworkDelimeter + s.formatMacInterfaceMap(hostConfig.MacInterfaceMap)
-		lines[i] = hostLine
+func (s *StaticNetworkConfigGenerator) FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) (string, error) {
+	if len(staticNetworkConfig) == 0 {
+		return "", nil
 	}
-	sort.Strings(lines)
-	// delimeter between hosts config - will be used during nmconnections files generations for ISO ignition
-	return strings.Join(lines, staticNetworkConfigHostsDelimeter)
+	b, err := json.Marshal(&staticNetworkConfig)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to JSON Marshal static network config")
+	}
+	return string(b), nil
+}
+
+func (s *StaticNetworkConfigGenerator) decodeStaticNetworkConfig(staticNetworkConfigStr string) (staticNetworkConfig []*models.HostStaticNetworkConfig, err error) {
+	if staticNetworkConfigStr == "" {
+		return
+	}
+	err = json.Unmarshal([]byte(staticNetworkConfigStr), &staticNetworkConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to JSON Unmarshal static network config %s", staticNetworkConfigStr)
+	}
+	return
 }
 
 func (s *StaticNetworkConfigGenerator) formatMacInterfaceMap(macInterfaceMap models.MacInterfaceMap) string {

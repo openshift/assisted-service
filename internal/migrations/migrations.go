@@ -37,6 +37,7 @@ func post() []*gormigrate.Migration {
 		copyClusterUserInfoToInfraEnv(),
 		createInfraEnvImageTokenKey(),
 		migrateHostsPkey(),
+		changeStaticConfigFormat(),
 	}
 
 	sort.SliceStable(postMigrations, func(i, j int) bool { return postMigrations[i].ID < postMigrations[j].ID })

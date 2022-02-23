@@ -2171,7 +2171,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      infraNsName.Name,
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
-		Expect(infraEnv.StaticNetworkConfig).Should(ContainSubstring(hostStaticNetworkConfig.NetworkYaml))
+		var staticNetworkConfig []*models.HostStaticNetworkConfig
+		Expect(json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfig)).ToNot(HaveOccurred())
+		Expect(staticNetworkConfig).To(HaveLen(1))
+		Expect(staticNetworkConfig[0].NetworkYaml).To(Equal(hostStaticNetworkConfig.NetworkYaml))
 		Expect(infraEnv.Generated).Should(Equal(true))
 	})
 
