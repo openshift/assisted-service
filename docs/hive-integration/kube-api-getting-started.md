@@ -54,10 +54,10 @@ apiVersion: v1
 kind: Secret
 type: kubernetes.io/dockerconfigjson
 metadata:
-name: pull-secret
-namespace: demo-worker4
+  name: pull-secret
+  namespace: demo-worker4
 stringData:
-.dockerconfigjson: '{"auths":{"cloud.openshift.com":{"auth":"your secret here","email":"user@example.com"}}}'
+  .dockerconfigjson: '{"auths":{"cloud.openshift.com":{"auth":"your secret here","email":"user@example.com"}}}'
 EOF
 ```
 
