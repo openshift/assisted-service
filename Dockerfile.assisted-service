@@ -17,6 +17,8 @@ RUN cd /assisted-service/build && python3 ../tools/client_package_initializer.py
 FROM registry.ci.openshift.org/openshift/release:golang-1.16 as builder
 # Bring in the go dependencies before anything else so we can take
 # advantage of caching these layers in future builds.
+COPY models/go.mod ./models/go.mod
+COPY models/go.sum ./models/go.sum
 COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go mod download

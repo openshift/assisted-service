@@ -24,7 +24,7 @@ require (
 	github.com/go-openapi/spec v0.20.4
 	github.com/go-openapi/strfmt v0.21.2
 	github.com/go-openapi/swag v0.21.1
-	github.com/go-openapi/validate v0.20.3
+	github.com/go-openapi/validate v0.21.0
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/golang/mock v1.5.0
@@ -34,6 +34,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-version v1.2.1
 	github.com/iancoleman/strcase v0.2.0
+	github.com/jackc/pgx/v4 v4.15.0 // indirect
 	github.com/jinzhu/copier v0.3.5
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kennygrant/sanitize v1.2.4
@@ -44,6 +45,7 @@ require (
 	github.com/onsi/gomega v1.18.0
 	github.com/openshift-online/ocm-sdk-go v0.1.205
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
+	github.com/openshift/assisted-service/models v0.0.0
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
 	github.com/openshift/custom-resource-status v1.1.0
 	github.com/openshift/generic-admission-server v1.14.1-0.20210422140326-da96454c926d
@@ -65,7 +67,7 @@ require (
 	github.com/vincent-petithory/dataurl v1.0.0
 	go.elastic.co/apm/module/apmhttp v1.15.0
 	go.elastic.co/apm/module/apmlogrus v1.15.0
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
 	golang.org/x/tools v0.1.5 // indirect
@@ -73,7 +75,7 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.2.3
-	gorm.io/gorm v1.22.3
+	gorm.io/gorm v1.23.1
 	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v12.0.0+incompatible
@@ -86,9 +88,11 @@ require (
 replace (
 	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20210409032903-31b989a197eb // Use OpenShift fork
+	github.com/openshift/assisted-service/models => ./models
 	go.etcd.io/bbolt => go.etcd.io/bbolt v1.3.5
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489 // ae9734ed278b is the SHA for git tag v3.4.13
 	google.golang.org/grpc => google.golang.org/grpc v1.27.1
+	gorm.io/gorm => gorm.io/gorm v1.22.3
 	k8s.io/api => k8s.io/api v0.21.1
 	k8s.io/apiserver => k8s.io/apiserver v0.21.1 // indirect
 	k8s.io/client-go => k8s.io/client-go v0.21.1
