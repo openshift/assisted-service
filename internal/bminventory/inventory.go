@@ -875,11 +875,7 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 }
 
 func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
-	v2Params := installer.V2DeregisterClusterParams{ClusterID: params.ClusterID}
-	if err := b.DeregisterClusterInternal(ctx, v2Params); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewDeregisterClusterNoContent()
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) integrateWithAMSClusterDeregistration(ctx context.Context, cluster *common.Cluster) error {
@@ -3293,16 +3289,7 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 }
 
 func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
-	v2Params := installer.V2GetClusterParams{
-		ClusterID:               params.ClusterID,
-		DiscoveryAgentVersion:   params.DiscoveryAgentVersion,
-		GetUnregisteredClusters: params.GetUnregisteredClusters,
-	}
-	c, err := b.GetClusterInternal(ctx, v2Params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewGetClusterOK().WithPayload(&c.Cluster)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error) {

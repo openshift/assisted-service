@@ -67,7 +67,7 @@ var _ = Describe("IPv6 installation", func() {
 	})
 	It("install_cluster IPv6 happy flow", func() {
 		_ = registerHostsAndSetRolesV6(clusterID, *infraEnvID, 5)
-		clusterReply, getErr := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+		clusterReply, getErr := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{
 			ClusterID: clusterID,
 		})
 		Expect(getErr).ToNot(HaveOccurred())

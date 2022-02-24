@@ -478,7 +478,7 @@ spec:
 })
 
 func verifyUsage(set bool, clusterID strfmt.UUID) {
-	getReply, err := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(clusterID))
+	getReply, err := userBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
 	Expect(err).ToNot(HaveOccurred())
 	c := &common.Cluster{Cluster: *getReply.Payload}
 	if set {

@@ -58,7 +58,7 @@ func deregisterResources() {
 	}
 	for _, c := range reply.GetPayload() {
 		// DeregisterCluster API isn't necessarily available (e.g. cluster is being installed)
-		if _, err = userBMClient.Installer.DeregisterCluster(context.Background(), &installer.DeregisterClusterParams{ClusterID: *c.ID}); err != nil {
+		if _, err = userBMClient.Installer.V2DeregisterCluster(context.Background(), &installer.V2DeregisterClusterParams{ClusterID: *c.ID}); err != nil {
 			log.WithError(err).Debugf("Cluster %s couldn't be deleted via REST API", *c.ID)
 		}
 	}
@@ -177,7 +177,7 @@ func registerCluster(ctx context.Context, client *client.AssistedInstall, cluste
 }
 
 func getCluster(clusterID strfmt.UUID) *models.Cluster {
-	cluster, err := userBMClient.Installer.GetCluster(context.Background(), &installer.GetClusterParams{
+	cluster, err := userBMClient.Installer.V2GetCluster(context.Background(), &installer.V2GetClusterParams{
 		ClusterID: clusterID,
 	})
 	Expect(err).NotTo(HaveOccurred())

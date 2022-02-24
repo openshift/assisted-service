@@ -95,26 +95,26 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("can't register/delete with read only admin", func() {
-			_, err := readOnlyAdminUserBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
+			_, err := readOnlyAdminUserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})
 			Expect(err).Should(HaveOccurred())
-			Expect(err).To(BeAssignableToTypeOf(installer.NewDeregisterClusterForbidden()))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2DeregisterClusterForbidden()))
 		})
 	})
 
 	Context("regular user", func() {
 		It("can get owned cluster", func() {
-			_, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID})
+			_, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can't get not owned cluster", func() {
-			_, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID2})
+			_, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID2})
 			Expect(err).Should(HaveOccurred())
-			Expect(err).To(BeAssignableToTypeOf(installer.NewGetClusterNotFound()))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetClusterNotFound()))
 		})
 
 		It("can delete owned cluster", func() {
-			_, err := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
+			_, err := userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -147,14 +147,14 @@ var _ = Describe("test authorization", func() {
 
 	Context("agent", func() {
 		It("can get owned cluster", func() {
-			_, err := agentBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID})
+			_, err := agentBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can't get not owned cluster", func() {
-			_, err := agentBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID2})
+			_, err := agentBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID2})
 			Expect(err).Should(HaveOccurred())
-			Expect(err).To(BeAssignableToTypeOf(installer.NewGetClusterNotFound()))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetClusterNotFound()))
 		})
 
 		It("can get owned infra-env", func() {
