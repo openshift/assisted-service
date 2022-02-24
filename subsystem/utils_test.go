@@ -539,8 +539,8 @@ func register3nodes(ctx context.Context, clusterID, infraenvID strfmt.UUID, cidr
 	return []*models.Host{h1, h2, h3}, ips
 }
 
-func reportMonitoredOperatorStatus(ctx context.Context, client *client.AssistedInstall, clusterID strfmt.UUID, opName string, opStatus models.OperatorStatus) {
-	_, err := client.Operators.ReportMonitoredOperatorStatus(ctx, &operatorsClient.ReportMonitoredOperatorStatusParams{
+func v2ReportMonitoredOperatorStatus(ctx context.Context, client *client.AssistedInstall, clusterID strfmt.UUID, opName string, opStatus models.OperatorStatus) {
+	_, err := client.Operators.V2ReportMonitoredOperatorStatus(ctx, &operatorsClient.V2ReportMonitoredOperatorStatusParams{
 		ClusterID: clusterID,
 		ReportParams: &models.OperatorMonitorReport{
 			Name:       opName,

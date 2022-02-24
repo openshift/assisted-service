@@ -574,7 +574,7 @@ func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID)
 			continue
 		}
 
-		reportMonitoredOperatorStatus(ctx, client, clusterID, operator.Name, status)
+		v2ReportMonitoredOperatorStatus(ctx, client, clusterID, operator.Name, status)
 	}
 }
 
@@ -3915,15 +3915,15 @@ var _ = Describe("Installation progress", func() {
 
 			waitForClusterState(ctx, *c.ID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 
-			reportMonitoredOperatorStatus(ctx, agentBMClient, *c.ID, operators.OperatorConsole.Name, models.OperatorStatusAvailable)
+			v2ReportMonitoredOperatorStatus(ctx, agentBMClient, *c.ID, operators.OperatorConsole.Name, models.OperatorStatusAvailable)
 			c = getCluster(*c.ID)
 			expectProgressToBe(c, 100, 100, 33)
 
-			reportMonitoredOperatorStatus(ctx, agentBMClient, *c.ID, lso.Operator.Name, models.OperatorStatusAvailable)
+			v2ReportMonitoredOperatorStatus(ctx, agentBMClient, *c.ID, lso.Operator.Name, models.OperatorStatusAvailable)
 			c = getCluster(*c.ID)
 			expectProgressToBe(c, 100, 100, 66)
 
-			reportMonitoredOperatorStatus(ctx, agentBMClient, *c.ID, ocs.Operator.Name, models.OperatorStatusFailed)
+			v2ReportMonitoredOperatorStatus(ctx, agentBMClient, *c.ID, ocs.Operator.Name, models.OperatorStatusFailed)
 			c = getCluster(*c.ID)
 			expectProgressToBe(c, 100, 100, 100)
 		})

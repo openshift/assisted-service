@@ -37,38 +37,22 @@ func NewHandler(operatorsAPI operators.API, log logrus.FieldLogger, db *gorm.DB,
 
 // ListOperatorProperties Lists properties for an operator name.
 func (h *Handler) ListOperatorProperties(ctx context.Context, params restoperators.ListOperatorPropertiesParams) middleware.Responder {
-	log := logutil.FromContext(ctx, h.log)
-	properties, err := h.operatorsAPI.GetOperatorProperties(params.OperatorName)
-	if err != nil {
-		log.Errorf("%s operator has not been found", params.OperatorName)
-		return restoperators.NewListOperatorPropertiesNotFound()
-	}
-
-	return restoperators.NewListOperatorPropertiesOK().
-		WithPayload(properties)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 // ListSupportedOperators Retrieves the list of supported operators.
 func (h *Handler) ListSupportedOperators(_ context.Context, _ restoperators.ListSupportedOperatorsParams) middleware.Responder {
-	return restoperators.NewListSupportedOperatorsOK().
-		WithPayload(h.operatorsAPI.GetSupportedOperators())
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 // ListOfClusterOperators Lists operators to be monitored for a cluster.
 func (h *Handler) ListOfClusterOperators(ctx context.Context, params restoperators.ListOfClusterOperatorsParams) middleware.Responder {
-	operatorsList, err := h.GetMonitoredOperators(ctx, params.ClusterID, params.OperatorName, h.db)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return restoperators.NewListOfClusterOperatorsOK().WithPayload(operatorsList)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 // ReportMonitoredOperatorStatus Controller API to report of monitored operators.
 func (h *Handler) ReportMonitoredOperatorStatus(ctx context.Context, params restoperators.ReportMonitoredOperatorStatusParams) middleware.Responder {
-	return h.V2ReportMonitoredOperatorStatus(ctx, restoperators.V2ReportMonitoredOperatorStatusParams{
-		ClusterID:    params.ClusterID,
-		ReportParams: params.ReportParams,
-	})
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 // ReportMonitoredOperatorStatus Controller API to report of monitored operators.
