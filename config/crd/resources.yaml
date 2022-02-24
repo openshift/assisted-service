@@ -235,8 +235,7 @@ spec:
               manifestsConfigMapRefs:
                 description: ManifestsConfigMapRefs is an array of references to user-provided
                   manifests ConfigMaps to add to or replace manifests that are generated
-                  by the installer. Manifest names in each ConfigMap should be unique
-                  across all referenced ConfigMaps.
+                  by the installer.
                 items:
                   description: ManifestsConfigMapReference is a reference to a manifests
                     ConfigMap

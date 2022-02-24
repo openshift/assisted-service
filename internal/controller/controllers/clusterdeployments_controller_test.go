@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
+	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/openshift/hive/apis/hive/v1/aws"
 	"github.com/pkg/errors"
@@ -151,6 +152,19 @@ func simulateACIDeletionWithFinalizer(ctx context.Context, c client.Client, aci 
 	aci.ObjectMeta.Finalizers = []string{AgentClusterInstallFinalizerName}
 	aci.ObjectMeta.DeletionTimestamp = kubeTimeNow()
 	Expect(c.Update(ctx, aci)).Should(BeNil())
+}
+
+type cmpfnMatcher struct {
+	filename string
+}
+
+func (m cmpfnMatcher) Matches(x interface{}) bool {
+	cmp, ok := x.(operations.CreateClusterManifestParams)
+	return ok && *cmp.CreateManifestParams.FileName == m.filename
+}
+
+func (m cmpfnMatcher) String() string {
+	return fmt.Sprintf("has a CreateManifestParams.FileName equal to %s", m.filename)
 }
 
 var _ = Describe("cluster reconcile", func() {
@@ -1970,7 +1984,14 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, cm2)).To(BeNil())
 
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockManifestsApi.EXPECT().CreateClusterManifestInternal(
+				gomock.Any(),
+				cmpfnMatcher{"cluster-install-config-1.test.yaml"},
+			).Return(nil, nil).Times(1)
+			mockManifestsApi.EXPECT().CreateClusterManifestInternal(
+				gomock.Any(),
+				cmpfnMatcher{"cluster-install-config-2.test.yaml"},
+			).Return(nil, nil).Times(1)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)

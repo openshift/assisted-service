@@ -997,7 +997,7 @@ func (r *ClusterDeploymentsReconciler) getClusterDeploymentManifest(ctx context.
 			}
 			// Add data to manifests map
 			for k, v := range configMap.Data {
-				configuredManifests[k] = v
+				configuredManifests[fmt.Sprintf("%s.%s", configMap.Name, k)] = v
 			}
 		}
 	} else if clusterInstall.Spec.ManifestsConfigMapRef != nil {
