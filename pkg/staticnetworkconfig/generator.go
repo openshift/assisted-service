@@ -112,6 +112,12 @@ func (s *StaticNetworkConfigGenerator) executeNMStatectl(ctx context.Context, ho
 		s.log.WithError(err).Errorf("Failed to write host config to temp file")
 		return "", err
 	}
+	if err = f.Sync(); err != nil {
+		s.log.WithError(err).Warn("Failed to sync file")
+	}
+	if err = f.Close(); err != nil {
+		s.log.WithError(err).Warn("Failed to close file")
+	}
 	stdout, stderr, retCode := executer.ExecuteWithContext(ctx, "nmstatectl", "gc", f.Name())
 	if retCode != 0 {
 		msg := fmt.Sprintf("<nmstatectl gc> failed, errorCode %d, stderr %s, input yaml <%s>", retCode, stderr, hostYAML)
