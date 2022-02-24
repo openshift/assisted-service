@@ -4833,7 +4833,7 @@ var _ = Describe("cluster", func() {
 				// This function can be removed once the controller will stop sending this request
 				// The service is already capable of completing the installation on its own
 
-				reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
+				reply := bm.V2CompleteInstallation(ctx, installer.V2CompleteInstallationParams{
 					ClusterID:        clusterID,
 					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
 				})
@@ -4843,7 +4843,7 @@ var _ = Describe("cluster", func() {
 				success := false
 				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), gomock.Any(), success, errorInfo).Return(nil, nil).Times(1)
 
-				reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
+				reply := bm.V2CompleteInstallation(ctx, installer.V2CompleteInstallationParams{
 					ClusterID:        clusterID,
 					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
 				})
@@ -4853,7 +4853,7 @@ var _ = Describe("cluster", func() {
 				success := false
 				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), gomock.Any(), success, errorInfo).Return(nil, errors.New("error")).Times(1)
 
-				reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
+				reply := bm.V2CompleteInstallation(ctx, installer.V2CompleteInstallationParams{
 					ClusterID:        clusterID,
 					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
 				})
@@ -7964,7 +7964,7 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 	})
 })
 
-var _ = Describe("UploadClusterIngressCert test", func() {
+var _ = Describe("V2UploadClusterIngressCert test", func() {
 	var (
 		bm                  *bareMetalInventory
 		cfg                 Config
@@ -8022,83 +8022,83 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		mockS3Client.EXPECT().DoesObjectExist(ctx, kubeconfigObject).Return(false, nil).Times(1)
 	}
 
-	It("UploadClusterIngressCert no cluster id", func() {
+	It("V2UploadClusterIngressCert no cluster id", func() {
 		clusterId := strToUUID(uuid.New().String())
-		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         *clusterId,
 			IngressCertParams: ingressCa,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertNotFound()))
 	})
-	It("UploadClusterIngressCert cluster is not in installed state", func() {
-		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+	It("V2UploadClusterIngressCert cluster is not in installed state", func() {
+		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertBadRequest()))
 
 	})
-	It("UploadClusterIngressCert kubeconfig already exists, return ok", func() {
+	It("V2UploadClusterIngressCert kubeconfig already exists, return ok", func() {
 		status := models.ClusterStatusFinalizing
 		c.Status = &status
 		db.Save(&c)
 		mockS3Client.EXPECT().DoesObjectExist(ctx, kubeconfigObject).Return(true, nil).Times(1)
-		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertCreated()))
 	})
-	It("UploadClusterIngressCert DoesObjectExist fails ", func() {
+	It("V2UploadClusterIngressCert DoesObjectExist fails ", func() {
 		status := models.ClusterStatusFinalizing
 		c.Status = &status
 		db.Save(&c)
 		mockS3Client.EXPECT().DoesObjectExist(ctx, kubeconfigObject).Return(true, errors.Errorf("dummy")).Times(1)
-		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
-	It("UploadClusterIngressCert s3download failure", func() {
+	It("V2UploadClusterIngressCert s3download failure", func() {
 		status := models.ClusterStatusFinalizing
 		c.Status = &status
 		db.Save(&c)
 		objectExists()
 		mockS3Client.EXPECT().Download(ctx, kubeconfigNoingress).Return(nil, int64(0), errors.Errorf("dummy")).Times(1)
-		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
-	It("UploadClusterIngressCert bad kubeconfig, mergeIngressCaIntoKubeconfig failure", func() {
+	It("V2UploadClusterIngressCert bad kubeconfig, mergeIngressCaIntoKubeconfig failure", func() {
 		status := models.ClusterStatusFinalizing
 		c.Status = &status
 		db.Save(&c)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		objectExists()
 		mockS3Client.EXPECT().Download(ctx, kubeconfigNoingress).Return(r, int64(0), nil).Times(1)
-		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
-	It("UploadClusterIngressCert bad ingressCa, mergeIngressCaIntoKubeconfig failure", func() {
+	It("V2UploadClusterIngressCert bad ingressCa, mergeIngressCaIntoKubeconfig failure", func() {
 		status := models.ClusterStatusFinalizing
 		c.Status = &status
 		db.Save(&c)
 		objectExists()
 		mockS3Client.EXPECT().Download(ctx, kubeconfigNoingress).Return(kubeconfigFile, int64(0), nil)
-		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: "bad format",
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
 
-	It("UploadClusterIngressCert push fails", func() {
+	It("V2UploadClusterIngressCert push fails", func() {
 		status := models.ClusterStatusFinalizing
 		c.Status = &status
 		db.Save(&c)
@@ -8114,14 +8114,14 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		objectExists()
 		mockS3Client.EXPECT().Download(ctx, kubeconfigNoingress).Return(kubeconfigFile, int64(0), nil).Times(1)
 		mockS3Client.EXPECT().Upload(ctx, merged, kubeconfigObject).Return(errors.Errorf("Dummy"))
-		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
 
-	It("UploadClusterIngressCert download happy flow", func() {
+	It("V2UploadClusterIngressCert download happy flow", func() {
 		status := models.ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
@@ -8135,7 +8135,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		objectExists()
 		mockS3Client.EXPECT().Download(ctx, kubeconfigNoingress).Return(kubeconfigFile, int64(0), nil).Times(1)
 		mockS3Client.EXPECT().Upload(ctx, merged, kubeconfigObject).Return(nil)
-		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})

@@ -562,7 +562,7 @@ func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID)
 	status := models.OperatorStatusAvailable
 
 	Eventually(func() error {
-		_, err = agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{
+		_, err = agentBMClient.Installer.V2UploadClusterIngressCert(ctx, &installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: models.IngressCertParams(ingressCa),
 		})
@@ -581,7 +581,7 @@ func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID)
 func failInstallation(client *client.AssistedInstall, clusterID strfmt.UUID) {
 	ctx := context.Background()
 	isSuccess := false
-	_, err := client.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+	_, err := client.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
 		ClusterID: clusterID,
 		CompletionParams: &models.CompletionParams{
 			IsSuccess: &isSuccess,
@@ -2275,13 +2275,13 @@ var _ = Describe("cluster install", func() {
 			By("Upload ingress ca for not existent clusterid")
 			{
 				missingClusterId := strfmt.UUID(uuid.New().String())
-				_, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: missingClusterId, IngressCertParams: "dummy"})
-				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertNotFound())))
+				_, err := agentBMClient.Installer.V2UploadClusterIngressCert(ctx, &installer.V2UploadClusterIngressCertParams{ClusterID: missingClusterId, IngressCertParams: "dummy"})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertNotFound()))
 			}
 			By("Test getting upload ingress ca in wrong state")
 			{
-				_, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: "dummy"})
-				Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertBadRequest())))
+				_, err := agentBMClient.Installer.V2UploadClusterIngressCert(ctx, &installer.V2UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: "dummy"})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertBadRequest()))
 			}
 			By("Test happy flow")
 			{
@@ -2302,9 +2302,9 @@ var _ = Describe("cluster install", func() {
 				Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetCredentialsConflict()))
 
 				By("Upload ingress ca")
-				res, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+				res, err := agentBMClient.Installer.V2UploadClusterIngressCert(ctx, &installer.V2UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
+				Expect(res).To(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertCreated()))
 
 				// Download kubeconfig after uploading
 				completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
@@ -2316,9 +2316,9 @@ var _ = Describe("cluster install", func() {
 			By("Try to upload ingress ca second time, do nothing and return ok")
 			{
 				// Try to upload ingress ca second time
-				res, err := agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+				res, err := agentBMClient.Installer.V2UploadClusterIngressCert(ctx, &installer.V2UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(reflect.TypeOf(res)).To(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
+				Expect(res).To(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertCreated()))
 			}
 		})
 

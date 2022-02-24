@@ -1832,7 +1832,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
-		_, err = agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+		_, err = agentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
@@ -2724,7 +2724,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
-		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+		_, err := agentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
@@ -2911,7 +2911,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
-		_, err = agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+		_, err = agentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
@@ -3176,7 +3176,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
-		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+		_, err := agentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
@@ -3315,7 +3315,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
-		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+		_, err := agentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
