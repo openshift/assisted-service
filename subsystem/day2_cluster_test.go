@@ -23,18 +23,20 @@ const (
 
 var _ = Describe("Day2 v2 cluster tests", func() {
 	ctx := context.Background()
-	var cluster *installer.RegisterAddHostsClusterCreated
+	var cluster *installer.V2ImportClusterCreated
 	var clusterID strfmt.UUID
 	var infraEnvID *strfmt.UUID
 	var err error
 
 	BeforeEach(func() {
-		cluster, err = userBMClient.Installer.RegisterAddHostsCluster(ctx, &installer.RegisterAddHostsClusterParams{
-			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
-				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(openshiftVersion),
-				APIVipDnsname:    swag.String("api_vip_dnsname"),
-				ID:               strToUUID(uuid.New().String()),
+		openshiftClusterID := strfmt.UUID(uuid.New().String())
+
+		cluster, err = userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
+			NewImportClusterParams: &models.ImportClusterParams{
+				Name:               swag.String("test-cluster"),
+				OpenshiftVersion:   openshiftVersion,
+				APIVipDnsname:      swag.String("api-vip.redhat.com"),
+				OpenshiftClusterID: &openshiftClusterID,
 			},
 		})
 
@@ -562,6 +564,7 @@ var _ = Describe("[V2UpdateCluster] Day2 cluster tests", func() {
 			NewImportClusterParams: &models.ImportClusterParams{
 				Name:               swag.String("test-cluster"),
 				APIVipDnsname:      swag.String("api_vip_dnsname"),
+				OpenshiftVersion:   openshiftVersion,
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		})

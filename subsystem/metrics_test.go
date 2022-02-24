@@ -264,13 +264,14 @@ func assertNoValidationEvent(ctx context.Context, clusterID strfmt.UUID, hostNam
 }
 
 func registerDay2Cluster(ctx context.Context) strfmt.UUID {
+	openshiftClusterID := strfmt.UUID(uuid.New().String())
 
-	c, err := userBMClient.Installer.RegisterAddHostsCluster(ctx, &installer.RegisterAddHostsClusterParams{
-		NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
-			Name:             swag.String("test-metrics-day2-cluster"),
-			OpenshiftVersion: swag.String(openshiftVersion),
-			APIVipDnsname:    swag.String("api_vip_dnsname"),
-			ID:               strToUUID(uuid.New().String()),
+	c, err := userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
+		NewImportClusterParams: &models.ImportClusterParams{
+			Name:               swag.String("test-metrics-day2-cluster"),
+			OpenshiftVersion:   openshiftVersion,
+			APIVipDnsname:      swag.String("api-vip.redhat.com"),
+			OpenshiftClusterID: &openshiftClusterID,
 		},
 	})
 	Expect(err).NotTo(HaveOccurred())
@@ -288,13 +289,14 @@ func registerDay2Cluster(ctx context.Context) strfmt.UUID {
 }
 
 func v2RegisterDay2Cluster(ctx context.Context) strfmt.UUID {
+	openshiftClusterID := strfmt.UUID(uuid.New().String())
 
-	c, err := userBMClient.Installer.RegisterAddHostsCluster(ctx, &installer.RegisterAddHostsClusterParams{
-		NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
-			Name:             swag.String("test-metrics-day2-cluster"),
-			OpenshiftVersion: swag.String(openshiftVersion),
-			APIVipDnsname:    swag.String("api_vip_dnsname"),
-			ID:               strToUUID(uuid.New().String()),
+	c, err := userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
+		NewImportClusterParams: &models.ImportClusterParams{
+			Name:               swag.String("test-metrics-day2-cluster"),
+			OpenshiftVersion:   openshiftVersion,
+			APIVipDnsname:      swag.String("api-vip.redhat.com"),
+			OpenshiftClusterID: &openshiftClusterID,
 		},
 	})
 	Expect(err).NotTo(HaveOccurred())

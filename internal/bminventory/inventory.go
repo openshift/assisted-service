@@ -775,21 +775,9 @@ func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *mode
 }
 
 func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
-	v2Params := installer.V2ImportClusterParams{
-		NewImportClusterParams: &models.ImportClusterParams{
-			APIVipDnsname:      params.NewAddHostsClusterParams.APIVipDnsname,
-			Name:               params.NewAddHostsClusterParams.Name,
-			OpenshiftVersion:   swag.StringValue(params.NewAddHostsClusterParams.OpenshiftVersion),
-			OpenshiftClusterID: params.NewAddHostsClusterParams.ID,
-		},
-	}
-	c, err := b.V2ImportClusterInternal(ctx, nil, params.NewAddHostsClusterParams.ID, v2Params, true)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&c.Cluster)
-
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
+
 func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID,
 	params installer.V2ImportClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error) {
 	url := installer.V2GetClusterURL{ClusterID: *id}
