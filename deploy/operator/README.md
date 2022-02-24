@@ -132,3 +132,50 @@ export LIBVIRT_NONE_PLATFORM_NETWORK="${LIBVIRT_NONE_PLATFORM_NETWORK:-ostestbm}
 export LOAD_BALANCER_IP="${LOAD_BALANCER_IP:-192.168.111.1}"
 ```
 
+## Installing day2 nodes
+
+In order to install day2 nodes for ZTP flow run:
+
+```
+# replace with your paths
+export REMOTE_BAREMETALHOSTS_FILE="${REMOTE_BAREMETALHOSTS_FILE:-/home/test/dev-scripts/ocp/ostest/remote_baremetalhosts.json}"
+
+# The name of the infraenv.  Used to extract the download URL.
+export ASSISTED_INFRAENV_NAME="${ASSISTED_INFRAENV_NAME:-assisted-infra-env}"
+
+cd deploy/operator/ztp/
+./add_day2_remote_nodes
+```
+
+The following is an example of a JSON formatted file referenced by REMOTE_BAREMETALHOSTS_FILE env varible:
+
+```
+[
+  {
+    "name": "ostest-extraworker-4",
+    "driver": "redfish-virtualmedia",
+    "resource_class": "baremetal",
+    "driver_info": {
+      "username": "admin",
+      "password": "password",
+      "port": "8000",
+      "address": "redfish-virtualmedia+http://192.168.111.1:8000/redfish/v1/Systems/2bc99f91-b336-466c-ad3b-74759fda2ff7",
+      "deploy_kernel": "http:///images/ironic-python-agent.kernel",
+      "deploy_ramdisk": "http:///images/ironic-python-agent.initramfs"
+    },
+    "ports": [
+      {
+        "address": "00:81:03:04:b2:56",
+        "pxe_enabled": true
+      }
+    ],
+    "properties": {
+      "local_gb": "120",
+      "cpu_arch": "x86_64"
+    }
+  }
+]
+```
+
+The script will attempt to install all the nodes that appear in this file
+

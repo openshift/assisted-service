@@ -7,6 +7,7 @@
     - baremetalhosts: "{{ lookup('file', lookup('env', 'REMOTE_BAREMETALHOSTS_FILE')) | from_json }}"
     - infraenv_name: "{{ lookup('env', 'ASSISTED_INFRAENV_NAME') }}"
     - spoke_namespace: "{{ lookup('env', 'SPOKE_NAMESPACE') }}"
+    - day2: "true"
 
   tasks:
   - name: create directory for generated CRDs

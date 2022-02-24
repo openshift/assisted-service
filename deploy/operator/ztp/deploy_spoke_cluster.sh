@@ -86,8 +86,15 @@ done
 wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${SPOKE_NAMESPACE}"
 
 echo "Waiting until at least ${SPOKE_CONTROLPLANE_AGENTS} agents are available..."
-export -f wait_for_object_amount
-timeout 20m bash -c "wait_for_object_amount agent ${SPOKE_CONTROLPLANE_AGENTS} 30 ${SPOKE_NAMESPACE}"
+
+function get_agents_with_role() {
+  oc get agent -n ${SPOKE_NAMESPACE} --no-headers | awk '{print $4}' | grep $role
+}
+
+export role=master
+export -f wait_for_cmd_amount
+export -f get_agents_with_role
+timeout 20m bash -c "wait_for_cmd_amount ${SPOKE_CONTROLPLANE_AGENTS} 30 get_agents_with_role"
 echo "All ${SPOKE_CONTROLPLANE_AGENTS} agents have been discovered!"
 
 if [[ "${ASSISTED_STOP_AFTER_AGENT_DISCOVERY}" == "true" ]]; then
