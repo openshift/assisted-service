@@ -3565,43 +3565,6 @@ var _ = Describe("cluster install, with default network params", func() {
 	})
 })
 
-// The entire scenario is invalid in V2. This test shall be removed when
-// V1 Deregister cluster will be deleted. In the meantime it is commented
-// out so it will not interfere with removing V1 Register Cluster
-// var _ = Describe("Verify ISO is deleted on cluster de-registration", func() {
-// 	var (
-// 		ctx       context.Context = context.Background()
-// 		clusterID strfmt.UUID
-// 	)
-
-// 	BeforeEach(func() {
-// 		var err error
-// 		clusterID, err = registerCluster(ctx, userBMClient, "test-deregister-cluster", pullSecret)
-// 		Expect(err).NotTo(HaveOccurred())
-// 	})
-
-// 	Context("Deregister cluster deletes cluster resources test", func() {
-// 		It("Deregister cluster deletes discovery image from Filesystem test", func() {
-// 			By("Generate discovery image for cluster")
-// 			imageType := models.ImageTypeMinimalIso
-// 			_ = registerInfraEnv(&clusterID, imageType).ID
-
-// 			By("verify discovery-image existence")
-// 			getResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-// 			Expect(err).NotTo(HaveOccurred())
-// 			Expect(getResp.Payload.ImageInfo).NotTo(BeNil())
-// 			url := getResp.Payload.ImageInfo.DownloadURL
-// 			downloadIso(ctx, url)
-
-// 			By("deregister cluster")
-// 			_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
-// 				ClusterID: clusterID,
-// 			})
-// 			Expect(err).NotTo(HaveOccurred())
-// 		})
-// 	})
-// })
-
 func registerHostsAndSetRoles(clusterID, infraenvID strfmt.UUID, numHosts int, clusterName string, baseDNSDomain string) []*models.Host {
 	ctx := context.Background()
 	hosts := make([]*models.Host, 0)
