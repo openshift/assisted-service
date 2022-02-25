@@ -2955,7 +2955,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Check ACI DebugInfo state and stateinfo")
 		Eventually(func() bool {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-			return aci.Status.DebugInfo.State == models.ClusterStatusInstalled &&
+			return aci.Status.DebugInfo.State == models.ClusterStatusAddingHosts &&
 				aci.Status.DebugInfo.StateInfo == clusterInstallStateInfo
 		}, "1m", "10s").Should(BeTrue())
 
