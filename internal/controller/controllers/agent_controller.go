@@ -264,9 +264,22 @@ func (r *AgentReconciler) approveAIHostsCSRs(clients SpokeK8sClient, agent *aiv1
 // requeue means that approval will be attempted again
 func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1beta1.Agent) bool {
 	r.Log.Infof("Approving CSRs for agent %s/%s", agent.Namespace, agent.Name)
+
+	// Get adminKubeConfigSecretName from clusterDeployment or fallback to template
+	adminKubeConfigSecretName := fmt.Sprintf(adminKubeConfigStringTemplate, agent.Spec.ClusterDeploymentName.Name)
+	clusterDeployment := &hivev1.ClusterDeployment{}
+	cdKey := types.NamespacedName{
+		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Name:      agent.Spec.ClusterDeploymentName.Name,
+	}
+	err := r.Get(ctx, cdKey, clusterDeployment)
+	if err != nil {
+		adminKubeConfigSecretName = getClusterDeploymentAdminKubeConfigSecretName(clusterDeployment)
+	}
+
 	namespacedName := types.NamespacedName{
 		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
-		Name:      fmt.Sprintf(adminKubeConfigStringTemplate, agent.Spec.ClusterDeploymentName.Name),
+		Name:      adminKubeConfigSecretName,
 	}
 
 	secret, err := getSecret(ctx, r.Client, r.APIReader, namespacedName)
