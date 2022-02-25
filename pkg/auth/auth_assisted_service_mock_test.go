@@ -153,7 +153,7 @@ func (f fakeInventory) DownloadClusterKubeconfig(ctx context.Context, params ins
 }
 
 func (f fakeInventory) EnableHost(ctx context.Context, params installer.EnableHostParams) middleware.Responder {
-	return installer.NewEnableHostOK()
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (f fakeInventory) GenerateClusterISO(ctx context.Context, params installer.GenerateClusterISOParams) middleware.Responder {
@@ -177,7 +177,7 @@ func (f fakeInventory) GetFreeAddresses(ctx context.Context, params installer.Ge
 }
 
 func (f fakeInventory) GetHost(ctx context.Context, params installer.GetHostParams) middleware.Responder {
-	return installer.NewGetHostOK()
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (f fakeInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
@@ -417,7 +417,7 @@ func (f fakeInventory) V2RegisterHost(ctx context.Context, params installer.V2Re
 }
 
 func (f fakeInventory) V2GetHost(ctx context.Context, params installer.V2GetHostParams) middleware.Responder {
-	return installer.NewV2GetHostNotImplemented()
+	return installer.NewV2GetHostOK()
 }
 
 func (f fakeInventory) V2GetNextSteps(ctx context.Context, params installer.V2GetNextStepsParams) middleware.Responder {

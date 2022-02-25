@@ -769,21 +769,21 @@ func listHosts(ctx context.Context, cli *client.AssistedInstall) error {
 }
 
 func getHost(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.GetHost(
+	_, err := cli.Installer.V2GetHost(
 		ctx,
-		&installer.GetHostParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-			HostID:    strfmt.UUID(uuid.New().String()),
+		&installer.V2GetHostParams{
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
+			HostID:     strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }
 
 func deregisterHost(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.DeregisterHost(
+	_, err := cli.Installer.V2DeregisterHost(
 		ctx,
-		&installer.DeregisterHostParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-			HostID:    strfmt.UUID(uuid.New().String()),
+		&installer.V2DeregisterHostParams{
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
+			HostID:     strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }

@@ -3393,10 +3393,7 @@ func isRegisterHostForbiddenDueWrongBootOrder(err error) bool {
 }
 
 func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder {
-	if err := b.DeregisterHostInternal(ctx, params); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewDeregisterHostNoContent()
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error {
@@ -3446,24 +3443,7 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 }
 
 func (b *bareMetalInventory) GetHost(_ context.Context, params installer.GetHostParams) middleware.Responder {
-	// TODO: validate what is the error
-	host, err := common.GetHostFromDB(b.db, params.ClusterID.String(), params.HostID.String())
-
-	if err != nil {
-		return installer.NewGetHostNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
-	}
-
-	cluster, err := common.GetClusterFromDB(b.db, *host.ClusterID, common.SkipEagerLoading)
-	if err != nil {
-		return installer.NewGetHostNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
-	}
-	if err := b.customizeHost(&cluster.Cluster, &host.Host); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	// Clear this field as it is not needed to be sent via API
-	host.FreeAddresses = ""
-	return installer.NewGetHostOK().WithPayload(&host.Host)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder {
