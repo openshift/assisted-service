@@ -201,6 +201,12 @@ func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, log logru
 		return staticNetworkConfig, errors.Wrapf(err, "invalid label selector for InfraEnv %v", infraEnv)
 	}
 
+	if selector.Empty() {
+		// If the user didn't specify any labels, it's probably because they don't want any NMStateConfigs,
+		// not because they want *all of them*, so we return an empty slice.
+		return staticNetworkConfig, nil
+	}
+
 	nmStateConfigs := &aiv1beta1.NMStateConfigList{}
 	if err = r.List(ctx, nmStateConfigs, &client.ListOptions{LabelSelector: selector}); err != nil {
 		return staticNetworkConfig, errors.Wrapf(err, "failed to list nmstate configs for InfraEnv %v", infraEnv)
