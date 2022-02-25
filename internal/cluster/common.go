@@ -170,7 +170,7 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 func NumberOfWorkers(c *common.Cluster) int {
 	num := 0
 	for _, host := range c.Hosts {
-		if common.GetEffectiveRole(host) != models.HostRoleWorker || *host.Status == models.HostStatusDisabled {
+		if common.GetEffectiveRole(host) != models.HostRoleWorker {
 			continue
 		}
 		num += 1

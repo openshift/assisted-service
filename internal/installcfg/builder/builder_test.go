@@ -115,19 +115,6 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
-	It("create_configuration_with_one_host_disabled", func() {
-		var result installcfg.InstallerConfigBaremetal
-		host3.Status = swag.String(models.HostStatusDisabled)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
-		providerRegistry.EXPECT().AddPlatformToInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-		data, err := installConfig.GetInstallConfig(&cluster, false, "")
-		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.Proxy).Should(BeNil())
-		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
-	})
-
 	It("create_configuration_with_mirror_registries", func() {
 		var result installcfg.InstallerConfigBaremetal
 		regData := []mirrorregistries.RegistriesConf{{Location: "location1", Mirror: "mirror1"}, {Location: "location2", Mirror: "mirror2"}}

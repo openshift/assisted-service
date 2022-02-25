@@ -1371,7 +1371,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	var err error
 
 	log.Infof("preparing for cluster %s installation", params.ClusterID)
-	if cluster, err = common.GetClusterFromDBWithoutDisabledHosts(b.db, params.ClusterID); err != nil {
+	if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 	// auto select hosts roles if not selected yet.
@@ -1388,7 +1388,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		//usage for auto role selection is measured only for day1 clusters with more than
 		//3 hosts (which would automatically be assigned as masters if the hw is sufficient)
 		if usages, uerr := usage.Unmarshal(cluster.Cluster.FeatureUsage); uerr == nil {
-			report := cluster.Cluster.EnabledHostCount > common.MinMasterHostsNeededForInstallation && selected
+			report := cluster.Cluster.TotalHostCount > common.MinMasterHostsNeededForInstallation && selected
 			b.setUsage(report, usage.AutoAssignRoleUsage, nil, usages)
 			b.usageApi.Save(tx, *cluster.ID, usages)
 		}
@@ -1406,7 +1406,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	}
 
 	// Reload again after refresh
-	if cluster, err = common.GetClusterFromDBWithoutDisabledHosts(b.db, params.ClusterID); err != nil {
+	if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 	// Verify cluster is ready to install
@@ -3877,172 +3877,11 @@ func filterReply(expected interface{}, input string) (string, error) {
 }
 
 func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.DisableHostParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	log.Info("disabling host: ", params.HostID)
-
-	txSuccess := false
-	tx := b.db.Begin()
-
-	defer func() {
-		if !txSuccess {
-			log.Error("update cluster failed")
-			tx.Rollback()
-		}
-		if r := recover(); r != nil {
-			log.Error("update cluster failed")
-			tx.Rollback()
-		}
-	}()
-
-	host, err := common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.WithError(err).Errorf("host %s not found", params.HostID)
-			return common.NewApiError(http.StatusNotFound, err)
-		}
-		log.WithError(err).Errorf("failed to get host %s", params.HostID)
-		eventgen.SendDisableHostFetchFailedEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
-			hostutil.GetHostnameForMsg(&host.Host))
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	if err = b.hostApi.DisableHost(ctx, &host.Host, tx); err != nil {
-		log.WithError(err).Errorf("failed to disable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
-		eventgen.SendHostDisableFailedEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
-			hostutil.GetHostnameForMsg(&host.Host))
-		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
-	}
-
-	c, err := b.refreshHostAndClusterStatuses(ctx, "disable host", host, &params.ClusterID, tx)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	if err = tx.Commit().Error; err != nil {
-		log.Error(err)
-		return installer.NewResetClusterInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction")))
-	}
-	txSuccess = true
-
-	eventgen.SendHostDisabledEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
-		hostutil.GetHostnameForMsg(&host.Host))
-
-	c, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *c.ID})
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewDisableHostOK().WithPayload(&c.Cluster)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.EnableHostParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	log.Info("enable host: ", params.HostID)
-
-	txSuccess := false
-	tx := b.db.Begin()
-
-	defer func() {
-		if !txSuccess {
-			log.Error("update cluster failed")
-			tx.Rollback()
-		}
-		if r := recover(); r != nil {
-			log.Error("update cluster failed")
-			tx.Rollback()
-		}
-	}()
-
-	host, err := common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.WithError(err).Errorf("host %s not found", params.HostID)
-			return common.NewApiError(http.StatusNotFound, err)
-		}
-		log.WithError(err).Errorf("failed to get host %s", params.HostID)
-		eventgen.SendEnableHostFetchFailedEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
-			hostutil.GetHostnameForMsg(&host.Host))
-
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	if err = b.hostApi.EnableHost(ctx, &host.Host, tx); err != nil {
-		log.WithError(err).Errorf("failed to enable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
-		eventgen.SendEnableHostDisableFailedEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
-			hostutil.GetHostnameForMsg(&host.Host))
-		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
-	}
-
-	c, err := b.refreshHostAndClusterStatuses(ctx, "enable host", host, &params.ClusterID, tx)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	if err = tx.Commit().Error; err != nil {
-		log.Error(err)
-		return common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
-	}
-	txSuccess = true
-
-	eventgen.SendHostEnabledEvent(ctx, b.eventsHandler, params.HostID, host.InfraEnvID, &params.ClusterID,
-		hostutil.GetHostnameForMsg(&host.Host))
-
-	c, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *c.ID})
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewEnableHostOK().WithPayload(&c.Cluster)
-}
-
-func (b *bareMetalInventory) refreshHostAndClusterStatuses(
-	ctx context.Context,
-	eventName string,
-	host *common.Host,
-	clusterID *strfmt.UUID,
-	db *gorm.DB) (*common.Cluster, error) {
-
-	logger := logutil.FromContext(ctx, b.log)
-
-	var err error
-
-	defer func() {
-		if err == nil {
-			return
-		}
-		logger.WithError(err).Errorf("%s:", eventName)
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			eventgen.SendRefreshHostOrClusterStatusesFailedEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, clusterID, err.Error())
-		}
-	}()
-	err = b.setMajorityGroupForCluster(clusterID, db)
-	if err != nil {
-		return nil, err
-	}
-	err = b.refreshHostStatus(ctx, host.ID, clusterID, db)
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := b.refreshClusterStatus(ctx, clusterID, db)
-	return c, err
-}
-
-func (b *bareMetalInventory) refreshHostStatus(
-	ctx context.Context,
-	hostID *strfmt.UUID,
-	clusterID *strfmt.UUID,
-	db *gorm.DB) error {
-
-	h, err := common.GetHostFromDB(db, clusterID.String(), hostID.String())
-	if err != nil {
-		return err
-	}
-
-	if err := b.hostApi.RefreshStatus(ctx, &h.Host, db); err != nil {
-		return errors.Wrapf(err, "failed to refresh status of host: %s", h.ID)
-	}
-
-	return nil
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) setMajorityGroupForCluster(clusterID *strfmt.UUID, db *gorm.DB) error {

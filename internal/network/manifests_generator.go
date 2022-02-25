@@ -179,7 +179,7 @@ func createChronyManifestContent(c *common.Cluster, role models.HostRole, log lo
 	sources := make([]string, 0)
 
 	for _, host := range c.Hosts {
-		if swag.StringValue(host.Status) == models.HostStatusDisabled || host.NtpSources == "" {
+		if host.NtpSources == "" {
 			continue
 		}
 

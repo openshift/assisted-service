@@ -116,11 +116,6 @@ var _ = Describe("update_role", func() {
 				testFunc: success,
 			},
 			{
-				name:     "disabled",
-				srcState: models.HostStatusDisabled,
-				testFunc: failure,
-			},
-			{
 				name:     "error",
 				srcState: models.HostStatusError,
 				testFunc: failure,
@@ -752,26 +747,6 @@ var _ = Describe("cancel installation", func() {
 			cancelEvent := events[len(events)-1]
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityError))
 		})
-
-		It("cancel disabled host", func() {
-			id := strfmt.UUID(uuid.New().String())
-			clusterId := strfmt.UUID(uuid.New().String())
-			infraEnvId := strfmt.UUID(uuid.New().String())
-			c := common.Cluster{Cluster: models.Cluster{
-				ID:                 &clusterId,
-				Status:             swag.String(models.ClusterStatusError),
-				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
-			}}
-			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDisabled)
-			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
-			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
-			events, err := eventsHandler.V2GetEvents(ctx, &clusterId, h.ID, nil)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(len(events)).Should(Equal(0))
-		})
 	})
 })
 
@@ -888,26 +863,6 @@ var _ = Describe("reset host", func() {
 			eventMessage := fmt.Sprintf("User action is required in order to complete installation reset for host %s", hostutil.GetHostnameForMsg(&h))
 			Expect(*resetEvent.Message).Should(Equal(eventMessage))
 		})
-
-		It("reset disabled host", func() {
-			id := strfmt.UUID(uuid.New().String())
-			clusterId := strfmt.UUID(uuid.New().String())
-			infraEnvId := strfmt.UUID(uuid.New().String())
-			c := common.Cluster{Cluster: models.Cluster{
-				ID:                 &clusterId,
-				Status:             swag.String(models.ClusterStatusError),
-				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
-			}}
-			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDisabled)
-			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
-			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
-			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(len(events)).Should(Equal(0))
-		})
 	})
 
 	Context("invalid_reset_installation", func() {
@@ -986,20 +941,6 @@ var _ = Describe("register host", func() {
 	})
 
 })
-
-// alternativeInventory returns an inventory that is arbitrarily slightly different than
-// the default inventory. Useful in some tests.
-func alternativeInventory() models.Inventory {
-	// Create an inventory that is slightly arbitrarily different than the default one
-	// (in this case timestamp is set to some magic value other than the default 0)
-	// so we can check if UpdateInventory actually occurred
-	var newInventory models.Inventory
-	magicTimestamp := int64(0xcafecafe)
-	err := json.Unmarshal([]byte(common.GenerateTestDefaultInventory()), &newInventory)
-	Expect(err).To(BeNil())
-	newInventory.Timestamp = magicTimestamp
-	return newInventory
-}
 
 func insufficientHWInventory() string {
 	inventory := models.Inventory{
@@ -1313,113 +1254,6 @@ var _ = Describe("UpdateInventory", func() {
 			Expect(h.InstallationDiskID).To(Equal(diskId))
 		})
 	})
-
-	Context("enable host", func() {
-		var newInventoryBytes []byte
-
-		BeforeEach(func() {
-			// Create an inventory that is slightly arbitrarily different than the default one
-			// so we can make sure an update actually occurred.
-			newInventory := alternativeInventory()
-			newInventoryTmp, err := json.Marshal(&newInventory)
-			Expect(err).To(BeNil())
-			newInventoryBytes = newInventoryTmp
-
-			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(_ context.Context, disk *models.Disk, _ *common.InfraEnv, _ *common.Cluster, _ *models.Host) ([]string, error) {
-				return disk.InstallationEligibility.NotEligibleReasons, nil
-			})
-			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(nil).AnyTimes()
-		})
-
-		success := func(err error) {
-			Expect(err).To(BeNil())
-			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
-			Expect(h.Inventory).To(Equal(string(newInventoryBytes)))
-		}
-
-		failure := func(err error) {
-			Expect(err).To(HaveOccurred())
-			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
-			Expect(h.Inventory).To(Equal(common.GenerateTestDefaultInventory()))
-		}
-
-		tests := []struct {
-			name       string
-			srcState   string
-			validation func(error)
-		}{
-			{
-				name:       models.HostStatusKnown,
-				srcState:   models.HostStatusKnown,
-				validation: success,
-			},
-			{
-				name:       models.HostStatusDisabled,
-				srcState:   models.HostStatusDisabled,
-				validation: failure,
-			},
-			{
-				name:       models.HostStatusDisconnected,
-				srcState:   models.HostStatusDisconnected,
-				validation: success,
-			},
-			{
-				name:       models.HostStatusDiscovering,
-				srcState:   models.HostStatusDiscovering,
-				validation: success,
-			},
-			{
-				name:       models.HostStatusError,
-				srcState:   models.HostStatusError,
-				validation: failure,
-			},
-			{
-				name:       models.HostStatusInstalled,
-				srcState:   models.HostStatusInstalled,
-				validation: failure,
-			},
-			{
-				name:       models.HostStatusInstalling,
-				srcState:   models.HostStatusInstalling,
-				validation: failure,
-			},
-			{
-				name:       models.HostStatusInstallingInProgress,
-				srcState:   models.HostStatusInstallingInProgress,
-				validation: success,
-			},
-			{
-				name:       models.HostStatusResettingPendingUserAction,
-				srcState:   models.HostStatusResettingPendingUserAction,
-				validation: failure,
-			},
-			{
-				name:       models.HostStatusInsufficient,
-				srcState:   models.HostStatusInsufficient,
-				validation: success,
-			},
-			{
-				name:       models.HostStatusResetting,
-				srcState:   models.HostStatusResetting,
-				validation: failure,
-			},
-			{
-				name:       models.HostStatusPendingForInput,
-				srcState:   models.HostStatusPendingForInput,
-				validation: success,
-			},
-		}
-
-		for i := range tests {
-			t := tests[i]
-			It(t.name, func() {
-				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, t.srcState)
-				host.Inventory = common.GenerateTestDefaultInventory()
-				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				t.validation(hapi.UpdateInventory(ctx, &host, string(newInventoryBytes)))
-			})
-		}
-	})
 })
 
 var _ = Describe("Update hostname", func() {
@@ -1467,11 +1301,6 @@ var _ = Describe("Update hostname", func() {
 				name:       models.HostStatusKnown,
 				srcState:   models.HostStatusKnown,
 				validation: success,
-			},
-			{
-				name:       models.HostStatusDisabled,
-				srcState:   models.HostStatusDisabled,
-				validation: failure,
 			},
 			{
 				name:       models.HostStatusDisconnected,
@@ -1612,11 +1441,6 @@ var _ = Describe("Bind host", func() {
 				validation: failure,
 			},
 			{
-				name:       models.HostStatusDisabled,
-				srcState:   models.HostStatusDisabled,
-				validation: failure,
-			},
-			{
 				name:       models.HostStatusDisconnected,
 				srcState:   models.HostStatusDisconnected,
 				validation: failure,
@@ -1679,11 +1503,6 @@ var _ = Describe("Bind host", func() {
 			{
 				name:       models.HostStatusInsufficientUnbound,
 				srcState:   models.HostStatusInsufficientUnbound,
-				validation: failure,
-			},
-			{
-				name:       models.HostStatusDisabledUnbound,
-				srcState:   models.HostStatusDisabledUnbound,
 				validation: failure,
 			},
 			{
@@ -1768,11 +1587,6 @@ var _ = Describe("Unbind host", func() {
 				validation: success,
 			},
 			{
-				name:       models.HostStatusDisabled,
-				srcState:   models.HostStatusDisabled,
-				validation: success,
-			},
-			{
 				name:       models.HostStatusDisconnected,
 				srcState:   models.HostStatusDisconnected,
 				validation: success,
@@ -1836,11 +1650,6 @@ var _ = Describe("Unbind host", func() {
 			{
 				name:       models.HostStatusInsufficientUnbound,
 				srcState:   models.HostStatusInsufficientUnbound,
-				validation: failure,
-			},
-			{
-				name:       models.HostStatusDisabledUnbound,
-				srcState:   models.HostStatusDisabledUnbound,
 				validation: failure,
 			},
 			{
@@ -1946,11 +1755,6 @@ var _ = Describe("Update disk installation path", func() {
 				name:       models.HostStatusKnown,
 				srcState:   models.HostStatusKnown,
 				validation: true,
-			},
-			{
-				name:       models.HostStatusDisabled,
-				srcState:   models.HostStatusDisabled,
-				validation: false,
 			},
 			{
 				name:       models.HostStatusDisconnected,

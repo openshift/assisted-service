@@ -417,7 +417,6 @@ func (r *InfraEnvReconciler) deregisterInfraEnvWithHosts(ctx context.Context, lo
 		models.HostStatusDisconnectedUnbound,
 		models.HostStatusDiscoveringUnbound,
 		models.HostStatusKnownUnbound,
-		models.HostStatusDisabledUnbound,
 		models.HostStatusInstalled,
 		models.HostStatusAddedToExistingCluster,
 		models.HostStatusUnbinding,

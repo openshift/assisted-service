@@ -1820,7 +1820,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 			for _, h := range c.Hosts {
-				if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
+				if !funk.ContainsString([]string{models.HostStatusInstalling}, swag.StringValue(h.Status)) {
 					return false
 				}
 			}
@@ -2709,7 +2709,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 			for _, h := range c.Hosts {
-				if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
+				if !funk.ContainsString([]string{models.HostStatusInstalling}, swag.StringValue(h.Status)) {
 					return false
 				}
 			}
@@ -2836,7 +2836,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 			for _, h := range c.Hosts {
-				if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
+				if !funk.ContainsString([]string{models.HostStatusInstalling}, swag.StringValue(h.Status)) {
 					return false
 				}
 			}
@@ -3158,7 +3158,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 			for _, h := range c.Hosts {
-				if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
+				if !funk.ContainsString([]string{models.HostStatusInstalling}, swag.StringValue(h.Status)) {
 					return false
 				}
 			}
@@ -3273,7 +3273,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 			for _, h := range c.Hosts {
-				if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
+				if !funk.ContainsString([]string{models.HostStatusInstalling}, swag.StringValue(h.Status)) {
 					return false
 				}
 			}

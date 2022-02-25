@@ -19,7 +19,6 @@ import (
 
 const (
 	statusInfoDisconnected                                     = "Host has stopped communicating with the installation service"
-	statusInfoDisabled                                         = "Host was manually disabled"
 	statusInfoDiscovering                                      = "Waiting for host to send hardware details"
 	statusInfoInsufficientHardware                             = "Host does not meet the minimum hardware requirements: $FAILING_VALIDATIONS"
 	statusInfoPendingForInput                                  = "Waiting for user input: $FAILING_VALIDATIONS"

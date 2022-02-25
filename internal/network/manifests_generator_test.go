@@ -68,25 +68,6 @@ var _ = Describe("chrony manifest", func() {
 			Expect(response).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(expectedContent))))
 		})
 
-		It("skip_disabled_hosts", func() {
-			toMarshal := []*models.NtpSource{
-				common.TestNTPSourceSynced,
-			}
-
-			clusterId := strfmt.UUID(uuid.New().String())
-			hosts := make([]*models.Host, 0)
-			hosts = append(hosts, createHost(clusterId, toMarshal))
-			hosts[0].Status = swag.String(models.HostStatusDisabled)
-
-			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
-				Hosts: hosts,
-			}}, models.HostRoleMaster, logrus.New())
-			Expect(err).ShouldNot(HaveOccurred())
-
-			expectedContent := defaultChronyConf
-			Expect(response).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(expectedContent))))
-		})
-
 		It("multiple_ntp_source", func() {
 			toMarshal := []*models.NtpSource{
 				common.TestNTPSourceSynced,

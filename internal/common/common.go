@@ -134,8 +134,9 @@ func IsNtpSynced(c *Cluster) (bool, error) {
 	var min int64
 	var max int64
 	for _, h := range c.Hosts {
-		if h.Inventory == "" || *h.Status == models.HostStatusDisconnected ||
-			*h.Status == models.HostStatusDisabled || *h.Status == models.HostStatusResettingPendingUserAction ||
+		if h.Inventory == "" ||
+			*h.Status == models.HostStatusDisconnected ||
+			*h.Status == models.HostStatusResettingPendingUserAction ||
 			*h.Status == models.HostStatusDiscovering {
 			continue
 		}
@@ -276,7 +277,7 @@ func GetHostsByRole(cluster *Cluster, role models.HostRole) []models.Host {
 		return hosts
 	}
 	for _, host := range cluster.Hosts {
-		if swag.StringValue(host.Status) != models.HostStatusDisabled && GetEffectiveRole(host) == role {
+		if GetEffectiveRole(host) == role {
 			hosts = append(hosts, *host)
 		}
 	}

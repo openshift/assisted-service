@@ -196,25 +196,6 @@ var _ = Describe("RegisterHost", func() {
 		}
 	})
 
-	It("register disabled host", func() {
-		Expect(db.Create(&models.Host{
-			ID:         &hostId,
-			InfraEnvID: infraEnvId,
-			ClusterID:  &clusterId,
-			Role:       models.HostRoleMaster,
-			Inventory:  defaultHwInfo,
-			Status:     swag.String(models.HostStatusDisabled),
-		}).Error).ShouldNot(HaveOccurred())
-
-		Expect(hapi.RegisterHost(ctx, &models.Host{
-			ID:                    &hostId,
-			ClusterID:             &clusterId,
-			Status:                swag.String(models.HostStatusDisabled),
-			DiscoveryAgentVersion: "v2.0.5",
-		},
-			db)).ShouldNot(HaveOccurred())
-	})
-
 	It("register host in error state", func() {
 		Expect(db.Create(&models.Host{
 			ID:         &hostId,
@@ -545,13 +526,6 @@ var _ = Describe("RegisterHost", func() {
 				eventRaised: true,
 			},
 			{
-				name:        "disabled-unbound to disabled-unbound",
-				srcState:    models.HostStatusDisabledUnbound,
-				dstState:    models.HostStatusDisabledUnbound,
-				newHost:     false,
-				eventRaised: false,
-			},
-			{
 				name:        "unbinding to discovering-unbound",
 				srcState:    models.HostStatusUnbinding,
 				dstState:    models.HostStatusDiscoveringUnbound,
@@ -723,7 +697,6 @@ var _ = Describe("Cancel host installation", func() {
 		{state: models.HostStatusInstallingInProgress, success: true, changeState: true},
 		{state: models.HostStatusInstalled, success: true, changeState: true},
 		{state: models.HostStatusError, success: true, changeState: true},
-		{state: models.HostStatusDisabled, success: true, changeState: false},
 		{state: models.HostStatusInstallingPendingUserAction, success: true, changeState: true},
 		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict, changeState: false},
 		{state: models.HostStatusKnown, success: true, changeState: false},
@@ -751,9 +724,6 @@ var _ = Describe("Cancel host installation", func() {
 			eventsNum := 1
 			if t.changeState {
 				eventsNum = 2
-			}
-			if t.success && t.state == models.HostStatusDisabled {
-				eventsNum = 0
 			}
 			acceptNewEvents(eventsNum)
 			err := hapi.CancelInstallation(ctx, &host, "reason", db)
@@ -817,7 +787,6 @@ var _ = Describe("Reset host", func() {
 		{state: models.HostStatusInstallingInProgress, success: true, changeState: true},
 		{state: models.HostStatusInstalled, success: true, changeState: true},
 		{state: models.HostStatusError, success: true, changeState: true},
-		{state: models.HostStatusDisabled, success: true, changeState: false},
 		{state: models.HostStatusInstallingPendingUserAction, success: true, changeState: true},
 		{state: models.HostStatusCancelled, success: true, changeState: true},
 		{state: models.HostStatusAddedToExistingCluster, success: true, changeState: true},
@@ -846,9 +815,6 @@ var _ = Describe("Reset host", func() {
 			eventsNum := 1
 			if t.changeState {
 				eventsNum = 2
-			}
-			if t.success && t.state == models.HostStatusDisabled {
-				eventsNum = 0
 			}
 			acceptNewEvents(eventsNum)
 			err := hapi.ResetHost(ctx, &host, "reason", db)
@@ -912,12 +878,6 @@ var _ = Describe("Install", func() {
 			Expect(reply).To(HaveOccurred())
 		}
 
-		noChange := func(reply error) {
-			Expect(reply).To(BeNil())
-			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
-			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
-		}
-
 		tests := []struct {
 			name       string
 			srcState   string
@@ -937,11 +897,6 @@ var _ = Describe("Install", func() {
 				name:       "known",
 				srcState:   models.HostStatusKnown,
 				validation: failure,
-			},
-			{
-				name:       "disabled nothing change",
-				srcState:   models.HostStatusDisabled,
-				validation: noChange,
 			},
 			{
 				name:       "disconnected",
@@ -1063,357 +1018,6 @@ var _ = Describe("Install", func() {
 	})
 })
 
-var _ = Describe("Disable", func() {
-	var (
-		ctx                           = context.Background()
-		hapi                          API
-		db                            *gorm.DB
-		ctrl                          *gomock.Controller
-		mockEvents                    *eventsapi.MockHandler
-		hostId, clusterId, infraEnvId strfmt.UUID
-		host                          models.Host
-		dbName                        string
-	)
-
-	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = eventsapi.NewMockHandler(ctrl)
-		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
-		hostId = strfmt.UUID(uuid.New().String())
-		infraEnvId = strfmt.UUID(uuid.New().String())
-		clusterId = infraEnvId
-	})
-
-	Context("disable host", func() {
-		var srcState string
-		success := func(reply error, dstState string) {
-			Expect(reply).To(BeNil())
-			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
-			Expect(*h.Status).Should(Equal(dstState))
-			Expect(*h.StatusInfo).Should(Equal(statusInfoDisabled))
-		}
-
-		failure := func(reply error, _ string) {
-			Expect(reply).To(HaveOccurred())
-			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
-			Expect(*h.Status).Should(Equal(srcState))
-		}
-
-		mockEventsUpdateStatus := func(srcState, dstState string) {
-			cId := ""
-			if host.ClusterID != nil {
-				cId = host.ClusterID.String()
-			}
-			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
-				eventstest.WithHostIdMatcher(host.ID.String()),
-				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
-				eventstest.WithClusterIdMatcher(cId),
-				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
-		}
-
-		tests := []struct {
-			name       string
-			srcState   string
-			poolHost   bool
-			validation func(error, string)
-			mocks      []func(string, string)
-		}{
-			{
-				name:       "known",
-				srcState:   models.HostStatusKnown,
-				poolHost:   false,
-				validation: success,
-				mocks:      []func(string, string){mockEventsUpdateStatus},
-			},
-			{
-				name:       "disabled nothing change",
-				srcState:   models.HostStatusDisabled,
-				poolHost:   false,
-				validation: failure,
-			},
-			{
-				name:       "disconnected",
-				srcState:   models.HostStatusDisconnected,
-				poolHost:   false,
-				validation: success,
-				mocks:      []func(string, string){mockEventsUpdateStatus},
-			},
-			{
-				name:       "discovering",
-				poolHost:   false,
-				srcState:   models.HostStatusDiscovering,
-				validation: success,
-				mocks:      []func(string, string){mockEventsUpdateStatus},
-			},
-			{
-				name:       "error",
-				srcState:   models.HostStatusError,
-				poolHost:   false,
-				validation: failure,
-			},
-			{
-				name:       "installed",
-				srcState:   models.HostStatusInstalled,
-				poolHost:   false,
-				validation: failure,
-			},
-			{
-				name:       "installing",
-				srcState:   models.HostStatusInstalling,
-				poolHost:   false,
-				validation: failure,
-			},
-			{
-				name:       "in-progress",
-				srcState:   models.HostStatusInstallingInProgress,
-				poolHost:   false,
-				validation: failure,
-			},
-			{
-				name:       "insufficient",
-				srcState:   models.HostStatusInsufficient,
-				poolHost:   false,
-				validation: success,
-				mocks:      []func(string, string){mockEventsUpdateStatus},
-			},
-			{
-				name:       "resetting",
-				srcState:   models.HostStatusResetting,
-				poolHost:   false,
-				validation: failure,
-			},
-			{
-				name:       models.HostStatusPendingForInput,
-				srcState:   models.HostStatusPendingForInput,
-				poolHost:   false,
-				validation: success,
-				mocks:      []func(string, string){mockEventsUpdateStatus},
-			},
-			{
-				name:       "disconnected-unbound",
-				srcState:   models.HostStatusDisconnectedUnbound,
-				poolHost:   true,
-				validation: success,
-				mocks:      []func(string, string){mockEventsUpdateStatus},
-			},
-			{
-				name:       "discovering-unbound",
-				srcState:   models.HostStatusDiscoveringUnbound,
-				poolHost:   true,
-				validation: success,
-				mocks:      []func(string, string){mockEventsUpdateStatus},
-			},
-			{
-				name:       "insufficient-unbound",
-				srcState:   models.HostStatusInsufficientUnbound,
-				poolHost:   true,
-				validation: success,
-				mocks:      []func(string, string){mockEventsUpdateStatus},
-			},
-			{
-				name:       "known-unbound",
-				srcState:   models.HostStatusKnownUnbound,
-				poolHost:   true,
-				validation: success,
-				mocks:      []func(string, string){mockEventsUpdateStatus},
-			},
-		}
-
-		for i := range tests {
-			t := tests[i]
-			It(t.name, func() {
-				srcState = t.srcState
-				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
-				dstState := models.HostStatusDisabled
-				if t.poolHost {
-					host.ClusterID = nil
-					dstState = models.HostStatusDisabledUnbound
-				}
-				for _, m := range t.mocks {
-					m(t.srcState, dstState)
-				}
-				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				t.validation(hapi.DisableHost(ctx, &host, db), dstState)
-			})
-		}
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
-})
-
-var _ = Describe("Enable", func() {
-	var (
-		ctx                           = context.Background()
-		hapi                          API
-		db                            *gorm.DB
-		ctrl                          *gomock.Controller
-		mockEvents                    *eventsapi.MockHandler
-		hostId, clusterId, infraEnvId strfmt.UUID
-		host                          models.Host
-		dbName                        string
-	)
-
-	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = eventsapi.NewMockHandler(ctrl)
-		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
-		hostId = strfmt.UUID(uuid.New().String())
-		clusterId = strfmt.UUID(uuid.New().String())
-		infraEnvId = strfmt.UUID(uuid.New().String())
-	})
-
-	Context("enable host", func() {
-		var srcState string
-		success := func(reply error, dstState string) {
-			Expect(reply).To(BeNil())
-			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
-			Expect(*h.Status).Should(Equal(dstState))
-			Expect(*h.StatusInfo).Should(Equal(statusInfoDiscovering))
-			Expect(h.Inventory).Should(BeEmpty())
-			Expect(h.Bootstrap).Should(BeFalse())
-			Expect(h.NtpSources).ShouldNot(BeEmpty())
-		}
-
-		failure := func(reply error, _ string) {
-			Expect(reply).Should(HaveOccurred())
-			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
-			Expect(*h.Status).Should(Equal(srcState))
-			Expect(h.Inventory).Should(Equal(defaultHwInfo))
-			Expect(h.Bootstrap).Should(Equal(true))
-
-			var ntpSources []*models.NtpSource
-			Expect(json.Unmarshal([]byte(h.NtpSources), &ntpSources)).ShouldNot(HaveOccurred())
-			Expect(ntpSources).Should(Equal(defaultNTPSources))
-		}
-
-		tests := []struct {
-			name       string
-			srcState   string
-			validation func(error, string)
-			sendEvent  bool
-			poolHost   bool
-		}{
-			{
-				name:       "known",
-				srcState:   models.HostStatusKnown,
-				validation: failure,
-				sendEvent:  false,
-			},
-			{
-				name:       "disabled to enable",
-				srcState:   models.HostStatusDisabled,
-				validation: success,
-				sendEvent:  true,
-			},
-			{
-				name:       "disconnected",
-				srcState:   models.HostStatusDisconnected,
-				validation: failure,
-				sendEvent:  false,
-			},
-			{
-				name:       "discovering",
-				srcState:   models.HostStatusDiscovering,
-				validation: failure,
-				sendEvent:  false,
-			},
-			{
-				name:       "error",
-				srcState:   models.HostStatusError,
-				validation: failure,
-				sendEvent:  false,
-			},
-			{
-				name:       "installed",
-				srcState:   models.HostStatusInstalled,
-				validation: failure,
-				sendEvent:  false,
-			},
-			{
-				name:       "installing",
-				srcState:   models.HostStatusInstalling,
-				validation: failure,
-				sendEvent:  false,
-			},
-			{
-				name:       "in-progress",
-				srcState:   models.HostStatusInstallingInProgress,
-				validation: failure,
-				sendEvent:  false,
-			},
-			{
-				name:       "insufficient",
-				srcState:   models.HostStatusInsufficient,
-				validation: failure,
-				sendEvent:  false,
-			},
-			{
-				name:       "resetting",
-				srcState:   models.HostStatusResetting,
-				validation: failure,
-				sendEvent:  false,
-			},
-			{
-				name:       "disabled-unbound",
-				srcState:   models.HostStatusDisabledUnbound,
-				validation: success,
-				sendEvent:  true,
-				poolHost:   true,
-			},
-		}
-
-		for i := range tests {
-			t := tests[i]
-			It(t.name, func() {
-				// Test setup - Host creation
-				srcState = t.srcState
-				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
-				host.Inventory = defaultHwInfo
-				host.Bootstrap = true
-				dstState := models.HostStatusDiscovering
-				if t.poolHost {
-					host.ClusterID = nil
-					dstState = models.HostStatusDiscoveringUnbound
-				}
-
-				bytes, err := json.Marshal(defaultNTPSources)
-				Expect(err).ShouldNot(HaveOccurred())
-				host.NtpSources = string(bytes)
-				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-
-				// Test definition
-				if t.sendEvent {
-					cId := ""
-					if host.ClusterID != nil {
-						cId = host.ClusterID.String()
-					}
-					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
-						eventstest.WithHostIdMatcher(hostId.String()),
-						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
-						eventstest.WithClusterIdMatcher(cId),
-						eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
-				}
-				t.validation(hapi.EnableHost(ctx, &host, db), dstState)
-			})
-		}
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-})
-
 var _ = Describe("Unbind", func() {
 	var (
 		ctx                           = context.Background()
@@ -1498,13 +1102,6 @@ var _ = Describe("Unbind", func() {
 		{
 			name:      "known to unbinding",
 			srcState:  models.HostStatusKnown,
-			dstState:  models.HostStatusUnbinding,
-			success:   true,
-			sendEvent: true,
-		},
-		{
-			name:      "disabled to unbinding",
-			srcState:  models.HostStatusDisabled,
 			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
@@ -3451,7 +3048,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "No machine network CIDR validation needed: User Managed Networking"},
 					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
-					BelongsToMajorityGroup: {status: ValidationPending, messagePattern: "Not enough enabled hosts in cluster to calculate connectivity groups"},
+					BelongsToMajorityGroup: {status: ValidationPending, messagePattern: "Not enough hosts in cluster to calculate connectivity groups"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
@@ -3687,7 +3284,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
 					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
-					BelongsToMajorityGroup: {status: ValidationPending, messagePattern: "Not enough enabled hosts in cluster to calculate connectivity groups"},
+					BelongsToMajorityGroup: {status: ValidationPending, messagePattern: "Not enough hosts in cluster to calculate connectivity groups"},
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
@@ -5328,15 +4925,6 @@ var _ = Describe("Refresh Host", func() {
 				inventory:         insufficientHWInventory(),
 				eventRaised:       false,
 				statusInfoChecker: makeValueChecker(statusInfoUnbinding),
-			},
-			{
-				name:              "disabled-unbound to disabled-unbound",
-				srcState:          models.HostStatusDisabledUnbound,
-				dstState:          models.HostStatusDisabledUnbound,
-				validCheckInTime:  true,
-				inventory:         insufficientHWInventory(),
-				eventRaised:       false,
-				statusInfoChecker: makeValueChecker(statusInfoDisabled),
 			},
 			{
 				name:              "disconnected-unbound to known-unbound",

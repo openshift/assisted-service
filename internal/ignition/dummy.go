@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
@@ -41,9 +40,7 @@ func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte, platf
 
 	toUpload := fileNames[:]
 	for _, host := range g.cluster.Hosts {
-		if swag.StringValue(host.Status) != models.HostStatusDisabled {
-			toUpload = append(toUpload, hostutil.IgnitionFileName(host))
-		}
+		toUpload = append(toUpload, hostutil.IgnitionFileName(host))
 	}
 
 	for _, fileName := range toUpload {

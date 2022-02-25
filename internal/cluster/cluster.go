@@ -327,7 +327,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	if db == nil {
 		db = m.db
 	}
-	cluster, err := common.GetClusterFromDBWithoutDisabledHosts(db, *c.ID)
+	cluster, err := common.GetClusterFromDBWithHosts(db, *c.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -482,7 +482,7 @@ func (m *Manager) initMonitorQueryGenerator() {
 				models.ClusterStatusInstalled,
 			}
 
-			dbWithCondition := common.LoadTableFromDB(db, common.HostsTable, "status <> ?", models.HostStatusDisabled)
+			dbWithCondition := common.LoadTableFromDB(db, common.HostsTable)
 			dbWithCondition = common.LoadClusterTablesFromDB(dbWithCondition, common.HostsTable)
 			dbWithCondition = dbWithCondition.Where("status NOT IN (?)", noNeedToMonitorInStates)
 			return dbWithCondition
@@ -1009,7 +1009,7 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 		db = m.db
 	}
 	// We want to calculate majority groups only when in pre-install states since it is needed for pre-install validations
-	cluster, err := common.GetClusterFromDBWithoutDisabledHosts(db, clusterID)
+	cluster, err := common.GetClusterFromDBWithHosts(db, clusterID)
 	if err != nil {
 		var statusCode int32 = http.StatusInternalServerError
 		if errors.Is(err, gorm.ErrRecordNotFound) {

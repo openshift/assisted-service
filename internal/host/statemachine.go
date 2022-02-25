@@ -11,8 +11,6 @@ const (
 	TransitionTypeCancelInstallation         = "CancelInstallation"
 	TransitionTypeResetHost                  = "ResetHost"
 	TransitionTypeInstallHost                = "InstallHost"
-	TransitionTypeDisableHost                = "DisableHost"
-	TransitionTypeEnableHost                 = "EnableHost"
 	TransitionTypeResettingPendingUserAction = "ResettingPendingUserAction"
 	TransitionTypeRefresh                    = "RefreshHost"
 	TransitionTypeRegisterInstalledHost      = "RegisterInstalledHost"
@@ -49,13 +47,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		},
 		DestinationState: stateswitch.State(models.HostStatusDiscovering),
 		PostTransition:   th.PostRegisterHost,
-	})
-
-	// Disabled host can register if it was booted, no change in the state.
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType:   TransitionTypeRegisterHost,
-		SourceStates:     []stateswitch.State{stateswitch.State(models.HostStatusDisabled)},
-		DestinationState: stateswitch.State(models.HostStatusDisabled),
 	})
 
 	// Do nothing when host in reboot tries to register from resetting state.
@@ -136,15 +127,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		PostTransition:   th.PostHostInstallationFailed,
 	})
 
-	// Cancel installation - disabled host (do nothing)
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeCancelInstallation,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusDisabled),
-		},
-		DestinationState: stateswitch.State(models.HostStatusDisabled),
-	})
-
 	// Cancel installation
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeCancelInstallation,
@@ -175,15 +157,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusKnown),
 		},
 		DestinationState: stateswitch.State(models.HostStatusKnown),
-	})
-
-	// Reset disabled host (do nothing)
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeResetHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusDisabled),
-		},
-		DestinationState: stateswitch.State(models.HostStatusDisabled),
 	})
 
 	// Reset host
@@ -222,15 +195,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 
 	// Install host
 
-	// Install disabled host will not do anything
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeInstallHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusDisabled),
-		},
-		DestinationState: stateswitch.State(models.HostStatusDisabled),
-	})
-
 	// Install day2 host
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeInstallHost,
@@ -240,30 +204,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		Condition:        th.IsDay2Host,
 		DestinationState: stateswitch.State(models.HostStatusInstalling),
 		PostTransition:   th.PostInstallHost,
-	})
-
-	// Disable host
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeDisableHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusDisconnected),
-			stateswitch.State(models.HostStatusDiscovering),
-			stateswitch.State(models.HostStatusInsufficient),
-			stateswitch.State(models.HostStatusKnown),
-			stateswitch.State(models.HostStatusPendingForInput),
-		},
-		DestinationState: stateswitch.State(models.HostStatusDisabled),
-		PostTransition:   th.PostDisableHost,
-	})
-
-	// Enable host
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeEnableHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusDisabled),
-		},
-		DestinationState: stateswitch.State(models.HostStatusDiscovering),
-		PostTransition:   th.PostEnableHost,
 	})
 
 	// Resetting pending user action
@@ -287,14 +227,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		PostTransition:   th.PostResettingPendingUserAction,
 	})
 
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeResettingPendingUserAction,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusDisabled),
-		},
-		DestinationState: stateswitch.State(models.HostStatusDisabled),
-	})
-
 	// Unbind host
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeUnbindHost,
@@ -303,7 +235,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusDiscovering),
 			stateswitch.State(models.HostStatusDisconnected),
 			stateswitch.State(models.HostStatusInsufficient),
-			stateswitch.State(models.HostStatusDisabled),
 			stateswitch.State(models.HostStatusPendingForInput),
 		},
 		DestinationState: stateswitch.State(models.HostStatusUnbinding),
@@ -684,7 +615,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 
 	// Noop transitions
 	for _, state := range []stateswitch.State{
-		stateswitch.State(models.HostStatusDisabled),
 		stateswitch.State(models.HostStatusError),
 		stateswitch.State(models.HostStatusCancelled),
 		stateswitch.State(models.HostStatusResetting),

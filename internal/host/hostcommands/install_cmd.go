@@ -63,7 +63,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	step.StepType = models.StepTypeInstall
 	step.Command = "bash"
 
-	cluster, err := common.GetClusterFromDBWithoutDisabledHosts(i.db, *host.ClusterID)
+	cluster, err := common.GetClusterFromDBWithHosts(i.db, *host.ClusterID)
 	if err != nil {
 		i.log.Errorf("failed to get cluster %s", host.ClusterID)
 		return nil, err
