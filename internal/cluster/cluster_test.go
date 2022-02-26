@@ -2176,7 +2176,7 @@ var _ = Describe("insufficient_state", func() {
 	})
 
 	It("works", func() {
-		replyErr := clusterApi.RegisterCluster(ctx, &cluster, true, models.ImageTypeFullIso)
+		replyErr := clusterApi.RegisterCluster(ctx, &cluster)
 		Expect(replyErr).Should(BeNil())
 		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 		c := getClusterFromDB(*cluster.ID, db)
@@ -2879,7 +2879,7 @@ var _ = Describe("Update AMS subscription ID", func() {
 				ID: &clusterID,
 			},
 		}
-		err := api.RegisterCluster(ctx, &c, true, models.ImageTypeFullIso)
+		err := api.RegisterCluster(ctx, &c)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		subID := strfmt.UUID(uuid.New().String())
@@ -2937,7 +2937,7 @@ var _ = Describe("Validation metrics and events", func() {
 		bytes, err := json.Marshal(validationRes)
 		Expect(err).ShouldNot(HaveOccurred())
 		c.ValidationsInfo = string(bytes)
-		err = m.RegisterCluster(ctx, &c, true, models.ImageTypeFullIso)
+		err = m.RegisterCluster(ctx, &c)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		createHost(clusterID, models.HostStatusInsufficient, db)

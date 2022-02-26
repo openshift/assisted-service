@@ -277,8 +277,8 @@ var _ = Describe("cluster reconcile", func() {
 			}
 
 			It("create new cluster", func() {
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*releaseImage.Version))
 					}).Return(clusterReply, nil)
 				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
@@ -294,8 +294,8 @@ var _ = Describe("cluster reconcile", func() {
 				httpProxy := "http://proxy.org"
 				httpsProxy := "https://secureproxy.org"
 				noProxy := "acme.com"
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.HTTPProxy)).To(Equal(httpProxy))
 						Expect(swag.StringValue(params.NewClusterParams.HTTPSProxy)).To(Equal(httpsProxy))
 						Expect(swag.StringValue(params.NewClusterParams.NoProxy)).To(Equal(noProxy))
@@ -311,8 +311,8 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create new cluster with IgnitionEndpoint CaCertificate", func() {
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*releaseImage.Version))
 					}).Return(clusterReply, nil)
 				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
@@ -348,8 +348,8 @@ var _ = Describe("cluster reconcile", func() {
 					URL:              &armReleaseImageUrl,
 					Version:          &armOcpReleaseVersion,
 				}
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*armReleaseImage.Version))
 						Expect(params.NewClusterParams.CPUArchitecture).To(Equal(CpuArchitectureArm))
 					}).Return(clusterReply, nil)
@@ -378,8 +378,8 @@ var _ = Describe("cluster reconcile", func() {
 					},
 				}
 
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(params.NewClusterParams.DiskEncryption).NotTo(BeNil())
 						Expect(swag.StringValue(params.NewClusterParams.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnMasters))
 						Expect(swag.StringValue(params.NewClusterParams.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTang))
@@ -400,8 +400,8 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create sno cluster", func() {
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(ocpReleaseVersion))
 					}).Return(clusterReply, nil)
 				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
@@ -418,8 +418,8 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create single node cluster", func() {
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
-					Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.HighAvailabilityMode)).
 							To(Equal(HighAvailabilityModeNone))
 					}).Return(clusterReply, nil)
@@ -437,8 +437,8 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create none platform cluster", func() {
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
-					Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.BoolValue(params.NewClusterParams.UserManagedNetworking)).
 							To(BeTrue())
 					}).Return(clusterReply, nil)
@@ -551,7 +551,7 @@ var _ = Describe("cluster reconcile", func() {
 
 		It("create new cluster backend failure", func() {
 			errString := "internal error"
-			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
+			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(nil, errors.Errorf(errString))
 			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
@@ -1081,7 +1081,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).Should(Equal(ctrl.Result{}))
 
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
-			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cd)
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())

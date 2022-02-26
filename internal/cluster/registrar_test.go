@@ -21,7 +21,6 @@ var _ = Describe("registrar", func() {
 		id              strfmt.UUID
 		updateErr       error
 		cluster         common.Cluster
-		infraEnv        *common.InfraEnv
 		dbName          string
 	)
 
@@ -39,17 +38,15 @@ var _ = Describe("registrar", func() {
 				Status: swag.String(models.ClusterStatusInsufficient),
 			}}
 
-			updateErr = registerManager.RegisterCluster(ctx, &cluster, true, models.ImageTypeFullIso)
+			updateErr = registerManager.RegisterCluster(ctx, &cluster)
 			Expect(updateErr).Should(BeNil())
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 			cluster = getClusterFromDB(*cluster.ID, db)
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
-			infraEnv, updateErr = common.GetInfraEnvFromDB(db, id)
-			Expect(updateErr).Should(BeNil())
 		})
 
 		It("register a registered cluster", func() {
-			updateErr = registerManager.RegisterCluster(ctx, &cluster, true, models.ImageTypeFullIso)
+			updateErr = registerManager.RegisterCluster(ctx, &cluster)
 			Expect(updateErr).Should(HaveOccurred())
 
 			cluster = getClusterFromDB(*cluster.ID, db)
@@ -58,8 +55,7 @@ var _ = Describe("registrar", func() {
 
 		It("register a (soft) deleted cluster", func() {
 			Expect(db.Unscoped().Delete(&cluster).Error).ShouldNot(HaveOccurred())
-			Expect(db.Unscoped().Delete(infraEnv).Error).ShouldNot(HaveOccurred())
-			updateErr = registerManager.RegisterCluster(ctx, &cluster, true, models.ImageTypeFullIso)
+			updateErr = registerManager.RegisterCluster(ctx, &cluster)
 			Expect(updateErr).ShouldNot(HaveOccurred())
 
 			cluster = getClusterFromDB(*cluster.ID, db)
@@ -70,7 +66,7 @@ var _ = Describe("registrar", func() {
 			Expect(db.First(&common.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(0)))
 			Expect(db.Unscoped().First(&common.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(1)))
 
-			updateErr = registerManager.RegisterCluster(ctx, &cluster, true, models.ImageTypeFullIso)
+			updateErr = registerManager.RegisterCluster(ctx, &cluster)
 			Expect(updateErr).ShouldNot(HaveOccurred())
 
 			cluster = getClusterFromDB(*cluster.ID, db)
