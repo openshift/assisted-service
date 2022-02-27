@@ -22,8 +22,16 @@ You can read more about late binding [here](../hive-integration/late-binding.md)
 
 Operation ID | V1                                   | V2                  | Notes
 -------------|--------------------------------------|---------------------|-----------------------------------------------------------------------------------------------------------------------------
-ListEvents   | GET /v1/clusters/{cluster_id}/events | /v2/events          | V2 events may be filtered by, `cluster_id`, `infra_env_id`, `host_id`. [Example](rest-api-getting-started.md#Check-Status)
+ListEvents   | GET /v1/clusters/{cluster_id}/events | GET /v2/events          | V2 events may be filtered by, `cluster_id`, `infra_env_id`, `host_id`. [Example](rest-api-getting-started.md#Check-Status)
 
+
+
+### Operators
+
+Operation ID           | V1                          | V2                                                          | Notes
+-----------------------|-----------------------------|-------------------------------------------------------------|------
+ListSupportedOperators | GET /v1/supported-operators                 | GET /v2/supported-operators                 |
+ListOperatorProperties | GET /v1/supported-operators/{operator_name} | GET /v2/supported-operators/{operator_name} |
 
 
 ### Cluster
@@ -61,6 +69,8 @@ GetClusterHostRequirements        | GET /v1/clusters/{cluster_id}/host-requireme
 GetPreflightRequirements          | GET /v1/clusters/{cluster_id}/preflight-requirements    | GET /v2/clusters/{cluster_id}/preflight-requirements          |
 UploadLogs                        | POST /v1/clusters/{cluster_id}/logs                     | POST /v2/clusters/{cluster_id}/logs                           |
 UploadClusterIngressCert          | POST /v1/clusters/{cluster_id}/uploads/ingress-cert     | POST /v2/clusters/{cluster_id}/uploads/ingress-cert           |
+ListOfClusterOperators            | GET /v1/clusters/{cluster_id}/monitored_operators       | GET /v2/clusters/{cluster_id}/monitored-operators             |
+ReportMonitoredOperatorStatus     | PUT /v1/clusters/{cluster_id}/monitored_operators       | PUT /v2/clusters/{cluster_id}/monitored-operators             |
 
 #### Cluster Manifests
 Operation ID            | V1                                            | V2                                            | Notes

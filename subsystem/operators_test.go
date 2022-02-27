@@ -29,15 +29,15 @@ var _ = Describe("Operators endpoint tests", func() {
 
 	Context("supported-operators", func() {
 		It("should return all supported operators", func() {
-			reply, err := userBMClient.Operators.ListSupportedOperators(context.TODO(), opclient.NewListSupportedOperatorsParams())
+			reply, err := userBMClient.Operators.V2ListSupportedOperators(context.TODO(), opclient.NewV2ListSupportedOperatorsParams())
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(reply.GetPayload()).To(ConsistOf(ocs.Operator.Name, lso.Operator.Name, cnv.Operator.Name))
 		})
 
 		It("should provide operator properties", func() {
-			params := opclient.NewListOperatorPropertiesParams().WithOperatorName(ocs.Operator.Name)
-			reply, err := userBMClient.Operators.ListOperatorProperties(context.TODO(), params)
+			params := opclient.NewV2ListOperatorPropertiesParams().WithOperatorName(ocs.Operator.Name)
+			reply, err := userBMClient.Operators.V2ListOperatorProperties(context.TODO(), params)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(reply.Payload).To(BeEquivalentTo(models.OperatorProperties{}))
@@ -212,7 +212,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		})
 
 		It("should be all returned", func() {
-			ops, err := agentBMClient.Operators.ListOfClusterOperators(ctx, opclient.NewListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(ops.GetPayload())).To(BeNumerically(">=", 3))
@@ -235,7 +235,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		})
 
 		It("should selected be returned", func() {
-			ops, err := agentBMClient.Operators.ListOfClusterOperators(ctx, opclient.NewListOfClusterOperatorsParams().
+			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().
 				WithClusterID(*cluster.Payload.ID).
 				WithOperatorName(&ocs.Operator.Name))
 
@@ -245,9 +245,9 @@ var _ = Describe("Operators endpoint tests", func() {
 		})
 
 		It("should be updated", func() {
-			reportMonitoredOperatorStatus(ctx, agentBMClient, *cluster.Payload.ID, ocs.Operator.Name, models.OperatorStatusFailed)
+			v2ReportMonitoredOperatorStatus(ctx, agentBMClient, *cluster.Payload.ID, ocs.Operator.Name, models.OperatorStatusFailed)
 
-			ops, err := agentBMClient.Operators.ListOfClusterOperators(ctx, opclient.NewListOfClusterOperatorsParams().
+			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().
 				WithClusterID(*cluster.Payload.ID).
 				WithOperatorName(&ocs.Operator.Name))
 
@@ -283,7 +283,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 
 			By("Report operator available", func() {
-				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusAvailable)
+				v2ReportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusAvailable)
 			})
 
 			By("Wait for cluster to be installed", func() {
@@ -306,7 +306,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 
 			By("Report operator failed", func() {
-				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusFailed)
+				v2ReportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusFailed)
 			})
 
 			By("Wait for cluster to be degraded", func() {
@@ -341,7 +341,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 
 			By("Report operator available", func() {
-				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusAvailable)
+				v2ReportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusAvailable)
 			})
 
 			By("Wait for cluster to be installed", func() {
@@ -364,7 +364,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 
 			By("Report operator failed", func() {
-				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusFailed)
+				v2ReportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusFailed)
 			})
 
 			By("Wait for cluster to be degraded", func() {
