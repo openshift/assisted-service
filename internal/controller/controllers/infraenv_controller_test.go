@@ -721,6 +721,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Expect(c.Create(ctx, nmstateConfig)).To(BeNil())
 			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
@@ -745,6 +746,32 @@ var _ = Describe("infraEnv reconcile", func() {
 				Namespace: testNamespace,
 				Name:      "infraEnvImage",
 			}
+			Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
+			Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
+			Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
+			Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
+
+			// Remove nmstate selector from infraenv and reconcile again, this
+			// time we expect the StaticNetworkConfig in the
+			// InfraEnvUpdateParams to be empty. This extra assertion was added
+			// to make sure that the infra env doesn't use all NMStateConfigs
+			// in the namespace when the selector is omitted.
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
+					Expect(params.InfraEnvUpdateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
+					Expect(params.InfraEnvUpdateParams.StaticNetworkConfig).To(BeEmpty())
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL}}, nil).Times(1)
+
+			infraEnvImage.Spec.NMStateConfigLabelSelector = metav1.LabelSelector{}
+			Expect(c.Update(ctx, infraEnvImage)).To(BeNil())
+			res, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
 			Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
 			Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
 			Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
