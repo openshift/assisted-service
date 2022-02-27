@@ -574,17 +574,13 @@ func getCluster(ctx context.Context, cli *client.AssistedInstall) error {
 }
 
 func updateCluster(ctx context.Context, cli *client.AssistedInstall) error {
+	dnsDomain := "a.com"
 	_, err := cli.Installer.UpdateCluster(
 		ctx,
 		&installer.UpdateClusterParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 			ClusterUpdateParams: &models.ClusterUpdateParams{
-				HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-					{
-						Hostname: "test",
-						ID:       strfmt.UUID(uuid.New().String()),
-					},
-				},
+				BaseDNSDomain: &dnsDomain,
 			}})
 	return err
 }

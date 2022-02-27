@@ -2078,8 +2078,6 @@ var _ = Describe("cluster", func() {
 	masterHostId1 := strfmt.UUID(uuid.New().String())
 	masterHostId2 := strfmt.UUID(uuid.New().String())
 	masterHostId3 := strfmt.UUID(uuid.New().String())
-	diskID1 := "/dev/sda"
-	diskID2 := "/dev/sdb"
 
 	var (
 		bm             *bareMetalInventory
@@ -2087,6 +2085,7 @@ var _ = Describe("cluster", func() {
 		db             *gorm.DB
 		ctx            = context.Background()
 		clusterID      strfmt.UUID
+		infraEnvID     strfmt.UUID
 		dbName         string
 		ignitionReader io.ReadCloser
 	)
@@ -2120,20 +2119,6 @@ var _ = Describe("cluster", func() {
 		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 	})
-
-	addHost := func(hostId strfmt.UUID, role models.HostRole, state, kind string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
-		host := models.Host{
-			ID:         &hostId,
-			InfraEnvID: clusterId,
-			ClusterID:  &clusterId,
-			Status:     swag.String(state),
-			Kind:       swag.String(kind),
-			Role:       role,
-			Inventory:  inventory,
-		}
-		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		return host
-	}
 
 	mockClusterPrepareForInstallationSuccess := func(mockClusterApi *cluster.MockAPI) {
 		mockClusterApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -2234,6 +2219,7 @@ var _ = Describe("cluster", func() {
 	Context("Get", func() {
 		BeforeEach(func() {
 			clusterID = strfmt.UUID(uuid.New().String())
+			infraEnvID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID:                 &clusterID,
 				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
@@ -2244,9 +2230,9 @@ var _ = Describe("cluster", func() {
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
-			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-			addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
-			addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
+			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+			addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
 		})
 
 		Context("GetCluster", func() {
@@ -2577,26 +2563,6 @@ var _ = Describe("cluster", func() {
 			})
 		})
 
-		It("update role in none ha mode, must fail", func() {
-			clusterID = strfmt.UUID(uuid.New().String())
-			noneHaMode := models.ClusterHighAvailabilityModeNone
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
-				ID:                   &clusterID,
-				HighAvailabilityMode: &noneHaMode,
-			}}).Error
-			Expect(err).ShouldNot(HaveOccurred())
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-			testRole := models.ClusterUpdateParamsHostsRolesItems0{ID: masterHostId1, Role: models.HostRoleUpdateParamsMaster}
-			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-				ClusterID: clusterID,
-				ClusterUpdateParams: &models.ClusterUpdateParams{
-					HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{&testRole},
-				},
-			})
-			verifyApiError(reply, http.StatusBadRequest)
-		})
-
 		It("update cluster day1 with APIVipDNSName failed", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
@@ -2636,7 +2602,8 @@ var _ = Describe("cluster", func() {
 			actual := reply.(*installer.V2RegisterClusterCreated)
 
 			clusterId := *actual.Payload.ID
-			addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, "known", models.HostKindHost, clusterId, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterId, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 			newClusterName := "new-cluster-name"
 
 			refreshError := errors.New("boom!")
@@ -3113,186 +3080,6 @@ var _ = Describe("cluster", func() {
 			})
 		})
 
-		Context("Hostname", func() {
-			BeforeEach(func() {
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
-					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
-				Expect(err).ToNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-			})
-			It("Valid hostname", func() {
-				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-							{
-								Hostname: "a.b.c",
-								ID:       masterHostId1,
-							},
-						},
-					}})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-			})
-			It("Valid splitted hostname", func() {
-				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-							{
-								Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.123456789",
-								ID:       masterHostId1,
-							},
-						},
-					}})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-			})
-			It("Too long part", func() {
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-							{
-								Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij",
-								ID:       masterHostId1,
-							},
-						},
-					}})
-				Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-			})
-			It("Too long", func() {
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-							{
-								Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.1234567890",
-								ID:       masterHostId1,
-							},
-						},
-					}})
-				Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-			})
-			It("Preceding hyphen", func() {
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-							{
-								Hostname: "-abc",
-								ID:       masterHostId1,
-							},
-						},
-					}})
-				Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-			})
-		})
-
-		Context("MachineConfigPoolName", func() {
-			BeforeEach(func() {
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
-					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
-				Expect(err).ToNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-			})
-			It("Valid machine config pool name", func() {
-				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						HostsMachineConfigPoolNames: []*models.ClusterUpdateParamsHostsMachineConfigPoolNamesItems0{
-							{
-								MachineConfigPoolName: "new_pool",
-								ID:                    masterHostId1,
-							},
-						},
-					}})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-			})
-		})
-
-		Context("Installation Disk Path", func() {
-			BeforeEach(func() {
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-			})
-
-			It("Valid selection of install disk", func() {
-				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						DisksSelectedConfig: []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
-							{
-								DisksConfig: []*models.DiskConfigParams{
-									{ID: &diskID1, Role: models.DiskRoleInstall},
-									{ID: &diskID2, Role: models.DiskRoleNone},
-								},
-								ID: masterHostId1,
-							},
-						},
-					},
-				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-			})
-
-			It("duplicate install selected", func() {
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						DisksSelectedConfig: []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
-							{
-								DisksConfig: []*models.DiskConfigParams{
-									{ID: &diskID1, Role: models.DiskRoleInstall},
-									{ID: &diskID2, Role: models.DiskRoleInstall},
-								},
-								ID: masterHostId1,
-							},
-						},
-					},
-				})
-				verifyApiError(reply, http.StatusConflict)
-			})
-		})
-
 		Context("Day2 api vip dnsname/ip", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
@@ -3318,66 +3105,63 @@ var _ = Describe("cluster", func() {
 		Context("Day2 update hostname", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
+				infraEnvID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
 					ID:   &clusterID,
 					Kind: swag.String(models.ClusterKindAddHostsCluster),
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
-				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindAddToExistingClusterHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindAddToExistingClusterHost, infraEnvID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			})
 			It("update hostname, all in known", func() {
 				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(2)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-							{
-								Hostname: "a.b.c",
-								ID:       masterHostId1,
-							},
-						},
-					}})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     masterHostId1,
+					HostUpdateParams: &models.HostUpdateParams{
+						HostName: swag.String("a.b.c"),
+					},
+				})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
 			})
 			It("update hostname, one host in installing", func() {
-				addHost(masterHostId3, models.HostRoleMaster, "added-to-existing-cluster", models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname3", "bootMode", "1.2.3.6/24", "10.11.50.70/16"), db)
+				addHost(masterHostId3, models.HostRoleMaster, "added-to-existing-cluster", models.HostKindAddToExistingClusterHost, infraEnvID, clusterID, getInventoryStr("hostname3", "bootMode", "1.2.3.6/24", "10.11.50.70/16"), db)
 				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-							{
-								Hostname: "a.b.c",
-								ID:       masterHostId1,
-							},
-						},
-					}})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     masterHostId1,
+					HostUpdateParams: &models.HostUpdateParams{
+						HostName: swag.String("a.b.c"),
+					},
+				})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
 			})
 		})
 
 		Context("Update Network", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
+				infraEnvID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
-				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
-				addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+				addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
 				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
 					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
 				Expect(err).ToNot(HaveOccurred())
@@ -4461,6 +4245,7 @@ var _ = Describe("cluster", func() {
 		BeforeEach(func() {
 			DoneChannel = make(chan int)
 			clusterID = strfmt.UUID(uuid.New().String())
+			infraEnvID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID:               &clusterID,
 				APIVip:           "10.11.12.13",
@@ -4470,9 +4255,9 @@ var _ = Describe("cluster", func() {
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
-			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-			addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
-			addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "10.11.200.180/16"), db)
+			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+			addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname2", "bootMode", "10.11.200.180/16"), db)
 			err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
 				makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
 			Expect(err).ToNot(HaveOccurred())
@@ -7462,137 +7247,179 @@ var _ = Describe("infraEnvs host", func() {
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusInternalServerError)))
 		})
 
-		It("update host name success", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Return(nil).Times(1)
-			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockUsage.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
-				InfraEnvID: infraEnvID,
-				HostID:     hostID,
-				HostUpdateParams: &models.HostUpdateParams{
-					HostName: swag.String("somehostname"),
-				},
-			})
-			Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
-		})
+		Context("Hostname", func() {
 
-		It("update host name failure", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
-			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
-				InfraEnvID: infraEnvID,
-				HostID:     hostID,
-				HostUpdateParams: &models.HostUpdateParams{
-					HostName: swag.String("somehostname"),
-				},
-			})
-			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
-		})
+			postUpdateCalls := func() {
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockUsage.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+				mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			}
 
-		It("update host name invalid format", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
-				InfraEnvID: infraEnvID,
-				HostID:     hostID,
-				HostUpdateParams: &models.HostUpdateParams{
-					HostName: swag.String("somehostnamei@dflkh"),
-				},
-			})
-			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-		})
-
-		It("update disks config success", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), diskID1).Return(nil).Times(1)
-			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
-				InfraEnvID: infraEnvID,
-				HostID:     hostID,
-				HostUpdateParams: &models.HostUpdateParams{
-					DisksSelectedConfig: []*models.DiskConfigParams{
-						{ID: &diskID1, Role: models.DiskRoleInstall},
-						{ID: &diskID2, Role: models.DiskRoleNone},
+			invalidHostnameCheck := func(hostname string) {
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), hostname, gomock.Any()).Times(0)
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						HostName: swag.String(hostname),
 					},
-				},
-			})
-			Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
-		})
+				})
+				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			}
 
-		It("update disks config invalid config, multiple boot disk", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
-				InfraEnvID: infraEnvID,
-				HostID:     hostID,
-				HostUpdateParams: &models.HostUpdateParams{
-					DisksSelectedConfig: []*models.DiskConfigParams{
-						{ID: &diskID1, Role: models.DiskRoleInstall},
-						{ID: &diskID2, Role: models.DiskRoleInstall},
+			BeforeEach(func() {
+				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			})
+
+			It("update host name success", func() {
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Return(nil).Times(1)
+				postUpdateCalls()
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						HostName: swag.String("somehostname"),
 					},
-				},
+				})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
 			})
-			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+
+			It("Valid splitted hostname", func() {
+				hostname := "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.123456789"
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), hostname, gomock.Any()).Return(nil).Times(1)
+				postUpdateCalls()
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						HostName: swag.String(hostname),
+					},
+				})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
+			})
+
+			It("update host name failure", func() {
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						HostName: swag.String("somehostname"),
+					},
+				})
+				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+			})
+
+			It("update host name invalid format", func() {
+				hostname := "somehostnamei@dflkh"
+				invalidHostnameCheck(hostname)
+			})
+
+			It("Too long part", func() {
+				hostname := "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), hostname, gomock.Any()).Times(0)
+				invalidHostnameCheck(hostname)
+			})
+
+			It("Too long", func() {
+				hostname := "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.1234567890"
+				invalidHostnameCheck(hostname)
+
+			})
+
+			It("Preceding hyphen", func() {
+				hostname := "-abc"
+				invalidHostnameCheck(hostname)
+			})
 		})
 
-		It("update machine pool success", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), "machinepool").Return(nil).Times(1)
-			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
-				InfraEnvID: infraEnvID,
-				HostID:     hostID,
-				HostUpdateParams: &models.HostUpdateParams{
-					MachineConfigPoolName: swag.String("machinepool"),
-				},
+		Context("Installation Disk Path", func() {
+			It("update disks config success", func() {
+				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), diskID1).Return(nil).Times(1)
+				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						DisksSelectedConfig: []*models.DiskConfigParams{
+							{ID: &diskID1, Role: models.DiskRoleInstall},
+							{ID: &diskID2, Role: models.DiskRoleNone},
+						},
+					},
+				})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
 			})
-			Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
+
+			It("update disks config invalid config, multiple boot disk", func() {
+				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						DisksSelectedConfig: []*models.DiskConfigParams{
+							{ID: &diskID1, Role: models.DiskRoleInstall},
+							{ID: &diskID2, Role: models.DiskRoleInstall},
+						},
+					},
+				})
+				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+			})
 		})
 
-		It("update machine pool failure", func() {
-			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), "machinepool").Return(fmt.Errorf("some error")).Times(1)
-			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
-				InfraEnvID: infraEnvID,
-				HostID:     hostID,
-				HostUpdateParams: &models.HostUpdateParams{
-					MachineConfigPoolName: swag.String("machinepool"),
-				},
+		Context("MachineConfigPoolName", func() {
+			It("update machine pool success", func() {
+				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), "machinepool").Return(nil).Times(1)
+				mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						MachineConfigPoolName: swag.String("machinepool"),
+					},
+				})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
 			})
-			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+
+			It("update machine pool failure", func() {
+				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), "machinepool").Return(fmt.Errorf("some error")).Times(1)
+				mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						MachineConfigPoolName: swag.String("machinepool"),
+					},
+				})
+				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+			})
 		})
 
 		It("update ignition endpoint token success", func() {
