@@ -120,8 +120,8 @@ func registerHostsAndSetRolesV6(clusterID, infraEnvID strfmt.UUID, numHosts int)
 	generateFullMeshConnectivity(ctx, ips[0], hosts...)
 	apiVip := "1001:db8::64"
 	ingressVip := "1001:db8::65"
-	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-		ClusterUpdateParams: &models.ClusterUpdateParams{
+	_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+		ClusterUpdateParams: &models.V2ClusterUpdateParams{
 			VipDhcpAllocation: swag.Bool(false),
 			APIVip:            &apiVip,
 			IngressVip:        &ingressVip,

@@ -503,8 +503,8 @@ func generateDomainNameResolutionReply(ctx context.Context, h *models.Host, doma
 func updateVipParams(ctx context.Context, clusterID strfmt.UUID) {
 	apiVip := "1.2.3.5"
 	ingressVip := "1.2.3.6"
-	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-		ClusterUpdateParams: &models.ClusterUpdateParams{
+	_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+		ClusterUpdateParams: &models.V2ClusterUpdateParams{
 			VipDhcpAllocation: swag.Bool(false),
 			APIVip:            &apiVip,
 			IngressVip:        &ingressVip,

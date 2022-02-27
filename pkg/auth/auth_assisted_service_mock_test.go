@@ -237,7 +237,7 @@ func (f fakeInventory) ResetHost(ctx context.Context, params installer.ResetHost
 }
 
 func (f fakeInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
-	return installer.NewUpdateClusterCreated()
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (f fakeInventory) V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder {
