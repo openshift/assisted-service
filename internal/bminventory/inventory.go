@@ -140,7 +140,6 @@ type InstallerInternals interface {
 	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams) error
 	GetCommonHostInternal(ctx context.Context, infraEnvId string, hostId string) (*common.Host, error)
 	UpdateHostApprovedInternal(ctx context.Context, infraEnvId string, hostId string, approved bool) error
-	UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error)
 	V2UpdateHostInstallerArgsInternal(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) (*models.Host, error)
 	UpdateHostIgnitionInternal(ctx context.Context, params installer.UpdateHostIgnitionParams) (*models.Host, error)
 	V2UpdateHostIgnitionInternal(ctx context.Context, params installer.V2UpdateHostIgnitionParams) (*models.Host, error)
@@ -3450,50 +3449,8 @@ func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.Lis
 	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
-func (b *bareMetalInventory) UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error) {
-
-	log := logutil.FromContext(ctx, b.log)
-
-	err := hostutil.ValidateInstallerArgs(params.InstallerArgsParams.Args)
-	if err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	h, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		return nil, err
-	}
-
-	argsBytes, err := json.Marshal(params.InstallerArgsParams.Args)
-	if err != nil {
-		return nil, err
-	}
-
-	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Update("installer_args", string(argsBytes)).Error
-	if err != nil {
-		log.WithError(err).Errorf("failed to update host %s", params.HostID)
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	// TODO: pass InfraEnvID instead of ClusterID
-	eventgen.SendHostInstallerArgsAppliedEvent(ctx, b.eventsHandler, params.HostID, h.InfraEnvID, &params.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
-	log.Infof("Custom installer arguments were applied to host %s in cluster %s", params.HostID, params.ClusterID)
-
-	h, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		log.WithError(err).Errorf("failed to get host %s after update", params.HostID)
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	return &h.Host, nil
-}
-
 func (b *bareMetalInventory) UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder {
-	updatedHost, err := b.UpdateHostInstallerArgsInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewUpdateHostInstallerArgsCreated().WithPayload(updatedHost)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func shouldHandle(params installer.V2PostStepReplyParams) bool {
@@ -4568,17 +4525,7 @@ func (b *bareMetalInventory) UpdateClusterLogsProgress(ctx context.Context, para
 }
 
 func (b *bareMetalInventory) UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("update log progress on host %s on %s cluster to %s", params.HostID, params.ClusterID, common.LogStateValue(params.LogsProgressParams.LogsState))
-	currentHost, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
-	if err == nil {
-		err = b.hostApi.UpdateLogsProgress(ctx, &currentHost.Host, string(common.LogStateValue(params.LogsProgressParams.LogsState)))
-	}
-	if err != nil {
-		b.log.WithError(err).Errorf("failed to update log progress %s on cluster %s host %s", common.LogStateValue(params.LogsProgressParams.LogsState), params.ClusterID.String(), params.HostID.String())
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewUpdateHostLogsProgressNoContent()
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {

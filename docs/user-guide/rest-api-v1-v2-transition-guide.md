@@ -72,14 +72,14 @@ DownloadClusterManifest	| GET /v1/clusters/{cluster_id}/manifests/files	| GET /v
 
 
 #### Cluster APIs used by Agent / Controller
-Operation ID            | V1                                                           | V2                                                           | Notes
-------------------------|--------------------------------------------------------------|--------------------------------------------------------------|------
-ListClusterManifests	| GET /v1/clusters/{cluster_id}/manifests	                   | GET /v2/clusters/{cluster_id}/manifests	                  |
-CreateClusterManifest	| POST /v1/clusters/{cluster_id}/manifests	                   | POST /v2/clusters/{cluster_id}/manifests	                  |
-DeleteClusterManifest	| DELETE /v1/clusters/{cluster_id}/manifests	               | DELETE /v2/clusters/{cluster_id}/manifests	                  |
-DownloadClusterManifest	| GET /v1/clusters/{cluster_id}/manifests/files     	       | GET /v2/clusters/{cluster_id}/manifests/files                |
-CompleteInstallation    | POST /v1/clusters/{cluster_id}/actions/complete_installation | POST /v2/clusters/{cluster_id}/actions/complete-installation |
-
+Operation ID            | V1                                                           | V2                                                              | Notes
+------------------------|--------------------------------------------------------------|-----------------------------------------------------------------|------
+ListClusterManifests	| GET /v1/clusters/{cluster_id}/manifests	                   | GET /v2/clusters/{cluster_id}/manifests	                     |
+CreateClusterManifest	| POST /v1/clusters/{cluster_id}/manifests	                   | POST /v2/clusters/{cluster_id}/manifests	                     |
+DeleteClusterManifest	| DELETE /v1/clusters/{cluster_id}/manifests	               | DELETE /v2/clusters/{cluster_id}/manifests	                     |
+DownloadClusterManifest	| GET /v1/clusters/{cluster_id}/manifests/files     	       | GET /v2/clusters/{cluster_id}/manifests/files                   |
+CompleteInstallation    | POST /v1/clusters/{cluster_id}/actions/complete_installation | POST /v2/clusters/{cluster_id}/actions/complete-installation    |
+UpdateHostLogsProgress  | PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress  | PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/logs-progress |
 
 ### InfraEnv
 #### InfraEnv CRUD

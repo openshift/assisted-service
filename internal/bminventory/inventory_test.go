@@ -8235,7 +8235,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		kubeconfigFile, err = os.Open("../../subsystem/test_kubeconfig")
 		Expect(err).ShouldNot(HaveOccurred())
 		hostID = strfmt.UUID(uuid.New().String())
-		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
+		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, "{}", db)
 
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
@@ -8320,36 +8320,6 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCollecting)).Return(nil).Times(1)
 		reply := bm.V2UploadLogs(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UploadLogsNoContent()))
-	})
-	It("start collecting hosts logs indication", func() {
-		newHostID := strfmt.UUID(uuid.New().String())
-		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
-		params := installer.UpdateHostLogsProgressParams{
-			ClusterID:   clusterID,
-			HostID:      *host.ID,
-			HTTPRequest: request,
-			LogsProgressParams: &models.LogsProgressParams{
-				LogsState: common.LogStatePtr(models.LogsStateRequested),
-			},
-		}
-		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateRequested)).Return(nil).Times(1)
-		reply := bm.UpdateHostLogsProgress(ctx, params)
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostLogsProgressNoContent()))
-	})
-	It("complete collecting hosts logs indication", func() {
-		newHostID := strfmt.UUID(uuid.New().String())
-		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
-		params := installer.UpdateHostLogsProgressParams{
-			ClusterID:   clusterID,
-			HostID:      *host.ID,
-			HTTPRequest: request,
-			LogsProgressParams: &models.LogsProgressParams{
-				LogsState: common.LogStatePtr(models.LogsStateCompleted),
-			},
-		}
-		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCompleted)).Return(nil).Times(1)
-		reply := bm.UpdateHostLogsProgress(ctx, params)
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostLogsProgressNoContent()))
 	})
 
 	It(" V2 start collecting hosts logs indication", func() {
@@ -11757,90 +11727,6 @@ var _ = Describe("UnbindHost", func() {
 		verifyApiError(response, http.StatusInternalServerError)
 	})
 
-})
-
-var _ = Describe("UpdateHostInstallerArgs", func() {
-	var (
-		bm        *bareMetalInventory
-		cfg       Config
-		db        *gorm.DB
-		ctx       = context.Background()
-		clusterID strfmt.UUID
-		hostID    strfmt.UUID
-		dbName    string
-	)
-
-	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-		clusterID = strfmt.UUID(uuid.New().String())
-		bm = createInventory(db, cfg)
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
-		Expect(err).ShouldNot(HaveOccurred())
-
-		// add a host
-		hostID = strfmt.UUID(uuid.New().String())
-		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, "{}", db)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
-	It("saves the given array to the host", func() {
-		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
-		params := installer.UpdateHostInstallerArgsParams{
-			ClusterID:           clusterID,
-			HostID:              hostID,
-			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
-		}
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostInstallerArgsAppliedEventName)))
-		response := bm.UpdateHostInstallerArgs(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostInstallerArgsCreated{}))
-
-		var updated models.Host
-		err := db.First(&updated, "id = ?", hostID).Error
-		Expect(err).ShouldNot(HaveOccurred())
-
-		var newArgs []string
-		err = json.Unmarshal([]byte(updated.InstallerArgs), &newArgs)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		Expect(newArgs).To(Equal(args))
-	})
-
-	It("returns not found with a non-existant cluster", func() {
-		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
-		params := installer.UpdateHostInstallerArgsParams{
-			ClusterID:           strfmt.UUID(uuid.New().String()),
-			HostID:              hostID,
-			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
-		}
-		response := bm.UpdateHostInstallerArgs(ctx, params)
-		verifyApiError(response, http.StatusNotFound)
-	})
-
-	It("returns not found with a non-existant host", func() {
-		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
-		params := installer.UpdateHostInstallerArgsParams{
-			ClusterID:           clusterID,
-			HostID:              strfmt.UUID(uuid.New().String()),
-			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
-		}
-		response := bm.UpdateHostInstallerArgs(ctx, params)
-		verifyApiError(response, http.StatusNotFound)
-	})
-
-	It("returns bad request when provided an invalid flag", func() {
-		args := []string{"--append-karg", "nameserver=8.8.8.8", "-a"}
-		params := installer.UpdateHostInstallerArgsParams{
-			ClusterID:           clusterID,
-			HostID:              hostID,
-			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
-		}
-		response := bm.UpdateHostInstallerArgs(ctx, params)
-		verifyApiError(response, http.StatusBadRequest)
-	})
 })
 
 var _ = Describe("V2UpdateHostInstallerArgs", func() {
