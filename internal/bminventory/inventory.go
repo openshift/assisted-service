@@ -128,7 +128,7 @@ type OCPClusterAPI interface {
 
 //go:generate mockgen -package bminventory -destination mock_installer_internal.go . InstallerInternals
 type InstallerInternals interface {
-	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.V2RegisterClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error)
+	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.V2RegisterClusterParams) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error)
 	UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams) (*common.Cluster, error)
 	UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error
@@ -459,8 +459,7 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 func (b *bareMetalInventory) RegisterClusterInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
-	params installer.V2RegisterClusterParams,
-	v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error) {
+	params installer.V2RegisterClusterParams) (*common.Cluster, error) {
 
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.V2GetClusterURL{ClusterID: id}
@@ -620,7 +619,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	err = b.clusterApi.RegisterCluster(ctx, &cluster, v1Flag, models.ImageType(b.Config.ISOImageType))
+	err = b.clusterApi.RegisterCluster(ctx, &cluster)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -819,7 +818,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
-	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster, v1Flag, models.ImageType(b.Config.ISOImageType))
+	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster)
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", clusterName)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)

@@ -68,9 +68,9 @@ var ClusterOwnerFileNames = []string{
 
 type RegistrationAPI interface {
 	// Register a new cluster
-	RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error
+	RegisterCluster(ctx context.Context, c *common.Cluster) error
 	// Register a new add-host cluster
-	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error
+	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error
 	// Register a new add-host-ocp cluster
 	RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error
 	//deregister cluster
@@ -190,12 +190,12 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 	}
 }
 
-func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error {
-	return m.registrationAPI.RegisterCluster(ctx, c, v1Flag, v1ISOType)
+func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error {
+	return m.registrationAPI.RegisterCluster(ctx, c)
 }
 
-func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster, v1Flag common.InfraEnvCreateFlag, v1ISOType models.ImageType) error {
-	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c, v1Flag, v1ISOType)
+func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
+	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c)
 	if err != nil {
 		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error(), models.ClusterKindAddHostsCluster)
 	} else {

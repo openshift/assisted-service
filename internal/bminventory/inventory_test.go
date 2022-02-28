@@ -8999,7 +8999,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		}
-		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered("", gomock.Any(), "Unknown").Times(1)
 		res := bm.V2ImportCluster(ctx, params)
 		actual := res.(*installer.V2ImportClusterCreated)
@@ -9026,7 +9026,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		}
-		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered("", gomock.Any(), "Unknown").Times(1)
 		res := bm.V2ImportCluster(ctx, params)
 		actual := res.(*installer.V2ImportClusterCreated)
@@ -10052,7 +10052,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			eventstest.WithMessageContainsMatcher("error"),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 		bm.clusterApi = mockClusterApi
-		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(errors.Errorf("error")).Times(1)
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(errors.Errorf("error")).Times(1)
 		mockClusterRegisterSteps()
 
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -10309,7 +10309,7 @@ var _ = Describe("AMS subscriptions", func() {
 				eventstest.WithMessageContainsMatcher("failed to integrate with AMS on cluster registration"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = mockClusterApi
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(nil)
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
 			mockClusterRegisterSteps()
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any(), clusterName).Return(nil, errors.New("dummy"))
 			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
@@ -10328,7 +10328,7 @@ var _ = Describe("AMS subscriptions", func() {
 				eventstest.WithMessageContainsMatcher("failed to integrate with AMS on cluster registration"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = mockClusterApi
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any(), common.SkipInfraEnvCreation, gomock.Any()).Return(nil)
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
 			mockClusterRegisterSteps()
 			mockAMSSubscription(ctx)
 			mockClusterApi.EXPECT().UpdateAmsSubscriptionID(ctx, gomock.Any(), strfmt.UUID("")).Return(common.NewApiError(http.StatusInternalServerError, errors.New("dummy")))

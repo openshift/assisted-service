@@ -1153,7 +1153,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,
-	}, false)
+	})
 
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
