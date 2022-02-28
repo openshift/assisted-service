@@ -49,7 +49,7 @@ GetClusterSupportedPlatforms      | N/A                                         
 GetClusterDefaultConfig           | GET /v1/clusters/default-config                         | GET /v2/clusters/default-config                               |
 GetClusterInstallConfig           | GET /v1/clusters/{cluster_id}/install-config            | GET /v2/clusters/{cluster_id}/install-config                  |
 UpdateClusterInstallConfig        | PATCH /v1/clusters/{cluster_id}/install-config          | PUT /v2/clusters/{cluster_id}/install-config                  |
-GetDiscoveryIgnition              | GET /v1/clusters/{cluster_id}/discovery-ignition        | N/A                                                           | Deprecated in favor of `v2DownloadInfraEnvFiles`
+GetDiscoveryIgnition              | GET /v1/clusters/{cluster_id}/discovery-ignition        | N/A                                                           | Deprecated in favor of `V2DownloadInfraEnvFiles`
 UpdateDiscoveryIgnition           | PATCH /v1/clusters/{cluster_id}/discovery-ignition      | N/A                                                           | Deprecated in favor of `UpdateInfraEnv`
 InstallCluster                    | POST /v1/clusters/{cluster_id}/actions/install          | POST /v2/clusters/{cluster_id}/actions/install                | [Example](rest-api-getting-started.md#start-Installation)
 CancelInstallation                | POST /v1/clusters/{cluster_id}/actions/cancel           | POST /v2/clusters/{cluster_id}/actions/cancel                 |

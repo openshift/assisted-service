@@ -131,7 +131,6 @@ type InstallerInternals interface {
 	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.V2RegisterClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error)
 	UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams) (*common.Cluster, error)
-	UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error)
@@ -272,82 +271,11 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 }
 
 func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-
-	cluster, err := common.GetClusterFromDB(b.db, params.ClusterID, common.SkipEagerLoading)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
-		return common.GenerateErrorResponder(err)
-	}
-
-	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get infra-env: %s", params.ClusterID)
-		return common.GenerateErrorResponder(err)
-	}
-
-	// update pull secret and proxy, since they could have been set during cluster update
-	proxy := models.Proxy{
-		HTTPProxy:  swag.String(cluster.HTTPProxy),
-		HTTPSProxy: swag.String(cluster.HTTPSProxy),
-		NoProxy:    swag.String(cluster.NoProxy),
-	}
-	infraEnv.PullSecret = cluster.PullSecret
-	infraEnv.Proxy = &proxy
-	infraEnv.IgnitionConfigOverride = cluster.IgnitionConfigOverrides
-
-	cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
-	if err != nil {
-		log.WithError(err).Error("Failed to format ignition config")
-		return common.GenerateErrorResponder(err)
-	}
-
-	configParams := models.DiscoveryIgnitionParams{Config: cfg}
-	return installer.NewGetDiscoveryIgnitionOK().WithPayload(&configParams)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder {
-	err := b.UpdateDiscoveryIgnitionInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewUpdateDiscoveryIgnitionCreated()
-}
-
-func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error {
-	log := logutil.FromContext(ctx, b.log)
-
-	//[TODO] - change the code to use InfraEnv once we move the code and test to use InfraEnv CRUD
-	c, err := b.getCluster(ctx, params.ClusterID.String())
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get cluster %s", params.ClusterID)
-		return err
-	}
-
-	_, err = ignition.ParseToLatest([]byte(params.DiscoveryIgnitionParams.Config))
-	if err != nil {
-		log.WithError(err).Errorf("Failed to parse ignition config patch %s", params.DiscoveryIgnitionParams)
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	err = b.db.Model(&common.Cluster{}).Where(identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Update("ignition_config_overrides", params.DiscoveryIgnitionParams.Config).Error
-	if err != nil {
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	eventgen.SendDiscoveryIgnitionConfigAppliedEvent(ctx, b.eventsHandler, params.ClusterID)
-
-	log.Infof("Custom discovery ignition config was applied to cluster %s", params.ClusterID)
-
-	existed, err := b.objectHandler.DeleteObject(ctx, getImageName(c.ID))
-	if err != nil {
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	if existed {
-		eventgen.SendIgnitionUpdatedThereforeImageDeletedEvent(ctx, b.eventsHandler, *c.ID)
-	}
-
-	return nil
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {

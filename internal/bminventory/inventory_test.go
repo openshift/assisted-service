@@ -8776,7 +8776,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 	})
 })
 
-var _ = Describe("GetDiscoveryIgnition", func() {
+var _ = Describe("V2DownloadInfraEnvFiles", func() {
 	var (
 		bm        *bareMetalInventory
 		cfg       Config
@@ -8813,38 +8813,50 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 
 	It("returns successfully without overrides", func() {
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
-		params := installer.GetDiscoveryIgnitionParams{ClusterID: clusterID}
-		response := bm.GetDiscoveryIgnition(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.GetDiscoveryIgnitionOK{}))
-		actual, ok := response.(*installer.GetDiscoveryIgnitionOK)
+		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: clusterID, FileName: "discovery.ign"}
+		response := bm.V2DownloadInfraEnvFiles(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&filemiddleware.FileMiddlewareResponder{}))
+
+		actual, ok := response.(*filemiddleware.FileMiddlewareResponder)
+		Expect(ok).To(BeTrue())
+		innerType, ok := actual.GetNext().(*installer.V2DownloadInfraEnvFilesOK)
 		Expect(ok).To(BeTrue())
 
-		config, report, err := ign_3_1.Parse([]byte(actual.Payload.Config))
+		body, err := ioutil.ReadAll(innerType.Payload)
+		Expect(err).ToNot(HaveOccurred())
+
+		config, report, err := ign_3_1.Parse(body)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(report.IsFatal()).To(BeFalse())
 		Expect(config.Ignition.Version).To(Equal("3.1.0"))
 	})
 
-	It("returns not found with a non-existant cluster", func() {
-		params := installer.GetDiscoveryIgnitionParams{ClusterID: strfmt.UUID(uuid.New().String())}
-		response := bm.GetDiscoveryIgnition(ctx, params)
+	It("returns not found with a non-existant InfraEnv", func() {
+		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: strfmt.UUID(uuid.New().String()), FileName: "discovery.ign"}
+		response := bm.V2DownloadInfraEnvFiles(ctx, params)
 		verifyApiError(response, http.StatusNotFound)
 	})
 
 	It("returns successfully with overrides", func() {
 		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(override, nil).Times(1)
-		db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("ignition_config_overrides", override)
+		db.Model(&common.InfraEnv{}).Where("id = ?", clusterID).Update("ignition_config_override", override)
+		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: *infraEnv.ID, FileName: "discovery.ign"}
+		response := bm.V2DownloadInfraEnvFiles(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&filemiddleware.FileMiddlewareResponder{}))
 
-		params := installer.GetDiscoveryIgnitionParams{ClusterID: clusterID}
-		response := bm.GetDiscoveryIgnition(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.GetDiscoveryIgnitionOK{}))
-		actual, ok := response.(*installer.GetDiscoveryIgnitionOK)
+		actual, ok := response.(*filemiddleware.FileMiddlewareResponder)
+		Expect(ok).To(BeTrue())
+		innerType, ok := actual.GetNext().(*installer.V2DownloadInfraEnvFilesOK)
 		Expect(ok).To(BeTrue())
 
-		config, report, err := ign_3_1.Parse([]byte(actual.Payload.Config))
+		body, err := ioutil.ReadAll(innerType.Payload)
+		Expect(err).ToNot(HaveOccurred())
+
+		config, report, err := ign_3_1.Parse(body)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(report.IsFatal()).To(BeFalse())
+		Expect(config.Ignition.Version).To(Equal("3.1.0"))
 
 		var file *ign_3_1_types.File
 		for i, f := range config.Storage.Files {
@@ -8857,7 +8869,7 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 	})
 })
 
-var _ = Describe("UpdateDiscoveryIgnition", func() {
+var _ = Describe("UpdateInfraEnv - Ignition", func() {
 	var (
 		bm        *bareMetalInventory
 		cfg       Config
@@ -8876,7 +8888,10 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
-		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{ID: &clusterID}}
+		infraEnv = common.InfraEnv{
+			PullSecret: `{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`,
+			InfraEnv:   models.InfraEnv{ID: &clusterID, PullSecretSet: true},
+		}
 		err = db.Create(&infraEnv).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		mockUsageReports()
@@ -8887,99 +8902,70 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		ctrl.Finish()
 	})
 
-	It("saves the given string to the cluster", func() {
+	It("saves the given string to InfraEnv", func() {
 		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		params := installer.UpdateDiscoveryIgnitionParams{
-			ClusterID:               clusterID,
-			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		params := installer.UpdateInfraEnvParams{
+			InfraEnvID:           *infraEnv.ID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
 		}
-		mockS3Client.EXPECT().DeleteObject(gomock.Any(),
-			fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))).Return(false, nil)
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.DiscoveryIgnitionConfigAppliedEventName),
-			eventstest.WithClusterIdMatcher(clusterID.String())))
-		response := bm.UpdateDiscoveryIgnition(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionCreated{}))
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(2)
+		mockS3Client.EXPECT().GetBaseIsoObject(gomock.Any(), gomock.Any()).Return("rhcos", nil).Times(1)
+		mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), "rhcos", gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockS3Client.EXPECT().IsAwsS3().Return(false)
+		mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName),
+			eventstest.WithInfraEnvIdMatcher(infraEnv.ID.String())))
 
-		var updatedCluster common.Cluster
-		err := db.First(&updatedCluster, "id = ?", clusterID).Error
+		response := bm.UpdateInfraEnv(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+
+		var updatedInfraEnv common.InfraEnv
+		err := db.First(&updatedInfraEnv, "id = ?", clusterID).Error
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(updatedCluster.IgnitionConfigOverrides).To(Equal(override))
+		Expect(updatedInfraEnv.IgnitionConfigOverride).To(Equal(override))
 	})
 
-	It("returns not found with a non-existant cluster", func() {
+	It("returns not found with a non-existant InfraEnv", func() {
 		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		params := installer.UpdateDiscoveryIgnitionParams{
-			ClusterID:               strfmt.UUID(uuid.New().String()),
-			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		params := installer.UpdateInfraEnvParams{
+			InfraEnvID:           strfmt.UUID(uuid.New().String()),
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
 		}
-		response := bm.UpdateDiscoveryIgnition(ctx, params)
+		response := bm.UpdateInfraEnv(ctx, params)
 		verifyApiError(response, http.StatusNotFound)
 	})
 
 	It("returns bad request when provided invalid json", func() {
 		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}}}`
-		params := installer.UpdateDiscoveryIgnitionParams{
-			ClusterID:               clusterID,
-			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		params := installer.UpdateInfraEnvParams{
+			InfraEnvID:           *infraEnv.ID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
 		}
-		response := bm.UpdateDiscoveryIgnition(ctx, params)
+		response := bm.UpdateInfraEnv(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
 
 	It("returns bad request when provided invalid options", func() {
 		// Missing the version
 		override := `{"storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		params := installer.UpdateDiscoveryIgnitionParams{
-			ClusterID:               clusterID,
-			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		params := installer.UpdateInfraEnvParams{
+			InfraEnvID:           *infraEnv.ID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
 		}
-		response := bm.UpdateDiscoveryIgnition(ctx, params)
+		response := bm.UpdateInfraEnv(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
 
 	It("returns bad request when provided an old version", func() {
 		// Wrong version
 		override := `{"ignition": {"version": "3.0.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		params := installer.UpdateDiscoveryIgnitionParams{
-			ClusterID:               clusterID,
-			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		params := installer.UpdateInfraEnvParams{
+			InfraEnvID:           *infraEnv.ID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
 		}
-		response := bm.UpdateDiscoveryIgnition(ctx, params)
+		response := bm.UpdateInfraEnv(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
-	})
-
-	It("returns an error if we fail to delete the iso", func() {
-		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		params := installer.UpdateDiscoveryIgnitionParams{
-			ClusterID:               clusterID,
-			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
-		}
-		mockS3Client.EXPECT().DeleteObject(gomock.Any(),
-			fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))).Return(false, fmt.Errorf("error"))
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.DiscoveryIgnitionConfigAppliedEventName),
-			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
-		response := bm.UpdateDiscoveryIgnition(ctx, params)
-		verifyApiError(response, http.StatusInternalServerError)
-	})
-
-	It("adds an event if an old iso was removed", func() {
-		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		params := installer.UpdateDiscoveryIgnitionParams{
-			ClusterID:               clusterID,
-			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
-		}
-		mockS3Client.EXPECT().DeleteObject(gomock.Any(),
-			fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))).Return(true, nil)
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.DiscoveryIgnitionConfigAppliedEventName),
-			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.IgnitionUpdatedThereforeImageDeletedEventName),
-			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
-		response := bm.UpdateDiscoveryIgnition(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionCreated{}))
 	})
 })
 
