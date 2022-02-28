@@ -46,8 +46,9 @@ func newHostRequest(host *v1beta1.Agent) ctrl.Request {
 func newAgent(name, namespace string, spec v1beta1.AgentSpec) *v1beta1.Agent {
 	return &v1beta1.Agent{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name:       name,
+			Namespace:  namespace,
+			Finalizers: []string{AgentFinalizerName}, // adding finalizer to avoid reconciling twice in the unit tests
 		},
 		Spec: spec,
 	}
@@ -94,6 +95,23 @@ var _ = Describe("agent reconcile", func() {
 		result, err := hr.Reconcile(ctx, newHostRequest(noneExistingHost))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
+	})
+
+	It("no other updates after finalizer was added", func() {
+		host := newAgent("host", testNamespace, v1beta1.AgentSpec{})
+		host.ObjectMeta.Finalizers = nil
+		Expect(c.Create(ctx, host)).To(BeNil())
+
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "host",
+		}
+		Expect(c.Get(ctx, key, host)).To(BeNil())
+		Expect(len(host.Status.Conditions)).To(Equal(0))
 	})
 
 	It("cluster deployment not set", func() {

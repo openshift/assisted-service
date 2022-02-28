@@ -100,7 +100,6 @@ spec:
                     type: string
                 required:
                 - adminKubeconfigSecretRef
-                - adminPasswordSecretRef
                 - clusterID
                 - infraID
                 type: object
