@@ -141,7 +141,6 @@ type InstallerInternals interface {
 	GetCommonHostInternal(ctx context.Context, infraEnvId string, hostId string) (*common.Host, error)
 	UpdateHostApprovedInternal(ctx context.Context, infraEnvId string, hostId string, approved bool) error
 	V2UpdateHostInstallerArgsInternal(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) (*models.Host, error)
-	UpdateHostIgnitionInternal(ctx context.Context, params installer.UpdateHostIgnitionParams) (*models.Host, error)
 	V2UpdateHostIgnitionInternal(ctx context.Context, params installer.V2UpdateHostIgnitionParams) (*models.Host, error)
 	GetCredentialsInternal(ctx context.Context, params installer.V2GetCredentialsParams) (*models.Credentials, error)
 	DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error)
@@ -4049,73 +4048,16 @@ func (b *bareMetalInventory) checkFileDownloadAccess(ctx context.Context, fileNa
 	return nil
 }
 
-func (b *bareMetalInventory) UpdateHostIgnitionInternal(ctx context.Context, params installer.UpdateHostIgnitionParams) (*models.Host, error) {
-	log := logutil.FromContext(ctx, b.log)
-
-	h, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		return nil, err
-	}
-
-	if params.HostIgnitionParams.Config != "" {
-		_, err = ignition.ParseToLatest([]byte(params.HostIgnitionParams.Config))
-		if err != nil {
-			log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
-
-	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Update("ignition_config_overrides", params.HostIgnitionParams.Config).Error
-	if err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	eventgen.SendHostDiscoveryIgnitionConfigAppliedEvent(ctx, b.eventsHandler, params.HostID,
-		params.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
-	log.Infof("Custom discovery ignition config was applied to host %s in cluster %s", params.HostID, params.ClusterID)
-	h, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		log.WithError(err).Errorf("failed to get host %s after update", params.HostID)
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-	return &h.Host, nil
-}
-
 func (b *bareMetalInventory) UpdateHostIgnition(ctx context.Context, params installer.UpdateHostIgnitionParams) middleware.Responder {
-	_, err := b.UpdateHostIgnitionInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewUpdateHostIgnitionCreated()
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-
-	_, respBody, _, err := b.downloadHostIgnition(ctx, params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		log.WithError(err).Errorf("failed to download host %s ignition", params.HostID)
-		return common.GenerateErrorResponder(err)
-	}
-
-	respBytes, err := ioutil.ReadAll(respBody)
-	if err != nil {
-		log.WithError(err).Errorf("failed to read ignition content for host %s", params.HostID)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	return installer.NewGetHostIgnitionOK().WithPayload(&models.HostIgnitionParams{Config: string(respBytes)})
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) DownloadHostIgnition(ctx context.Context, params installer.DownloadHostIgnitionParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	fileName, respBody, contentLength, err := b.downloadHostIgnition(ctx, params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		log.WithError(err).Errorf("failed to download host %s ignition", params.HostID)
-		return common.GenerateErrorResponder(err)
-	}
-
-	return filemiddleware.NewResponder(installer.NewDownloadHostIgnitionOK().WithPayload(respBody), fileName, contentLength)
+	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) V2DownloadHostIgnition(ctx context.Context, params installer.V2DownloadHostIgnitionParams) middleware.Responder {
@@ -4156,41 +4098,6 @@ func (b *bareMetalInventory) v2DownloadHostIgnition(ctx context.Context, infraEn
 
 	fileName := hostutil.IgnitionFileName(&infraEnvHost.Host)
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", infraEnvHost.ClusterID.String(), fileName))
-	if err != nil {
-		return "", nil, 0, common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	return fileName, respBody, contentLength, nil
-}
-
-// downloadHostIgnition returns the ignition file name, the content as an io.ReadCloser, and the file content length
-func (b *bareMetalInventory) downloadHostIgnition(ctx context.Context, clusterID string, hostID string) (string, io.ReadCloser, int64, error) {
-	c, err := b.getCluster(ctx, clusterID, common.UseEagerLoading)
-	if err != nil {
-		return "", nil, 0, err
-	}
-
-	// check if host id is in cluster
-	var host *models.Host
-	for i, h := range c.Hosts {
-		if h.ID.String() == hostID {
-			host = c.Hosts[i]
-			break
-		}
-	}
-	if host == nil {
-		err = errors.Errorf("host %s not found in cluster %s", hostID, clusterID)
-		return "", nil, 0, common.NewApiError(http.StatusNotFound, err)
-	}
-
-	// check if cluster is in the correct state to download files
-	err = clusterPkg.CanDownloadFiles(c)
-	if err != nil {
-		return "", nil, 0, common.NewApiError(http.StatusConflict, err)
-	}
-
-	fileName := hostutil.IgnitionFileName(host)
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", clusterID, fileName))
 	if err != nil {
 		return "", nil, 0, common.NewApiError(http.StatusInternalServerError, err)
 	}
