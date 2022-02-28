@@ -21,7 +21,8 @@ var _ = Describe("installer", func() {
 		ctx              = context.Background()
 		installerManager InstallationAPI
 		db               *gorm.DB
-		id               strfmt.UUID
+		clusterID        strfmt.UUID
+		infraEnvID       strfmt.UUID
 		cluster          common.Cluster
 		hostsIds         []strfmt.UUID
 		dbName           string
@@ -33,9 +34,10 @@ var _ = Describe("installer", func() {
 		db, dbName = common.PrepareTestDB()
 		installerManager = NewInstaller(common.GetTestLog(), db, eventsHandler)
 
-		id = strfmt.UUID(uuid.New().String())
+		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:     &id,
+			ID:     &clusterID,
 			Status: swag.String(models.ClusterStatusReady),
 		}}
 
@@ -46,11 +48,11 @@ var _ = Describe("installer", func() {
 		It("test getting master ids", func() {
 
 			for i := 0; i < 3; i++ {
-				hostsIds = append(hostsIds, addHost(models.HostRoleMaster, models.HostStatusKnown, id, db))
+				hostsIds = append(hostsIds, addHost(models.HostRoleMaster, models.HostStatusKnown, infraEnvID, clusterID, db))
 			}
 			masterKnownIds := hostsIds
-			hostsIds = append(hostsIds, addHost(models.HostRoleWorker, models.HostStatusKnown, id, db))
-			hostsIds = append(hostsIds, addHost(models.HostRoleMaster, models.HostStatusDiscovering, id, db))
+			hostsIds = append(hostsIds, addHost(models.HostRoleWorker, models.HostStatusKnown, infraEnvID, clusterID, db))
+			hostsIds = append(hostsIds, addHost(models.HostRoleMaster, models.HostStatusDiscovering, infraEnvID, clusterID, db))
 
 			replyMasterNodesIds, err := installerManager.GetMasterNodesIds(ctx, &cluster, db)
 			Expect(err).Should(BeNil())
@@ -65,12 +67,12 @@ var _ = Describe("installer", func() {
 	})
 })
 
-func addHost(role models.HostRole, state string, clusterId strfmt.UUID, db *gorm.DB) strfmt.UUID {
+func addHost(role models.HostRole, state string, infraEnvID, clusterId strfmt.UUID, db *gorm.DB) strfmt.UUID {
 
 	hostId := strfmt.UUID(uuid.New().String())
 	host := models.Host{
 		ID:         &hostId,
-		InfraEnvID: clusterId,
+		InfraEnvID: infraEnvID,
 		ClusterID:  &clusterId,
 		Status:     swag.String(state),
 		Role:       role,
