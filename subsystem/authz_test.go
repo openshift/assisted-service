@@ -80,16 +80,16 @@ var _ = Describe("test authorization", func() {
 
 	Context("unallowed user", func() {
 		It("can't list clusters", func() {
-			_, err := unallowedUserBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+			_, err := unallowedUserBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 			Expect(err).Should(HaveOccurred())
 		})
 	})
 
 	Context("admin user", func() {
 		It("can get all clusters", func() {
-			resp, err := readOnlyAdminUserBMClient.Installer.ListClusters(
+			resp, err := readOnlyAdminUserBMClient.Installer.V2ListClusters(
 				ctx,
-				&installer.ListClustersParams{})
+				&installer.V2ListClustersParams{})
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(resp.Payload)).To(Equal(2))
 		})
@@ -227,22 +227,23 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		It(it, func() {
 			file, err := ioutil.TempFile("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
-			_, err = readOnlyAdminUserBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: fileName}, file)
+			_, err = readOnlyAdminUserBMClient.Installer.V2DownloadClusterCredentials(ctx, &installer.V2DownloadClusterCredentialsParams{ClusterID: clusterID, FileName: fileName}, file)
 			Expect(err).To(HaveOccurred())
-			Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterFilesForbidden())))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2DownloadClusterCredentialsForbidden()))
 		})
-		it = fmt.Sprintf("Should not allow read-only-admins  to download '%v' via downloads/files-presigned endpoint", fileName)
+
 		It(it, func() {
 			_, err := readOnlyAdminUserBMClient.Installer.GetPresignedForClusterFiles(ctx, &installer.GetPresignedForClusterFilesParams{ClusterID: clusterID, FileName: fileName})
 			Expect(err).To(HaveOccurred())
 			Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewGetPresignedForClusterFilesForbidden())))
 		})
+
 		// Access granted
 		it = fmt.Sprintf("Should allow cluster users to download '%v' via downloads/files endpoint", fileName)
 		It(it, func() {
 			file, err := ioutil.TempFile("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
-			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: fileName}, file)
+			_, err = userBMClient.Installer.V2DownloadClusterCredentials(ctx, &installer.V2DownloadClusterCredentialsParams{ClusterID: clusterID, FileName: fileName}, file)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		it = fmt.Sprintf("Should allow cluster users to download '%v' via downloads/files-presigned endpoint", fileName)

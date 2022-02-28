@@ -8,10 +8,10 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 )
 
-var _ = Describe("GetClusterDefaultConfig", func() {
+var _ = Describe("V2GetClusterDefaultConfig", func() {
 
 	It("InactiveDeletionHours", func() {
-		res, err := userBMClient.Installer.GetClusterDefaultConfig(context.Background(), &installer.GetClusterDefaultConfigParams{})
+		res, err := userBMClient.Installer.V2GetClusterDefaultConfig(context.Background(), &installer.V2GetClusterDefaultConfigParams{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.GetPayload().InactiveDeletionHours).To(Equal(int64(Options.DeregisterInactiveAfter.Hours())))
 	})

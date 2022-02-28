@@ -286,7 +286,15 @@ func (b *bareMetalInventory) V2UpdateClusterLogsProgress(ctx context.Context, pa
 }
 
 func (b *bareMetalInventory) V2GetClusterDefaultConfig(_ context.Context, _ installer.V2GetClusterDefaultConfigParams) middleware.Responder {
-	return installer.NewV2GetClusterDefaultConfigOK().WithPayload(b.getClusterDefaultConfig())
+	body := &models.ClusterDefaultConfig{}
+
+	body.NtpSource = b.Config.DefaultNTPSource
+	body.ClusterNetworkCidr = b.Config.DefaultClusterNetworkCidr
+	body.ServiceNetworkCidr = b.Config.DefaultServiceNetworkCidr
+	body.ClusterNetworkHostPrefix = b.Config.DefaultClusterNetworkHostPrefix
+	body.InactiveDeletionHours = int64(b.gcConfig.DeregisterInactiveAfter.Hours())
+
+	return installer.NewV2GetClusterDefaultConfigOK().WithPayload(body)
 }
 
 func (b *bareMetalInventory) V2DownloadClusterLogs(ctx context.Context, params installer.V2DownloadClusterLogsParams) middleware.Responder {

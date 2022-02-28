@@ -51,7 +51,7 @@ func deregisterResources() {
 
 	// Delete cluster should use the REST API in order to delete any
 	// clusters' resources managed by the service
-	reply, err := userBMClient.Installer.ListClusters(context.Background(), &installer.ListClustersParams{})
+	reply, err := userBMClient.Installer.V2ListClusters(context.Background(), &installer.V2ListClustersParams{})
 	Expect(err).To(BeNil())
 	if GinkgoT().Failed() {
 		multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.ClusterKindCluster, reply.Payload))

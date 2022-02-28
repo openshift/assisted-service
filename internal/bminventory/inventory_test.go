@@ -7912,8 +7912,8 @@ var _ = Describe("List clusters", func() {
 		It("success", func() {
 			Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
 			Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
-			resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
-			payload := resp.(*installer.ListClustersOK).Payload
+			resp := bm.V2ListClusters(ctx, installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+			payload := resp.(*installer.V2ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(1))
 			Expect(payload[0].ID.String()).Should(Equal(clusterID.String()))
 			Expect(payload[0].TotalHostCount).Should(Equal(int64(1)))
@@ -7925,8 +7925,8 @@ var _ = Describe("List clusters", func() {
 		It("with hosts success", func() {
 			Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
 			Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
-			resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true), WithHosts: true})
-			clusterList := resp.(*installer.ListClustersOK).Payload
+			resp := bm.V2ListClusters(ctx, installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true), WithHosts: true})
+			clusterList := resp.(*installer.V2ListClustersOK).Payload
 			Expect(len(clusterList)).Should(Equal(1))
 			Expect(clusterList[0].ID.String()).Should(Equal(clusterID.String()))
 			Expect(len(clusterList[0].Hosts)).Should(Equal(1))
@@ -7936,8 +7936,8 @@ var _ = Describe("List clusters", func() {
 		It("failure - cluster was permanently deleted", func() {
 			Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
 			Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
-			resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
-			payload := resp.(*installer.ListClustersOK).Payload
+			resp := bm.V2ListClusters(ctx, installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+			payload := resp.(*installer.V2ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(0))
 		})
 
@@ -7947,7 +7947,7 @@ var _ = Describe("List clusters", func() {
 			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
 			Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
 			Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
-			resp := bm.ListClusters(authCtx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+			resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
 			Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusForbidden, errors.New("only admin users are allowed to get unregistered clusters"))))
 		})
 	})
@@ -7971,20 +7971,20 @@ var _ = Describe("List clusters", func() {
 				authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
 
 				By("searching for an existing openshift cluster ID", func() {
-					resp := bm.ListClusters(authCtx, installer.ListClustersParams{OpenshiftClusterID: openshiftClusterID})
-					payload := resp.(*installer.ListClustersOK).Payload
+					resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{OpenshiftClusterID: openshiftClusterID})
+					payload := resp.(*installer.V2ListClustersOK).Payload
 					Expect(len(payload)).Should(Equal(1))
 				})
 
 				By("discarding cluster ID field", func() {
-					resp := bm.ListClusters(authCtx, installer.ListClustersParams{})
-					payload := resp.(*installer.ListClustersOK).Payload
+					resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{})
+					payload := resp.(*installer.V2ListClustersOK).Payload
 					Expect(len(payload)).Should(Equal(1))
 				})
 
 				By("searching for a non-existing openshift cluster ID", func() {
-					resp := bm.ListClusters(authCtx, installer.ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
-					payload := resp.(*installer.ListClustersOK).Payload
+					resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
+					payload := resp.(*installer.V2ListClustersOK).Payload
 					Expect(len(payload)).Should(Equal(0))
 				})
 			})
@@ -7996,31 +7996,31 @@ var _ = Describe("List clusters", func() {
 		authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
 
 		By("searching for a single existing AMS subscription ID", func() {
-			resp := bm.ListClusters(authCtx, installer.ListClustersParams{AmsSubscriptionIds: []string{amsSubscriptionID.String()}})
-			payload := resp.(*installer.ListClustersOK).Payload
+			resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{AmsSubscriptionIds: []string{amsSubscriptionID.String()}})
+			payload := resp.(*installer.V2ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(1))
 		})
 
 		By("discarding AMS subscription ID field", func() {
-			resp := bm.ListClusters(authCtx, installer.ListClustersParams{})
-			payload := resp.(*installer.ListClustersOK).Payload
+			resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{})
+			payload := resp.(*installer.V2ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(1))
 		})
 
 		By("searching for a non-existing AMS subscription ID", func() {
-			resp := bm.ListClusters(authCtx, installer.ListClustersParams{AmsSubscriptionIds: []string{"1sOMjCKRmEHYanIsp1bPbplbXXX"}})
-			payload := resp.(*installer.ListClustersOK).Payload
+			resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{AmsSubscriptionIds: []string{"1sOMjCKRmEHYanIsp1bPbplbXXX"}})
+			payload := resp.(*installer.V2ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(0))
 		})
 
 		By("searching for both existing and non-existing AMS subscription IDs", func() {
-			resp := bm.ListClusters(authCtx, installer.ListClustersParams{
+			resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{
 				AmsSubscriptionIds: []string{
 					amsSubscriptionID.String(),
 					"1sOMjCKRmEHYanIsp1bPbplbXXX",
 				},
 			})
-			payload := resp.(*installer.ListClustersOK).Payload
+			payload := resp.(*installer.V2ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(1))
 		})
 	})
@@ -9085,19 +9085,6 @@ var _ = Describe("Reset Host test", func() {
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ResetHostOK()))
 	})
 
-	It("Reset day2 host", func() {
-		params := installer.ResetHostParams{
-			HTTPRequest: request,
-			ClusterID:   clusterID,
-			HostID:      hostID,
-		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		res := bm.ResetHost(ctx, params)
-		Expect(res).Should(BeAssignableToTypeOf(installer.NewResetHostOK()))
-	})
-
 	It("V2 Reset day2 host, host not found", func() {
 		params := installer.V2ResetHostParams{
 			HTTPRequest: request,
@@ -9107,28 +9094,6 @@ var _ = Describe("Reset Host test", func() {
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		res := bm.V2ResetHost(ctx, params)
 		verifyApiError(res, http.StatusNotFound)
-	})
-
-	It("Reset day2 host, host not found", func() {
-		params := installer.ResetHostParams{
-			HTTPRequest: request,
-			ClusterID:   clusterID,
-			HostID:      strfmt.UUID(uuid.New().String()),
-		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		res := bm.ResetHost(ctx, params)
-		verifyApiError(res, http.StatusNotFound)
-	})
-
-	It("Reset day2 host, host is not day2 host", func() {
-		params := installer.ResetHostParams{
-			HTTPRequest: request,
-			ClusterID:   clusterID,
-			HostID:      hostID,
-		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		res := bm.ResetHost(ctx, params)
-		verifyApiError(res, http.StatusConflict)
 	})
 
 	It("V2 Reset day2 host, host is not day2 host", func() {
@@ -12447,15 +12412,15 @@ var _ = Describe("DownloadClusterFiles", func() {
 		for _, fileName := range cluster.ClusterOwnerFileNames {
 			By(fmt.Sprintf("downloading %s", fileName))
 			newCluster = createCluster(db, models.ClusterStatusInstalled)
-			params := installer.DownloadClusterFilesParams{
+			params := installer.V2DownloadClusterFilesParams{
 				ClusterID: *newCluster.ID,
 				FileName:  fileName,
 			}
 
 			r := io.NopCloser(bytes.NewReader([]byte("testfile")))
-			expected := filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(r), fileName, int64(8))
+			expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterFilesOK().WithPayload(r), fileName, int64(8))
 			mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", *newCluster.ID, fileName)).Return(r, int64(8), nil)
-			resp := bm.DownloadClusterFiles(ctx, params)
+			resp := bm.V2DownloadClusterFiles(ctx, params)
 			Expect(resp).Should(Equal(expected))
 		}
 	})
@@ -12463,15 +12428,15 @@ var _ = Describe("DownloadClusterFiles", func() {
 		fileName := "kubeconfig-noingress"
 		By(fmt.Sprintf("downloading %s", fileName))
 		newCluster = createCluster(db, models.ClusterStatusInstallingPendingUserAction)
-		params := installer.DownloadClusterFilesParams{
+		params := installer.V2DownloadClusterFilesParams{
 			ClusterID: *newCluster.ID,
 			FileName:  fileName,
 		}
 
 		r := io.NopCloser(bytes.NewReader([]byte("testfile")))
-		expected := filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(r), fileName, int64(8))
+		expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterFilesOK().WithPayload(r), fileName, int64(8))
 		mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", *newCluster.ID, fileName)).Return(r, int64(8), nil)
-		resp := bm.DownloadClusterFiles(ctx, params)
+		resp := bm.V2DownloadClusterFiles(ctx, params)
 		Expect(resp).Should(Equal(expected))
 	})
 })

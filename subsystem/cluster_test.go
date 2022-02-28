@@ -11,7 +11,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -241,7 +240,7 @@ var _ = Describe("Cluster", func() {
 		_ = registerHost(*infraEnvID)
 		_, err1 := userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err1).ShouldNot(HaveOccurred())
-		ret, err2 := readOnlyAdminUserBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+		ret, err2 := readOnlyAdminUserBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
 		Expect(err2).ShouldNot(HaveOccurred())
 		clusters := ret.GetPayload()
 		Expect(len(clusters)).ShouldNot(Equal(0))
@@ -262,8 +261,8 @@ var _ = Describe("Cluster", func() {
 		_ = registerHost(*infraEnvID)
 		_, err1 := userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err1).ShouldNot(HaveOccurred())
-		ret, err2 := readOnlyAdminUserBMClient.Installer.ListClusters(ctx,
-			&installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true),
+		ret, err2 := readOnlyAdminUserBMClient.Installer.V2ListClusters(ctx,
+			&installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true),
 				WithHosts: true,
 			})
 		Expect(err2).ShouldNot(HaveOccurred())
@@ -292,14 +291,14 @@ var _ = Describe("Cluster", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(getReply.GetPayload().Hosts[0].ClusterID.String()).Should(Equal(clusterID.String()))
 
-		list, err := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+		list, err := userBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(1))
 
 		_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 
-		list, err = userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+		list, err = userBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(0))
 
@@ -620,7 +619,7 @@ func setClusterAsFinalizing(ctx context.Context, clusterID strfmt.UUID) {
 	waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 }
 
-var _ = Describe("ListClusters", func() {
+var _ = Describe("V2ListClusters", func() {
 
 	var (
 		ctx     = context.Background()
@@ -653,25 +652,25 @@ var _ = Describe("ListClusters", func() {
 		})
 
 		It("searching for an existing openshift cluster ID", func() {
-			list, err := userBMClient.Installer.ListClusters(
+			list, err := userBMClient.Installer.V2ListClusters(
 				ctx,
-				&installer.ListClustersParams{OpenshiftClusterID: strToUUID("41940ee8-ec99-43de-8766-174381b4921d")})
+				&installer.V2ListClustersParams{OpenshiftClusterID: strToUUID("41940ee8-ec99-43de-8766-174381b4921d")})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(list.GetPayload())).Should(Equal(1))
 		})
 
 		It("discarding openshift cluster ID field", func() {
-			list, err := userBMClient.Installer.ListClusters(
+			list, err := userBMClient.Installer.V2ListClusters(
 				ctx,
-				&installer.ListClustersParams{})
+				&installer.V2ListClustersParams{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(list.GetPayload())).Should(Equal(1))
 		})
 
 		It("searching for a non-existing openshift cluster ID", func() {
-			list, err := userBMClient.Installer.ListClusters(
+			list, err := userBMClient.Installer.V2ListClusters(
 				ctx,
-				&installer.ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
+				&installer.V2ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(list.GetPayload())).Should(Equal(0))
 		})
@@ -686,7 +685,7 @@ var _ = Describe("ListClusters", func() {
 		})
 
 		It("searching for an existing AMS subscription ID", func() {
-			list, err := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{
+			list, err := userBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{
 				AmsSubscriptionIds: []string{FakeSubscriptionID.String()},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -695,13 +694,13 @@ var _ = Describe("ListClusters", func() {
 		})
 
 		It("discarding AMS subscription ID field", func() {
-			list, err := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+			list, err := userBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(list.GetPayload())).Should(Equal(1))
 		})
 
 		It("searching for a non-existing AMS Subscription ID", func() {
-			list, err := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{
+			list, err := userBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{
 				AmsSubscriptionIds: []string{"1h89fvtqeelulpo0fl5oddngj2ao7XXX"},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -709,7 +708,7 @@ var _ = Describe("ListClusters", func() {
 		})
 
 		It("searching for both existing and non-existing AMS subscription IDs", func() {
-			list, err := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{
+			list, err := userBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{
 				AmsSubscriptionIds: []string{
 					FakeSubscriptionID.String(),
 					"1h89fvtqeelulpo0fl5oddngj2ao7XXX",
@@ -2050,19 +2049,19 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			defer os.Remove(file.Name())
-			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
-			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewDownloadClusterFilesConflict())))
+			_, err = agentBMClient.Installer.V2DownloadClusterFiles(ctx, &installer.V2DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2DownloadClusterFilesConflict()))
 
 			installCluster(clusterID)
 
 			missingClusterId := strfmt.UUID(uuid.New().String())
-			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: missingClusterId, FileName: "bootstrap.ign"}, file)
-			Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterFilesNotFound())))
+			_, err = agentBMClient.Installer.V2DownloadClusterFiles(ctx, &installer.V2DownloadClusterFilesParams{ClusterID: missingClusterId, FileName: "bootstrap.ign"}, file)
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2DownloadClusterFilesNotFound()))
 
-			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "not_real_file"}, file)
+			_, err = agentBMClient.Installer.V2DownloadClusterFiles(ctx, &installer.V2DownloadClusterFilesParams{ClusterID: clusterID, FileName: "not_real_file"}, file)
 			Expect(err).Should(HaveOccurred())
 
-			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
+			_, err = agentBMClient.Installer.V2DownloadClusterFiles(ctx, &installer.V2DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
 			Expect(err).NotTo(HaveOccurred())
 			s, err := file.Stat()
 			Expect(err).NotTo(HaveOccurred())
@@ -2079,14 +2078,14 @@ var _ = Describe("cluster install", func() {
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
 				IgnoreStateInfo)
 
-			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
+			_, err = userBMClient.Installer.V2DownloadClusterFiles(ctx, &installer.V2DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
 			Expect(err).NotTo(HaveOccurred())
 			s, err := file.Stat()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(s.Size()).ShouldNot(Equal(0))
 
 			By("Download install-config.yaml")
-			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "install-config.yaml"}, file)
+			_, err = userBMClient.Installer.V2DownloadClusterFiles(ctx, &installer.V2DownloadClusterFilesParams{ClusterID: clusterID, FileName: "install-config.yaml"}, file)
 			Expect(err).NotTo(HaveOccurred())
 			s, err = file.Stat()
 			Expect(err).NotTo(HaveOccurred())
@@ -2285,8 +2284,8 @@ var _ = Describe("cluster install", func() {
 				// Download kubeconfig before uploading
 				kubeconfigNoIngress, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "kubeconfig-noingress"}, kubeconfigNoIngress)
-				Expect(err).NotTo(HaveOccurred())
+				_, err = userBMClient.Installer.V2DownloadClusterCredentials(ctx, &installer.V2DownloadClusterCredentialsParams{ClusterID: clusterID, FileName: "kubeconfig-noingress"}, kubeconfigNoIngress)
+				Expect(err).ToNot(HaveOccurred())
 				sni, err := kubeconfigNoIngress.Stat()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(sni.Size()).ShouldNot(Equal(0))
