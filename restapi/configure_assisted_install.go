@@ -178,6 +178,9 @@ type InstallerAPI interface {
 	/* ResetHostValidation Reset failed host validation. */
 	ResetHostValidation(ctx context.Context, params installer.ResetHostValidationParams) middleware.Responder
 
+	/* TransformClusterToDay2 Transforming cluster to day2 and allowing adding hosts */
+	TransformClusterToDay2(ctx context.Context, params installer.TransformClusterToDay2Params) middleware.Responder
+
 	/* UnbindHost Unbind host to a cluster */
 	UnbindHost(ctx context.Context, params installer.UnbindHostParams) middleware.Responder
 
@@ -805,6 +808,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.ResetHostValidation(ctx, params)
+	})
+	api.InstallerTransformClusterToDay2Handler = installer.TransformClusterToDay2HandlerFunc(func(params installer.TransformClusterToDay2Params, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.TransformClusterToDay2(ctx, params)
 	})
 	api.InstallerUnbindHostHandler = installer.UnbindHostHandlerFunc(func(params installer.UnbindHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

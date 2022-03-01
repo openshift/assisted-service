@@ -105,6 +105,14 @@ func (b *bareMetalInventory) V2CancelInstallation(ctx context.Context, params in
 	return installer.NewV2CancelInstallationAccepted().WithPayload(&c.Cluster)
 }
 
+func (b *bareMetalInventory) TransformClusterToDay2(ctx context.Context, params installer.TransformClusterToDay2Params) middleware.Responder {
+	c, err := b.TransformClusterToDay2Internal(ctx, params.ClusterID)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewTransformClusterToDay2Accepted().WithPayload(&c.Cluster)
+}
+
 func (b *bareMetalInventory) V2ResetCluster(ctx context.Context, params installer.V2ResetClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("resetting cluster %s", params.ClusterID)

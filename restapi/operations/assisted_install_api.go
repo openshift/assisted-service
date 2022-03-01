@@ -219,6 +219,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerResetHostValidationHandler: installer.ResetHostValidationHandlerFunc(func(params installer.ResetHostValidationParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ResetHostValidation has not yet been implemented")
 		}),
+		InstallerTransformClusterToDay2Handler: installer.TransformClusterToDay2HandlerFunc(func(params installer.TransformClusterToDay2Params, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.TransformClusterToDay2 has not yet been implemented")
+		}),
 		InstallerUnbindHostHandler: installer.UnbindHostHandlerFunc(func(params installer.UnbindHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UnbindHost has not yet been implemented")
 		}),
@@ -609,6 +612,8 @@ type AssistedInstallAPI struct {
 	InstallerResetHostHandler installer.ResetHostHandler
 	// InstallerResetHostValidationHandler sets the operation handler for the reset host validation operation
 	InstallerResetHostValidationHandler installer.ResetHostValidationHandler
+	// InstallerTransformClusterToDay2Handler sets the operation handler for the transform cluster to day2 operation
+	InstallerTransformClusterToDay2Handler installer.TransformClusterToDay2Handler
 	// InstallerUnbindHostHandler sets the operation handler for the unbind host operation
 	InstallerUnbindHostHandler installer.UnbindHostHandler
 	// InstallerUpdateClusterHandler sets the operation handler for the update cluster operation
@@ -1004,6 +1009,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerResetHostValidationHandler == nil {
 		unregistered = append(unregistered, "installer.ResetHostValidationHandler")
+	}
+	if o.InstallerTransformClusterToDay2Handler == nil {
+		unregistered = append(unregistered, "installer.TransformClusterToDay2Handler")
 	}
 	if o.InstallerUnbindHostHandler == nil {
 		unregistered = append(unregistered, "installer.UnbindHostHandler")
@@ -1540,6 +1548,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}"] = installer.NewResetHostValidation(o.context, o.InstallerResetHostValidationHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/clusters/{cluster_id}/actions/allow-add-workers"] = installer.NewTransformClusterToDay2(o.context, o.InstallerTransformClusterToDay2Handler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

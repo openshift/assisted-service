@@ -494,6 +494,12 @@ func (b fakeInventory) RegenerateInfraEnvSigningKey(ctx context.Context, params 
 
 func (f fakeInventory) GetInfraEnvDownloadURL(ctx context.Context, params installer.GetInfraEnvDownloadURLParams) middleware.Responder {
 	return installer.NewGetInfraEnvDownloadURLOK()
+
+}
+
+func (f fakeInventory) TransformClusterToDay2(ctx context.Context, params installer.TransformClusterToDay2Params) middleware.Responder {
+	return installer.NewTransformClusterToDay2Accepted()
+
 }
 
 var _ restapi.InstallerAPI = fakeInventory{}

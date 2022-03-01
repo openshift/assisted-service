@@ -157,6 +157,9 @@ type API interface {
 	   Reset failed host validation.  It may be performed on any host validation with persistent validation result.*/
 	ResetHostValidation(ctx context.Context, params *ResetHostValidationParams) (*ResetHostValidationOK, error)
 	/*
+	   TransformClusterToDay2 Transforming cluster to day2 and allowing adding hosts*/
+	TransformClusterToDay2(ctx context.Context, params *TransformClusterToDay2Params) (*TransformClusterToDay2Accepted, error)
+	/*
 	   UnbindHost Unbind host to a cluster*/
 	UnbindHost(ctx context.Context, params *UnbindHostParams) (*UnbindHostOK, error)
 	/*
@@ -1449,6 +1452,31 @@ func (a *Client) ResetHostValidation(ctx context.Context, params *ResetHostValid
 		return nil, err
 	}
 	return result.(*ResetHostValidationOK), nil
+
+}
+
+/*
+TransformClusterToDay2 Transforming cluster to day2 and allowing adding hosts
+*/
+func (a *Client) TransformClusterToDay2(ctx context.Context, params *TransformClusterToDay2Params) (*TransformClusterToDay2Accepted, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TransformClusterToDay2",
+		Method:             "POST",
+		PathPattern:        "/v2/clusters/{cluster_id}/actions/allow-add-workers",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &TransformClusterToDay2Reader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TransformClusterToDay2Accepted), nil
 
 }
 

@@ -652,6 +652,20 @@ func (mr *MockInstallerAPIMockRecorder) ResetHostValidation(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetHostValidation", reflect.TypeOf((*MockInstallerAPI)(nil).ResetHostValidation), arg0, arg1)
 }
 
+// TransformClusterToDay2 mocks base method.
+func (m *MockInstallerAPI) TransformClusterToDay2(arg0 context.Context, arg1 installer.TransformClusterToDay2Params) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TransformClusterToDay2", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// TransformClusterToDay2 indicates an expected call of TransformClusterToDay2.
+func (mr *MockInstallerAPIMockRecorder) TransformClusterToDay2(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TransformClusterToDay2", reflect.TypeOf((*MockInstallerAPI)(nil).TransformClusterToDay2), arg0, arg1)
+}
+
 // UnbindHost mocks base method.
 func (m *MockInstallerAPI) UnbindHost(arg0 context.Context, arg1 installer.UnbindHostParams) middleware.Responder {
 	m.ctrl.T.Helper()

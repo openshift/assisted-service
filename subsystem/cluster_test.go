@@ -2116,6 +2116,15 @@ var _ = Describe("cluster install", func() {
 			}
 		})
 
+		It("Transform installed cluster to day2", func() {
+			setClusterAsFinalizing(ctx, clusterID)
+			completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
+			clusterDay2, err := userBMClient.Installer.TransformClusterToDay2(ctx, &installer.TransformClusterToDay2Params{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(swag.StringValue(clusterDay2.GetPayload().Status)).Should(Equal(models.ClusterStatusAddingHosts))
+			Expect(swag.StringValue(clusterDay2.GetPayload().Kind)).Should(Equal(models.ClusterKindAddHostsCluster))
+		})
+
 		It("Upload and Download logs", func() {
 			By("Download before upload")
 			{
@@ -3520,6 +3529,7 @@ var _ = Describe("cluster install, with default network params", func() {
 		Expect(c.InstallCompletedAt).ShouldNot(Equal(startTimeInstalled))
 		Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
 	})
+
 	Context("fail disk speed", func() {
 		It("first host", func() {
 			clusterID := *cluster.ID
