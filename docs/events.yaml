@@ -408,20 +408,6 @@ x-events:
   properties:
     infra_env_id: UUID
 
-- name: discovery_ignition_config_applied
-  message: "Custom discovery ignition config was applied to the cluster"
-  event_type: cluster
-  severity: "info"
-  properties:
-    cluster_id: UUID
-
-- name: ignition_updated_therefore_image_deleted
-  message: "Deleted image from backend because its ignition was updated. The image may be regenerated at any time"
-  event_type: cluster
-  severity: "info"
-  properties:
-    cluster_id: UUID
-
 - name: download_image_find_failed
   message: "Failed to download image: the image was not found (perhaps it expired) - please generate the image and try again"
   event_type: infra_env
