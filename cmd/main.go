@@ -531,10 +531,11 @@ func main() {
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
 			failOnError((&controllers.BMACReconciler{
-				Client:    ctrlMgr.GetClient(),
-				APIReader: ctrlMgr.GetAPIReader(),
-				Log:       log,
-				Scheme:    ctrlMgr.GetScheme(),
+				Client:                ctrlMgr.GetClient(),
+				APIReader:             ctrlMgr.GetAPIReader(),
+				Log:                   log,
+				Scheme:                ctrlMgr.GetScheme(),
+				SpokeK8sClientFactory: controllers.NewSpokeK8sClientFactory(log),
 			}).SetupWithManager(ctrlMgr), "unable to create controller BMH")
 
 			failOnError((&controllers.AgentClusterInstallReconciler{

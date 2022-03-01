@@ -54,10 +54,11 @@ import (
 // BMACReconciler reconciles a Agent object
 type BMACReconciler struct {
 	client.Client
-	APIReader   client.Reader
-	Log         logrus.FieldLogger
-	Scheme      *runtime.Scheme
-	spokeClient client.Client
+	APIReader             client.Reader
+	Log                   logrus.FieldLogger
+	Scheme                *runtime.Scheme
+	SpokeK8sClientFactory SpokeK8sClientFactory
+	spokeClient           client.Client
 }
 
 const (
@@ -1310,7 +1311,7 @@ func (r *BMACReconciler) getSpokeClient(secret *corev1.Secret) (client.Client, e
 	if r.spokeClient != nil {
 		return r.spokeClient, err
 	}
-	return getSpokeClient(secret)
+	return r.SpokeK8sClientFactory.Create(secret)
 }
 
 // Returns a list of BMH ReconcileRequests for a given Agent
