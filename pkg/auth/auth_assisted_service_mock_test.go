@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/common"
@@ -81,59 +81,34 @@ func (f fakeInventory) DownloadMinimalInitrd(ctx context.Context, params install
 }
 
 func (f fakeInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewDownloadClusterFilesInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
 	return filemiddleware.NewResponder(
-		installer.NewDownloadClusterFilesOK().WithPayload(io.ReadCloser(file)),
+		installer.NewDownloadClusterFilesOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		"test",
 		0)
 }
 
 func (f fakeInventory) V2DownloadClusterFiles(ctx context.Context, params installer.V2DownloadClusterFilesParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewV2DownloadClusterFilesInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
 	return filemiddleware.NewResponder(
-		installer.NewV2DownloadClusterFilesOK().WithPayload(io.ReadCloser(file)),
-		"test",
-		0)
+		installer.NewV2DownloadClusterFilesOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
+		params.FileName,
+		int64(len("test")))
 }
 
 func (f fakeInventory) V2DownloadInfraEnvFiles(ctx context.Context, params installer.V2DownloadInfraEnvFilesParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewV2DownloadInfraEnvFilesInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
 	return filemiddleware.NewResponder(
-		installer.NewV2DownloadInfraEnvFilesOK().WithPayload(io.ReadCloser(file)),
+		installer.NewV2DownloadInfraEnvFilesOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		"test",
 		0)
 }
 
 func (f fakeInventory) DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewDownloadClusterISOInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
 	return filemiddleware.NewResponder(
-		installer.NewDownloadClusterISOOK().WithPayload(io.ReadCloser(file)),
+		installer.NewDownloadClusterISOOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		"test",
 		0)
 }
 
 func (f fakeInventory) DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder {
-	_, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewDownloadClusterISOHeadersInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
 	return filemiddleware.NewResponder(
 		installer.NewDownloadClusterISOHeadersOK(),
 		"test",
@@ -141,13 +116,8 @@ func (f fakeInventory) DownloadClusterISOHeaders(ctx context.Context, params ins
 }
 
 func (f fakeInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewDownloadClusterKubeconfigInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
 	return filemiddleware.NewResponder(
-		installer.NewDownloadClusterKubeconfigOK().WithPayload(io.ReadCloser(file)),
+		installer.NewDownloadClusterKubeconfigOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		"test",
 		0)
 }
@@ -309,25 +279,15 @@ func (f fakeInventory) UploadLogs(ctx context.Context, params installer.UploadLo
 }
 
 func (f fakeInventory) DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewDownloadHostLogsInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
 	return filemiddleware.NewResponder(
-		installer.NewDownloadHostLogsOK().WithPayload(io.ReadCloser(file)),
+		installer.NewDownloadHostLogsOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		"test",
 		0)
 }
 
 func (f fakeInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewDownloadClusterLogsInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
 	return filemiddleware.NewResponder(
-		installer.NewDownloadClusterLogsOK().WithPayload(io.ReadCloser(file)),
+		installer.NewDownloadClusterLogsOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		"test",
 		0)
 }
@@ -353,25 +313,15 @@ func (f fakeInventory) GetHostIgnition(ctx context.Context, params installer.Get
 }
 
 func (f fakeInventory) DownloadHostIgnition(ctx context.Context, params installer.DownloadHostIgnitionParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewDownloadHostIgnitionInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
 	return filemiddleware.NewResponder(
-		installer.NewDownloadHostIgnitionOK().WithPayload(io.ReadCloser(file)),
+		installer.NewDownloadHostIgnitionOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		"test",
 		0)
 }
 
 func (f fakeInventory) V2DownloadHostIgnition(ctx context.Context, params installer.V2DownloadHostIgnitionParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewV2DownloadHostIgnitionInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
 	return filemiddleware.NewResponder(
-		installer.NewV2DownloadHostIgnitionOK().WithPayload(io.ReadCloser(file)),
+		installer.NewV2DownloadHostIgnitionOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		"test",
 		0)
 }
@@ -473,7 +423,10 @@ func (f fakeInventory) V2GetClusterDefaultConfig(ctx context.Context, params ins
 }
 
 func (f fakeInventory) V2DownloadClusterLogs(ctx context.Context, params installer.V2DownloadClusterLogsParams) middleware.Responder {
-	return installer.NewV2DownloadClusterLogsOK()
+	return filemiddleware.NewResponder(
+		installer.NewV2DownloadClusterLogsOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
+		"test",
+		0)
 }
 
 func (f fakeInventory) V2UploadLogs(ctx context.Context, params installer.V2UploadLogsParams) middleware.Responder {
