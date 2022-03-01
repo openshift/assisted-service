@@ -240,7 +240,11 @@ func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) Valid
 		return ValidationFailure
 	}
 
-	if doesClusterNetworksMatchNetworkType(c.cluster) {
+	if hasClusterNetworksUnsupportedByNetworkType(c.cluster) {
+		return ValidationFailure
+	}
+
+	if isHighAvailabilityModeUnsupportedByNetworkType(c.cluster) {
 		return ValidationFailure
 	}
 
@@ -260,8 +264,10 @@ func (v *clusterValidator) printIsNetworkTypeValid(context *clusterPreprocessCon
 		if !funk.ContainsString(validNetworkTypes, swag.StringValue(context.cluster.NetworkType)) && context.cluster.NetworkType != nil {
 			return "The network type is not valid; the valid network types are OpenShiftSDN or OVNKubernetes"
 		}
-		if doesClusterNetworksMatchNetworkType(context.cluster) {
+		if hasClusterNetworksUnsupportedByNetworkType(context.cluster) {
 			return "The cluster is configured with IPv6 which is not supported by OpenShiftSDN; use OVNKubernetes instead"
+		} else if isHighAvailabilityModeUnsupportedByNetworkType(context.cluster) {
+			return "High-availability mode 'None' (SNO) is not supported by OpenShiftSDN; use another network type instead"
 		} else if isVipDhcpAllocationAndOVN(context.cluster) {
 			return "VIP DHCP allocation is not supported when the cluster is configured to use OVNKubernetes."
 		} else {
@@ -272,13 +278,18 @@ func (v *clusterValidator) printIsNetworkTypeValid(context *clusterPreprocessCon
 	}
 }
 
-func doesClusterNetworksMatchNetworkType(cluster *common.Cluster) bool {
+func hasClusterNetworksUnsupportedByNetworkType(cluster *common.Cluster) bool {
 	return funk.Any(funk.Filter(common.GetNetworksCidrs(cluster), func(ip *string) bool {
 		if ip == nil {
 			return false
 		}
 		return network.IsIPv6CIDR(*ip)
 	})) && cluster.NetworkType != nil && swag.StringValue(cluster.NetworkType) != models.ClusterNetworkTypeOVNKubernetes
+}
+
+func isHighAvailabilityModeUnsupportedByNetworkType(cluster *common.Cluster) bool {
+	return swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone &&
+		cluster.NetworkType != nil && swag.StringValue(cluster.NetworkType) == models.ClusterNetworkTypeOpenShiftSDN
 }
 
 func isVipDhcpAllocationAndOVN(cluster *common.Cluster) bool {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -1749,7 +1750,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				},
 				apiVip:      "10.16.116.81",
 				ingressVip:  "10.16.116.82",
-				networkType: models.ClusterNetworkTypeOpenShiftSDN,
+				networkType: models.ClusterNetworkTypeOVNKubernetes,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown),
 						Inventory: common.GenerateTestInventoryWithNetwork(common.NetAddress{
@@ -2024,6 +2025,39 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
 					networkPrefixValid:                  {status: ValidationSuccess, messagePattern: "Cluster Network prefix is valid."},
 					isNetworkTypeValid:                  {status: ValidationFailure, messagePattern: "VIP DHCP allocation is not supported when the cluster is configured to use OVNKubernetes."},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:              "pending-for-input to insufficient - networkType invalid (SNO)",
+				srcState:          models.ClusterStatusPendingForInput,
+				dstState:          models.ClusterStatusInsufficient,
+				clusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
+				serviceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+				machineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				apiVip:            common.TestIPv4Networking.APIVip,
+				ingressVip:        common.TestIPv4Networking.IngressVip,
+				networkType:       models.ClusterNetworkTypeOpenShiftSDN,
+				sno:               true,
+				vipDhcpAllocation: true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster Machine CIDR is equivalent to the calculated CIDR"},
+					IsApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API virtual IP is defined"},
+					IsApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					IsIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IP is defined"},
+					IsIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
+					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
+					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
+					networkPrefixValid:                  {status: ValidationSuccess, messagePattern: "Cluster Network prefix is valid."},
+					isNetworkTypeValid:                  {status: ValidationFailure, messagePattern: regexp.QuoteMeta("High-availability mode 'None' (SNO) is not supported by OpenShiftSDN; use another network type instead")},
 				}),
 				errorExpected: false,
 			},

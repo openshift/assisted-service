@@ -194,6 +194,11 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 		}
 
 		if common.IsSingleNodeCluster(cluster) {
+
+			if cfg.Networking.NetworkType == "" {
+				cfg.Networking.NetworkType = models.ClusterNetworkTypeOVNKubernetes
+			}
+
 			bootstrap := common.GetBootstrapHost(cluster)
 			if bootstrap != nil {
 				cfg.BootstrapInPlace = installcfg.BootstrapInPlace{InstallationDisk: hostutil.GetHostInstallationPath(bootstrap)}

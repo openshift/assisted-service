@@ -258,7 +258,7 @@ type Networking struct {
 	ServiceNetwork []string `json:"serviceNetwork,omitempty"`
 
 	//NetworkType is the Container Network Interface (CNI) plug-in to install
-	//The default value is OpenShiftSDN for IPv4 and OVNKubernetes for IPv6
+	//The default value is OpenShiftSDN for IPv4, and OVNKubernetes for IPv6 or SNO
 	//
 	// +kubebuilder:validation:Enum=OpenShiftSDN;OVNKubernetes
 	// +optional

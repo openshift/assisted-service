@@ -2758,7 +2758,7 @@ var _ = Describe("cluster reconcile", func() {
 					OpenshiftVersion:     "4.8",
 					ClusterNetworks:      clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
 					ServiceNetworks:      serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:          swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					NetworkType:          swag.String(models.ClusterNetworkTypeOVNKubernetes),
 					Status:               swag.String(models.ClusterStatusInstalling),
 					IngressVip:           hostIP,
 					APIVip:               hostIP,
@@ -3248,39 +3248,82 @@ var _ = Describe("TestConditions", func() {
 
 var _ = Describe("selectClusterNetworkType", func() {
 	tests := []struct {
-		clusterServiceNetworks []*models.ServiceNetwork
-		paramServiceNetworks   []*models.ServiceNetwork
-		resultNetworkType      string
+		clusterServiceNetworks    []*models.ServiceNetwork
+		paramServiceNetworks      []*models.ServiceNetwork
+		paramHighAvailabilityMode string
+		resultNetworkType         string
 	}{
 		{
-			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:   []*models.ServiceNetwork{},
-			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:      []*models.ServiceNetwork{},
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		{
-			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:   []*models.ServiceNetwork{},
-			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:      []*models.ServiceNetwork{},
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
-			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:      []*models.ServiceNetwork{},
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
-			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:      []*models.ServiceNetwork{},
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
-			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		{
-			clusterServiceNetworks: []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
-			paramServiceNetworks:   []*models.ServiceNetwork{{Cidr: "1003:db8::/119"}},
-			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+		},
+		{
+			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
+		},
+		{
+			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+		},
+		{
+			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
+			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
+		},
+		{
+			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+		},
+		{
+			clusterServiceNetworks:    []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
+			paramServiceNetworks:      []*models.ServiceNetwork{{Cidr: "1003:db8::/119"}},
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+		},
+		{
+			clusterServiceNetworks:    []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
+			paramServiceNetworks:      []*models.ServiceNetwork{{Cidr: "1003:db8::/119"}},
+			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
+			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
 		},
 	}
 	for i := range tests {
@@ -3291,9 +3334,10 @@ var _ = Describe("selectClusterNetworkType", func() {
 			}
 
 			cluster := &common.Cluster{Cluster: models.Cluster{
-				ServiceNetworks: t.clusterServiceNetworks,
-				ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-				MachineNetworks: common.TestIPv4Networking.MachineNetworks,
+				ServiceNetworks:      t.clusterServiceNetworks,
+				ClusterNetworks:      common.TestIPv4Networking.ClusterNetworks,
+				MachineNetworks:      common.TestIPv4Networking.MachineNetworks,
+				HighAvailabilityMode: &t.paramHighAvailabilityMode,
 			}}
 			networkType := selectClusterNetworkType(ClusterUpdateParams, cluster)
 			Expect(networkType).To(Equal(t.resultNetworkType))

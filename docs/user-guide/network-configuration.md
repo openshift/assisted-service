@@ -34,6 +34,8 @@ Supported network controllers depend on the selected stack and are summarized in
 | IPv6       | No            | Yes |
 | Dual-stack | No            | Yes |
 
+With single node OpenShift (SNO), the SDN controller is not supported.
+
 ### Cluster Network
 
 Cluster network is a network from which every pod deployed in the cluster gets its IP address. Given that the workload may live across multiple nodes forming the cluster, it's important for the network provider to be able to easily find an individual node based on the pod's IP address. In order to do this, `clusterNetwork.cidr` is further split into multiple subnets of the size defined in `clusterNetwork.hostPrefix`.
