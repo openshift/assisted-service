@@ -563,6 +563,53 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
 			})
+
+			It("Should update agent only once", func() {
+				mockClient := NewMockK8sClient(mockCtrl)
+				bmhr.Client = mockClient
+				mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).DoAndReturn(
+					func(ctx context.Context, name types.NamespacedName, bmh *bmh_v1alpha1.BareMetalHost) error {
+						return c.Get(ctx, name, bmh)
+					},
+				).Times(2)
+
+				mockClient.EXPECT().List(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.AgentList{}), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, agentList *v1beta1.AgentList, namespace client.InNamespace) error {
+						return c.List(ctx, agentList, namespace)
+					},
+				).Times(2)
+
+				mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).DoAndReturn(
+					func(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost) error {
+						return c.Update(ctx, bmh)
+					},
+				).Times(2)
+				mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
+					func(ctx context.Context, agent *v1beta1.Agent) error {
+						return c.Update(ctx, agent)
+					},
+				).Times(1)
+				for i := 0; i != 2; i++ {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+
+					Expect(updatedAgent.Spec.Approved).To(Equal(true))
+
+					Expect(updatedAgent.ObjectMeta.Labels[AGENT_BMH_LABEL]).To(Equal(host.Name))
+
+					Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
+					Expect(updatedAgent.Spec.Role).To(Equal(models.HostRoleMaster))
+					Expect(updatedAgent.Spec.Hostname).To(Equal("happy-meal"))
+					Expect(updatedAgent.Spec.MachineConfigPool).To(Equal("number-8"))
+					Expect(updatedAgent.Spec.InstallerArgs).To(Equal(`["--args", "aaaa"]`))
+					Expect(updatedAgent.Spec.IgnitionConfigOverrides).To(Equal("agent-ignition"))
+				}
+			})
 		})
 	})
 
