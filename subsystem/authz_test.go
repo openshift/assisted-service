@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"reflect"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -233,9 +232,9 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		})
 
 		It(it, func() {
-			_, err := readOnlyAdminUserBMClient.Installer.GetPresignedForClusterFiles(ctx, &installer.GetPresignedForClusterFilesParams{ClusterID: clusterID, FileName: fileName})
+			_, err := readOnlyAdminUserBMClient.Installer.V2GetPresignedForClusterCredentials(ctx, &installer.V2GetPresignedForClusterCredentialsParams{ClusterID: clusterID, FileName: fileName})
 			Expect(err).To(HaveOccurred())
-			Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewGetPresignedForClusterFilesForbidden())))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetPresignedForClusterCredentialsForbidden()))
 		})
 
 		// Access granted
@@ -248,8 +247,8 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		})
 		it = fmt.Sprintf("Should allow cluster users to download '%v' via downloads/files-presigned endpoint", fileName)
 		It(it, func() {
-			_, err := userBMClient.Installer.GetPresignedForClusterFiles(ctx, &installer.GetPresignedForClusterFilesParams{ClusterID: clusterID, FileName: fileName})
-			Expect(reflect.TypeOf(err)).ShouldNot(Equal(reflect.TypeOf(installer.NewGetPresignedForClusterFilesForbidden())))
+			_, err := userBMClient.Installer.V2GetPresignedForClusterCredentials(ctx, &installer.V2GetPresignedForClusterCredentialsParams{ClusterID: clusterID, FileName: fileName})
+			Expect(err).NotTo(BeAssignableToTypeOf(installer.NewV2GetPresignedForClusterCredentialsForbidden()))
 		})
 
 	}
