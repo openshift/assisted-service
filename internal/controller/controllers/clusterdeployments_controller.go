@@ -485,7 +485,7 @@ func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Con
 }
 
 func (r *ClusterDeploymentsReconciler) updateKubeConfigSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
-	name := fmt.Sprintf(adminKubeConfigStringTemplate, cluster.Name)
+	name := getClusterDeploymentAdminKubeConfigSecretName(cluster)
 	s, getErr := getSecret(ctx, r.Client, r.APIReader, types.NamespacedName{Namespace: cluster.Namespace, Name: name})
 	if getErr != nil && !k8serrors.IsNotFound(getErr) {
 		return nil, getErr
@@ -514,7 +514,7 @@ func (r *ClusterDeploymentsReconciler) updateKubeConfigSecret(ctx context.Contex
 
 func (r *ClusterDeploymentsReconciler) ensureKubeConfigNoIngressSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
 	s := &corev1.Secret{}
-	name := fmt.Sprintf(adminKubeConfigStringTemplate, cluster.Name)
+	name := getClusterDeploymentAdminKubeConfigSecretName(cluster)
 	getErr := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: name}, s)
 	if getErr == nil || !k8serrors.IsNotFound(getErr) {
 		return s, getErr
@@ -1893,4 +1893,11 @@ func (r *ClusterDeploymentsReconciler) handleClusterInstalled(ctx context.Contex
 		return r.TransformClusterToDay2(ctx, log, cluster, clusterInstall)
 	}
 	return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+}
+
+func getClusterDeploymentAdminKubeConfigSecretName(cd *hivev1.ClusterDeployment) string {
+	if cd.Spec.ClusterMetadata != nil && cd.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name != "" {
+		return cd.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name
+	}
+	return fmt.Sprintf(adminKubeConfigStringTemplate, cd.Name)
 }

@@ -754,7 +754,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 
 	key := types.NamespacedName{
 		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
-		Name:      fmt.Sprintf(adminKubeConfigStringTemplate, cd.Name),
+		Name:      getClusterDeploymentAdminKubeConfigSecretName(cd),
 	}
 	isNonePlatform, propagateError, err := isNonePlatformCluster(ctx, r.Client, cd)
 	if err != nil {
@@ -1101,9 +1101,10 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 	if !installed {
 		return reconcileComplete{}
 	}
+
 	key := types.NamespacedName{
 		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
-		Name:      fmt.Sprintf(adminKubeConfigStringTemplate, cd.Name),
+		Name:      getClusterDeploymentAdminKubeConfigSecretName(cd),
 	}
 
 	secret, err := getSecret(ctx, r.Client, r.APIReader, key)
