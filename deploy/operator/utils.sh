@@ -79,6 +79,17 @@ function wait_for_object_amount() {
     echo "done" $(oc get ${object} -n "${namespace}" --no-headers | wc -l)
 }
 
+function wait_for_cmd_amount() {
+    amount="$1"
+    interval="$2"
+    cmd="$3"
+
+    until [ $(${cmd} | wc -l) -eq ${amount} ]; do
+        sleep ${interval}
+    done
+    echo "done" $(${cmd} | wc -l)
+}
+
 function wait_for_boolean_field() {
     object="$1"
     field="$2"

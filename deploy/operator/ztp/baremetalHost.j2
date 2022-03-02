@@ -1,5 +1,8 @@
 {% set ns = namespace(counter=1) %}
 {% set bmhs = [] %}
+{% if day2|string == "true" %}
+      {% set bmhs = baremetalhosts %}
+{% else %}
 {% if assisted_upgrade_operator|string == "true" %}
 ## Use the first baremetalhost to install SNO before upgrading the operator
       {{ bmhs.append( baremetalhosts[0] ) }}
@@ -9,8 +12,9 @@
 {% else %}
       {% set bmhs = baremetalhosts %}
 {% endif %}
+{% endif %}
 {% for host in bmhs %}
-{% if ns.counter <= spoke_controlplane_agents|int %}
+{% if day2|string == "true"  or ns.counter <= spoke_controlplane_agents|int%}
 
 ---
 apiVersion: v1

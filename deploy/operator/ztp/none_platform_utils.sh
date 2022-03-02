@@ -51,7 +51,7 @@ function render_load_balancer_config_file()
     if [ -z "${worker_ips}" ] ; then
         worker_ips="${master_ips}"
     fi
-    render_frontend_and_backend "6443 22623"  "${master_ips}" > $fname
+    render_frontend_and_backend "6443 22623 22624"  "${master_ips}" > $fname
 
     # We use port 81 because port 80 is occupied by httpd in case the hub cluster was installed with dev-scripts
     render_frontend_and_backend "443 81"  "${worker_ips}" >> $fname
@@ -71,7 +71,7 @@ function setup_libvirt_dns()
 
 function open_firewall_ports()
 {
-    for port in 6443 22623 80 81 443 ; do
+    for port in 6443 22623 22624 80 81 443 ; do
         firewall-cmd --zone=libvirt --add-port=${port}/tcp
     done
 }
