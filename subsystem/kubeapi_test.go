@@ -3583,12 +3583,13 @@ spec:
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterBackendErrorReason)
 
 		By("Deploy bad config map")
-		data := map[string]string{"test.yaml": content, "test.dc": "test"}
-		cm1 := deployOrUpdateConfigMap(ctx, kubeClient, refs[0].Name, data)
+		data1 := map[string]string{"test1.yaml": content, "test.dc.1": "test"}
+		data2 := map[string]string{"test2.yaml": content, "test.dc.2": "test"}
+		cm1 := deployOrUpdateConfigMap(ctx, kubeClient, refs[0].Name, data1)
 		defer func() {
 			_ = kubeClient.Delete(ctx, cm1)
 		}()
-		cm2 := deployOrUpdateConfigMap(ctx, kubeClient, refs[1].Name, data)
+		cm2 := deployOrUpdateConfigMap(ctx, kubeClient, refs[1].Name, data2)
 		defer func() {
 			_ = kubeClient.Delete(ctx, cm2)
 		}()
@@ -3601,9 +3602,8 @@ spec:
 		time.Sleep(30 * time.Second)
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterReadyReason)
 
-		data = map[string]string{"test.yaml": content, "test2.yaml": content}
-		deployOrUpdateConfigMap(ctx, kubeClient, refs[0].Name, data)
-		deployOrUpdateConfigMap(ctx, kubeClient, refs[1].Name, data)
+		deployOrUpdateConfigMap(ctx, kubeClient, refs[0].Name, map[string]string{"test1.yaml": content})
+		deployOrUpdateConfigMap(ctx, kubeClient, refs[1].Name, map[string]string{"test2.yaml": content})
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
 	})
 

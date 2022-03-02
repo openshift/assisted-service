@@ -997,6 +997,9 @@ func (r *ClusterDeploymentsReconciler) getClusterDeploymentManifest(ctx context.
 			}
 			// Add data to manifests map
 			for k, v := range configMap.Data {
+				if _, exists := configuredManifests[k]; exists {
+					return nil, errors.Errorf("Conflict in manifest names ('%s' is not unique)", k)
+				}
 				configuredManifests[k] = v
 			}
 		}
