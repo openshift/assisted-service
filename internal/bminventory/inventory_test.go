@@ -134,6 +134,13 @@ func mockClusterRegisterSuccess(withEvents bool) {
 	}
 }
 
+func mockClusterUpdateSuccess(times int, hosts int) {
+	mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(hosts * times)
+	mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(hosts * times)
+	mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(times)
+	mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times)
+}
+
 func mockInfraEnvRegisterSuccess() {
 	mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 	mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("", nil).Times(1)
@@ -2501,6 +2508,11 @@ var _ = Describe("cluster", func() {
 		BeforeEach(func() {
 			mockDurationsSuccess()
 		})
+
+		mockSuccess := func() {
+			mockClusterUpdateSuccess(1, 0)
+		}
+
 		It("update_cluster_while_installing", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
@@ -2547,7 +2559,7 @@ var _ = Describe("cluster", func() {
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockSuccess()
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -2837,7 +2849,7 @@ var _ = Describe("cluster", func() {
 
 						// Update
 						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+						mockSuccess()
 
 						for _, updateOperator := range test.updateOperators {
 							mockGetOperatorByName(updateOperator.Name)
@@ -2872,7 +2884,7 @@ var _ = Describe("cluster", func() {
 
 				// Update
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockSuccess()
 
 				newOperatorName := testOLMOperators[1].Name
 
@@ -2958,7 +2970,7 @@ var _ = Describe("cluster", func() {
 			sshKeyWithNewLine := sshKey + " \n"
 
 			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockSuccess()
 			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 				ClusterID: clusterID,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -2990,7 +3002,7 @@ var _ = Describe("cluster", func() {
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockSuccess()
 			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 				ClusterID: clusterID,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -3012,7 +3024,7 @@ var _ = Describe("cluster", func() {
 					}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockClusterUpdateSuccess(1, 0)
 			})
 
 			updateCluster := func(httpProxy, httpsProxy, noProxy string) *common.Cluster {
@@ -3050,7 +3062,7 @@ var _ = Describe("cluster", func() {
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 			})
 			It("update api vip dnsname success", func() {
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockSuccess()
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -3127,7 +3139,7 @@ var _ = Describe("cluster", func() {
 			})
 
 			mockSuccess := func(times int) {
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times * 1)
+				mockClusterUpdateSuccess(times, 3)
 			}
 
 			Context("Single node", func() {
@@ -3949,7 +3961,7 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("Empty networks (new API) - valid", func() {
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+					mockSuccess(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -4691,6 +4703,10 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 		return arr
 	}
 
+	mockSuccess := func() {
+		mockClusterUpdateSuccess(1, 0)
+	}
+
 	Context("Update", func() {
 		BeforeEach(func() {
 			mockDurationsSuccess()
@@ -4741,7 +4757,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockSuccess()
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -4919,7 +4935,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 						// Update
 						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+						mockSuccess()
 
 						for _, updateOperator := range test.updateOperators {
 							mockGetOperatorByName(updateOperator.Name)
@@ -4954,8 +4970,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				// Update
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-
+				mockSuccess()
 				newOperatorName := testOLMOperators[1].Name
 
 				mockGetOperatorByName(newOperatorName)
@@ -5040,7 +5055,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			sshKeyWithNewLine := sshKey + " \n"
 
 			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockSuccess()
 			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 				ClusterID: clusterID,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -5073,7 +5088,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockSuccess()
 			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 				ClusterID: clusterID,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -5095,7 +5110,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockClusterUpdateSuccess(1, 0)
 			})
 
 			updateCluster := func(httpProxy, httpsProxy, noProxy string) *common.Cluster {
@@ -5133,13 +5148,103 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 			})
 			It("update api vip dnsname success", func() {
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockSuccess()
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						APIVipDNSName: swag.String("some dns name"),
 					}})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+			})
+		})
+
+		Context("Single node", func() {
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
+					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
+				Expect(err).ToNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			})
+
+			mockSuccess := func(times int) {
+				mockClusterUpdateSuccess(times, 1)
+			}
+
+			JustBeforeEach(func() {
+				Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
+					"user_managed_networking": true,
+					"high_availability_mode":  models.ClusterHighAvailabilityModeNone,
+				}).Error).ShouldNot(HaveOccurred())
+			})
+
+			It("Fail to unset UserManagedNetworking", func() {
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						UserManagedNetworking: swag.Bool(false),
+					},
+				})
+
+				verifyApiErrorString(reply, http.StatusBadRequest, "disabling UserManagedNetworking is not allowed in single node mode")
+			})
+
+			It("Set Machine CIDR", func() {
+				Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
+					"api_vip":     common.TestIPv4Networking.APIVip,
+					"ingress_vip": common.TestIPv4Networking.IngressVip,
+				}).Error).ShouldNot(HaveOccurred())
+
+				mockSuccess(1)
+
+				machineNetworks := common.TestIPv4Networking.MachineNetworks
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						MachineNetworks: machineNetworks,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				actual := reply.(*installer.V2UpdateClusterCreated)
+				Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+				Expect(actual.Payload.APIVip).To(Equal(""))
+				Expect(actual.Payload.IngressVip).To(Equal(""))
+				validateNetworkConfiguration(actual.Payload, nil, nil, &machineNetworks)
+			})
+
+			It("Fail with bad Machine CIDR", func() {
+				badMachineCidr := "2.2.3.128/24"
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						MachineNetworks: []*models.MachineNetwork{{Cidr: models.Subnet(badMachineCidr)}},
+					},
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("%s is not a valid network CIDR", badMachineCidr))
+			})
+
+			It("Success with machine cidr that is not part of cluster networks", func() {
+				mockSuccess(1)
+				wrongMachineCidrNetworks := []*models.MachineNetwork{{Cidr: models.Subnet("2.2.3.0/24")}}
+
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						MachineNetworks: wrongMachineCidrNetworks,
+					},
+				})
+
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				actual := reply.(*installer.V2UpdateClusterCreated)
+				Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+				Expect(actual.Payload.APIVip).To(Equal(""))
+				Expect(actual.Payload.IngressVip).To(Equal(""))
+				validateNetworkConfiguration(actual.Payload, nil, nil, &wrongMachineCidrNetworks)
 			})
 		})
 
@@ -5160,81 +5265,8 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			})
 
 			mockSuccess := func(times int) {
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times * 1)
+				mockClusterUpdateSuccess(times, 3)
 			}
-
-			Context("Single node", func() {
-				BeforeEach(func() {
-					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
-						"user_managed_networking": true,
-						"high_availability_mode":  models.ClusterHighAvailabilityModeNone,
-					}).Error).ShouldNot(HaveOccurred())
-				})
-
-				It("Fail to unset UserManagedNetworking", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(false),
-						},
-					})
-
-					verifyApiErrorString(reply, http.StatusBadRequest, "disabling UserManagedNetworking is not allowed in single node mode")
-				})
-
-				It("Set Machine CIDR", func() {
-					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
-						"api_vip":     common.TestIPv4Networking.APIVip,
-						"ingress_vip": common.TestIPv4Networking.IngressVip,
-					}).Error).ShouldNot(HaveOccurred())
-
-					mockSuccess(1)
-
-					machineNetworks := common.TestIPv4Networking.MachineNetworks
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							MachineNetworks: machineNetworks,
-						},
-					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					actual := reply.(*installer.V2UpdateClusterCreated)
-					Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
-					Expect(actual.Payload.APIVip).To(Equal(""))
-					Expect(actual.Payload.IngressVip).To(Equal(""))
-					validateNetworkConfiguration(actual.Payload, nil, nil, &machineNetworks)
-				})
-
-				It("Fail with bad Machine CIDR", func() {
-					badMachineCidr := "2.2.3.128/24"
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							MachineNetworks: []*models.MachineNetwork{{Cidr: models.Subnet(badMachineCidr)}},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("%s is not a valid network CIDR", badMachineCidr))
-				})
-
-				It("Success with machine cidr that is not part of cluster networks", func() {
-					mockSuccess(1)
-					wrongMachineCidrNetworks := []*models.MachineNetwork{{Cidr: models.Subnet("2.2.3.0/24")}}
-
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							MachineNetworks: wrongMachineCidrNetworks,
-						},
-					})
-
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					actual := reply.(*installer.V2UpdateClusterCreated)
-					Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
-					Expect(actual.Payload.APIVip).To(Equal(""))
-					Expect(actual.Payload.IngressVip).To(Equal(""))
-					validateNetworkConfiguration(actual.Payload, nil, nil, &wrongMachineCidrNetworks)
-				})
-			})
 
 			Context("UserManagedNetworking", func() {
 				It("success", func() {
@@ -5353,7 +5385,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				})
 
 				It("Success with non-x86_64 CPU architecture in case override is allowed", func() {
-					mockSuccess(1)
+					mockClusterUpdateSuccess(1, 0)
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
@@ -9836,6 +9868,10 @@ var _ = Describe("TestRegisterCluster", func() {
 
 			var clusterID strfmt.UUID
 
+			mockSuccess := func() {
+				mockClusterUpdateSuccess(1, 0)
+			}
+
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
@@ -9890,9 +9926,9 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Update cluster disk encryption configuration enable on none", func() {
-				mockUsageReports()
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockSuccess()
+				mockUsageReports()
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{

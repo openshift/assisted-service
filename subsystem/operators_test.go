@@ -2,6 +2,7 @@ package subsystem
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -92,11 +93,17 @@ var _ = Describe("Operators endpoint tests", func() {
 
 	Context("Update cluster", func() {
 		BeforeEach(func() {
+			clusterCIDR := "10.128.0.0/14"
+			serviceCIDR := "172.30.0.0/16"
 			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
 					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -185,6 +192,43 @@ var _ = Describe("Operators endpoint tests", func() {
 				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeFalse())
 				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)})
 			})
+		})
+
+		It("Updated OLM validation failure reflected in the cluster", func() {
+			updateCpuCores := func(h *models.Host, cpucores int64) {
+				hInventory := models.Inventory{}
+				_ = json.Unmarshal([]byte(h.Inventory), &hInventory)
+				hInventory.CPU = &models.CPU{Count: cpucores}
+				generateEssentialHostStepsWithInventory(context.TODO(), h, h.RequestedHostname, &hInventory)
+			}
+			By("add hosts with a minimal worker (cnv operator is not enabled)")
+			infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+			hosts := registerHostsAndSetRolesDHCP(clusterID, *infraEnvID, 6, "test-cluster", "example.com")
+
+			worker := getHostV2(*infraEnvID, *hosts[5].ID)
+			updateCpuCores(worker, 2)
+			for _, h := range hosts {
+				By(fmt.Sprintf("waiting for host %s to be ready", h.RequestedHostname))
+				waitForHostState(context.TODO(), models.HostStatusKnown, defaultWaitForHostStateTimeout, h)
+			}
+			By("waiting for the cluster to be ready")
+			waitForClusterState(context.TODO(), clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+				IgnoreStateInfo)
+
+			By("enable CNV operator")
+			_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					OlmOperators: []*models.OperatorCreateParams{
+						{Name: cnv.Operator.Name},
+					},
+				},
+				ClusterID: clusterID,
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			By("check that the cluster move to insufficient immediately")
+			c := getCluster(clusterID)
+			Expect(*c.Status).To(Equal(models.ClusterStatusInsufficient))
 		})
 	})
 

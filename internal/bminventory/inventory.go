@@ -1229,7 +1229,7 @@ func getImageName(infraEnvID *strfmt.UUID) string {
 	return fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, infraEnvID.String()))
 }
 
-func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *common.Cluster) error {
+func (b *bareMetalInventory) refreshAllHostsOnInstall(ctx context.Context, cluster *common.Cluster) error {
 	err := b.setMajorityGroupForCluster(cluster.ID, b.db)
 	if err != nil {
 		return err
@@ -1323,7 +1323,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		return nil, err
 	}
 
-	if err = b.refreshAllHosts(ctx, cluster); err != nil {
+	if err = b.refreshAllHostsOnInstall(ctx, cluster); err != nil {
 		return nil, err
 	}
 	if _, err = b.clusterApi.RefreshStatus(ctx, cluster, b.db); err != nil {
@@ -1700,6 +1700,65 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	return nil
 }
 
+func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *common.Cluster, tx *gorm.DB, log logrus.FieldLogger) error {
+	err := b.setMajorityGroupForCluster(cluster.ID, tx)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to set cluster %s majority groups", cluster.ID.String())
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	// Cluster is retrieved from DB to make sure we operate on the most recent information regarding monitored operators
+	// enabled for the cluster.
+	dbCluster, err := common.GetClusterFromDB(tx, *cluster.ID, common.UseEagerLoading)
+	if err != nil {
+		log.WithError(err).Errorf("not refreshing cluster hosts - failed to find cluster %s", *cluster.ID)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	for _, dbHost := range dbCluster.Hosts {
+		var err error
+
+		// Refresh inventory - especially disk eligibility. The host requirements might have changed.
+		// dbHost object might be updated with the latest disk eligibility information.
+		err = b.refreshInventory(ctx, dbCluster, dbHost, tx)
+		if err != nil {
+			return err
+		}
+
+		if err = b.hostApi.RefreshStatus(ctx, dbHost, tx); err != nil {
+			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *dbHost.ID, cluster.ID.String())
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) refreshInventory(ctx context.Context, cluster *common.Cluster, host *models.Host, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if host.Inventory != "" {
+		err := b.hostApi.RefreshInventory(ctx, cluster, host, db)
+		if err != nil {
+			log.WithError(err).Errorf("failed to update inventory of host %s cluster %s", host.ID, cluster.ID.String())
+			switch err := err.(type) {
+			case *common.ApiErrorResponse:
+				if err.StatusCode() != http.StatusConflict {
+					return err
+				}
+				// In RefreshInventory there is a precondition on host's status that on failure returns StatusConflict.
+				// In case of cluster update we don't want to fail the whole update if host can't be, according to
+				// business rules, updated. An example of such case is disabled host.
+				log.Infof("ignoring wrong status error (%v) for host %s in cluster %s", err, host.ID, cluster.ID.String())
+			default:
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
+		}
+	}
+	return nil
+}
+
 func (b *bareMetalInventory) v2NoneHaModeClusterUpdateValidations(cluster *common.Cluster, params installer.V2UpdateClusterParams) error {
 	if swag.StringValue(cluster.HighAvailabilityMode) != models.ClusterHighAvailabilityModeNone {
 		return nil
@@ -1867,8 +1926,9 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, err
 	}
 
-	if _, err = b.clusterApi.RefreshStatus(ctx, cluster, tx); err != nil {
-		log.WithError(err).Errorf("failed to validate or update cluster %s state", cluster.ID)
+	err = b.updateHostsAndClusterStatus(ctx, cluster, tx, log)
+	if err != nil {
+		log.WithError(err).Errorf("failed to validate or update cluster %s state or its hosts", cluster.ID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
@@ -2709,6 +2769,20 @@ func (b *bareMetalInventory) getOLMOperators(newOperators []*models.OperatorCrea
 	}
 
 	return b.operatorManagerApi.ResolveDependencies(monitoredOperators)
+}
+
+func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cluster *common.Cluster, db *gorm.DB, log logrus.FieldLogger) error {
+	err := b.refreshClusterHosts(ctx, cluster, db, log)
+	if err != nil {
+		return err
+	}
+
+	if _, err = b.clusterApi.RefreshStatus(ctx, cluster, db); err != nil {
+		log.WithError(err).Errorf("failed to validate or update cluster %s state", cluster.ID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return nil
 }
 
 func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*models.HostNetwork {
