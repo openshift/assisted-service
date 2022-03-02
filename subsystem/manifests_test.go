@@ -215,8 +215,8 @@ var _ = Describe("disk encryption", func() {
 
 		By("cluster update", func() {
 
-			updateClusterReply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
+			updateClusterReply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
 						Mode:        swag.String(models.DiskEncryptionModeTang),

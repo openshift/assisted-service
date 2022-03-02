@@ -121,9 +121,9 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("next step", func() {
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+		_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 			ClusterID: clusterID,
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
 			},
 		})

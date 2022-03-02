@@ -219,9 +219,9 @@ var _ = Describe("test AMS subscriptions", func() {
 
 			By("update subscription's display name", func() {
 				newClusterName := "ams-cluster-new-name"
-				_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						Name: &newClusterName,
 					},
 				})
@@ -248,9 +248,9 @@ var _ = Describe("test AMS subscriptions", func() {
 
 			By("update subscription's display name", func() {
 				newClusterName := "ams-cluster-new-name"
-				_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						Name: &newClusterName,
 					},
 				})

@@ -277,8 +277,8 @@ func registerDay2Cluster(ctx context.Context) strfmt.UUID {
 	Expect(err).NotTo(HaveOccurred())
 	clusterID := *c.GetPayload().ID
 
-	_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-		ClusterUpdateParams: &models.ClusterUpdateParams{
+	_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+		ClusterUpdateParams: &models.V2ClusterUpdateParams{
 			PullSecret: swag.String(pullSecret),
 		},
 		ClusterID: clusterID,

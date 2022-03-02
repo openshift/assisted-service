@@ -107,8 +107,8 @@ var _ = Describe("Operators endpoint tests", func() {
 
 		It("Update OLMs", func() {
 			By("First time - operators is empty", func() {
-				_, err := userBMClient.Installer.UpdateCluster(context.TODO(), &installer.UpdateClusterParams{
-					ClusterUpdateParams: &models.ClusterUpdateParams{
+				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: lso.Operator.Name},
 							{Name: ocs.Operator.Name},
@@ -127,8 +127,8 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 
 			By("Second time - operators is not empty", func() {
-				_, err := userBMClient.Installer.UpdateCluster(context.TODO(), &installer.UpdateClusterParams{
-					ClusterUpdateParams: &models.ClusterUpdateParams{
+				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: lso.Operator.Name},
 						},
@@ -271,8 +271,8 @@ var _ = Describe("Operators endpoint tests", func() {
 
 		It("All OLM operators available", func() {
 			By("Update OLM", func() {
-				_, err := userBMClient.Installer.UpdateCluster(context.TODO(), &installer.UpdateClusterParams{
-					ClusterUpdateParams: &models.ClusterUpdateParams{
+				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: lso.Operator.Name},
 						},
@@ -294,8 +294,8 @@ var _ = Describe("Operators endpoint tests", func() {
 
 		It("Failed OLM Operator", func() {
 			By("Update OLM", func() {
-				_, err := userBMClient.Installer.UpdateCluster(context.TODO(), &installer.UpdateClusterParams{
-					ClusterUpdateParams: &models.ClusterUpdateParams{
+				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: lso.Operator.Name},
 						},

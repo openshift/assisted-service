@@ -48,8 +48,8 @@ var _ = Describe("Day2 v2 cluster tests", func() {
 		Expect(swag.StringValue(&cluster.GetPayload().OcpReleaseImage)).Should(BeEmpty())
 		Expect(cluster.GetPayload().StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				PullSecret: swag.String(pullSecret),
 			},
 			ClusterID: *cluster.GetPayload().ID,
@@ -112,8 +112,8 @@ var _ = Describe("Day2 cluster tests", func() {
 		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(statusInfoAddingHosts))
 		Expect(cluster.GetPayload().StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				PullSecret: swag.String(pullSecret),
 			},
 			ClusterID: *cluster.GetPayload().ID,
@@ -976,8 +976,8 @@ var _ = Describe("Day2 cluster with bind/unbind hosts", func() {
 		Expect(err).NotTo(HaveOccurred())
 		clusterID = *cluster.GetPayload().ID
 
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				PullSecret: swag.String(pullSecret),
 			},
 			ClusterID: clusterID,
@@ -1051,8 +1051,8 @@ var _ = Describe("Installation progress", func() {
 			Expect(err).NotTo(HaveOccurred())
 			c = importClusterReply.GetPayload()
 
-			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
+			_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					PullSecret: swag.String(pullSecret),
 				},
 				ClusterID: *c.ID,

@@ -193,8 +193,8 @@ var _ = Describe("Cluster", func() {
 	})
 
 	It("update cluster name exceed max length (54 characters)", func() {
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				Name: swag.String("loveisintheaireverywhereilookaroundloveisintheaireverysightandeverysound"),
 			},
 			ClusterID: clusterID,
@@ -332,8 +332,8 @@ var _ = Describe("Cluster", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		c, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				SSHPublicKey: &validPublicKey,
 			},
 			ClusterID: clusterID,
@@ -350,8 +350,8 @@ var _ = Describe("Cluster", func() {
 		By("update cluster invalid ssh key")
 		invalidPublicKey := `ssh-rsa AAAAB3NzaC1yc2EAAAADAABgQD14Gv4V5DVvyr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUAAbfmn/HalJTHB73LyjilKiPvJ+x2bG7AeiqyVHwtQSpt02FCdQGptmsSqqWF/b9botOO38eUsqPNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= oscohen@localhost.localdomain`
 
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				SSHPublicKey: &invalidPublicKey,
 			},
 			ClusterID: clusterID,
@@ -813,8 +813,8 @@ var _ = Describe("cluster install - DHCP", func() {
 		clusterID := *cluster.ID
 		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
 		registerHostsAndSetRolesDHCP(clusterID, *infraEnvID, 5, "test-cluster", "example.com")
-		reply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		reply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
 			},
 			ClusterID: clusterID,
@@ -822,8 +822,8 @@ var _ = Describe("cluster install - DHCP", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusPendingForInput))
 		generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", true)
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				APIVip:     swag.String("1.2.3.100"),
 				IngressVip: swag.String("1.2.3.101"),
 			},
@@ -832,16 +832,16 @@ var _ = Describe("cluster install - DHCP", func() {
 		Expect(err).ToNot(HaveOccurred())
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
-		reply, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		reply, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
 			},
 			ClusterID: clusterID,
 		})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusReady))
-		reply, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		reply, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(true),
 				MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
 			},
@@ -850,8 +850,8 @@ var _ = Describe("cluster install - DHCP", func() {
 		Expect(err).ToNot(HaveOccurred())
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				APIVip:     swag.String("1.2.3.100"),
 				IngressVip: swag.String("1.2.3.101"),
 			},
@@ -1027,8 +1027,8 @@ var _ = Describe("cluster update - BaseDNS", func() {
 	})
 	Context("Update BaseDNS", func() {
 		It("Should not throw an error with valid 2 part DNS", func() {
-			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
+			_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					BaseDNSDomain: swag.String("abc.com"),
 				},
 				ClusterID: clusterID,
@@ -1036,8 +1036,8 @@ var _ = Describe("cluster update - BaseDNS", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("Should not throw an error with valid 3 part DNS", func() {
-			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
+			_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					BaseDNSDomain: swag.String("abc.def.com"),
 				},
 				ClusterID: clusterID,
@@ -1046,8 +1046,8 @@ var _ = Describe("cluster update - BaseDNS", func() {
 		})
 	})
 	It("Should throw an error with invalid top-level domain", func() {
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				BaseDNSDomain: swag.String("abc.com.c"),
 			},
 			ClusterID: clusterID,
@@ -1055,8 +1055,8 @@ var _ = Describe("cluster update - BaseDNS", func() {
 		Expect(err).To(HaveOccurred())
 	})
 	It("Should throw an error with invalid char prefix domain", func() {
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				BaseDNSDomain: swag.String("-abc.com"),
 			},
 			ClusterID: clusterID,
@@ -1265,8 +1265,8 @@ var _ = Describe("cluster install", func() {
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 
-		updateClusterReply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		updateClusterReply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				SchedulableMasters: swag.Bool(true),
 			},
 			ClusterID: clusterID,
@@ -1382,8 +1382,8 @@ var _ = Describe("cluster install", func() {
 				InfraEnvID: h.InfraEnvID,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
+			_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					VipDhcpAllocation:     swag.Bool(false),
 					AdditionalNtpSource:   &ntpSources,
 					HTTPProxy:             &proxy,
@@ -1474,8 +1474,8 @@ var _ = Describe("cluster install", func() {
 
 		It("unset dual-stack usage on update cluster", func() {
 			clusterID := *cluster.ID
-			_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
+			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					VipDhcpAllocation:     swag.Bool(false),
 					NetworkType:           swag.String("OVNKubernetes"),
 					UserManagedNetworking: swag.Bool(false),
@@ -1501,8 +1501,8 @@ var _ = Describe("cluster install", func() {
 			clusterID := *cluster.ID
 			apiVip := "1.2.3.8"
 			_ = registerNode(ctx, *infraEnvID, "test-host", defaultCIDRv4)
-			c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
+			c, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					APIVip:            &apiVip,
 					VipDhcpAllocation: swag.Bool(false),
 				},
@@ -1518,8 +1518,8 @@ var _ = Describe("cluster install", func() {
 			clusterID := *cluster.ID
 			apiVip := "1.2.3.8"
 			host := registerNode(ctx, *infraEnvID, "test-host", defaultCIDRv4)
-			c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
+			c, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					APIVip:            &apiVip,
 					VipDhcpAllocation: swag.Bool(false),
 				},
@@ -1540,8 +1540,8 @@ var _ = Describe("cluster install", func() {
 
 		It("MachineNetworkCIDR no vips - no allocation", func() {
 			clusterID := *cluster.ID
-			c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
+			c, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					VipDhcpAllocation: swag.Bool(false),
 				},
 				ClusterID: clusterID,
@@ -1562,8 +1562,8 @@ var _ = Describe("cluster install", func() {
 		It("MachineNetworkCIDR no hosts - no allocation", func() {
 			clusterID := *cluster.ID
 			apiVip := "1.2.3.8"
-			_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
+			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					APIVip:            &apiVip,
 					VipDhcpAllocation: swag.Bool(false),
 				},
@@ -1605,8 +1605,8 @@ var _ = Describe("cluster install", func() {
 				By("Update NTP source", func() {
 					newSource := "5.5.5.5"
 
-					reply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-						ClusterUpdateParams: &models.ClusterUpdateParams{
+					reply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							AdditionalNtpSource: &newSource,
 						},
 						ClusterID: clusterID,
@@ -1645,8 +1645,8 @@ var _ = Describe("cluster install", func() {
 				By("Set new NTP source", func() {
 					newSource := "5.5.5.5"
 
-					_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-						ClusterUpdateParams: &models.ClusterUpdateParams{
+					_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							AdditionalNtpSource: &newSource,
 						},
 						ClusterID: clusterID,
@@ -2741,8 +2741,8 @@ spec:
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				APIVip:     &apiVip,
 				IngressVip: &ingressVip,
 			},
@@ -2830,8 +2830,8 @@ spec:
 			InfraEnvID: *infraEnvID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
 				APIVip:            &apiVip,
 				IngressVip:        &ingressVip,
@@ -2982,8 +2982,8 @@ spec:
 		generateEssentialHostStepsWithInventory(ctx, h1, "h1", hwInfo)
 		apiVip := "1.2.3.8"
 		ingressVip := "1.2.3.9"
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
 				APIVip:            &apiVip,
 				IngressVip:        &ingressVip,
@@ -3600,8 +3600,8 @@ func registerHostsAndSetRoles(clusterID, infraenvID strfmt.UUID, numHosts int, c
 	generateFullMeshConnectivity(ctx, ips[0], hosts...)
 	apiVip := ""
 	ingressVip := ""
-	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-		ClusterUpdateParams: &models.ClusterUpdateParams{
+	_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+		ClusterUpdateParams: &models.V2ClusterUpdateParams{
 			VipDhcpAllocation: swag.Bool(false),
 			APIVip:            &apiVip,
 			IngressVip:        &ingressVip,
@@ -3611,8 +3611,8 @@ func registerHostsAndSetRoles(clusterID, infraenvID strfmt.UUID, numHosts int, c
 	Expect(err).NotTo(HaveOccurred())
 	apiVip = "1.2.3.8"
 	ingressVip = "1.2.3.9"
-	_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-		ClusterUpdateParams: &models.ClusterUpdateParams{
+	_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+		ClusterUpdateParams: &models.V2ClusterUpdateParams{
 			APIVip:     &apiVip,
 			IngressVip: &ingressVip,
 		},
@@ -3675,8 +3675,8 @@ func registerHostsAndSetRolesDHCP(clusterID, infraEnvID strfmt.UUID, numHosts in
 		hosts = append(hosts, host)
 	}
 	generateFullMeshConnectivity(ctx, ips[0], hosts...)
-	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-		ClusterUpdateParams: &models.ClusterUpdateParams{
+	_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+		ClusterUpdateParams: &models.V2ClusterUpdateParams{
 			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
 		},
 		ClusterID: clusterID,
@@ -3830,9 +3830,9 @@ var _ = Describe("Installation progress", func() {
 
 			// add OLM operators
 
-			updateClusterReply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			updateClusterReply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 				ClusterID: *c.ID,
-				ClusterUpdateParams: &models.ClusterUpdateParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					OlmOperators: []*models.OperatorCreateParams{
 						{Name: lso.Operator.Name},
 						{Name: ocs.Operator.Name},
@@ -4049,8 +4049,8 @@ var _ = Describe("Ovirt provider tests", func() {
 		h3 := registerNodeWithInventory(ctx, *infraEnvID, "h3", ips[2], inventoryOvirtInfo)
 		apiVip := "1.2.3.8"
 		ingressVip := "1.2.3.9"
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
 				APIVip:            &apiVip,
 				IngressVip:        &ingressVip,
@@ -4116,8 +4116,8 @@ var _ = Describe("Ovirt provider tests", func() {
 		h5 := registerNodeWithInventory(ctx, *infraEnvID, "h5", ips[4], inventoryOvirtInfo)
 		apiVip := "1.2.3.8"
 		ingressVip := "1.2.3.9"
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
 				APIVip:            &apiVip,
 				IngressVip:        &ingressVip,
@@ -4253,8 +4253,8 @@ var _ = Describe("Ovirt provider tests", func() {
 		h3 := registerNodeWithInventory(ctx, *infraEnvID, "h3", ips[2], inventoryBMInfo)
 		apiVip := "1.2.3.8"
 		ingressVip := "1.2.3.9"
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
 				APIVip:            &apiVip,
 				IngressVip:        &ingressVip,
@@ -4320,8 +4320,8 @@ var _ = Describe("Ovirt provider tests", func() {
 		h5 := registerNodeWithInventory(ctx, *infraEnvID, "h5", ips[4], inventoryInfo)
 		apiVip := "1.2.3.8"
 		ingressVip := "1.2.3.9"
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
+		_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
 				APIVip:            &apiVip,
 				IngressVip:        &ingressVip,
