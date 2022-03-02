@@ -17,6 +17,8 @@ curl -X POST -H "Content-Type: application/json" \
     <HOST>:<PORT>/api/assisted-install/v2/infra-envs
 ```
 
+Note: `openshift_version` is optional, if not specified it defaults to the latest available OpenShift version.
+
 #### Get InfraEnv Image Download URL
 * `GET /v2/infra-envs/{infra_env_id}/downloads/image-url`
 * operationId: `GetInfraEnvDownloadURL`
@@ -96,6 +98,8 @@ curl -X POST -H "Content-Type: application/json" \
     -d '{"name":"testcluster_infra-env","pull_secret":"<pull_secret_here>","openshift_version":"4.9", "cluster_id": "<imported cluster_id>"}' \
     <HOST>:<PORT>/api/assisted-install/v2/infra-envs
 ```
+
+Note: `openshift_version` is optional, if not specified it defaults to the latest available OpenShift version.
 
 #### Get InfraEnv Image Download URL
 * `GET /v2/infra-envs/{infra_env_id}/downloads/image-url`
