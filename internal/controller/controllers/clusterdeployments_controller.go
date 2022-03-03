@@ -455,7 +455,7 @@ func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context
 	clusterInstall.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
 		ClusterID: c.OpenshiftClusterID.String(),
 		InfraID:   string(*c.ID),
-		AdminPasswordSecretRef: corev1.LocalObjectReference{
+		AdminPasswordSecretRef: &corev1.LocalObjectReference{
 			Name: s.Name,
 		},
 		AdminKubeconfigSecretRef: corev1.LocalObjectReference{
