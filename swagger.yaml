@@ -4005,7 +4005,6 @@ definitions:
       - inventory
       - install
       - free-network-addresses
-      - reset-installation
       - dhcp-lease-allocate
       - api-vip-connectivity-check
       - ntp-synchronizer
