@@ -152,9 +152,7 @@ var _ = Describe("instruction_manager", func() {
 				})
 			})
 			It("reset", func() {
-				checkStep(models.HostStatusResetting, []models.StepType{
-					models.StepTypeResetInstallation,
-				})
+				checkStep(models.HostStatusResetting, []models.StepType{})
 			})
 			It("binding", func() {
 				checkStep(models.HostStatusBinding, nil)
@@ -243,9 +241,7 @@ var _ = Describe("instruction_manager", func() {
 				})
 			})
 			It("reset", func() {
-				checkStep(models.HostStatusResetting, []models.StepType{
-					models.StepTypeResetInstallation,
-				})
+				checkStep(models.HostStatusResetting, []models.StepType{})
 			})
 		})
 	})

@@ -2476,8 +2476,8 @@ var _ = Describe("cluster install", func() {
 				for i, host := range c.Hosts {
 					if enableReset {
 						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
-						_, ok := getStepInList(getNextSteps(*infraEnvID, *host.ID), models.StepTypeResetInstallation)
-						Expect(ok).Should(Equal(true))
+						steps := getNextSteps(*infraEnvID, *host.ID)
+						Expect(len(steps.Instructions)).Should(Equal(0))
 					} else {
 						waitForHostState(ctx, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, host)
 					}
@@ -2533,8 +2533,8 @@ var _ = Describe("cluster install", func() {
 					ips := hostutil.GenerateIPv4Addresses(len(c.Hosts), defaultCIDRv4)
 					for i, host := range c.Hosts {
 						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
-						_, ok := getStepInList(getNextSteps(*infraEnvID, *host.ID), models.StepTypeResetInstallation)
-						Expect(ok).Should(Equal(true))
+						steps := getNextSteps(*infraEnvID, *host.ID)
+						Expect(len(steps.Instructions)).Should(Equal(0))
 						_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
 							InfraEnvID: *infraEnvID,
 							NewHostParams: &models.HostCreateParams{
