@@ -844,7 +844,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 			},
 		},
 		ReadinessProbe: &corev1.Probe{
-			ProbeHandler: corev1.ProbeHandler{
+			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/health",
 					Port:   imageHandlerPort,
@@ -854,7 +854,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 		},
 		LivenessProbe: &corev1.Probe{
 			InitialDelaySeconds: 30,
-			ProbeHandler: corev1.ProbeHandler{
+			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/live",
 					Port:   imageHandlerPort,
@@ -1016,7 +1016,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		},
 		LivenessProbe: &corev1.Probe{
 			InitialDelaySeconds: 30,
-			ProbeHandler: corev1.ProbeHandler{
+			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/health",
 					Port:   servicePort,
@@ -1025,7 +1025,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 			},
 		},
 		ReadinessProbe: &corev1.Probe{
-			ProbeHandler: corev1.ProbeHandler{
+			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/ready",
 					Port:   servicePort,
@@ -1698,6 +1698,7 @@ func (r *AgentServiceConfigReconciler) newWebHookDeployment(ctx context.Context,
 			"--audit-log-path=-",
 			"--tls-cert-file=/var/serving-cert/tls.crt",
 			"--tls-private-key-file=/var/serving-cert/tls.key",
+			"--v=2",
 		},
 		Ports: []corev1.ContainerPort{
 			{
@@ -1709,7 +1710,7 @@ func (r *AgentServiceConfigReconciler) newWebHookDeployment(ctx context.Context,
 			{Name: "serving-cert", MountPath: "/var/serving-cert"},
 		},
 		ReadinessProbe: &corev1.Probe{
-			ProbeHandler: corev1.ProbeHandler{
+			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/healthz",
 					Port:   intstr.FromInt(int(9443)),

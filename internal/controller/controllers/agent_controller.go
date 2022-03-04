@@ -116,10 +116,8 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 			controllerutil.AddFinalizer(agent, AgentFinalizerName)
 			if err = r.Update(ctx, agent); err != nil {
 				log.WithError(err).Errorf("failed to add finalizer %s to resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
+				return ctrl.Result{Requeue: true}, err
 			}
-			// After update there should not be any more changes on the object
-			// Update will return a new object so the creation of maps like annotations or labels is not valid anymore
-			return ctrl.Result{Requeue: true}, nil
 		}
 	} else { // agent is being deleted
 		if funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
