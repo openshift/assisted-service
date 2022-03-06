@@ -140,7 +140,7 @@ with open("'${__root}/config/samples/agent-install.openshift.io_v1beta1_agentser
 }
 
 # Generate manifests e.g. CRD, RBAC etc.
-function generate_manifests() {
+function generate_manifests() (
     if [ "${ENABLE_KUBE_API:-}" != "true" ]; then exit 0; fi
 
     local crd_options=${CRD_OPTIONS:-"crd:trivialVersions=true"}
@@ -161,11 +161,16 @@ function generate_manifests() {
     fi
 
     cp ${controller_crd_path}/resources.yaml ${BUILD_FOLDER}/resources.yaml
-}
+)
 
 function generate_bundle() {
     ENABLE_KUBE_API=true generate_manifests
-    operator-sdk generate kustomize manifests --apis-dir api -q
+    # temp copy for operator-sdk that doesn't know how to handle sub-modules
+    cp PROJECT api/
+    cd api
+    operator-sdk generate kustomize manifests --apis-dir . --input-dir ../config/manifests --output-dir ../config/manifests -q
+    rm -rf PROJECT config
+    cd ..
     kustomize build config/manifests | operator-sdk generate bundle -q --overwrite=true --output-dir ${BUNDLE_OUTPUT_DIR} ${BUNDLE_METADATA_OPTS}
     mv ${__root}/bundle.Dockerfile ${BUNDLE_OUTPUT_DIR}/bundle.Dockerfile && sed -i '/scorecard/d' ${BUNDLE_OUTPUT_DIR}/bundle.Dockerfile
 
