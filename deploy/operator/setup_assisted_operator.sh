@@ -94,6 +94,9 @@ function install_from_catalog_source() {
   else
     catalog_source=${catalog_source_name}
   fi
+
+  if [ "${DISCONNECTED}" != "true" ]; then
+    # In disconnected mode it should be applied already with a different image
   tee << EOCR >(oc apply -f -)
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
@@ -105,7 +108,10 @@ spec:
   image: ${INDEX_IMAGE}
   displayName: Assisted Test Registry
   publisher: Assisted Developer
----
+EOCR
+  fi
+
+  tee << EOCR >(oc apply -f -)
 apiVersion: v1
 kind: Namespace
 metadata:
