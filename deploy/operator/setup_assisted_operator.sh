@@ -266,14 +266,14 @@ function from_community_operators() {
 }
 
 function mirror_rhcos() {
-    rhcos_image=$(echo ${OS_IMAGES} | jq -r '.[].url')
+    rhcos_image=$(echo ${OS_IMAGES} | jq -r '.[1].url')
     mirror_rhcos_image=$(mirror_file "${rhcos_image}" "${IRONIC_IMAGES_DIR}" "${MIRROR_BASE_URL}")
 
-    rhcos_rootfs=$(echo ${OS_IMAGES} | jq -r '.[].rootfs_url')
+    rhcos_rootfs=$(echo ${OS_IMAGES} | jq -r '.[1].rootfs_url')
     mirror_rhcos_rootfs=$(mirror_file "${rhcos_rootfs}" "${IRONIC_IMAGES_DIR}" "${MIRROR_BASE_URL}")
 
     OS_IMAGES=$(echo ${OS_IMAGES} |
-      jq ".[].url=\"${mirror_rhcos_image}\" | .[].rootfs_url=\"${mirror_rhcos_rootfs}\"")
+      jq ".[1].url=\"${mirror_rhcos_image}\" | .[1].rootfs_url=\"${mirror_rhcos_rootfs}\"")
 }
 
 if [ -z "$@" ]; then
@@ -281,7 +281,7 @@ if [ -z "$@" ]; then
     from_community_operators
   else
     from_index_image
-  fi 
+  fi
 fi
 
 if ! declare -F "$@"; then
