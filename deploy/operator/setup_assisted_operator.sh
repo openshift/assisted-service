@@ -89,7 +89,6 @@ EOF
 
 function install_from_catalog_source() {
   catalog_source_name="${1}"
-  index_image="${2}"
   if [ "${ASSISTED_UPGRADE_OPERATOR}" = "true" ]; then
    catalog_source=${ASSISTED_SERVICE_OPERATOR_CATALOG}
   else
@@ -103,7 +102,7 @@ metadata:
   namespace: openshift-marketplace
 spec:
   sourceType: grpc
-  image: ${index_image}
+  image: ${INDEX_IMAGE}
   displayName: Assisted Test Registry
   publisher: Assisted Developer
 ---
@@ -242,28 +241,28 @@ EOCR
 function from_index_image() {
   if [ "${DISCONNECTED}" = "true" ]; then
     catalog_source_name=$ASSISTED_SERVICE_OPERATOR_CATALOG
-    local_index_image=$(mirror_package "assisted-service-operator" \
-        "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}")
+    mirror_package "assisted-service-operator" \
+        "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
     mirror_rhcos
   else
     catalog_source_name=${ASSISTED_SERVICE_OPERATOR_CATALOG}
   fi
 
-  install_from_catalog_source "${catalog_source_name}" "${local_index_image:-$INDEX_IMAGE}"
+  install_from_catalog_source "${catalog_source_name}"
 }
 
 function from_community_operators() {
   if [ "${DISCONNECTED}" = "true" ]; then
     INDEX_IMAGE="registry.redhat.io/redhat/community-operator-index:${INDEX_TAG}"
     catalog_source_name=$ASSISTED_SERVICE_OPERATOR_CATALOG
-    local_index_image=$(mirror_package "assisted-service-operator" \
-        "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}")
+    mirror_package "assisted-service-operator" \
+        "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
     mirror_rhcos
   else
     catalog_source_name="community-operators"
   fi
 
-  install_from_catalog_source "${catalog_source_name}" "${local_index_image:-$INDEX_IMAGE}"
+  install_from_catalog_source "${catalog_source_name}"
 }
 
 function mirror_rhcos() {

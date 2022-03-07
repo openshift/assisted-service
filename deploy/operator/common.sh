@@ -49,4 +49,3 @@ if [ "${DISCONNECTED}" = "true" ]; then
     export LOCAL_REGISTRY="${LOCAL_REGISTRY_DNS_NAME}:${LOCAL_REGISTRY_PORT}"
     ASSISTED_SERVICE_OPERATOR_CATALOG="mirror-catalog-for-assisted-service-operator"
 fi
-
