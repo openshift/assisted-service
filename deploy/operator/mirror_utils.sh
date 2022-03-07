@@ -84,6 +84,8 @@ EOF
 EOF
     done
   fi
+
+  echo ${local_registry_index_tag}
 }
 
 function mirror_file() {
