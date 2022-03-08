@@ -38,6 +38,9 @@ type API interface {
 	   GetInfraEnvDownloadURL Creates a new pre-signed image download URL for the infra-env.*/
 	GetInfraEnvDownloadURL(ctx context.Context, params *GetInfraEnvDownloadURLParams) (*GetInfraEnvDownloadURLOK, error)
 	/*
+	   GetInfraEnvPresignedFileURL Creates a new pre-signed download URL for the infra-env.*/
+	GetInfraEnvPresignedFileURL(ctx context.Context, params *GetInfraEnvPresignedFileURLParams) (*GetInfraEnvPresignedFileURLOK, error)
+	/*
 	   ListInfraEnvs Retrieves the list of infra-envs.*/
 	ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams) (*ListInfraEnvsOK, error)
 	/*
@@ -354,6 +357,31 @@ func (a *Client) GetInfraEnvDownloadURL(ctx context.Context, params *GetInfraEnv
 		return nil, err
 	}
 	return result.(*GetInfraEnvDownloadURLOK), nil
+
+}
+
+/*
+GetInfraEnvPresignedFileURL Creates a new pre-signed download URL for the infra-env.
+*/
+func (a *Client) GetInfraEnvPresignedFileURL(ctx context.Context, params *GetInfraEnvPresignedFileURLParams) (*GetInfraEnvPresignedFileURLOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetInfraEnvPresignedFileURL",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/downloads/files-presigned",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetInfraEnvPresignedFileURLReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetInfraEnvPresignedFileURLOK), nil
 
 }
 

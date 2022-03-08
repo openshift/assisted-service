@@ -58,6 +58,9 @@ type InstallerAPI interface {
 	/* GetInfraEnvDownloadURL Creates a new pre-signed image download URL for the infra-env. */
 	GetInfraEnvDownloadURL(ctx context.Context, params installer.GetInfraEnvDownloadURLParams) middleware.Responder
 
+	/* GetInfraEnvPresignedFileURL Creates a new pre-signed download URL for the infra-env. */
+	GetInfraEnvPresignedFileURL(ctx context.Context, params installer.GetInfraEnvPresignedFileURLParams) middleware.Responder
+
 	/* ListInfraEnvs Retrieves the list of infra-envs. */
 	ListInfraEnvs(ctx context.Context, params installer.ListInfraEnvsParams) middleware.Responder
 
@@ -391,6 +394,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetInfraEnvDownloadURL(ctx, params)
+	})
+	api.InstallerGetInfraEnvPresignedFileURLHandler = installer.GetInfraEnvPresignedFileURLHandlerFunc(func(params installer.GetInfraEnvPresignedFileURLParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetInfraEnvPresignedFileURL(ctx, params)
 	})
 	api.InstallerListInfraEnvsHandler = installer.ListInfraEnvsHandlerFunc(func(params installer.ListInfraEnvsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

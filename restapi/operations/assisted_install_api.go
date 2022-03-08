@@ -69,6 +69,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetInfraEnvDownloadURLHandler: installer.GetInfraEnvDownloadURLHandlerFunc(func(params installer.GetInfraEnvDownloadURLParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetInfraEnvDownloadURL has not yet been implemented")
 		}),
+		InstallerGetInfraEnvPresignedFileURLHandler: installer.GetInfraEnvPresignedFileURLHandlerFunc(func(params installer.GetInfraEnvPresignedFileURLParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetInfraEnvPresignedFileURL has not yet been implemented")
+		}),
 		InstallerListInfraEnvsHandler: installer.ListInfraEnvsHandlerFunc(func(params installer.ListInfraEnvsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListInfraEnvs has not yet been implemented")
 		}),
@@ -346,6 +349,8 @@ type AssistedInstallAPI struct {
 	InstallerGetInfraEnvHandler installer.GetInfraEnvHandler
 	// InstallerGetInfraEnvDownloadURLHandler sets the operation handler for the get infra env download URL operation
 	InstallerGetInfraEnvDownloadURLHandler installer.GetInfraEnvDownloadURLHandler
+	// InstallerGetInfraEnvPresignedFileURLHandler sets the operation handler for the get infra env presigned file URL operation
+	InstallerGetInfraEnvPresignedFileURLHandler installer.GetInfraEnvPresignedFileURLHandler
 	// InstallerListInfraEnvsHandler sets the operation handler for the list infra envs operation
 	InstallerListInfraEnvsHandler installer.ListInfraEnvsHandler
 	// InstallerRegenerateInfraEnvSigningKeyHandler sets the operation handler for the regenerate infra env signing key operation
@@ -580,6 +585,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetInfraEnvDownloadURLHandler == nil {
 		unregistered = append(unregistered, "installer.GetInfraEnvDownloadURLHandler")
+	}
+	if o.InstallerGetInfraEnvPresignedFileURLHandler == nil {
+		unregistered = append(unregistered, "installer.GetInfraEnvPresignedFileURLHandler")
 	}
 	if o.InstallerListInfraEnvsHandler == nil {
 		unregistered = append(unregistered, "installer.ListInfraEnvsHandler")
@@ -899,6 +907,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/image-url"] = installer.NewGetInfraEnvDownloadURL(o.context, o.InstallerGetInfraEnvDownloadURLHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/files-presigned"] = installer.NewGetInfraEnvPresignedFileURL(o.context, o.InstallerGetInfraEnvPresignedFileURLHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
