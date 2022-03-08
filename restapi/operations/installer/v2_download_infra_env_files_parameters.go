@@ -98,7 +98,7 @@ func (o *V2DownloadInfraEnvFilesParams) bindFileName(rawData []string, hasKey bo
 // validateFileName carries on validations for parameter FileName
 func (o *V2DownloadInfraEnvFilesParams) validateFileName(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"discovery.ign"}, true); err != nil {
+	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"discovery.ign", "ipxe-script"}, true); err != nil {
 		return err
 	}
 

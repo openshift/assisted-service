@@ -7461,7 +7461,8 @@ func init() {
           },
           {
             "enum": [
-              "discovery.ign"
+              "discovery.ign",
+              "ipxe-script"
             ],
             "type": "string",
             "description": "The file to be downloaded.",
@@ -7475,6 +7476,12 @@ func init() {
             "description": "Success.",
             "schema": {
               "type": "file"
+            }
+          },
+          "400": {
+            "description": "Bad Request.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "401": {
@@ -20697,7 +20704,8 @@ func init() {
           },
           {
             "enum": [
-              "discovery.ign"
+              "discovery.ign",
+              "ipxe-script"
             ],
             "type": "string",
             "description": "The file to be downloaded.",
@@ -20711,6 +20719,12 @@ func init() {
             "description": "Success.",
             "schema": {
               "type": "file"
+            }
+          },
+          "400": {
+            "description": "Bad Request.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "401": {
