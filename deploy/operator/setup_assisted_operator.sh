@@ -186,17 +186,18 @@ spec:
 $(mirror_config)
 EOCR
 
+  if [ "${DISCONNECTED}" = "true" ]; then
+    echo "Adding osImages to AgentServiceConfig because we're in disconnected mode"
+    wait_for_condition "agentserviceconfigs/agent" "DeploymentsHealthy" "10m"
+    oc patch -n ${ASSISTED_NAMESPACE} agentserviceconfig agent --type merge -p '{"spec":{"osImages":'$(echo "${OS_IMAGES}"| jq -c .|sed 's/openshift_version/openshiftVersion/g; s/cpu_architecture/cpuArchitecture/g; s/rootfs_url/rootFSUrl/g' )'}}'
+  fi
+
   wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
   wait_for_condition "agentserviceconfigs/agent" "ReconcileCompleted" "5m"
   wait_for_pod "assisted-service" "${ASSISTED_NAMESPACE}" "app=assisted-service"
 
   echo "Enabling configuration of BMH resources outside of openshift-machine-api namespace"
   oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true}}'
-
-  if [ "${DISCONNECTED}" = "true" ]; then
-    echo "Adding osImages to AgentServiceConfig because we're in disconnected mode"
-    oc patch -n ${ASSISTED_NAMESPACE} agentserviceconfig agent --type merge -p '{"spec":{"osImages":'$(echo "${OS_IMAGES}"| jq -c .|sed 's/openshift_version/openshiftVersion/g; s/cpu_architecture/cpuArchitecture/g; s/rootfs_url/rootFSUrl/g' )'}}'
-  fi
 
   echo "Installation of Assisted Installer operator passed successfully!"
 }
