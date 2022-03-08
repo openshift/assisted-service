@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -x
+#!/usr/bin/env bash
 
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(realpath ${__dir}/../../..)"
@@ -30,7 +30,7 @@ export LOAD_BALANCER_IP="${LOAD_BALANCER_IP:-192.168.111.1}"
 if [[ "${IP_STACK}" == "v4" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
     export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V4}"
-    if [ "${USER_MANAGED_NETWORKING}" != "true" ] ; then 
+    if [ "${USER_MANAGED_NETWORKING}" != "true" ] ; then
         export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V4}"
     else
         unset EXTERNAL_SUBNET
