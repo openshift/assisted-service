@@ -64,6 +64,8 @@ The user can specify proxy settings, ignition overrides and specify NMState labe
 
 When the ISO is ready, an URL will be available in the CR.
 
+If booting hosts using [iPXE](https://github.com/openshift/assisted-service/blob/5d4d836747862f43fa2ec882e5871648bd12c780/docs/enhancements/ipxe-host-boot.md#ipxe-host-boot), the download URLs will be available in the CR.
+
 The InfraEnv reflects the image creation status through Conditions.
 
 More details on conditions is available [here](kube-api-conditions.md)

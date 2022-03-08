@@ -121,12 +121,30 @@ type InfraEnvStatus struct {
 	// InfraEnvDebugInfo includes information for debugging the installation process.
 	// +optional
 	InfraEnvDebugInfo InfraEnvDebugInfo `json:"debugInfo"`
+	// BootArtifacts specifies the URLs for each boot artifact
+	// +optional
+	BootArtifacts BootArtifacts `json:"bootArtifacts"`
 }
 
 type InfraEnvDebugInfo struct {
 	// EventsURL specifies an HTTP/S URL that contains InfraEnv events
 	// +optional
 	EventsURL string `json:"eventsURL"`
+}
+
+type BootArtifacts struct {
+	// InitrdURL specifies an HTTP/S URL that contains the initrd
+	// +optional
+	InitrdURL string `json:"initrd"`
+	// RootfsURL specifies an HTTP/S URL that contains the rootfs
+	// +optional
+	RootfsURL string `json:"rootfs"`
+	// KernelURL specifies an HTTP/S URL that contains the kernel
+	// +optional
+	KernelURL string `json:"kernel"`
+	// IpxeScriptURL specifies an HTTP/S URL that contains the iPXE script
+	// +optional
+	IpxeScriptURL string `json:"ipxeScript"`
 }
 
 // +kubebuilder:object:root=true
