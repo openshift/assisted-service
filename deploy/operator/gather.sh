@@ -17,8 +17,9 @@ function gather_hive_data() {
 }
 
 function gather_olm_data() {
-  local catalog_source=$(oc get subscription assisted-service-operator -n "${ASSISTED_NAMESPACE}" -o json | jq -r .spec.source)
-  oc get catalogsource "$catalog_source" -n openshift-marketplace -o yaml > ${LOGS_DEST}/${ASSISTED_SERVICE_OPERATOR_CATALOG}.log
+  # We cant know if we're in disconnected mode, so we'll try both catalog names
+  ( oc get catalogsource "$ASSISTED_SERVICE_OPERATOR_CATALOG" -n openshift-marketplace -o yaml || \
+      oc get catalogsource "$MIRROR_ASSISTED_SERVICE_OPERATOR_CATALOG" -n openshift-marketplace -o yaml ) > ${LOGS_DEST}/${ASSISTED_SERVICE_OPERATOR_CATALOG}.log
   oc get subscription assisted-service-operator -n "${ASSISTED_NAMESPACE}" -o yaml > ${LOGS_DEST}/assisted-service-operator-subscription.log
   oc get installplan -n "${ASSISTED_NAMESPACE}" -o yaml  > ${LOGS_DEST}/oc_install_plan.log
 }
