@@ -94,6 +94,10 @@ function get_agents_with_role() {
 export role=master
 export -f wait_for_cmd_amount
 export -f get_agents_with_role
+
+echo "SLEEP 3 HOURS TO DEBUG"
+sleep 10800
+
 timeout 20m bash -c "wait_for_cmd_amount ${SPOKE_CONTROLPLANE_AGENTS} 30 get_agents_with_role"
 echo "All ${SPOKE_CONTROLPLANE_AGENTS} agents have been discovered!"
 
