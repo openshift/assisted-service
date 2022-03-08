@@ -4,7 +4,7 @@ authors:
   - "@carbonin"
   - “@mhrivnak”
 creation-date: 2022-02-22
-last-updated: 2022-02-24
+last-updated: 2022-03-08
 ---
 
 # iPXE Host Boot
@@ -88,7 +88,7 @@ endpoint will be specific to an infra-env in order to embed the ignition.
 Assisted service APIs will be added to download the ipxe boot script and to 
 retrieve a presigned url for downloading the boot script.
 
-- `GET /v2/infra-envs/{infra-env-id}/downloads/ipxe-script`
+- `GET /v2/infra-envs/{infra-env-id}/downloads/files?file_name=ipxe-script`
   - Will return an iPXE boot script with artifact URLs pointing to the image service
   - Initrd URL will be presigned
 - `GET  /v2/infra-envs/{infra-env-id}/downloads/ipxe-script-url`
