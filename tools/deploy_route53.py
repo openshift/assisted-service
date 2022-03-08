@@ -9,7 +9,7 @@ deploy_options = deployment_options.load_deployment_options(parser)
 
 
 def deploy_secret():
-    if deploy_options.secret is "":
+    if deploy_options.secret == "":
         return
 
     # Renderized secret with specified secret
