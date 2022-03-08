@@ -196,7 +196,10 @@ EOCR
   if [ "${DISCONNECTED}" = "true" ]; then
     echo "Adding osImages to AgentServiceConfig because we're in disconnected mode"
     oc patch -n ${ASSISTED_NAMESPACE} agentserviceconfig agent --type merge -p '{"spec":{"osImages":'$(echo "${OS_IMAGES}"| jq -c .|sed 's/openshift_version/openshiftVersion/g; s/cpu_architecture/cpuArchitecture/g; s/rootfs_url/rootFSUrl/g' )'}}'
+    wait_for_condition "agentserviceconfigs/agent" "ReconcileCompleted" "5m"
   fi
+
+  wait_for_pod "assisted-image-service" "${ASSISTED_NAMESPACE}" "app=assisted-image-service"
 
   echo "Installation of Assisted Installer operator passed successfully!"
 }
@@ -294,7 +297,7 @@ if [ -z "$@" ]; then
     from_community_operators
   else
     from_index_image
-  fi 
+  fi
 fi
 
 if ! declare -F "$@"; then
