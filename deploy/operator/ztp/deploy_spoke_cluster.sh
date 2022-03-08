@@ -94,7 +94,7 @@ function get_agents_with_role() {
 export role=master
 export -f wait_for_cmd_amount
 export -f get_agents_with_role
-timeout 20m bash -c "wait_for_cmd_amount ${SPOKE_CONTROLPLANE_AGENTS} 30 get_agents_with_role"
+timeout 200m bash -c "wait_for_cmd_amount ${SPOKE_CONTROLPLANE_AGENTS} 30 get_agents_with_role"
 echo "All ${SPOKE_CONTROLPLANE_AGENTS} agents have been discovered!"
 
 if [[ "${ASSISTED_STOP_AFTER_AGENT_DISCOVERY}" == "true" ]]; then
