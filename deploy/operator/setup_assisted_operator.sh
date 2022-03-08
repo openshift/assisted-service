@@ -186,6 +186,9 @@ spec:
 $(mirror_config)
 EOCR
 
+  if [ "${DISCONNECTED}" = "true" ]; then
+    oc patch --type merge -n ${ASSISTED_NAMESPACE} agentserviceconfig agent -p '{"spec":{"osImages":'$(echo "${OS_IMAGES}"| jq -c .|sed 's/openshift_version/openshiftVersion/g; s/cpu_architecture/cpuArchitecture/g; s/rootfs_url/rootFSUrl/g' )'}}'
+  fi
   wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
   wait_for_condition "agentserviceconfigs/agent" "ReconcileCompleted" "5m"
   wait_for_pod "assisted-service" "${ASSISTED_NAMESPACE}" "app=assisted-service"
