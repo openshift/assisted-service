@@ -26,6 +26,6 @@ data:
   PUBLIC_CONTAINER_REGISTRIES: 'quay.io'
   SERVICE_BASE_URL: http://127.0.0.1:8090
   STORAGE: filesystem
-  OS_IMAGES: '[{"openshift_version":"4.9","cpu_architecture":"x86_64","url":"https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/34.20210626.3.1/x86_64/fedora-coreos-34.20210626.3.1-live.x86_64.iso","rootfs_url":"https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/34.20210626.3.1/x86_64/fedora-coreos-34.20210626.3.1-live-rootfs.x86_64.img","version":"34.20210626.3.1"}]'
-  RELEASE_IMAGES: '[{"openshift_version":"4.9","cpu_architecture":"x86_64","url":"quay.io/openshift/okd:4.9.0-0.okd-2022-01-29-035536","version":"4.9.0-0.okd-2022-01-29-035536","default":true}]'
-  OKD_RPMS_IMAGE: quay.io/vrutkovs/okd-rpms:4.9
+  OS_IMAGES: '[{"openshift_version":"4.10","cpu_architecture":"x86_64","url":"https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/34.20210626.3.1/x86_64/fedora-coreos-34.20210626.3.1-live.x86_64.iso","rootfs_url":"https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/34.20210626.3.1/x86_64/fedora-coreos-34.20210626.3.1-live-rootfs.x86_64.img","version":"34.20210626.3.1"}]'
+  RELEASE_IMAGES: '[{"openshift_version":"4.10","cpu_architecture":"x86_64","url":"quay.io/openshift/okd:4.10.0-0.okd-2022-03-07-131213","version":"4.10.0-0.okd-2022-03-07-131213","default":true}]'
+  OKD_RPMS_IMAGE: quay.io/vrutkovs/okd-rpms:4.10
