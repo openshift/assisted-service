@@ -1086,7 +1086,7 @@ var _ = Describe("agent reconcile", func() {
 			},
 			SystemVendor: &models.SystemVendor{
 				Manufacturer: "Red Hat",
-				ProductName:  "RHEL",
+				ProductName:  "-bad-label-name",
 				Virtual:      true,
 			},
 			Interfaces: []*models.Interface{
@@ -1141,13 +1141,13 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 		Expect(agent.Status.Inventory.Interfaces[0].MacAddress).To(Equal(macAddress))
-		Expect(agent.ObjectMeta.Annotations[InventoryLabelPrefix+"version"]).To(Equal("0.1"))
-		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"storage-hasnonrotationaldisk"]).To(Equal("false"))
-		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"cpu-architecture"]).To(Equal(common.DefaultCPUArchitecture))
-		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"cpu-virtenabled"]).To(Equal("true"))
-		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-manufacturer"]).To(Equal("Red Hat"))
-		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-productname"]).To(Equal("RHEL"))
-		Expect(agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-isvirtual"]).To(Equal("true"))
+		Expect(agent.GetAnnotations()[InventoryLabelPrefix+"version"]).To(Equal("0.1"))
+		Expect(agent.GetLabels()[InventoryLabelPrefix+"storage-hasnonrotationaldisk"]).To(Equal("false"))
+		Expect(agent.GetLabels()[InventoryLabelPrefix+"cpu-architecture"]).To(Equal(common.DefaultCPUArchitecture))
+		Expect(agent.GetLabels()[InventoryLabelPrefix+"cpu-virtenabled"]).To(Equal("true"))
+		Expect(agent.GetLabels()[InventoryLabelPrefix+"host-manufacturer"]).To(Equal("RedHat"))
+		Expect(agent.GetLabels()[InventoryLabelPrefix+"host-productname"]).To(Equal(""))
+		Expect(agent.GetLabels()[InventoryLabelPrefix+"host-isvirtual"]).To(Equal("true"))
 
 		result, err = hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
