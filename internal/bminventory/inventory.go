@@ -3355,7 +3355,7 @@ func (b *bareMetalInventory) V2GetPresignedForClusterFiles(ctx context.Context, 
 		log.WithError(err).Errorf("failed to generate presigned URL: %s from cluster: %s", params.FileName, params.ClusterID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	return installer.NewV2GetPresignedForClusterFilesOK().WithPayload(&models.Presigned{URL: &url})
+	return installer.NewV2GetPresignedForClusterFilesOK().WithPayload(&models.PresignedURL{URL: &url})
 }
 
 func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params installer.DownloadMinimalInitrdParams) middleware.Responder {

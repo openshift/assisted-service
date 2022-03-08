@@ -14,24 +14,29 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// InfraEnvImageURL infra env image url
+// PresignedURL presigned url
 //
-// swagger:model infra-env-image-url
-type InfraEnvImageURL struct {
+// swagger:model presigned-url
+type PresignedURL struct {
 
 	// Expiration time for the URL token.
 	// Format: date-time
 	ExpiresAt strfmt.DateTime `json:"expires_at,omitempty"`
 
 	// Pre-signed URL for downloading the infra-env discovery image.
-	URL string `json:"url,omitempty"`
+	// Required: true
+	URL *string `json:"url"`
 }
 
-// Validate validates this infra env image url
-func (m *InfraEnvImageURL) Validate(formats strfmt.Registry) error {
+// Validate validates this presigned url
+func (m *PresignedURL) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateExpiresAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateURL(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -41,7 +46,7 @@ func (m *InfraEnvImageURL) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *InfraEnvImageURL) validateExpiresAt(formats strfmt.Registry) error {
+func (m *PresignedURL) validateExpiresAt(formats strfmt.Registry) error {
 	if swag.IsZero(m.ExpiresAt) { // not required
 		return nil
 	}
@@ -53,13 +58,22 @@ func (m *InfraEnvImageURL) validateExpiresAt(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validates this infra env image url based on context it is used
-func (m *InfraEnvImageURL) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+func (m *PresignedURL) validateURL(formats strfmt.Registry) error {
+
+	if err := validate.Required("url", "body", m.URL); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this presigned url based on context it is used
+func (m *PresignedURL) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *InfraEnvImageURL) MarshalBinary() ([]byte, error) {
+func (m *PresignedURL) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -67,8 +81,8 @@ func (m *InfraEnvImageURL) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *InfraEnvImageURL) UnmarshalBinary(b []byte) error {
-	var res InfraEnvImageURL
+func (m *PresignedURL) UnmarshalBinary(b []byte) error {
+	var res PresignedURL
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

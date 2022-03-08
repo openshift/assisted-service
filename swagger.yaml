@@ -602,7 +602,7 @@ paths:
         "200":
           description: Success.
           schema:
-            $ref: '#/definitions/infra-env-image-url'
+            $ref: '#/definitions/presigned-url'
         "400":
           description: Bad Request.
           schema:
@@ -1746,7 +1746,7 @@ paths:
         "200":
           description: Success.
           schema:
-            $ref: '#/definitions/presigned'
+            $ref: '#/definitions/presigned-url'
         "400":
           description: Error.
           schema:
@@ -1986,7 +1986,7 @@ paths:
         "200":
           description: Success.
           schema:
-            $ref: '#/definitions/presigned'
+            $ref: '#/definitions/presigned-url'
         "400":
           description: Error.
           schema:
@@ -5557,14 +5557,6 @@ definitions:
       - variable
       - unreachable
 
-  presigned:
-    type: object
-    required:
-      - url
-    properties:
-      url:
-        type: string
-
   cluster-validation-id:
     type: string
     enum:
@@ -6043,8 +6035,10 @@ definitions:
         type: string
         format: uuid
 
-  infra-env-image-url:
+  presigned-url:
     type: object
+    required:
+      - url
     properties:
       url:
         type: string

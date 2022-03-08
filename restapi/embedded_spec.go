@@ -1058,7 +1058,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/presigned"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -1285,7 +1285,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/presigned"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -3221,7 +3221,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/infra-env-image-url"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -7334,20 +7334,6 @@ func init() {
         }
       }
     },
-    "infra-env-image-url": {
-      "type": "object",
-      "properties": {
-        "expires_at": {
-          "description": "Expiration time for the URL token.",
-          "type": "string",
-          "format": "date-time"
-        },
-        "url": {
-          "description": "Pre-signed URL for downloading the infra-env discovery image.",
-          "type": "string"
-        }
-      }
-    },
     "infra-env-list": {
       "type": "array",
       "items": {
@@ -8131,13 +8117,19 @@ func init() {
         }
       }
     },
-    "presigned": {
+    "presigned-url": {
       "type": "object",
       "required": [
         "url"
       ],
       "properties": {
+        "expires_at": {
+          "description": "Expiration time for the URL token.",
+          "type": "string",
+          "format": "date-time"
+        },
         "url": {
+          "description": "Pre-signed URL for downloading the infra-env discovery image.",
           "type": "string"
         }
       }
@@ -9695,7 +9687,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/presigned"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -9922,7 +9914,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/presigned"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -11858,7 +11850,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/infra-env-image-url"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -16032,20 +16024,6 @@ func init() {
         }
       }
     },
-    "infra-env-image-url": {
-      "type": "object",
-      "properties": {
-        "expires_at": {
-          "description": "Expiration time for the URL token.",
-          "type": "string",
-          "format": "date-time"
-        },
-        "url": {
-          "description": "Pre-signed URL for downloading the infra-env discovery image.",
-          "type": "string"
-        }
-      }
-    },
     "infra-env-list": {
       "type": "array",
       "items": {
@@ -16818,13 +16796,19 @@ func init() {
         }
       }
     },
-    "presigned": {
+    "presigned-url": {
       "type": "object",
       "required": [
         "url"
       ],
       "properties": {
+        "expires_at": {
+          "description": "Expiration time for the URL token.",
+          "type": "string",
+          "format": "date-time"
+        },
         "url": {
+          "description": "Pre-signed URL for downloading the infra-env discovery image.",
           "type": "string"
         }
       }

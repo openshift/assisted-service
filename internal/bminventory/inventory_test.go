@@ -12758,7 +12758,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 		ctrl.Finish()
 	})
 
-	getNewURL := func() *models.InfraEnvImageURL {
+	getNewURL := func() *models.PresignedURL {
 		mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 		params := installer.GetInfraEnvDownloadURLParams{InfraEnvID: infraEnvID}
 		resp := bm.GetInfraEnvDownloadURL(ctx, params)
@@ -12773,7 +12773,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			payload := getNewURL()
 
 			Expect(payload.ExpiresAt.String()).To(Equal("0001-01-01T00:00:00.000Z"))
-			u, err := url.Parse(payload.URL)
+			u, err := url.Parse(*payload.URL)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(u.Host).To(Equal(imageServiceHost))
 			Expect(u.Query().Get("image_token")).To(Equal(""))
@@ -12805,7 +12805,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			payload := getNewURL()
 
 			Expect(payload.ExpiresAt.String()).To(Equal("0001-01-01T00:00:00.000Z"))
-			u, err := url.Parse(payload.URL)
+			u, err := url.Parse(*payload.URL)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(u.Host).To(Equal(imageServiceHost))
@@ -12827,7 +12827,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			payload := getNewURL()
 
 			Expect(payload.ExpiresAt.String()).ToNot(Equal("0001-01-01T00:00:00.000Z"))
-			u, err := url.Parse(payload.URL)
+			u, err := url.Parse(*payload.URL)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(u.Host).To(Equal(imageServiceHost))

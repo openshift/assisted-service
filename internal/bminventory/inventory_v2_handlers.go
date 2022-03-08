@@ -483,7 +483,7 @@ func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Con
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	return installer.NewV2GetPresignedForClusterCredentialsOK().WithPayload(&models.Presigned{URL: &url})
+	return installer.NewV2GetPresignedForClusterCredentialsOK().WithPayload(&models.PresignedURL{URL: &url})
 }
 
 func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params installer.GetInfraEnvDownloadURLParams) middleware.Responder {
@@ -519,7 +519,7 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 		return common.GenerateErrorResponder(err)
 	}
 
-	return installer.NewGetInfraEnvDownloadURLOK().WithPayload(&models.InfraEnvImageURL{URL: newURL, ExpiresAt: *expiresAt})
+	return installer.NewGetInfraEnvDownloadURLOK().WithPayload(&models.PresignedURL{URL: &newURL, ExpiresAt: *expiresAt})
 }
 
 func (b *bareMetalInventory) generateImageDownloadURL(ctx context.Context, infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {

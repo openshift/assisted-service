@@ -25,7 +25,7 @@ type V2GetPresignedForClusterCredentialsOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Presigned `json:"body,omitempty"`
+	Payload *models.PresignedURL `json:"body,omitempty"`
 }
 
 // NewV2GetPresignedForClusterCredentialsOK creates V2GetPresignedForClusterCredentialsOK with default headers values
@@ -35,13 +35,13 @@ func NewV2GetPresignedForClusterCredentialsOK() *V2GetPresignedForClusterCredent
 }
 
 // WithPayload adds the payload to the v2 get presigned for cluster credentials o k response
-func (o *V2GetPresignedForClusterCredentialsOK) WithPayload(payload *models.Presigned) *V2GetPresignedForClusterCredentialsOK {
+func (o *V2GetPresignedForClusterCredentialsOK) WithPayload(payload *models.PresignedURL) *V2GetPresignedForClusterCredentialsOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the v2 get presigned for cluster credentials o k response
-func (o *V2GetPresignedForClusterCredentialsOK) SetPayload(payload *models.Presigned) {
+func (o *V2GetPresignedForClusterCredentialsOK) SetPayload(payload *models.PresignedURL) {
 	o.Payload = payload
 }
 
