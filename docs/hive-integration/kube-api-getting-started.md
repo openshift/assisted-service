@@ -296,6 +296,19 @@ kubectl -n demo-worker4 get infraenvs.agent-install.openshift.io myinfraenv  -o=
 https://assisted-service-assisted-installer.apps.ostest.test.metalkube.org/api/assisted-install/v1/clusters/02a89bb9-6141-4d14-a82e-42f254217502/downloads/image?api_key=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbHVzdGVyX2lkIjoiMDJhODliYjktNjE0MS00ZDE0LWE4MmUtNDJmMjU0MjE3NTAyIn0.ciL2w3g89ftu-R-Z3-KwrDtlll2kd4EMhbrE3YLZkQNQBEdCJ1gg5Sjgjfj4Ekbi7C3XsDEsIRSYTGJPL-Pu8A
 ```
 
+###### iPXE script and artifacts URLs:
+If booting hosts using [iPXE](https://github.com/openshift/assisted-service/blob/5d4d836747862f43fa2ec882e5871648bd12c780/docs/enhancements/ipxe-host-boot.md#ipxe-host-boot), the `InfraEnv` CR will update and display the download URLs for the iPXE script and its artifacts once they're ready to be downloaded.
+
+```bash
+kubectl -n demo-worker4 get infraenvs.agent-install.openshift.io myinfraenv -o=jsonpath="{'iPXE Script Download URL: '}{.status.bootArtifacts.ipxeScript}{'\n'}{'Initrd Download URL: '}{.status.bootArtifacts.initrd}{'\n'}{'Rootfs Download URL: '}{.status.bootArtifacts.rootfs}{'\n'}{'Kernel Download URL: '}{.status.bootArtifacts.kernel}{'\n'}"
+```
+```bash
+iPXE Script Download URL: https://assisted-service.example.com/v2/infra-envs/afe293b9-e3a0-47ed-8952-f26721626497/downloads/files?file_name=ipxe-script
+Initrd Download URL: https://image-service.example.com/images/afe293b9-e3a0-47ed-8952-f26721626497/pxe-initrd?version=4.10&arch=x86_64
+Rootfs Download URL: https://image-service.example.com/boot-artifacts/rootfs?version=4.10&arch=x86_64
+Kernel Download URL: https://image-service.example.com/boot-artifacts/kernel?version=4.10&arch=x86_64
+```
+
 ###### assisted-service log:
 ```go
 time="2021-06-28T21:42:19Z" level=info msg="InfraEnv Reconcile started" func="github.com/openshift/assisted-service/internal/controller/controllers.(*InfraEnvReconciler).Reconcile" file="/go/src/github.com/openshift/origin/internal/controller/controllers/infraenv_controller.go:81" go-id=654 infra_env=myinfraenv infra_env_namespace=demo-worker4 request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555

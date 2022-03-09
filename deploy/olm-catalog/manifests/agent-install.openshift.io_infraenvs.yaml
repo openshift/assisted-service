@@ -205,6 +205,26 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+              bootArtifacts:
+                description: BootArtifacts specifies the URLs for each boot artifact
+                properties:
+                  initrd:
+                    description: InitrdURL specifies an HTTP/S URL that contains the
+                      initrd
+                    type: string
+                  ipxeScript:
+                    description: IpxeScriptURL specifies an HTTP/S URL that contains
+                      the iPXE script
+                    type: string
+                  kernel:
+                    description: KernelURL specifies an HTTP/S URL that contains the
+                      kernel
+                    type: string
+                  rootfs:
+                    description: RootfsURL specifies an HTTP/S URL that contains the
+                      rootfs
+                    type: string
+                type: object
               conditions:
                 items:
                   description: Condition represents the state of the operator's reconciliation
