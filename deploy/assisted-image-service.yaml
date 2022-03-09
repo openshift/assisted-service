@@ -1,6 +1,11 @@
 apiVersion: v1
 kind: List
 items:
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: assisted-service
+    namespace: REPLACE_NAMESPACE
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
