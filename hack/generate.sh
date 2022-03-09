@@ -32,7 +32,7 @@ function generate_python_client() {
         -v "${__root}"/swagger.yaml:/swagger.yaml:ro,Z \
         -v "${__root}"/tools/generate_python_client.sh:/script.sh:ro,Z \
         -e SWAGGER_FILE=/swagger.yaml -e OUTPUT=/local/assisted-service-client/ \
-        quay.io/ocpmetal/swagger-codegen-cli:2.4.15 /script.sh
+        quay.io/edge-infrastructure/swagger-codegen-cli:2.4.18 /script.sh
      cd "${dest}"/assisted-service-client/ && python3 "${__root}"/tools/client_package_initializer.py "${dest}"/assisted-service-client/  https://github.com/openshift/assisted-service
      cp "${dest}"/assisted-service-client/dist/assisted-service-client-*.tar.gz "${dest}"
 }
