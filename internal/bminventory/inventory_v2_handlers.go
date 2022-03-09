@@ -643,3 +643,37 @@ func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *c
 
 	return fmt.Sprintf(ipxeScriptFormat, kernelURL, rootfsURL, initrdURL), nil
 }
+
+func (b *bareMetalInventory) GetInfraEnvPresignedFileURL(ctx context.Context, params installer.GetInfraEnvPresignedFileURLParams) middleware.Responder {
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	builder := &installer.V2DownloadInfraEnvFilesURL{
+		InfraEnvID: params.InfraEnvID,
+		FileName:   params.FileName,
+	}
+	filesURL, err := builder.Build()
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	baseURL, err := url.Parse(b.Config.ServiceBaseURL)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	baseURL.Path = path.Join(baseURL.Path, filesURL.Path)
+	baseURL.RawQuery = filesURL.RawQuery
+
+	signedURL, exp, err := b.signURL(ctx, params.InfraEnvID.String(), baseURL.String(), infraEnv.ImageTokenKey)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	return &installer.GetInfraEnvPresignedFileURLOK{
+		Payload: &models.PresignedURL{
+			URL:       &signedURL,
+			ExpiresAt: *exp,
+		},
+	}
+}
