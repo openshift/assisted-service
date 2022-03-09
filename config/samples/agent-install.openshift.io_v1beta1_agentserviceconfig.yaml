@@ -43,6 +43,6 @@ spec:
     version: 49.84.202110080947-0
   - cpuArchitecture: x86_64
     openshiftVersion: '4.10'
-    rootFSUrl: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.10.0-rc.1/rhcos-4.10.0-rc.1-x86_64-live-rootfs.x86_64.img
-    url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.10.0-rc.1/rhcos-4.10.0-rc.1-x86_64-live.x86_64.iso
+    rootFSUrl: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.10/4.10.3/rhcos-4.10.3-x86_64-live-rootfs.x86_64.img
+    url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.10/4.10.3/rhcos-4.10.3-x86_64-live.x86_64.iso
     version: 410.84.202201251210-0
