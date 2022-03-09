@@ -135,14 +135,12 @@ type InstallerInternals interface {
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams) error
-	DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error
 	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams) error
 	GetCommonHostInternal(ctx context.Context, infraEnvId string, hostId string) (*common.Host, error)
 	UpdateHostApprovedInternal(ctx context.Context, infraEnvId string, hostId string, approved bool) error
 	V2UpdateHostInstallerArgsInternal(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) (*models.Host, error)
 	V2UpdateHostIgnitionInternal(ctx context.Context, params installer.V2UpdateHostIgnitionParams) (*models.Host, error)
 	GetCredentialsInternal(ctx context.Context, params installer.V2GetCredentialsParams) (*models.Credentials, error)
-	DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	V2DownloadClusterFilesInternal(ctx context.Context, params installer.V2DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	V2DownloadClusterCredentialsInternal(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) (io.ReadCloser, int64, error)
 	V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID, params installer.V2ImportClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error)
@@ -266,18 +264,6 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 		return ps, nil
 	}
 	return pullSecret, nil
-}
-
-func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, params installer.V2RegisterClusterParams) installer.V2RegisterClusterParams {
@@ -699,10 +685,6 @@ func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *mode
 	return "", errors.Errorf("Requested CPU architecture %s is not available", newClusterParams.CPUArchitecture)
 }
 
-func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID,
 	params installer.V2ImportClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error) {
 	url := installer.V2GetClusterURL{ClusterID: *id}
@@ -799,10 +781,6 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 	return nil
 }
 
-func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) integrateWithAMSClusterDeregistration(ctx context.Context, cluster *common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
 	// AMS subscription is created only for day1 clusters
@@ -882,14 +860,6 @@ func (b *bareMetalInventory) deleteOrUnbindHosts(ctx context.Context, cluster *c
 	return nil
 }
 
-func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType, generated bool, v2 bool) error {
 	updates := map[string]interface{}{}
 	imgName := getImageName(infraEnv.ID)
@@ -909,12 +879,7 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infr
 				return errors.New("Failed to generate image: error generating URL")
 			}
 		} else {
-			builder := &installer.DownloadClusterISOURL{ClusterID: *infraEnv.ID}
-			clusterISOURL, err := builder.Build()
-			if err != nil {
-				return errors.New("Failed to generate image: error generating cluster ISO URL")
-			}
-			downloadURL = fmt.Sprintf("%s%s", b.Config.ServiceBaseURL, clusterISOURL.RequestURI())
+			downloadURL = fmt.Sprintf("%s/api/assisted-install/v1/clusters/%s/downloads/image", b.Config.ServiceBaseURL, infraEnv.ID)
 			if b.authHandler.AuthType() == auth.TypeLocal {
 				downloadURL, err = gencrypto.SignURL(downloadURL, infraEnv.ID.String(), gencrypto.InfraEnvKey)
 				if err != nil {
@@ -1011,10 +976,6 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 	}
 
 	return nil
-}
-
-func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params installer.GenerateClusterISOParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, infraEnv *common.InfraEnv) error {
@@ -1276,10 +1237,6 @@ func (b *bareMetalInventory) storeOpenshiftClusterID(ctx context.Context, cluste
 	return openshiftClusterID, nil
 }
 
-func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.Context, amsSubscriptionID, openshiftClusterID strfmt.UUID) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Updating AMS subscription %s with openshift cluster ID %s", amsSubscriptionID, openshiftClusterID)
@@ -1533,11 +1490,7 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 		return common.GenerateErrorResponder(err)
 	}
 
-	return installer.NewInstallHostAccepted().WithPayload(h)
-}
-
-func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
+	return installer.NewV2InstallHostAccepted().WithPayload(h)
 }
 
 func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster common.Cluster, db *gorm.DB) error {
@@ -1571,14 +1524,6 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 		}
 	}
 	return nil
-}
-
-func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) GetClusterDefaultConfig(_ context.Context, _ installer.GetClusterDefaultConfigParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error) {
@@ -1628,10 +1573,6 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewGetClusterSupportedPlatformsOK().WithPayload(*supportedPlatforms)
-}
-
-func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error) {
@@ -1829,10 +1770,6 @@ func (b *bareMetalInventory) validateAndUpdateProxyParams(ctx context.Context, p
 	}
 
 	return *params, nil
-}
-
-func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder {
@@ -2834,10 +2771,6 @@ func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, clust
 	return ret
 }
 
-func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params installer.V2ListClustersParams) ([]*models.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	db := b.db
@@ -2882,10 +2815,6 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 		clusters = append(clusters, &c.Cluster)
 	}
 	return clusters, nil
-}
-
-func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error) {
@@ -2988,30 +2917,6 @@ func isRegisterHostForbiddenDueWrongBootOrder(err error) bool {
 	return false
 }
 
-func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error {
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Deregister host: %s cluster %s", params.HostID, params.ClusterID)
-
-	h, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	if err := b.hostApi.UnRegisterHost(ctx, params.HostID.String(), params.ClusterID.String()); err != nil {
-		// TODO: check error type
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	// TODO: need to check that host can be deleted from the cluster
-	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, params.HostID, h.InfraEnvID, &params.ClusterID,
-		hostutil.GetHostnameForMsg(&h.Host))
-	return nil
-}
-
 func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Deregister host: %s infra env %s", params.HostID, params.InfraEnvID)
@@ -3036,18 +2941,6 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, &clusterID,
 		hostutil.GetHostnameForMsg(&h.Host))
 	return nil
-}
-
-func (b *bareMetalInventory) GetHost(_ context.Context, params installer.GetHostParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func shouldHandle(params installer.V2PostStepReplyParams) bool {
@@ -3395,14 +3288,6 @@ func filterReply(expected interface{}, input string) (string, error) {
 	return string(reply), nil
 }
 
-func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.DisableHostParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.EnableHostParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) setMajorityGroupForCluster(clusterID *strfmt.UUID, db *gorm.DB) error {
 	return b.clusterApi.SetConnectivityMajorityGroupsForCluster(*clusterID, db)
 }
@@ -3473,10 +3358,6 @@ func (b *bareMetalInventory) V2GetPresignedForClusterFiles(ctx context.Context, 
 	return installer.NewV2GetPresignedForClusterFilesOK().WithPayload(&models.Presigned{URL: &url})
 }
 
-func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, params installer.GetPresignedForClusterFilesParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params installer.DownloadMinimalInitrdParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
@@ -3517,56 +3398,6 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 	}
 
 	return installer.NewDownloadMinimalInitrdOK().WithPayload(ioutil.NopCloser(bytes.NewReader(minimalInitrd)))
-}
-
-func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	if params.FileName == "discovery.ign" {
-		infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
-		if err != nil {
-			return common.GenerateErrorResponder(err)
-		}
-
-		cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
-		if err != nil {
-			log.WithError(err).Error("Failed to format ignition config")
-			return common.GenerateErrorResponder(err)
-		}
-
-		return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(ioutil.NopCloser(strings.NewReader(cfg))), params.FileName, int64(len(cfg)))
-	}
-
-	if err := b.checkFileDownloadAccess(ctx, params.FileName); err != nil {
-		payload := common.GenerateInfraError(http.StatusForbidden, err)
-		return installer.NewDownloadClusterFilesForbidden().WithPayload(payload)
-	}
-
-	respBody, contentLength, err := b.DownloadClusterFilesInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
-
-}
-
-func (b *bareMetalInventory) DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error) {
-
-	log := logutil.FromContext(ctx, b.log)
-	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
-		return nil, 0, err
-	}
-
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName))
-	if err != nil {
-		log.WithError(err).Errorf("failed to download file %s from cluster: %s", params.FileName, params.ClusterID.String())
-		return nil, 0, common.NewApiError(http.StatusConflict, err)
-	}
-
-	return respBody, contentLength, nil
-}
-
-func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
@@ -3655,18 +3486,6 @@ func (b *bareMetalInventory) checkFileDownloadAccess(ctx context.Context, fileNa
 	return nil
 }
 
-func (b *bareMetalInventory) UpdateHostIgnition(ctx context.Context, params installer.UpdateHostIgnitionParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) DownloadHostIgnition(ctx context.Context, params installer.DownloadHostIgnitionParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) V2DownloadHostIgnition(ctx context.Context, params installer.V2DownloadHostIgnitionParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	fileName, respBody, contentLength, err := b.v2DownloadHostIgnition(ctx, params.InfraEnvID.String(), params.HostID.String())
@@ -3712,10 +3531,6 @@ func (b *bareMetalInventory) v2DownloadHostIgnition(ctx context.Context, infraEn
 	return fileName, respBody, contentLength, nil
 }
 
-func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params installer.V2GetCredentialsParams) (*models.Credentials, error) {
 
 	log := logutil.FromContext(ctx, b.log)
@@ -3748,14 +3563,6 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 		Password:   string(password),
 		ConsoleURL: common.GetConsoleUrl(cluster.Name, cluster.BaseDNSDomain),
 	}, nil
-}
-
-func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 // Merging given ingress ca certificate into kubeconfig
@@ -3821,10 +3628,6 @@ func setInfraEnvPullSecret(infraEnv *common.InfraEnv, pullSecret string) {
 	}
 }
 
-func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error) {
 
 	log := logutil.FromContext(ctx, b.log)
@@ -3884,14 +3687,6 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 	return cluster, nil
 }
 
-func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.InstallHostParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) V2ResetHost(ctx context.Context, params installer.V2ResetHostParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	log.Info("Resetting host: ", params.HostID)
@@ -3941,14 +3736,6 @@ func (b *bareMetalInventory) V2ResetHost(ctx context.Context, params installer.V
 	return installer.NewV2ResetHostOK().WithPayload(&host.Host)
 }
 
-func (b *bareMetalInventory) ResetHost(ctx context.Context, params installer.ResetHostParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) deleteDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
 	return b.dnsApi.DeleteDNSRecordSets(ctx, &cluster)
 }
@@ -3995,22 +3782,6 @@ func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params in
 	return nil
 }
 
-func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params installer.GetFreeAddressesParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Host, upFile io.ReadCloser) error {
 	log := logutil.FromContext(ctx, b.log)
 
@@ -4040,18 +3811,6 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Ho
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return nil
-}
-
-func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) prepareClusterLogs(ctx context.Context, cluster *common.Cluster) (string, error) {
@@ -4205,14 +3964,6 @@ func (b *bareMetalInventory) GetHostByKubeKey(key types.NamespacedName) (*common
 	return h, err
 }
 
-func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (b *bareMetalInventory) GetPreflightRequirements(ctx context.Context, params installer.GetPreflightRequirementsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (b *bareMetalInventory) V2ResetHostValidation(ctx context.Context, params installer.V2ResetHostValidationParams) middleware.Responder {
 	err := b.hostApi.ResetHostValidation(ctx, params.HostID, params.InfraEnvID, params.ValidationID, nil)
 	if err != nil {
@@ -4221,10 +3972,6 @@ func (b *bareMetalInventory) V2ResetHostValidation(ctx context.Context, params i
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2ResetHostValidationOK()
-}
-
-func (b *bareMetalInventory) ResetHostValidation(ctx context.Context, params installer.ResetHostValidationParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (b *bareMetalInventory) AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
@@ -4969,7 +4716,7 @@ func (b *bareMetalInventory) V2GetNextSteps(ctx context.Context, params installe
 
 	if tx.Error != nil {
 		log.WithError(tx.Error).Errorf("failed to start db transaction")
-		return installer.NewUpdateClusterInternalServerError().
+		return installer.NewV2UpdateClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
 	}
 
@@ -5095,7 +4842,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 	if params.HostProgress.CurrentStage != host.Progress.CurrentStage || params.HostProgress.ProgressInfo != host.Progress.ProgressInfo {
 		if err := b.hostApi.UpdateInstallProgress(ctx, &host.Host, params.HostProgress); err != nil {
 			log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
-			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+			return installer.NewV2UpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 		}
 
 		event := fmt.Sprintf("reached installation stage %s", params.HostProgress.CurrentStage)
@@ -5107,7 +4854,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 		eventgen.SendHostInstallProgressUpdatedEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID, hostutil.GetHostnameForMsg(&host.Host), event)
 		if err := b.clusterApi.UpdateInstallProgress(ctx, *host.ClusterID); err != nil {
 			log.WithError(err).Errorf("failed to update cluster %s progress", host.ClusterID)
-			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+			return installer.NewV2UpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 		}
 	}
 

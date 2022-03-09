@@ -2,7 +2,6 @@ package domains
 
 import (
 	"context"
-	"net/http"
 	"regexp"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -32,10 +31,6 @@ func (h *Handler) parseDomainProvider(val string) (string, error) {
 	}
 	s := re.Split(val, 2)
 	return s[1], nil
-}
-
-func (h *Handler) ListManagedDomains(ctx context.Context, params operations.ListManagedDomainsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (h *Handler) V2ListManagedDomains(ctx context.Context, params operations.V2ListManagedDomainsParams) middleware.Responder {

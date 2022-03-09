@@ -959,7 +959,7 @@ func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, log lo
 	for _, manifest := range alreadyCreatedManifests {
 		if _, ok := manifestsFromConfigMap[manifest.FileName]; !ok {
 			log.Infof("Deleting cluster deployment %s manifest %s", cluster.KubeKeyName, manifest.FileName)
-			_ = r.Manifests.DeleteClusterManifestInternal(ctx, operations.DeleteClusterManifestParams{
+			_ = r.Manifests.DeleteClusterManifestInternal(ctx, operations.V2DeleteClusterManifestParams{
 				ClusterID: *cluster.ID,
 				FileName:  manifest.FileName,
 				Folder:    swag.String(models.ManifestFolderOpenshift),
@@ -970,7 +970,7 @@ func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, log lo
 	// create/update all manifests provided by configmap data
 	for filename, manifest := range manifestsFromConfigMap {
 		log.Infof("Creating cluster deployment %s manifest %s", cluster.KubeKeyName, filename)
-		_, err := r.Manifests.CreateClusterManifestInternal(ctx, operations.CreateClusterManifestParams{
+		_, err := r.Manifests.CreateClusterManifestInternal(ctx, operations.V2CreateClusterManifestParams{
 			ClusterID: *cluster.ID,
 			CreateManifestParams: &models.CreateManifestParams{
 				Content:  swag.String(base64.StdEncoding.EncodeToString([]byte(manifest))),
@@ -1035,7 +1035,7 @@ func (r *ClusterDeploymentsReconciler) getManifestConfigMap(ctx context.Context,
 func (r *ClusterDeploymentsReconciler) addCustomManifests(ctx context.Context, log logrus.FieldLogger,
 	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) error {
 
-	alreadyCreatedManifests, err := r.Manifests.ListClusterManifestsInternal(ctx, operations.ListClusterManifestsParams{
+	alreadyCreatedManifests, err := r.Manifests.ListClusterManifestsInternal(ctx, operations.V2ListClusterManifestsParams{
 		ClusterID: *cluster.ID,
 	})
 	if err != nil {

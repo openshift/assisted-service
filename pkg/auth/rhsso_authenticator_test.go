@@ -71,14 +71,14 @@ var _ = Describe("auth handler test", func() {
 			authInfo:        UserAuthHeaderWriter("bearer bad_token"),
 			isListOperation: true,
 			addHeaders:      true,
-			expectedError:   installer.NewListClustersUnauthorized(),
+			expectedError:   installer.NewV2ListClustersUnauthorized(),
 		},
 		{
 			name:            "Fail User Auth Without Headers",
 			authInfo:        UserAuthHeaderWriter(userKeyValue),
 			isListOperation: true,
 			addHeaders:      false,
-			expectedError:   installer.NewListClustersUnauthorized(),
+			expectedError:   installer.NewV2ListClustersUnauthorized(),
 		},
 		{
 			name:            "Ignore 'Token used before issued' error",
@@ -99,7 +99,7 @@ var _ = Describe("auth handler test", func() {
 			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
 			isListOperation: false,
 			addHeaders:      true,
-			expectedError:   installer.NewGetClusterUnauthorized(),
+			expectedError:   installer.NewV2GetClusterUnauthorized(),
 			mockOcmAuth:     mockOcmAuthFailure,
 		},
 		{
@@ -107,7 +107,7 @@ var _ = Describe("auth handler test", func() {
 			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
 			isListOperation: false,
 			addHeaders:      true,
-			expectedError:   installer.NewGetClusterServiceUnavailable(),
+			expectedError:   installer.NewV2GetClusterServiceUnavailable(),
 			mockOcmAuth:     mockOcmAuthSendRequestFailure,
 		},
 		{
@@ -115,7 +115,7 @@ var _ = Describe("auth handler test", func() {
 			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
 			isListOperation: false,
 			addHeaders:      true,
-			expectedError:   installer.NewGetClusterInternalServerError(),
+			expectedError:   installer.NewV2GetClusterInternalServerError(),
 			mockOcmAuth:     mockOcmAuthInternalError,
 		},
 		{
@@ -123,7 +123,7 @@ var _ = Describe("auth handler test", func() {
 			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
 			isListOperation: false,
 			addHeaders:      false,
-			expectedError:   installer.NewGetClusterUnauthorized(),
+			expectedError:   installer.NewV2GetClusterUnauthorized(),
 		},
 	}
 
@@ -185,10 +185,10 @@ var _ = Describe("auth handler test", func() {
 
 			var e error
 			if tt.isListOperation {
-				_, e = bmclient.Installer.ListClusters(context.TODO(), &clientInstaller.ListClustersParams{})
+				_, e = bmclient.Installer.V2ListClusters(context.TODO(), &clientInstaller.V2ListClustersParams{})
 			} else {
 				id := uuid.New()
-				_, e = bmclient.Installer.GetCluster(context.TODO(), &clientInstaller.GetClusterParams{
+				_, e = bmclient.Installer.V2GetCluster(context.TODO(), &clientInstaller.V2GetClusterParams{
 					ClusterID: strfmt.UUID(id.String()),
 				})
 			}

@@ -52,11 +52,7 @@ type Manifests struct {
 	usageAPI      usage.API
 }
 
-func (m *Manifests) CreateClusterManifest(ctx context.Context, params operations.CreateClusterManifestParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params operations.CreateClusterManifestParams) (*models.Manifest, error) {
+func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params operations.V2CreateClusterManifestParams) (*models.Manifest, error) {
 	log := logutil.FromContext(ctx, m.log)
 	log.Infof("Creating manifest in cluster %s", params.ClusterID)
 
@@ -106,11 +102,7 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 	return &manifest, nil
 }
 
-func (m *Manifests) ListClusterManifests(ctx context.Context, params operations.ListClusterManifestsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params operations.ListClusterManifestsParams) (models.ListManifests, error) {
+func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params operations.V2ListClusterManifestsParams) (models.ListManifests, error) {
 	log := logutil.FromContext(ctx, m.log)
 	log.Debugf("Listing manifests in cluster %s", params.ClusterID)
 
@@ -138,11 +130,7 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 	return manifests, nil
 }
 
-func (m *Manifests) DeleteClusterManifest(ctx context.Context, params operations.DeleteClusterManifestParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params operations.DeleteClusterManifestParams) error {
+func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params operations.V2DeleteClusterManifestParams) error {
 	log := logutil.FromContext(ctx, m.log)
 	log.Infof("Deleting manifest from cluster %s", params.ClusterID)
 
@@ -186,10 +174,6 @@ func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params op
 
 	log.Infof("Done deleting cluster manifest %s for cluster %s", fileName, cluster.ID)
 	return nil
-}
-
-func (m *Manifests) DownloadClusterManifest(ctx context.Context, params operations.DownloadClusterManifestParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (m *Manifests) V2DownloadClusterManifest(ctx context.Context, params operations.V2DownloadClusterManifestParams) middleware.Responder {

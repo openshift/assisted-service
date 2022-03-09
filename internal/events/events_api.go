@@ -30,10 +30,6 @@ func NewApi(handler eventsapi.Handler, log logrus.FieldLogger) *Api {
 	}
 }
 
-func (a *Api) ListEvents(ctx context.Context, params events.ListEventsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, a.log)
 

@@ -16,7 +16,7 @@ type ManifestsAPI interface {
 
 //go:generate mockgen -package api -destination mock_manifests_internal.go . ClusterManifestsInternals
 type ClusterManifestsInternals interface {
-	CreateClusterManifestInternal(ctx context.Context, params operations.CreateClusterManifestParams) (*models.Manifest, error)
-	ListClusterManifestsInternal(ctx context.Context, params operations.ListClusterManifestsParams) (models.ListManifests, error)
-	DeleteClusterManifestInternal(ctx context.Context, params operations.DeleteClusterManifestParams) error
+	CreateClusterManifestInternal(ctx context.Context, params operations.V2CreateClusterManifestParams) (*models.Manifest, error)
+	ListClusterManifestsInternal(ctx context.Context, params operations.V2ListClusterManifestsParams) (models.ListManifests, error)
+	DeleteClusterManifestInternal(ctx context.Context, params operations.V2DeleteClusterManifestParams) error
 }
