@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -303,21 +304,6 @@ var _ = Describe("authz", func() {
 			apiCall:      deregisterCluster,
 		},
 		{
-			name:         "generate cluster iso",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      generateClusterISO,
-		},
-		{
-			name:         "download cluster iso",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      downloadClusterISO,
-		},
-		{
-			name:         "download cluster iso headers",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      downloadClusterISOHeaders,
-		},
-		{
 			name:             "download cluster files",
 			allowedRoles:     []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
 			apiCall:          downloadClusterFiles,
@@ -455,9 +441,10 @@ var _ = Describe("authz", func() {
 			apiCall:      registerAddHostsCluster,
 		},
 		{
-			name:         "get discovery ignition",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      getDiscoveryIgnition,
+			name:             "get discovery ignition",
+			allowedRoles:     []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:          v2DownloadInfraEnvFiles,
+			agentAuthSupport: true,
 		},
 		{
 			name:         "Update discovery ignition",
@@ -560,14 +547,14 @@ func registerCluster(ctx context.Context, cli *client.AssistedInstall) error {
 }
 
 func listClusters(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+	_, err := cli.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 	return err
 }
 
 func getCluster(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.GetCluster(
+	_, err := cli.Installer.V2GetCluster(
 		ctx,
-		&installer.GetClusterParams{
+		&installer.V2GetClusterParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 		})
 	return err
@@ -586,55 +573,25 @@ func updateCluster(ctx context.Context, cli *client.AssistedInstall) error {
 }
 
 func deregisterCluster(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.DeregisterCluster(
+	_, err := cli.Installer.V2DeregisterCluster(
 		ctx,
-		&installer.DeregisterClusterParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-		})
-	return err
-}
-
-func generateClusterISO(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.GenerateClusterISO(
-		ctx,
-		&installer.GenerateClusterISOParams{
-			ClusterID:         strfmt.UUID(uuid.New().String()),
-			ImageCreateParams: &models.ImageCreateParams{},
-		})
-	return err
-}
-
-func downloadClusterISO(ctx context.Context, cli *client.AssistedInstall) error {
-	file, err := ioutil.TempFile("/tmp", "test")
-	if err != nil {
-		return err
-	}
-	_, err = cli.Installer.DownloadClusterISO(
-		ctx,
-		&installer.DownloadClusterISOParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-		},
-		file)
-	return err
-}
-
-func downloadClusterISOHeaders(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.DownloadClusterISOHeaders(
-		ctx,
-		&installer.DownloadClusterISOHeadersParams{
+		&installer.V2DeregisterClusterParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }
 
 func downloadClusterFiles(ctx context.Context, cli *client.AssistedInstall) error {
-	file, err := ioutil.TempFile("/tmp", "test")
+	file, err := os.CreateTemp("", "test")
 	if err != nil {
 		return err
 	}
-	_, err = cli.Installer.DownloadClusterFiles(
+
+	defer os.Remove(file.Name())
+
+	_, err = cli.Installer.V2DownloadClusterFiles(
 		ctx,
-		&installer.DownloadClusterFilesParams{
+		&installer.V2DownloadClusterFilesParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 			FileName:  "bootstrap.ign",
 		},
@@ -643,9 +600,9 @@ func downloadClusterFiles(ctx context.Context, cli *client.AssistedInstall) erro
 }
 
 func getPresignedForClusterFiles(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.GetPresignedForClusterFiles(
+	_, err := cli.Installer.V2GetPresignedForClusterFiles(
 		ctx,
-		&installer.GetPresignedForClusterFilesParams{
+		&installer.V2GetPresignedForClusterFilesParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 			FileName:  "bootstrap.ign",
 		})
@@ -653,19 +610,22 @@ func getPresignedForClusterFiles(ctx context.Context, cli *client.AssistedInstal
 }
 
 func getCredentials(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.GetCredentials(
+	_, err := cli.Installer.V2GetCredentials(
 		ctx,
-		&installer.GetCredentialsParams{
+		&installer.V2GetCredentialsParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }
 
 func downloadClusterKubeconfig(ctx context.Context, cli *client.AssistedInstall) error {
-	file, err := ioutil.TempFile("/tmp", "test")
+	file, err := os.CreateTemp("", "test")
 	if err != nil {
 		return err
 	}
+
+	defer os.Remove(file.Name())
+
 	_, err = cli.Installer.DownloadClusterKubeconfig(
 		ctx,
 		&installer.DownloadClusterKubeconfigParams{
@@ -676,63 +636,64 @@ func downloadClusterKubeconfig(ctx context.Context, cli *client.AssistedInstall)
 }
 
 func getClusterInstallConfig(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.GetClusterInstallConfig(
+	_, err := cli.Installer.V2GetClusterInstallConfig(
 		ctx,
-		&installer.GetClusterInstallConfigParams{
+		&installer.V2GetClusterInstallConfigParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }
 
 func updateClusterInstallConfig(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.UpdateClusterInstallConfig(
+	_, err := cli.Installer.V2UpdateClusterInstallConfig(
 		ctx,
-		&installer.UpdateClusterInstallConfigParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
+		&installer.V2UpdateClusterInstallConfigParams{
+			ClusterID:           strfmt.UUID(uuid.New().String()),
+			InstallConfigParams: `{"controlPlane": {"hyperthreading": "Disabled"}}`,
 		})
 	return err
 }
 
 func uploadClusterIngressCert(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.UploadClusterIngressCert(
+	_, err := cli.Installer.V2UploadClusterIngressCert(
 		ctx,
-		&installer.UploadClusterIngressCertParams{
+		&installer.V2UploadClusterIngressCertParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }
 
 func installCluster(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.InstallCluster(
+	_, err := cli.Installer.V2InstallCluster(
 		ctx,
-		&installer.InstallClusterParams{
+		&installer.V2InstallClusterParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }
 
 func cancelInstallation(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.CancelInstallation(
+	_, err := cli.Installer.V2CancelInstallation(
 		ctx,
-		&installer.CancelInstallationParams{
+		&installer.V2CancelInstallationParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }
 
 func resetCluster(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.ResetCluster(
+	_, err := cli.Installer.V2ResetCluster(
 		ctx,
-		&installer.ResetClusterParams{
+		&installer.V2ResetClusterParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }
 
 func completeInstallation(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.CompleteInstallation(
+	_, err := cli.Installer.V2CompleteInstallation(
 		ctx,
-		&installer.CompleteInstallationParams{
+		&installer.V2CompleteInstallationParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: swag.Bool(true),
@@ -756,10 +717,10 @@ func registerHost(ctx context.Context, cli *client.AssistedInstall) error {
 }
 
 func listHosts(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.ListHosts(
+	_, err := cli.Installer.V2ListHosts(
 		ctx,
-		&installer.ListHostsParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
+		&installer.V2ListHostsParams{
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
 		})
 	return err
 }
@@ -785,11 +746,11 @@ func deregisterHost(ctx context.Context, cli *client.AssistedInstall) error {
 }
 
 func updateHostInstallProgress(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.UpdateHostInstallProgress(
+	_, err := cli.Installer.V2UpdateHostInstallProgress(
 		ctx,
-		&installer.UpdateHostInstallProgressParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-			HostID:    strfmt.UUID(uuid.New().String()),
+		&installer.V2UpdateHostInstallProgressParams{
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
+			HostID:     strfmt.UUID(uuid.New().String()),
 			HostProgress: &models.HostProgress{
 				CurrentStage: models.HostStageStartingInstallation,
 			},
@@ -818,44 +779,58 @@ func postStepReply(ctx context.Context, cli *client.AssistedInstall) error {
 }
 
 func uploadHostLogs(ctx context.Context, cli *client.AssistedInstall) error {
-	file, err := ioutil.TempFile("/tmp", "test.log")
+	hostId := strfmt.UUID(uuid.New().String())
+	file, err := os.CreateTemp("", "test")
 	if err != nil {
 		return err
 	}
-	_, err = cli.Installer.UploadHostLogs(
+
+	defer os.Remove(file.Name())
+
+	_, err = cli.Installer.V2UploadLogs(
 		ctx,
-		&installer.UploadHostLogsParams{
+		&installer.V2UploadLogsParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
-			HostID:    strfmt.UUID(uuid.New().String()),
+			HostID:    &hostId,
 			Upfile:    file,
+			LogsType:  string(models.LogsTypeHost),
 		})
 	return err
 }
 
 func downloadHostLogs(ctx context.Context, cli *client.AssistedInstall) error {
-	file, err := ioutil.TempFile("/tmp", "test")
+	logsType := string(models.LogsTypeHost)
+	hostId := strfmt.UUID(uuid.New().String())
+	file, err := os.CreateTemp("", "test")
 	if err != nil {
 		return err
 	}
-	_, err = cli.Installer.DownloadHostLogs(
+
+	defer os.Remove(file.Name())
+
+	_, err = cli.Installer.V2DownloadClusterLogs(
 		ctx,
-		&installer.DownloadHostLogsParams{
+		&installer.V2DownloadClusterLogsParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
-			HostID:    strfmt.UUID(uuid.New().String()),
+			HostID:    &hostId,
+			LogsType:  &logsType,
 		},
 		file)
 	return err
 }
 
 func uploadLogs(ctx context.Context, cli *client.AssistedInstall) error {
-	file, err := ioutil.TempFile("/tmp", "test.log")
+	file, err := os.CreateTemp("", "test")
 	if err != nil {
 		return err
 	}
+
+	defer os.Remove(file.Name())
+
 	hostId := strfmt.UUID(uuid.New().String())
-	_, err = cli.Installer.UploadLogs(
+	_, err = cli.Installer.V2UploadLogs(
 		ctx,
-		&installer.UploadLogsParams{
+		&installer.V2UploadLogsParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 			HostID:    &hostId,
 			LogsType:  string(models.LogsTypeController),
@@ -865,25 +840,31 @@ func uploadLogs(ctx context.Context, cli *client.AssistedInstall) error {
 }
 
 func downloadClusterLogs(ctx context.Context, cli *client.AssistedInstall) error {
-	file, err := ioutil.TempFile("/tmp", "test")
+	logsType := string(models.LogsTypeController)
+	file, err := os.CreateTemp("", "test")
 	if err != nil {
 		return err
 	}
-	_, err = cli.Installer.DownloadClusterLogs(
+
+	defer os.Remove(file.Name())
+
+	_, err = cli.Installer.V2DownloadClusterLogs(
 		ctx,
-		&installer.DownloadClusterLogsParams{
+		&installer.V2DownloadClusterLogsParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
+			LogsType:  &logsType,
 		},
 		file)
 	return err
 }
 
 func listEvents(ctx context.Context, cli *client.AssistedInstall) error {
+	clusterId := strfmt.UUID(uuid.New().String())
 	hostId := strfmt.UUID(uuid.New().String())
-	_, err := cli.Events.ListEvents(
+	_, err := cli.Events.V2ListEvents(
 		ctx,
-		&events.ListEventsParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
+		&events.V2ListEventsParams{
+			ClusterID: &clusterId,
 			HostID:    &hostId,
 		})
 	return err
@@ -897,51 +878,60 @@ func listManagedDomains(ctx context.Context, cli *client.AssistedInstall) error 
 }
 
 func listComponentVersions(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Versions.ListComponentVersions(
+	_, err := cli.Versions.V2ListComponentVersions(
 		ctx,
-		&versions.ListComponentVersionsParams{})
+		&versions.V2ListComponentVersionsParams{})
 	return err
 }
 
 func listSupportedOpenshiftVersions(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Versions.ListSupportedOpenshiftVersions(
+	_, err := cli.Versions.V2ListSupportedOpenshiftVersions(
 		ctx,
-		&versions.ListSupportedOpenshiftVersionsParams{})
+		&versions.V2ListSupportedOpenshiftVersionsParams{})
 	return err
 }
 
 func registerAddHostsCluster(ctx context.Context, cli *client.AssistedInstall) error {
-	id := strfmt.UUID(uuid.New().String())
-	_, err := cli.Installer.RegisterAddHostsCluster(
+	clusterName := "add-hosts-cluster"
+	apiVIPDnsname := "api-vip.redhat.com"
+	openshiftClusterID := strfmt.UUID(uuid.New().String())
+	_, err := cli.Installer.V2ImportCluster(
 		ctx,
-		&installer.RegisterAddHostsClusterParams{
-			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
-				APIVipDnsname:    swag.String("api-vip.redhat.com"),
-				ID:               &id,
-				Name:             swag.String("test"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+		&installer.V2ImportClusterParams{
+			NewImportClusterParams: &models.ImportClusterParams{
+				APIVipDnsname:      &apiVIPDnsname,
+				Name:               &clusterName,
+				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
+				OpenshiftClusterID: &openshiftClusterID,
 			},
 		})
 	return err
 }
 
-func getDiscoveryIgnition(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.GetDiscoveryIgnition(
+func v2DownloadInfraEnvFiles(ctx context.Context, cli *client.AssistedInstall) error {
+	file, err := os.CreateTemp("", "test")
+	if err != nil {
+		return err
+	}
+
+	defer os.Remove(file.Name())
+
+	_, err = cli.Installer.V2DownloadInfraEnvFiles(
 		ctx,
-		&installer.GetDiscoveryIgnitionParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-		})
+		&installer.V2DownloadInfraEnvFilesParams{
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
+			FileName:   "discovery.ign",
+		},
+		file)
 	return err
 }
 
 func updateDiscoveryIgnition(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.UpdateDiscoveryIgnition(
+	_, err := cli.Installer.UpdateInfraEnv(
 		ctx,
-		&installer.UpdateDiscoveryIgnitionParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
-			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{
-				Config: "",
-			},
+		&installer.UpdateInfraEnvParams{
+			InfraEnvID:           strfmt.UUID(uuid.New().String()),
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: ""},
 		})
 	return err
 }
