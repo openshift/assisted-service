@@ -99,20 +99,6 @@ func (mr *MockInstallerInternalsMockRecorder) DeregisterClusterInternal(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DeregisterClusterInternal), arg0, arg1)
 }
 
-// DeregisterHostInternal mocks base method.
-func (m *MockInstallerInternals) DeregisterHostInternal(arg0 context.Context, arg1 installer.DeregisterHostParams) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeregisterHostInternal", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeregisterHostInternal indicates an expected call of DeregisterHostInternal.
-func (mr *MockInstallerInternalsMockRecorder) DeregisterHostInternal(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterHostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DeregisterHostInternal), arg0, arg1)
-}
-
 // DeregisterInfraEnvInternal mocks base method.
 func (m *MockInstallerInternals) DeregisterInfraEnvInternal(arg0 context.Context, arg1 installer.DeregisterInfraEnvParams) error {
 	m.ctrl.T.Helper()
@@ -125,22 +111,6 @@ func (m *MockInstallerInternals) DeregisterInfraEnvInternal(arg0 context.Context
 func (mr *MockInstallerInternalsMockRecorder) DeregisterInfraEnvInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterInfraEnvInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DeregisterInfraEnvInternal), arg0, arg1)
-}
-
-// DownloadClusterFilesInternal mocks base method.
-func (m *MockInstallerInternals) DownloadClusterFilesInternal(arg0 context.Context, arg1 installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DownloadClusterFilesInternal", arg0, arg1)
-	ret0, _ := ret[0].(io.ReadCloser)
-	ret1, _ := ret[1].(int64)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// DownloadClusterFilesInternal indicates an expected call of DownloadClusterFilesInternal.
-func (mr *MockInstallerInternalsMockRecorder) DownloadClusterFilesInternal(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadClusterFilesInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DownloadClusterFilesInternal), arg0, arg1)
 }
 
 // GetClusterByKubeKey mocks base method.

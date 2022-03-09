@@ -37,22 +37,8 @@ func (m *MockManifestsAPI) EXPECT() *MockManifestsAPIMockRecorder {
 	return m.recorder
 }
 
-// CreateClusterManifest mocks base method.
-func (m *MockManifestsAPI) CreateClusterManifest(arg0 context.Context, arg1 manifests.CreateClusterManifestParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateClusterManifest", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// CreateClusterManifest indicates an expected call of CreateClusterManifest.
-func (mr *MockManifestsAPIMockRecorder) CreateClusterManifest(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClusterManifest", reflect.TypeOf((*MockManifestsAPI)(nil).CreateClusterManifest), arg0, arg1)
-}
-
 // CreateClusterManifestInternal mocks base method.
-func (m *MockManifestsAPI) CreateClusterManifestInternal(arg0 context.Context, arg1 manifests.CreateClusterManifestParams) (*models.Manifest, error) {
+func (m *MockManifestsAPI) CreateClusterManifestInternal(arg0 context.Context, arg1 manifests.V2CreateClusterManifestParams) (*models.Manifest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateClusterManifestInternal", arg0, arg1)
 	ret0, _ := ret[0].(*models.Manifest)
@@ -66,22 +52,8 @@ func (mr *MockManifestsAPIMockRecorder) CreateClusterManifestInternal(arg0, arg1
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClusterManifestInternal", reflect.TypeOf((*MockManifestsAPI)(nil).CreateClusterManifestInternal), arg0, arg1)
 }
 
-// DeleteClusterManifest mocks base method.
-func (m *MockManifestsAPI) DeleteClusterManifest(arg0 context.Context, arg1 manifests.DeleteClusterManifestParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteClusterManifest", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// DeleteClusterManifest indicates an expected call of DeleteClusterManifest.
-func (mr *MockManifestsAPIMockRecorder) DeleteClusterManifest(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterManifest", reflect.TypeOf((*MockManifestsAPI)(nil).DeleteClusterManifest), arg0, arg1)
-}
-
 // DeleteClusterManifestInternal mocks base method.
-func (m *MockManifestsAPI) DeleteClusterManifestInternal(arg0 context.Context, arg1 manifests.DeleteClusterManifestParams) error {
+func (m *MockManifestsAPI) DeleteClusterManifestInternal(arg0 context.Context, arg1 manifests.V2DeleteClusterManifestParams) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteClusterManifestInternal", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -94,36 +66,8 @@ func (mr *MockManifestsAPIMockRecorder) DeleteClusterManifestInternal(arg0, arg1
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterManifestInternal", reflect.TypeOf((*MockManifestsAPI)(nil).DeleteClusterManifestInternal), arg0, arg1)
 }
 
-// DownloadClusterManifest mocks base method.
-func (m *MockManifestsAPI) DownloadClusterManifest(arg0 context.Context, arg1 manifests.DownloadClusterManifestParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DownloadClusterManifest", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// DownloadClusterManifest indicates an expected call of DownloadClusterManifest.
-func (mr *MockManifestsAPIMockRecorder) DownloadClusterManifest(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadClusterManifest", reflect.TypeOf((*MockManifestsAPI)(nil).DownloadClusterManifest), arg0, arg1)
-}
-
-// ListClusterManifests mocks base method.
-func (m *MockManifestsAPI) ListClusterManifests(arg0 context.Context, arg1 manifests.ListClusterManifestsParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListClusterManifests", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// ListClusterManifests indicates an expected call of ListClusterManifests.
-func (mr *MockManifestsAPIMockRecorder) ListClusterManifests(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusterManifests", reflect.TypeOf((*MockManifestsAPI)(nil).ListClusterManifests), arg0, arg1)
-}
-
 // ListClusterManifestsInternal mocks base method.
-func (m *MockManifestsAPI) ListClusterManifestsInternal(arg0 context.Context, arg1 manifests.ListClusterManifestsParams) (models.ListManifests, error) {
+func (m *MockManifestsAPI) ListClusterManifestsInternal(arg0 context.Context, arg1 manifests.V2ListClusterManifestsParams) (models.ListManifests, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListClusterManifestsInternal", arg0, arg1)
 	ret0, _ := ret[0].(models.ListManifests)
