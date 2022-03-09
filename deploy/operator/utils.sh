@@ -96,7 +96,8 @@ function wait_for_boolean_field() {
     namespace="${3:-}"
     interval="${4:-10}"
 
-    for i in {1..10}; do
+    for i in {1..50}; do
+        date --rfc-3339=seconds
         value=$(oc get -n ${namespace} ${object} -o custom-columns=field:${field} --no-headers)
         if [ "${value}" = "true" ]; then
             return 0
