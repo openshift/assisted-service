@@ -3105,6 +3105,9 @@ func init() {
           },
           {
             "imageAuth": []
+          },
+          {
+            "imageURLAuth": []
           }
         ],
         "description": "Downloads the customized ignition file for this host",
@@ -8596,6 +8599,11 @@ func init() {
       "name": "Image-Token",
       "in": "header"
     },
+    "imageURLAuth": {
+      "type": "apiKey",
+      "name": "image_token",
+      "in": "query"
+    },
     "urlAuth": {
       "type": "apiKey",
       "name": "api_key",
@@ -11734,6 +11742,9 @@ func init() {
           },
           {
             "imageAuth": []
+          },
+          {
+            "imageURLAuth": []
           }
         ],
         "description": "Downloads the customized ignition file for this host",
@@ -17274,6 +17285,11 @@ func init() {
       "type": "apiKey",
       "name": "Image-Token",
       "in": "header"
+    },
+    "imageURLAuth": {
+      "type": "apiKey",
+      "name": "image_token",
+      "in": "query"
     },
     "urlAuth": {
       "type": "apiKey",

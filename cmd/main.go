@@ -454,6 +454,7 @@ func main() {
 		AuthUserAuth:        authHandler.AuthUserAuth,
 		AuthURLAuth:         authHandler.AuthURLAuth,
 		AuthImageAuth:       authHandler.AuthImageAuth,
+		AuthImageURLAuth:    authHandler.AuthImageAuth,
 		APIKeyAuthenticator: authHandler.CreateAuthenticator(),
 		Authorizer:          authzHandler.CreateAuthorizer(),
 		InstallerAPI:        bm,

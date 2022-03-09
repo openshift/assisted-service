@@ -276,6 +276,9 @@ type Config struct {
 	// AuthImageAuth Applies when the "Image-Token" header is set
 	AuthImageAuth func(token string) (interface{}, error)
 
+	// AuthImageURLAuth Applies when the "image_token" query is set
+	AuthImageURLAuth func(token string) (interface{}, error)
+
 	// AuthURLAuth Applies when the "api_key" query is set
 	AuthURLAuth func(token string) (interface{}, error)
 
@@ -335,6 +338,13 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 			return token, nil
 		}
 		return c.AuthImageAuth(token)
+	}
+
+	api.ImageURLAuthAuth = func(token string) (interface{}, error) {
+		if c.AuthImageURLAuth == nil {
+			return token, nil
+		}
+		return c.AuthImageURLAuth(token)
 	}
 
 	api.URLAuthAuth = func(token string) (interface{}, error) {

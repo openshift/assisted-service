@@ -49,6 +49,10 @@ securityDefinitions:
     type: apiKey
     in: header
     name: Image-Token
+  imageURLAuth:
+    type: apiKey
+    in: query
+    name: image_token
 
 security:
   - userAuth: [admin, user]
@@ -1536,6 +1540,7 @@ paths:
         - agentAuth: []
         - urlAuth: []
         - imageAuth: []
+        - imageURLAuth: []
       description: Downloads the customized ignition file for this host
       operationId: v2DownloadInfraEnvFiles
       produces:
