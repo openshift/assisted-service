@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"path"
 	"time"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -522,31 +523,47 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 }
 
 func (b *bareMetalInventory) generateImageDownloadURL(ctx context.Context, infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {
-	baseURL, err := url.Parse(b.ImageServiceBaseURL)
-	log := logutil.FromContext(ctx, b.log)
+	queryParams := map[string]string{
+		"type":    imageType,
+		"version": version,
+		"arch":    arch,
+	}
+	urlString, err := b.buildImageServiceURL(fmt.Sprintf("/images/%s", infraEnvID), queryParams)
 	if err != nil {
-		return "", nil, errors.Wrap(err, "failed to parse image service base URL")
+		return "", nil, err
+	}
+	return b.signURL(ctx, infraEnvID, urlString, imageTokenKey)
+}
+
+func (b *bareMetalInventory) buildImageServiceURL(pathSuffix string, params map[string]string) (string, error) {
+	baseURL, err := url.Parse(b.ImageServiceBaseURL)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse image service base URL")
 	}
 	downloadURL := url.URL{
 		Scheme: baseURL.Scheme,
 		Host:   baseURL.Host,
-		Path:   fmt.Sprintf("%s/images/%s", baseURL.Path, infraEnvID),
+		Path:   path.Join(baseURL.Path, pathSuffix),
 	}
 	queryValues := url.Values{}
-	queryValues.Set("type", imageType)
-	queryValues.Set("version", version)
-	queryValues.Set("arch", arch)
+	for k, v := range params {
+		queryValues.Set(k, v)
+	}
 	downloadURL.RawQuery = queryValues.Encode()
-	urlString := downloadURL.String()
+	return downloadURL.String(), nil
+}
+
+func (b *bareMetalInventory) signURL(ctx context.Context, infraEnvID, urlString, imageTokenKey string) (string, *strfmt.DateTime, error) {
+	log := logutil.FromContext(ctx, b.log)
 
 	if b.authHandler.AuthType() == auth.TypeLocal {
+		var err error
 		urlString, err = gencrypto.SignURL(urlString, infraEnvID, gencrypto.InfraEnvKey)
 		if err != nil {
 			return "", nil, errors.Wrap(err, "failed to sign image URL")
 		}
 	} else if b.authHandler.AuthType() == auth.TypeRHSSO {
-		var token string
-		token, err = gencrypto.JWTForSymmetricKey([]byte(imageTokenKey), b.ImageExpirationTime, infraEnvID)
+		token, err := gencrypto.JWTForSymmetricKey([]byte(imageTokenKey), b.ImageExpirationTime, infraEnvID)
 		if err != nil {
 			return "", nil, errors.Wrapf(err, "failed to generate token for infraEnv %s", infraEnvID)
 		}
@@ -584,4 +601,45 @@ func (b *bareMetalInventory) generateImageDownloadURL(ctx context.Context, infra
 	}
 
 	return urlString, &expiresAt, nil
+}
+
+const ipxeScriptFormat = `#!ipxe
+kernel %s coreos.live.rootfs_url=%s random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"
+initrd %s
+boot
+`
+
+func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *common.InfraEnv) (string, error) {
+	osImage, err := b.getOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	if err != nil {
+		return "", err
+	}
+	if osImage.OpenshiftVersion == nil {
+		return "", errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage)
+	}
+
+	queryParams := map[string]string{
+		"version": *osImage.OpenshiftVersion,
+		"arch":    *osImage.CPUArchitecture,
+	}
+
+	kernelURL, err := b.buildImageServiceURL("/boot-artifacts/kernel", queryParams)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create kernel URL")
+	}
+	rootfsURL, err := b.buildImageServiceURL("/boot-artifacts/rootfs", queryParams)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create rootfs URL")
+	}
+
+	initrdURL, err := b.buildImageServiceURL(fmt.Sprintf("/images/%s/pxe-initrd", infraEnv.ID), queryParams)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create initrd URL")
+	}
+	initrdURL, _, err = b.signURL(ctx, infraEnv.ID.String(), initrdURL, infraEnv.ImageTokenKey)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to sign initrd URL")
+	}
+
+	return fmt.Sprintf(ipxeScriptFormat, kernelURL, rootfsURL, initrdURL), nil
 }

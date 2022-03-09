@@ -5340,16 +5340,32 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		b.log.WithError(err).Errorf("Failed to get infra env %s", params.InfraEnvID)
 		return common.GenerateErrorResponder(err)
 	}
-	if params.FileName == "discovery.ign" {
-		cfg, err2 := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
-		if err2 != nil {
+
+	var content, filename string
+	switch params.FileName {
+	case "discovery.ign":
+		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
+		if err != nil {
 			b.log.WithError(err).Error("Failed to format ignition config")
 			return common.GenerateErrorResponder(err)
 		}
-		return filemiddleware.NewResponder(installer.NewV2DownloadInfraEnvFilesOK().WithPayload(ioutil.NopCloser(strings.NewReader(cfg))), params.FileName, int64(len(cfg)))
-	} else {
-		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
+		filename = params.FileName
+	case "ipxe-script":
+		content, err = b.infraEnvIPXEScript(ctx, infraEnv)
+		if err != nil {
+			b.log.WithError(err).Error("Failed to create ipxe script")
+			return common.GenerateErrorResponder(err)
+		}
+		filename = fmt.Sprintf("%s-%s", params.InfraEnvID, params.FileName)
+	default:
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("unknown file type for download: %s", params.FileName))
 	}
+
+	return filemiddleware.NewResponder(
+		installer.NewV2DownloadInfraEnvFilesOK().WithPayload(io.NopCloser(strings.NewReader(content))),
+		filename,
+		int64(len(content)),
+	)
 }
 
 func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) middleware.Responder {

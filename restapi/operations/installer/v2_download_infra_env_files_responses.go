@@ -56,6 +56,50 @@ func (o *V2DownloadInfraEnvFilesOK) WriteResponse(rw http.ResponseWriter, produc
 	}
 }
 
+// V2DownloadInfraEnvFilesBadRequestCode is the HTTP code returned for type V2DownloadInfraEnvFilesBadRequest
+const V2DownloadInfraEnvFilesBadRequestCode int = 400
+
+/*V2DownloadInfraEnvFilesBadRequest Bad Request.
+
+swagger:response v2DownloadInfraEnvFilesBadRequest
+*/
+type V2DownloadInfraEnvFilesBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewV2DownloadInfraEnvFilesBadRequest creates V2DownloadInfraEnvFilesBadRequest with default headers values
+func NewV2DownloadInfraEnvFilesBadRequest() *V2DownloadInfraEnvFilesBadRequest {
+
+	return &V2DownloadInfraEnvFilesBadRequest{}
+}
+
+// WithPayload adds the payload to the v2 download infra env files bad request response
+func (o *V2DownloadInfraEnvFilesBadRequest) WithPayload(payload *models.Error) *V2DownloadInfraEnvFilesBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the v2 download infra env files bad request response
+func (o *V2DownloadInfraEnvFilesBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *V2DownloadInfraEnvFilesBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // V2DownloadInfraEnvFilesUnauthorizedCode is the HTTP code returned for type V2DownloadInfraEnvFilesUnauthorized
 const V2DownloadInfraEnvFilesUnauthorizedCode int = 401
 

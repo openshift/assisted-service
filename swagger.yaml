@@ -4426,13 +4426,17 @@ paths:
           name: file_name
           description: The file to be downloaded.
           type: string
-          enum: [discovery.ign]
+          enum: [discovery.ign, ipxe-script]
           required: true
       responses:
         "200":
           description: Success.
           schema:
             type: file
+        "400":
+          description: Bad Request.
+          schema:
+            $ref: '#/definitions/error'
         "401":
           description: Unauthorized.
           schema:

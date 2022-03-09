@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -21,7 +22,6 @@ import (
 
 	"github.com/cavaliercoder/go-cpio"
 	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
-	ign_3_1_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -8662,32 +8662,38 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 
 var _ = Describe("V2DownloadInfraEnvFiles", func() {
 	var (
-		bm        *bareMetalInventory
-		cfg       Config
-		db        *gorm.DB
-		ctx       = context.Background()
-		clusterID strfmt.UUID
-		c         common.Cluster
-		infraEnv  common.InfraEnv
-		dbName    string
+		bm                  *bareMetalInventory
+		cfg                 Config
+		db                  *gorm.DB
+		ctx                 = context.Background()
+		dbName              string
+		infraEnvID          strfmt.UUID
+		testTokenKey        = "6aa03bd3b328d44ddf9a9fefc1290a01a3d52294b51d2b54b61819010206c917" // #nosec
+		imageServicePath    = "/api/image-services"
+		imageServiceHost    = "image-service.example.com:8080"
+		imageServiceBaseURL = fmt.Sprintf("https://%s%s", imageServiceHost, imageServicePath)
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		c = common.Cluster{Cluster: models.Cluster{
-			ID:            &clusterID,
-			PullSecretSet: true,
-		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-		err := db.Create(&c).Error
-		Expect(err).ShouldNot(HaveOccurred())
-		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
-			ID:            &clusterID,
-			PullSecretSet: true,
-		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-		err = db.Create(&infraEnv).Error
-		Expect(err).ShouldNot(HaveOccurred())
+		bm.ImageServiceBaseURL = imageServiceBaseURL
+		var err error
+		bm.ImageExpirationTime, err = time.ParseDuration("4h")
+		Expect(err).NotTo(HaveOccurred())
+
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		infraEnv := common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:               &infraEnvID,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				PullSecretSet:    true,
+				Type:             common.ImageTypePtr(models.ImageTypeFullIso),
+			},
+			ImageTokenKey: testTokenKey,
+			PullSecret:    "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+		}
+		Expect(db.Create(&infraEnv).Error).To(Succeed())
 	})
 
 	AfterEach(func() {
@@ -8695,20 +8701,23 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		ctrl.Finish()
 	})
 
-	It("returns successfully without overrides", func() {
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
-		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: clusterID, FileName: "discovery.ign"}
+	getResponseData := func(fileName string) []byte {
+		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: fileName}
 		response := bm.V2DownloadInfraEnvFiles(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&filemiddleware.FileMiddlewareResponder{}))
 
-		actual, ok := response.(*filemiddleware.FileMiddlewareResponder)
+		fileMw, ok := response.(*filemiddleware.FileMiddlewareResponder)
 		Expect(ok).To(BeTrue())
-		innerType, ok := actual.GetNext().(*installer.V2DownloadInfraEnvFilesOK)
+		innerType, ok := fileMw.GetNext().(*installer.V2DownloadInfraEnvFilesOK)
 		Expect(ok).To(BeTrue())
 
-		body, err := ioutil.ReadAll(innerType.Payload)
+		body, err := io.ReadAll(innerType.Payload)
 		Expect(err).ToNot(HaveOccurred())
+		return body
+	}
 
+	It("returns discovery.ign successfully", func() {
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
+		body := getResponseData("discovery.ign")
 		config, report, err := ign_3_1.Parse(body)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(report.IsFatal()).To(BeFalse())
@@ -8721,35 +8730,123 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		verifyApiError(response, http.StatusNotFound)
 	})
 
-	It("returns successfully with overrides", func() {
-		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(override, nil).Times(1)
-		db.Model(&common.InfraEnv{}).Where("id = ?", clusterID).Update("ignition_config_override", override)
-		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: *infraEnv.ID, FileName: "discovery.ign"}
+	It("returns bad request when provided an invalid filename", func() {
+		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "otherfile"}
 		response := bm.V2DownloadInfraEnvFiles(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&filemiddleware.FileMiddlewareResponder{}))
+		verifyApiError(response, http.StatusBadRequest)
+	})
 
-		actual, ok := response.(*filemiddleware.FileMiddlewareResponder)
-		Expect(ok).To(BeTrue())
-		innerType, ok := actual.GetNext().(*installer.V2DownloadInfraEnvFilesOK)
-		Expect(ok).To(BeTrue())
+	It("returns ipxe-script successfully", func() {
+		mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		content := getResponseData("ipxe-script")
+		lines := strings.Split(string(content), "\n")
 
-		body, err := ioutil.ReadAll(innerType.Payload)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(lines[0]).To(Equal("#!ipxe"))
 
-		config, report, err := ign_3_1.Parse(body)
+		By("validating the kernel line")
+		kernelRegex := regexp.MustCompile(`^kernel (\S+) coreos.live.rootfs_url=(\S+) (.+)`)
+		match := kernelRegex.FindStringSubmatch(lines[1])
+		Expect(match).NotTo(BeNil())
+
+		kernelURL, err := url.Parse(match[1])
 		Expect(err).NotTo(HaveOccurred())
-		Expect(report.IsFatal()).To(BeFalse())
-		Expect(config.Ignition.Version).To(Equal("3.1.0"))
+		Expect(kernelURL.Host).To(Equal(imageServiceHost))
+		Expect(kernelURL.Path).To(Equal(imageServicePath + "/boot-artifacts/kernel"))
+		Expect(kernelURL.Query().Get("version")).To(Equal(*common.TestDefaultConfig.OsImage.OpenshiftVersion))
+		Expect(kernelURL.Query().Get("arch")).To(Equal(*common.TestDefaultConfig.OsImage.CPUArchitecture))
 
-		var file *ign_3_1_types.File
-		for i, f := range config.Storage.Files {
-			if f.Path == "/tmp/example" {
-				file = &config.Storage.Files[i]
-			}
-		}
-		Expect(file).NotTo(BeNil())
-		Expect(*file.Contents.Source).To(Equal("data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"))
+		rootfsURL, err := url.Parse(match[2])
+		Expect(err).NotTo(HaveOccurred())
+		Expect(rootfsURL.Host).To(Equal(imageServiceHost))
+		Expect(rootfsURL.Path).To(Equal(imageServicePath + "/boot-artifacts/rootfs"))
+		Expect(rootfsURL.Query().Get("version")).To(Equal(*common.TestDefaultConfig.OsImage.OpenshiftVersion))
+		Expect(rootfsURL.Query().Get("arch")).To(Equal(*common.TestDefaultConfig.OsImage.CPUArchitecture))
+
+		Expect(match[3]).To(Equal(`random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"`))
+
+		By("validating the initrd line")
+		initrdRegex := regexp.MustCompile(`^initrd (.+)`)
+		match = initrdRegex.FindStringSubmatch(lines[2])
+		Expect(match).NotTo(BeNil())
+
+		initrdURL, err := url.Parse(match[1])
+		Expect(err).NotTo(HaveOccurred())
+		Expect(initrdURL.Host).To(Equal(imageServiceHost))
+		Expect(initrdURL.Path).To(Equal(fmt.Sprintf("%s/images/%s/pxe-initrd", imageServicePath, infraEnvID)))
+		Expect(initrdURL.Query().Get("version")).To(Equal(*common.TestDefaultConfig.OsImage.OpenshiftVersion))
+		Expect(initrdURL.Query().Get("arch")).To(Equal(*common.TestDefaultConfig.OsImage.CPUArchitecture))
+
+		Expect(lines[3]).To(Equal("boot"))
+	})
+
+	It("fails to return ipxe-script when openshift version is nil", func() {
+		mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(&models.OsImage{}, nil).Times(1)
+		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "ipxe-script"}
+		response := bm.V2DownloadInfraEnvFiles(ctx, params)
+		verifyApiError(response, http.StatusInternalServerError)
+	})
+
+	It("fails to return ipxe-script when openshift version can't be found", func() {
+		mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(nil, fmt.Errorf("some error")).Times(1)
+		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "ipxe-script"}
+		response := bm.V2DownloadInfraEnvFiles(ctx, params)
+		verifyApiError(response, http.StatusBadRequest)
+	})
+
+	Context("with local auth", func() {
+		BeforeEach(func() {
+			// Use a local auth handler
+			pub, priv, err := gencrypto.ECDSAKeyPairPEM()
+			Expect(err).NotTo(HaveOccurred())
+			os.Setenv("EC_PRIVATE_KEY_PEM", priv)
+			bm.authHandler, err = auth.NewLocalAuthenticator(
+				&auth.Config{AuthType: auth.TypeLocal, ECPublicKeyPEM: pub},
+				common.GetTestLog().WithField("pkg", "auth"),
+				db,
+			)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			os.Unsetenv("EC_PRIVATE_KEY_PEM")
+		})
+
+		It("signs the initrd ipxe-script url correctly", func() {
+			mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			content := getResponseData("ipxe-script")
+			initrdRegex := regexp.MustCompile(`^initrd (.+)`)
+			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[2])
+			Expect(match).NotTo(BeNil())
+
+			initrdURL, err := url.Parse(match[1])
+			Expect(err).NotTo(HaveOccurred())
+
+			tok := initrdURL.Query().Get("api_key")
+			_, err = bm.authHandler.AuthURLAuth(tok)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("with rhsso auth", func() {
+		BeforeEach(func() {
+			_, cert := auth.GetTokenAndCert(false)
+			cfg := &auth.Config{JwkCert: string(cert)}
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+		})
+
+		It("signs the initrd ipxe-script url correctly", func() {
+			mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			content := getResponseData("ipxe-script")
+			initrdRegex := regexp.MustCompile(`^initrd (.+)`)
+			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[2])
+			Expect(match).NotTo(BeNil())
+
+			initrdURL, err := url.Parse(match[1])
+			Expect(err).NotTo(HaveOccurred())
+			tok := initrdURL.Query().Get("image_token")
+			_, err = bm.authHandler.AuthImageAuth(tok)
+			Expect(err).NotTo(HaveOccurred())
+		})
 	})
 })
 
