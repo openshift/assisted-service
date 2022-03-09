@@ -8339,10 +8339,14 @@ definitions:
     type: object
     required:
       - path
+      - timeout
     properties:
       path:
         type: string
         description: --filename argument for fio (expects a file or a block device path).
+      timeout:
+        type: integer
+        description: Timeout for disk speed command
 
   disk_speed_check_response:
     type: object

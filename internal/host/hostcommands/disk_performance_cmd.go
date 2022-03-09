@@ -3,8 +3,6 @@ package hostcommands
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -48,7 +46,7 @@ func (c *diskPerfCheckCmd) GetSteps(_ context.Context, host *models.Host) ([]*mo
 
 	step := &models.Step{
 		StepType: models.StepTypeInstallationDiskSpeedCheck,
-		Command:  "bash",
+		Command:  "",
 		Args:     args,
 	}
 	return []*models.Step{step}, nil
@@ -58,6 +56,7 @@ func (c *diskPerfCheckCmd) GetArgs(bootDevice string) ([]string, error) {
 
 	request := models.DiskSpeedCheckRequest{
 		Path: swag.String(bootDevice),
+		Timeout: int64(c.timeoutSeconds),
 	}
 	requestBytes, err := json.Marshal(request)
 	if err != nil {
@@ -66,14 +65,7 @@ func (c *diskPerfCheckCmd) GetArgs(bootDevice string) ([]string, error) {
 	}
 
 	arguments := []string{
-		"-c",
-		"id=`podman ps --quiet --filter \"name=disk_performance\"` ; " +
-			"test ! -z \"$id\" || " +
-			fmt.Sprintf("timeout %f ", c.timeoutSeconds) +
-			"podman run --privileged --rm --quiet -v /dev:/dev:rw -v /var/log:/var/log -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
-			"--name disk_performance " +
-			c.diskPerfCheckImage + " disk_speed_check '" +
-			string(requestBytes) + "'",
+			string(requestBytes),
 	}
 
 	return arguments, nil

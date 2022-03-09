@@ -22,6 +22,10 @@ type DiskSpeedCheckRequest struct {
 	// --filename argument for fio (expects a file or a block device path).
 	// Required: true
 	Path *string `json:"path"`
+
+	// Timeout for disk speed command
+	// Required: true
+	Timeout *int64 `json:"timeout"`
 }
 
 // Validate validates this disk speed check request
@@ -29,6 +33,10 @@ func (m *DiskSpeedCheckRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validatePath(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTimeout(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -41,6 +49,15 @@ func (m *DiskSpeedCheckRequest) Validate(formats strfmt.Registry) error {
 func (m *DiskSpeedCheckRequest) validatePath(formats strfmt.Registry) error {
 
 	if err := validate.Required("path", "body", m.Path); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *DiskSpeedCheckRequest) validateTimeout(formats strfmt.Registry) error {
+
+	if err := validate.Required("timeout", "body", m.Timeout); err != nil {
 		return err
 	}
 

@@ -10795,12 +10795,17 @@ func init() {
     "disk_speed_check_request": {
       "type": "object",
       "required": [
-        "path"
+        "path",
+        "timeout"
       ],
       "properties": {
         "path": {
           "description": "--filename argument for fio (expects a file or a block device path).",
           "type": "string"
+        },
+        "timeout": {
+          "description": "Timeout for disk speed command",
+          "type": "integer"
         }
       }
     },
@@ -24171,12 +24176,17 @@ func init() {
     "disk_speed_check_request": {
       "type": "object",
       "required": [
-        "path"
+        "path",
+        "timeout"
       ],
       "properties": {
         "path": {
           "description": "--filename argument for fio (expects a file or a block device path).",
           "type": "string"
+        },
+        "timeout": {
+          "description": "Timeout for disk speed command",
+          "type": "integer"
         }
       }
     },
