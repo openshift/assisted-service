@@ -4838,8 +4838,10 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	stageChanged := params.HostProgress.CurrentStage != host.Progress.CurrentStage
+
 	// Adding a transaction will require to update all lower layer to work with tx instead of db.
-	if params.HostProgress.CurrentStage != host.Progress.CurrentStage || params.HostProgress.ProgressInfo != host.Progress.ProgressInfo {
+	if stageChanged || params.HostProgress.ProgressInfo != host.Progress.ProgressInfo {
 		if err := b.hostApi.UpdateInstallProgress(ctx, &host.Host, params.HostProgress); err != nil {
 			log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
 			return installer.NewV2UpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
@@ -4852,9 +4854,11 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 
 		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
 		eventgen.SendHostInstallProgressUpdatedEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID, hostutil.GetHostnameForMsg(&host.Host), event)
-		if err := b.clusterApi.UpdateInstallProgress(ctx, *host.ClusterID); err != nil {
-			log.WithError(err).Errorf("failed to update cluster %s progress", host.ClusterID)
-			return installer.NewV2UpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		if stageChanged {
+			if err := b.clusterApi.UpdateInstallProgress(ctx, *host.ClusterID); err != nil {
+				log.WithError(err).Errorf("failed to update cluster %s progress", host.ClusterID)
+				return installer.NewV2UpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+			}
 		}
 	}
 

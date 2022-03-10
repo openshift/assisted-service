@@ -692,7 +692,7 @@ func (m *Manager) UpdateLogsProgress(ctx context.Context, c *common.Cluster, pro
 func (m *Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UUID) error {
 	log := logutil.FromContext(ctx, m.log)
 
-	cluster, err := common.GetClusterFromDB(m.db, clusterID, common.UseEagerLoading)
+	cluster, err := common.GetClusterFromDB(m.db, clusterID, common.SkipEagerLoading)
 	if err != nil {
 		log.WithError(err).Error("Failed to get cluster from DB")
 		return err
@@ -703,13 +703,26 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UU
 		return nil
 	}
 
+	var hostsCount []struct {
+		Count        int
+		Role         models.HostRole
+		Bootstrap    bool
+		CurrentStage models.HostStage
+	}
+	err = m.db.Table("hosts").Select("count(*) as count, role, bootstrap, progress_current_stage as current_stage").
+		Group("role").Group("bootstrap").Group("current_stage").Where("cluster_id = ?", clusterID.String()).
+		Scan(&hostsCount).Error
+	if err != nil {
+		log.WithError(err).Error("Failed to host count from DB")
+		return err
+	}
 	isSno := swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 	var totalHostsDoneStages, totalHostsStages float64
-	for _, h := range cluster.Hosts {
-		stages := m.hostAPI.GetStagesByRole(h, isSno)
-		currentIndex := m.hostAPI.IndexOfStage(h.Progress.CurrentStage, stages)
-		totalHostsDoneStages += float64(currentIndex + 1)
-		totalHostsStages += float64(len(stages))
+	for _, h := range hostsCount {
+		stages := host.FindMatchingStages(h.Role, h.Bootstrap, isSno)
+		currentIndex := m.hostAPI.IndexOfStage(h.CurrentStage, stages)
+		totalHostsDoneStages += float64((currentIndex + 1) * h.Count)
+		totalHostsStages += float64(len(stages) * h.Count)
 	}
 	installingStagePercentage := int64((totalHostsDoneStages / totalHostsStages) * 100)
 
