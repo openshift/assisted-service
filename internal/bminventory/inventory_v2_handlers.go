@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/imageservice"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
@@ -523,34 +524,11 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 }
 
 func (b *bareMetalInventory) generateImageDownloadURL(ctx context.Context, infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {
-	queryParams := map[string]string{
-		"type":    imageType,
-		"version": version,
-		"arch":    arch,
-	}
-	urlString, err := b.buildImageServiceURL(fmt.Sprintf("/images/%s", infraEnvID), queryParams)
+	urlString, err := imageservice.ImageURL(b.ImageServiceBaseURL, infraEnvID, version, arch, imageType)
 	if err != nil {
 		return "", nil, err
 	}
 	return b.signURL(ctx, infraEnvID, urlString, imageTokenKey)
-}
-
-func (b *bareMetalInventory) buildImageServiceURL(pathSuffix string, params map[string]string) (string, error) {
-	baseURL, err := url.Parse(b.ImageServiceBaseURL)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to parse image service base URL")
-	}
-	downloadURL := url.URL{
-		Scheme: baseURL.Scheme,
-		Host:   baseURL.Host,
-		Path:   path.Join(baseURL.Path, pathSuffix),
-	}
-	queryValues := url.Values{}
-	for k, v := range params {
-		queryValues.Set(k, v)
-	}
-	downloadURL.RawQuery = queryValues.Encode()
-	return downloadURL.String(), nil
 }
 
 func (b *bareMetalInventory) signURL(ctx context.Context, infraEnvID, urlString, imageTokenKey string) (string, *strfmt.DateTime, error) {
@@ -618,21 +596,16 @@ func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *c
 		return "", errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage)
 	}
 
-	queryParams := map[string]string{
-		"version": *osImage.OpenshiftVersion,
-		"arch":    *osImage.CPUArchitecture,
-	}
-
-	kernelURL, err := b.buildImageServiceURL("/boot-artifacts/kernel", queryParams)
+	kernelURL, err := imageservice.KernelURL(b.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create kernel URL")
 	}
-	rootfsURL, err := b.buildImageServiceURL("/boot-artifacts/rootfs", queryParams)
+	rootfsURL, err := imageservice.RootFSURL(b.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create rootfs URL")
 	}
 
-	initrdURL, err := b.buildImageServiceURL(fmt.Sprintf("/images/%s/pxe-initrd", infraEnv.ID), queryParams)
+	initrdURL, err := imageservice.InitrdURL(b.ImageServiceBaseURL, infraEnv.ID.String(), *osImage.OpenshiftVersion, *osImage.CPUArchitecture)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create initrd URL")
 	}
