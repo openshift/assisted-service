@@ -2808,10 +2808,18 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		By("Verify Agent labels")
 		labels[v1beta1.InfraEnvNameLabel] = infraNsName.Name
-		Eventually(func() map[string]string {
+		Eventually(func() bool {
 			agent := getAgentCRD(ctx, kubeClient, key)
-			return agent.ObjectMeta.Labels
-		}, "30s", "1s").Should(Equal(labels))
+			allFound := true
+			for labelKey, labelValue := range labels {
+				val, ok := agent.ObjectMeta.Labels[labelKey]
+				if !ok || val != labelValue {
+					allFound = false
+					break
+				}
+			}
+			return allFound
+		}, "30s", "1s").Should(Equal(true))
 
 		By("Approve Agent")
 		Eventually(func() error {

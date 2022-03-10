@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -57,9 +58,8 @@ import (
 )
 
 const (
-	AgentFinalizerName      = "agent." + aiv1beta1.Group + "/ai-deprovision"
-	InventoryLabelPrefix    = "inventory." + aiv1beta1.Group + "/"
-	InventoryHashAnnotation = InventoryLabelPrefix + "inventoryHash"
+	AgentFinalizerName   = "agent." + aiv1beta1.Group + "/ai-deprovision"
+	InventoryLabelPrefix = "inventory." + aiv1beta1.Group + "/"
 )
 
 // AgentReconciler reconciles a Agent object
@@ -207,7 +207,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, err, !IsUserError(err))
 	}
 
-	err = r.updateInventory(log, &h.Host, agent)
+	err = r.updateInventory(log, ctx, &h.Host, agent)
 	if err != nil {
 		return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, err, true)
 	}
@@ -869,7 +869,7 @@ func (r *AgentReconciler) updateNtpSources(log logrus.FieldLogger, host *models.
 	return nil
 }
 
-func (r *AgentReconciler) updateInventory(log logrus.FieldLogger, host *models.Host, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) updateInventory(log logrus.FieldLogger, ctx context.Context, host *models.Host, agent *aiv1beta1.Agent) error {
 	if host.Inventory == "" {
 		log.Debugf("Skip update inventory: Host %s inventory not set", agent.Name)
 		return nil
@@ -974,11 +974,10 @@ func (r *AgentReconciler) updateInventory(log logrus.FieldLogger, host *models.H
 		}
 	}
 
-	updateInventoryLabels(agent)
-	return nil
+	return r.updateInventoryLabels(log, ctx, agent)
 }
 
-func updateInventoryLabels(agent *aiv1beta1.Agent) {
+func (r *AgentReconciler) updateInventoryLabels(log logrus.FieldLogger, ctx context.Context, agent *aiv1beta1.Agent) error {
 	inventory := agent.Status.Inventory
 	hasSSD := false
 	for _, d := range inventory.Disks {
@@ -989,13 +988,72 @@ func updateInventoryLabels(agent *aiv1beta1.Agent) {
 	}
 	hasVirt := funk.Contains(inventory.Cpu.Flags, "vmx") || funk.Contains(inventory.Cpu.Flags, "svm")
 
-	agent.ObjectMeta.Annotations[InventoryLabelPrefix+"version"] = "0.1"
-	agent.ObjectMeta.Labels[InventoryLabelPrefix+"storage-hasnonrotationaldisk"] = strconv.FormatBool(hasSSD)
-	agent.ObjectMeta.Labels[InventoryLabelPrefix+"cpu-architecture"] = inventory.Cpu.Architecture
-	agent.ObjectMeta.Labels[InventoryLabelPrefix+"cpu-virtenabled"] = strconv.FormatBool(hasVirt)
-	agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-manufacturer"] = inventory.SystemVendor.Manufacturer
-	agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-productname"] = inventory.SystemVendor.ProductName
-	agent.ObjectMeta.Labels[InventoryLabelPrefix+"host-isvirtual"] = strconv.FormatBool(inventory.SystemVendor.Virtual)
+	changed := false
+	changed = setAgentAnnotation(log, agent, InventoryLabelPrefix+"version", "0.1") || changed
+	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"storage-hasnonrotationaldisk", strconv.FormatBool(hasSSD)) || changed
+	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"cpu-architecture", inventory.Cpu.Architecture) || changed
+	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"cpu-virtenabled", strconv.FormatBool(hasVirt)) || changed
+	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"host-manufacturer", inventory.SystemVendor.Manufacturer) || changed
+	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"host-productname", inventory.SystemVendor.ProductName) || changed
+	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"host-isvirtual", strconv.FormatBool(inventory.SystemVendor.Virtual)) || changed
+
+	if changed {
+		if err := r.Update(ctx, agent); err != nil {
+			log.WithError(err).Errorf("failed to add labels to agent %s/%s", agent.Namespace, agent.Name)
+			return err
+		}
+		agentRef := types.NamespacedName{Namespace: agent.Namespace, Name: agent.Name}
+		err := r.Get(ctx, agentRef, agent)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get agent %s", agentRef)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func setAgentAnnotation(log logrus.FieldLogger, agent *aiv1beta1.Agent, key string, value string) bool {
+	annotations := agent.GetAnnotations()
+
+	// If we already have an annotation with the same value no change is needed.
+	if val, ok := annotations[key]; ok {
+		if val == value {
+			return false
+		}
+	}
+
+	log.Infof("Setting annotation %s=%s on agent %s/%s", key, value, agent.Namespace, agent.Name)
+	annotations[key] = value
+	agent.SetAnnotations(annotations)
+	return true
+}
+
+func setAgentLabel(log logrus.FieldLogger, agent *aiv1beta1.Agent, key string, value string) bool {
+	labels := agent.GetLabels()
+
+	// Label values can only have alphanumeric characters, '-', '_' or '.'
+	re := regexp.MustCompile("[^-A-Za-z0-9_.]+")
+	value = re.ReplaceAllString(value, "")
+
+	// If the value still doesn't match the regex, skip it because it will cause the update to fail
+	re = regexp.MustCompile(`^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$`)
+	if !re.MatchString(value) {
+		log.Info("Skipping setting of label %s=%s because the value contains illegal characters", key, value)
+		return false
+	}
+
+	// If we already have a label with the same value no change is needed.
+	if val, ok := labels[key]; ok {
+		if val == value {
+			return false
+		}
+	}
+
+	log.Infof("Setting label %s=%s on agent %s/%s", key, value, agent.Namespace, agent.Name)
+	labels[key] = value
+	agent.SetLabels(labels)
+	return true
 }
 
 func (r *AgentReconciler) updateHostIgnition(ctx context.Context, log logrus.FieldLogger, host *common.Host, agent *aiv1beta1.Agent) error {
