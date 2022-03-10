@@ -45,21 +45,21 @@ var _ = Describe("changeClusterSshKeyToText", func() {
 	})
 
 	It("Migrates down and up", func() {
-		t, err := getColumnType(db, &common.Cluster{}, "ssh_public_key")
+		t, err := getColumnType(dbName, &common.Cluster{}, "ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 
 		err = gm.RollbackMigration(changeClusterSshKeyToText())
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "ssh_public_key")
+		t, err = getColumnType(dbName, &common.Cluster{}, "ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("VARCHAR"))
 
 		err = gm.MigrateTo("20220113152127")
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "ssh_public_key")
+		t, err = getColumnType(dbName, &common.Cluster{}, "ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 

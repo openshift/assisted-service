@@ -719,8 +719,10 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UU
 		//even if there are hosts that are not ready yet
 		totalPercentage = int64(100)
 	} else {
-		totalPercentage = int64(common.ProgressWeightPreparingForInstallationStage*float64(cluster.Progress.PreparingForInstallationStagePercentage) +
-			common.ProgressWeightInstallingStage*float64(installingStagePercentage))
+		totalPercentage = int64(common.ProgressWeightInstallingStage * float64(installingStagePercentage))
+		if cluster.Progress != nil {
+			totalPercentage += int64(common.ProgressWeightPreparingForInstallationStage * float64(cluster.Progress.PreparingForInstallationStagePercentage))
+		}
 	}
 	updates := map[string]interface{}{
 		"progress_installing_stage_percentage": installingStagePercentage,
@@ -754,9 +756,11 @@ func (m *Manager) UpdateFinalizingProgress(ctx context.Context, db *gorm.DB, clu
 	}
 
 	finalizingStagePercentage := int64((doneOperatorsCount / float64(len(cluster.MonitoredOperators))) * 100)
-	totalPercentage := int64(common.ProgressWeightPreparingForInstallationStage*float64(cluster.Progress.PreparingForInstallationStagePercentage) +
-		common.ProgressWeightInstallingStage*float64(cluster.Progress.InstallingStagePercentage) +
-		common.ProgressWeightFinalizingStage*float64(finalizingStagePercentage))
+	totalPercentage := int64(common.ProgressWeightFinalizingStage * float64(finalizingStagePercentage))
+	if cluster.Progress != nil {
+		totalPercentage += int64(common.ProgressWeightPreparingForInstallationStage*float64(cluster.Progress.PreparingForInstallationStagePercentage) +
+			common.ProgressWeightInstallingStage*float64(cluster.Progress.InstallingStagePercentage))
+	}
 
 	updates := map[string]interface{}{
 		"progress_finalizing_stage_percentage": finalizingStagePercentage,

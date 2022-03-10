@@ -3780,8 +3780,9 @@ func expectProgressToBe(c *models.Cluster, preparingForInstallationStagePercenta
 }
 
 func expectProgressToBeInRange(c *models.Cluster, preparingForInstallationRange, installingRange, finalizingRange []int) {
-
-	Expect(c.Progress).NotTo(BeNil())
+	if c.Progress == nil {
+		c.Progress = &models.ClusterProgressInfo{}
+	}
 	Expect(c.Progress.PreparingForInstallationStagePercentage >= int64(preparingForInstallationRange[0]) &&
 		c.Progress.PreparingForInstallationStagePercentage <= int64(preparingForInstallationRange[1])).To(BeTrue())
 	Expect(c.Progress.InstallingStagePercentage >= int64(installingRange[0]) &&

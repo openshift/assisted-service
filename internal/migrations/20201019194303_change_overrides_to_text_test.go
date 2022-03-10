@@ -44,7 +44,7 @@ var _ = Describe("changeOverridesToText", func() {
 	})
 
 	It("Migrates down and up", func() {
-		t, err := getColumnType(db, &common.Cluster{}, "install_config_overrides")
+		t, err := getColumnType(dbName, &common.Cluster{}, "install_config_overrides")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 		expectOverride(dbName, clusterID.String(), overrides)
@@ -52,7 +52,7 @@ var _ = Describe("changeOverridesToText", func() {
 		err = gm.RollbackMigration(changeOverridesToText())
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "install_config_overrides")
+		t, err = getColumnType(dbName, &common.Cluster{}, "install_config_overrides")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("VARCHAR"))
 		expectOverride(dbName, clusterID.String(), overrides)
@@ -60,7 +60,7 @@ var _ = Describe("changeOverridesToText", func() {
 		err = gm.MigrateTo("20201019194303")
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "install_config_overrides")
+		t, err = getColumnType(dbName, &common.Cluster{}, "install_config_overrides")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 		expectOverride(dbName, clusterID.String(), overrides)

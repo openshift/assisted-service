@@ -46,7 +46,10 @@ func migrateTo(db *gorm.DB, migratoinID string) error {
 	return gm.MigrateTo(migratoinID)
 }
 
-func getColumnType(db *gorm.DB, model interface{}, column string) (string, error) {
+func getColumnType(dbName string, model interface{}, column string) (string, error) {
+	db, err := common.OpenTestDBConn(dbName)
+	Expect(err).ToNot(HaveOccurred())
+	defer common.CloseDB(db)
 	colTypes, err := db.Migrator().ColumnTypes(model)
 	Expect(err).NotTo(HaveOccurred())
 
