@@ -40,6 +40,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,9 +78,11 @@ const (
 	configmapAnnotation                 = "unsupported.agent-install.openshift.io/assisted-service-configmap"
 	imageServiceSkipVerifyTLSAnnotation = "unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls"
 
-	assistedConfigHashAnnotation = "agent-install.openshift.io/config-hash"
-	mirrorConfigHashAnnotation   = "agent-install.openshift.io/mirror-hash"
-	userConfigHashAnnotation     = "agent-install.openshift.io/user-config-hash"
+	assistedConfigHashAnnotation         = "agent-install.openshift.io/config-hash"
+	mirrorConfigHashAnnotation           = "agent-install.openshift.io/mirror-hash"
+	userConfigHashAnnotation             = "agent-install.openshift.io/user-config-hash"
+	imageServiceStatefulSetFinalizerName = imageServiceName + "." + aiv1beta1.Group + "/ai-deprovision"
+	agentServiceConfigFinalizerName      = "agentserviceconfig." + aiv1beta1.Group + "/ai-deprovision"
 
 	servingCertAnnotation    = "service.beta.openshift.io/serving-cert-secret-name"
 	injectCABundleAnnotation = "service.beta.openshift.io/inject-cabundle"
@@ -115,6 +118,7 @@ type ComponentStatusFn func(context.Context, logrus.FieldLogger, string, appsv1.
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -153,6 +157,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+
 			// Return and don't requeue
 			return reconcile.Result{}, nil
 		}
@@ -168,6 +173,40 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		log.Info(fmt.Sprintf("%s: %s", reason, msg), req.NamespacedName)
 		r.Recorder.Event(instance, "Warning", reason, msg)
 		return reconcile.Result{}, nil
+	}
+
+	if instance.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(instance, agentServiceConfigFinalizerName) {
+			controllerutil.AddFinalizer(instance, agentServiceConfigFinalizerName)
+			if err := r.Update(ctx, instance); err != nil {
+				log.WithError(err).Error("failed to add finalizer to AgentServiceConfig")
+				return ctrl.Result{Requeue: true}, err
+			}
+		}
+	} else {
+		// do cleanup and remove finalizer
+		statefulSet := &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      imageServiceName,
+				Namespace: r.Namespace,
+			},
+		}
+		if err := r.Get(ctx, client.ObjectKeyFromObject(statefulSet), statefulSet); err != nil && !errors.IsNotFound(err) {
+			log.WithError(err).Error("failed to get image service stateful set for cleanup")
+			return ctrl.Result{Requeue: true}, err
+		}
+		if err := r.cleanupImageServiceFinalizer(ctx, statefulSet); err != nil {
+			log.WithError(err).Error("failed to cleanup image service stateful set")
+			return ctrl.Result{Requeue: true}, err
+		}
+
+		controllerutil.RemoveFinalizer(instance, agentServiceConfigFinalizerName)
+		if err := r.Update(ctx, instance); err != nil {
+			log.WithError(err).Error("failed to remove finalizer from AgentServiceConfig")
+			return ctrl.Result{Requeue: true}, err
+		}
+
+		return ctrl.Result{}, nil
 	}
 
 	for _, component := range []struct {
@@ -188,7 +227,6 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, r.newIngressCertCM},
 		{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, r.newImageServiceConfigMap},
 		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, r.newAssistedCM},
-		{"ImageServiceDeployment", aiv1beta1.ReasonImageHandlerDeploymentFailure, r.newImageServiceDeployment},
 		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, r.newAssistedServiceDeployment},
 		{"AgentClusterInstallValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newACIWebHook},
 		{"InfraEnvValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newInfraEnvWebHook},
@@ -235,6 +273,21 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		}
 	}
 
+	if err := r.reconcileImageServiceStatefulSet(ctx, log, instance); err != nil {
+		msg := "Failed to reconcile image-service StatefulSet"
+		log.WithError(err).Error(msg)
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonImageHandlerStatefulSetFailure,
+			Message: msg,
+		})
+		if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
+			log.WithError(statusErr).Error("Failed to update status")
+			return ctrl.Result{Requeue: true}, statusErr
+		}
+	}
+
 	msg := "AgentServiceConfig reconcile completed without error."
 	conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConditionReconcileCompleted,
@@ -243,34 +296,18 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		Message: msg,
 	})
 
-	for _, component := range []struct {
-		name          string
-		conditionType appsv1.DeploymentConditionType
-		fn            ComponentStatusFn
-	}{
-		{"agentinstalladmission", appsv1.DeploymentAvailable, r.deploymentStatus},
-		{"agentinstalladmission", appsv1.DeploymentProgressing, r.deploymentStatus},
-		{"assisted-image-service", appsv1.DeploymentAvailable, r.deploymentStatus},
-		{"assisted-image-service", appsv1.DeploymentProgressing, r.deploymentStatus},
-		{"assisted-service", appsv1.DeploymentAvailable, r.deploymentStatus},
-		{"assisted-service", appsv1.DeploymentProgressing, r.deploymentStatus},
-	} {
-		err := component.fn(ctx, log, component.name, component.conditionType)
-		if err != nil {
-			msg := "Deployment " + component.name + " is unhealthy."
-			log.WithError(err).Error(msg)
-			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    aiv1beta1.ConditionDeploymentsHealthy,
-				Status:  corev1.ConditionFalse,
-				Reason:  aiv1beta1.ReasonDeploymentFailure,
-				Message: msg,
-			})
-			if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
-				log.WithError(err).Error("Failed to update status")
-				return ctrl.Result{Requeue: true}, statusErr
-			}
-			return ctrl.Result{Requeue: true}, err
+	if err := r.monitorOperands(ctx, log, instance); err != nil {
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionDeploymentsHealthy,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonDeploymentFailure,
+			Message: err.Error(),
+		})
+		if updateErr := r.Status().Update(ctx, instance); updateErr != nil {
+			log.WithError(updateErr).Error("Failed to update status")
+			return ctrl.Result{Requeue: true}, updateErr
 		}
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
@@ -306,6 +343,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Owns(&corev1.Secret{}).
 		Owns(&routev1.Route{}).
 		Owns(&appsv1.Deployment{}).
+		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&rbacv1.ClusterRole{}).
@@ -314,18 +352,62 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
-func (r *AgentServiceConfigReconciler) deploymentStatus(ctx context.Context, log logrus.FieldLogger, deploymentName string, conditionType appsv1.DeploymentConditionType) error {
-	deployment := &appsv1.Deployment{}
-	if err := r.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: "assisted-installer"}, deployment); err != nil {
-		return err
+func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
+	isStatusConditionFalse := func(conditions []appsv1.DeploymentCondition, conditionType appsv1.DeploymentConditionType) bool {
+		for _, condition := range conditions {
+			if condition.Type == conditionType {
+				return condition.Status == corev1.ConditionFalse
+			}
+		}
+		return false
 	}
-	for _, condition := range deployment.Status.Conditions {
-		if condition.Type == conditionType && condition.Status == corev1.ConditionFalse {
-			errMsg := fmt.Sprintf("Deployment: %s ConditionType: %s ConditionStatus: %s", deploymentName, conditionType, condition.Status)
-			log.Error(errMsg)
-			return pkgerror.New(errMsg)
+
+	// monitor deployments
+	for _, deployName := range []string{"agentinstalladmission", "assisted-service"} {
+		deployment := &appsv1.Deployment{}
+		if err := r.Get(ctx, types.NamespacedName{Name: deployName, Namespace: r.Namespace}, deployment); err != nil {
+			return err
+		}
+
+		if isStatusConditionFalse(deployment.Status.Conditions, appsv1.DeploymentAvailable) {
+			msg := fmt.Sprintf("Deployment %s is not available", deployName)
+			log.Error(msg)
+			return pkgerror.New(msg)
+		}
+
+		if isStatusConditionFalse(deployment.Status.Conditions, appsv1.DeploymentProgressing) {
+			msg := fmt.Sprintf("Deployment %s is not progressing", deployName)
+			log.Error(msg)
+			return pkgerror.New(msg)
 		}
 	}
+
+	// monitor statefulset
+	ss := &appsv1.StatefulSet{}
+	if err := r.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: r.Namespace}, ss); err != nil {
+		return err
+	}
+
+	desiredReplicas := *ss.Spec.Replicas
+	checkReplicas := func(replicas int32, name string) error {
+		if replicas != desiredReplicas {
+			return fmt.Errorf("StatefulSet %s %s replicas does not match desired replicas", imageServiceName, name)
+		}
+		return nil
+	}
+	if err := checkReplicas(ss.Status.Replicas, "created"); err != nil {
+		return err
+	}
+	if err := checkReplicas(ss.Status.ReadyReplicas, "ready"); err != nil {
+		return err
+	}
+	if err := checkReplicas(ss.Status.CurrentReplicas, "current"); err != nil {
+		return err
+	}
+	if err := checkReplicas(ss.Status.UpdatedReplicas, "updated"); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -338,10 +420,7 @@ func (r *AgentServiceConfigReconciler) newFilesystemPVC(ctx context.Context, log
 		Spec: instance.Spec.FileSystemStorage,
 	}
 
-	requests := map[corev1.ResourceName]resource.Quantity{}
-	for key, value := range instance.Spec.FileSystemStorage.Resources.Requests {
-		requests[key] = value
-	}
+	requests := getStorageRequests(&instance.Spec.FileSystemStorage)
 
 	mutateFn := func() error {
 		if err := controllerutil.SetControllerReference(instance, pvc, r.Scheme); err != nil {
@@ -364,10 +443,7 @@ func (r *AgentServiceConfigReconciler) newDatabasePVC(ctx context.Context, log l
 		Spec: instance.Spec.DatabaseStorage,
 	}
 
-	requests := map[corev1.ResourceName]resource.Quantity{}
-	for key, value := range instance.Spec.DatabaseStorage.Resources.Requests {
-		requests[key] = value
-	}
+	requests := getStorageRequests(&instance.Spec.DatabaseStorage)
 
 	mutateFn := func() error {
 		if err := controllerutil.SetControllerReference(instance, pvc, r.Scheme); err != nil {
@@ -803,7 +879,22 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 	return cm, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func ensureVolume(volumes []corev1.Volume, vol corev1.Volume) []corev1.Volume {
+	var found bool
+	for i := range volumes {
+		if volumes[i].Name == vol.Name {
+			found = true
+			volumes[i].VolumeSource = vol.VolumeSource
+			break
+		}
+	}
+	if !found {
+		volumes = append(volumes, vol)
+	}
+	return volumes
+}
+
+func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (*appsv1.StatefulSet, controllerutil.MutateFn) {
 	skipVerifyTLS, ok := instance.ObjectMeta.GetAnnotations()[imageServiceSkipVerifyTLSAnnotation]
 	if !ok {
 		skipVerifyTLS = "false"
@@ -830,12 +921,13 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 			{Name: "HTTPS_CA_FILE", Value: "/etc/image-service/ca-bundle/service-ca.crt"},
 			{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
 			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + r.Namespace + ".svc:" + servicePort.String()},
-			{Name: "REQUEST_AUTH_TYPE", Value: "param"},
 			{Name: "INSECURE_SKIP_VERIFY", Value: skipVerifyTLS},
+			{Name: "DATA_DIR", Value: "/data"},
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "tls-certs", MountPath: "/etc/image-service/certs"},
 			{Name: "service-cabundle", MountPath: "/etc/image-service/ca-bundle"},
+			{Name: "image-service-data", MountPath: "/data"},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -870,33 +962,13 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 		}
 	}
 
-	volumes := []corev1.Volume{
-		{
-			Name: "tls-certs",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: imageServiceName,
-				},
-			},
-		},
-		{
-			Name: "service-cabundle",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: imageServiceName,
-					},
-				},
-			},
-		},
-	}
-
-	deployment := &appsv1.Deployment{
+	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imageServiceName,
 			Namespace: r.Namespace,
 		},
-		Spec: appsv1.DeploymentSpec{
+		Spec: appsv1.StatefulSetSpec{
+			PodManagementPolicy: appsv1.ParallelPodManagement,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: deploymentLabels,
 			},
@@ -910,31 +982,183 @@ func (r *AgentServiceConfigReconciler) newImageServiceDeployment(ctx context.Con
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, deployment, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(instance, statefulSet, r.Scheme); err != nil {
 			return err
 		}
-		var replicas int32 = 1
-		deployment.Spec.Replicas = &replicas
+		controllerutil.AddFinalizer(statefulSet, imageServiceStatefulSetFinalizerName)
 
-		deployment.Spec.Template.Spec.Containers = []corev1.Container{container}
-		deployment.Spec.Template.Spec.Volumes = volumes
-		deployment.Spec.Template.Spec.ServiceAccountName = imageServiceName
+		var replicas int32 = 1
+		statefulSet.Spec.Replicas = &replicas
+
+		statefulSet.Spec.Template.Spec.Containers = []corev1.Container{container}
+		statefulSet.Spec.Template.Spec.ServiceAccountName = imageServiceName
+
+		volumes := ensureVolume(statefulSet.Spec.Template.Spec.Volumes, corev1.Volume{
+			Name: "tls-certs",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: imageServiceName,
+				},
+			},
+		})
+		volumes = ensureVolume(volumes, corev1.Volume{
+			Name: "service-cabundle",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: imageServiceName,
+					},
+				},
+			},
+		})
+
+		if instance.Spec.ImageStorage != nil {
+			var found bool
+			for i, claim := range statefulSet.Spec.VolumeClaimTemplates {
+				if claim.ObjectMeta.Name == "image-service-data" {
+					found = true
+					statefulSet.Spec.VolumeClaimTemplates[i].Spec.Resources.Requests = getStorageRequests(instance.Spec.ImageStorage)
+				}
+			}
+			if !found {
+				statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "image-service-data",
+						},
+						Spec: *instance.Spec.ImageStorage,
+					},
+				}
+			}
+			newVols := make([]corev1.Volume, 0)
+			for i := range volumes {
+				if volumes[i].Name != "image-service-data" {
+					newVols = append(newVols, volumes[i])
+				}
+			}
+			volumes = newVols
+		} else {
+			statefulSet.Spec.VolumeClaimTemplates = nil
+
+			volumes = ensureVolume(volumes, corev1.Volume{
+				Name: "image-service-data",
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
+			})
+		}
+
+		statefulSet.Spec.Template.Spec.Volumes = volumes
 
 		if r.NodeSelector != nil {
-			deployment.Spec.Template.Spec.NodeSelector = r.NodeSelector
+			statefulSet.Spec.Template.Spec.NodeSelector = r.NodeSelector
 		} else {
-			deployment.Spec.Template.Spec.NodeSelector = map[string]string{}
+			statefulSet.Spec.Template.Spec.NodeSelector = map[string]string{}
 		}
 
 		if r.Tolerations != nil {
-			deployment.Spec.Template.Spec.Tolerations = r.Tolerations
+			statefulSet.Spec.Template.Spec.Tolerations = r.Tolerations
 		} else {
-			deployment.Spec.Template.Spec.Tolerations = []corev1.Toleration{}
+			statefulSet.Spec.Template.Spec.Tolerations = []corev1.Toleration{}
 		}
 		return nil
 	}
 
-	return deployment, mutateFn, nil
+	return statefulSet, mutateFn
+}
+
+func (r *AgentServiceConfigReconciler) cleanupImageServiceFinalizer(ctx context.Context, statefulSet *appsv1.StatefulSet) error {
+	if !controllerutil.ContainsFinalizer(statefulSet, imageServiceStatefulSetFinalizerName) {
+		return nil
+	}
+
+	pvcList := &corev1.PersistentVolumeClaimList{}
+	if err := r.List(ctx, pvcList, client.MatchingLabels{"app": imageServiceName}); err != nil {
+		return err
+	}
+
+	for i := range pvcList.Items {
+		if err := r.Client.Delete(ctx, &pvcList.Items[i]); err != nil {
+			return err
+		}
+	}
+
+	controllerutil.RemoveFinalizer(statefulSet, imageServiceStatefulSetFinalizerName)
+	if err := r.Update(ctx, statefulSet); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *AgentServiceConfigReconciler) reconcileImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
+	var err error
+	defer func() {
+		// delete old deployment if it exists and we've created the new stateful set correctly
+		// TODO: this can be removed when we no longer support upgrading from a release that used deployments for the image service
+		// NOTE: this relies on the err local variable being set correctly when the function returns
+		if err == nil {
+			_ = r.Client.Delete(ctx, &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      imageServiceName,
+					Namespace: r.Namespace,
+				},
+			})
+		}
+	}()
+
+	statefulSet, mutateFn := r.newImageServiceStatefulSet(ctx, log, instance)
+
+	key := client.ObjectKeyFromObject(statefulSet)
+	if err = r.Client.Get(ctx, key, statefulSet); err != nil {
+		// if the statefulset doesn't exist, create it
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		log.Info("Creating image service stateful set")
+		if err = mutateFn(); err != nil {
+			return err
+		}
+		if err = r.Client.Create(ctx, statefulSet); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if !statefulSet.DeletionTimestamp.IsZero() {
+		if err = r.cleanupImageServiceFinalizer(ctx, statefulSet); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	existing := statefulSet.DeepCopyObject().(*appsv1.StatefulSet)
+	if err = mutateFn(); err != nil {
+		return err
+	}
+
+	if equality.Semantic.DeepEqual(existing, statefulSet) {
+		// no update needed
+		return nil
+	}
+
+	if equality.Semantic.DeepEqual(existing.Spec.VolumeClaimTemplates, statefulSet.Spec.VolumeClaimTemplates) {
+		log.Info("Updating image service statful set in-place")
+		// if we're updating something other than the volumes, just do a regular update
+		if err = r.Client.Update(ctx, statefulSet); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	log.Info("Deleting image service stateful set on volume claim template update")
+
+	// need to delete and re-create statefulset because the volumes have changed
+	if err = r.Client.Delete(ctx, existing); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
@@ -1774,4 +1998,12 @@ func (r *AgentServiceConfigReconciler) newWebHookDeployment(ctx context.Context,
 		return nil
 	}
 	return deployment, mutateFn, nil
+}
+
+func getStorageRequests(pvcSpec *corev1.PersistentVolumeClaimSpec) map[corev1.ResourceName]resource.Quantity {
+	requests := map[corev1.ResourceName]resource.Quantity{}
+	for key, value := range pvcSpec.Resources.Requests {
+		requests[key] = value
+	}
+	return requests
 }

@@ -15,6 +15,12 @@ spec:
     resources:
       requests:
         storage: 100Gi
+  imageStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
   mustGatherImages:
   - name: cnv
     openshiftVersion: '4.8'

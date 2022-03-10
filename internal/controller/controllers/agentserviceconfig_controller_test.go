@@ -16,8 +16,10 @@ import (
 	"github.com/openshift/assisted-service/models"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,9 +76,9 @@ func AssertReconcileFailure(ctx context.Context, log logrus.FieldLogger, client 
 
 var _ = Describe("agentserviceconfig_controller reconcile", func() {
 	var (
-		asc                                                                                *aiv1beta1.AgentServiceConfig
-		ascr                                                                               *AgentServiceConfigReconciler
-		agentinstalladmissionDeployment, imageServiceDeployment, assistedServiceDeployment *appsv1.Deployment
+		asc                                                        *aiv1beta1.AgentServiceConfig
+		ascr                                                       *AgentServiceConfigReconciler
+		agentinstalladmissionDeployment, assistedServiceDeployment *appsv1.Deployment
 
 		ctx       = context.Background()
 		ingressCM = &corev1.ConfigMap{
@@ -109,36 +111,85 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		asc = newASCDefault()
 	})
 
-	It("reconcile should succeed", func() {
-		agentinstalladmissionDeployment = &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "agentinstalladmission",
-				Namespace: "assisted-installer",
-			},
-		}
-		imageServiceDeployment = &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "assisted-image-service",
-				Namespace: "assisted-installer",
-			},
-		}
-		assistedServiceDeployment = &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "assisted-service",
-				Namespace: "assisted-installer",
-			},
-		}
-		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceDeployment, assistedServiceDeployment)
-		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
-		Expect(err).To(Succeed())
-		Expect(result).To(Equal(ctrl.Result{}))
+	Context("with successful setup", func() {
+		BeforeEach(func() {
+			agentinstalladmissionDeployment = &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "agentinstalladmission",
+					Namespace: testNamespace,
+				},
+			}
+			var replicas int32 = 1
+			imageServiceStatefulSet := &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "assisted-image-service",
+					Namespace: testNamespace,
+				},
+				Spec: appsv1.StatefulSetSpec{
+					Replicas: &replicas,
+					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "image-service-data",
+							},
+							Spec: *asc.Spec.ImageStorage,
+						},
+					},
+				},
+				Status: appsv1.StatefulSetStatus{
+					Replicas:        1,
+					ReadyReplicas:   1,
+					CurrentReplicas: 1,
+					UpdatedReplicas: 1,
+				},
+			}
+			assistedServiceDeployment = &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "assisted-service",
+					Namespace: testNamespace,
+				},
+			}
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
+			result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).To(Succeed())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("adds the finalizer", func() {
+			instance := &aiv1beta1.AgentServiceConfig{}
+			Expect(ascr.Get(ctx, types.NamespacedName{Name: "agent"}, instance)).To(Succeed())
+			Expect(funk.ContainsString(instance.GetFinalizers(), agentServiceConfigFinalizerName)).To(BeTrue())
+		})
+
+		It("cleans up when agentserviceconfig is deleted", func() {
+			instance := &aiv1beta1.AgentServiceConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testName,
+				},
+			}
+			Expect(ascr.Delete(ctx, instance)).To(Succeed())
+
+			result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).To(Succeed())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			By("ensure pvcs are deleted")
+			pvcList := &corev1.PersistentVolumeClaimList{}
+			Expect(ascr.List(ctx, pvcList, client.MatchingLabels{"app": imageServiceName})).To(Succeed())
+			Expect(len(pvcList.Items)).To(Equal(0))
+
+			By("ensure statefulset finalizer is removed")
+			ss := &appsv1.StatefulSet{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, ss)).To(Succeed())
+			Expect(funk.ContainsString(ss.GetFinalizers(), imageServiceStatefulSetFinalizerName)).To(BeFalse())
+		})
 	})
 
 	It("should set `DeploymentsHealthy` condition to `False` on AgentServiceConfig when a deployment is not Available", func() {
 		agentinstalladmissionDeployment = &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "agentinstalladmission",
-				Namespace: "assisted-installer",
+				Namespace: testNamespace,
 			},
 			Status: appsv1.DeploymentStatus{
 				Conditions: []appsv1.DeploymentCondition{
@@ -149,24 +200,34 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 				},
 			},
 		}
-		imageServiceDeployment = &appsv1.Deployment{
+		var replicas int32 = 1
+		imageServiceStatefulSet := &appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "assisted-image-service",
-				Namespace: "assisted-installer",
+				Namespace: testNamespace,
 			},
-			Status: appsv1.DeploymentStatus{
-				Conditions: []appsv1.DeploymentCondition{
+			Spec: appsv1.StatefulSetSpec{
+				Replicas: &replicas,
+				VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 					{
-						Type:   appsv1.DeploymentAvailable,
-						Status: corev1.ConditionTrue,
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "image-service-data",
+						},
+						Spec: *asc.Spec.ImageStorage,
 					},
 				},
+			},
+			Status: appsv1.StatefulSetStatus{
+				Replicas:        1,
+				ReadyReplicas:   1,
+				CurrentReplicas: 1,
+				UpdatedReplicas: 1,
 			},
 		}
 		assistedServiceDeployment = &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "assisted-service",
-				Namespace: "assisted-installer",
+				Namespace: testNamespace,
 			},
 			Status: appsv1.DeploymentStatus{
 				Conditions: []appsv1.DeploymentCondition{
@@ -177,7 +238,7 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 				},
 			},
 		}
-		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceDeployment, assistedServiceDeployment)
+		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
 		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 
 		Expect(err).NotTo(Succeed())
@@ -191,39 +252,61 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Reason).To(Equal(aiv1beta1.ReasonDeploymentFailure))
 	})
 
-	It("should set `DeploymentsHealthy` condition to `True` on AgentServiceConfig when all the deployments are Available", func() {
+	It("should set `DeploymentsHealthy` condition to `False` on AgentServiceConfig when the stateful set replicas are incorrect", func() {
 		agentinstalladmissionDeployment = &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "agentinstalladmission",
-				Namespace: "assisted-installer",
-			},
-			Status: appsv1.DeploymentStatus{
-				Conditions: []appsv1.DeploymentCondition{
-					{
-						Type:   appsv1.DeploymentAvailable,
-						Status: corev1.ConditionTrue,
-					},
-				},
+				Namespace: testNamespace,
 			},
 		}
-		imageServiceDeployment = &appsv1.Deployment{
+		var replicas int32 = 1
+		imageServiceStatefulSet := &appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "assisted-image-service",
-				Namespace: "assisted-installer",
+				Namespace: testNamespace,
 			},
-			Status: appsv1.DeploymentStatus{
-				Conditions: []appsv1.DeploymentCondition{
+			Spec: appsv1.StatefulSetSpec{
+				Replicas: &replicas,
+				VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 					{
-						Type:   appsv1.DeploymentAvailable,
-						Status: corev1.ConditionTrue,
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "image-service-data",
+						},
+						Spec: *asc.Spec.ImageStorage,
 					},
 				},
+			},
+			Status: appsv1.StatefulSetStatus{
+				Replicas:        1,
+				ReadyReplicas:   0,
+				CurrentReplicas: 1,
+				UpdatedReplicas: 1,
 			},
 		}
 		assistedServiceDeployment = &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "assisted-service",
-				Namespace: "assisted-installer",
+				Namespace: testNamespace,
+			},
+		}
+		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
+		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+
+		Expect(err).NotTo(Succeed())
+		Expect(result).NotTo(Equal(ctrl.Result{}))
+
+		instance := &aiv1beta1.AgentServiceConfig{}
+		err = ascr.Get(ctx, types.NamespacedName{Name: "agent"}, instance)
+		Expect(err).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Status).To(Equal(corev1.ConditionFalse))
+		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Reason).To(Equal(aiv1beta1.ReasonDeploymentFailure))
+	})
+
+	It("should set `DeploymentsHealthy` condition to `True` on AgentServiceConfig when all the deployments are Available", func() {
+		agentinstalladmissionDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "agentinstalladmission",
+				Namespace: testNamespace,
 			},
 			Status: appsv1.DeploymentStatus{
 				Conditions: []appsv1.DeploymentCondition{
@@ -234,7 +317,45 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 				},
 			},
 		}
-		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceDeployment, assistedServiceDeployment)
+		var replicas int32 = 1
+		imageServiceStatefulSet := &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "assisted-image-service",
+				Namespace: testNamespace,
+			},
+			Spec: appsv1.StatefulSetSpec{
+				Replicas: &replicas,
+				VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "image-service-data",
+						},
+						Spec: *asc.Spec.ImageStorage,
+					},
+				},
+			},
+			Status: appsv1.StatefulSetStatus{
+				Replicas:        1,
+				ReadyReplicas:   1,
+				CurrentReplicas: 1,
+				UpdatedReplicas: 1,
+			},
+		}
+		assistedServiceDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "assisted-service",
+				Namespace: testNamespace,
+			},
+			Status: appsv1.DeploymentStatus{
+				Conditions: []appsv1.DeploymentCondition{
+					{
+						Type:   appsv1.DeploymentAvailable,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
+		}
+		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
 		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 
 		Expect(err).To(Succeed())
@@ -393,7 +514,7 @@ var _ = Describe("newImageServiceConfigMap", func() {
 	})
 })
 
-var _ = Describe("newImageServiceDeployment", func() {
+var _ = Describe("reconcileImageServiceStatefulSet", func() {
 	var (
 		asc  *aiv1beta1.AgentServiceConfig
 		ascr *AgentServiceConfigReconciler
@@ -406,43 +527,189 @@ var _ = Describe("newImageServiceDeployment", func() {
 		ascr = newTestReconciler(asc)
 	})
 
-	Context("with no existing deployment", func() {
-		It("should create new deployment", func() {
-			found := &appsv1.Deployment{}
-			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).ToNot(Succeed())
+	reconcileUntilDone := func(runs int) {
+		for i := 0; i < runs; i++ {
+			Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+		}
+	}
 
-			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceDeployment)
-			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
-		})
+	It("is doesn't change the stateful set when agent service config is unchanged", func() {
+		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+		initial := &appsv1.StatefulSet{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, initial)).To(Succeed())
 
-		It("should set the proxy env vars", func() {
-			os.Setenv("HTTP_PROXY", "http://proxy.example.com")
-			os.Setenv("HTTPS_PROXY", "http://https-proxy.example.com")
-			os.Setenv("NO_PROXY", "http://no-proxy.example.com")
-			defer func() {
-				os.Unsetenv("HTTP_PROXY")
-				os.Unsetenv("HTTPS_PROXY")
-				os.Unsetenv("NO_PROXY")
-			}()
+		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+		next := &appsv1.StatefulSet{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, next)).To(Succeed())
 
-			found := &appsv1.Deployment{}
-			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceDeployment)
-			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
-			var httpProxy, httpsProxy, noProxy string
-			for _, envVar := range found.Spec.Template.Spec.Containers[0].Env {
-				switch envVar.Name {
-				case "HTTP_PROXY":
-					httpProxy = envVar.Value
-				case "HTTPS_PROXY":
-					httpsProxy = envVar.Value
-				case "NO_PROXY":
-					noProxy = envVar.Value
-				}
+		Expect(equality.Semantic.DeepEqual(initial, next)).To(BeTrue())
+	})
+
+	It("deletes existing image service deployments", func() {
+		deploy := &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: imageServiceName, Namespace: testNamespace},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"some": "label"},
+				},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{Name: imageServiceName, Labels: map[string]string{"some": "label"}},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{Name: imageServiceName, Image: "example.com/thing/image:latest"},
+						},
+					},
+				},
+			},
+		}
+		Expect(ascr.Client.Create(ctx, deploy)).To(Succeed())
+
+		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+
+		found := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).ToNot(Succeed())
+	})
+
+	It("reconciles other fields", func() {
+		// create initial stateful set
+		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+
+		// change replicas to some incorrect value
+		var replicas int32 = 5
+		ss := &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      imageServiceName,
+				Namespace: testNamespace,
+			},
+			Spec: appsv1.StatefulSetSpec{
+				Replicas: &replicas,
+			},
+		}
+		Expect(ascr.Client.Patch(ctx, ss, client.MergeFrom(ss))).To(Succeed())
+
+		// reconcile and check that replicas were set back to 1
+		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, ss)).To(Succeed())
+		Expect(*ss.Spec.Replicas).To(Equal(int32(1)))
+	})
+
+	It("removes empty dir volume and adds volume claim template when image storage is added", func() {
+		asc.Spec.ImageStorage = nil
+		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+
+		ss := &appsv1.StatefulSet{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, ss)).To(Succeed())
+
+		// volume claim templates missing and volume is present to start
+		Expect(ss.Spec.VolumeClaimTemplates).To(BeNil())
+		var foundVol bool
+		for _, v := range ss.Spec.Template.Spec.Volumes {
+			if v.Name == "image-service-data" {
+				foundVol = true
+				Expect(v.VolumeSource.EmptyDir).NotTo(BeNil())
 			}
-			Expect(httpProxy).To(Equal("http://proxy.example.com"))
-			Expect(httpsProxy).To(Equal("http://https-proxy.example.com"))
-			Expect(noProxy).To(Equal("http://no-proxy.example.com"))
-		})
+		}
+		Expect(foundVol).To(BeTrue())
+
+		// add image storage and reconcile
+		asc = newASCDefault()
+		// it takes several reconcile calls to handle this situation
+		reconcileUntilDone(5)
+
+		// ensure volume claim templates were added and volume was removed
+		ss = &appsv1.StatefulSet{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, ss)).To(Succeed())
+
+		volumeTemplates := ss.Spec.VolumeClaimTemplates
+		Expect(len(volumeTemplates)).To(Equal(1))
+		Expect(volumeTemplates[0].ObjectMeta.Name).To(Equal("image-service-data"))
+
+		for _, v := range ss.Spec.Template.Spec.Volumes {
+			Expect(v.Name).ToNot(Equal("image-service-data"))
+		}
+	})
+
+	It("removes volume claim templates and adds empty dir volume when image storage is removed", func() {
+		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+		ss := &appsv1.StatefulSet{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, ss)).To(Succeed())
+
+		// volume template should exist to start
+		volumeTemplates := ss.Spec.VolumeClaimTemplates
+		Expect(len(volumeTemplates)).To(Equal(1))
+		Expect(volumeTemplates[0].ObjectMeta.Name).To(Equal("image-service-data"))
+
+		for _, v := range ss.Spec.Template.Spec.Volumes {
+			Expect(v.Name).ToNot(Equal("image-service-data"))
+		}
+
+		// remove image storage and reconcile
+		asc.Spec.ImageStorage = nil
+		// it takes several reconcile calls to handle this situation
+		reconcileUntilDone(5)
+
+		// ensure there are no volume claim templates and volume was added
+		ss = &appsv1.StatefulSet{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, ss)).To(Succeed())
+
+		Expect(ss.Spec.VolumeClaimTemplates).To(BeNil())
+		var foundVol bool
+		for _, v := range ss.Spec.Template.Spec.Volumes {
+			if v.Name == "image-service-data" {
+				foundVol = true
+				Expect(v.VolumeSource.EmptyDir).NotTo(BeNil())
+			}
+		}
+		Expect(foundVol).To(BeTrue())
+	})
+
+	It("removes pvcs for pod volumes when volumes have been updated", func() {
+		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+
+		pvc := &corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "image-service-volume-0",
+				Namespace: testNamespace,
+				Labels:    map[string]string{"app": imageServiceName},
+			},
+		}
+		Expect(ascr.Client.Create(ctx, pvc)).To(Succeed())
+
+		asc.Spec.ImageStorage.Resources.Requests[corev1.ResourceStorage] = resource.MustParse("50Gi")
+		// it takes several reconcile calls to handle this situation
+		reconcileUntilDone(5)
+
+		key := client.ObjectKeyFromObject(pvc)
+		Expect(ascr.Client.Get(ctx, key, pvc)).ToNot(Succeed())
+	})
+
+	It("should set the proxy env vars", func() {
+		os.Setenv("HTTP_PROXY", "http://proxy.example.com")
+		os.Setenv("HTTPS_PROXY", "http://https-proxy.example.com")
+		os.Setenv("NO_PROXY", "http://no-proxy.example.com")
+		defer func() {
+			os.Unsetenv("HTTP_PROXY")
+			os.Unsetenv("HTTPS_PROXY")
+			os.Unsetenv("NO_PROXY")
+		}()
+
+		found := &appsv1.StatefulSet{}
+		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+		var httpProxy, httpsProxy, noProxy string
+		for _, envVar := range found.Spec.Template.Spec.Containers[0].Env {
+			switch envVar.Name {
+			case "HTTP_PROXY":
+				httpProxy = envVar.Value
+			case "HTTPS_PROXY":
+				httpsProxy = envVar.Value
+			case "NO_PROXY":
+				noProxy = envVar.Value
+			}
+		}
+		Expect(httpProxy).To(Equal("http://proxy.example.com"))
+		Expect(httpsProxy).To(Equal("http://https-proxy.example.com"))
+		Expect(noProxy).To(Equal("http://no-proxy.example.com"))
 	})
 })
 
@@ -1219,6 +1486,13 @@ func newASCDefault() *aiv1beta1.AgentServiceConfig {
 				},
 			},
 			DatabaseStorage: corev1.PersistentVolumeClaimSpec{
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: resource.MustParse("10Gi"),
+					},
+				},
+			},
+			ImageStorage: &corev1.PersistentVolumeClaimSpec{
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: resource.MustParse("10Gi"),
