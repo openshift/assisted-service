@@ -24,7 +24,6 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
@@ -621,15 +620,6 @@ func (m *Manager) SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.
 
 func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error {
 	if h.Connectivity != connectivityReport {
-		if len(connectivityReport) > 0 {
-			//retrieve cluster
-			cluster, err := common.GetClusterFromDB(m.db, *h.ClusterID, common.UseEagerLoading)
-			if err != nil {
-				m.log.WithError(err).Errorf("unable to process connectivity report: failed to find cluster %s", h.ClusterID)
-				return err
-			}
-			m.captureConnectivityReportMetrics(ctx, cluster.OpenshiftVersion, h, connectivityReport, cluster.Hosts)
-		}
 		// Only if the connectivity between the hosts changed change the updated_at field
 		if err := m.db.Model(h).Update("connectivity", connectivityReport).Error; err != nil {
 			return errors.Wrapf(err, "failed to set connectivity to host %s", h.ID.String())
@@ -1293,27 +1283,4 @@ func (m *Manager) GetHostByKubeKey(key types.NamespacedName) (*common.Host, erro
 
 func (m *Manager) UnRegisterHost(ctx context.Context, hostID, infraEnvID string) error {
 	return common.DeleteHostFromDB(m.db, hostID, infraEnvID)
-}
-
-func (m *Manager) captureConnectivityReportMetrics(ctx context.Context, openshiftVersion string, h *models.Host, report string, hosts []*models.Host) {
-	log := logutil.FromContext(ctx, logrus.New())
-	defer commonutils.MeasureOperation("CaptureConnectivityReportMetrics", log, m.metricApi)
-
-	connectivityReport, err := hostutil.UnmarshalConnectivityReport(report)
-	if err != nil {
-		log.Errorf("unable to unmarshal connectivity report for host ID %s:%v", h.ID, err)
-		return
-	}
-	for _, r := range connectivityReport.RemoteHosts {
-		for _, l3 := range r.L3Connectivity {
-			_, targetRole, err := GetHostnameAndEffectiveRoleByIP(l3.RemoteIPAddress, hosts)
-			if err != nil {
-				log.Warn(err)
-				continue
-			}
-			effectiveRole := common.GetEffectiveRole(h)
-			m.metricApi.NetworkLatencyBetweenHosts(openshiftVersion, effectiveRole, targetRole, l3.AverageRTTMs)
-			m.metricApi.PacketLossBetweenHosts(openshiftVersion, effectiveRole, targetRole, l3.PacketLossPercentage)
-		}
-	}
 }
