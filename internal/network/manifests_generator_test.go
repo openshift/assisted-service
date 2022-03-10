@@ -77,7 +77,16 @@ var _ = Describe("chrony manifest", func() {
 			clusterId := strfmt.UUID(uuid.New().String())
 			hosts := make([]*models.Host, 0)
 			hosts = append(hosts, createHost(clusterId, toMarshal))
-			hosts = append(hosts, createHost(clusterId, []*models.NtpSource{{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced}}))
+
+			sources := []*models.NtpSource{
+				{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced},
+				{SourceName: "0.rhel.pool.ntp.org", SourceState: models.SourceStateCombined},
+				{SourceName: "1.rhel.pool.ntp.org", SourceState: models.SourceStateNotCombined},
+				{SourceName: "2.rhel.pool.ntp.org", SourceState: models.SourceStateError},
+				{SourceName: "3.rhel.pool.ntp.org", SourceState: models.SourceStateVariable},
+				{SourceName: "4.rhel.pool.ntp.org", SourceState: models.SourceStateUnreachable},
+			}
+			hosts = append(hosts, createHost(clusterId, sources))
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
@@ -86,7 +95,10 @@ var _ = Describe("chrony manifest", func() {
 
 			expectedContent := defaultChronyConf
 			expectedContent += fmt.Sprintf("\nserver %s iburst", common.TestNTPSourceSynced.SourceName)
-			expectedContent += "\nserver 3.3.3.3 iburst"
+			expectedContent += fmt.Sprintf("\nserver %s iburst", common.TestNTPSourceUnsynced.SourceName)
+			for _, s := range sources {
+				expectedContent += fmt.Sprintf("\nserver %s iburst", s.SourceName)
+			}
 			Expect(response).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(expectedContent))))
 		})
 	})
