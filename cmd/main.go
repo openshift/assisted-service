@@ -489,14 +489,16 @@ func main() {
 	go func() {
 		if Options.EnableKubeAPI {
 			failOnError((&controllers.InfraEnvReconciler{
-				Client:           ctrlMgr.GetClient(),
-				APIReader:        ctrlMgr.GetAPIReader(),
-				Config:           Options.InfraEnvConfig,
-				Log:              log,
-				Installer:        bm,
-				CRDEventsHandler: crdEventsHandler,
-				ServiceBaseURL:   Options.BMConfig.ServiceBaseURL,
-				AuthType:         Options.Auth.AuthType,
+				Client:              ctrlMgr.GetClient(),
+				APIReader:           ctrlMgr.GetAPIReader(),
+				Config:              Options.InfraEnvConfig,
+				Log:                 log,
+				Installer:           bm,
+				CRDEventsHandler:    crdEventsHandler,
+				ServiceBaseURL:      Options.BMConfig.ServiceBaseURL,
+				ImageServiceBaseURL: Options.BMConfig.ImageServiceBaseURL,
+				AuthType:            Options.Auth.AuthType,
+				VersionsHandler:     versionHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InfraEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
