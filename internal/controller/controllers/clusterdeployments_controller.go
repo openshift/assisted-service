@@ -909,7 +909,7 @@ func selectClusterNetworkType(params *models.V2ClusterUpdateParams, cluster *com
 			return false
 		}
 		return network.IsIPv6CIDR(*ip)
-	})) {
+	})) || common.IsSingleNodeCluster(cluster) {
 		return models.ClusterNetworkTypeOVNKubernetes
 	} else {
 		return models.ClusterNetworkTypeOpenShiftSDN

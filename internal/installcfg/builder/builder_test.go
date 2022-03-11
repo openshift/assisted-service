@@ -402,6 +402,30 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
+	It("Single node with default network type", func() {
+		var result installcfg.InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		cluster.UserManagedNetworking = swag.Bool(true)
+		mode := models.ClusterHighAvailabilityModeNone
+		cluster.HighAvailabilityMode = &mode
+		cluster.NetworkType = nil
+		cluster.Hosts[0].Bootstrap = true
+		cluster.Hosts[0].InstallationDiskPath = "/dev/test"
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "10.35.20.0/24"}}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform.Baremetal).Should(BeNil())
+		Expect(*result.Platform.None).Should(Equal(installcfg.PlatformNone{}))
+		Expect(result.BootstrapInPlace.InstallationDisk).Should(Equal("/dev/test"))
+		Expect(len(result.Networking.MachineNetwork)).Should(Equal(1))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(network.GetMachineCidrById(&cluster, 0)))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOVNKubernetes))
+	})
+
 	It("Single node IPV6 only", func() {
 		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""

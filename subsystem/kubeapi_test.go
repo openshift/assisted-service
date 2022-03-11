@@ -528,7 +528,7 @@ func getDefaultSNOAgentClusterInstallSpec(clusterDeploymentName string) *hiveext
 				HostPrefix: 23,
 			}},
 			ServiceNetwork: []string{"172.30.0.0/16"},
-			NetworkType:    models.ClusterNetworkTypeOpenShiftSDN,
+			NetworkType:    models.ClusterNetworkTypeOVNKubernetes,
 		},
 		SSHPublicKey: sshPublicKey,
 		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
