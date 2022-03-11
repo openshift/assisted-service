@@ -28,6 +28,8 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/internal/imageservice"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -61,13 +63,15 @@ type InfraEnvConfig struct {
 // InfraEnvReconciler reconciles a InfraEnv object
 type InfraEnvReconciler struct {
 	client.Client
-	APIReader        client.Reader
-	Config           InfraEnvConfig
-	Log              logrus.FieldLogger
-	Installer        bminventory.InstallerInternals
-	CRDEventsHandler CRDEventsHandler
-	ServiceBaseURL   string
-	AuthType         auth.AuthType
+	APIReader           client.Reader
+	Config              InfraEnvConfig
+	Log                 logrus.FieldLogger
+	Installer           bminventory.InstallerInternals
+	CRDEventsHandler    CRDEventsHandler
+	ServiceBaseURL      string
+	ImageServiceBaseURL string
+	AuthType            auth.AuthType
+	VersionsHandler     versions.Handler
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=nmstateconfigs,verbs=get;list;watch
@@ -311,7 +315,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 				log.Errorf("fail to create InfraEnv: %s, ", infraEnv.Name)
 				return r.handleEnsureISOErrors(ctx, log, infraEnv, err, nil)
 			} else {
-				return r.updateEnsureISOSuccess(ctx, log, infraEnv, infraEnvInternal)
+				return r.updateInfraEnvStatus(ctx, log, infraEnv, infraEnvInternal)
 			}
 		} else {
 			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, infraEnvInternal)
@@ -324,8 +328,8 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 		log.WithError(err).Error("failed to update InfraEnv")
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, infraEnvInternal)
 	}
-	// Image successfully generated. Reflect that in infraEnv obj and conditions
-	return r.updateEnsureISOSuccess(ctx, log, infraEnv, updatedInfraEnv)
+
+	return r.updateInfraEnvStatus(ctx, log, infraEnv, updatedInfraEnv)
 }
 
 func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) (*common.InfraEnv, error) {
@@ -482,20 +486,47 @@ func (r *InfraEnvReconciler) populateEventsURL(log logrus.FieldLogger, infraEnv 
 	return nil
 }
 
-func (r *InfraEnvReconciler) updateEnsureISOSuccess(
+func (r *InfraEnvReconciler) osImageForInfraEnv(dbInfraEnv *common.InfraEnv) (*models.OsImage, error) {
+	var osImage *models.OsImage
+	var err error
+	if dbInfraEnv.OpenshiftVersion != "" {
+		osImage, err = r.VersionsHandler.GetOsImage(dbInfraEnv.OpenshiftVersion, dbInfraEnv.CPUArchitecture)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		osImage, err = r.VersionsHandler.GetLatestOsImage(dbInfraEnv.CPUArchitecture)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return osImage, nil
+}
+
+func (r *InfraEnvReconciler) updateInfraEnvStatus(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
-	conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.ImageCreatedCondition,
-		Status:  corev1.ConditionTrue,
-		Reason:  aiv1beta1.ImageCreatedReason,
-		Message: aiv1beta1.ImageStateCreated,
-	})
+
+	osImage, err := r.osImageForInfraEnv(internalInfraEnv)
+	if err != nil {
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+	}
+
+	infraEnv.Status.BootArtifacts.KernelURL, err = imageservice.KernelURL(r.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture)
+	if err != nil {
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+	}
+	infraEnv.Status.BootArtifacts.RootfsURL, err = imageservice.RootFSURL(r.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture)
+	if err != nil {
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+	}
 
 	if infraEnv.Status.ISODownloadURL != internalInfraEnv.DownloadURL {
 		log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, internalInfraEnv.DownloadURL)
 		infraEnv.Status.ISODownloadURL = internalInfraEnv.DownloadURL
 		imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
 		infraEnv.Status.CreatedTime = &imageCreatedAt
+
+		// set initrd and script endpoint here so we're not changing the auth token constantly
 	}
 
 	if infraEnv.Status.InfraEnvDebugInfo.EventsURL == "" {
@@ -503,6 +534,13 @@ func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 			return ctrl.Result{Requeue: true}, nil
 		}
 	}
+
+	conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.ImageCreatedCondition,
+		Status:  corev1.ConditionTrue,
+		Reason:  aiv1beta1.ImageCreatedReason,
+		Message: aiv1beta1.ImageStateCreated,
+	})
 
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
 		log.WithError(updateErr).Error("failed to update infraEnv status")
