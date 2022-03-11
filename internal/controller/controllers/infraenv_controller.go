@@ -20,9 +20,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 	"strings"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
@@ -503,6 +506,39 @@ func (r *InfraEnvReconciler) osImageForInfraEnv(dbInfraEnv *common.InfraEnv) (*m
 	return osImage, nil
 }
 
+func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.InfraEnv, infraEnvID, version, arch string) error {
+	initrdURL, err := imageservice.InitrdURL(r.ImageServiceBaseURL, infraEnvID, version, arch)
+	if err != nil {
+		return err
+	}
+	infraEnv.Status.BootArtifacts.InitrdURL, err = signURL(initrdURL, r.AuthType, infraEnvID, gencrypto.InfraEnvKey)
+	if err != nil {
+		return err
+	}
+
+	builder := &installer.V2DownloadInfraEnvFilesURL{
+		InfraEnvID: strfmt.UUID(infraEnvID),
+		FileName:   "ipxe-script",
+	}
+	filesURL, err := builder.Build()
+	if err != nil {
+		return err
+	}
+	baseURL, err := url.Parse(r.ServiceBaseURL)
+	if err != nil {
+		return err
+	}
+	baseURL.Path = path.Join(baseURL.Path, filesURL.Path)
+	baseURL.RawQuery = filesURL.RawQuery
+
+	infraEnv.Status.BootArtifacts.IpxeScriptURL, err = signURL(baseURL.String(), r.AuthType, infraEnvID, gencrypto.InfraEnvKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *InfraEnvReconciler) updateInfraEnvStatus(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
 
@@ -527,6 +563,9 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		infraEnv.Status.CreatedTime = &imageCreatedAt
 
 		// set initrd and script endpoint here so we're not changing the auth token constantly
+		if err := r.setSignedBootArtifactURLs(infraEnv, internalInfraEnv.ID.String(), *osImage.OpenshiftVersion, *osImage.CPUArchitecture); err != nil {
+			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+		}
 	}
 
 	if infraEnv.Status.InfraEnvDebugInfo.EventsURL == "" {
