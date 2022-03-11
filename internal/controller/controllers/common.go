@@ -268,6 +268,13 @@ func machineNetworksEntriesToArray(entries []hiveext.MachineNetworkEntry) []*mod
 	}).([]*models.MachineNetwork)
 }
 
+func signURL(urlString string, authType auth.AuthType, id string, keyType gencrypto.LocalJWTKeyType) (string, error) {
+	if authType != auth.TypeLocal {
+		return urlString, nil
+	}
+	return gencrypto.SignURL(urlString, id, keyType)
+}
+
 func generateEventsURL(baseURL string, authType auth.AuthType, signParams gencrypto.CryptoPair, filterBy ...string) (string, error) {
 	path := fmt.Sprintf("%s%s/v2/events", baseURL, restclient.DefaultBasePath)
 	u, err := url.Parse(path)
@@ -279,15 +286,7 @@ func generateEventsURL(baseURL string, authType auth.AuthType, signParams gencry
 		queryParams.Set(filterBy[i], filterBy[i+1])
 	}
 	u.RawQuery = queryParams.Encode()
-	eventsURL := u.String()
-	if authType != auth.TypeLocal {
-		return eventsURL, nil
-	}
-	eventsURL, err = gencrypto.SignURL(eventsURL, signParams.JWTKeyValue, signParams.JWTKeyType)
-	if err != nil {
-		return "", err
-	}
-	return eventsURL, nil
+	return signURL(u.String(), authType, signParams.JWTKeyValue, signParams.JWTKeyType)
 }
 
 //

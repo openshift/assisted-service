@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -16,8 +17,10 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/pkg/errors"
@@ -69,7 +72,7 @@ func newNMStateConfig(name, namespace, NMStateLabelName, NMStateLabelValue strin
 	}
 }
 
-var _ = FDescribe("infraEnv reconcile", func() {
+var _ = Describe("infraEnv reconcile", func() {
 	var (
 		c                     client.Client
 		ir                    *InfraEnvReconciler
@@ -101,6 +104,7 @@ var _ = FDescribe("infraEnv reconcile", func() {
 			ServiceBaseURL:      "http://www.acme.com",
 			ImageServiceBaseURL: "http://images.example.com",
 			VersionsHandler:     mockVersionsHandler,
+			AuthType:            auth.TypeNone,
 		}
 		pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 		eventURL = fmt.Sprintf("%s/api/assisted-install/v2/events?infra_env_id=%s", ir.ServiceBaseURL, sId)
@@ -212,6 +216,7 @@ var _ = FDescribe("infraEnv reconcile", func() {
 			InfraEnv: models.InfraEnv{
 				ID:              &sId,
 				CPUArchitecture: infraEnvArch,
+				DownloadURL:     "http://images.example.com/images/best-image",
 			},
 		}
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
@@ -243,6 +248,67 @@ var _ = FDescribe("infraEnv reconcile", func() {
 		Expect(rootfsURL.Host).To(Equal("images.example.com"))
 		Expect(rootfsURL.Query().Get("arch")).To(Equal(infraEnvArch))
 		Expect(rootfsURL.Query().Get("version")).To(Equal(ocpVersion))
+
+		initrdURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.InitrdURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(initrdURL.Scheme).To(Equal("http"))
+		Expect(initrdURL.Host).To(Equal("images.example.com"))
+		Expect(initrdURL.Path).To(ContainSubstring(sId.String()))
+		Expect(initrdURL.Query().Get("arch")).To(Equal(infraEnvArch))
+		Expect(initrdURL.Query().Get("version")).To(Equal(ocpVersion))
+
+		scriptURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.IpxeScriptURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(scriptURL.Scheme).To(Equal("http"))
+		Expect(scriptURL.Host).To(Equal("www.acme.com"))
+		Expect(scriptURL.Path).To(ContainSubstring(sId.String()))
+		Expect(scriptURL.Query().Get("file_name")).To(Equal("ipxe-script"))
+	})
+
+	Context("with local auth", func() {
+		BeforeEach(func() {
+			_, priv, err := gencrypto.ECDSAKeyPairPEM()
+			Expect(err).NotTo(HaveOccurred())
+			os.Setenv("EC_PRIVATE_KEY_PEM", priv)
+			ir.AuthType = auth.TypeLocal
+		})
+
+		AfterEach(func() {
+			os.Unsetenv("EC_PRIVATE_KEY_PEM")
+		})
+
+		It("signs the initrd and script download URLs", func() {
+			dbInfraEnv := &common.InfraEnv{
+				GeneratedAt: strfmt.DateTime(time.Now()),
+				InfraEnv: models.InfraEnv{
+					ID:              &sId,
+					CPUArchitecture: infraEnvArch,
+					DownloadURL:     "http://images.example.com/images/best-image",
+				},
+			}
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).Return(dbInfraEnv, nil).Times(1)
+			kubeInfraEnv := newInfraEnvImage("myInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{
+				PullSecretRef: &corev1.LocalObjectReference{Name: "pull-secret"},
+			})
+			Expect(c.Create(ctx, kubeInfraEnv)).To(Succeed())
+
+			_, err := ir.Reconcile(ctx, newInfraEnvRequest(kubeInfraEnv))
+			Expect(err).ToNot(HaveOccurred())
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "myInfraEnv",
+			}
+			Expect(c.Get(ctx, key, kubeInfraEnv)).To(BeNil())
+			initrdURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.InitrdURL)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(initrdURL.Query().Get("api_key")).ToNot(BeEmpty())
+
+			scriptURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.IpxeScriptURL)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(scriptURL.Query().Get("api_key")).ToNot(BeEmpty())
+		})
 	})
 
 	It("create new infraEnv image - backend failure", func() {
