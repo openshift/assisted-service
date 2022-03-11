@@ -38,15 +38,18 @@ type StaticNetworkConfig interface {
 
 type StaticNetworkConfigGenerator struct {
 	Config
-	log logrus.FieldLogger
-	sem *semaphore.Weighted
+	log      logrus.FieldLogger
+	sem      *semaphore.Weighted
+	executer executer.Executer
 }
 
 func New(log logrus.FieldLogger, cfg Config) StaticNetworkConfig {
 	return &StaticNetworkConfigGenerator{
-		Config: cfg,
-		log:    log,
-		sem:    semaphore.NewWeighted(cfg.MaxConcurrentGenerations)}
+		Config:   cfg,
+		log:      log,
+		sem:      semaphore.NewWeighted(cfg.MaxConcurrentGenerations),
+		executer: &executer.CommonExecuter{},
+	}
 }
 
 func (s *StaticNetworkConfigGenerator) GenerateStaticNetworkConfigData(ctx context.Context, staticNetworkConfigStr string) ([]StaticNetworkConfigData, error) {
@@ -97,8 +100,7 @@ func (s *StaticNetworkConfigGenerator) executeNMStatectl(ctx context.Context, ho
 	}
 	defer s.sem.Release(1)
 
-	executer := &executer.CommonExecuter{}
-	f, err := executer.TempFile("", "host-config")
+	f, err := s.executer.TempFile("", "host-config")
 	if err != nil {
 		s.log.WithError(err).Errorf("Failed to create temp file")
 		return "", err
@@ -118,7 +120,7 @@ func (s *StaticNetworkConfigGenerator) executeNMStatectl(ctx context.Context, ho
 	if err = f.Close(); err != nil {
 		s.log.WithError(err).Warn("Failed to close file")
 	}
-	stdout, stderr, retCode := executer.ExecuteWithContext(ctx, "nmstatectl", "gc", f.Name())
+	stdout, stderr, retCode := s.executer.ExecuteWithContext(ctx, "nmstatectl", "gc", f.Name())
 	if retCode != 0 {
 		msg := fmt.Sprintf("<nmstatectl gc> failed, errorCode %d, stderr %s, input yaml <%s>", retCode, stderr, hostYAML)
 		s.log.Errorf("%s", msg)
@@ -143,6 +145,9 @@ func (s *StaticNetworkConfigGenerator) createNMConnectionFiles(nmstateOutput, ho
 	connectionsList := hostNMConnections["NetworkManager"].([]interface{})
 	for _, connection := range connectionsList {
 		connectionElems := connection.([]interface{})
+		if len(connectionElems) != 2 {
+			return nil, fmt.Errorf("invalid NetworkManager key contents")
+		}
 		fileName := connectionElems[0].(string)
 		fileContents, err := s.formatNMConnection(connectionElems[1].(string))
 		if err != nil {
