@@ -43,7 +43,7 @@ var _ = Describe("ChangeValidationsInfoToText", func() {
 	})
 
 	It("Migrates down and up", func() {
-		t, err := getColumnType(db, &common.Cluster{}, "validations_info")
+		t, err := getColumnType(dbName, &common.Cluster{}, "validations_info")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 		expectValidationsInfo(dbName, clusterID.String(), clusterValidationsInfo)
@@ -51,7 +51,7 @@ var _ = Describe("ChangeValidationsInfoToText", func() {
 		err = gm.RollbackMigration(changeClusterValidationsInfoToText())
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "validations_info")
+		t, err = getColumnType(dbName, &common.Cluster{}, "validations_info")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("VARCHAR"))
 		expectValidationsInfo(dbName, clusterID.String(), clusterValidationsInfo)
@@ -59,7 +59,7 @@ var _ = Describe("ChangeValidationsInfoToText", func() {
 		err = gm.MigrateTo("20210218160100")
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "validations_info")
+		t, err = getColumnType(dbName, &common.Cluster{}, "validations_info")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 		expectValidationsInfo(dbName, clusterID.String(), clusterValidationsInfo)

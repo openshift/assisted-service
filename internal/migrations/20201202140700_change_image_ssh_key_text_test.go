@@ -47,21 +47,21 @@ var _ = Describe("changeOverridesToText", func() {
 	})
 
 	It("Migrates down and up", func() {
-		t, err := getColumnType(db, &common.Cluster{}, "image_ssh_public_key")
+		t, err := getColumnType(dbName, &common.Cluster{}, "image_ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 
 		err = gm.RollbackMigration(changeImageSSHKeyToText())
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "image_ssh_public_key")
+		t, err = getColumnType(dbName, &common.Cluster{}, "image_ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("VARCHAR"))
 
 		err = gm.MigrateTo("20201202140700")
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "image_ssh_public_key")
+		t, err = getColumnType(dbName, &common.Cluster{}, "image_ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 

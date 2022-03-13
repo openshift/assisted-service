@@ -66,7 +66,7 @@ var _ = Describe("ModifyEventsID", func() {
 	})
 
 	It("Migrates down and up", func() {
-		t, err := getColumnType(db, &common.Event{}, "id")
+		t, err := getColumnType(dbName, &common.Event{}, "id")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("INT8"))
 		validateEvents()
@@ -74,7 +74,7 @@ var _ = Describe("ModifyEventsID", func() {
 		err = gm.RollbackMigration(modifyEventsId())
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Event{}, "id")
+		t, err = getColumnType(dbName, &common.Event{}, "id")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("INT4"))
 		validateEvents()
@@ -82,7 +82,7 @@ var _ = Describe("ModifyEventsID", func() {
 		err = gm.MigrateTo(migrationID)
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Event{}, "id")
+		t, err = getColumnType(dbName, &common.Event{}, "id")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("INT8"))
 		validateEvents()

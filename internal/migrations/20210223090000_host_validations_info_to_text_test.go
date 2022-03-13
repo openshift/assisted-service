@@ -46,7 +46,7 @@ var _ = Describe("ChangeHostValidationsInfoToText", func() {
 	})
 
 	It("Migrates down and up", func() {
-		t, err := getColumnType(db, &models.Host{}, "validations_info")
+		t, err := getColumnType(dbName, &models.Host{}, "validations_info")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 		expectHostValidationsInfo(dbName, hostID.String(), hostValidationsInfo)
@@ -54,7 +54,7 @@ var _ = Describe("ChangeHostValidationsInfoToText", func() {
 		err = gm.RollbackMigration(changeHostValidationsInfoToText())
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &models.Host{}, "validations_info")
+		t, err = getColumnType(dbName, &models.Host{}, "validations_info")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("VARCHAR"))
 		expectHostValidationsInfo(dbName, hostID.String(), hostValidationsInfo)
@@ -62,7 +62,7 @@ var _ = Describe("ChangeHostValidationsInfoToText", func() {
 		err = gm.MigrateTo("20210223090000")
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &models.Host{}, "validations_info")
+		t, err = getColumnType(dbName, &models.Host{}, "validations_info")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("TEXT"))
 		expectHostValidationsInfo(dbName, hostID.String(), hostValidationsInfo)
