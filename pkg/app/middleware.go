@@ -2,7 +2,6 @@ package app
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/openshift/assisted-service/pkg/thread"
@@ -64,15 +63,4 @@ func SetupCORSMiddleware(handler http.Handler, domains []string) http.Handler {
 		MaxAge: int((10 * time.Minute).Seconds()),
 	})
 	return corsHandler.Handler(handler)
-}
-
-func DisableV1Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/assisted-install/v1/") {
-			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte("v1 API is currently disabled"))
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
