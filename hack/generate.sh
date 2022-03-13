@@ -7,19 +7,21 @@ set -o errexit
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(cd "$(dirname "${__dir}")" && pwd)"
 
+UID_FLAGS=${UID_FLAGS--u $(id -u):$(id -u)}
+
 function lint_swagger() {
     spectral lint swagger.yaml
 }
 
 function generate_go_server() {
     rm -rf restapi
-    docker run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
+    docker run $UID_FLAGS -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
         quay.io/goswagger/swagger:v0.28.0 generate server --template=stratoscale -f ${__root}/swagger.yaml
 }
 
 function generate_go_client() {
     rm -rf client models/*.go
-    docker run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
+    docker run $UID_FLAGS -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
         quay.io/goswagger/swagger:v0.28.0 generate client --template=stratoscale -f swagger.yaml
 }
 
@@ -27,7 +29,7 @@ function generate_python_client() {
     local dest="${BUILD_FOLDER}"
     rm -rf "${dest}"/assisted-service-client/*
 
-    docker run --rm -u "$(id -u)" --entrypoint /bin/sh \
+    docker run --rm $UID_FLAGS --entrypoint /bin/sh \
         -v "${dest}":/local:Z \
         -v "${__root}"/swagger.yaml:/swagger.yaml:ro,Z \
         -v "${__root}"/tools/generate_python_client.sh:/script.sh:ro,Z \
