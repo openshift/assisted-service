@@ -53,10 +53,10 @@ function assisted_service() {
     install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
     rm -f /tmp/kubectl
 
+  yum clean all && yum makecache
+  yum --disablerepo=epel -y update ca-certificates
   yum install -y --setopt=skip_missing_names_on_install=False \
     docker podman awscli python3-pip genisoimage skopeo p7zip
-
-  yum clean all
 
   butane
 
