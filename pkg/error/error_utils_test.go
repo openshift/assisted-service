@@ -20,7 +20,7 @@ var _ = Describe("Error Utils", func() {
 
 	It("AssistedServiceErrorAPI tests", func() {
 
-		err := installer.DownloadHostIgnitionConflict{
+		err := installer.V2DownloadHostIgnitionConflict{
 			Payload: &models.Error{
 				Href:   swag.String("href"),
 				ID:     swag.Int32(555),
@@ -44,7 +44,7 @@ var _ = Describe("Error Utils", func() {
 
 	It("AssistedServiceInfraError tests", func() {
 
-		err := installer.DownloadHostIgnitionForbidden{
+		err := installer.V2DownloadHostIgnitionForbidden{
 			Payload: &models.InfraError{
 				Code:    swag.Int32(403),
 				Message: swag.String("forbidden"),

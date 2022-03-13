@@ -2057,7 +2057,7 @@ var _ = Describe("V2UpdateHostInstallProgress", func() {
 				HostProgress: progressParams,
 				HostID:       hostID,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressInternalServerError()))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostInstallProgressInternalServerError()))
 		})
 	})
 
@@ -9325,7 +9325,7 @@ var _ = Describe("Install Host test", func() {
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.V2InstallHost(ctx, params)
-		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostAccepted()))
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2InstallHostAccepted()))
 	})
 
 	It("[V2] Install day2 host custom ignition endpoint", func() {
@@ -9343,7 +9343,7 @@ var _ = Describe("Install Host test", func() {
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile("http://example.com", gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.V2InstallHost(ctx, params)
-		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostAccepted()))
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2InstallHostAccepted()))
 	})
 
 	It("[V2] Install day2 host - host not found", func() {

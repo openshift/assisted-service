@@ -3,7 +3,6 @@ package versions
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"sort"
 	"strings"
 
@@ -77,10 +76,6 @@ type handler struct {
 	log                logrus.FieldLogger
 }
 
-func (h *handler) ListComponentVersions(ctx context.Context, params operations.ListComponentVersionsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 func (h *handler) V2ListComponentVersions(ctx context.Context, params operations.V2ListComponentVersionsParams) middleware.Responder {
 	return operations.NewV2ListComponentVersionsOK().WithPayload(
 		&models.ListVersions{
@@ -92,10 +87,6 @@ func (h *handler) V2ListComponentVersions(ctx context.Context, params operations
 			},
 			ReleaseTag: h.versions.ReleaseTag,
 		})
-}
-
-func (h *handler) ListSupportedOpenshiftVersions(ctx context.Context, params operations.ListSupportedOpenshiftVersionsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {

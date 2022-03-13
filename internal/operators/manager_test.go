@@ -72,7 +72,7 @@ var _ = Describe("Operators manager", func() {
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).DoAndReturn(
-				func(ctx context.Context, params operations.CreateClusterManifestParams) (*models.Manifest, error) {
+				func(ctx context.Context, params operations.V2CreateClusterManifestParams) (*models.Manifest, error) {
 					manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
 					if err != nil {
 						return nil, err

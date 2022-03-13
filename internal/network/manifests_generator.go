@@ -354,7 +354,7 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 
 func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte) error {
 	// all relevant logs of creating manifest will be inside CreateClusterManifest
-	_, err := m.manifestsApi.CreateClusterManifestInternal(ctx, operations.CreateClusterManifestParams{
+	_, err := m.manifestsApi.CreateClusterManifestInternal(ctx, operations.V2CreateClusterManifestParams{
 		ClusterID: *cluster.ID,
 		CreateManifestParams: &models.CreateManifestParams{
 			Content:  swag.String(base64.StdEncoding.EncodeToString(content)),

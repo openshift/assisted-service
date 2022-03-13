@@ -115,13 +115,13 @@ var _ = Describe("Log Fields on Context", func() {
 	Context("param", func() {
 		It("cluster_id should be populated if there is such route param", func() {
 
-			mockInstallApi.EXPECT().GetCluster(gomock.Any(), gomock.Any()).DoAndReturn(
-				func(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
+			mockInstallApi.EXPECT().V2GetCluster(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(ctx context.Context, params installer.V2GetClusterParams) middleware.Responder {
 					FromContext(ctx, logger).Info("say something")
-					return installer.NewGetClusterOK()
+					return installer.NewV2GetClusterOK()
 				}).Times(1)
 
-			_, err := bmclient.Installer.GetCluster(context.TODO(), &clientInstaller.GetClusterParams{
+			_, err := bmclient.Installer.V2GetCluster(context.TODO(), &clientInstaller.V2GetClusterParams{
 				ClusterID: cluster_id,
 			})
 
@@ -147,13 +147,13 @@ var _ = Describe("Log Fields on Context", func() {
 		})
 
 		It("should not be populated if there is no such route param", func() {
-			mockInstallApi.EXPECT().ListClusters(gomock.Any(), gomock.Any()).DoAndReturn(
-				func(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
+			mockInstallApi.EXPECT().V2ListClusters(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(ctx context.Context, params installer.V2ListClustersParams) middleware.Responder {
 					FromContext(ctx, logger).Info("say something")
-					return installer.NewListClustersOK()
+					return installer.NewV2ListClustersOK()
 				}).AnyTimes()
 
-			_, err := bmclient.Installer.ListClusters(context.TODO(), &clientInstaller.ListClustersParams{})
+			_, err := bmclient.Installer.V2ListClusters(context.TODO(), &clientInstaller.V2ListClustersParams{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(logOut.String()).NotTo(ContainSubstring("cluster_id="))
 			Expect(logOut.String()).NotTo(ContainSubstring("host_id="))

@@ -155,34 +155,6 @@ func (mr *MockHandlerMockRecorder) GetReleaseImage(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseImage", reflect.TypeOf((*MockHandler)(nil).GetReleaseImage), arg0, arg1)
 }
 
-// ListComponentVersions mocks base method.
-func (m *MockHandler) ListComponentVersions(arg0 context.Context, arg1 versions0.ListComponentVersionsParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListComponentVersions", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// ListComponentVersions indicates an expected call of ListComponentVersions.
-func (mr *MockHandlerMockRecorder) ListComponentVersions(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListComponentVersions", reflect.TypeOf((*MockHandler)(nil).ListComponentVersions), arg0, arg1)
-}
-
-// ListSupportedOpenshiftVersions mocks base method.
-func (m *MockHandler) ListSupportedOpenshiftVersions(arg0 context.Context, arg1 versions0.ListSupportedOpenshiftVersionsParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListSupportedOpenshiftVersions", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// ListSupportedOpenshiftVersions indicates an expected call of ListSupportedOpenshiftVersions.
-func (mr *MockHandlerMockRecorder) ListSupportedOpenshiftVersions(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSupportedOpenshiftVersions", reflect.TypeOf((*MockHandler)(nil).ListSupportedOpenshiftVersions), arg0, arg1)
-}
-
 // V2ListComponentVersions mocks base method.
 func (m *MockHandler) V2ListComponentVersions(arg0 context.Context, arg1 versions0.V2ListComponentVersionsParams) middleware.Responder {
 	m.ctrl.T.Helper()

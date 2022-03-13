@@ -12,7 +12,7 @@ import (
 
 func (m *Manifests) V2CreateClusterManifest(ctx context.Context, params operations.V2CreateClusterManifestParams) middleware.Responder {
 	log := logutil.FromContext(ctx, m.log)
-	manifest, err := m.CreateClusterManifestInternal(ctx, operations.CreateClusterManifestParams(params))
+	manifest, err := m.CreateClusterManifestInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -25,7 +25,7 @@ func (m *Manifests) V2CreateClusterManifest(ctx context.Context, params operatio
 }
 
 func (m *Manifests) V2ListClusterManifests(ctx context.Context, params operations.V2ListClusterManifestsParams) middleware.Responder {
-	manifests, err := m.ListClusterManifestsInternal(ctx, operations.ListClusterManifestsParams(params))
+	manifests, err := m.ListClusterManifestsInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -33,7 +33,7 @@ func (m *Manifests) V2ListClusterManifests(ctx context.Context, params operation
 }
 
 func (m *Manifests) V2DeleteClusterManifest(ctx context.Context, params operations.V2DeleteClusterManifestParams) middleware.Responder {
-	err := m.DeleteClusterManifestInternal(ctx, operations.DeleteClusterManifestParams(params))
+	err := m.DeleteClusterManifestInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}

@@ -35,26 +35,6 @@ func NewHandler(operatorsAPI operators.API, log logrus.FieldLogger, db *gorm.DB,
 	return &Handler{operatorsAPI: operatorsAPI, log: log, db: db, eventsHandler: eventsHandler, clusterProgressAPI: clusterProgressAPI}
 }
 
-// ListOperatorProperties Lists properties for an operator name.
-func (h *Handler) ListOperatorProperties(ctx context.Context, params restoperators.ListOperatorPropertiesParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-// ListSupportedOperators Retrieves the list of supported operators.
-func (h *Handler) ListSupportedOperators(_ context.Context, _ restoperators.ListSupportedOperatorsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-// ListOfClusterOperators Lists operators to be monitored for a cluster.
-func (h *Handler) ListOfClusterOperators(ctx context.Context, params restoperators.ListOfClusterOperatorsParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-// ReportMonitoredOperatorStatus Controller API to report of monitored operators.
-func (h *Handler) ReportMonitoredOperatorStatus(ctx context.Context, params restoperators.ReportMonitoredOperatorStatusParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
 // ReportMonitoredOperatorStatus Controller API to report of monitored operators.
 func (h *Handler) V2ReportMonitoredOperatorStatus(ctx context.Context, params restoperators.V2ReportMonitoredOperatorStatusParams) middleware.Responder {
 

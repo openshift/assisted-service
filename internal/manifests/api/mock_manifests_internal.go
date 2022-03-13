@@ -37,7 +37,7 @@ func (m *MockClusterManifestsInternals) EXPECT() *MockClusterManifestsInternalsM
 }
 
 // CreateClusterManifestInternal mocks base method.
-func (m *MockClusterManifestsInternals) CreateClusterManifestInternal(arg0 context.Context, arg1 manifests.CreateClusterManifestParams) (*models.Manifest, error) {
+func (m *MockClusterManifestsInternals) CreateClusterManifestInternal(arg0 context.Context, arg1 manifests.V2CreateClusterManifestParams) (*models.Manifest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateClusterManifestInternal", arg0, arg1)
 	ret0, _ := ret[0].(*models.Manifest)
@@ -52,7 +52,7 @@ func (mr *MockClusterManifestsInternalsMockRecorder) CreateClusterManifestIntern
 }
 
 // DeleteClusterManifestInternal mocks base method.
-func (m *MockClusterManifestsInternals) DeleteClusterManifestInternal(arg0 context.Context, arg1 manifests.DeleteClusterManifestParams) error {
+func (m *MockClusterManifestsInternals) DeleteClusterManifestInternal(arg0 context.Context, arg1 manifests.V2DeleteClusterManifestParams) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteClusterManifestInternal", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -66,7 +66,7 @@ func (mr *MockClusterManifestsInternalsMockRecorder) DeleteClusterManifestIntern
 }
 
 // ListClusterManifestsInternal mocks base method.
-func (m *MockClusterManifestsInternals) ListClusterManifestsInternal(arg0 context.Context, arg1 manifests.ListClusterManifestsParams) (models.ListManifests, error) {
+func (m *MockClusterManifestsInternals) ListClusterManifestsInternal(arg0 context.Context, arg1 manifests.V2ListClusterManifestsParams) (models.ListManifests, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListClusterManifestsInternal", arg0, arg1)
 	ret0, _ := ret[0].(models.ListManifests)

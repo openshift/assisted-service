@@ -25,7 +25,7 @@ type Config struct {
 
 type GarbageCollectors interface {
 	PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error
-	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
+	DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams) error
 }
 
 func NewGarbageCollectors(

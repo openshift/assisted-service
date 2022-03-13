@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -272,184 +273,220 @@ var _ = Describe("authz", func() {
 	})
 
 	tests := []struct {
-		name             string
-		allowedRoles     []ocm.RoleType
-		apiCall          func(ctx context.Context, cli *client.AssistedInstall) error
-		agentAuthSupport bool
+		name                   string
+		allowedRoles           []ocm.RoleType
+		apiCall                func(ctx context.Context, cli *client.AssistedInstall) error
+		expectUnauthorizedCode int
+		agentAuthSupport       bool
 	}{
 		{
-			name:         "register cluster",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      registerCluster,
+			name:                   "register cluster",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:                registerCluster,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "list clusters",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      listClusters,
+			name:                   "list clusters",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                listClusters,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:             "get cluster",
-			allowedRoles:     []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:          getCluster,
-			agentAuthSupport: true,
+			name:                   "get cluster",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                getCluster,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:         "update cluster",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      updateCluster,
+			name:                   "update cluster",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:                updateCluster,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "deregister cluster",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      deregisterCluster,
+			name:                   "deregister cluster",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:                deregisterCluster,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:             "download cluster files",
-			allowedRoles:     []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:          downloadClusterFiles,
-			agentAuthSupport: true,
+			name:                   "download cluster files",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                downloadClusterFiles,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:         "get presigned for cluster files",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      getPresignedForClusterFiles,
+			name:                   "get presigned for cluster files",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                getPresignedForClusterFiles,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "get credentials",
-			allowedRoles: []ocm.RoleType{ocm.UserRole},
-			apiCall:      getCredentials,
+			name:                   "get credentials",
+			allowedRoles:           []ocm.RoleType{ocm.UserRole},
+			apiCall:                getCredentials,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "download cluster kubeconfig",
-			allowedRoles: []ocm.RoleType{ocm.UserRole},
-			apiCall:      downloadClusterKubeconfig,
+			name:                   "download cluster kubeconfig",
+			allowedRoles:           []ocm.RoleType{ocm.UserRole},
+			apiCall:                downloadClusterKubeconfig,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "get cluster install config",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      getClusterInstallConfig,
+			name:                   "get cluster install config",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                getClusterInstallConfig,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "update cluster install config",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      updateClusterInstallConfig,
+			name:                   "update cluster install config",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:                updateClusterInstallConfig,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:             "upload cluster ingress cert",
-			apiCall:          uploadClusterIngressCert,
-			agentAuthSupport: true,
+			name:                   "upload cluster ingress cert",
+			apiCall:                uploadClusterIngressCert,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:         "install cluster",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      installCluster,
+			name:                   "install cluster",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:                installCluster,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "cancel installation",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      cancelInstallation,
+			name:                   "cancel installation",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:                cancelInstallation,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "reset cluster",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      resetCluster,
+			name:                   "reset cluster",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:                resetCluster,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:             "complete installation",
-			apiCall:          completeInstallation,
-			agentAuthSupport: true,
+			name:                   "complete installation",
+			apiCall:                completeInstallation,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:             "register host",
-			apiCall:          registerHost,
-			agentAuthSupport: true,
+			name:                   "register host",
+			apiCall:                registerHost,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:             "lists hosts",
-			allowedRoles:     []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:          listHosts,
-			agentAuthSupport: true,
+			name:                   "lists hosts",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                listHosts,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:         "get host",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      getHost,
+			name:                   "get host",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                getHost,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "deregister host",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      deregisterHost,
+			name:                   "deregister host",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:                deregisterHost,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:             "update host install progress",
-			apiCall:          updateHostInstallProgress,
-			agentAuthSupport: true,
+			name:                   "update host install progress",
+			apiCall:                updateHostInstallProgress,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:             "get next steps",
-			apiCall:          getNextSteps,
-			agentAuthSupport: true,
+			name:                   "get next steps",
+			apiCall:                getNextSteps,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:             "post step reply",
-			apiCall:          postStepReply,
-			agentAuthSupport: true,
+			name:                   "post step reply",
+			apiCall:                postStepReply,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:             "upload host logs",
-			apiCall:          uploadHostLogs,
-			agentAuthSupport: true,
+			name:                   "upload host logs",
+			apiCall:                uploadHostLogs,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:         "download host logs",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      downloadHostLogs,
+			name:                   "download host logs",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                downloadHostLogs,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:             "upload logs",
-			apiCall:          uploadLogs,
-			agentAuthSupport: true,
+			name:                   "upload logs",
+			apiCall:                uploadLogs,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:         "download cluster logs",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      downloadClusterLogs,
+			name:                   "download cluster logs",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                downloadClusterLogs,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "list events",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      listEvents,
+			name:                   "list events",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                listEvents,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "list managed domains",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      listManagedDomains,
+			name:                   "list managed domains",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                listManagedDomains,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "list component versions",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      listComponentVersions,
+			name:                   "list component versions",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                listComponentVersions,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "list supported openshift versions",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:      listSupportedOpenshiftVersions,
+			name:                   "list supported openshift versions",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                listSupportedOpenshiftVersions,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:         "register add hosts cluster",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      registerAddHostsCluster,
+			name:                   "register add hosts cluster",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:                registerAddHostsCluster,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
-			name:             "get discovery ignition",
-			allowedRoles:     []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
-			apiCall:          v2DownloadInfraEnvFiles,
-			agentAuthSupport: true,
+			name:                   "get discovery ignition",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:                v2DownloadInfraEnvFiles,
+			agentAuthSupport:       true,
+			expectUnauthorizedCode: http.StatusUnauthorized,
 		},
 		{
-			name:         "Update discovery ignition",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
-			apiCall:      updateDiscoveryIgnition,
+			name:                   "Update discovery ignition",
+			allowedRoles:           []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:                updateDiscoveryIgnition,
+			expectUnauthorizedCode: http.StatusForbidden,
 		},
 		{
 			name:         "List support features",
@@ -476,10 +513,11 @@ var _ = Describe("authz", func() {
 					assert.Equal(t, err, nil)
 				} else {
 					assert.NotEqual(t, err, nil)
-					verifyResponseErrorCode(err, tt.agentAuthSupport)
+					assert.Contains(t, err.Error(), strconv.Itoa(tt.expectUnauthorizedCode))
+
 				}
 			})
-			By(fmt.Sprintf("%s: with read-only-adimn scope", tt.name), func() {
+			By(fmt.Sprintf("%s: with read-only-admin scope", tt.name), func() {
 				readOnlyAdminRoleSupport := funk.Contains(tt.allowedRoles, ocm.ReadOnlyAdminRole)
 				if userAuthSupport {
 					passCapabilityReview(1)
@@ -493,7 +531,7 @@ var _ = Describe("authz", func() {
 					assert.Equal(t, err, nil)
 				} else {
 					assert.NotEqual(t, err, nil)
-					verifyResponseErrorCode(err, tt.agentAuthSupport)
+					assert.Contains(t, err.Error(), strconv.Itoa(tt.expectUnauthorizedCode))
 				}
 			})
 			By(fmt.Sprintf("%s: with admin scope", tt.name), func() {
@@ -513,7 +551,7 @@ var _ = Describe("authz", func() {
 					assert.Equal(t, err, nil)
 				} else {
 					assert.NotEqual(t, err, nil)
-					verifyResponseErrorCode(err, tt.agentAuthSupport)
+					assert.Contains(t, err.Error(), strconv.Itoa(tt.expectUnauthorizedCode))
 				}
 			})
 			By(fmt.Sprintf("%s: with agent auth", tt.name), func() {
@@ -526,7 +564,7 @@ var _ = Describe("authz", func() {
 					assert.Equal(t, err, nil)
 				} else {
 					assert.NotEqual(t, err, nil)
-					verifyResponseErrorCode(err, true)
+					assert.Contains(t, err.Error(), strconv.Itoa(http.StatusUnauthorized))
 				}
 			})
 		})
@@ -626,10 +664,11 @@ func downloadClusterKubeconfig(ctx context.Context, cli *client.AssistedInstall)
 
 	defer os.Remove(file.Name())
 
-	_, err = cli.Installer.DownloadClusterKubeconfig(
+	_, err = cli.Installer.V2DownloadClusterCredentials(
 		ctx,
-		&installer.DownloadClusterKubeconfigParams{
+		&installer.V2DownloadClusterCredentialsParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
+			FileName:  "kubeconfig",
 		},
 		file)
 	return err

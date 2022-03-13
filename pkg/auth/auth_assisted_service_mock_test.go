@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -24,67 +25,28 @@ func (f fakeInventory) V2GetPresignedForClusterCredentials(ctx context.Context, 
 	return installer.NewV2GetPresignedForClusterCredentialsOK()
 }
 
-func (f fakeInventory) GetPreflightRequirements(ctx context.Context, params installer.GetPreflightRequirementsParams) middleware.Responder {
-	return installer.NewGetPreflightRequirementsOK().WithPayload(&models.PreflightHardwareRequirements{})
-}
-
 func (f fakeInventory) V2GetPreflightRequirements(ctx context.Context, params installer.V2GetPreflightRequirementsParams) middleware.Responder {
 	return installer.NewV2GetPreflightRequirementsOK().WithPayload(&models.PreflightHardwareRequirements{})
-}
-
-func (f fakeInventory) CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
-	return installer.NewCancelInstallationAccepted()
 }
 
 func (f fakeInventory) V2CancelInstallation(ctx context.Context, params installer.V2CancelInstallationParams) middleware.Responder {
 	return installer.NewV2CancelInstallationAccepted()
 }
 
-func (f fakeInventory) Prog(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
-	return installer.NewCancelInstallationAccepted()
-}
-
-func (f fakeInventory) CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder {
-	return installer.NewCompleteInstallationAccepted()
-}
-
 func (f fakeInventory) V2CompleteInstallation(ctx context.Context, params installer.V2CompleteInstallationParams) middleware.Responder {
 	return installer.NewV2CompleteInstallationAccepted()
-}
-
-func (f fakeInventory) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
-	return installer.NewDeregisterClusterNoContent()
 }
 
 func (f fakeInventory) V2DeregisterCluster(ctx context.Context, params installer.V2DeregisterClusterParams) middleware.Responder {
 	return installer.NewV2DeregisterClusterNoContent()
 }
 
-func (f fakeInventory) DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder {
-	return installer.NewDeregisterHostNoContent()
-}
-
 func (f fakeInventory) V2DeregisterHost(ctx context.Context, params installer.V2DeregisterHostParams) middleware.Responder {
 	return installer.NewV2DeregisterHostNoContent()
 }
 
-func (f fakeInventory) DisableHost(ctx context.Context, params installer.DisableHostParams) middleware.Responder {
-	return installer.NewDisableHostOK()
-}
-
-func (f fakeInventory) GetPresignedForClusterFiles(ctx context.Context, params installer.GetPresignedForClusterFilesParams) middleware.Responder {
-	return installer.NewGetPresignedForClusterFilesOK()
-}
-
 func (f fakeInventory) DownloadMinimalInitrd(ctx context.Context, params installer.DownloadMinimalInitrdParams) middleware.Responder {
 	return installer.NewDownloadMinimalInitrdOK()
-}
-
-func (f fakeInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
-	return filemiddleware.NewResponder(
-		installer.NewDownloadClusterFilesOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
-		"test",
-		0)
 }
 
 func (f fakeInventory) V2DownloadClusterFiles(ctx context.Context, params installer.V2DownloadClusterFilesParams) middleware.Responder {
@@ -101,169 +63,56 @@ func (f fakeInventory) V2DownloadInfraEnvFiles(ctx context.Context, params insta
 		0)
 }
 
-func (f fakeInventory) DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder {
-	return filemiddleware.NewResponder(
-		installer.NewDownloadClusterISOOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
-		"test",
-		0)
-}
-
-func (f fakeInventory) DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder {
-	return filemiddleware.NewResponder(
-		installer.NewDownloadClusterISOHeadersOK(),
-		"test",
-		0)
-}
-
-func (f fakeInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
-	return filemiddleware.NewResponder(
-		installer.NewDownloadClusterKubeconfigOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
-		"test",
-		0)
-}
-
-func (f fakeInventory) EnableHost(ctx context.Context, params installer.EnableHostParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (f fakeInventory) GenerateClusterISO(ctx context.Context, params installer.GenerateClusterISOParams) middleware.Responder {
-	return installer.NewGenerateClusterISOCreated()
-}
-
-func (f fakeInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
-	return installer.NewGetClusterOK()
-}
-
 func (f fakeInventory) V2GetCluster(ctx context.Context, params installer.V2GetClusterParams) middleware.Responder {
 	return installer.NewV2GetClusterOK()
-}
-
-func (f fakeInventory) GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder {
-	return installer.NewGetCredentialsOK()
-}
-
-func (f fakeInventory) GetFreeAddresses(ctx context.Context, params installer.GetFreeAddressesParams) middleware.Responder {
-	return installer.NewGetFreeAddressesOK()
-}
-
-func (f fakeInventory) GetHost(ctx context.Context, params installer.GetHostParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
-}
-
-func (f fakeInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
-	return installer.NewInstallClusterAccepted()
 }
 
 func (f fakeInventory) V2InstallCluster(ctx context.Context, params installer.V2InstallClusterParams) middleware.Responder {
 	return installer.NewV2InstallClusterAccepted()
 }
 
-func (f fakeInventory) InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder {
-	return installer.NewInstallHostsAccepted()
-}
-
-func (f fakeInventory) InstallHost(ctx context.Context, params installer.InstallHostParams) middleware.Responder {
-	return installer.NewInstallHostAccepted()
-}
-
-func (f fakeInventory) ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
-	return installer.NewListClustersOK()
-}
-
 func (f fakeInventory) V2ListClusters(ctx context.Context, params installer.V2ListClustersParams) middleware.Responder {
 	return installer.NewV2ListClustersOK()
-}
-
-func (f fakeInventory) ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder {
-	return installer.NewListHostsOK()
-}
-
-func (f fakeInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
-	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (f fakeInventory) V2RegisterCluster(ctx context.Context, params installer.V2RegisterClusterParams) middleware.Responder {
 	return installer.NewV2RegisterClusterCreated()
 }
 
-func (f fakeInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
-	return installer.NewRegisterAddHostsClusterCreated()
-}
-
 func (f fakeInventory) V2ImportCluster(ctx context.Context, params installer.V2ImportClusterParams) middleware.Responder {
 	return installer.NewV2ImportClusterCreated()
-}
-
-func (f fakeInventory) ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder {
-	return installer.NewResetClusterAccepted()
 }
 
 func (f fakeInventory) V2ResetCluster(ctx context.Context, params installer.V2ResetClusterParams) middleware.Responder {
 	return installer.NewV2ResetClusterAccepted()
 }
 
-func (f fakeInventory) ResetHost(ctx context.Context, params installer.ResetHostParams) middleware.Responder {
-	return installer.NewResetHostOK()
-}
-
-func (f fakeInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
+func (f fakeInventory) UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder {
 	return common.NewApiError(http.StatusNotFound, errors.New(common.APINotFound))
 }
 
 func (f fakeInventory) V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder {
-	return installer.NewUpdateClusterCreated()
+	return installer.NewV2UpdateClusterCreated()
 }
 
 func (f fakeInventory) V2UpdateHost(ctx context.Context, params installer.V2UpdateHostParams) middleware.Responder {
 	return installer.NewV2UpdateHostCreated()
 }
 
-func (f fakeInventory) GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder {
-	return installer.NewGetClusterInstallConfigOK()
-}
-
 func (f fakeInventory) V2GetClusterInstallConfig(ctx context.Context, params installer.V2GetClusterInstallConfigParams) middleware.Responder {
 	return installer.NewV2GetClusterInstallConfigOK()
-}
-
-func (f fakeInventory) GetClusterDefaultConfig(ctx context.Context, params installer.GetClusterDefaultConfigParams) middleware.Responder {
-	return installer.NewGetClusterDefaultConfigOK()
-}
-
-func (f fakeInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {
-	return installer.NewUpdateClusterInstallConfigCreated()
 }
 
 func (f fakeInventory) V2UpdateClusterInstallConfig(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) middleware.Responder {
 	return installer.NewV2UpdateClusterInstallConfigCreated()
 }
 
-func (f fakeInventory) UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder {
-	return installer.NewUpdateHostInstallProgressOK()
-}
-
-func (f fakeInventory) UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder {
-	return installer.NewUploadClusterIngressCertCreated()
-}
-
 func (f fakeInventory) V2UploadClusterIngressCert(ctx context.Context, params installer.V2UploadClusterIngressCertParams) middleware.Responder {
 	return installer.NewV2UploadClusterIngressCertCreated()
 }
 
-func (f fakeInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
-	return installer.NewUploadHostLogsNoContent()
-}
-
-func (f fakeInventory) UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder {
-	return installer.NewUpdateClusterLogsProgressNoContent()
-}
-
 func (f fakeInventory) V2UpdateClusterLogsProgress(ctx context.Context, params installer.V2UpdateClusterLogsProgressParams) middleware.Responder {
 	return installer.NewV2UpdateClusterLogsProgressNoContent()
-}
-
-func (f fakeInventory) UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder {
-	return installer.NewUpdateHostLogsProgressNoContent()
 }
 
 func (f fakeInventory) V2UpdateHostLogsProgress(ctx context.Context, params installer.V2UpdateHostLogsProgressParams) middleware.Responder {
@@ -274,49 +123,8 @@ func (f fakeInventory) GetClusterSupportedPlatforms(ctx context.Context, params 
 	return installer.NewGetClusterSupportedPlatformsOK()
 }
 
-func (f fakeInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
-	return installer.NewUploadLogsNoContent()
-}
-
-func (f fakeInventory) DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder {
-	return filemiddleware.NewResponder(
-		installer.NewDownloadHostLogsOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
-		"test",
-		0)
-}
-
-func (f fakeInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
-	return filemiddleware.NewResponder(
-		installer.NewDownloadClusterLogsOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
-		"test",
-		0)
-}
-
-func (f fakeInventory) GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder {
-	return installer.NewGetDiscoveryIgnitionOK()
-}
-
-func (f fakeInventory) UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder {
-	return installer.NewUpdateDiscoveryIgnitionCreated()
-}
-
-func (f fakeInventory) UpdateHostIgnition(ctx context.Context, params installer.UpdateHostIgnitionParams) middleware.Responder {
-	return installer.NewUpdateHostIgnitionCreated()
-}
-
 func (f fakeInventory) V2UpdateHostIgnition(ctx context.Context, params installer.V2UpdateHostIgnitionParams) middleware.Responder {
 	return installer.NewV2UpdateHostIgnitionCreated()
-}
-
-func (f fakeInventory) GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder {
-	return installer.NewGetHostIgnitionOK()
-}
-
-func (f fakeInventory) DownloadHostIgnition(ctx context.Context, params installer.DownloadHostIgnitionParams) middleware.Responder {
-	return filemiddleware.NewResponder(
-		installer.NewDownloadHostIgnitionOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
-		"test",
-		0)
 }
 
 func (f fakeInventory) V2DownloadHostIgnition(ctx context.Context, params installer.V2DownloadHostIgnitionParams) middleware.Responder {
@@ -326,20 +134,8 @@ func (f fakeInventory) V2DownloadHostIgnition(ctx context.Context, params instal
 		0)
 }
 
-func (f fakeInventory) UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder {
-	return installer.NewUpdateHostInstallerArgsCreated()
-}
-
 func (f fakeInventory) V2UpdateHostInstallerArgs(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) middleware.Responder {
 	return installer.NewV2UpdateHostInstallerArgsCreated()
-}
-
-func (f fakeInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {
-	return installer.NewGetClusterHostRequirementsOK().WithPayload(models.ClusterHostRequirementsList{})
-}
-
-func (f fakeInventory) ResetHostValidation(ctx context.Context, params installer.ResetHostValidationParams) middleware.Responder {
-	return installer.NewResetHostValidationOK()
 }
 
 func (f fakeInventory) DeregisterInfraEnv(ctx context.Context, params installer.DeregisterInfraEnvParams) middleware.Responder {
@@ -411,7 +207,15 @@ func (f fakeInventory) V2InstallHost(ctx context.Context, params installer.V2Ins
 }
 
 func (f fakeInventory) V2DownloadClusterCredentials(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) middleware.Responder {
-	return installer.NewV2DownloadClusterCredentialsOK()
+	file, err := ioutil.TempFile("/tmp", "test.file")
+	if err != nil {
+		return installer.NewV2DownloadClusterCredentialsInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, err))
+	}
+	return filemiddleware.NewResponder(
+		installer.NewV2DownloadClusterCredentialsOK().WithPayload(io.ReadCloser(file)),
+		"test",
+		0)
 }
 
 func (f fakeInventory) V2GetPresignedForClusterFiles(ctx context.Context, params installer.V2GetPresignedForClusterFilesParams) middleware.Responder {
@@ -459,29 +263,11 @@ var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}
 
-func (f fakeEventsAPI) ListEvents(
-	_ context.Context,
-	_ eventsapi.ListEventsParams) middleware.Responder {
-	return eventsapi.NewListEventsOK()
-}
-
 func (f fakeEventsAPI) V2ListEvents(ctx context.Context, params eventsapi.V2ListEventsParams) middleware.Responder {
-	return eventsapi.NewListEventsOK()
+	return eventsapi.NewV2ListEventsOK()
 }
 
 type fakeVersionsAPI struct{}
-
-func (f fakeVersionsAPI) ListComponentVersions(
-	_ context.Context,
-	_ versionsapi.ListComponentVersionsParams) middleware.Responder {
-	return versionsapi.NewListComponentVersionsOK()
-}
-
-func (f fakeVersionsAPI) ListSupportedOpenshiftVersions(
-	_ context.Context,
-	_ versionsapi.ListSupportedOpenshiftVersionsParams) middleware.Responder {
-	return versionsapi.NewListSupportedOpenshiftVersionsOK()
-}
 
 func (f fakeVersionsAPI) V2ListComponentVersions(
 	_ context.Context,
@@ -496,12 +282,6 @@ func (f fakeVersionsAPI) V2ListSupportedOpenshiftVersions(
 }
 
 type fakeManagedDomainsAPI struct{}
-
-func (f fakeManagedDomainsAPI) ListManagedDomains(
-	_ context.Context,
-	_ managed_domains_api.ListManagedDomainsParams) middleware.Responder {
-	return managed_domains_api.NewListManagedDomainsOK()
-}
 
 func (f fakeManagedDomainsAPI) V2ListManagedDomains(
 	_ context.Context,

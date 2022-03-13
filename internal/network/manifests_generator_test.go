@@ -138,7 +138,7 @@ var _ = Describe("chrony manifest", func() {
 				},
 			}
 			Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
-			manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
+			manifestsApi.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
 		})
 
 		AfterEach(func() {
@@ -382,7 +382,7 @@ var _ = Describe("telemeter manifest", func() {
 			},
 		}
 		Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
-		mockManifestsApi.EXPECT().CreateClusterManifest(ctx, gomock.Any()).Times(0)
+		mockManifestsApi.EXPECT().V2CreateClusterManifest(ctx, gomock.Any()).Times(0)
 	})
 
 	AfterEach(func() {
@@ -465,7 +465,7 @@ var _ = Describe("schedulable masters manifest", func() {
 			},
 		}
 		Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
-		manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
+		manifestsApi.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
 	})
 
 	AfterEach(func() {
@@ -517,7 +517,7 @@ var _ = Describe("disk encryption manifest", func() {
 				ID: &clusterId,
 			},
 		}
-		mockManifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
+		mockManifestsApi.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
 	})
 
 	AfterEach(func() {
