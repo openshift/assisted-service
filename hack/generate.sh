@@ -25,6 +25,19 @@ function generate_go_client() {
         quay.io/goswagger/swagger:v0.28.0 generate client --template=stratoscale -f swagger.yaml
 }
 
+function version() {
+    declare -r abbreviated_tag=$(git describe --abbrev)
+    declare -r closest_tag=$(git describe --abbrev=0)
+
+    if [[ "$abbreviated_tag" == "$closest_tag" ]]; then
+        # We are in a release
+	echo "${abbreviated_tag:1}"
+    else
+        declare -r commits_since_tag=$(cut -f2 -d'-' <<< "$abbreviated_tag")
+	echo "${closest_tag:1}.post${commits_since_tag}"
+    fi
+}
+
 function generate_python_client() {
     local dest="${BUILD_FOLDER}"
     rm -rf "${dest}"/assisted-service-client/*
@@ -34,9 +47,11 @@ function generate_python_client() {
         -v "${__root}"/swagger.yaml:/swagger.yaml:ro,Z \
         -v "${__root}"/tools/generate_python_client.sh:/script.sh:ro,Z \
         -e SWAGGER_FILE=/swagger.yaml -e OUTPUT=/local/assisted-service-client/ \
+	-e VERSION="$(version)" \
         quay.io/edge-infrastructure/swagger-codegen-cli:2.4.18 /script.sh
-     cd "${dest}"/assisted-service-client/ && python3 "${__root}"/tools/client_package_initializer.py "${dest}"/assisted-service-client/  https://github.com/openshift/assisted-service
-     cp "${dest}"/assisted-service-client/dist/assisted-service-client-*.tar.gz "${dest}"
+     pushd "${dest}/assisted-service-client"
+     python setup.py sdist bdist_wheel
+     popd
 }
 
 function generate_mocks() {
