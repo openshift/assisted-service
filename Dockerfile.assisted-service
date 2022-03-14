@@ -2,16 +2,20 @@
 FROM quay.io/edge-infrastructure/swagger-codegen-cli:2.4.18 as swagger_py
 COPY swagger.yaml .
 COPY tools/generate_python_client.sh .
-RUN chmod +x ./generate_python_client.sh && SWAGGER_FILE=swagger.yaml OUTPUT=/build ./generate_python_client.sh
+COPY hack/generate.sh /generate.sh
+COPY .git /assisted-service.git
+RUN apk add git bash && \
+  SWAGGER_FILE=swagger.yaml OUTPUT=/build GIT_DIR=/assisted-service.git ./generate_python_client.sh
 
+# Currently, the Python package is included in the service image for testing purposes. It conveniently allows developers doing local development to build the assisted-service image and then the assisted-test-infra image, the latter of which getting their local changes to the python client.
 # TODO: Find a pure Python3 base image, rather than relying on the golang one
 FROM registry.ci.openshift.org/openshift/release:golang-1.17 as pybuilder
 COPY . /assisted-service
 COPY --from=swagger_py /build /assisted-service/build
-RUN python3 -m pip install -I pip && pip3 install -I -r /assisted-service/dev-requirements.txt
-RUN cd /assisted-service/build && python3 ../tools/client_package_initializer.py ./ https://github.com/openshift/assisted-service
+RUN pushd /assisted-service/build && \
+  python setup.py sdist && \
+  popd
 
-# TODO: Currently, the Python package is included in the service image for testing purposes. It conveniently allows matching a service version to a specific Python client version. In the future, once the Python package is published on pip, it should (probably) be removed from the Assisted Service image (this dockerfile).
 
 # Build binaries
 FROM registry.ci.openshift.org/openshift/release:golang-1.17 as builder

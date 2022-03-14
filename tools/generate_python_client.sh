@@ -2,6 +2,8 @@
 
 set -o nounset
 
+VERSION=${VERSION-$(bash -c "/generate.sh version")}
+
 temp_swagger_file=$(mktemp)
 sed '/pattern:/d' ${SWAGGER_FILE} > ${temp_swagger_file}
 temp_config_file=$(mktemp)

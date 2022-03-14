@@ -26,8 +26,14 @@ function generate_go_client() {
 }
 
 function version() {
-    declare -r abbreviated_tag=$(git describe --abbrev)
-    declare -r closest_tag=$(git describe --abbrev=0)
+    GIT_DIR=${GIT_DIR:-}
+    if [[ -n "$GIT_DIR" ]]; then
+        declare -r git_flags="--git-dir=$GIT_DIR"
+    else
+        declare -r git_flags=""
+    fi
+    declare -r abbreviated_tag=$(git $git_flags describe --abbrev)
+    declare -r closest_tag=$(git $git_flags describe --abbrev=0)
 
     if [[ "$abbreviated_tag" == "$closest_tag" ]]; then
         # We are in a release
@@ -207,7 +213,7 @@ function print_help() {
     compgen -A function | tr "_" "-" | grep "^generate" | awk '{print "\t" $1}'
 }
 
-declare -F $@ || (echo "Function \"$@\" unavailable." && print_help && exit 1)
+declare -F $@ > /dev/null || (echo "Function \"$@\" unavailable." && print_help && exit 1)
 
 if [ "$1" != "print_help" ]; then
     set -o xtrace
