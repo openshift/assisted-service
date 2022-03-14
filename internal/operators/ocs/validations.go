@@ -3,6 +3,7 @@ package ocs
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -35,6 +36,10 @@ func (o *operator) validateRequirements(cluster *models.Cluster) (api.Validation
 	var status string
 	hosts := cluster.Hosts
 	numAvailableHosts := int64(len(hosts))
+
+	if strings.HasPrefix(cluster.OpenshiftVersion, "4.10") {
+		return api.Failure, "OCS/ODF operator is currently unsupported on OCP 4.10"
+	}
 
 	if numAvailableHosts < o.config.OCSNumMinimumHosts {
 		status = "A minimum of 3 hosts is required to deploy OCS."

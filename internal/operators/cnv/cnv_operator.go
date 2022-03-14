@@ -77,6 +77,11 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 }
 
 func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
+
+	if strings.HasPrefix(cluster.OpenshiftVersion, "4.10") {
+		return api.Failure, "CNV operator is currently unsupported on OCP 4.10"
+	}
+
 	if cluster.CPUArchitecture != common.DefaultCPUArchitecture {
 		return api.Failure, fmt.Sprintf(
 			"OpenShift Virtualization is supported only for %s CPU architecture.",
