@@ -3,7 +3,7 @@
 import os
 from hashlib import sha256
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, List
 from functools import lru_cache
 import logging
 
@@ -75,7 +75,7 @@ def resolve_tag(image_loc: str):
     return resolved
 
 
-def pin_path(obj: dict, path: list[str]):
+def pin_path(obj: dict, path: List[str]):
     logging.info(f"Iterating {'.'.join(path)}")
 
     current_key, *rest = path
