@@ -6027,13 +6027,6 @@ func init() {
         }
       }
     },
-    "discovery-ignition-params": {
-      "properties": {
-        "config": {
-          "type": "string"
-        }
-      }
-    },
     "disk": {
       "type": "object",
       "properties": {
@@ -14788,13 +14781,6 @@ func init() {
         },
         "ingress_vip_lease": {
           "description": "Contents of last acquired lease for Ingress virtual IP.",
-          "type": "string"
-        }
-      }
-    },
-    "discovery-ignition-params": {
-      "properties": {
-        "config": {
           "type": "string"
         }
       }

@@ -4818,11 +4818,6 @@ definitions:
         items:
           $ref: '#/definitions/connectivity-remote-host'
 
-  discovery-ignition-params:
-    properties:
-      config:
-        type: string
-
   ingress-cert-params:
     type: string
 
