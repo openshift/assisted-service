@@ -31,8 +31,6 @@ const (
 	hostValidationChangedMetric    = "assisted_installer_host_validation_failed_after_success_before_installation"
 	clusterValidationFailedMetric  = "assisted_installer_cluster_validation_is_in_failed_status_on_cluster_deletion"
 	clusterValidationChangedMetric = "assisted_installer_cluster_validation_failed_after_success_before_installation"
-	networkLatencyMetric           = "service_assisted_installer_host_network_latency_in_ms_bucket"
-	packetLossMetric               = "service_assisted_installer_packet_loss_percentage_bucket"
 )
 
 var (
@@ -964,49 +962,6 @@ var _ = Describe("Metrics tests", func() {
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDNtpSynced, false)
-		})
-		Context("for network latency and packet loss", func() {
-			BeforeEach(func() {
-				// create hosts and report connectivity metrics
-				ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
-				h1 := registerNode(ctx, *infraEnvID, "h1", ips[0])
-				h2 := registerNode(ctx, *infraEnvID, "h2", ips[1])
-				h3 := registerNode(ctx, *infraEnvID, "h3", ips[2])
-				updateVipParams(ctx, clusterID)
-				generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
-			}, 0)
-			It("validates 'sufficient-network-latency-requirement-for-role' is generated", func() {
-				record, err := getMetricRecord(networkLatencyMetric)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(record).NotTo(BeEmpty())
-			})
-			It("validates 'sufficient-packet-loss-requirement-for-role' is generated", func() {
-				record, err := getMetricRecord(packetLossMetric)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(record).NotTo(BeEmpty())
-			})
-		})
-
-		Context("[V2UpdateCluster] for network latency and packet loss", func() {
-			BeforeEach(func() {
-				// create hosts and report connectivity metrics
-				ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
-				h1 := registerNode(ctx, *infraEnvID, "h1", ips[0])
-				h2 := registerNode(ctx, *infraEnvID, "h2", ips[1])
-				h3 := registerNode(ctx, *infraEnvID, "h3", ips[2])
-				v2UpdateVipParams(ctx, clusterID)
-				generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
-			}, 0)
-			It("validates 'sufficient-network-latency-requirement-for-role' is generated", func() {
-				record, err := getMetricRecord(networkLatencyMetric)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(record).NotTo(BeEmpty())
-			})
-			It("validates 'sufficient-packet-loss-requirement-for-role' is generated", func() {
-				record, err := getMetricRecord(packetLossMetric)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(record).NotTo(BeEmpty())
-			})
 		})
 	})
 

@@ -205,30 +205,6 @@ func (mr *MockAPIMockRecorder) MonitoredHostsCount(monitoredHosts interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MonitoredHostsCount", reflect.TypeOf((*MockAPI)(nil).MonitoredHostsCount), monitoredHosts)
 }
 
-// NetworkLatencyBetweenHosts mocks base method.
-func (m *MockAPI) NetworkLatencyBetweenHosts(clusterVersion string, sourceRole, targetRole models.HostRole, latency float64) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "NetworkLatencyBetweenHosts", clusterVersion, sourceRole, targetRole, latency)
-}
-
-// NetworkLatencyBetweenHosts indicates an expected call of NetworkLatencyBetweenHosts.
-func (mr *MockAPIMockRecorder) NetworkLatencyBetweenHosts(clusterVersion, sourceRole, targetRole, latency interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkLatencyBetweenHosts", reflect.TypeOf((*MockAPI)(nil).NetworkLatencyBetweenHosts), clusterVersion, sourceRole, targetRole, latency)
-}
-
-// PacketLossBetweenHosts mocks base method.
-func (m *MockAPI) PacketLossBetweenHosts(clusterVersion string, sourceRole, targetRole models.HostRole, packetLoss float64) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "PacketLossBetweenHosts", clusterVersion, sourceRole, targetRole, packetLoss)
-}
-
-// PacketLossBetweenHosts indicates an expected call of PacketLossBetweenHosts.
-func (mr *MockAPIMockRecorder) PacketLossBetweenHosts(clusterVersion, sourceRole, targetRole, packetLoss interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PacketLossBetweenHosts", reflect.TypeOf((*MockAPI)(nil).PacketLossBetweenHosts), clusterVersion, sourceRole, targetRole, packetLoss)
-}
-
 // ReportHostInstallationMetrics mocks base method.
 func (m *MockAPI) ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
 	m.ctrl.T.Helper()
