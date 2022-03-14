@@ -3,6 +3,9 @@ PWD = $(shell pwd)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR := $(or ${ROOT_DIR},$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 CONTAINER_COMMAND := $(or ${CONTAINER_COMMAND},docker)
+ifeq ($(CONTAINER_COMMAND), docker)
+	CONTAINER_COMMAND = $(shell docker -v | cut -f1 -d' ' | tr '[:upper:]' '[:lower:]')
+endif
 TARGET := $(or ${TARGET},local)
 KUBECTL=kubectl -n $(NAMESPACE)
 
@@ -17,6 +20,9 @@ endif
 
 ifeq ($(CONTAINER_COMMAND), podman)
 	PUSH_FLAGS = --tls-verify=false
+	UID_FLAGS =
+else
+	UID_FLAGS = -u $(shell id -u):$(shell id -u)
 endif
 
 ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/edge-infrastructure)
