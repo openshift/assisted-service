@@ -1,4 +1,4 @@
-module github.com/openshift/assisted-service
+module github.com/openshift/assisted-service/v2
 
 go 1.17
 
