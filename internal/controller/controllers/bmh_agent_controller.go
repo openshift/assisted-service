@@ -251,6 +251,8 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 			log.WithError(err).Errorf("Error updating agent")
 			return reconcileError{err}.Result()
 		}
+	} else {
+		log.Debugf("Agent %s/%s: update skipped", agent.Namespace, agent.Name)
 	}
 
 	if result.Stop(ctx) {
@@ -335,43 +337,71 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 
 	// Do all the copying from the BMH annotations to the agent.
 
+	var dirty bool
 	annotations := bmh.ObjectMeta.GetAnnotations()
 	if val, ok := annotations[BMH_AGENT_ROLE]; ok {
-		agent.Spec.Role = models.HostRole(val)
+		if agent.Spec.Role != models.HostRole(val) {
+			agent.Spec.Role = models.HostRole(val)
+			dirty = true
+		}
 	}
 
 	if val, ok := annotations[BMH_AGENT_HOSTNAME]; ok {
-		agent.Spec.Hostname = val
+		if agent.Spec.Hostname != val {
+			agent.Spec.Hostname = val
+			dirty = true
+		}
 	}
 
 	if val, ok := annotations[BMH_AGENT_MACHINE_CONFIG_POOL]; ok {
-		agent.Spec.MachineConfigPool = val
+		if agent.Spec.MachineConfigPool != val {
+			agent.Spec.MachineConfigPool = val
+			dirty = true
+		}
 	}
 
 	if val, ok := annotations[BMH_AGENT_INSTALLER_ARGS]; ok {
-		agent.Spec.InstallerArgs = val
+		if agent.Spec.InstallerArgs != val {
+			agent.Spec.InstallerArgs = val
+			dirty = true
+		}
 	}
 
 	if val, ok := annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]; ok {
-		agent.Spec.IgnitionConfigOverrides = val
+		if agent.Spec.IgnitionConfigOverrides != val {
+			agent.Spec.IgnitionConfigOverrides = val
+			dirty = true
+		}
 	}
 
-	agent.Spec.Approved = true
+	if !agent.Spec.Approved {
+		agent.Spec.Approved = true
+		dirty = true
+	}
 	if agent.ObjectMeta.Labels == nil {
 		agent.ObjectMeta.Labels = make(map[string]string)
+		dirty = true
 	}
 
 	// Label the agent with the reference to this BMH
-	agent.ObjectMeta.Labels[AGENT_BMH_LABEL] = bmh.Name
+	name, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]
+	if !ok || name != bmh.Name {
+		agent.ObjectMeta.Labels[AGENT_BMH_LABEL] = bmh.Name
+		dirty = true
+	}
 
 	// findInstallationDiskID will return an empty string
 	// if no disk is found from the list. Should be find
 	// to "overwrite" this value everytime as the default
 	// is ""
-	agent.Spec.InstallationDiskID = r.findInstallationDiskID(agent.Status.Inventory.Disks, bmh.Spec.RootDeviceHints)
+	installationDiskID := r.findInstallationDiskID(agent.Status.Inventory.Disks, bmh.Spec.RootDeviceHints)
+	if agent.Spec.InstallationDiskID != installationDiskID {
+		agent.Spec.InstallationDiskID = installationDiskID
+		dirty = true
+	}
 	log.Debugf("Agent spec reconcile finished:  %v", agent)
 
-	return reconcileComplete{dirty: true}
+	return reconcileComplete{dirty: dirty}
 }
 
 // The detached annotation is added if the installation of the agent associated with

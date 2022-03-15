@@ -45,6 +45,11 @@ const (
 	WatchResourceValue               = "true"
 )
 
+//go:generate mockgen -package=controllers -destination=mock_k8s_client.go . K8sClient
+type K8sClient interface {
+	client.Client
+}
+
 func getSecret(ctx context.Context, c client.Client, r client.Reader, key types.NamespacedName) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	errorMessage := fmt.Sprintf("failed to get secret %s/%s from cache", key.Namespace, key.Name)

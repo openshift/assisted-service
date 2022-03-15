@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	certificatesv1 "k8s.io/api/certificates/v1"
@@ -284,6 +285,8 @@ var _ = Describe("agent reconcile", func() {
 	})
 
 	It("Agent update", func() {
+		mockClient := NewMockK8sClient(mockCtrl)
+		hr.Client = mockClient
 		newHostName := "hostname123"
 		newRole := "worker"
 		newInstallDiskPath := "/dev/disk/by-id/wwn-0x6141877064533b0020adf3bb03167694"
@@ -311,7 +314,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, param installer.V2UpdateHostParams) {
 				Expect(param.HostUpdateParams.DisksSelectedConfig[0].ID).To(Equal(&newInstallDiskPath))
@@ -320,21 +323,46 @@ var _ = Describe("agent reconcile", func() {
 				Expect(param.HostID).To(Equal(hostId))
 				Expect(param.InfraEnvID).To(Equal(infraEnvId))
 				Expect(param.HostUpdateParams.HostRole).To(Equal(&newRole))
-			}).Return(&common.Host{}, nil)
+			}).Return(&common.Host{}, nil).Times(2)
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(ctx, newHostRequest(host))
-		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{}))
-		agent := &v1beta1.Agent{}
+		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
+			func(ctx context.Context, name types.NamespacedName, agent *v1beta1.Agent) error {
+				return c.Get(ctx, name, agent)
+			},
+		).Times(3)
+		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
+			func(ctx context.Context, name types.NamespacedName, cd *hivev1.ClusterDeployment) error {
+				return c.Get(ctx, name, cd)
+			},
+		).Times(2)
+		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
+			func(ctx context.Context, agent *v1beta1.Agent) error {
+				return c.Update(ctx, agent)
+			},
+		).Times(1)
+		mockClient.EXPECT().Status().Return(mockClient).Times(1)
+		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
+			func(ctx context.Context, agent *v1beta1.Agent) error {
+				return c.Status().Update(ctx, agent)
+			},
+		).Times(1)
 
-		key := types.NamespacedName{
-			Namespace: testNamespace,
-			Name:      hostId.String(),
+		// We test 2 times to verify that agent is not updated the second time
+		for i := 0; i != 2; i++ {
+			result, err := hr.Reconcile(ctx, newHostRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+			agent := &v1beta1.Agent{}
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      hostId.String(),
+			}
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
+			Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
+			Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 		}
-		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	It("Ignition endpoint is parsed correctly", func() {

@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -102,7 +103,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
+	origAgent := agent.DeepCopy()
 	if agent.ObjectMeta.Annotations == nil {
 		agent.ObjectMeta.Annotations = make(map[string]string)
 	}
@@ -152,7 +153,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 
 	if agent.Spec.ClusterDeploymentName == nil && h.ClusterID != nil {
 		log.Debugf("ClusterDeploymentName is unset in Agent %s. unbind", agent.Name)
-		return r.unbindHost(ctx, log, agent, h)
+		return r.unbindHost(ctx, log, agent, origAgent, h)
 	}
 
 	if agent.Spec.ClusterDeploymentName != nil {
@@ -169,7 +170,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 			log.WithError(err).Error(errMsg)
 			// Update that we failed to retrieve the clusterDeployment
 			//TODO MGMT-7844 add mapping CD-ACI to rnot requeue always
-			return r.updateStatus(ctx, log, agent, &h.Host, nil, errors.Wrapf(err, errMsg), true)
+			return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, errors.Wrapf(err, errMsg), true)
 		}
 
 		// Retrieve cluster by ClusterDeploymentName from the database
@@ -178,7 +179,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 			log.WithError(err2).Errorf("Fail to get cluster name: %s namespace: %s in backend",
 				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 			// Update that we failed to retrieve the cluster from the database
-			return r.updateStatus(ctx, log, agent, &h.Host, nil, err2, true)
+			return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err2, true)
 		}
 
 		if h.ClusterID == nil {
@@ -192,32 +193,32 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 				},
 			})
 			if err2 != nil {
-				return r.updateStatus(ctx, log, agent, &h.Host, nil, err2, !IsUserError(err2))
+				return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err2, !IsUserError(err2))
 			}
-			return r.updateStatus(ctx, log, agent, &host.Host, cluster.ID, nil, true)
+			return r.updateStatus(ctx, log, agent, origAgent, &host.Host, cluster.ID, nil, true)
 		} else if *h.ClusterID != *cluster.ID {
 			log.Infof("ClusterDeploymentName is changed in Agent %s. unbind first", agent.Name)
-			return r.unbindHost(ctx, log, agent, h)
+			return r.unbindHost(ctx, log, agent, origAgent, h)
 		}
 	}
 
 	// check for updates from user, compare spec and update if needed
 	err = r.updateIfNeeded(ctx, log, agent, h)
 	if err != nil {
-		return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, err, !IsUserError(err))
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, !IsUserError(err))
 	}
 
 	err = r.updateInventory(log, ctx, &h.Host, agent)
 	if err != nil {
-		return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, err, true)
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, true)
 	}
 
 	err = r.updateNtpSources(log, &h.Host, agent)
 	if err != nil {
-		return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, err, true)
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, true)
 	}
 
-	return r.updateStatus(ctx, log, agent, &h.Host, h.ClusterID, nil, false)
+	return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, nil, false)
 }
 
 func (r *AgentReconciler) shouldApproveMoreCSRs(node *corev1.Node) bool {
@@ -320,15 +321,15 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 	return !shouldApproveMoreCSRs
 }
 
-func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *common.Host) (ctrl.Result, error) {
+func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *common.Host) (ctrl.Result, error) {
 	host, err2 := r.Installer.UnbindHostInternal(ctx, installer.UnbindHostParams{
 		HostID:     *h.ID,
 		InfraEnvID: h.InfraEnvID,
 	})
 	if err2 != nil {
-		return r.updateStatus(ctx, log, agent, &h.Host, nil, err2, !IsUserError(err2))
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err2, !IsUserError(err2))
 	}
-	return r.updateStatus(ctx, log, agent, &host.Host, h.ClusterID, nil, true)
+	return r.updateStatus(ctx, log, agent, origAgent, &host.Host, h.ClusterID, nil, true)
 }
 
 func (r *AgentReconciler) deleteAgent(ctx context.Context, log logrus.FieldLogger, agent types.NamespacedName) (ctrl.Result, error) {
@@ -407,7 +408,7 @@ func (r *AgentReconciler) isDay2NonePlatformHostRebooting(ctx context.Context, a
 // updateStatus is updating all the Agent Conditions.
 // In case that an error has ocurred when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
-func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *models.Host, clusterId *strfmt.UUID, syncErr error, internal bool) (ctrl.Result, error) {
+func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *models.Host, clusterId *strfmt.UUID, syncErr error, internal bool) (ctrl.Result, error) {
 
 	var (
 		err                 error
@@ -487,9 +488,13 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 			ret = ctrl.Result{RequeueAfter: r.ApproveCsrsRequeueDuration}
 		}
 	}
-	if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
-		log.WithError(updateErr).Error("failed to update agent Status")
-		return ctrl.Result{Requeue: true}, nil
+	if !reflect.DeepEqual(agent, origAgent) {
+		if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
+			log.WithError(updateErr).Error("failed to update agent Status")
+			return ctrl.Result{Requeue: true}, nil
+		}
+	} else {
+		log.Debugf("Agent %s/%s: update skipped", agent.Namespace, agent.Name)
 	}
 	if syncErr != nil && internal {
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
