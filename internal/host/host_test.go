@@ -2513,7 +2513,7 @@ var _ = Describe("AutoAssignRole", func() {
 		)
 		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId, Kind: swag.String(models.ClusterKindCluster)}}).Error).ShouldNot(HaveOccurred())
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
-			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
@@ -2697,7 +2697,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 		)
 		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId, Kind: swag.String(models.ClusterKindCluster)}}).Error).ShouldNot(HaveOccurred())
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
-			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
@@ -3435,7 +3435,7 @@ var _ = Describe("sortHost by hardware", func() {
 			},
 		},
 		{
-			description: "ocs master with 3 disks (total of 120 GB)",
+			description: "odf master with 3 disks (total of 120 GB)",
 			Cpus:        12,
 			Ram:         32,
 			Disks: []*models.Disk{
@@ -3475,7 +3475,7 @@ var _ = Describe("sortHost by hardware", func() {
 			},
 		},
 		{
-			description: "ocs worker with 3 disks (total of 120 GB)",
+			description: "odf worker with 3 disks (total of 120 GB)",
 			Cpus:        12,
 			Ram:         64,
 			Disks: []*models.Disk{
@@ -3485,7 +3485,7 @@ var _ = Describe("sortHost by hardware", func() {
 			},
 		},
 		{
-			description: "ocs worker with 1 disk of 40 GB",
+			description: "odf worker with 1 disk of 40 GB",
 			Cpus:        12,
 			Ram:         64,
 			Disks: []*models.Disk{
@@ -3493,7 +3493,7 @@ var _ = Describe("sortHost by hardware", func() {
 			},
 		},
 		{
-			description: "ocs worker with 3 disks (total of 80 GB)",
+			description: "odf worker with 3 disks (total of 80 GB)",
 			Cpus:        12,
 			Ram:         64,
 			Disks: []*models.Disk{
@@ -3541,10 +3541,10 @@ var _ = Describe("sortHost by hardware", func() {
 			"minimal master with 3 disks (total of 80 GB)",
 			"minimal master with 3 disks (total of 120 GB)",
 			"sno master with 3 disks (total of 120 GB)",
-			"ocs master with 3 disks (total of 120 GB)",
-			"ocs worker with 1 disk of 40 GB",
-			"ocs worker with 3 disks (total of 80 GB)",
-			"ocs worker with 3 disks (total of 120 GB)",
+			"odf master with 3 disks (total of 120 GB)",
+			"odf worker with 1 disk of 40 GB",
+			"odf worker with 3 disks (total of 80 GB)",
+			"odf worker with 3 disks (total of 120 GB)",
 		}
 		for i, h := range sorted {
 			Expect(h.RequestedHostname).To(Equal(expected[i]))

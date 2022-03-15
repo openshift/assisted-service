@@ -1,4 +1,4 @@
-package ocs
+package odf
 
 import (
 	"encoding/json"

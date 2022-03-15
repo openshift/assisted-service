@@ -1,4 +1,4 @@
-package ocs_test
+package odf_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "OCS suite")
+	RunSpecs(t, "ODF suite")
 }

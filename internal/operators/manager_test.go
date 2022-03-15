@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -42,7 +42,8 @@ var _ = BeforeEach(func() {
 	clusterID := strfmt.UUID(uuid.New().String())
 	cluster = &common.Cluster{
 		Cluster: models.Cluster{
-			ID: &clusterID,
+			ID:               &clusterID,
+			OpenshiftVersion: "4.8.1",
 		},
 	}
 	cluster.ImageInfo = &models.ImageInfo{}
@@ -86,9 +87,23 @@ var _ = Describe("Operators manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create 8 manifests (OCS + LSO) using the manifest API", func() {
+		It("should create 8 manifests (ODF + LSO) using the manifest API and openshift version is 4.8.X", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
-				&ocs.Operator,
+				&odf.Operator,
+				&lso.Operator,
+			}
+
+			m := models.Manifest{}
+
+			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&m, nil).Times(6)
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("should create 8 manifests (ODF + LSO) using the manifest API and openshift version is 4.9.X or above", func() {
+			cluster.OpenshiftVersion = "4.9.0"
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&odf.Operator,
 				&lso.Operator,
 			}
 
@@ -131,16 +146,16 @@ var _ = Describe("Operators manager", func() {
 			table.Entry("true for lso operator", []*models.MonitoredOperator{
 				&lso.Operator,
 			}, true),
-			table.Entry("true for ocs operator", []*models.MonitoredOperator{
-				&ocs.Operator,
+			table.Entry("true for odf operator", []*models.MonitoredOperator{
+				&odf.Operator,
 			}, true),
-			table.Entry("true for lso and ocs operators", []*models.MonitoredOperator{
+			table.Entry("true for lso and odf operators", []*models.MonitoredOperator{
 				&lso.Operator,
-				&ocs.Operator,
+				&odf.Operator,
 			}, true),
-			table.Entry("true for lso, ocs and cnv operators", []*models.MonitoredOperator{
+			table.Entry("true for lso, odf and cnv operators", []*models.MonitoredOperator{
 				&lso.Operator,
-				&ocs.Operator,
+				&odf.Operator,
 				&cnv.Operator,
 			}, true),
 		)
@@ -156,14 +171,14 @@ var _ = Describe("Operators manager", func() {
 			Expect(results).To(HaveLen(3))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
-				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied), Reasons: []string{"ocs is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 			))
 		})
 
-		It("should deem OCS operator cluster-invalid when it's enabled and invalid", func() {
+		It("should deem ODF operator cluster-invalid when it's enabled and invalid", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
-				&ocs.Operator,
+				&odf.Operator,
 				&lso.Operator,
 			}
 
@@ -173,8 +188,8 @@ var _ = Describe("Operators manager", func() {
 			Expect(results).To(HaveLen(3))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
-				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied),
-					Reasons: []string{"A minimum of 3 hosts is required to deploy OCS."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
+					Reasons: []string{"A minimum of 3 hosts is required to deploy ODF."}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 			))
 		})
@@ -190,14 +205,14 @@ var _ = Describe("Operators manager", func() {
 			Expect(results).To(HaveLen(3))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
-				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied), Reasons: []string{"ocs is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 			))
 		})
 
-		It("should deem operators host-valid when OCS is enabled", func() {
+		It("should deem operators host-valid when ODF is enabled", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
-				&ocs.Operator,
+				&odf.Operator,
 				&lso.Operator,
 			}
 
@@ -207,7 +222,7 @@ var _ = Describe("Operators manager", func() {
 
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
-				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied), Reasons: []string{}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 			))
 		})
@@ -226,21 +241,21 @@ var _ = Describe("Operators manager", func() {
 				[]*models.MonitoredOperator{&lso.Operator},
 				[]*models.MonitoredOperator{&lso.Operator},
 			),
-			table.Entry("when only OCS is specified",
-				[]*models.MonitoredOperator{&ocs.Operator},
-				[]*models.MonitoredOperator{&ocs.Operator, &lso.Operator},
+			table.Entry("when only ODF is specified",
+				[]*models.MonitoredOperator{&odf.Operator},
+				[]*models.MonitoredOperator{&odf.Operator, &lso.Operator},
 			),
-			table.Entry("when both OCS and LSO are specified",
-				[]*models.MonitoredOperator{&ocs.Operator, &lso.Operator},
-				[]*models.MonitoredOperator{&ocs.Operator, &lso.Operator},
+			table.Entry("when both ODF and LSO are specified",
+				[]*models.MonitoredOperator{&odf.Operator, &lso.Operator},
+				[]*models.MonitoredOperator{&odf.Operator, &lso.Operator},
 			),
 			table.Entry("when only CNV is specified",
 				[]*models.MonitoredOperator{&cnv.Operator},
 				[]*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
 			),
-			table.Entry("when CNV, OCS and LSO are specified",
-				[]*models.MonitoredOperator{&cnv.Operator, &ocs.Operator, &lso.Operator},
-				[]*models.MonitoredOperator{&cnv.Operator, &ocs.Operator, &lso.Operator},
+			table.Entry("when CNV, ODF and LSO are specified",
+				[]*models.MonitoredOperator{&cnv.Operator, &odf.Operator, &lso.Operator},
+				[]*models.MonitoredOperator{&cnv.Operator, &odf.Operator, &lso.Operator},
 			),
 		)
 	})
@@ -249,11 +264,11 @@ var _ = Describe("Operators manager", func() {
 		It("should provide list of supported operators", func() {
 			supportedOperators := manager.GetSupportedOperators()
 
-			Expect(supportedOperators).To(ConsistOf("ocs", "lso", "cnv"))
+			Expect(supportedOperators).To(ConsistOf("odf", "lso", "cnv"))
 		})
 
 		It("should provide properties of an operator", func() {
-			properties, err := manager.GetOperatorProperties("ocs")
+			properties, err := manager.GetOperatorProperties("odf")
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(properties).To(BeEquivalentTo(models.OperatorProperties{}))

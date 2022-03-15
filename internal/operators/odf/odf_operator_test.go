@@ -1,4 +1,4 @@
-package ocs
+package odf
 
 import (
 	"context"
@@ -12,10 +12,10 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
 
-var _ = Describe("Ocs Operator", func() {
+var _ = Describe("Odf Operator", func() {
 	var (
 		ctx                 = context.TODO()
-		operator            = NewOcsOperator(common.GetTestLog(), nil)
+		operator            = NewOdfOperator(common.GetTestLog(), nil)
 		diskID1             = "/dev/disk/by-id/test-disk-1"
 		diskID2             = "/dev/disk/by-id/test-disk-2"
 		diskID3             = "/dev/disk/by-id/test-disk-3"
@@ -98,56 +98,56 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk,
 				}}},
 				masterWithThreeDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUCompactMode + 2*operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBCompactMode + 2*operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUCompactMode + 2*operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBCompactMode + 2*operator.config.ODFPerDiskRAMGiB)},
 			),
 			table.Entry("there are three masters",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithThreeDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUCompactMode + 2*operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBCompactMode + 2*operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUCompactMode + 2*operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBCompactMode + 2*operator.config.ODFPerDiskRAMGiB)},
 			),
 			table.Entry("there are three masters, with disk not Installation eligible",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDiskSizeOfOneZero, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithThreeDiskSizeOfOneZero,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUCompactMode + operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBCompactMode + operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUCompactMode + operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBCompactMode + operator.config.ODFPerDiskRAMGiB)},
 			),
 			table.Entry("no disk in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithNoDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUCompactMode + operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBCompactMode + operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUCompactMode + operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBCompactMode + operator.config.ODFPerDiskRAMGiB)},
 			),
 			table.Entry("no inventory in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoInventory, masterWithOneDisk,
 				}}},
 				masterWithNoInventory,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUCompactMode + operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBCompactMode + operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUCompactMode + operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBCompactMode + operator.config.ODFPerDiskRAMGiB)},
 			),
 			table.Entry("only one disk in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithOneDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUCompactMode + operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBCompactMode + operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUCompactMode + operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBCompactMode + operator.config.ODFPerDiskRAMGiB)},
 			),
 			table.Entry("there are 3 hosts, role of one as auto-assign",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, autoAssignHost,
 				}}},
 				autoAssignHost,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUCompactMode + operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBCompactMode + operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUCompactMode + operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBCompactMode + operator.config.ODFPerDiskRAMGiB)},
 			),
 			table.Entry("there are two master and one worker",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, workerWithTwoDisk,
 				}}},
 				workerWithTwoDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUStandardMode + operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBStandardMode + operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUStandardMode + operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBStandardMode + operator.config.ODFPerDiskRAMGiB)},
 			),
 		)
 
@@ -160,7 +160,7 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, autoAssignHost, masterWithOneDisk,
 				}}},
 				autoAssignHost,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUStandardMode + operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBStandardMode + operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUStandardMode + operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBStandardMode + operator.config.ODFPerDiskRAMGiB)},
 			),
 			table.Entry("there are 6 hosts, master requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
@@ -174,42 +174,42 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				workerWithThreeDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUStandardMode + 2*operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBStandardMode + 2*operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUStandardMode + 2*operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBStandardMode + 2*operator.config.ODFPerDiskRAMGiB)},
 			),
 			table.Entry("there are 6 hosts, worker with three disk requirements and Disk not Installation Eligible",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDiskSizeOfOneZero, workerWithNoDisk,
 				}}},
 				workerWithThreeDiskSizeOfOneZero,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUStandardMode + operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBStandardMode + operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUStandardMode + operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBStandardMode + operator.config.ODFPerDiskRAMGiB)},
 			),
 			table.Entry("there are 6 hosts, worker with two disk requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				workerWithTwoDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUStandardMode + operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBStandardMode + operator.config.OCSPerDiskRAMGiB)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUStandardMode + operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBStandardMode + operator.config.ODFPerDiskRAMGiB)},
 			),
 			table.Entry("there are 6 hosts, worker with one disk requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithOneDisk,
 				}}},
 				workerWithOneDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUStandardMode, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBStandardMode)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUStandardMode, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBStandardMode)},
 			),
 			table.Entry("there are 6 hosts, worker with no disk requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				workerWithNoDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUStandardMode, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBStandardMode)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUStandardMode, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBStandardMode)},
 			),
 			table.Entry("there are 6 hosts, worker with no inventory requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoInventory,
 				}}},
 				workerWithNoInventory,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUStandardMode, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBStandardMode)},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUStandardMode, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBStandardMode)},
 			),
 		)
 	})
@@ -238,21 +238,21 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithNoDisk,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient disks, OCS requires at least one non-bootable disk on each host in compact mode."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient disks, ODF requires at least one non-bootable disk on each host in compact mode."}},
 			),
 			table.Entry("no disk in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithNoDisk,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient disks, OCS requires at least one non-bootable disk on each host in compact mode."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient disks, ODF requires at least one non-bootable disk on each host in compact mode."}},
 			),
 			table.Entry("only one disk in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithOneDisk,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient disks, OCS requires at least one non-bootable disk on each host in compact mode."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient disks, ODF requires at least one non-bootable disk on each host in compact mode."}},
 			),
 			table.Entry("master with disk of size zero",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
@@ -273,14 +273,14 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, workerWithTwoDisk,
 				}}},
 				workerWithTwoDisk,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"OCS unsupported Host Role for Compact Mode."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF unsupported Host Role for Compact Mode."}},
 			),
 			table.Entry("there is disk with less size than expected",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize,
 				}}},
 				masterWithLessDiskSize,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"OCS requires all the non-bootable disks to be more than 25 GB"}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF requires all the non-bootable disks to be more than 25 GB"}},
 			),
 		)
 
@@ -293,7 +293,7 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, autoAssignHost, masterWithOneDisk,
 				}}},
 				autoAssignHost,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"For OCS Standard Mode, host role must be assigned to master or worker."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"For ODF Standard Mode, host role must be assigned to master or worker."}},
 			),
 			table.Entry("there are 6 hosts, master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
@@ -328,7 +328,7 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithLessDiskSize,
 				}}},
 				workerWithLessDiskSize,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"OCS requires all the non-bootable disks to be more than 25 GB"}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF requires all the non-bootable disks to be more than 25 GB"}},
 			),
 			table.Entry("worker with disk of size zero",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{

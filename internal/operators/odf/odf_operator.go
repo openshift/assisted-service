@@ -1,4 +1,4 @@
-package ocs
+package odf
 
 import (
 	"context"
@@ -14,14 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// operator is an OCS OLM operator plugin; it implements api.Operator
-type operator struct {
-	log       logrus.FieldLogger
-	config    *Config
-	extracter oc.Extracter
-}
-
-var Operator = models.MonitoredOperator{
+var OcsOperator = models.MonitoredOperator{
 	Name:             "ocs",
 	OperatorType:     models.OperatorTypeOlm,
 	Namespace:        "openshift-storage",
@@ -29,18 +22,40 @@ var Operator = models.MonitoredOperator{
 	TimeoutSeconds:   30 * 60,
 }
 
-// NewOcsOperator creates new OCSOperator
-func NewOcsOperator(log logrus.FieldLogger, extracter oc.Extracter) *operator {
+// NewOcsOperator creates new ODFOperator
+func NewOcsOperator(log logrus.FieldLogger) *operator {
+	return &operator{
+		log: log,
+	}
+}
+
+// operator is an ODF OLM operator plugin; it implements api.Operator
+type operator struct {
+	log       logrus.FieldLogger
+	config    *Config
+	extracter oc.Extracter
+}
+
+var Operator = models.MonitoredOperator{
+	Name:             "odf",
+	OperatorType:     models.OperatorTypeOlm,
+	Namespace:        "openshift-storage",
+	SubscriptionName: "odf-operator",
+	TimeoutSeconds:   30 * 60,
+}
+
+// NewOdfOperator creates new ODFOperator
+func NewOdfOperator(log logrus.FieldLogger, extracter oc.Extracter) *operator {
 	cfg := Config{}
 	err := envconfig.Process(common.EnvConfigPrefix, &cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	return newOcsOperatorWithConfig(log, &cfg, extracter)
+	return newOdfOperatorWithConfig(log, &cfg, extracter)
 }
 
-// newOcsOperatorWithConfig creates new OCSOperator with given configuration
-func newOcsOperatorWithConfig(log logrus.FieldLogger, config *Config, extracter oc.Extracter) *operator {
+// newOdfOperatorWithConfig creates new ODFOperator with given configuration
+func newOdfOperatorWithConfig(log logrus.FieldLogger, config *Config, extracter oc.Extracter) *operator {
 	return &operator{
 		log:       log,
 		config:    config,
@@ -60,12 +75,12 @@ func (o *operator) GetDependencies() []string {
 
 // GetClusterValidationID returns cluster validation ID for the Operator
 func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDOcsRequirementsSatisfied)
+	return string(models.ClusterValidationIDOdfRequirementsSatisfied)
 }
 
 // GetHostValidationID returns host validation ID for the Operator
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDOcsRequirementsSatisfied)
+	return string(models.HostValidationIDOdfRequirementsSatisfied)
 }
 
 // ValidateCluster verifies whether this operator is valid for given cluster
@@ -97,17 +112,17 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 	if numOfHosts <= 3 {
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
 			if diskCount == 0 {
-				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disks, OCS requires at least one non-bootable disk on each host in compact mode."}}, nil
+				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disks, ODF requires at least one non-bootable disk on each host in compact mode."}}, nil
 			}
 			return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 		}
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"OCS unsupported Host Role for Compact Mode."}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"ODF unsupported Host Role for Compact Mode."}}, nil
 	}
 
 	// Standard mode
 	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
 	if host.Role == models.HostRoleAutoAssign {
-		status := "For OCS Standard Mode, host role must be assigned to master or worker."
+		status := "For ODF Standard Mode, host role must be assigned to master or worker."
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
 	}
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
@@ -115,8 +130,8 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 
 // GenerateManifests generates manifests for the operator
 func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte, []byte, error) {
-	o.log.Info("No. of OCS eligible disks are ", o.config.OCSDisksAvailable)
-	return Manifests(o.config)
+	o.log.Info("No. of ODF eligible disks are ", o.config.ODFDisksAvailable)
+	return Manifests(o.config, cluster.OpenshiftVersion)
 }
 
 // GetProperties provides description of operator properties: none required
@@ -124,7 +139,7 @@ func (o *operator) GetProperties() models.OperatorProperties {
 	return models.OperatorProperties{}
 }
 
-// GetMonitoredOperator returns MonitoredOperator corresponding to the OCS Operator
+// GetMonitoredOperator returns MonitoredOperator corresponding to the ODF Operator
 func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 	return &Operator
 }
@@ -151,36 +166,36 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 		if diskCount > 0 {
 			reqDisks = diskCount
 		}
-		// for each disk ocs requires 2 CPUs and 5 GiB RAM
+		// for each disk odf requires 2 CPUs and 5 GiB RAM
 		if role == models.HostRoleMaster || role == models.HostRoleAutoAssign {
 			return &models.ClusterHostRequirementsDetails{
-				CPUCores: o.config.OCSPerHostCPUCompactMode + (reqDisks * o.config.OCSPerDiskCPUCount),
-				RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBCompactMode + (reqDisks * o.config.OCSPerDiskRAMGiB)),
+				CPUCores: o.config.ODFPerHostCPUCompactMode + (reqDisks * o.config.ODFPerDiskCPUCount),
+				RAMMib:   conversions.GibToMib(o.config.ODFPerHostMemoryGiBCompactMode + (reqDisks * o.config.ODFPerDiskRAMGiB)),
 			}, nil
 		}
 		// regular worker req
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores: o.config.OCSPerHostCPUStandardMode + (reqDisks * o.config.OCSPerDiskCPUCount),
-			RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode + (reqDisks * o.config.OCSPerDiskRAMGiB)),
+			CPUCores: o.config.ODFPerHostCPUStandardMode + (reqDisks * o.config.ODFPerDiskCPUCount),
+			RAMMib:   conversions.GibToMib(o.config.ODFPerHostMemoryGiBStandardMode + (reqDisks * o.config.ODFPerDiskRAMGiB)),
 		}, nil
 	}
 
-	// In standard mode, OCS does not run on master nodes so return zero
+	// In standard mode, ODF does not run on master nodes so return zero
 	if role == models.HostRoleMaster {
 		return &models.ClusterHostRequirementsDetails{CPUCores: 0, RAMMib: 0}, nil
 	}
 
 	// worker and auto-assign
 	if diskCount > 0 {
-		// for each disk ocs requires 2 CPUs and 5 GiB RAM
+		// for each disk odf requires 2 CPUs and 5 GiB RAM
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores: o.config.OCSPerHostCPUStandardMode + (diskCount * o.config.OCSPerDiskCPUCount),
-			RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode + (diskCount * o.config.OCSPerDiskRAMGiB)),
+			CPUCores: o.config.ODFPerHostCPUStandardMode + (diskCount * o.config.ODFPerDiskCPUCount),
+			RAMMib:   conversions.GibToMib(o.config.ODFPerHostMemoryGiBStandardMode + (diskCount * o.config.ODFPerDiskRAMGiB)),
 		}, nil
 	}
 	return &models.ClusterHostRequirementsDetails{
-		CPUCores: o.config.OCSPerHostCPUStandardMode,
-		RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode),
+		CPUCores: o.config.ODFPerHostCPUStandardMode,
+		RAMMib:   conversions.GibToMib(o.config.ODFPerHostMemoryGiBStandardMode),
 	}, nil
 }
 
@@ -192,8 +207,8 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
-					CPUCores: o.config.OCSPerHostCPUCompactMode,
-					RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBCompactMode),
+					CPUCores: o.config.ODFPerHostCPUCompactMode,
+					RAMMib:   conversions.GibToMib(o.config.ODFPerHostMemoryGiBCompactMode),
 				},
 				Qualitative: []string{
 					"Requirements apply only for master-only clusters",
@@ -203,13 +218,13 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 			},
 			Worker: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
-					CPUCores: o.config.OCSPerHostCPUStandardMode,
-					RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode),
+					CPUCores: o.config.ODFPerHostCPUStandardMode,
+					RAMMib:   conversions.GibToMib(o.config.ODFPerHostMemoryGiBStandardMode),
 				},
 				Qualitative: []string{
 					"Requirements apply only for clusters with workers",
-					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSPerDiskRAMGiB),
-					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSPerDiskCPUCount),
+					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.ODFPerDiskRAMGiB),
+					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.ODFPerDiskCPUCount),
 					"At least 3 workers",
 					"At least 1 non-boot disk on 3 workers",
 				},

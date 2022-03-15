@@ -76,7 +76,7 @@ var _ = Describe("stateMachine", func() {
 
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
-				{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+				{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
 				{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 				{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
 			}, nil)
@@ -139,7 +139,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockMetric.EXPECT().MonitoredClusterCount(int64(1)).AnyTimes()
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
-			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
 		}, nil)
@@ -690,7 +690,7 @@ var _ = Describe("lease timeout event", func() {
 		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
-			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 		}, nil)
 	})
@@ -802,7 +802,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
-			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 		}, nil)
 	})
@@ -1972,7 +1972,7 @@ var _ = Describe("Majority groups", func() {
 		mockMetricApi.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
-			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 		}, nil)
 	})
@@ -2081,7 +2081,7 @@ var _ = Describe("ready_state", func() {
 
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
-			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 		}, nil)
 	})

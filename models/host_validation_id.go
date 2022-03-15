@@ -80,6 +80,9 @@ const (
 	// HostValidationIDOcsRequirementsSatisfied captures enum value "ocs-requirements-satisfied"
 	HostValidationIDOcsRequirementsSatisfied HostValidationID = "ocs-requirements-satisfied"
 
+	// HostValidationIDOdfRequirementsSatisfied captures enum value "odf-requirements-satisfied"
+	HostValidationIDOdfRequirementsSatisfied HostValidationID = "odf-requirements-satisfied"
+
 	// HostValidationIDSufficientInstallationDiskSpeed captures enum value "sufficient-installation-disk-speed"
 	HostValidationIDSufficientInstallationDiskSpeed HostValidationID = "sufficient-installation-disk-speed"
 
@@ -119,7 +122,7 @@ var hostValidationIdEnum []interface{}
 
 func init() {
 	var res []HostValidationID
-	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","ignition-downloadable","belongs-to-majority-group","valid-platform-network-settings","ntp-synced","container-images-available","lso-requirements-satisfied","ocs-requirements-satisfied","sufficient-installation-disk-speed","cnv-requirements-satisfied","sufficient-network-latency-requirement-for-role","sufficient-packet-loss-requirement-for-role","has-default-route","api-domain-name-resolved-correctly","api-int-domain-name-resolved-correctly","apps-domain-name-resolved-correctly","compatible-with-cluster-platform","dns-wildcard-not-configured","disk-encryption-requirements-satisfied"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","ignition-downloadable","belongs-to-majority-group","valid-platform-network-settings","ntp-synced","container-images-available","lso-requirements-satisfied","ocs-requirements-satisfied","odf-requirements-satisfied","sufficient-installation-disk-speed","cnv-requirements-satisfied","sufficient-network-latency-requirement-for-role","sufficient-packet-loss-requirement-for-role","has-default-route","api-domain-name-resolved-correctly","api-int-domain-name-resolved-correctly","apps-domain-name-resolved-correctly","compatible-with-cluster-platform","dns-wildcard-not-configured","disk-encryption-requirements-satisfied"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

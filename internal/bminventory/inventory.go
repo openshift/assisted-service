@@ -2696,6 +2696,9 @@ func (b *bareMetalInventory) getOLMOperators(newOperators []*models.OperatorCrea
 	monitoredOperators := make([]*models.MonitoredOperator, 0)
 
 	for _, newOperator := range newOperators {
+		if newOperator.Name == "ocs" {
+			newOperator.Name = "odf"
+		}
 		operator, err := b.operatorManagerApi.GetOperatorByName(newOperator.Name)
 		if err != nil {
 			return nil, common.NewApiError(http.StatusBadRequest, err)
