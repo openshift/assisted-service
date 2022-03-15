@@ -14,29 +14,25 @@ function lint_swagger() {
 }
 
 function generate_go_server() {
-    rm -rf restapi
-    docker run $UID_FLAGS -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
-        quay.io/goswagger/swagger:v0.28.0 generate server --template=stratoscale -f ${__root}/swagger.yaml
+    rm -rf restapi/
+    goswagger generate server --template=stratoscale -f ${__root}/swagger.yaml
 }
 
 function generate_go_client() {
-    rm -rf client models/*.go
-    docker run $UID_FLAGS -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
-        quay.io/goswagger/swagger:v0.28.0 generate client --template=stratoscale -f swagger.yaml
+    rm -rf client/ models/*.go
+    goswagger generate client --template=stratoscale -f swagger.yaml
 }
 
 function generate_python_client() {
     local dest="${BUILD_FOLDER}"
     rm -rf "${dest}"/assisted-service-client/*
 
-    docker run --rm $UID_FLAGS --entrypoint /bin/sh \
-        -v "${dest}":/local:Z \
-        -v "${__root}"/swagger.yaml:/swagger.yaml:ro,Z \
-        -v "${__root}"/tools/generate_python_client.sh:/script.sh:ro,Z \
-        -e SWAGGER_FILE=/swagger.yaml -e OUTPUT=/local/assisted-service-client/ \
-        quay.io/edge-infrastructure/swagger-codegen-cli:2.4.18 /script.sh
-     cd "${dest}"/assisted-service-client/ && python3 "${__root}"/tools/client_package_initializer.py "${dest}"/assisted-service-client/  https://github.com/openshift/assisted-service
-     cp "${dest}"/assisted-service-client/dist/assisted-service-client-*.tar.gz "${dest}"
+    SWAGGER_FILE="${__root}"/swagger.yaml \
+        OUTPUT="${dest}"/assisted-service-client/ \
+        "${__root}"/tools/generate_python_client.sh
+    cd "${dest}"/assisted-service-client/ && \
+        python3 "${__root}"/tools/client_package_initializer.py "${dest}"/assisted-service-client/ https://github.com/openshift/assisted-service
+    cp "${dest}"/assisted-service-client/dist/assisted-service-client-*.tar.gz "${dest}"
 }
 
 function generate_mocks() {
@@ -155,11 +151,12 @@ function generate_manifests() (
     if [ "${GENERATE_CRD:-true}" == "true" ]; then
         echo "Generating CRDs"
         cd ./api
-        controller-gen ${crd_options} rbac:roleName=assisted-service-manager-role paths="./..." output:rbac:dir=${controller_rbac_path} \
-        webhook paths="./..." output:crd:artifacts:config=${controller_crd_path}/bases
+        controller-gen ${crd_options} rbac:roleName=assisted-service-manager-role \
+            paths="./..." output:rbac:dir=${controller_rbac_path} \
+            webhook paths="./..." output:crd:artifacts:config=${controller_crd_path}/bases
         kustomize build ${controller_crd_path} > ${controller_crd_path}/resources.yaml
         controller-gen object:headerFile=${hack_boilerplate} paths="./..."
-        goimports -w  ${controller_path}
+        goimports -w ${controller_path}
     fi
 
     cp ${controller_crd_path}/resources.yaml ${BUILD_FOLDER}/resources.yaml
