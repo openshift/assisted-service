@@ -2777,7 +2777,7 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 	var clusters []*models.Cluster
 	whereCondition := make([]string, 0)
 
-	if user := identity.AddUserFilter(ctx, ""); user != "" {
+	if user := identity.AddOwnerFilter(ctx, "", b.authHandler.EnableOrgTenancy()); user != "" {
 		whereCondition = append(whereCondition, user)
 	}
 
@@ -4248,7 +4248,7 @@ func (b *bareMetalInventory) ListInfraEnvs(ctx context.Context, params installer
 	if params.ClusterID != nil {
 		condition = fmt.Sprintf("cluster_id = '%s'", params.ClusterID)
 	}
-	whereCondition := identity.AddUserFilter(ctx, condition)
+	whereCondition := identity.AddOwnerFilter(ctx, condition, b.authHandler.EnableOrgTenancy())
 
 	dbInfraEnvs, err := common.GetInfraEnvsFromDBWhere(db, whereCondition)
 	if err != nil {
