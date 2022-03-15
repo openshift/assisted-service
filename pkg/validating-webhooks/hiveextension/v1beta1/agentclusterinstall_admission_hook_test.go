@@ -199,6 +199,38 @@ var _ = Describe("ACI web validate", func() {
 			operation:       admissionv1.Update,
 			expectedAllowed: true,
 		},
+		{
+			name: "Test AgentClusterInstall.Spec.ImageSetRef is immutable (updates not allowed)",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				ImageSetRef: &hivev1.ClusterImageSetReference{Name: "someimage"},
+			},
+			conditions: []hivev1.ClusterInstallCondition{
+				{
+					Type:   hiveext.ClusterCompletedCondition,
+					Reason: hiveext.ClusterInstalledReason,
+				},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				ImageSetRef: &hivev1.ClusterImageSetReference{Name: "someotherimage"},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+		},
+		{
+			name: "Test AgentClusterInstall.Spec.ImageSetRef is immutable (delete not allowed)",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				ImageSetRef: &hivev1.ClusterImageSetReference{Name: "someimage"},
+			},
+			conditions: []hivev1.ClusterInstallCondition{
+				{
+					Type:   hiveext.ClusterCompletedCondition,
+					Reason: hiveext.ClusterInstalledReason,
+				},
+			},
+			oldSpec:         hiveext.AgentClusterInstallSpec{},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+		},
 	}
 
 	for i := range cases {

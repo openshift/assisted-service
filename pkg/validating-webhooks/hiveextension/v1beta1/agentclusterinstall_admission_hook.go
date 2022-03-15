@@ -170,6 +170,18 @@ func (a *AgentClusterInstallValidatingAdmissionHook) validateUpdate(admissionSpe
 		}
 	}
 
+	if !areImageSetRefsEqual(oldObject.Spec.ImageSetRef, newObject.Spec.ImageSetRef) {
+		message := "Attempted to change AgentClusterInstall.ImageSetRef which is immutable"
+		contextLogger.Errorf("Failed validation: %v", message)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: message,
+			},
+		}
+	}
+
 	if installAlreadyStarted(newObject.Status.Conditions) {
 		hasChangedImmutableField, unsupportedDiff := hasChangedImmutableField(&oldObject.Spec, &newObject.Spec)
 		if hasChangedImmutableField {
@@ -226,6 +238,16 @@ func hasChangedImmutableField(oldObject, cd *hiveext.AgentClusterInstallSpec) (b
 		cmp.Reporter(r),
 	}
 	return !cmp.Equal(oldObject, cd, opts), r.String()
+}
+
+func areImageSetRefsEqual(imageSetRef1 *hivev1.ClusterImageSetReference, imageSetRef2 *hivev1.ClusterImageSetReference) bool {
+	if imageSetRef1 == nil && imageSetRef2 == nil {
+		return true
+	} else if imageSetRef1 != nil && imageSetRef2 != nil {
+		return imageSetRef1.Name == imageSetRef2.Name
+	} else {
+		return false
+	}
 }
 
 // diffReporter is a simple custom reporter that only records differences
