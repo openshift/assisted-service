@@ -41,6 +41,38 @@ const (
 	statusInfoRebootingDay2                                    = "Host has rebooted and no further updates will be posted. Please check console for progress and to possibly approve pending CSRs"
 )
 
+var BootstrapStages = [...]models.HostStage{
+	models.HostStageStartingInstallation, models.HostStageInstalling,
+	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane,
+	models.HostStageWaitingForBootkube, models.HostStageWaitingForController,
+	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageJoined,
+	models.HostStageDone,
+}
+var MasterStages = [...]models.HostStage{
+	models.HostStageStartingInstallation, models.HostStageInstalling,
+	models.HostStageWritingImageToDisk, models.HostStageRebooting,
+	models.HostStageConfiguring, models.HostStageJoined, models.HostStageDone,
+}
+var WorkerStages = [...]models.HostStage{
+	models.HostStageStartingInstallation, models.HostStageInstalling,
+	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane, models.HostStageRebooting,
+	models.HostStageWaitingForIgnition, models.HostStageConfiguring,
+	models.HostStageJoined, models.HostStageDone,
+}
+var SnoStages = [...]models.HostStage{
+	models.HostStageStartingInstallation, models.HostStageInstalling,
+	models.HostStageWaitingForBootkube, models.HostStageWritingImageToDisk,
+	models.HostStageRebooting, models.HostStageDone,
+}
+
+var manualRebootStages = []models.HostStage{
+	models.HostStageRebooting,
+	models.HostStageWaitingForIgnition,
+	models.HostStageConfiguring,
+	models.HostStageJoined,
+	models.HostStageDone,
+}
+
 var hostStatusesBeforeInstallation = [...]string{
 	models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
 	models.HostStatusInsufficient, models.HostStatusPendingForInput,
@@ -131,4 +163,24 @@ func GetHostnameAndEffectiveRoleByIP(ip string, hosts []*models.Host) (string, m
 		}
 	}
 	return "", "", fmt.Errorf("host with IP %s not found in inventory", ip)
+}
+
+func FindMatchingStages(role models.HostRole, bootstrap, isSNO bool) []models.HostStage {
+	var stages []models.HostStage
+	switch {
+	case bootstrap || role == models.HostRoleBootstrap:
+		if isSNO {
+			stages = SnoStages[:]
+		} else {
+			stages = BootstrapStages[:]
+		}
+	case role == models.HostRoleMaster:
+		stages = MasterStages[:]
+	case role == models.HostRoleWorker:
+		stages = WorkerStages[:]
+	default:
+		stages = []models.HostStage{}
+	}
+
+	return stages
 }

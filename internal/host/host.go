@@ -33,38 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var BootstrapStages = [...]models.HostStage{
-	models.HostStageStartingInstallation, models.HostStageInstalling,
-	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane,
-	models.HostStageWaitingForBootkube, models.HostStageWaitingForController,
-	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageJoined,
-	models.HostStageDone,
-}
-var MasterStages = [...]models.HostStage{
-	models.HostStageStartingInstallation, models.HostStageInstalling,
-	models.HostStageWritingImageToDisk, models.HostStageRebooting,
-	models.HostStageConfiguring, models.HostStageJoined, models.HostStageDone,
-}
-var WorkerStages = [...]models.HostStage{
-	models.HostStageStartingInstallation, models.HostStageInstalling,
-	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane, models.HostStageRebooting,
-	models.HostStageWaitingForIgnition, models.HostStageConfiguring,
-	models.HostStageJoined, models.HostStageDone,
-}
-var SnoStages = [...]models.HostStage{
-	models.HostStageStartingInstallation, models.HostStageInstalling,
-	models.HostStageWaitingForBootkube, models.HostStageWritingImageToDisk,
-	models.HostStageRebooting, models.HostStageDone,
-}
-
-var manualRebootStages = []models.HostStage{
-	models.HostStageRebooting,
-	models.HostStageWaitingForIgnition,
-	models.HostStageConfiguring,
-	models.HostStageJoined,
-	models.HostStageDone,
-}
-
 var InstallationProgressTimeout = map[models.HostStage]time.Duration{
 	models.HostStageStartingInstallation:   30 * time.Minute,
 	models.HostStageWaitingForControlPlane: 60 * time.Minute,
@@ -916,24 +884,10 @@ func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db
 }
 
 func (m *Manager) GetStagesByRole(h *models.Host, isSNO bool) []models.HostStage {
-	var stages []models.HostStage
-	switch {
-	case h.Bootstrap || h.Role == models.HostRoleBootstrap:
-		if isSNO {
-			stages = SnoStages[:]
-		} else {
-			stages = BootstrapStages[:]
-		}
-	case h.Role == models.HostRoleMaster:
-		stages = MasterStages[:]
-	case h.Role == models.HostRoleWorker:
-		stages = WorkerStages[:]
-	default:
-		return []models.HostStage{}
-	}
+	stages := FindMatchingStages(h.Role, h.Bootstrap, isSNO)
 
 	// for day2 hosts, rebooting stage is considered as the last state as we don't have any way to follow up on it further.
-	if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+	if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost && len(stages) > 0 {
 		rebootingIndex := m.IndexOfStage(models.HostStageRebooting, stages)
 		stages = stages[:rebootingIndex+1]
 	}

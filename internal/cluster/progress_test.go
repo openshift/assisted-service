@@ -132,12 +132,9 @@ var _ = Describe("Progress bar test", func() {
 			bootstrapIndexReturned := 2
 			mastersIndexReturned := 3
 			workersIndexReturned := 1
-			mockHostAPI.EXPECT().GetStagesByRole(gomock.All(host.MatchRole(models.HostRoleBootstrap), host.MatchBootstrap()), false).Return(host.BootstrapStages[:]).Times(1)
-			mockHostAPI.EXPECT().GetStagesByRole(gomock.All(host.MatchRole(models.HostRoleMaster), gomock.Not(host.MatchBootstrap())), false).Return(host.MasterStages[:]).Times(2)
-			mockHostAPI.EXPECT().GetStagesByRole(gomock.All(host.MatchRole(models.HostRoleWorker), gomock.Not(host.MatchBootstrap())), false).Return(host.WorkerStages[:]).Times(2)
 			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.BootstrapStages[:]).Return(bootstrapIndexReturned).Times(1)
-			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.MasterStages[:]).Return(mastersIndexReturned).Times(2)
-			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.WorkerStages[:]).Return(workersIndexReturned).Times(2)
+			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.MasterStages[:]).Return(mastersIndexReturned).Times(1)
+			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.WorkerStages[:]).Return(workersIndexReturned).Times(1)
 
 			err := clusterApi.UpdateInstallProgress(ctx, clusterId)
 			Expect(err).NotTo(HaveOccurred())
@@ -219,11 +216,8 @@ var _ = Describe("Progress bar test", func() {
 		By("test progress in installed state", func() {
 			masterInstalledIndex := len(host.MasterStages) - 1
 			workersInstalledIndex := len(host.WorkerStages) - 1
-			mockHostAPI.EXPECT().GetStagesByRole(gomock.All(host.MatchRole(models.HostRoleMaster), gomock.Not(host.MatchBootstrap())), false).Return(host.MasterStages[:]).Times(3)
-			mockHostAPI.EXPECT().GetStagesByRole(gomock.All(host.MatchRole(models.HostRoleWorker), gomock.Not(host.MatchBootstrap())), false).Return(host.WorkerStages[:]).Times(3)
-			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.MasterStages[:]).Return(masterInstalledIndex).Times(3)
-			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.WorkerStages[:]).Return(workersInstalledIndex).Times(2)
-			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.WorkerStages[:]).Return(-1).Times(1)
+			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.MasterStages[:]).Return(masterInstalledIndex).Times(1)
+			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.WorkerStages[:]).Return(workersInstalledIndex).Times(1)
 
 			err := clusterApi.UpdateInstallProgress(ctx, clusterId)
 			Expect(err).NotTo(HaveOccurred())
@@ -263,7 +257,6 @@ var _ = Describe("Progress bar test", func() {
 
 		By("test progress with SNO", func() {
 			bootstrapIndexReturned := 3
-			mockHostAPI.EXPECT().GetStagesByRole(gomock.All(host.MatchRole(models.HostRoleBootstrap), host.MatchBootstrap()), true).Return(host.SnoStages[:]).Times(1)
 			mockHostAPI.EXPECT().IndexOfStage(gomock.Any(), host.SnoStages[:]).Return(bootstrapIndexReturned).Times(1)
 			err := clusterApi.UpdateInstallProgress(ctx, clusterId)
 			Expect(err).NotTo(HaveOccurred())
