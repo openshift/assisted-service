@@ -89,7 +89,6 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    usageNameToID(usage.HighAvailabilityModeUsage),
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
 			},
-			// Dev-Preview features
 			{
 				FeatureID:    usageNameToID(usage.VipDhcpAllocationUsage),
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
@@ -98,7 +97,6 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    usageNameToID(usage.CPUArchitectureARM64),
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
 			},
-			// Unsupported features
 			{
 				FeatureID:    usageNameToID(usage.ClusterManagedNetworkWithVMs),
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
