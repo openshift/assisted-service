@@ -1271,6 +1271,9 @@ func (r *BMACReconciler) newSpokeBMHSecret(secret *corev1.Secret) (*corev1.Secre
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secret.Name,
 			Namespace: OPENSHIFT_MACHINE_API_NAMESPACE,
+			Labels: map[string]string{
+				BackupLabel: BackupLabelValue,
+			},
 		},
 	}
 	mutateFn := func() error {
