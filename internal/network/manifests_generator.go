@@ -280,6 +280,12 @@ func (m *ManifestsGenerator) createDiskEncryptionManifest(ctx context.Context, l
 	log.Infof("Creating manifest to encrypt installation disk on %s nodes using %s encryption", manifestParams["ROLE"], manifestParams["ROLE"])
 
 	content, err := fillTemplate(manifestParams, diskEncryptionManifest, log)
+
+	//TODO: Remove this debug before merge
+	log.Info("DEBUG TANG: printing the manifest content:")
+	res := base64.StdEncoding.EncodeToString(content)
+	log.Info(res)
+
 	if err != nil {
 		log.WithError(err).Error("Failed to parse disk encryption manifest's template")
 		return err

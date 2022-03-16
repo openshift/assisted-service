@@ -181,8 +181,8 @@ var _ = Describe("disk encryption", func() {
 
 	var (
 		ctx                = context.Background()
-		defaultTangServers = `[{"url":"http://tang.example.com:7500","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"},` +
-			`{"URL":"http://tang.example.com:7501","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu8"}]`
+		defaultTangServers = `[{"url":"http://[2001:db8:3333:4444:5555:6666:7777:8888]:7500","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"},` +
+			`{"URL":"http://[2001:db8:3333:4444:5555:6666:7777:8888]:7501","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu8"}]`
 	)
 
 	It("test API", func() {
