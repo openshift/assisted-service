@@ -1086,18 +1086,6 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 	spec := agent.Spec
 	var err error
 
-	if internalHost.Approved != spec.Approved {
-		err = r.Installer.UpdateHostApprovedInternal(ctx, internalHost.InfraEnvID.String(), agent.Name, spec.Approved)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				err = common.NewApiError(http.StatusNotFound, err)
-			}
-			log.WithError(err).Errorf("Failed to approve Agent")
-			return err
-		}
-		log.Infof("Updated Agent Approve %s %s", agent.Name, agent.Namespace)
-	}
-
 	err = r.updateInstallerArgs(ctx, log, internalHost, agent)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -1164,28 +1152,37 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		}
 	}
 
-	if !hostUpdate {
-		return nil
-	}
+	if hostUpdate {
+		var hostStatusesBeforeInstallationOrUnbound = []string{
+			models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
+			models.HostStatusInsufficient, models.HostStatusPendingForInput,
+			models.HostStatusDisconnectedUnbound, models.HostStatusInsufficientUnbound, models.HostStatusDiscoveringUnbound,
+			models.HostStatusKnownUnbound,
+			models.HostStatusBinding,
+		}
+		if funk.ContainsString(hostStatusesBeforeInstallationOrUnbound, swag.StringValue(internalHost.Status)) {
+			_, err = r.Installer.V2UpdateHostInternal(ctx, *params)
 
-	var hostStatusesBeforeInstallationOrUnbound = []string{
-		models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
-		models.HostStatusInsufficient, models.HostStatusPendingForInput,
-		models.HostStatusDisconnectedUnbound, models.HostStatusInsufficientUnbound, models.HostStatusDiscoveringUnbound,
-		models.HostStatusKnownUnbound,
-		models.HostStatusBinding,
-	}
-	if funk.ContainsString(hostStatusesBeforeInstallationOrUnbound, swag.StringValue(internalHost.Status)) {
-		_, err = r.Installer.V2UpdateHostInternal(ctx, *params)
+			if err != nil {
+				log.WithError(err).Errorf("Failed to update host params %s %s", agent.Name, agent.Namespace)
+				return err
+			}
+			log.Infof("Updated host parameters for agent %s %s", agent.Name, agent.Namespace)
+		}
 
+	}
+	if internalHost.Approved != spec.Approved {
+		err = r.Installer.UpdateHostApprovedInternal(ctx, internalHost.InfraEnvID.String(), agent.Name, spec.Approved)
 		if err != nil {
-			log.WithError(err).Errorf("Failed to update host params %s %s", agent.Name, agent.Namespace)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				err = common.NewApiError(http.StatusNotFound, err)
+			}
+			log.WithError(err).Errorf("Failed to approve Agent")
 			return err
 		}
-		log.Infof("Updated host parameters for agent %s %s", agent.Name, agent.Namespace)
+		log.Infof("Updated Agent Approve %s %s", agent.Name, agent.Namespace)
 	}
-
-	log.Infof("Updated Agent spec %s %s", agent.Name, agent.Namespace)
+	log.Debugf("Updated Agent spec %s %s", agent.Name, agent.Namespace)
 
 	return nil
 }
