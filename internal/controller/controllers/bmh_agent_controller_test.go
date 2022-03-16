@@ -931,6 +931,8 @@ var _ = Describe("bmac reconcile", func() {
 				err = spokeClient.Get(ctx, types.NamespacedName{Name: adminKubeconfigSecret.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeSecret)
 				Expect(err).To(BeNil())
 				Expect(spokeSecret.Data).To(Equal(adminKubeconfigSecret.Data))
+				Expect(spokeSecret.Labels).To(HaveKeyWithValue(BackupLabel, BackupLabelValue))
+
 			})
 			It("should not set spoke BMH - None platform", func() {
 				clusterInstall.Spec.Networking.UserManagedNetworking = true
@@ -966,7 +968,8 @@ var _ = Describe("bmac reconcile", func() {
 					Namespace: cluster.Namespace,
 				}
 				Expect(c.Get(ctx, secretKey, secret)).To(BeNil())
-				Expect(secret.Labels[WatchResourceLabel]).To(Equal(WatchResourceValue))
+				Expect(secret.Labels).To(HaveKeyWithValue(WatchResourceLabel, WatchResourceValue))
+				Expect(secret.Labels).To(HaveKeyWithValue(BackupLabel, BackupLabelValue))
 			})
 
 			It("ClusterDeployment not set in Agent", func() {
