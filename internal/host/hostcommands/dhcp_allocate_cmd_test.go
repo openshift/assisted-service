@@ -27,7 +27,7 @@ var _ = Describe("dhcpallocate", func() {
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		dCmd = NewDhcpAllocateCmd(common.GetTestLog(), "quay.io/ocpmetal/dhcp_lease_allocator:latest", db)
+		dCmd = NewDhcpAllocateCmd(common.GetTestLog(), "quay.io/edge-infrastructure/dhcp_lease_allocator:latest", db)
 
 		id = strfmt.UUID("32b4463e-5f94-4245-87cf-a6948014045c")
 		clusterId = strfmt.UUID("bd9d3b83-80a3-4b94-8b61-c12b2f1a2373")

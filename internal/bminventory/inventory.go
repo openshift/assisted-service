@@ -85,7 +85,7 @@ const (
 
 type Config struct {
 	ignition.IgnitionConfig
-	AgentDockerImg                  string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	AgentDockerImg                  string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-agent:latest"`
 	ServiceBaseURL                  string            `envconfig:"SERVICE_BASE_URL"`
 	ImageServiceBaseURL             string            `envconfig:"IMAGE_SERVICE_BASE_URL"`
 	ServiceCACertPath               string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`

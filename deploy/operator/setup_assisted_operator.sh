@@ -5,7 +5,7 @@ source ${__dir}/mirror_utils.sh
 
 set -x
 
-INDEX_IMAGE="${INDEX_IMAGE:-quay.io/ocpmetal/assisted-service-index:latest}"
+INDEX_IMAGE="${INDEX_IMAGE:-quay.io/edge-infrastructure/assisted-service-index:latest}"
 STORAGE_CLASS_NAME="${STORAGE_CLASS_NAME:-assisted-service}"
 
 INDEX_TAG="${INDEX_TAG:-latest}"
@@ -306,7 +306,7 @@ if [ -z "$@" ]; then
     from_community_operators
   else
     from_index_image
-  fi 
+  fi
 fi
 
 if ! declare -F "$@"; then

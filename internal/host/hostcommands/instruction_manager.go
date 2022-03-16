@@ -51,9 +51,9 @@ type InstructionConfig struct {
 	ServiceBaseURL           string            `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath        string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
-	InstallerImage           string            `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
-	ControllerImage          string            `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
-	AgentImage               string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	InstallerImage           string            `envconfig:"INSTALLER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer:latest"`
+	ControllerImage          string            `envconfig:"CONTROLLER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-controller:latest"`
+	AgentImage               string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-agent:latest"`
 	SkipCertVerification     bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
 	DiskCheckTimeout         time.Duration     `envconfig:"DISK_CHECK_TIMEOUT" default:"8m"`
 	ImageAvailabilityTimeout time.Duration     `envconfig:"IMAGE_AVAILABILITY_TIMEOUT" default:"16m"`

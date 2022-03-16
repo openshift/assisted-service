@@ -5,9 +5,9 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <meta name="author" content="Openshift Assisted Service Team">
-  
+
   <link rel="shortcut icon" href="../img/favicon.ico">
   <title>assisted-service Live ISO - Openshift Assisted Service</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
@@ -15,25 +15,25 @@
   <link rel="stylesheet" href="../css/theme.css" />
   <link rel="stylesheet" href="../css/theme_extra.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
-  
+
   <script>
     // Current page data
     var mkdocs_page_name = "assisted-service Live ISO";
     var mkdocs_page_input_path = "installer-live-iso.md";
     var mkdocs_page_url = null;
   </script>
-  
+
   <script src="../js/jquery-2.1.1.min.js" defer></script>
   <script src="../js/modernizr-2.8.3.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+  <script>hljs.initHighlightingOnLoad();</script>
 </head>
 
 <body class="wy-body-for-nav" role="document">
 
   <div class="wy-grid-for-nav">
 
-    
+
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
     <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
@@ -83,39 +83,39 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
-      
+
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
         <a href="..">Openshift Assisted Service</a>
       </nav>
 
-      
+
       <div class="wy-nav-content">
         <div class="rst-content">
           <div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
     <li><a href="..">Docs</a> &raquo;</li>
-    
-      
-    
+
+
+
     <li>assisted-service Live ISO</li>
     <li class="wy-breadcrumbs-aside">
-      
+
     </li>
   </ul>
-  
+
   <hr/>
 </div>
 
           <div role="main">
             <div class="section">
-              
+
                 <h1 id="assisted-service-live-iso">assisted-service Live ISO</h1>
 <p>The assisted-service can be deployed using a live ISO. The live ISO deploys the assisted-service
 using containers on RHCOS. The assisted-service live ISO is a RHCOS live ISO that is customized with an ignition config file.</p>
 <h2 id="how-to-create-an-assisted-service-live-iso">How to create an assisted-service live ISO</h2>
 <h3 id="create-the-ignition-config">Create the ignition config</h3>
-<p>A ignition config that deploys the assisted-service is available at 
+<p>A ignition config that deploys the assisted-service is available at
 https://raw.githubusercontent.com/openshift/assisted-service/master/config/onprem-iso-config.ign.</p>
 <p>Download this ignition config and modify it to include your ssh public key and your registry.redhat.io pull secret. The example below assumes your pull secret is saved into a file called auth.json.</p>
 <pre><code>wget https://raw.githubusercontent.com/openshift/assisted-service/master/config/onprem-iso-config.ign
@@ -126,14 +126,14 @@ export PULL_SECRET_ENCODED=$(export PULL_SECRET=$(cat auth.json); urlencode $PUL
 sed -i 's#replace-with-your-ssh-public-key#'&quot;${SSH_PUBLIC_KEY}&quot;'#' onprem-iso-config.ign
 sed -i 's#replace-with-your-urlencoded-pull-secret#'&quot;${PULL_SECRET_ENCODED}&quot;'#' onprem-iso-config.ign
 </code></pre>
-<p>Currently, the upstream assisted-service container image cannot be used with the live ISO. You will 
+<p>Currently, the upstream assisted-service container image cannot be used with the live ISO. You will
 need to build a custom container image and push it to quay.io.</p>
 <pre><code>export SERVICE=quay.io/&lt;your-org&gt;/assisted-service:latest
 make build
 docker push ${SERVICE}
 </code></pre>
 <p>Then update the ignition config file to use your assisted-service container image.</p>
-<pre><code>sed -i 's#quay.io/ocpmetal/assisted-service:latest#'&quot;${SERVICE}&quot;'#' onprem-iso-config.ign
+<pre><code>sed -i 's#quay.io/edge-infrastructure/assisted-service:latest#'&quot;${SERVICE}&quot;'#' onprem-iso-config.ign
 </code></pre>
 <h3 id="download-the-base-rhcos-live-iso">Download the base RHCOS live ISO</h3>
 <pre><code>wget https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/latest/rhcos-live.x86_64.iso
@@ -171,22 +171,22 @@ create the assisted-service live ISO.</p>
 <p>There is also a make target that you can use, which wraps the above command to generate the ignition file:</p>
 <pre><code>make generate-onprem-iso-ignition
 </code></pre>
-              
+
             </div>
           </div>
           <footer>
-  
+
 
   <hr/>
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-    
+
   </div>
 
   Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-      
+
         </div>
       </div>
 
@@ -196,13 +196,13 @@ create the assisted-service live ISO.</p>
 
   <div class="rst-versions" role="note" aria-label="versions">
   <span class="rst-current-version" data-toggle="rst-current-version">
-    
+
         <span>
           <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
         </span>
-    
-    
-    
+
+
+
   </span>
 </div>
     <script>var base_url = '..';</script>

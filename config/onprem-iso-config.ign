@@ -81,12 +81,12 @@
         "name": "assisted-service-pod.service"
       },
       {
-        "contents": "[Unit]\nAfter=assisted-service-pod.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db quay.io/ocpmetal/postgresql-12-centos7\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "contents": "[Unit]\nAfter=assisted-service-pod.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db quay.io/edge-infrastructure/postgresql-12-centos7\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
         "enabled": true,
         "name": "assisted-service-db.service"
       },
       {
-        "contents": "[Unit]\nAfter=assisted-service-db.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /bin/coreos-installer:/data/coreos-installer:z -v /etc/assisted-service/livecd.iso:/data/livecd.iso:z -v /etc/assisted-service/nginx-certs/nginx-selfsigned.crt:/data/nginx-selfsigned.crt:z --restart always --name installer quay.io/ocpmetal/assisted-service:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "contents": "[Unit]\nAfter=assisted-service-db.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /bin/coreos-installer:/data/coreos-installer:z -v /etc/assisted-service/livecd.iso:/data/livecd.iso:z -v /etc/assisted-service/nginx-certs/nginx-selfsigned.crt:/data/nginx-selfsigned.crt:z --restart always --name installer quay.io/edge-infrastructure/assisted-service:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
         "enabled": true,
         "name": "assisted-service-installer.service"
       },

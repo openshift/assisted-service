@@ -429,7 +429,7 @@ var _ = Describe("dns name", func() {
 var _ = Describe("Get registry from container image name", func() {
 
 	It("all registries present when ignore list empty", func() {
-		images := []string{"registry.redhat.io/fedora:32", "quay.io/ocpmetal/assisted-service:latest"}
+		images := []string{"registry.redhat.io/fedora:32", "quay.io/edge-infrastructure/assisted-service:latest"}
 		registries, err := getRegistriesWithAuth("", ",", images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(2))
@@ -438,7 +438,7 @@ var _ = Describe("Get registry from container image name", func() {
 	})
 
 	It("multiple images with same registry result in one auth entry", func() {
-		images := []string{"quay.io/ocpmetal/assisted-service:4.6", "quay.io/ocpmetal/assisted-service:latest"}
+		images := []string{"quay.io/edge-infrastructure/assisted-service:4.6", "quay.io/edge-infrastructure/assisted-service:latest"}
 		registries, err := getRegistriesWithAuth("", ",", images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(1))
@@ -478,7 +478,7 @@ var _ = Describe("Get registry from container image name", func() {
 	})
 
 	It("all multiple entries from the same registries omitted when in ingore list", func() {
-		images := []string{"quay.io/private/service:v1", "quay.io/ocpmetal/assisted-service:latest"}
+		images := []string{"quay.io/private/service:v1", "quay.io/edge-infrastructure/assisted-service:latest"}
 		registries, err := getRegistriesWithAuth("quay.io", ",", images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(0))

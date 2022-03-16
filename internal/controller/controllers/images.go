@@ -25,7 +25,7 @@ const (
 )
 
 func ServiceImage() string {
-	return getEnvVar("SERVICE_IMAGE", "quay.io/ocpmetal/assisted-service:latest")
+	return getEnvVar("SERVICE_IMAGE", "quay.io/edge-infrastructure/assisted-service:latest")
 }
 
 func ImageServiceImage() string {
@@ -33,19 +33,19 @@ func ImageServiceImage() string {
 }
 
 func DatabaseImage() string {
-	return getEnvVar("DATABASE_IMAGE", "quay.io/ocpmetal/postgresql-12-centos7:latest")
+	return getEnvVar("DATABASE_IMAGE", "quay.io/edge-infrastructure/postgresql-12-centos7:latest")
 }
 
 func AgentImage() string {
-	return getEnvVar("AGENT_IMAGE", "quay.io/ocpmetal/assisted-installer-agent:latest")
+	return getEnvVar("AGENT_IMAGE", "quay.io/edge-infrastructure/assisted-installer-agent:latest")
 }
 
 func ControllerImage() string {
-	return getEnvVar("CONTROLLER_IMAGE", "quay.io/ocpmetal/assisted-installer-controller:latest")
+	return getEnvVar("CONTROLLER_IMAGE", "quay.io/edge-infrastructure/assisted-installer-controller:latest")
 }
 
 func InstallerImage() string {
-	return getEnvVar("INSTALLER_IMAGE", "quay.io/ocpmetal/assisted-installer:latest")
+	return getEnvVar("INSTALLER_IMAGE", "quay.io/edge-infrastructure/assisted-installer:latest")
 }
 
 func ServiceAccountName() string {

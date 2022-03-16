@@ -5,9 +5,9 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <meta name="author" content="Openshift Assisted Service Team">
-  
+
   <link rel="shortcut icon" href="../img/favicon.ico">
   <title>Operator build and deployment - Openshift Assisted Service</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
@@ -15,25 +15,25 @@
   <link rel="stylesheet" href="../css/theme.css" />
   <link rel="stylesheet" href="../css/theme_extra.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
-  
+
   <script>
     // Current page data
     var mkdocs_page_name = "Operator build and deployment";
     var mkdocs_page_input_path = "operator.md";
     var mkdocs_page_url = null;
   </script>
-  
+
   <script src="../js/jquery-2.1.1.min.js" defer></script>
   <script src="../js/modernizr-2.8.3.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+  <script>hljs.initHighlightingOnLoad();</script>
 </head>
 
 <body class="wy-body-for-nav" role="document">
 
   <div class="wy-grid-for-nav">
 
-    
+
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
     <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
@@ -83,33 +83,33 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
-      
+
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
         <a href="..">Openshift Assisted Service</a>
       </nav>
 
-      
+
       <div class="wy-nav-content">
         <div class="rst-content">
           <div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
     <li><a href="..">Docs</a> &raquo;</li>
-    
-      
-    
+
+
+
     <li>Operator build and deployment</li>
     <li class="wy-breadcrumbs-aside">
-      
+
     </li>
   </ul>
-  
+
   <hr/>
 </div>
 
           <div role="main">
             <div class="section">
-              
+
                 <h1 id="operator-build-and-deployment">Operator build and deployment</h1>
 <h2 id="prerequisites">Prerequisites</h2>
 <ol>
@@ -157,7 +157,7 @@ EOF
 <p>Deploy the operator using the operator-sdk:</p>
 <pre><code class="language-bash">operator-sdk run bundle \
   --namespace assisted-installer \
-  ${BUNDLE_IMAGE:-quay.io/ocpmetal/assisted-service-operator-bundle:latest}
+  ${BUNDLE_IMAGE:-quay.io/edge-infrastructure/assisted-service-operator-bundle:latest}
 </code></pre>
 <p>Now you should see the <code>infrastructure-operator</code> deployment running in the
 <code>assisted-installer</code> namespace.</p>
@@ -378,22 +378,22 @@ spec:
 EOF
 </code></pre>
 <p>For more details on how to specify the CR, see <a href="https://github.com/openshift/assisted-service/blob/master/config/crd/bases/agent-install.openshift.io_agentserviceconfigs.yaml">AgentServiceConfig CRD</a>.</p>
-              
+
             </div>
           </div>
           <footer>
-  
+
 
   <hr/>
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-    
+
   </div>
 
   Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-      
+
         </div>
       </div>
 
@@ -403,13 +403,13 @@ EOF
 
   <div class="rst-versions" role="note" aria-label="versions">
   <span class="rst-current-version" data-toggle="rst-current-version">
-    
+
         <span>
           <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
         </span>
-    
-    
-    
+
+
+
   </span>
 </div>
     <script>var base_url = '..';</script>

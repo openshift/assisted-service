@@ -138,9 +138,9 @@ var _ = Describe("list versions", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListComponentVersionsOK()))
 			val, _ := reply.(*operations.V2ListComponentVersionsOK)
 			Expect(val.Payload.Versions["assisted-installer-service"]).
-				Should(Equal("quay.io/ocpmetal/assisted-service:latest"))
-			Expect(val.Payload.Versions["discovery-agent"]).Should(Equal("quay.io/ocpmetal/agent:latest"))
-			Expect(val.Payload.Versions["assisted-installer"]).Should(Equal("quay.io/ocpmetal/assisted-installer:latest"))
+				Should(Equal("quay.io/edge-infrastructure/assisted-service:latest"))
+			Expect(val.Payload.Versions["discovery-agent"]).Should(Equal("quay.io/edge-infrastructure/agent:latest"))
+			Expect(val.Payload.Versions["assisted-installer"]).Should(Equal("quay.io/edge-infrastructure/assisted-installer:latest"))
 			Expect(val.Payload.ReleaseTag).Should(Equal(""))
 		})
 

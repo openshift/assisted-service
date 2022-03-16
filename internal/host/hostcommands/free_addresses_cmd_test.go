@@ -24,7 +24,7 @@ var _ = Describe("free_addresses", func() {
 	var dbName string
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		fCmd = newFreeAddressesCmd(common.GetTestLog(), "quay.io/ocpmetal/free_addresses:latest")
+		fCmd = newFreeAddressesCmd(common.GetTestLog(), "quay.io/edge-infrastructure/free_addresses:latest")
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())

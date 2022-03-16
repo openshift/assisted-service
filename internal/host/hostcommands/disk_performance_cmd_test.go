@@ -32,7 +32,7 @@ var _ = Describe("disk_performance", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
-		dCmd = NewDiskPerfCheckCmd(common.GetTestLog(), "quay.io/ocpmetal/agent:latest", mockValidator, 600)
+		dCmd = NewDiskPerfCheckCmd(common.GetTestLog(), "quay.io/edge-infrastructure/agent:latest", mockValidator, 600)
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())

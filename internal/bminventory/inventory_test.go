@@ -10753,7 +10753,7 @@ var _ = Describe("update image version", func() {
 	})
 
 	It("same image", func() {
-		agentImage := fmt.Sprintf("%s:%s", "quay.io/ocpmetal/agent", uuid.New().String())
+		agentImage := fmt.Sprintf("%s:%s", "quay.io/edge-infrastructure/agent", uuid.New().String())
 		bm.AgentDockerImg = agentImage
 		params.NewHostParams.DiscoveryAgentVersion = agentImage
 		bm.generateV2NextStepRunnerCommand(ctx, params)
@@ -10771,7 +10771,7 @@ var _ = Describe("update image version", func() {
 	It("image name mismatch", func() {
 		imageTag := uuid.New().String()
 		bm.AgentDockerImg = fmt.Sprintf("%s:%s", "quay.io/edge-infrastructure/assisted-installer-agent", imageTag)
-		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("%s:%s", "quay.io/ocpmetal/agent", imageTag)
+		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("%s:%s", "quay.io/edge-infrastructure/agent", imageTag)
 		bm.generateV2NextStepRunnerCommand(ctx, params)
 		Expect(logHook.LastEntry().Message).To(ContainSubstring("uses an outdated agent image"))
 	})

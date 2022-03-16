@@ -62,7 +62,7 @@ Deploy the operator using the operator-sdk:
 ```bash
 operator-sdk run bundle \
   --namespace assisted-installer \
-  ${BUNDLE_IMAGE:-quay.io/ocpmetal/assisted-service-operator-bundle:latest}
+  ${BUNDLE_IMAGE:-quay.io/edge-infrastructure/assisted-service-operator-bundle:latest}
 ```
 
 Now you should see the `infrastructure-operator` deployment running in the
@@ -317,7 +317,7 @@ Registries defined in the *registries.conf* file should use "mirror-by-digest-on
 
 Registries defined in the *registries.conf* must be scoped by repository and not by registry. In the above example, *quay.io/ocpmetal* and *mirror1.registry.corp.com:5000/ocpmetal* are both scoped by the *ocpmetal* repository and this is a valid configuration. In the example below, removing the repository *ocpmetal* from location is an invalid configuration and will not pass openshift-installer validation:
 
-``` 
+```
 # invalid configuration
     [[registry]]
        prefix = ""

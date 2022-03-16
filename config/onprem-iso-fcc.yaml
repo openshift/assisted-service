@@ -68,7 +68,7 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db quay.io/ocpmetal/postgresql-12-centos7
+            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db quay.io/edge-infrastructure/postgresql-12-centos7
             TimeoutStartSec=300
 
             [Install]
@@ -82,7 +82,7 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /bin/coreos-installer:/data/coreos-installer:z -v /etc/assisted-service/livecd.iso:/data/livecd.iso:z -v /etc/assisted-service/nginx-certs/nginx-selfsigned.crt:/data/nginx-selfsigned.crt:z --restart always --name installer quay.io/ocpmetal/assisted-service:latest
+            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /bin/coreos-installer:/data/coreos-installer:z -v /etc/assisted-service/livecd.iso:/data/livecd.iso:z -v /etc/assisted-service/nginx-certs/nginx-selfsigned.crt:/data/nginx-selfsigned.crt:z --restart always --name installer quay.io/edge-infrastructure/assisted-service:latest
             TimeoutStartSec=300
 
             [Install]
