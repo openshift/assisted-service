@@ -65,7 +65,7 @@ func (a *AuthzHandler) isObjectOwnedByUser(id string, obj interface{}, username 
 func (a *AuthzHandler) Authorizer(request *http.Request) error {
 	route := middleware.MatchedRouteFrom(request)
 	switch authScheme := route.Authenticator.Schemes[0]; authScheme {
-	case "imageAuth":
+	case "imageAuth", "imageURLAuth":
 		return a.imageTokenAuthorizer(request.Context())
 	default:
 		return a.ocmAuthorizer(request)

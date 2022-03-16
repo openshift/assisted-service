@@ -483,7 +483,7 @@ func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Con
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	return installer.NewV2GetPresignedForClusterCredentialsOK().WithPayload(&models.Presigned{URL: &url})
+	return installer.NewV2GetPresignedForClusterCredentialsOK().WithPayload(&models.PresignedURL{URL: &url})
 }
 
 func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params installer.GetInfraEnvDownloadURLParams) middleware.Responder {
@@ -519,7 +519,7 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 		return common.GenerateErrorResponder(err)
 	}
 
-	return installer.NewGetInfraEnvDownloadURLOK().WithPayload(&models.InfraEnvImageURL{URL: newURL, ExpiresAt: *expiresAt})
+	return installer.NewGetInfraEnvDownloadURLOK().WithPayload(&models.PresignedURL{URL: &newURL, ExpiresAt: *expiresAt})
 }
 
 func (b *bareMetalInventory) generateImageDownloadURL(ctx context.Context, infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {
@@ -642,4 +642,38 @@ func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *c
 	}
 
 	return fmt.Sprintf(ipxeScriptFormat, kernelURL, rootfsURL, initrdURL), nil
+}
+
+func (b *bareMetalInventory) GetInfraEnvPresignedFileURL(ctx context.Context, params installer.GetInfraEnvPresignedFileURLParams) middleware.Responder {
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	builder := &installer.V2DownloadInfraEnvFilesURL{
+		InfraEnvID: params.InfraEnvID,
+		FileName:   params.FileName,
+	}
+	filesURL, err := builder.Build()
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	baseURL, err := url.Parse(b.Config.ServiceBaseURL)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	baseURL.Path = path.Join(baseURL.Path, filesURL.Path)
+	baseURL.RawQuery = filesURL.RawQuery
+
+	signedURL, exp, err := b.signURL(ctx, params.InfraEnvID.String(), baseURL.String(), infraEnv.ImageTokenKey)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	return &installer.GetInfraEnvPresignedFileURLOK{
+		Payload: &models.PresignedURL{
+			URL:       &signedURL,
+			ExpiresAt: *exp,
+		},
+	}
 }

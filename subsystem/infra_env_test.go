@@ -1,8 +1,11 @@
 package subsystem
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"time"
 
@@ -135,7 +138,6 @@ var _ = Describe("Infra_Env", func() {
 		s, err := file.Stat()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(s.Size()).ShouldNot(Equal(0))
-
 	})
 
 	It("download infra-env files invalid filename option", func() {
@@ -143,7 +145,6 @@ var _ = Describe("Infra_Env", func() {
 		Expect(err).NotTo(HaveOccurred())
 		_, err = userBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "bootstrap.ign"}, file)
 		Expect(err).Should(HaveOccurred())
-
 	})
 
 	It("can list infra-envs", func() {
@@ -179,5 +180,29 @@ var _ = Describe("Infra_Env", func() {
 		_, err = userBMClient.Installer.DeregisterInfraEnv(ctx, &installer.DeregisterInfraEnvParams{InfraEnvID: infraEnvID})
 
 		Expect(err).To(HaveOccurred())
+	})
+
+	It("can get ipxe script", func() {
+		buf := &bytes.Buffer{}
+		_, err := userBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "ipxe-script"}, buf)
+		Expect(err).NotTo(HaveOccurred())
+
+		script := buf.String()
+		Expect(script).To(HavePrefix("#!ipxe"))
+	})
+
+	It("can get ipxe script presigned url", func() {
+		res, err := userBMClient.Installer.GetInfraEnvPresignedFileURL(ctx, &installer.GetInfraEnvPresignedFileURLParams{InfraEnvID: infraEnvID, FileName: "ipxe-script"})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Payload).ToNot(BeNil())
+		u := res.Payload.URL
+		Expect(u).NotTo(BeNil())
+
+		scriptResp, err := http.Get(*u)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(scriptResp.StatusCode).To(Equal(http.StatusOK))
+		script, err := io.ReadAll(scriptResp.Body)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(script).To(HavePrefix("#!ipxe"))
 	})
 })

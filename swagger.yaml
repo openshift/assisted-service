@@ -49,6 +49,10 @@ securityDefinitions:
     type: apiKey
     in: header
     name: Image-Token
+  imageURLAuth:
+    type: apiKey
+    in: query
+    name: image_token
 
 security:
   - userAuth: [admin, user]
@@ -602,7 +606,7 @@ paths:
         "200":
           description: Success.
           schema:
-            $ref: '#/definitions/infra-env-image-url'
+            $ref: '#/definitions/presigned-url'
         "400":
           description: Bad Request.
           schema:
@@ -1536,6 +1540,7 @@ paths:
         - agentAuth: []
         - urlAuth: []
         - imageAuth: []
+        - imageURLAuth: []
       description: Downloads the customized ignition file for this host
       operationId: v2DownloadInfraEnvFiles
       produces:
@@ -1580,6 +1585,59 @@ paths:
             $ref: '#/definitions/error'
         "409":
           description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/infra-envs/{infra_env_id}/downloads/files-presigned:
+    get:
+      tags:
+        - installer
+      description: Creates a new pre-signed download URL for the infra-env.
+      operationId: GetInfraEnvPresignedFileURL
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The file's infra-env.
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: file_name
+          description: The file to be downloaded.
+          type: string
+          enum: [discovery.ign, ipxe-script]
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/presigned-url'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
         "500":
@@ -1746,7 +1804,7 @@ paths:
         "200":
           description: Success.
           schema:
-            $ref: '#/definitions/presigned'
+            $ref: '#/definitions/presigned-url'
         "400":
           description: Error.
           schema:
@@ -1986,7 +2044,7 @@ paths:
         "200":
           description: Success.
           schema:
-            $ref: '#/definitions/presigned'
+            $ref: '#/definitions/presigned-url'
         "400":
           description: Error.
           schema:
@@ -5553,14 +5611,6 @@ definitions:
       - variable
       - unreachable
 
-  presigned:
-    type: object
-    required:
-      - url
-    properties:
-      url:
-        type: string
-
   cluster-validation-id:
     type: string
     enum:
@@ -6040,8 +6090,10 @@ definitions:
         type: string
         format: uuid
 
-  infra-env-image-url:
+  presigned-url:
     type: object
+    required:
+      - url
     properties:
       url:
         type: string

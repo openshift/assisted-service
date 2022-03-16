@@ -1058,7 +1058,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/presigned"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -1285,7 +1285,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/presigned"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -3105,6 +3105,9 @@ func init() {
           },
           {
             "imageAuth": []
+          },
+          {
+            "imageURLAuth": []
           }
         ],
         "description": "Downloads the customized ignition file for this host",
@@ -3200,6 +3203,86 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/downloads/files-presigned": {
+      "get": {
+        "description": "Creates a new pre-signed download URL for the infra-env.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetInfraEnvPresignedFileURL",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The file's infra-env.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "discovery.ign",
+              "ipxe-script"
+            ],
+            "type": "string",
+            "description": "The file to be downloaded.",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/presigned-url"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/downloads/image-url": {
       "get": {
         "description": "Creates a new pre-signed image download URL for the infra-env.",
@@ -3221,7 +3304,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/infra-env-image-url"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -7329,20 +7412,6 @@ func init() {
         }
       }
     },
-    "infra-env-image-url": {
-      "type": "object",
-      "properties": {
-        "expires_at": {
-          "description": "Expiration time for the URL token.",
-          "type": "string",
-          "format": "date-time"
-        },
-        "url": {
-          "description": "Pre-signed URL for downloading the infra-env discovery image.",
-          "type": "string"
-        }
-      }
-    },
     "infra-env-list": {
       "type": "array",
       "items": {
@@ -8126,13 +8195,19 @@ func init() {
         }
       }
     },
-    "presigned": {
+    "presigned-url": {
       "type": "object",
       "required": [
         "url"
       ],
       "properties": {
+        "expires_at": {
+          "description": "Expiration time for the URL token.",
+          "type": "string",
+          "format": "date-time"
+        },
         "url": {
+          "description": "Pre-signed URL for downloading the infra-env discovery image.",
           "type": "string"
         }
       }
@@ -8598,6 +8673,11 @@ func init() {
       "type": "apiKey",
       "name": "Image-Token",
       "in": "header"
+    },
+    "imageURLAuth": {
+      "type": "apiKey",
+      "name": "image_token",
+      "in": "query"
     },
     "urlAuth": {
       "type": "apiKey",
@@ -9690,7 +9770,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/presigned"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -9917,7 +9997,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/presigned"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -11737,6 +11817,9 @@ func init() {
           },
           {
             "imageAuth": []
+          },
+          {
+            "imageURLAuth": []
           }
         ],
         "description": "Downloads the customized ignition file for this host",
@@ -11832,6 +11915,86 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/downloads/files-presigned": {
+      "get": {
+        "description": "Creates a new pre-signed download URL for the infra-env.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetInfraEnvPresignedFileURL",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The file's infra-env.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "discovery.ign",
+              "ipxe-script"
+            ],
+            "type": "string",
+            "description": "The file to be downloaded.",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/presigned-url"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/downloads/image-url": {
       "get": {
         "description": "Creates a new pre-signed image download URL for the infra-env.",
@@ -11853,7 +12016,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/infra-env-image-url"
+              "$ref": "#/definitions/presigned-url"
             }
           },
           "400": {
@@ -16022,20 +16185,6 @@ func init() {
         }
       }
     },
-    "infra-env-image-url": {
-      "type": "object",
-      "properties": {
-        "expires_at": {
-          "description": "Expiration time for the URL token.",
-          "type": "string",
-          "format": "date-time"
-        },
-        "url": {
-          "description": "Pre-signed URL for downloading the infra-env discovery image.",
-          "type": "string"
-        }
-      }
-    },
     "infra-env-list": {
       "type": "array",
       "items": {
@@ -16808,13 +16957,19 @@ func init() {
         }
       }
     },
-    "presigned": {
+    "presigned-url": {
       "type": "object",
       "required": [
         "url"
       ],
       "properties": {
+        "expires_at": {
+          "description": "Expiration time for the URL token.",
+          "type": "string",
+          "format": "date-time"
+        },
         "url": {
+          "description": "Pre-signed URL for downloading the infra-env discovery image.",
           "type": "string"
         }
       }
@@ -17280,6 +17435,11 @@ func init() {
       "type": "apiKey",
       "name": "Image-Token",
       "in": "header"
+    },
+    "imageURLAuth": {
+      "type": "apiKey",
+      "name": "image_token",
+      "in": "query"
     },
     "urlAuth": {
       "type": "apiKey",

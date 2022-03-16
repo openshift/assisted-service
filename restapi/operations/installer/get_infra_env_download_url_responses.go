@@ -25,7 +25,7 @@ type GetInfraEnvDownloadURLOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.InfraEnvImageURL `json:"body,omitempty"`
+	Payload *models.PresignedURL `json:"body,omitempty"`
 }
 
 // NewGetInfraEnvDownloadURLOK creates GetInfraEnvDownloadURLOK with default headers values
@@ -35,13 +35,13 @@ func NewGetInfraEnvDownloadURLOK() *GetInfraEnvDownloadURLOK {
 }
 
 // WithPayload adds the payload to the get infra env download Url o k response
-func (o *GetInfraEnvDownloadURLOK) WithPayload(payload *models.InfraEnvImageURL) *GetInfraEnvDownloadURLOK {
+func (o *GetInfraEnvDownloadURLOK) WithPayload(payload *models.PresignedURL) *GetInfraEnvDownloadURLOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get infra env download Url o k response
-func (o *GetInfraEnvDownloadURLOK) SetPayload(payload *models.InfraEnvImageURL) {
+func (o *GetInfraEnvDownloadURLOK) SetPayload(payload *models.PresignedURL) {
 	o.Payload = payload
 }
 
