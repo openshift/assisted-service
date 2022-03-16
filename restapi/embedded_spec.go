@@ -11132,7 +11132,7 @@ func init() {
                   "DISK_ENCRYPTION",
                   "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
                   "ARM64_ARCHITECTURE",
-                  "ODF_OPERATOR"
+                  "ODF"
                 ]
               },
               "support_level": {
@@ -22866,7 +22866,7 @@ func init() {
             "DISK_ENCRYPTION",
             "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
             "ARM64_ARCHITECTURE",
-            "ODF_OPERATOR"
+            "ODF"
           ]
         },
         "support_level": {

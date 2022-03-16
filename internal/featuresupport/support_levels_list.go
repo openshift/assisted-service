@@ -101,7 +101,7 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Unsupported features
 			{
 				// ODF is marked as unsupported only for v2.1 and because we don't have the ODF code changes in this version
-				FeatureID:    usageNameToID("odf-operator"),
+				FeatureID:    usageNameToID("odf"),
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 			{
