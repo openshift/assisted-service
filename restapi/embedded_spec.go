@@ -11131,7 +11131,8 @@ func init() {
                   "CUSTOM_MANIFEST",
                   "DISK_ENCRYPTION",
                   "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
-                  "ARM64_ARCHITECTURE"
+                  "ARM64_ARCHITECTURE",
+                  "ODF_OPERATOR"
                 ]
               },
               "support_level": {
@@ -22864,7 +22865,8 @@ func init() {
             "CUSTOM_MANIFEST",
             "DISK_ENCRYPTION",
             "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
-            "ARM64_ARCHITECTURE"
+            "ARM64_ARCHITECTURE",
+            "ODF_OPERATOR"
           ]
         },
         "support_level": {
