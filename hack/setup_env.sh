@@ -39,6 +39,12 @@ function spectral() {
   chmod +x /usr/local/bin/spectral
 }
 
+function jq() {
+  echo "Installing jq..."
+  curl -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 --output /usr/local/bin/jq
+  chmod +x /usr/local/bin/jq
+}
+
 function butane() {
   echo "Installing butane..."
   curl https://mirror.openshift.com/pub/openshift-v4/clients/butane/latest/butane-${ARCH} --output /usr/local/bin/butane
@@ -53,10 +59,10 @@ function assisted_service() {
     install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
     rm -f /tmp/kubectl
 
-  yum clean all && yum makecache
-  yum --disablerepo=epel -y update ca-certificates
   yum install -y --setopt=skip_missing_names_on_install=False \
-    docker podman awscli python3-pip genisoimage skopeo p7zip
+    docker podman awscli python3-pip genisoimage skopeo
+
+  jq
 
   butane
 
