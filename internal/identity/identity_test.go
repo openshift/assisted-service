@@ -75,4 +75,63 @@ var _ = Describe("Identity", func() {
 			Expect(query).Should(Equal("id = ? and user_name = 'test_user'"))
 		})
 	})
+
+	Context("AddOwnerFilter", func() {
+		It("admin user - empty query - filter by user", func() {
+			payload := &ocm.AuthPayload{}
+			payload.Role = ocm.AdminRole
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+			query := AddOwnerFilter(ctx, "", false)
+			Expect(query).Should(Equal(""))
+		})
+		It("admin user - non-empty query - filter by user", func() {
+			payload := &ocm.AuthPayload{}
+			payload.Role = ocm.AdminRole
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+			query := AddOwnerFilter(ctx, "id = ?", false)
+			Expect(query).Should(Equal("id = ?"))
+		})
+		It("non-admin user - empty query - filter by user", func() {
+			payload := &ocm.AuthPayload{}
+			payload.Username = "test_user"
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+			query := AddOwnerFilter(ctx, "", false)
+			Expect(query).Should(Equal("user_name = 'test_user'"))
+		})
+		It("non-admin user - non-empty query - filter by user", func() {
+			payload := &ocm.AuthPayload{}
+			payload.Username = "test_user"
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+			query := AddOwnerFilter(ctx, "id = ?", false)
+			Expect(query).Should(Equal("id = ? and user_name = 'test_user'"))
+		})
+		It("admin user - empty query - filter by org", func() {
+			payload := &ocm.AuthPayload{}
+			payload.Role = ocm.AdminRole
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+			query := AddOwnerFilter(ctx, "", true)
+			Expect(query).Should(Equal(""))
+		})
+		It("admin user - non-empty query - filter by org", func() {
+			payload := &ocm.AuthPayload{}
+			payload.Role = ocm.AdminRole
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+			query := AddOwnerFilter(ctx, "id = ?", true)
+			Expect(query).Should(Equal("id = ?"))
+		})
+		It("non-admin user - empty query - filter by org", func() {
+			payload := &ocm.AuthPayload{}
+			payload.Organization = "test_org"
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+			query := AddOwnerFilter(ctx, "", true)
+			Expect(query).Should(Equal("org_id = 'test_org'"))
+		})
+		It("non-admin user - non-empty query - filter by org", func() {
+			payload := &ocm.AuthPayload{}
+			payload.Organization = "test_org"
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+			query := AddOwnerFilter(ctx, "id = ?", true)
+			Expect(query).Should(Equal("id = ? and org_id = 'test_org'"))
+		})
+	})
 })

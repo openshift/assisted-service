@@ -26,6 +26,7 @@ type Authenticator interface {
 	AuthURLAuth(token string) (interface{}, error)
 	AuthImageAuth(token string) (interface{}, error)
 	AuthType() AuthType
+	EnableOrgTenancy() bool
 }
 
 type Config struct {
@@ -34,8 +35,9 @@ type Config struct {
 	JwkCertURL     string   `envconfig:"JWKS_URL" default:"https://api.openshift.com/.well-known/jwks.json"`
 	ECPublicKeyPEM string   `envconfig:"EC_PUBLIC_KEY_PEM"`
 	// Will be split with "," as separator
-	AllowedDomains string   `envconfig:"ALLOWED_DOMAINS" default:""`
-	AdminUsers     []string `envconfig:"ADMIN_USERS" default:""`
+	AllowedDomains   string   `envconfig:"ALLOWED_DOMAINS" default:""`
+	AdminUsers       []string `envconfig:"ADMIN_USERS" default:""`
+	EnableOrgTenancy bool     `envconfig:"ENABLE_ORG_TENANCY" default:"false"`
 }
 
 func NewAuthenticator(cfg *Config, ocmClient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) (a Authenticator, err error) {

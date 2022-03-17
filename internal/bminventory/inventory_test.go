@@ -6359,6 +6359,77 @@ var _ = Describe("infraEnvs", func() {
 		})
 	})
 
+	Context("Filter based on organization ID", func() {
+		var (
+			authCtx   context.Context
+			orgID1    = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
+			orgID2    = "DD71FD12-57FC-4480-917E-6F1900826543"
+			userName1 = "test_user_1"
+			userName2 = "test_user_2"
+		)
+
+		BeforeEach(func() {
+			_, cert := auth.GetTokenAndCert(false)
+			cfg := &auth.Config{JwkCert: string(cert)}
+			cfg.EnableOrgTenancy = true
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+
+			payload := &ocm.AuthPayload{Role: ocm.UserRole}
+			payload.Username = userName1
+			payload.Organization = orgID1
+			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+		})
+
+		It("multiple users in a single organization", func() {
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:       &infraEnvID,
+				OrgID:    orgID1,
+				UserName: userName1,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:       &infraEnvID,
+				OrgID:    orgID1,
+				UserName: userName2,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			resp := bm.ListInfraEnvs(authCtx, installer.ListInfraEnvsParams{})
+			Expect(resp).Should(BeAssignableToTypeOf(installer.NewListInfraEnvsOK()))
+			payload := resp.(*installer.ListInfraEnvsOK).Payload
+			Expect(len(payload)).Should(Equal(2))
+			Expect(payload[0].OrgID).Should(Equal(orgID1))
+			Expect(payload[1].OrgID).Should(Equal(orgID1))
+		})
+
+		It("multiple organizations", func() {
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:       &infraEnvID,
+				OrgID:    orgID1,
+				UserName: userName1,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:       &infraEnvID,
+				OrgID:    orgID2,
+				UserName: userName2,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			resp := bm.ListInfraEnvs(authCtx, installer.ListInfraEnvsParams{})
+			Expect(resp).Should(BeAssignableToTypeOf(installer.NewListInfraEnvsOK()))
+			payload := resp.(*installer.ListInfraEnvsOK).Payload
+			Expect(len(payload)).Should(Equal(1))
+			Expect(payload[0].OrgID).Should(Equal(orgID1))
+		})
+	})
+
 	Context("List Infra Env Hosts", func() {
 		var (
 			infraEnvId1, infraEnvId2 strfmt.UUID
@@ -8109,6 +8180,79 @@ var _ = Describe("List clusters", func() {
 			})
 			payload := resp.(*installer.V2ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(1))
+		})
+	})
+
+	Context("Filter based on organization ID", func() {
+		var (
+			authCtx   context.Context
+			orgID1    = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
+			orgID2    = "DD71FD12-57FC-4480-917E-6F1900826543"
+			userName1 = "test_user_1"
+			userName2 = "test_user_2"
+		)
+
+		BeforeEach(func() {
+			_, cert := auth.GetTokenAndCert(false)
+			cfg := &auth.Config{JwkCert: string(cert)}
+			cfg.EnableOrgTenancy = true
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+
+			payload := &ocm.AuthPayload{Role: ocm.UserRole}
+			payload.Username = userName1
+			payload.Organization = orgID1
+			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+		})
+
+		It("multiple users in a single organization", func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			c = common.Cluster{Cluster: models.Cluster{
+				ID:       &clusterID,
+				OrgID:    orgID1,
+				UserName: userName1,
+			}}
+			err := db.Create(&c).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			clusterID = strfmt.UUID(uuid.New().String())
+			c = common.Cluster{Cluster: models.Cluster{
+				ID:       &clusterID,
+				OrgID:    orgID1,
+				UserName: userName2,
+			}}
+			err = db.Create(&c).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{})
+			payload := resp.(*installer.V2ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(2))
+			Expect(payload[0].OrgID).Should(Equal(orgID1))
+			Expect(payload[1].OrgID).Should(Equal(orgID1))
+		})
+
+		It("multiple organizations", func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			c = common.Cluster{Cluster: models.Cluster{
+				ID:       &clusterID,
+				OrgID:    orgID1,
+				UserName: userName1,
+			}}
+			err := db.Create(&c).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			clusterID = strfmt.UUID(uuid.New().String())
+			c = common.Cluster{Cluster: models.Cluster{
+				ID:       &clusterID,
+				OrgID:    orgID2,
+				UserName: userName2,
+			}}
+			err = db.Create(&c).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{})
+			payload := resp.(*installer.V2ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(1))
+			Expect(payload[0].OrgID).Should(Equal(orgID1))
 		})
 	})
 })

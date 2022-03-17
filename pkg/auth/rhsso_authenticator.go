@@ -23,21 +23,23 @@ import (
 )
 
 type RHSSOAuthenticator struct {
-	KeyMap     map[string]*rsa.PublicKey
-	AdminUsers []string
-	utils      AUtilsInteface
-	log        logrus.FieldLogger
-	client     *ocm.Client
-	db         *gorm.DB
+	KeyMap            map[string]*rsa.PublicKey
+	AdminUsers        []string
+	OrgTenancyEnabled bool
+	utils             AUtilsInteface
+	log               logrus.FieldLogger
+	client            *ocm.Client
+	db                *gorm.DB
 }
 
 func NewRHSSOAuthenticator(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) *RHSSOAuthenticator {
 	a := &RHSSOAuthenticator{
-		AdminUsers: cfg.AdminUsers,
-		utils:      NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
-		client:     ocmCLient,
-		log:        log,
-		db:         db,
+		AdminUsers:        cfg.AdminUsers,
+		OrgTenancyEnabled: cfg.EnableOrgTenancy,
+		utils:             NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
+		client:            ocmCLient,
+		log:               log,
+		db:                db,
 	}
 	err := a.populateKeyMap()
 	if err != nil {
@@ -50,6 +52,10 @@ var _ Authenticator = &RHSSOAuthenticator{}
 
 func (a *RHSSOAuthenticator) AuthType() AuthType {
 	return TypeRHSSO
+}
+
+func (a *RHSSOAuthenticator) EnableOrgTenancy() bool {
+	return a.OrgTenancyEnabled
 }
 
 func (a *RHSSOAuthenticator) populateKeyMap() error {
