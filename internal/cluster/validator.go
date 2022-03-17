@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -564,6 +565,67 @@ func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, 
 		return "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
 	case ValidationError:
 		return "A mismatch between the number of Cluster and Service networks"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func (v *clusterValidator) isNetworksSameAddressFamilies(c *clusterPreprocessContext) ValidationStatus {
+	//If one of the required Cidr fields is empty return Pending status
+	if !validationStatusToBool(v.isClusterCidrDefined(c)) || !validationStatusToBool(v.isServiceCidrDefined(c)) {
+		return ValidationPending
+	}
+	machineNetworkRequired := network.IsMachineNetworkRequired(c.cluster)
+	if machineNetworkRequired && !validationStatusToBool(v.isMachineCidrDefined(c)) {
+		return ValidationPending
+	}
+	serviceNetworkFamilies, err := network.CidrsToAddressFamilies(network.GetServiceNetworkCidrs(c.cluster))
+	if err != nil {
+		v.log.WithError(err).Errorf("Getting service address families for cluster %s", c.cluster.ID.String())
+		return ValidationError
+	}
+	clusterNetworkFamilies, err := network.CidrsToAddressFamilies(network.GetClusterNetworkCidrs(c.cluster))
+	if err != nil {
+		v.log.WithError(err).Errorf("Getting cluster address families for cluster %s", c.cluster.ID.String())
+		return ValidationError
+	}
+	clusterNetworkFamilies = common.CanonizeStrings(clusterNetworkFamilies)
+	if !reflect.DeepEqual(serviceNetworkFamilies, clusterNetworkFamilies) {
+		return ValidationFailure
+	}
+	if machineNetworkRequired {
+		machineNetworkFamilies, err := network.CidrsToAddressFamilies(network.GetMachineNetworkCidrs(c.cluster))
+		if err != nil {
+			v.log.WithError(err).Errorf("Getting machine address families for cluster %s", c.cluster.ID.String())
+			return ValidationError
+		}
+		machineNetworkFamilies = common.CanonizeStrings(machineNetworkFamilies)
+		if !reflect.DeepEqual(serviceNetworkFamilies, machineNetworkFamilies) {
+			return ValidationFailure
+		}
+	}
+	return ValidationSuccess
+}
+
+func (v *clusterValidator) printIsNetworksSameAddressFamilies(context *clusterPreprocessContext, status ValidationStatus) string {
+	switch status {
+	case ValidationFailure:
+		var networks string
+		if network.IsMachineNetworkRequired(context.cluster) {
+			networks = "(MachineNetworks, ServiceNetworks, ClusterNetworks)"
+		} else {
+			networks = "(ServiceNetworks, ClusterNetworks)"
+		}
+		return fmt.Sprintf("Address families of networks %s are not the same.", networks)
+	case ValidationSuccess:
+		return "Same address families for all networks."
+	case ValidationPending:
+		if swag.BoolValue(context.cluster.UserManagedNetworking) {
+			return "At least one of the CIDRs (Cluster Network, Service Network) is undefined."
+		}
+		return "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
+	case ValidationError:
+		return "Bad CIDR(s) appears in one of the networks"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}

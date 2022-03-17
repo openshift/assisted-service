@@ -38,6 +38,9 @@ const (
 	// ClusterValidationIDNoCidrsOverlapping captures enum value "no-cidrs-overlapping"
 	ClusterValidationIDNoCidrsOverlapping ClusterValidationID = "no-cidrs-overlapping"
 
+	// ClusterValidationIDNetworksSameAddressFamilies captures enum value "networks-same-address-families"
+	ClusterValidationIDNetworksSameAddressFamilies ClusterValidationID = "networks-same-address-families"
+
 	// ClusterValidationIDNetworkPrefixValid captures enum value "network-prefix-valid"
 	ClusterValidationIDNetworkPrefixValid ClusterValidationID = "network-prefix-valid"
 
@@ -92,7 +95,7 @@ var clusterValidationIdEnum []interface{}
 
 func init() {
 	var res []ClusterValidationID
-	if err := json.Unmarshal([]byte(`["machine-cidr-defined","cluster-cidr-defined","service-cidr-defined","no-cidrs-overlapping","network-prefix-valid","machine-cidr-equals-to-calculated-cidr","api-vip-defined","api-vip-valid","ingress-vip-defined","ingress-vip-valid","all-hosts-are-ready-to-install","sufficient-masters-count","dns-domain-defined","pull-secret-set","ntp-server-configured","lso-requirements-satisfied","ocs-requirements-satisfied","odf-requirements-satisfied","cnv-requirements-satisfied","network-type-valid"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["machine-cidr-defined","cluster-cidr-defined","service-cidr-defined","no-cidrs-overlapping","networks-same-address-families","network-prefix-valid","machine-cidr-equals-to-calculated-cidr","api-vip-defined","api-vip-valid","ingress-vip-defined","ingress-vip-valid","all-hosts-are-ready-to-install","sufficient-masters-count","dns-domain-defined","pull-secret-set","ntp-server-configured","lso-requirements-satisfied","ocs-requirements-satisfied","odf-requirements-satisfied","cnv-requirements-satisfied","network-type-valid"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

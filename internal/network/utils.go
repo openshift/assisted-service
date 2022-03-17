@@ -2,6 +2,7 @@ package network
 
 import (
 	"net"
+	"strings"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -137,4 +138,48 @@ func DerefClusterNetworks(obj interface{}) []*models.ClusterNetwork {
 	default:
 		return nil
 	}
+}
+
+func GetMachineNetworkCidrs(cluster *common.Cluster) (ret []string) {
+	for _, n := range cluster.MachineNetworks {
+		ret = append(ret, string(n.Cidr))
+	}
+	return
+}
+
+func GetServiceNetworkCidrs(cluster *common.Cluster) (ret []string) {
+	for _, n := range cluster.ServiceNetworks {
+		ret = append(ret, string(n.Cidr))
+	}
+	return
+}
+
+func GetClusterNetworkCidrs(cluster *common.Cluster) (ret []string) {
+	for _, n := range cluster.ClusterNetworks {
+		ret = append(ret, string(n.Cidr))
+	}
+	return
+}
+
+func CidrToAddressFamily(cidr string) (string, error) {
+	_, _, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", err
+	}
+	if strings.Contains(cidr, ":") {
+		return "IPv6", nil
+	}
+	return "IPv4", nil
+}
+
+func CidrsToAddressFamilies(cidrs []string) (ret []string, err error) {
+	for _, cidr := range cidrs {
+		var af string
+		af, err = CidrToAddressFamily(cidr)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, af)
+	}
+	return
 }

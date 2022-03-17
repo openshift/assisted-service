@@ -5618,6 +5618,7 @@ definitions:
       - 'cluster-cidr-defined'
       - 'service-cidr-defined'
       - 'no-cidrs-overlapping'
+      - 'networks-same-address-families'
       - 'network-prefix-valid'
       - 'machine-cidr-equals-to-calculated-cidr'
       - 'api-vip-defined'
