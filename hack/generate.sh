@@ -150,17 +150,22 @@ function generate_manifests() (
 
     if [ "${GENERATE_CRD:-true}" == "true" ]; then
         echo "Generating CRDs"
+	generate_crds
         cd ./api
-        controller-gen ${crd_options} rbac:roleName=assisted-service-manager-role \
-            paths="./..." output:rbac:dir=${controller_rbac_path} \
-            webhook paths="./..." output:crd:artifacts:config=${controller_crd_path}/bases
-        kustomize build ${controller_crd_path} > ${controller_crd_path}/resources.yaml
-        controller-gen object:headerFile=${hack_boilerplate} paths="./..."
-        goimports -w ${controller_path}
+	generate_crds
     fi
 
     cp ${controller_crd_path}/resources.yaml ${BUILD_FOLDER}/resources.yaml
 )
+
+function generate_crds() {
+    controller-gen ${crd_options} rbac:roleName=assisted-service-manager-role \
+        paths="./..." output:rbac:dir=${controller_rbac_path} \
+        webhook paths="./..." output:crd:artifacts:config=${controller_crd_path}/bases
+    kustomize build ${controller_crd_path} > ${controller_crd_path}/resources.yaml
+    controller-gen object:headerFile=${hack_boilerplate} paths="./..."
+    goimports -w ${controller_path}
+}
 
 function generate_bundle() {
     ENABLE_KUBE_API=true generate_manifests
