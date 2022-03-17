@@ -805,6 +805,9 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 	if err != nil {
 		return reconcileError{err}
 	}
+	if err = ensureSecretIsLabelled(ctx, r.Client, secret, key); err != nil {
+		return reconcileError{err}
+	}
 
 	spokeClient, err := r.getSpokeClient(secret)
 	if err != nil {
@@ -1142,6 +1145,9 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 		log.WithError(err).Errorf("failed to get secret %s", key)
 		return reconcileError{err}
 	}
+	if err = ensureSecretIsLabelled(ctx, r.Client, secret, key); err != nil {
+		return reconcileError{err}
+	}
 
 	spokeClient, err := r.getSpokeClient(secret)
 	if err != nil {
@@ -1217,6 +1223,10 @@ func (r *BMACReconciler) ensureSpokeBMHSecret(ctx context.Context, log logrus.Fi
 	secret, err := getSecret(ctx, r.Client, r.APIReader, key)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get secret resource %s/%s", key.Namespace, key.Name)
+		return secret, err
+	}
+	if err := ensureSecretIsLabelled(ctx, r.Client, secret, key); err != nil {
+		log.WithError(err).Errorf("failed to label secret resource %s/%s", key.Namespace, key.Name)
 		return secret, err
 	}
 	secretSpoke, mutateFn := r.newSpokeBMHSecret(secret)

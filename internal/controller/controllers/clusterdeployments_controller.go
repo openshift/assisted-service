@@ -252,9 +252,14 @@ func (r *ClusterDeploymentsReconciler) validateClusterDeployment(ctx context.Con
 
 	// Make sure that the PullSecret Secret exists
 	if clusterDeployment.Spec.PullSecretRef != nil {
-		_, err := getSecret(ctx, r.Client, r.APIReader, types.NamespacedName{Namespace: clusterDeployment.Namespace, Name: clusterDeployment.Spec.PullSecretRef.Name})
+		secretRef := types.NamespacedName{Namespace: clusterDeployment.Namespace, Name: clusterDeployment.Spec.PullSecretRef.Name}
+		secret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
 		if err != nil {
 			log.WithError(err).Error("error getting Pull Secret")
+			return err
+		}
+		if err := ensureSecretIsLabelled(ctx, r.Client, secret, secretRef); err != nil {
+			log.WithError(err).Error("error label Pull Secret")
 			return err
 		}
 	}
@@ -467,9 +472,13 @@ func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context
 
 func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
 	name := fmt.Sprintf(adminPasswordSecretStringTemplate, cluster.Name)
-	s, getErr := getSecret(ctx, r.Client, r.APIReader, types.NamespacedName{Namespace: cluster.Namespace, Name: name})
+	secretRef := types.NamespacedName{Namespace: cluster.Namespace, Name: name}
+	s, getErr := getSecret(ctx, r.Client, r.APIReader, secretRef)
 	if getErr == nil || !k8serrors.IsNotFound(getErr) {
 		return s, getErr
+	}
+	if err := ensureSecretIsLabelled(ctx, r.Client, s, secretRef); err != nil {
+		return s, errors.Wrap(err, "Failed to label user-data secret")
 	}
 	cred, err := r.Installer.GetCredentialsInternal(ctx, installer.V2GetCredentialsParams{
 		ClusterID: *c.ID,
@@ -486,9 +495,13 @@ func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Con
 
 func (r *ClusterDeploymentsReconciler) updateKubeConfigSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
 	name := getClusterDeploymentAdminKubeConfigSecretName(cluster)
-	s, getErr := getSecret(ctx, r.Client, r.APIReader, types.NamespacedName{Namespace: cluster.Namespace, Name: name})
+	secretRef := types.NamespacedName{Namespace: cluster.Namespace, Name: name}
+	s, getErr := getSecret(ctx, r.Client, r.APIReader, secretRef)
 	if getErr != nil && !k8serrors.IsNotFound(getErr) {
 		return nil, getErr
+	}
+	if err := ensureSecretIsLabelled(ctx, r.Client, s, secretRef); err != nil {
+		return s, errors.Wrap(err, "Failed to label user-data secret")
 	}
 
 	respBody, _, err := r.Installer.V2DownloadClusterCredentialsInternal(ctx, installer.V2DownloadClusterCredentialsParams{
@@ -663,9 +676,13 @@ func getHyperthreading(clusterInstall *hiveext.AgentClusterInstall) *string {
 func (r *ClusterDeploymentsReconciler) getEncodedCACert(ctx context.Context,
 	log logrus.FieldLogger,
 	caCertificateRef *hiveext.CaCertificateReference) (*string, error) {
-	caSecret, err := getSecret(ctx, r.Client, r.APIReader, types.NamespacedName{Namespace: caCertificateRef.Namespace, Name: caCertificateRef.Name})
+	secretRef := types.NamespacedName{Namespace: caCertificateRef.Namespace, Name: caCertificateRef.Name}
+	caSecret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting ca certificate secret")
+	}
+	if err := ensureSecretIsLabelled(ctx, r.Client, caSecret, secretRef); err != nil {
+		return nil, errors.Wrap(err, "Failed to label user-data secret")
 	}
 	caCertBytes, hasCACert := caSecret.Data[corev1.TLSCertKey]
 	if !hasCACert {
