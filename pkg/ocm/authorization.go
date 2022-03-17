@@ -12,7 +12,7 @@ import (
 
 //go:generate mockgen -source=authorization.go -package=ocm -destination=mock_authorization.go
 type OCMAuthorization interface {
-	AccessReview(ctx context.Context, username, action, resourceType string) (allowed bool, err error)
+	AccessReview(ctx context.Context, username, action, subscriptionId, resourceType string) (allowed bool, err error)
 	CapabilityReview(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error)
 }
 
@@ -20,15 +20,20 @@ type authorization struct {
 	client *Client
 }
 
-func (a authorization) AccessReview(ctx context.Context, username, action, resourceType string) (allowed bool, err error) {
+func (a authorization) AccessReview(ctx context.Context, username, action, subscriptionId, resourceType string) (allowed bool, err error) {
 	defer commonutils.MeasureOperation("OCM-AccessReview", a.client.log, a.client.metricsApi)()
 	accessReview := a.client.connection.Authorizations().V1().AccessReview()
 
-	request, err := azv1.NewAccessReviewRequest().
+	requestBuilder := azv1.NewAccessReviewRequest().
 		AccountUsername(username).
 		Action(action).
-		ResourceType(resourceType).
-		Build()
+		ResourceType(resourceType)
+
+	if subscriptionId != "" {
+		requestBuilder.SubscriptionID(subscriptionId)
+	}
+
+	request, err := requestBuilder.Build()
 	if err != nil {
 		return false, err
 	}

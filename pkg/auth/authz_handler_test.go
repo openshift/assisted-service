@@ -117,10 +117,12 @@ var _ = Describe("authz", func() {
 			gomock.Any(),
 			gomock.Any(),
 			gomock.Any(),
+			gomock.Any(),
 			gomock.Any()).Return(true, nil).Times(times)
 	}
 	failAccessReview := func(times int) {
 		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(),
 			gomock.Any(),
 			gomock.Any(),
 			gomock.Any(),

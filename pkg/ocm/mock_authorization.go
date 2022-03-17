@@ -35,18 +35,18 @@ func (m *MockOCMAuthorization) EXPECT() *MockOCMAuthorizationMockRecorder {
 }
 
 // AccessReview mocks base method.
-func (m *MockOCMAuthorization) AccessReview(ctx context.Context, username, action, resourceType string) (bool, error) {
+func (m *MockOCMAuthorization) AccessReview(ctx context.Context, username, action, subscriptionId, resourceType string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AccessReview", ctx, username, action, resourceType)
+	ret := m.ctrl.Call(m, "AccessReview", ctx, username, action, subscriptionId, resourceType)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AccessReview indicates an expected call of AccessReview.
-func (mr *MockOCMAuthorizationMockRecorder) AccessReview(ctx, username, action, resourceType interface{}) *gomock.Call {
+func (mr *MockOCMAuthorizationMockRecorder) AccessReview(ctx, username, action, subscriptionId, resourceType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AccessReview", reflect.TypeOf((*MockOCMAuthorization)(nil).AccessReview), ctx, username, action, resourceType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AccessReview", reflect.TypeOf((*MockOCMAuthorization)(nil).AccessReview), ctx, username, action, subscriptionId, resourceType)
 }
 
 // CapabilityReview mocks base method.

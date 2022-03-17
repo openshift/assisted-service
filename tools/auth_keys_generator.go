@@ -11,6 +11,9 @@ import (
 	keygen_tools "github.com/openshift/assisted-service/pkg/auth"
 )
 
+const ORG_ID string = "1010101"
+const ORG_ID_2 string = "2020202"
+
 func main() {
 	var keysDir string
 	flag.StringVar(&keysDir, "keys-dir", "../build", "directory path for generates keys and token. defaults to build directory")
@@ -26,22 +29,27 @@ func main() {
 	//Generate keys in JWK format
 	pubJSJWKS, privJSJWKS, kid, _ := keygen_tools.GenJSJWKS(priv, pub)
 
-	tokenString, err := getTokenString(createTokenWithClaims("jdoe123@example.com"), kid, priv)
+	tokenString, err := getTokenString(createTokenWithClaims("jdoe123@example.com", ORG_ID), kid, priv)
 	if err != nil {
 		fmt.Printf("Token Signing error: %v\n", err)
 	}
 
-	tokenString2, err := getTokenString(createTokenWithClaims("bob@example.com"), kid, priv)
+	tokenString2, err := getTokenString(createTokenWithClaims("bob@example.com", ORG_ID_2), kid, priv)
 	if err != nil {
 		fmt.Printf("Token Signing error: %v\n", err)
 	}
 
-	tokenAdminString, err := getTokenString(createTokenWithClaims("admin@example.com"), kid, priv)
+	tokenAdminString, err := getTokenString(createTokenWithClaims("admin@example.com", ORG_ID), kid, priv)
 	if err != nil {
 		fmt.Printf("Token Signing error: %v\n", err)
 	}
 
-	tokenUnallowedString, err := getTokenString(createTokenWithClaims("unallowed@example.com"), kid, priv)
+	tokenUnallowedString, err := getTokenString(createTokenWithClaims("unallowed@example.com", ORG_ID), kid, priv)
+	if err != nil {
+		fmt.Printf("Token Signing error: %v\n", err)
+	}
+
+	tokenClusterEditor, err := getTokenString(createTokenWithClaims("alice@example.com", ORG_ID), kid, priv)
 	if err != nil {
 		fmt.Printf("Token Signing error: %v\n", err)
 	}
@@ -70,6 +78,10 @@ func main() {
 	err = newFile(keysDir+"/auth-tokenUnallowedString", []byte(tokenUnallowedString), 0400)
 	if err != nil {
 		fmt.Printf("Failed to write file auth-tokenUnallowedString: %v\n", err)
+	}
+	err = newFile(keysDir+"/auth-tokenClusterEditor", []byte(tokenClusterEditor), 0400)
+	if err != nil {
+		fmt.Printf("Failed to write file auth-tokenClusterEditor: %v\n", err)
 	}
 }
 
@@ -101,13 +113,13 @@ func getTokenString(token *jwt.Token, kid string, priv crypto.PrivateKey) (strin
 	return token.SignedString(priv)
 }
 
-func createTokenWithClaims(email string) *jwt.Token {
+func createTokenWithClaims(email, org string) *jwt.Token {
 	return jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"account_number": "1234567",
 		"is_internal":    false,
 		"is_active":      true,
 		"account_id":     "7654321",
-		"org_id":         "1010101",
+		"org_id":         org,
 		"last_name":      "Doe",
 		"type":           "User",
 		"locale":         "en_US",
