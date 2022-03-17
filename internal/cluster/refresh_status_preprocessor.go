@@ -192,6 +192,11 @@ func newValidations(v *clusterValidator) []validation {
 			condition: v.isNtpServerConfigured,
 			formatter: v.printNtpServerConfigured,
 		},
+		{
+			id:        NetworksSameAddressFamilies,
+			condition: v.isNetworksSameAddressFamilies,
+			formatter: v.printIsNetworksSameAddressFamilies,
+		},
 	}
 	return ret
 }

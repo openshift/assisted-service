@@ -347,3 +347,16 @@ func VerifyCaBundle(pemCerts []byte) error {
 
 	return nil
 }
+
+func CanonizeStrings(slice []string) (ret []string) {
+	if len(slice) == 0 {
+		return
+	}
+	ret = append(ret, slice[0])
+	for i := 1; i != len(slice); i++ {
+		if slice[i] != slice[i-1] {
+			ret = append(ret, slice[i])
+		}
+	}
+	return
+}

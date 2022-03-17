@@ -1355,6 +1355,271 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 	})
 })
 
+var _ = Describe("Refresh Cluster - Same networks", func() {
+	var (
+		ctx                                     = context.Background()
+		db                                      *gorm.DB
+		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
+		cluster                                 common.Cluster
+		clusterApi                              *Manager
+		mockEvents                              *eventsapi.MockHandler
+		mockHostAPI                             *host.MockAPI
+		mockMetric                              *metrics.MockAPI
+		ctrl                                    *gomock.Controller
+		dbName                                  string
+		mockS3Api                               *s3wrapper.MockAPI
+	)
+
+	type candidateChecker func()
+
+	mockHostAPIIsRequireUserActionResetFalse := func() {
+		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
+	}
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockS3Api = s3wrapper.NewMockAPI(ctrl)
+		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
+		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
+			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil)
+
+		hid1 = strfmt.UUID(uuid.New().String())
+		hid2 = strfmt.UUID(uuid.New().String())
+		hid3 = strfmt.UUID(uuid.New().String())
+		hid4 = strfmt.UUID(uuid.New().String())
+		hid5 = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+	Context("All transitions", func() {
+		var srcState string
+		tests := []struct {
+			name               string
+			srcState           string
+			srcStatusInfo      string
+			machineNetworks    []*models.MachineNetwork
+			serviceNetworks    []*models.ServiceNetwork
+			clusterNetworks    []*models.ClusterNetwork
+			apiVip             string
+			ingressVip         string
+			dnsDomain          string
+			pullSecretSet      bool
+			dstState           string
+			hosts              []models.Host
+			statusInfoChecker  statusInfoChecker
+			validationsChecker *validationsChecker
+			candidateChecker   candidateChecker
+			errorExpected      bool
+		}{
+			{
+				name:            "Missing service and cluster networks",
+				srcState:        models.ClusterStatusPendingForInput,
+				dstState:        models.ClusterStatusPendingForInput,
+				machineNetworks: common.TestIPv4Networking.MachineNetworks,
+				apiVip:          common.TestIPv4Networking.APIVip,
+				ingressVip:      common.TestIPv4Networking.IngressVip,
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					NetworksSameAddressFamilies: {status: ValidationPending, messagePattern: "At least one of the CIDRs [(]Machine Network, Cluster Network, Service Network[)] is undefined."},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:            "IPv6 service network",
+				srcState:        models.ClusterStatusPendingForInput,
+				dstState:        models.ClusterStatusInsufficient,
+				machineNetworks: common.TestIPv4Networking.MachineNetworks,
+				serviceNetworks: common.TestIPv6Networking.ServiceNetworks,
+				clusterNetworks: common.TestIPv4Networking.ClusterNetworks,
+				apiVip:          common.TestIPv4Networking.APIVip,
+				ingressVip:      common.TestIPv4Networking.IngressVip,
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					NetworksSameAddressFamilies: {status: ValidationFailure, messagePattern: "Address families of networks .* are not the same."},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:            "Mixed with dual stack",
+				srcState:        models.ClusterStatusPendingForInput,
+				dstState:        models.ClusterStatusInsufficient,
+				machineNetworks: common.TestDualStackNetworking.MachineNetworks,
+				serviceNetworks: common.TestIPv4Networking.ServiceNetworks,
+				clusterNetworks: common.TestIPv4Networking.ClusterNetworks,
+				apiVip:          common.TestIPv4Networking.APIVip,
+				ingressVip:      common.TestIPv4Networking.IngressVip,
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					NetworksSameAddressFamilies: {status: ValidationFailure, messagePattern: "Address families of networks .* are not the same."},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:            "IPv4 only",
+				srcState:        models.ClusterStatusPendingForInput,
+				dstState:        models.ClusterStatusReady,
+				machineNetworks: common.TestIPv4Networking.MachineNetworks,
+				serviceNetworks: common.TestIPv4Networking.ServiceNetworks,
+				clusterNetworks: common.TestIPv4Networking.ClusterNetworks,
+				apiVip:          common.TestIPv4Networking.APIVip,
+				ingressVip:      common.TestIPv4Networking.IngressVip,
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoReady),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					NetworksSameAddressFamilies: {status: ValidationSuccess, messagePattern: "Same address families for all networks."},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:            "IPv6 only",
+				srcState:        models.ClusterStatusPendingForInput,
+				dstState:        models.ClusterStatusReady,
+				machineNetworks: common.TestIPv6Networking.MachineNetworks,
+				serviceNetworks: common.TestIPv6Networking.ServiceNetworks,
+				clusterNetworks: common.TestIPv6Networking.ClusterNetworks,
+				apiVip:          common.TestIPv6Networking.APIVip,
+				ingressVip:      common.TestIPv6Networking.IngressVip,
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoReady),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					NetworksSameAddressFamilies: {status: ValidationSuccess, messagePattern: "Same address families for all networks."},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:            "Dual stack only",
+				srcState:        models.ClusterStatusPendingForInput,
+				dstState:        models.ClusterStatusReady,
+				machineNetworks: common.TestDualStackNetworking.MachineNetworks,
+				serviceNetworks: common.TestDualStackNetworking.ServiceNetworks,
+				clusterNetworks: common.TestDualStackNetworking.ClusterNetworks,
+				apiVip:          common.TestDualStackNetworking.APIVip,
+				ingressVip:      common.TestDualStackNetworking.IngressVip,
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoReady),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					NetworksSameAddressFamilies: {status: ValidationSuccess, messagePattern: "Same address families for all networks."},
+				}),
+				errorExpected: false,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				cluster = common.Cluster{
+					Cluster: models.Cluster{
+						APIVip:          t.apiVip,
+						ID:              &clusterId,
+						IngressVip:      t.ingressVip,
+						MachineNetworks: t.machineNetworks,
+						Status:          &t.srcState,
+						StatusInfo:      &t.srcStatusInfo,
+						BaseDNSDomain:   t.dnsDomain,
+						PullSecretSet:   t.pullSecretSet,
+						ClusterNetworks: t.clusterNetworks,
+						ServiceNetworks: t.serviceNetworks,
+						NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						StatusUpdatedAt: strfmt.DateTime(time.Now()),
+					},
+				}
+				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+				for i := range t.hosts {
+					t.hosts[i].InfraEnvID = clusterId
+					t.hosts[i].ClusterID = &clusterId
+					Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
+				}
+				cluster = getClusterFromDB(clusterId, db)
+				if srcState != t.dstState {
+					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+						eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
+				}
+				if t.dstState == models.ClusterStatusInsufficient {
+					mockHostAPIIsRequireUserActionResetFalse()
+				}
+				if t.candidateChecker != nil {
+					t.candidateChecker()
+				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
+				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
+				if t.errorExpected {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+				Expect(clusterAfterRefresh.Status).To(Equal(&t.dstState))
+				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
+				if t.validationsChecker != nil {
+					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
+				} else {
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
+				}
+			})
+		}
+	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+})
+
 var _ = Describe("RefreshCluster - preparing for install", func() {
 	var (
 		ctx                         = context.Background()
