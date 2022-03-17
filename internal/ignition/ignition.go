@@ -20,9 +20,7 @@ import (
 	"time"
 
 	"github.com/coreos/ignition/v2/config/merge"
-	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_latest "github.com/coreos/ignition/v2/config/v3_2"
-	config_latest_trans "github.com/coreos/ignition/v2/config/v3_2/translate"
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/coreos/vcontext/report"
 	"github.com/go-openapi/swag"
@@ -173,7 +171,7 @@ ConditionPathExists=/enoent
 
 const discoveryIgnitionConfigFormat = `{
   "ignition": {
-    "version": "3.1.0"{{if .PROXY_SETTINGS}},
+    "version": "3.2.0"{{if .PROXY_SETTINGS}},
     {{.PROXY_SETTINGS}}{{end}}
   },
   "passwd": {
@@ -348,7 +346,7 @@ const discoveryIgnitionConfigFormat = `{
 
 const secondDayWorkerIgnitionFormat = `{
 	"ignition": {
-	  "version": "3.1.0",
+	  "version": "3.2.0",
 	  "config": {
 		"merge": [{
 		  "source": "{{.SOURCE}}"{{if .HEADERS}},
@@ -388,7 +386,7 @@ type Generator interface {
 //go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
 type IgnitionBuilder interface {
 	FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
-	FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken string) ([]byte, error)
+	FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken string, host *models.Host) ([]byte, error)
 }
 
 type installerGenerator struct {
@@ -1079,14 +1077,9 @@ func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3
 }
 
 func ParseToLatest(content []byte) (*config_latest_types.Config, error) {
-	config, _, err := config_latest.Parse(content)
+	config, _, err := config_latest.ParseCompatibleVersion(content)
 	if err != nil {
-		configv31, _, err := config_31.Parse(content)
-		if err != nil {
-			return nil, errors.Errorf("error parsing ignition: %v", err)
-		}
-		config = config_latest_trans.Translate(configv31)
-		config.Ignition.Version = "3.1.0"
+		return nil, errors.Errorf("error parsing ignition: %v", err)
 	}
 
 	return &config, nil
@@ -1264,11 +1257,7 @@ func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
 
 	// Validate after we marshal to use the Parse functions
 	var report report.Report
-	if baseConfig.Ignition.Version == "3.1.0" {
-		_, report, err = config_31.Parse(res)
-	} else {
-		_, report, err = config_latest.Parse(res)
-	}
+	_, report, err = config_latest.ParseCompatibleVersion(res)
 	if err != nil {
 		return "", err
 	}
@@ -1493,7 +1482,7 @@ func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(ctx context.Con
 	return filesList, nil
 }
 
-func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken string) ([]byte, error) {
+func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken string, host *models.Host) ([]byte, error) {
 	var ignitionParams = map[string]interface{}{
 		// https://github.com/openshift/machine-config-operator/blob/master/docs/MachineConfigServer.md#endpoint
 		"SOURCE":  url,
@@ -1516,7 +1505,22 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert 
 	if err = tmpl.Execute(buf, ignitionParams); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+
+	overrides := buf.String()
+	if host.IgnitionConfigOverrides != "" {
+		overrides, err = MergeIgnitionConfig(buf.Bytes(), []byte(host.IgnitionConfigOverrides))
+		if err != nil {
+			return []byte(""), errors.Wrapf(err, "Failed to apply ignition override for host %s", host.ID)
+		}
+		ib.log.Infof("Applied ignition override for host %s", host.ID)
+	}
+
+	res, err := SetHostnameForNodeIgnition([]byte(overrides), host)
+	if err != nil {
+		return []byte(""), errors.Wrapf(err, "Failed to set hostname in ignition for host %s", host.ID)
+	}
+
+	return res, nil
 }
 
 func QuoteSshPublicKeys(sshPublicKeys string) string {

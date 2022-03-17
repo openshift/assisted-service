@@ -6573,10 +6573,10 @@ var _ = Describe("infraEnvs", func() {
 			verifyApiErrorString(reply, http.StatusBadRequest, "CPU architecture doesn't match")
 		})
 
-		It("Invalid Ignition", func() {
+		It("Invalid Ignition - too recent", func() {
 			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
-			override := `{"ignition": {"wdd": "3.9.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+			override := `{"ignition": {"version": "9.9.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
 				eventstest.WithMessageContainsMatcher("error parsing ignition: unsupported config version"))).Times(1)
@@ -8938,9 +8938,9 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 		Expect(response).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
 
-	It("returns bad request when provided an old version", func() {
+	It("returns bad request when provided too recent version", func() {
 		// Wrong version
-		override := `{"ignition": {"version": "3.0.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		override := `{"ignition": {"version": "9.9.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		params := installer.UpdateInfraEnvParams{
 			InfraEnvID:           *infraEnv.ID,
 			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
@@ -9323,7 +9323,7 @@ var _ = Describe("Install Host test", func() {
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.V2InstallHost(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2InstallHostAccepted()))
 	})
@@ -9341,7 +9341,7 @@ var _ = Describe("Install Host test", func() {
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile("http://example.com", gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile("http://example.com", gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.V2InstallHost(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2InstallHostAccepted()))
 	})
@@ -9389,7 +9389,7 @@ var _ = Describe("Install Host test", func() {
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(0)
-		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("ign failure")).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("ign failure")).Times(1)
 		res := bm.V2InstallHost(ctx, params)
 		verifyApiError(res, http.StatusInternalServerError)
 	})
@@ -9404,7 +9404,7 @@ var _ = Describe("Install Host test", func() {
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
-		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.V2InstallHost(ctx, params)
 		verifyApiError(res, http.StatusInternalServerError)
 	})
@@ -9453,7 +9453,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, clusterID, hostId)
 		Expect(res).Should(BeNil())
 	})
@@ -9466,7 +9466,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, clusterID, hostId)
 		Expect(res.Error()).Should(Equal(expectedErrMsg))
 	})
@@ -11035,9 +11035,9 @@ var _ = Describe("V2UpdateHostIgnition", func() {
 		verifyApiError(response, http.StatusBadRequest)
 	})
 
-	It("returns bad request when provided an old version", func() {
+	It("returns bad request when provided too recent version", func() {
 		// Wrong version
-		override := `{"ignition": {"version": "3.0.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		override := `{"ignition": {"version": "9.9.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		params := installer.V2UpdateHostIgnitionParams{
 			InfraEnvID:         infraEnvID,
 			HostID:             hostID,

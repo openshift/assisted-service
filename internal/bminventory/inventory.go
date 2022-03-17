@@ -737,9 +737,9 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 	return &newCluster, nil
 }
 
-func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cluster *common.Cluster, host *models.Host, ignitionEndpointToken string) error {
+func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context, cluster *common.Cluster, host *models.Host, ignitionEndpointToken string) error {
 	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Starting createAndUploadNodeIgnition for cluster %s, host %s", cluster.ID, host.ID)
+	log.Infof("Starting createAndUploadDay2NodeIgnition for cluster %s, host %s", cluster.ID, host.ID)
 
 	// Specify ignition endpoint based on cluster configuration:
 	address := cluster.APIVip
@@ -762,16 +762,11 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 		caCert = cluster.IgnitionEndpoint.CaCertificate
 	}
 
-	ignitionBytes, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, caCert, ignitionEndpointToken)
+	fullIgnition, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, caCert, ignitionEndpointToken, host)
 	if err != nil {
-		return errors.Errorf("Failed to create ignition string for cluster %s", cluster.ID)
+		return errors.Wrapf(err, "Failed to create ignition string for cluster %s, host %s", cluster.ID, host.ID)
 	}
 
-	// Update host ignition hostname:
-	fullIgnition, err := ignition.SetHostnameForNodeIgnition(ignitionBytes, host)
-	if err != nil {
-		return errors.Errorf("Failed to create ignition string for cluster %s, host %s", cluster.ID, host.ID)
-	}
 	fileName := fmt.Sprintf("%s/worker-%s.ign", cluster.ID, host.ID)
 	log.Infof("Uploading ignition file <%s>", fileName)
 	err = b.objectHandler.Upload(ctx, fullIgnition, fileName)
@@ -1406,7 +1401,7 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 	}
 
 	// move host to installing
-	err = b.createAndUploadNodeIgnition(ctx, cluster, &h.Host, h.IgnitionEndpointToken)
+	err = b.createAndUploadDay2NodeIgnition(ctx, cluster, &h.Host, h.IgnitionEndpointToken)
 	if err != nil {
 		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
 		return err
@@ -1478,7 +1473,7 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 	if cluster, err = common.GetClusterFromDB(b.db, *h.ClusterID, common.SkipEagerLoading); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	err = b.createAndUploadNodeIgnition(ctx, cluster, h, host.IgnitionEndpointToken)
+	err = b.createAndUploadDay2NodeIgnition(ctx, cluster, h, host.IgnitionEndpointToken)
 	if err != nil {
 		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
 		return common.GenerateErrorResponder(err)
@@ -5066,6 +5061,8 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 			log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
+	} else {
+		log.Infof("Trying to apply empty host ignition config to host %s in infra-env %s", params.HostID, params.InfraEnvID)
 	}
 
 	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and infra_env_id = ?"), params.HostID, params.InfraEnvID).Update("ignition_config_overrides", params.HostIgnitionParams.Config).Error
