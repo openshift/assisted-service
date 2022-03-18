@@ -4516,6 +4516,14 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		c = &cluster.Cluster
 	}
 
+	// When the assisted service is running on the same host as the agent, this
+	// host must become the bootstrap so that it installs last
+	if hostutil.IsAssistedServiceHost(host) {
+		log.Infof("host <%s> also hosts assisted-service", params.NewHostParams.HostID.String())
+		host.Role = models.HostRoleMaster
+		host.Bootstrap = true
+	}
+
 	//day2 host is always a worker
 	if hostutil.IsDay2Host(host) {
 		host.Role = models.HostRoleWorker

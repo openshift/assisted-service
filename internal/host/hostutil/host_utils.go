@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 
 	"github.com/go-openapi/swag"
@@ -17,6 +18,7 @@ import (
 
 const (
 	MaxHostnameLength = 253
+	localHostIDFile   = "/var/run/assisted-agent/host-id"
 )
 
 func GetCurrentHostName(host *models.Host) (string, error) {
@@ -152,6 +154,11 @@ func GetDiskByInstallationPath(disks []*models.Disk, installationPath string) *m
 
 func IgnitionFileName(host *models.Host) string {
 	return fmt.Sprintf("%s-%s.ign", common.GetEffectiveRole(host), host.ID)
+}
+
+func IsAssistedServiceHost(h *models.Host) bool {
+	localHostID, err := os.ReadFile(localHostIDFile)
+	return err == nil && h.ID != nil && string(localHostID) == h.ID.String()
 }
 
 func IsDay2Host(h *models.Host) bool {
