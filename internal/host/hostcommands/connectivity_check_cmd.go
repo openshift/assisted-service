@@ -46,13 +46,8 @@ func (c *connectivityCheckCmd) GetSteps(ctx context.Context, host *models.Host) 
 
 	step := &models.Step{
 		StepType: models.StepTypeConnectivityCheck,
-		Command:  "podman",
+		Command:  "",
 		Args: []string{
-			"run", "--privileged", "--net=host", "--rm", "--quiet",
-			"-v", "/var/log:/var/log",
-			"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-			c.connectivityCheckImage,
-			"connectivity_check",
 			hostsData,
 		},
 	}

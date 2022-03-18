@@ -87,14 +87,8 @@ func (f *domainNameResolutionCmd) GetSteps(ctx context.Context, host *models.Hos
 
 	step := &models.Step{
 		StepType: models.StepTypeDomainResolution,
-		Command:  "podman",
+		Command:  "",
 		Args: []string{
-			"run", "--privileged", "--net=host", "--rm", "--quiet",
-			"-v", "/var/log:/var/log",
-			"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-			f.domainNameResolutionImage,
-			"domain_resolution",
-			"-request",
 			param,
 		},
 	}
