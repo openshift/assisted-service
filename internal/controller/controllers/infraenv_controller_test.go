@@ -804,6 +804,34 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(infraEnvImage.Finalizers).ToNot(BeNil())
 	})
 
+	Context("CreateInfraEnvParams", func() {
+		var (
+			clusterName      = "test-cluster"
+			pullSecretName   = "pull-secret"
+			pullSecretString = "pull-secret-string"
+			cpuArch          = "x86_64"
+			openshiftVersion = "4.10.0-rc1"
+			imageType        = "full-iso"
+		)
+		It("create new param - success", func() {
+			cluster := &common.Cluster{Cluster: models.Cluster{ID: &sId, CPUArchitecture: cpuArch, OpenshiftVersion: openshiftVersion}}
+
+			infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
+				ClusterRef:    &aiv1beta1.ClusterReference{Name: clusterName, Namespace: testNamespace},
+				PullSecretRef: &corev1.LocalObjectReference{Name: pullSecretName},
+			})
+			params := CreateInfraEnvParams(infraEnvImage, &cluster.Cluster, models.ImageType(imageType), pullSecretString)
+
+			Expect(params).ToNot(BeNil())
+			Expect(params.InfraenvCreateParams.ClusterID).To(Equal(cluster.ID))
+			Expect(params.InfraenvCreateParams.PullSecret).To(Equal(&pullSecretString))
+			Expect(params.InfraenvCreateParams.OpenshiftVersion).To(Equal(cluster.OpenshiftVersion))
+			Expect(params.InfraenvCreateParams.CPUArchitecture).To(Equal(infraEnvImage.Spec.CpuArchitecture))
+			Expect(params.InfraenvCreateParams.IgnitionConfigOverride).To(Equal(infraEnvImage.Spec.IgnitionConfigOverride))
+			Expect(params.InfraenvCreateParams.SSHAuthorizedKey).To(Equal(&infraEnvImage.Spec.SSHAuthorizedKey))
+		})
+	})
+
 	Context("nmstate config", func() {
 
 		var (
