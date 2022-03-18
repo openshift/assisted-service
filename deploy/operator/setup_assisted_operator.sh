@@ -140,7 +140,7 @@ $(subscription_config)
   installPlanApproval: Automatic
   name: assisted-service-operator
   source: ${catalog_source_name}
-  channel: ${CHANNEL:-alpha}
+  channel: ${CHANNEL:-ocm-2.5}
   sourceNamespace: openshift-marketplace
 EOCR
 
@@ -306,7 +306,7 @@ if [ -z "$@" ]; then
     from_community_operators
   else
     from_index_image
-  fi 
+  fi
 fi
 
 if ! declare -F "$@"; then
