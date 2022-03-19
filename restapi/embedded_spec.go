@@ -88,6 +88,12 @@ func init() {
             "name": "with_hosts",
             "in": "query",
             "allowEmptyValue": true
+          },
+          {
+            "type": "string",
+            "description": "If provided, returns only clusters that are owned by the specified user.",
+            "name": "owner",
+            "in": "query"
           }
         ],
         "responses": {
@@ -2737,6 +2743,12 @@ func init() {
             "format": "uuid",
             "description": "If provided, returns only infra-envs which directly reference this cluster.",
             "name": "cluster_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "If provided, returns only infra-envs that are owned by the specified user.",
+            "name": "owner",
             "in": "query"
           }
         ],
@@ -8801,6 +8813,12 @@ func init() {
             "name": "with_hosts",
             "in": "query",
             "allowEmptyValue": true
+          },
+          {
+            "type": "string",
+            "description": "If provided, returns only clusters that are owned by the specified user.",
+            "name": "owner",
+            "in": "query"
           }
         ],
         "responses": {
@@ -11450,6 +11468,12 @@ func init() {
             "format": "uuid",
             "description": "If provided, returns only infra-envs which directly reference this cluster.",
             "name": "cluster_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "If provided, returns only infra-envs that are owned by the specified user.",
+            "name": "owner",
             "in": "query"
           }
         ],

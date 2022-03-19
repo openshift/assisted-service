@@ -36,6 +36,10 @@ type ListInfraEnvsParams struct {
 	  In: query
 	*/
 	ClusterID *strfmt.UUID
+	/*If provided, returns only infra-envs that are owned by the specified user.
+	  In: query
+	*/
+	Owner *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -51,6 +55,11 @@ func (o *ListInfraEnvsParams) BindRequest(r *http.Request, route *middleware.Mat
 
 	qClusterID, qhkClusterID, _ := qs.GetOK("cluster_id")
 	if err := o.bindClusterID(qClusterID, qhkClusterID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qOwner, qhkOwner, _ := qs.GetOK("owner")
+	if err := o.bindOwner(qOwner, qhkOwner, route.Formats); err != nil {
 		res = append(res, err)
 	}
 	if len(res) > 0 {
@@ -93,5 +102,23 @@ func (o *ListInfraEnvsParams) validateClusterID(formats strfmt.Registry) error {
 	if err := validate.FormatOf("cluster_id", "query", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err
 	}
+	return nil
+}
+
+// bindOwner binds and validates parameter Owner from query.
+func (o *ListInfraEnvsParams) bindOwner(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.Owner = &raw
+
 	return nil
 }

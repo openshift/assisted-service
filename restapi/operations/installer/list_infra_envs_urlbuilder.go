@@ -16,6 +16,7 @@ import (
 // ListInfraEnvsURL generates an URL for the list infra envs operation
 type ListInfraEnvsURL struct {
 	ClusterID *strfmt.UUID
+	Owner     *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -57,6 +58,14 @@ func (o *ListInfraEnvsURL) Build() (*url.URL, error) {
 	}
 	if clusterIDQ != "" {
 		qs.Set("cluster_id", clusterIDQ)
+	}
+
+	var ownerQ string
+	if o.Owner != nil {
+		ownerQ = *o.Owner
+	}
+	if ownerQ != "" {
+		qs.Set("owner", ownerQ)
 	}
 
 	_result.RawQuery = qs.Encode()

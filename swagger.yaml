@@ -130,6 +130,11 @@ paths:
           type: boolean
           allowEmptyValue: true
           default: false
+        - in: query
+          name: owner
+          description: If provided, returns only clusters that are owned by the specified user.
+          type: string
+          required: false
       responses:
         "200":
           description: Success.
@@ -408,6 +413,11 @@ paths:
           description: If provided, returns only infra-envs which directly reference this cluster.
           type: string
           format: uuid
+          required: false
+        - in: query
+          name: owner
+          description: If provided, returns only infra-envs that are owned by the specified user.
+          type: string
           required: false
       responses:
         "200":

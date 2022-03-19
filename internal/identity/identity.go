@@ -25,7 +25,7 @@ func AddUserFilter(ctx context.Context, query string) string {
 	return query
 }
 
-func AddOwnerFilter(ctx context.Context, query string, filterByOrg bool) string {
+func AddOwnerFilter(ctx context.Context, query string, filterByOrg bool, owner string) string {
 	if IsAdmin(ctx) {
 		return query
 	}
@@ -35,6 +35,10 @@ func AddOwnerFilter(ctx context.Context, query string, filterByOrg bool) string 
 		}
 		orgId := ocm.OrgIDFromContext(ctx)
 		query += fmt.Sprintf("org_id = '%s'", orgId)
+		if owner != "" {
+			query += " and "
+			query += fmt.Sprintf("user_name = '%s'", owner)
+		}
 		return query
 	}
 	return AddUserFilter(ctx, query)
