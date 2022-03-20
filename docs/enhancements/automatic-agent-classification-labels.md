@@ -89,7 +89,7 @@ type AgentClassificationStatus struct {
 We will base the expression definition on the [gojq](https://github.com/itchyny/gojq) library, which supports jq queries in Go.  The query will be run on each Agent's inventory.  If the query returns true, then the specified label will be applied.
 
 For example,
-The query for label "size:medium" might be: ".cpu.count == 2 and .memory.PhysicalBytes >= 4294967296 and .memory.PhysicalBytes < 8589934592"
+The query for label "size:medium" might be: ".cpu.count == 2 and .memory.physicalBytes >= 4294967296 and .memory.physicalBytes < 8589934592"
 The query for label "storage:large" might be: "[.disks[] | select(.sizeBytes > 1073741824000)] | length > 5"
 
 ### Operator changes
@@ -97,13 +97,13 @@ The query for label "storage:large" might be: "[.disks[] | select(.sizeBytes > 1
 A new agent-label-controller will reconcile Agent CRs and update labels on Agents as necessary.  It will be triggered by updates to both Agents and AgentClassifications via watch mapping.  The controller lists the AgentClassifications in the Agent's namespace and for each:
 * If the AgentClassifications is being deleted or if the query returns false, deletes the label from the Agent if it exists
 * If the query returns true, set the label if not already set (the label key will be prefixed with inventoryclassification.agent-install.openshift.io/)
-* If the query fails to run, set the label key, but the value to "QUERY ERROR: \<error msg\>"
+* If the query fails to run, set the label key, but the value to "QUERYERROR-\<value\>"
 * An annotation inventoryclassification.agent-install.openshift.io/updatedat will be set with the current timestamp to help debugging
 
 A new agent-classification-controller will reconcile AgentClassification CRs.  It will be triggered by updates to both AgentClassifications and Agents via watch mapping.  The controller first:
 * Tries to compile the query, and if it fails, sets QueryValidCondition to false with a proper message.
 * Sets a finalizer to ensure the AgentClassification is deleted only after no Agents have its label set.
-The controller then list the Agents in the AgentClassification's namespace and counts how many Agents have the label key/value (Status.MatchedCount) or how many have the key with the value set to "QUERY ERROR" (Status.ErrorCount).
+The controller then list the Agents in the AgentClassification's namespace and counts how many Agents have the label key/value (Status.MatchedCount) or how many have the key with the value set to "QUERYERROR" (Status.ErrorCount).
 If Status.ErrorCount is not zero, then QueryErrorsCondition is set.
 If the AgentClassification is being deleted and Status.MatchedCount and Status.ErrorCount are both zero, then it is deleted - otherwise it will check again in the next reconcile.
 
