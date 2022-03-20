@@ -1,1 +1,5 @@
 build
+
+# Files used for onprem testing
+coreos-installer
+livecd.iso
