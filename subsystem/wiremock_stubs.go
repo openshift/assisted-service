@@ -61,6 +61,7 @@ const (
 	fakePayloadUsername2                 string      = "bob@example.com"
 	fakePayloadAdmin                     string      = "admin@example.com"
 	fakePayloadUnallowedUser             string      = "unallowed@example.com"
+	fakePayloadClusterEditor             string      = "alice@example.com"
 	FakePS                               string      = "dXNlcjpwYXNzd29yZAo="
 	FakePS2                              string      = "dXNlcjI6cGFzc3dvcmQK"
 	FakeAdminPS                          string      = "dXNlcjpwYXNzd29yZAy="
@@ -78,6 +79,10 @@ func (w *WireMock) CreateWiremockStubsForOCM() error {
 	}
 
 	if err := w.createStubsForCapabilityReview(); err != nil {
+		return err
+	}
+
+	if err := w.createStubsForClusterEditor(); err != nil {
 		return err
 	}
 
@@ -128,11 +133,42 @@ func (w *WireMock) CreateWiremockStubsForOCM() error {
 	return nil
 }
 
+func (w *WireMock) createStubsForClusterEditor() error {
+	if _, err := w.createStubClusterEditorRequest(fakePayloadUsername,
+		FakeSubscriptionID.String(), "update", false); err != nil {
+		return err
+	}
+	if _, err := w.createStubClusterEditorRequest(fakePayloadUsername,
+		FakeSubscriptionID.String(), "delete", false); err != nil {
+		return err
+	}
+	if _, err := w.createStubClusterEditorRequest(fakePayloadUsername2,
+		FakeSubscriptionID.String(), "update", false); err != nil {
+		return err
+	}
+	if _, err := w.createStubClusterEditorRequest(fakePayloadUsername2,
+		FakeSubscriptionID.String(), "delete", false); err != nil {
+		return err
+	}
+	if _, err := w.createStubClusterEditorRequest(fakePayloadClusterEditor,
+		FakeSubscriptionID.String(), "update", true); err != nil {
+		return err
+	}
+	if _, err := w.createStubClusterEditorRequest(fakePayloadClusterEditor,
+		FakeSubscriptionID.String(), "delete", true); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (w *WireMock) createStubsForAccessReview() error {
 	if _, err := w.createStubAccessReview(fakePayloadUsername, true); err != nil {
 		return err
 	}
 	if _, err := w.createStubAccessReview(fakePayloadUsername2, true); err != nil {
+		return err
+	}
+	if _, err := w.createStubAccessReview(fakePayloadClusterEditor, true); err != nil {
 		return err
 	}
 	return nil
@@ -143,6 +179,9 @@ func (w *WireMock) createStubsForCapabilityReview() error {
 		return err
 	}
 	if _, err := w.createStubCapabilityReview(fakePayloadUsername2, false); err != nil {
+		return err
+	}
+	if _, err := w.createStubCapabilityReview(fakePayloadClusterEditor, false); err != nil {
 		return err
 	}
 	return nil
@@ -426,6 +465,45 @@ func (w *WireMock) createStubCapabilityReview(username string, result bool) (str
 
 	capabilityReviewStub := w.createStubDefinition(capabilityReviewPath, "POST", string(reqBody), string(resBody), 200)
 	return w.addStub(capabilityReviewStub)
+}
+
+func (w *WireMock) createStubClusterEditorRequest(username string, subscriptionId string, action string, allowed bool) (string, error) {
+	type AccessRequest struct {
+		ResourceType   string `json:"resource_type"`
+		Action         string `json:"action"`
+		Username       string `json:"account_username"`
+		SubscriptionId string `json:"subscription_id"`
+	}
+
+	type AccessResponse struct {
+		Allowed bool `json:"allowed"`
+	}
+
+	accessRequest := AccessRequest{
+		Username:       username,
+		Action:         action,
+		ResourceType:   "Subscription",
+		SubscriptionId: subscriptionId,
+	}
+
+	accessResponse := AccessResponse{
+		Allowed: allowed,
+	}
+
+	var reqBody []byte
+	reqBody, err := json.Marshal(accessRequest)
+	if err != nil {
+		return "", err
+	}
+
+	var resBody []byte
+	resBody, err = json.Marshal(accessResponse)
+	if err != nil {
+		return "", err
+	}
+
+	accessReviewStub := w.createStubDefinition(accessReviewPath, "POST", string(reqBody), string(resBody), 200)
+	return w.addStub(accessReviewStub)
 }
 
 func (w *WireMock) createStubAccessReview(username string, allowed bool) (string, error) {
