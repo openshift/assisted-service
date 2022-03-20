@@ -21,6 +21,7 @@ func main() {
 		hiveextvalidatingwebhooks.NewAgentClusterInstallValidatingAdmissionHook(decoder),
 		agentinstallvalidatingwebhooks.NewInfraEnvValidatingAdmissionHook(decoder),
 		agentinstallvalidatingwebhooks.NewAgentValidatingAdmissionHook(decoder),
+		agentinstallvalidatingwebhooks.NewAgentClassificationValidatingAdmissionHook(decoder),
 	)
 }
 
