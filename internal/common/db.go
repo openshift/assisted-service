@@ -21,7 +21,7 @@ const (
 
 	ProgressWeightPreparingForInstallationStage float64 = 0.1
 	ProgressWeightInstallingStage               float64 = 0.7
-	ProgressWeightFinalizingStage               float64 = 0.2
+	ProgressWeightFinalizingStage               float64 = 0.15
 )
 
 type Cluster struct {
