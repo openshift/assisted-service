@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"net/http"
+
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
@@ -33,4 +35,14 @@ func shouldStorePayloadInCache(err error) bool {
 		return serr.StatusCode() < 500
 	}
 	return false
+}
+
+func isUpdateRequest(request *http.Request) bool {
+	return request != nil && (request.Method == http.MethodPost ||
+		request.Method == http.MethodPut ||
+		request.Method == http.MethodPatch)
+}
+
+func isDeleteRequest(request *http.Request) bool {
+	return request != nil && request.Method == http.MethodDelete
 }

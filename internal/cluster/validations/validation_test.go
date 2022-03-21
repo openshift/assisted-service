@@ -195,14 +195,14 @@ type mockOCMAuthorization struct {
 	ocm.OCMAuthorization
 }
 
-var accessReviewMock func(ctx context.Context, username, action, resourceType string) (allowed bool, err error)
+var accessReviewMock func(ctx context.Context, username, action, subscription, resourceType string) (allowed bool, err error)
 
 var capabilityReviewMock = func(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error) {
 	return false, nil
 }
 
-func (m *mockOCMAuthorization) AccessReview(ctx context.Context, username, action, resourceType string) (allowed bool, err error) {
-	return accessReviewMock(ctx, username, action, resourceType)
+func (m *mockOCMAuthorization) AccessReview(ctx context.Context, username, action, subscription, resourceType string) (allowed bool, err error) {
+	return accessReviewMock(ctx, username, action, subscription, resourceType)
 }
 
 func (m *mockOCMAuthorization) CapabilityReview(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error) {

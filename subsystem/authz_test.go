@@ -100,6 +100,31 @@ var _ = Describe("test authorization", func() {
 		})
 	})
 
+	Context("with cluster editor role", func() {
+		BeforeEach(func() {
+			if !Options.EnableOrgTenancy {
+				Skip("tenancy based auth is disabled")
+			}
+		})
+
+		It("can delete cluster", func() {
+			_, err := editclusterUserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("can get bound infra-env", func() {
+			infraEnvID := registerInfraEnv(&userClusterID, models.ImageTypeMinimalIso).ID
+			_, err := editclusterUserBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID})
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("can't get unbound infra-env", func() {
+			infraEnvID := registerInfraEnv(nil, models.ImageTypeMinimalIso).ID
+			_, err := editclusterUserBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID})
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
 	Context("regular user", func() {
 		It("can get owned cluster", func() {
 			_, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID})

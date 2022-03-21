@@ -13,8 +13,11 @@ import (
 const (
 	BareMetalClusterResource string = "BareMetalCluster"
 	AMSActionCreate          string = "create"
+	AMSActionUpdate          string = "update"
+	AMSActionDelete          string = "delete"
 	CapabilityName           string = "bare_metal_installer_admin"
 	CapabilityType           string = "Account"
+	Subscription             string = "Subscription"
 	EmailDelimiter           string = "@"
 
 	// AdminUsername for disabled auth
