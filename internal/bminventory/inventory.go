@@ -2625,12 +2625,32 @@ func (b *bareMetalInventory) setOperatorsUsage(updateOLMOperators []*models.Moni
 }
 
 func (b *bareMetalInventory) updateClusterNetworkVMUsage(cluster *common.Cluster, updateParams *models.V2ClusterUpdateParams, usages map[string]models.Usage, log logrus.FieldLogger) {
-	vmHosts := make([]string, 0)
+	platform := cluster.Platform
+	usageEnable := true
+
+	if updateParams != nil && updateParams.Platform != nil {
+		platform = updateParams.Platform
+	}
+
+	if platform != nil && platform.Type != nil && *platform.Type != models.PlatformTypeBaremetal && *platform.Type != models.PlatformTypeNone {
+		usageEnable = false
+	}
+
 	userManagedNetwork := cluster.UserManagedNetworking != nil && *cluster.UserManagedNetworking
+
 	if updateParams != nil && updateParams.UserManagedNetworking != nil {
 		userManagedNetwork = *updateParams.UserManagedNetworking
 	}
-	if !userManagedNetwork {
+
+	if userManagedNetwork {
+		usageEnable = false
+	}
+
+	data := make(map[string]interface{})
+
+	if usageEnable {
+		vmHosts := make([]string, 0)
+
 		for _, host := range cluster.Hosts {
 			hostInventory, err := common.UnmarshalInventory(host.Inventory)
 			if err != nil {
@@ -2638,13 +2658,18 @@ func (b *bareMetalInventory) updateClusterNetworkVMUsage(cluster *common.Cluster
 				log.Error(err)
 				return
 			}
+
 			isHostVirtual := hostInventory.SystemVendor != nil && hostInventory.SystemVendor.Virtual
 			if isHostVirtual {
 				vmHosts = append(vmHosts, string(*host.ID))
 			}
 		}
+
+		usageEnable = len(vmHosts) > 0
+		data["VM Hosts"] = vmHosts
 	}
-	b.setUsage(len(vmHosts) > 0, usage.ClusterManagedNetworkWithVMs, &map[string]interface{}{"VM Hosts": vmHosts}, usages)
+
+	b.setUsage(usageEnable, usage.ClusterManagedNetworkWithVMs, &data, usages)
 }
 
 func (b *bareMetalInventory) updateClusterCPUFeatureUsage(cluster *common.Cluster, usages map[string]models.Usage) {
