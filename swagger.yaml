@@ -2574,7 +2574,7 @@ paths:
         - installer
       security:
         - agentAuth: []
-      description: Agent API to mark a finalizing installation as complete.
+      description: Agent API to mark a finalizing installation as complete and progress to 100%.
       operationId: v2CompleteInstallation
       parameters:
         - in: path

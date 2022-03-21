@@ -637,7 +637,7 @@ func init() {
             "agentAuth": []
           }
         ],
-        "description": "Agent API to mark a finalizing installation as complete.",
+        "description": "Agent API to mark a finalizing installation as complete and progress to 100%.",
         "tags": [
           "installer"
         ],
@@ -9350,7 +9350,7 @@ func init() {
             "agentAuth": []
           }
         ],
-        "description": "Agent API to mark a finalizing installation as complete.",
+        "description": "Agent API to mark a finalizing installation as complete and progress to 100%.",
         "tags": [
           "installer"
         ],
