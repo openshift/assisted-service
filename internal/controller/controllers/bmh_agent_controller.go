@@ -617,11 +617,6 @@ func (r *BMACReconciler) reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_
 //       to contain multiple informations instead of a bunch of variables that are later on
 //       separately interpreted.
 func shouldReconcileBMH(bmh *bmh_v1alpha1.BareMetalHost, infraEnv *aiv1beta1.InfraEnv) (bool, bool, time.Duration, string) {
-	// Stop `Reconcile` if BMH does not have an InfraEnv.
-	if infraEnv == nil {
-		return false, false, 0, "BMH does not have an InfraEnv"
-	}
-
 	// This is a separate check because an existing
 	// InfraEnv with an empty ISODownloadURL means the
 	// global `Reconcile` function should also return
@@ -700,6 +695,11 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 
 	if err != nil {
 		return reconcileError{err}
+	}
+
+	// Stop `Reconcile` if BMH does not have an InfraEnv.
+	if infraEnv == nil {
+		return reconcileComplete{stop: true}
 	}
 
 	dirty := false

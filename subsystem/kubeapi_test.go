@@ -179,7 +179,7 @@ func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, sp
 }
 
 func deployBMHCRD(ctx context.Context, client k8sclient.Client, name string, spec *bmhv1alpha1.BareMetalHostSpec) {
-	err := client.Create(ctx, &bmhv1alpha1.BareMetalHost{
+	bmh := bmhv1alpha1.BareMetalHost{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "BareMetalHost",
 			APIVersion: "metal3.io/v1alpha1",
@@ -189,8 +189,16 @@ func deployBMHCRD(ctx context.Context, client k8sclient.Client, name string, spe
 			Name:      name,
 		},
 		Spec: *spec,
-	})
+		Status: bmhv1alpha1.BareMetalHostStatus{
+			Provisioning: bmhv1alpha1.ProvisionStatus{State: bmhv1alpha1.StateReady},
+		},
+	}
+
+	err := client.Create(ctx, &bmh)
 	Expect(err).To(BeNil())
+
+	bmh.Status.Provisioning.State = bmhv1alpha1.StateReady
+	Expect(client.Status().Update(ctx, &bmh)).To(BeNil())
 }
 
 func addAnnotationToAgentClusterInstall(ctx context.Context, client k8sclient.Client, key types.NamespacedName, annotationKey string, annotationValue string) {
@@ -1307,10 +1315,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
-		key := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterName,
-		}
 		infraEnvKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      infraNsName.Name,
@@ -1318,7 +1322,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		key = types.NamespacedName{
+		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
@@ -1328,6 +1332,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		Eventually(func() error {
 			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
 			bmh.SetAnnotations(map[string]string{controllers.BMH_AGENT_IGNITION_CONFIG_OVERRIDES: fakeIgnitionConfigOverride})
 			return kubeClient.Update(ctx, bmh)
 		}, "30s", "10s").Should(BeNil())
@@ -1377,10 +1382,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
-		key := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterName,
-		}
 		infraEnvKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      infraNsName.Name,
@@ -1388,7 +1389,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		key = types.NamespacedName{
+		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
@@ -1420,10 +1421,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
-		key := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterName,
-		}
 		infraEnvKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      infraNsName.Name,
@@ -1431,7 +1428,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		key = types.NamespacedName{
+		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
@@ -1487,10 +1484,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
-		key := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterName,
-		}
 		infraEnvKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      infraNsName.Name,
@@ -1498,7 +1491,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		key = types.NamespacedName{
+		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
@@ -1550,10 +1543,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
-		key := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterName,
-		}
 		infraEnvKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      infraNsName.Name,
@@ -1561,7 +1550,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		key = types.NamespacedName{
+		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
@@ -1574,6 +1563,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		Eventually(func() error {
 			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
 			bmh.SetAnnotations(map[string]string{controllers.BMH_AGENT_INSTALLER_ARGS: installerArgs})
 			return kubeClient.Update(ctx, bmh)
 		}, "30s", "10s").Should(BeNil())
