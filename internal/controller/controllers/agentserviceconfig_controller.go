@@ -1888,13 +1888,17 @@ func (r *AgentServiceConfigReconciler) newWebHookService(ctx context.Context, lo
 }
 
 func (r *AgentServiceConfigReconciler) newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
-	as := apiregv1.APIService{
+	as := &apiregv1.APIService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "v1.admission.agentinstall.openshift.io",
 		},
 	}
 
 	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, as, r.Scheme); err != nil {
+			return err
+		}
+
 		if as.ObjectMeta.Annotations == nil {
 			as.ObjectMeta.Annotations = make(map[string]string)
 		}
@@ -1909,7 +1913,7 @@ func (r *AgentServiceConfigReconciler) newWebHookAPIService(ctx context.Context,
 		}
 		return nil
 	}
-	return &as, mutateFn, nil
+	return as, mutateFn, nil
 }
 
 func (r *AgentServiceConfigReconciler) newWebHookDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
