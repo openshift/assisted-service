@@ -1477,7 +1477,7 @@ func clusterStopped(clusterInstall *hiveext.AgentClusterInstall, status string) 
 		condStatus = corev1.ConditionTrue
 		reason = hiveext.ClusterStoppedCanceledReason
 		msg = hiveext.ClusterStoppedCanceledMsg
-	case models.ClusterStatusInstalled:
+	case models.ClusterStatusInstalled, models.ClusterStatusAddingHosts:
 		condStatus = corev1.ConditionTrue
 		reason = hiveext.ClusterStoppedCompletedReason
 		msg = hiveext.ClusterStoppedCompletedMsg

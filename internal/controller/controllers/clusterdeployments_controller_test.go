@@ -2600,9 +2600,9 @@ var _ = Describe("TestConditions", func() {
 				},
 				{
 					Type:    hiveext.ClusterStoppedCondition,
-					Message: hiveext.ClusterNotStoppedMsg,
-					Reason:  hiveext.ClusterNotStoppedReason,
-					Status:  corev1.ConditionFalse,
+					Message: hiveext.ClusterStoppedCompletedMsg,
+					Reason:  hiveext.ClusterStoppedCompletedReason,
+					Status:  corev1.ConditionTrue,
 				},
 			},
 		},
