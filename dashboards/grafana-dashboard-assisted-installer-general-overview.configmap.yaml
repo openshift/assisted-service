@@ -11,19 +11,32 @@ data:
             "hide": true,
             "iconColor": "rgba(0, 211, 255, 1)",
             "name": "Annotations & Alerts",
+            "target": {
+              "limit": 100,
+              "matchAny": false,
+              "tags": [],
+              "type": "dashboard"
+            },
             "type": "dashboard"
           }
         ]
       },
       "editable": true,
+      "fiscalYearStartMonth": 0,
       "gnetId": null,
       "graphTooltip": 0,
-      "iteration": 1609836796310,
+      "id": 176,
+      "iteration": 1647875764382,
       "links": [],
+      "liveNow": false,
       "panels": [
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -49,7 +62,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -82,7 +94,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -97,12 +109,6 @@ data:
               "interval": "",
               "legendFormat": "Created clusters",
               "refId": "A"
-            },
-            {
-              "expr": "increase(count(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/downloads/image\",method=\"POST\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_creations{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".+\"}))[$__range:$__rate_interval])",
-              "interval": "",
-              "legendFormat": "ISO generated",
-              "refId": "F"
             },
             {
               "expr": "increase(sum(service_assisted_installer_cluster_installation_started{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
@@ -181,7 +187,6 @@ data:
           "description": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
@@ -214,9 +219,10 @@ data:
               "fields": "",
               "values": false
             },
+            "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "targets": [
             {
               "expr": "increase(sum(service_assisted_installer_cluster_hosts{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
@@ -258,12 +264,6 @@ data:
             "threshold": 0
           },
           "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fontSize": "80%",
           "format": "short",
           "gridPos": {
@@ -305,12 +305,6 @@ data:
         },
         {
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "gridPos": {
             "h": 3,
             "w": 8,
@@ -322,10 +316,9 @@ data:
             "content": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
             "mode": "markdown"
           },
-          "pluginVersion": "7.1.0",
+          "pluginVersion": "8.2.7",
           "timeFrom": null,
           "timeShift": null,
-          "title": "",
           "type": "text"
         },
         {
@@ -333,7 +326,6 @@ data:
           "description": "",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "decimals": 3,
               "mappings": [],
               "thresholds": {
@@ -368,9 +360,10 @@ data:
               "fields": "",
               "values": false
             },
+            "text": {},
             "textMode": "value"
           },
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "targets": [
             {
               "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
@@ -403,9 +396,10 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "displayName": "",
               "mappings": [],
+              "max": 1,
+              "min": 0,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -442,9 +436,10 @@ data:
               "fields": "",
               "values": false
             },
+            "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "targets": [
             {
               "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
@@ -466,7 +461,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -499,7 +493,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -568,26 +562,6 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": "app-sre-prod-04-prometheus",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {},
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -618,7 +592,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -685,7 +659,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -718,7 +691,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -788,12 +761,6 @@ data:
             "threshold": 0
           },
           "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fontSize": "80%",
           "format": "short",
           "gridPos": {
@@ -836,6 +803,10 @@ data:
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -861,7 +832,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -894,7 +864,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -909,12 +879,6 @@ data:
               "interval": "",
               "legendFormat": "Created clusters",
               "refId": "A"
-            },
-            {
-              "expr": "increase(count(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/downloads/image\",method=\"POST\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_creations{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\"}))[$__range:$__rate_interval])",
-              "interval": "",
-              "legendFormat": "ISO generated",
-              "refId": "F"
             },
             {
               "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
@@ -993,7 +957,6 @@ data:
           "description": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
@@ -1026,9 +989,10 @@ data:
               "fields": "",
               "values": false
             },
+            "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "targets": [
             {
               "expr": "increase(sum(service_assisted_installer_cluster_hosts{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
@@ -1070,12 +1034,6 @@ data:
             "threshold": 0
           },
           "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fontSize": "80%",
           "format": "short",
           "gridPos": {
@@ -1117,12 +1075,6 @@ data:
         },
         {
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "gridPos": {
             "h": 3,
             "w": 8,
@@ -1134,10 +1086,9 @@ data:
             "content": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
             "mode": "markdown"
           },
-          "pluginVersion": "7.1.0",
+          "pluginVersion": "8.2.7",
           "timeFrom": null,
           "timeShift": null,
-          "title": "",
           "type": "text"
         },
         {
@@ -1145,7 +1096,6 @@ data:
           "description": "",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "decimals": 3,
               "mappings": [],
               "thresholds": {
@@ -1180,9 +1130,10 @@ data:
               "fields": "",
               "values": false
             },
+            "text": {},
             "textMode": "value"
           },
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "targets": [
             {
               "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval])",
@@ -1215,9 +1166,10 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "displayName": "",
               "mappings": [],
+              "max": 1,
+              "min": 0,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -1254,9 +1206,10 @@ data:
               "fields": "",
               "values": false
             },
+            "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "targets": [
             {
               "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
@@ -1278,7 +1231,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -1311,7 +1263,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1382,12 +1334,6 @@ data:
             "threshold": 0
           },
           "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fontSize": "80%",
           "format": "short",
           "gridPos": {
@@ -1435,7 +1381,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -1468,7 +1413,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1532,6 +1477,10 @@ data:
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -1557,7 +1506,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -1590,7 +1538,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1605,12 +1553,6 @@ data:
               "interval": "",
               "legendFormat": "Created clusters",
               "refId": "A"
-            },
-            {
-              "expr": "increase(count(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/downloads/image\",method=\"POST\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_creations{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\"}))[$__range:$__rate_interval])",
-              "interval": "",
-              "legendFormat": "ISO generated",
-              "refId": "F"
             },
             {
               "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
@@ -1689,7 +1631,6 @@ data:
           "description": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
@@ -1722,9 +1663,10 @@ data:
               "fields": "",
               "values": false
             },
+            "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "targets": [
             {
               "expr": "increase(sum(service_assisted_installer_cluster_hosts{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
@@ -1766,12 +1708,6 @@ data:
             "threshold": 0
           },
           "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fontSize": "80%",
           "format": "short",
           "gridPos": {
@@ -1813,12 +1749,6 @@ data:
         },
         {
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "gridPos": {
             "h": 3,
             "w": 8,
@@ -1830,10 +1760,9 @@ data:
             "content": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
             "mode": "markdown"
           },
-          "pluginVersion": "7.1.0",
+          "pluginVersion": "8.2.7",
           "timeFrom": null,
           "timeShift": null,
-          "title": "",
           "type": "text"
         },
         {
@@ -1841,7 +1770,6 @@ data:
           "description": "",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "decimals": 3,
               "mappings": [],
               "thresholds": {
@@ -1876,9 +1804,10 @@ data:
               "fields": "",
               "values": false
             },
+            "text": {},
             "textMode": "value"
           },
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "targets": [
             {
               "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval])",
@@ -1911,9 +1840,10 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "displayName": "",
               "mappings": [],
+              "max": 1,
+              "min": 0,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -1950,9 +1880,10 @@ data:
               "fields": "",
               "values": false
             },
+            "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "targets": [
             {
               "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".+\",})[$__range:$__rate_interval])",
@@ -1974,7 +1905,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -2007,7 +1937,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -2078,12 +2008,6 @@ data:
             "threshold": 0
           },
           "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fontSize": "80%",
           "format": "short",
           "gridPos": {
@@ -2131,7 +2055,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -2164,7 +2087,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -2227,7 +2150,7 @@ data:
         }
       ],
       "refresh": false,
-      "schemaVersion": 26,
+      "schemaVersion": 32,
       "style": "dark",
       "tags": [],
       "templating": {
@@ -2238,6 +2161,8 @@ data:
               "text": "app-sre-prod-04-prometheus",
               "value": "app-sre-prod-04-prometheus"
             },
+            "description": null,
+            "error": null,
             "hide": 0,
             "includeAll": false,
             "label": null,
@@ -2257,6 +2182,8 @@ data:
               "text": ".*",
               "value": ".*"
             },
+            "description": null,
+            "error": null,
             "hide": 0,
             "label": "OpenShift_Version",
             "name": "OpenShift_Version",

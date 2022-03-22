@@ -11,16 +11,24 @@ data:
             "hide": true,
             "iconColor": "rgba(0, 211, 255, 1)",
             "name": "Annotations & Alerts",
+            "target": {
+              "limit": 100,
+              "matchAny": false,
+              "tags": [],
+              "type": "dashboard"
+            },
             "type": "dashboard"
           }
         ]
       },
       "editable": true,
+      "fiscalYearStartMonth": 0,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 7,
-      "iteration": 1603358791705,
+      "id": 175,
+      "iteration": 1647874305598,
       "links": [],
+      "liveNow": false,
       "panels": [
         {
           "aliasColors": {},
@@ -30,7 +38,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -61,7 +68,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -71,7 +78,8 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts\", method=\"POST\"}[5m])) by (code)",
+              "exemplar": true,
+              "expr": "sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts\", method=\"POST\"}[5m])) by (code)",
               "hide": false,
               "interval": "",
               "legendFormat": "{{code}}",
@@ -82,7 +90,7 @@ data:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "POST RegisterHost By Status",
+          "title": "POST v2RegisterHost By Status",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -129,7 +137,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -160,7 +167,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -170,32 +177,37 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts\", method=\"POST\"}[5m])) by (le))",
               "hide": false,
               "interval": "",
               "legendFormat": "0.99",
               "refId": "A"
             },
             {
-              "expr": "histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts\", method=\"POST\"}[5m])) by (le))",
               "interval": "",
               "legendFormat": "0.9",
               "refId": "E"
             },
             {
-              "expr": "histogram_quantile(0.75, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.75, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts\", method=\"POST\"}[5m])) by (le))",
               "interval": "",
               "legendFormat": "0.75",
               "refId": "C"
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts\", method=\"POST\"}[5m])) by (le))",
               "interval": "",
               "legendFormat": "0.5",
               "refId": "D"
             },
             {
-              "expr": "sum(rate(http_request_duration_seconds_sum{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts\", method=\"POST\"}[5m])) by (handler) / sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts\", method=\"POST\"}[5m])) by (handler)",
+              "exemplar": true,
+              "expr": "sum(rate(http_request_duration_seconds_sum{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts\", method=\"POST\"}[5m])) by (handler) / sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts\", method=\"POST\"}[5m])) by (handler)",
               "hide": false,
               "interval": "",
               "legendFormat": "avg",
@@ -206,7 +218,7 @@ data:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "POST RegisterHost Latency",
+          "title": "POST v2RegisterHost Latency",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -251,7 +263,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -282,7 +293,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -292,7 +303,8 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (code)",
+              "exemplar": true,
+              "expr": "sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (code)",
               "hide": false,
               "interval": "",
               "legendFormat": "{{code}}",
@@ -303,7 +315,7 @@ data:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "POST PostStepReply By Status",
+          "title": "POST v2PostStepReply By Status",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -350,7 +362,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -381,7 +392,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -391,33 +402,38 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (le))",
               "interval": "",
               "legendFormat": "0.99",
               "refId": "E"
             },
             {
-              "expr": "histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (le))",
               "hide": false,
               "interval": "",
               "legendFormat": "0.9",
               "refId": "B"
             },
             {
-              "expr": "histogram_quantile(0.75, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.75, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (le))",
               "interval": "",
               "legendFormat": "0.75",
               "refId": "D"
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (le))",
               "hide": false,
               "interval": "",
               "legendFormat": "0.5",
               "refId": "A"
             },
             {
-              "expr": "sum(rate(http_request_duration_seconds_sum{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (handler) / sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (handler)",
+              "exemplar": true,
+              "expr": "sum(rate(http_request_duration_seconds_sum{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (handler) / sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"POST\"}[5m])) by (handler)",
               "interval": "",
               "legendFormat": "avg",
               "refId": "C"
@@ -427,7 +443,7 @@ data:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "POST PostStepReply Latency",
+          "title": "POST v2PostStepReply Latency",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -472,7 +488,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -503,7 +518,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -513,7 +528,8 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (code)",
+              "exemplar": true,
+              "expr": "sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (code)",
               "hide": false,
               "interval": "",
               "legendFormat": "{{code}}",
@@ -524,7 +540,7 @@ data:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "GET GetNextSteps By status",
+          "title": "GET v2GetNextSteps By status",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -571,7 +587,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -602,7 +617,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -612,34 +627,39 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (le))",
               "hide": false,
               "interval": "",
               "legendFormat": "0.99",
               "refId": "B"
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (le))",
               "hide": false,
               "interval": "",
               "legendFormat": "0.5",
               "refId": "A"
             },
             {
-              "expr": "histogram_quantile(0.75, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.75, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (le))",
               "interval": "",
               "legendFormat": "0.75",
               "refId": "C"
             },
             {
-              "expr": "histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (le))",
               "hide": false,
               "interval": "",
               "legendFormat": "0.9",
               "refId": "E"
             },
             {
-              "expr": "sum(rate(http_request_duration_seconds_sum{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (handler) / sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (handler)\n",
+              "exemplar": true,
+              "expr": "sum(rate(http_request_duration_seconds_sum{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (handler) / sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions\", method=\"GET\"}[5m])) by (handler)\n",
               "hide": false,
               "interval": "",
               "legendFormat": "avg",
@@ -650,7 +670,7 @@ data:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "GET GetNextSteps Latency",
+          "title": "GET v2GetNextSteps Latency",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -695,7 +715,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -726,7 +745,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -736,7 +755,8 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/logs\", method=\"POST\"}[5m])) by (code)",
+              "exemplar": true,
+              "expr": "sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/clusters/{cluster_id}/logs\", method=\"POST\"}[5m])) by (code)",
               "hide": false,
               "interval": "",
               "legendFormat": "{{code}}",
@@ -747,7 +767,7 @@ data:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "POST UploadHostLogs By status",
+          "title": "POST V2UploadLogs By status",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -794,7 +814,6 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "links": []
             },
             "overrides": []
@@ -825,7 +844,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "8.2.7",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -835,42 +854,48 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/logs\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/clusters/{cluster_id}/logs\", method=\"POST\"}[5m])) by (le))",
               "hide": false,
               "interval": "",
               "legendFormat": "0.99",
               "refId": "B"
             },
             {
-              "expr": "histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/logs\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/clusters/{cluster_id}/logs\", method=\"POST\"}[5m])) by (le))",
               "hide": false,
               "interval": "",
               "legendFormat": "0.9",
               "refId": "A"
             },
             {
-              "expr": "histogram_quantile(0.75, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/logs\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.75, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/clusters/{cluster_id}/logs\", method=\"POST\"}[5m])) by (le))",
               "hide": false,
               "interval": "",
               "legendFormat": "0.75",
               "refId": "C"
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/logs\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/clusters/{cluster_id}/logs\", method=\"POST\"}[5m])) by (le))",
               "hide": false,
               "interval": "",
               "legendFormat": "0.5",
               "refId": "D"
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/logs\", method=\"POST\"}[5m])) by (le))",
+              "exemplar": true,
+              "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{endpoint=\"assisted-svc\", handler=\"/api/assisted-install/v2/clusters/{cluster_id}/logs\", method=\"POST\"}[5m])) by (le))",
               "hide": false,
               "interval": "",
               "legendFormat": "0.5",
               "refId": "E"
             },
             {
-              "expr": "sum(rate(http_request_duration_seconds_sum{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/logs\", method=\"POST\"}[5m])) by (handler) / sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/hosts/{host_id}/logs\", method=\"POST\"}[5m])) by (handler)\n",
+              "exemplar": true,
+              "expr": "sum(rate(http_request_duration_seconds_sum{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v2/clusters/{cluster_id}/logs\", method=\"POST\"}[5m])) by (handler) / sum(rate(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v2/clusters/{cluster_id}/logs\", method=\"POST\"}[5m])) by (handler)\n",
               "hide": false,
               "interval": "",
               "legendFormat": "avg",
@@ -881,7 +906,7 @@ data:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "POST UploadHostLogs Latency",
+          "title": "POST V2UploadLogs Latency",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -920,7 +945,7 @@ data:
         }
       ],
       "refresh": false,
-      "schemaVersion": 26,
+      "schemaVersion": 32,
       "style": "dark",
       "tags": [],
       "templating": {
@@ -931,6 +956,8 @@ data:
               "text": "app-sre-prod-04-prometheus",
               "value": "app-sre-prod-04-prometheus"
             },
+            "description": null,
+            "error": null,
             "hide": 0,
             "includeAll": false,
             "label": null,
@@ -967,7 +994,7 @@ data:
       "timezone": "",
       "title": "Agent API",
       "uid": "assisted-installer-agent-api",
-      "version": 9
+      "version": 1
     }
 kind: ConfigMap
 metadata:
