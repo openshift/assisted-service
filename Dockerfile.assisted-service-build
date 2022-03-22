@@ -11,9 +11,8 @@ USER 0
 
 RUN mkdir build && chmod g+xw -R build/
 
-RUN yum install -y epel-release \
-    && yum install -y --setopt=skip_missing_names_on_install=False \
-        gcc genisoimage jq git libvirt-client libvirt-devel java
+RUN yum install -y --setopt=skip_missing_names_on_install=False \
+        gcc genisoimage git libvirt-client libvirt-devel java
 
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.17 /usr/bin/gotestsum /usr/bin/make /usr/bin/
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.17 /usr/local/go /usr/local/go
