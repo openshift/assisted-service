@@ -12666,6 +12666,18 @@ var _ = Describe("Update cluster - feature usage flags", func() {
 				UserManagedNetworking: &updateTo,
 			}, usages, common.GetTestLog())
 		})
+
+		It("Should not add usage when platform is vsphere", func() {
+			mockUsage.EXPECT().Add(usages, usage.ClusterManagedNetworkWithVMs, gomock.Any()).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.ClusterManagedNetworkWithVMs).Times(1)
+			platformType := models.PlatformTypeVsphere
+
+			bm.updateClusterNetworkVMUsage(cluster, &models.V2ClusterUpdateParams{
+				Platform: &models.Platform{
+					Type: &platformType,
+				},
+			}, usages, common.GetTestLog())
+		})
 	})
 })
 
