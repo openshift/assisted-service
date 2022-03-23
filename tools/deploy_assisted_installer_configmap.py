@@ -31,6 +31,7 @@ def handle_arguments():
     parser.add_argument("--disabled-host-validations", default="")
     parser.add_argument("--disabled-steps", default="")
     parser.add_argument("--disk-encryption-support", default="True")
+    parser.add_argument("--enable-org-tenancy", default="False")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -132,6 +133,8 @@ def main():
                 y['data']['ENABLE_KUBE_API'] = 'true'
 
             y['data']['DISK_ENCRYPTION_SUPPORT'] = deploy_options.disk_encryption_support
+
+            y['data']['ENABLE_ORG_TENANCY'] = deploy_options.enable_org_tenancy
 
             data = yaml.dump(y)
             dst.write(data)
