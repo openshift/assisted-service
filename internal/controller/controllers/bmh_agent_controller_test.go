@@ -246,6 +246,11 @@ var _ = Describe("bmac reconcile", func() {
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_INSPECT_ANNOTATION))
 			})
 		})
 
@@ -399,6 +404,7 @@ var _ = Describe("bmac reconcile", func() {
 		var host *bmh_v1alpha1.BareMetalHost
 		var agent *v1beta1.Agent
 		var staleAgent *v1beta1.Agent
+		var infraEnv *v1beta1.InfraEnv
 
 		BeforeEach(func() {
 			macStr := "12-34-56-78-9A-BC"
@@ -442,7 +448,12 @@ var _ = Describe("bmac reconcile", func() {
 			}
 			Expect(c.Create(ctx, agent)).To(BeNil())
 
-			image := &bmh_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
+			isoImageURL := "http://buzz.lightyear.io/discovery-image.iso"
+			infraEnv = newInfraEnvImage("myInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+			infraEnv.Status = v1beta1.InfraEnvStatus{ISODownloadURL: isoImageURL}
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			image := &bmh_v1alpha1.Image{URL: isoImageURL}
 			hostSpec := bmh_v1alpha1.BareMetalHostSpec{
 				Image: image,
 				RootDeviceHints: &bmh_v1alpha1.RootDeviceHints{
@@ -459,6 +470,11 @@ var _ = Describe("bmac reconcile", func() {
 			annotations[BMH_AGENT_INSTALLER_ARGS] = `["--args", "aaaa"]`
 			annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = "agent-ignition"
 			host.ObjectMeta.SetAnnotations(annotations)
+
+			labels := make(map[string]string)
+			labels[BMH_INFRA_ENV_LABEL] = infraEnv.Name
+			host.ObjectMeta.Labels = labels
+
 			Expect(c.Create(ctx, host)).To(BeNil())
 
 		})
@@ -467,6 +483,7 @@ var _ = Describe("bmac reconcile", func() {
 			Expect(c.Delete(ctx, host)).ShouldNot(HaveOccurred())
 			Expect(c.Delete(ctx, agent)).ShouldNot(HaveOccurred())
 			Expect(c.Delete(ctx, staleAgent)).ShouldNot(HaveOccurred())
+			Expect(c.Delete(ctx, infraEnv)).ShouldNot(HaveOccurred())
 		})
 
 		Context("when an agent matches", func() {
@@ -567,6 +584,12 @@ var _ = Describe("bmac reconcile", func() {
 			It("Should update agent only once", func() {
 				mockClient := NewMockK8sClient(mockCtrl)
 				bmhr.Client = mockClient
+				mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).DoAndReturn(
+					func(ctx context.Context, name types.NamespacedName, infraEnv *v1beta1.InfraEnv) error {
+						return c.Get(ctx, name, infraEnv)
+					},
+				).Times(2)
+
 				mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).DoAndReturn(
 					func(ctx context.Context, name types.NamespacedName, bmh *bmh_v1alpha1.BareMetalHost) error {
 						return c.Get(ctx, name, bmh)
@@ -616,6 +639,7 @@ var _ = Describe("bmac reconcile", func() {
 	Describe("Reconcile a BMH with an approved matching agent", func() {
 		var host *bmh_v1alpha1.BareMetalHost
 		var agent *v1beta1.Agent
+		var infraEnv *v1beta1.InfraEnv
 
 		BeforeEach(func() {
 			macStr := "12-34-56-78-9A-BC"
@@ -644,8 +668,18 @@ var _ = Describe("bmac reconcile", func() {
 			}
 			Expect(c.Create(ctx, agent)).To(BeNil())
 
-			image := &bmh_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
+			isoImageURL := "http://buzz.lightyear.io/discovery-image.iso"
+			infraEnv = newInfraEnvImage("myInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+			infraEnv.Status = v1beta1.InfraEnvStatus{ISODownloadURL: isoImageURL}
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			image := &bmh_v1alpha1.Image{URL: isoImageURL}
 			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{Image: image, BootMACAddress: macStr})
+
+			labels := make(map[string]string)
+			labels[BMH_INFRA_ENV_LABEL] = infraEnv.Name
+			host.ObjectMeta.Labels = labels
+
 			Expect(c.Create(ctx, host)).To(BeNil())
 
 		})
@@ -653,6 +687,7 @@ var _ = Describe("bmac reconcile", func() {
 		AfterEach(func() {
 			Expect(c.Delete(ctx, host)).ShouldNot(HaveOccurred())
 			Expect(c.Delete(ctx, agent)).ShouldNot(HaveOccurred())
+			Expect(c.Delete(ctx, infraEnv)).ShouldNot(HaveOccurred())
 		})
 
 		Context("when an agent matches", func() {
@@ -717,6 +752,7 @@ var _ = Describe("bmac reconcile", func() {
 	Describe("Reconcile a Spoke BMH", func() {
 		var host *bmh_v1alpha1.BareMetalHost
 		var agent *v1beta1.Agent
+		var infraEnv *v1beta1.InfraEnv
 		var cluster *hivev1.ClusterDeployment
 		var clusterInstall *hiveext.AgentClusterInstall
 		var adminKubeconfigSecret *corev1.Secret
@@ -755,12 +791,22 @@ var _ = Describe("bmac reconcile", func() {
 			agent.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{Name: clusterName, Namespace: testNamespace}
 			Expect(c.Create(ctx, agent)).To(BeNil())
 
-			image := &bmh_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
+			isoImageURL := "http://buzz.lightyear.io/discovery-image.iso"
+			infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+			infraEnv.Status = v1beta1.InfraEnvStatus{ISODownloadURL: isoImageURL}
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			image := &bmh_v1alpha1.Image{URL: isoImageURL}
 			bmhName = "bmh-reconcile"
 			host = newBMH(bmhName, &bmh_v1alpha1.BareMetalHostSpec{Image: image, BootMACAddress: macStr, BMC: bmh_v1alpha1.BMCDetails{CredentialsName: fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)}})
 			annotations := make(map[string]string)
 			annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = `{"ignition":{"version":"3.1.0", "security": {"tls":{"certificateAuthorities":[{"source":"data:text/plain;charset=utf-8;base64,c29tZSBjZXJ0aWZpY2F0ZQ=="}]}}}}`
 			host.ObjectMeta.SetAnnotations(annotations)
+
+			labels := make(map[string]string)
+			labels[BMH_INFRA_ENV_LABEL] = infraEnv.Name
+			host.ObjectMeta.Labels = labels
+
 			Expect(c.Create(ctx, host)).To(BeNil())
 
 			defaultClusterSpec := getDefaultClusterDeploymentSpec(clusterName, "test-cluster-aci", pullSecretName)
@@ -838,6 +884,7 @@ var _ = Describe("bmac reconcile", func() {
 			Expect(c.Delete(ctx, host)).ShouldNot(HaveOccurred())
 			Expect(c.Delete(ctx, agent)).ShouldNot(HaveOccurred())
 			Expect(c.Delete(ctx, cluster)).ShouldNot(HaveOccurred())
+			Expect(c.Delete(ctx, infraEnv)).ShouldNot(HaveOccurred())
 		})
 
 		Context("when agent role worker and cluster deployment is set", func() {
