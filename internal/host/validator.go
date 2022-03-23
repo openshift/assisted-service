@@ -700,16 +700,17 @@ func (v *validator) isIgnitionDownloadable(c *validationContext) ValidationStatu
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput
 	}
-	if c.inventory == nil {
-		return ValidationPending
-	}
 	if !hostutil.IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccessSuppressOutput
+	}
+	if c.host.APIVipConnectivity == "" {
+		return ValidationPending
 	}
 	var response models.APIVipConnectivityResponse
 	if err := json.Unmarshal([]byte(c.host.APIVipConnectivity), &response); err != nil {
 		return ValidationFailure
 	}
+
 	return boolValue(response.IsSuccess)
 }
 
@@ -721,9 +722,9 @@ func (v *validator) printIgnitionDownloadable(c *validationContext, status Valid
 		}
 		return "Ignition is downloadable"
 	case ValidationFailure:
-		return "Ignition is not downloadable"
+		return "Ignition is not downloadable. Please ensure host connectivity to the cluster's API VIP."
 	case ValidationPending:
-		return "Missing inventory"
+		return "Ignition is not ready, pending API VIP connectivity."
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
