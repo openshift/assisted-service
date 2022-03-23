@@ -346,17 +346,6 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		return err
 	}
 
-	if swag.BoolValue(params.NewClusterParams.UserManagedNetworking) {
-		if swag.BoolValue(params.NewClusterParams.VipDhcpAllocation) {
-			err = errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-		if params.NewClusterParams.IngressVip != "" {
-			err = errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
-
 	if params.NewClusterParams.AdditionalNtpSource != nil {
 		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
 
@@ -455,6 +444,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			ID:                    &id,
 			Href:                  swag.String(url.String()),
 			Kind:                  swag.String(models.ClusterKindCluster),
+			APIVip:                params.NewClusterParams.APIVip,
 			BaseDNSDomain:         params.NewClusterParams.BaseDNSDomain,
 			IngressVip:            params.NewClusterParams.IngressVip,
 			Name:                  swag.StringValue(params.NewClusterParams.Name),
