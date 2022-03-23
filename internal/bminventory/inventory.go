@@ -2862,12 +2862,16 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 	}
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
-	for _, host := range cluster.Hosts {
-		if err = b.customizeHost(&cluster.Cluster, host); err != nil {
-			return nil, err
+	if swag.BoolValue(params.ExcludeHosts) {
+		cluster.Hosts = nil
+	} else {
+		for _, host := range cluster.Hosts {
+			if err = b.customizeHost(&cluster.Cluster, host); err != nil {
+				return nil, err
+			}
+			// Clear this field as it is not needed to be sent via API
+			host.FreeAddresses = ""
 		}
-		// Clear this field as it is not needed to be sent via API
-		host.FreeAddresses = ""
 	}
 
 	imageInfo, err := b.getImageInfo(cluster.ID)
@@ -5449,4 +5453,33 @@ func (b *bareMetalInventory) getBoundCluster(db *gorm.DB, infraEnv *common.Infra
 		return cluster, nil
 	}
 	return nil, nil
+}
+
+func (b *bareMetalInventory) ListClusterHosts(ctx context.Context, params installer.ListClusterHostsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	db := b.db
+	if params.Role != nil {
+		db = db.Where("role = ?", swag.StringValue(params.Role))
+	}
+	if params.Status != nil {
+		db = db.Where("status = ?", swag.StringValue(params.Status))
+	}
+	var hostList models.HostList
+	err := db.Find(&hostList, "cluster_id = ?", params.ClusterID.String()).Error
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get cluster %s hosts", params.ClusterID.String())
+		return common.GenerateErrorResponder(err)
+	}
+	withInventory := swag.BoolValue(params.WithInventory)
+	withConnectivity := swag.BoolValue(params.WithConnectivity)
+	for _, h := range hostList {
+		h.FreeAddresses = ""
+		if !withInventory {
+			h.Inventory = ""
+		}
+		if !withConnectivity {
+			h.Connectivity = ""
+		}
+	}
+	return installer.NewListClusterHostsOK().WithPayload(hostList)
 }

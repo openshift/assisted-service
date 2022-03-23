@@ -15,11 +15,14 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V2GetClusterURL generates an URL for the v2 get cluster operation
-type V2GetClusterURL struct {
+// ListClusterHostsURL generates an URL for the list cluster hosts operation
+type ListClusterHostsURL struct {
 	ClusterID strfmt.UUID
 
-	ExcludeHosts *bool
+	Role             *string
+	Status           *string
+	WithConnectivity *bool
+	WithInventory    *bool
 
 	_basePath string
 	// avoid unkeyed usage
@@ -29,7 +32,7 @@ type V2GetClusterURL struct {
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *V2GetClusterURL) WithBasePath(bp string) *V2GetClusterURL {
+func (o *ListClusterHostsURL) WithBasePath(bp string) *ListClusterHostsURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -37,21 +40,21 @@ func (o *V2GetClusterURL) WithBasePath(bp string) *V2GetClusterURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *V2GetClusterURL) SetBasePath(bp string) {
+func (o *ListClusterHostsURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *V2GetClusterURL) Build() (*url.URL, error) {
+func (o *ListClusterHostsURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/v2/clusters/{cluster_id}"
+	var _path = "/v2/clusters/{cluster_id}/hosts"
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {
 		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
 	} else {
-		return nil, errors.New("clusterId is required on V2GetClusterURL")
+		return nil, errors.New("clusterId is required on ListClusterHostsURL")
 	}
 
 	_basePath := o._basePath
@@ -62,12 +65,36 @@ func (o *V2GetClusterURL) Build() (*url.URL, error) {
 
 	qs := make(url.Values)
 
-	var excludeHostsQ string
-	if o.ExcludeHosts != nil {
-		excludeHostsQ = swag.FormatBool(*o.ExcludeHosts)
+	var roleQ string
+	if o.Role != nil {
+		roleQ = *o.Role
 	}
-	if excludeHostsQ != "" {
-		qs.Set("exclude-hosts", excludeHostsQ)
+	if roleQ != "" {
+		qs.Set("role", roleQ)
+	}
+
+	var statusQ string
+	if o.Status != nil {
+		statusQ = *o.Status
+	}
+	if statusQ != "" {
+		qs.Set("status", statusQ)
+	}
+
+	var withConnectivityQ string
+	if o.WithConnectivity != nil {
+		withConnectivityQ = swag.FormatBool(*o.WithConnectivity)
+	}
+	if withConnectivityQ != "" {
+		qs.Set("with-connectivity", withConnectivityQ)
+	}
+
+	var withInventoryQ string
+	if o.WithInventory != nil {
+		withInventoryQ = swag.FormatBool(*o.WithInventory)
+	}
+	if withInventoryQ != "" {
+		qs.Set("with-inventory", withInventoryQ)
 	}
 
 	_result.RawQuery = qs.Encode()
@@ -76,7 +103,7 @@ func (o *V2GetClusterURL) Build() (*url.URL, error) {
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *V2GetClusterURL) Must(u *url.URL, err error) *url.URL {
+func (o *ListClusterHostsURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -87,17 +114,17 @@ func (o *V2GetClusterURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *V2GetClusterURL) String() string {
+func (o *ListClusterHostsURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *V2GetClusterURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *ListClusterHostsURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on V2GetClusterURL")
+		return nil, errors.New("scheme is required for a full url on ListClusterHostsURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on V2GetClusterURL")
+		return nil, errors.New("host is required for a full url on ListClusterHostsURL")
 	}
 
 	base, err := o.Build()
@@ -111,6 +138,6 @@ func (o *V2GetClusterURL) BuildFull(scheme, host string) (*url.URL, error) {
 }
 
 // StringFull returns the string representation of a complete url
-func (o *V2GetClusterURL) StringFull(scheme, host string) string {
+func (o *ListClusterHostsURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }
