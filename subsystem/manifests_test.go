@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
@@ -135,6 +136,58 @@ spec:
 			}
 
 			Expect(found).Should(BeFalse())
+		})
+	})
+
+	Context("manifest tests where cluster doesn't exist", func() {
+		var non_exiting_id = strfmt.UUID(uuid.New().String())
+
+		It("create manifest returns not found", func() {
+			_, err := userBMClient.Manifests.V2CreateClusterManifest(ctx, &manifests.V2CreateClusterManifestParams{
+				ClusterID: non_exiting_id,
+				CreateManifestParams: &models.CreateManifestParams{
+					Content:  &base64Content,
+					FileName: &manifestFile.FileName,
+					Folder:   &manifestFile.Folder,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(manifests.NewV2CreateClusterManifestNotFound()))
+		})
+
+		It("list manifests returns not found", func() {
+			_, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
+				ClusterID: non_exiting_id,
+			})
+			Expect(err).To(BeAssignableToTypeOf(manifests.NewV2ListClusterManifestsNotFound()))
+
+		})
+
+		It("list manifests returns not found", func() {
+			_, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
+				ClusterID: non_exiting_id,
+			})
+			Expect(err).To(BeAssignableToTypeOf(manifests.NewV2ListClusterManifestsNotFound()))
+		})
+
+		It("download manifests returns not found", func() {
+			buffer := new(bytes.Buffer)
+
+			_, err := userBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
+				ClusterID: non_exiting_id,
+				FileName:  manifestFile.FileName,
+				Folder:    &manifestFile.Folder,
+			}, buffer)
+			Expect(err).To(BeAssignableToTypeOf(manifests.NewV2DownloadClusterManifestNotFound()))
+		})
+
+		It("delete manifests returns not found", func() {
+			_, err := userBMClient.Manifests.V2DeleteClusterManifest(ctx, &manifests.V2DeleteClusterManifestParams{
+				ClusterID: non_exiting_id,
+				FileName:  manifestFile.FileName,
+				Folder:    &manifestFile.Folder,
+			})
+			Expect(err).To(BeAssignableToTypeOf(manifests.NewV2DeleteClusterManifestNotFound()))
+
 		})
 	})
 
