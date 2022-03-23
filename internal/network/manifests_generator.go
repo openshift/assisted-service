@@ -188,12 +188,8 @@ func createChronyManifestContent(c *common.Cluster, role models.HostRole, log lo
 		}
 
 		for _, source := range ntpSources {
-			if source.SourceState == models.SourceStateSynced {
-				if !funk.Contains(sources, source.SourceName) {
-					sources = append(sources, source.SourceName)
-				}
-
-				break
+			if !funk.Contains(sources, source.SourceName) {
+				sources = append(sources, source.SourceName)
 			}
 		}
 	}
