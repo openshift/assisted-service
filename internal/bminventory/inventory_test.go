@@ -10547,21 +10547,6 @@ var _ = Describe("TestRegisterCluster", func() {
 				Expect(actual.MachineNetworks).To(Equal(common.TestDualStackNetworking.MachineNetworks))
 				Expect(actual.ServiceNetworks).To(Equal(common.TestDualStackNetworking.ServiceNetworks))
 			})
-			It("Dual-stack with empty VIPs", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
-				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
-						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
-						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
-						VipDhcpAllocation: swag.Bool(false),
-					},
-				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <> does not belong to machine-network-cidr <1.2.3.0/24>")
-			})
 		})
 
 	})

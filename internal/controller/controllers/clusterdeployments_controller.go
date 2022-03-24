@@ -1092,6 +1092,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(false),
+		APIVip:                clusterInstall.Spec.APIVIP,
 		IngressVip:            clusterInstall.Spec.IngressVIP,
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
 		CPUArchitecture:       swag.StringValue(releaseImage.CPUArchitecture),
@@ -1110,6 +1111,14 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		for _, cidr := range clusterInstall.Spec.Networking.ServiceNetwork {
 			clusterParams.ServiceNetworks = append(clusterParams.ServiceNetworks, &models.ServiceNetwork{
 				Cidr: models.Subnet(cidr),
+			})
+		}
+	}
+
+	if len(clusterInstall.Spec.Networking.MachineNetwork) > 0 {
+		for _, net := range clusterInstall.Spec.Networking.MachineNetwork {
+			clusterParams.MachineNetworks = append(clusterParams.MachineNetworks, &models.MachineNetwork{
+				Cidr: models.Subnet(net.CIDR),
 			})
 		}
 	}
