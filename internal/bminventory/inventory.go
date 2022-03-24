@@ -3867,6 +3867,8 @@ func (b *bareMetalInventory) GetCommonHostInternal(_ context.Context, infraEnvId
 	return common.GetHostFromDB(b.db, infraEnvId, hostId)
 }
 
+// Updates host's approved field by a specified flag.
+// Used execlusively by kube-api.
 func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, infraEnvId, hostId string, approved bool) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Updating Approved to %t Host %s InfraEnv %s", approved, hostId, infraEnvId)
@@ -3874,7 +3876,7 @@ func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, inf
 	if err != nil {
 		return err
 	}
-	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and infra_env_id = ?"), hostId, infraEnvId).Update("approved", approved).Error
+	err = b.db.Model(&common.Host{}).Where("id = ? and infra_env_id = ?", hostId, infraEnvId).Update("approved", approved).Error
 	if err != nil {
 		log.WithError(err).Errorf("failed to update 'approved' in host: %s", hostId)
 		return err
