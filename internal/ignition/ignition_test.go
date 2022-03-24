@@ -35,6 +35,7 @@ import (
 
 var (
 	cluster              *common.Cluster
+	hostInventory        string
 	installerCacheDir    string
 	log                  = logrus.New()
 	workDir              string
@@ -58,6 +59,8 @@ var _ = BeforeEach(func() {
 		},
 	}
 	cluster.ImageInfo = &models.ImageInfo{}
+
+	hostInventory = `{"bmc_address":"0.0.0.0","bmc_v6address":"::/0","boot":{"current_boot_mode":"bios"},"cpu":{"architecture":"x86_64","count":4,"flags":["fpu","vme","de","pse","tsc","msr","pae","mce","cx8","apic","sep","mtrr","pge","mca","cmov","pat","pse36","clflush","mmx","fxsr","sse","sse2","ss","syscall","nx","pdpe1gb","rdtscp","lm","constant_tsc","arch_perfmon","rep_good","nopl","xtopology","cpuid","tsc_known_freq","pni","pclmulqdq","vmx","ssse3","fma","cx16","pcid","sse4_1","sse4_2","x2apic","movbe","popcnt","tsc_deadline_timer","aes","xsave","avx","f16c","rdrand","hypervisor","lahf_lm","abm","3dnowprefetch","cpuid_fault","invpcid_single","pti","ssbd","ibrs","ibpb","stibp","tpr_shadow","vnmi","flexpriority","ept","vpid","ept_ad","fsgsbase","tsc_adjust","bmi1","hle","avx2","smep","bmi2","erms","invpcid","rtm","mpx","avx512f","avx512dq","rdseed","adx","smap","clflushopt","clwb","avx512cd","avx512bw","avx512vl","xsaveopt","xsavec","xgetbv1","xsaves","arat","umip","pku","ospke","md_clear","arch_capabilities"],"frequency":2095.076,"model_name":"Intel(R) Xeon(R) Gold 6152 CPU @ 2.10GHz"},"disks":[{"by_path":"/dev/disk/by-path/pci-0000:00:06.0","drive_type":"HDD","model":"unknown","name":"vda","path":"/dev/vda","serial":"unknown","size_bytes":21474836480,"vendor":"0x1af4","wwn":"unknown"}],"hostname":"test-infra-cluster-master-1.redhat.com","interfaces":[{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.126.11/24"],"ipv6_addresses":["fe80::5054:ff:fe42:1e8d/64"],"mac_address":"52:54:00:42:1e:8d","mtu":1500,"name":"eth0","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"},{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.140.133/24"],"ipv6_addresses":["fe80::5054:ff:feca:7b16/64"],"mac_address":"52:54:00:ca:7b:16","mtu":1500,"name":"eth1","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"}],"memory":{"physical_bytes":17809014784,"usable_bytes":17378611200},"system_vendor":{"manufacturer":"Red Hat","product_name":"KVM"}}`
 
 	ctrl = gomock.NewController(GinkgoT())
 	mockOperatorManager = operators.NewMockAPI(ctrl)
@@ -97,13 +100,11 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		}
 	  }`
 
-	const inventory1 = `{"bmc_address":"0.0.0.0","bmc_v6address":"::/0","boot":{"current_boot_mode":"bios"},"cpu":{"architecture":"x86_64","count":4,"flags":["fpu","vme","de","pse","tsc","msr","pae","mce","cx8","apic","sep","mtrr","pge","mca","cmov","pat","pse36","clflush","mmx","fxsr","sse","sse2","ss","syscall","nx","pdpe1gb","rdtscp","lm","constant_tsc","arch_perfmon","rep_good","nopl","xtopology","cpuid","tsc_known_freq","pni","pclmulqdq","vmx","ssse3","fma","cx16","pcid","sse4_1","sse4_2","x2apic","movbe","popcnt","tsc_deadline_timer","aes","xsave","avx","f16c","rdrand","hypervisor","lahf_lm","abm","3dnowprefetch","cpuid_fault","invpcid_single","pti","ssbd","ibrs","ibpb","stibp","tpr_shadow","vnmi","flexpriority","ept","vpid","ept_ad","fsgsbase","tsc_adjust","bmi1","hle","avx2","smep","bmi2","erms","invpcid","rtm","mpx","avx512f","avx512dq","rdseed","adx","smap","clflushopt","clwb","avx512cd","avx512bw","avx512vl","xsaveopt","xsavec","xgetbv1","xsaves","arat","umip","pku","ospke","md_clear","arch_capabilities"],"frequency":2095.076,"model_name":"Intel(R) Xeon(R) Gold 6152 CPU @ 2.10GHz"},"disks":[{"by_path":"/dev/disk/by-path/pci-0000:00:06.0","drive_type":"HDD","model":"unknown","name":"vda","path":"/dev/vda","serial":"unknown","size_bytes":21474836480,"vendor":"0x1af4","wwn":"unknown"}],"hostname":"test-infra-cluster-master-1.redhat.com","interfaces":[{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.126.11/24"],"ipv6_addresses":["fe80::5054:ff:fe42:1e8d/64"],"mac_address":"52:54:00:42:1e:8d","mtu":1500,"name":"eth0","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"},{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.140.133/24"],"ipv6_addresses":["fe80::5054:ff:feca:7b16/64"],"mac_address":"52:54:00:ca:7b:16","mtu":1500,"name":"eth1","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"}],"memory":{"physical_bytes":17809014784,"usable_bytes":17378611200},"system_vendor":{"manufacturer":"Red Hat","product_name":"KVM"}}`
-
 	var (
 		err          error
 		examplePath  string
 		bmh          *bmh_v1alpha1.BareMetalHost
-		config       config_32_types.Config
+		config       *config_32_types.Config
 		mockS3Client *s3wrapper.MockAPI
 	)
 
@@ -116,7 +117,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 
 		cluster.Hosts = []*models.Host{
 			{
-				Inventory:         inventory1,
+				Inventory:         hostInventory,
 				RequestedHostname: "example1",
 				Role:              models.HostRoleMaster,
 			},
@@ -126,9 +127,16 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 
 		err = g.updateBootstrap(context.Background(), examplePath)
 
+		// TODO(deprecate-ignition-3.1.0)
 		bootstrapBytes, _ := ioutil.ReadFile(examplePath)
-		config, _, err1 = config_32.Parse(bootstrapBytes)
+		config, err1 = ParseToLatest(bootstrapBytes)
 		Expect(err1).NotTo(HaveOccurred())
+		Expect(config.Ignition.Version).To(Equal("3.2.0"))
+		bytes, err1 := json.Marshal(config)
+		Expect(err1).ToNot(HaveOccurred())
+		v32Config, _, err1 := config_32.Parse(bytes)
+		Expect(err1).ToNot(HaveOccurred())
+		Expect(v32Config.Ignition.Version).To(Equal("3.2.0"))
 
 		var file *config_32_types.File
 		foundNMConfig := false
@@ -804,15 +812,24 @@ var _ = Describe("downloadManifest", func() {
 })
 
 var _ = Describe("ParseToLatest", func() {
+	const v99ignition = `{"ignition": {"version": "9.9.0"},"storage": {"files": []}}`
 	const v32ignition = `{"ignition": {"version": "3.2.0"},"storage": {"files": []}}`
 	const v31ignition = `{"ignition": {"version": "3.1.0"},"storage": {"files": []}}`
-	It("parses a v32 config", func() {
+	const v32override = `{"ignition": {"version": "3.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+	const v31override = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+	It("parses a v32 config as 3.2.0", func() {
 		config, err := ParseToLatest([]byte(v32ignition))
 		Expect(err).ToNot(HaveOccurred())
 		Expect(config.Ignition.Version).To(Equal("3.2.0"))
+
+		bytes, err := json.Marshal(config)
+		Expect(err).ToNot(HaveOccurred())
+		v32Config, _, err := config_32.Parse(bytes)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(v32Config.Ignition.Version).To(Equal("3.2.0"))
 	})
 
-	It("parses a v31 config", func() {
+	It("parses a v31 config as 3.1.0", func() {
 		config, err := ParseToLatest([]byte(v31ignition))
 		Expect(err).ToNot(HaveOccurred())
 		Expect(config.Ignition.Version).To(Equal("3.1.0"))
@@ -822,6 +839,41 @@ var _ = Describe("ParseToLatest", func() {
 		v31Config, _, err := config_31.Parse(bytes)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(v31Config.Ignition.Version).To(Equal("3.1.0"))
+	})
+
+	It("parses a v31 config with v31 override as 3.1.0", func() {
+		merge, err := MergeIgnitionConfig([]byte(v31ignition), []byte(v31override))
+		Expect(err).ToNot(HaveOccurred())
+
+		config, err := ParseToLatest([]byte(merge))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(config.Ignition.Version).To(Equal("3.1.0"))
+
+		bytes, err := json.Marshal(config)
+		Expect(err).ToNot(HaveOccurred())
+		v31Config, _, err := config_31.Parse(bytes)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(v31Config.Ignition.Version).To(Equal("3.1.0"))
+	})
+
+	It("parses a v31 config with v32 override as 3.2.0", func() {
+		merge, err := MergeIgnitionConfig([]byte(v31ignition), []byte(v32override))
+		Expect(err).ToNot(HaveOccurred())
+
+		config, err := ParseToLatest([]byte(merge))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(config.Ignition.Version).To(Equal("3.2.0"))
+
+		bytes, err := json.Marshal(config)
+		Expect(err).ToNot(HaveOccurred())
+		v32Config, _, err := config_32.Parse(bytes)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(v32Config.Ignition.Version).To(Equal("3.2.0"))
+	})
+
+	It("does not parse v99 config", func() {
+		_, err := ParseToLatest([]byte(v99ignition))
+		Expect(err.Error()).To(ContainSubstring("unsupported config version"))
 	})
 })
 
@@ -1023,6 +1075,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		Expect(config.Ignition.Version).To(Equal("3.1.0"))
 	})
 
+	// TODO(deprecate-ignition-3.1.0)
 	It("produces a valid ignition v3.1 spec with overrides", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
@@ -1041,7 +1094,31 @@ var _ = Describe("IgnitionBuilder", func() {
 		config, report, err = config_31.Parse([]byte(text))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(report.IsFatal()).To(BeFalse())
+		Expect(config.Ignition.Version).To(Equal("3.1.0"))
 		Expect(len(config.Storage.Files)).To(Equal(numOfFiles + 1))
+	})
+
+	It("produces a valid ignition spec with v3.2 overrides", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+
+		config, report, err := config_31.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		Expect(config.Ignition.Version).To(Equal("3.1.0"))
+		numOfFiles := len(config.Storage.Files)
+
+		infraEnv.IgnitionConfigOverride = `{"ignition": {"version": "3.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		text, err = builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+
+		config2, report, err := config_32.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		Expect(config2.Ignition.Version).To(Equal("3.2.0"))
+		Expect(len(config2.Storage.Files)).To(Equal(numOfFiles + 1))
 	})
 
 	It("fails when given overrides with an incompatible version", func() {
@@ -1050,6 +1127,22 @@ var _ = Describe("IgnitionBuilder", func() {
 		_, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 		Expect(err).To(HaveOccurred())
+	})
+
+	It("applies day2 overrides successfuly", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		cluster.Hosts = []*models.Host{{
+			ID:                      &hostID,
+			RequestedHostname:       "day2worker.example.com",
+			Role:                    models.HostRoleWorker,
+			IgnitionConfigOverrides: `{"ignition": {"version": "3.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
+		}}
+		serviceBaseURL := "http://10.56.20.70:7878"
+
+		text, err := builder.FormatSecondDayWorkerIgnitionFile(serviceBaseURL, nil, "", cluster.Hosts[0])
+
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring("/tmp/example"))
 	})
 
 	Context("static network config", func() {
@@ -1208,6 +1301,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		builder                           IgnitionBuilder
 		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
 		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockHost                          *models.Host
 	)
 
 	BeforeEach(func() {
@@ -1215,13 +1309,14 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockHost = &models.Host{Inventory: hostInventory}
 		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
 	})
 
 	Context("test custom ignition endpoint", func() {
 
 		It("are rendered properly without ca cert and token", func() {
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, "")
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, "", mockHost)
 			Expect(err).NotTo(HaveOccurred())
 
 			ignConfig, _, err := config_31.Parse(ign)
@@ -1233,7 +1328,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 
 		It("are rendered properly with token", func() {
 			token := "xyzabc123"
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, token)
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, token, mockHost)
 			Expect(err).NotTo(HaveOccurred())
 
 			ignConfig, _, err := config_31.Parse(ign)
@@ -1250,7 +1345,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 				"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 				"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
 			encodedCa := base64.StdEncoding.EncodeToString([]byte(ca))
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &encodedCa, "")
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &encodedCa, "", mockHost)
 			Expect(err).NotTo(HaveOccurred())
 
 			ignConfig, _, err := config_31.Parse(ign)
@@ -1267,7 +1362,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 				"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 				"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
 			encodedCa := base64.StdEncoding.EncodeToString([]byte(ca))
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &encodedCa, token)
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &encodedCa, token, mockHost)
 
 			Expect(err).NotTo(HaveOccurred())
 
