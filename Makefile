@@ -84,6 +84,7 @@ HW_REQUIREMENTS := $(or ${HW_REQUIREMENTS}, $(shell cat $(ROOT_DIR)/data/default
 DISABLED_HOST_VALIDATIONS := $(or ${DISABLED_HOST_VALIDATIONS}, "")
 DISABLED_STEPS := $(or ${DISABLED_STEPS}, "")
 DISABLE_TLS := $(or ${DISABLE_TLS},false)
+ENABLE_ORG_TENANCY := $(or ${ENABLE_ORG_TENANCY},False)
 
 ifeq ($(DISABLE_TLS),true)
 	DISABLE_TLS_CMD := --disable-tls
@@ -302,7 +303,7 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
 		--disk-encryption-support $(DISK_ENCRYPTION_SUPPORT) --hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' \
 		--disabled-host-validations "$(DISABLED_HOST_VALIDATIONS)" --disabled-steps "$(DISABLED_STEPS)" \
-		$(DISABLE_TLS_CMD)
+		--enable-org-tenancy $(ENABLE_ORG_TENANCY) $(DISABLE_TLS_CMD)
 ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
 	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
 		--namespace "$(NAMESPACE)"  --apply-manifest $(APPLY_MANIFEST) --ca-file-path $(MIRROR_REG_CA_FILE) --registries-file-path $(REGISTRIES_FILE_PATH)
@@ -348,7 +349,7 @@ create-ocp-manifests:
 
 ci-deploy-for-subsystem: _verify_cluster generate-keys
 	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
-	export IPV6_SUPPORT="True" && \
+	export IPV6_SUPPORT="True" export ENABLE_ORG_TENANCY="True" && \
 	$(MAKE) deploy-wiremock deploy-all
 
 patch-service: _verify_cluster update-local-image
@@ -400,7 +401,7 @@ subsystem-run: test subsystem-clean
 subsystem-run-kube-api: enable-kube-api-for-subsystem test-kube-api subsystem-clean
 
 test:
-	$(MAKE) _run_subsystem_test AUTH_TYPE=rhsso
+	$(MAKE) _run_subsystem_test AUTH_TYPE=rhsso ENABLE_ORG_TENANCY=true
 
 test-kube-api:
 	$(MAKE) _run_subsystem_test AUTH_TYPE=local ENABLE_KUBE_API=true FOCUS="$(or ${FOCUS},kube-api)"

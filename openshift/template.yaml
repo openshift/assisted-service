@@ -114,6 +114,9 @@ parameters:
 - name: CNV_SNO_INSTALL_HPP
   value: "true"
   required: false
+- name: ENABLE_ORG_TENANCY
+  value: "false"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
@@ -325,6 +328,8 @@ objects:
                 value: ${INFRAENV_DELETED_INACTIVE_AFTER}
               - name: CNV_SNO_INSTALL_HPP
                 value: ${CNV_SNO_INSTALL_HPP}
+              - name: ENABLE_ORG_TENANCY
+                value: ${ENABLE_ORG_TENANCY}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
