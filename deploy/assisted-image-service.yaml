@@ -46,6 +46,8 @@ items:
                 value: http
               - name: ASSISTED_SERVICE_HOST
                 value: assisted-service:8090
+              - name: ALLOWED_DOMAINS
+                value: "*"
         serviceAccountName: assisted-service
 - apiVersion: v1
   kind: Service
